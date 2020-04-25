@@ -2,7 +2,7 @@ import itertools
 from dataclasses import dataclass
 from decimal import Decimal as D
 from functools import lru_cache
-from typing import FrozenSet as ASet, cast, Mapping, Optional, Sequence, Tuple, Union
+from typing import cast, FrozenSet as ASet, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from frozendict import frozendict
@@ -10,6 +10,7 @@ from typing_extensions import Literal
 
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import ZException, ZValueError
+from zuper_typing import debug_print
 from . import logger
 from .access import get_accessible_states
 from .game_def import (
@@ -288,12 +289,20 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
         assert res in COMP_OUTCOMES, (res, self.p)
         return res
 
+    def __repr__(self):
+        d = {'p': self.p}
+        return 'CollisionPreference:\n ' + debug_print(d)
 
-class VehiclePreferencesCollTime:  # (Preference[Combined[CollisionCost, D]]):
+
+class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
     def __init__(self):
         collision = CollisionPreference()
         time = SmallerPreferred()
         self.lexi = LexicographicPreference((collision, time))
+
+    def __repr__(self):
+        d = {'lexi': self.lexi}
+        return 'VehiclePreferencesCollTime: ' + debug_print(d)
 
     def compare(
         self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]
@@ -417,8 +426,8 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     P1 = PlayerName("p1")
     P2 = PlayerName("p2")
-    p1_initial =frozenset({VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
-    p2_initial =frozenset({VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
+    p1_initial = frozenset({VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
+    p2_initial = frozenset({VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
         max_wait=max_wait,

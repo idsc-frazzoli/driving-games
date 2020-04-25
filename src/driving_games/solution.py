@@ -7,7 +7,8 @@ from typing import Callable, Dict, FrozenSet, Generic, Iterator, Mapping, Option
 from frozendict import frozendict
 from networkx import simple_cycles
 
-from zuper_commons.types import ZNotImplementedError, ZValueError
+from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
+from zuper_typing import debug_print
 from . import logger
 from .equilibria import analyze_equilibria
 from .game_def import Combined, GamePreprocessed, PlayerName
@@ -15,6 +16,7 @@ from .poset import COMP_OUTCOMES, ComparisonOutcome, Preference
 from .poset_sets import SetPreference1
 
 ASet = FrozenSet
+
 
 @dataclass
 class SolverParams:
@@ -152,7 +154,10 @@ def solve(
             game_value, actions = solve_1_player(sc, gn, solved)
     else:
         if gn.joint_final_rewards:  # final costs:
-            game_value, actions = solve_final(gn)
+            game_value, actions = solve_final_joint(gn)
+        elif set(gn.states) == set(gn.is_final):
+            # They both finished
+            game_value, actions = solve_final_personal_both(gn)
         else:
             game_value, actions = solve_equilibria(sc, gn, solved)
 
@@ -171,24 +176,30 @@ def solve_equilibria(
     gn: GameNode[X, U, Y, RP, RJ],
     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
 ):
+    if not gn.moves:
+        msg = 'Cannot solve_equilibria if there are no moves '
+        raise ZValueError(msg, gn=replace(gn, outcomes=None))
     # logger.info(gn=gn, solved=solved)
     # logger.info(possibilities=list(solved))
-
+    players_active = set(gn.moves)
     preferences: Dict[PlayerName, Preference[ASet[Outcome[RP, RJ]]]]
     preferences = {}
-    for player_name, player in sc.gp.game.players.items():
+    for player_name in players_active:
         preferences[player_name] = PlayerPreferences(sc.gp, player_name, SetPreference1)
-    ea = analyze_equilibria(solved, preferences)
-    if len(ea.nash_equilibria) == 1:
-        eq = list(ea.nash_equilibria)[0]
+    try:
+        ea = analyze_equilibria(solved, preferences)
+    except ZValueError as e:
+        raise ZValueError(moves=gn.moves, states=gn.states) from e
+    if len(ea.nondom_nash_equilibria) == 1:
+        eq = list(ea.nondom_nash_equilibria)[0]
         game_value = solved[eq]
         actions = eq
         return game_value, actions
     else:
-        outcomes = set(ea.nash_equilibria.values())
+        outcomes = set(ea.nondom_nash_equilibria.values())
         if len(outcomes) == 1:
             game_value = list(outcomes)[0]
-            actions = set(ea.nash_equilibria)
+            actions = set(ea.nondom_nash_equilibria)
             return game_value, actions
         msg = 'Multiple Nash Equilibria'
         raise ZNotImplementedError(msg, ea=ea)
@@ -199,7 +210,9 @@ M = TypeVar("M")
 
 
 class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
-    pt: Preference[ASet[Tuple[Optional[RJ], RP]]]
+    pt: Preference[ASet[Combined[RJ, RP]]]
+    name: PlayerName
+    gp: GamePreprocessed
 
     def __init__(
         self,
@@ -213,9 +226,13 @@ class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
         p = self.gp.game.players[self.name].preferences
         self.pt = transformer(p)
 
+    def __repr__(self):
+        d = {'name': self.name, 'pt': self.pt}
+        return 'PlayerPrefs: ' + debug_print(d)
     def transform_to_private(self, a: ASet[Outcome[RP, RJ]]) -> ASet[Combined[RJ, RP]]:
         res = set()
         for s in a:
+            check_isinstance(a, Outcome, _self=self)
             p = Combined(joint=s.joint.get(self.name, None), personal=s.private[self.name])
             # logger.info(p=p)
             res.add(p)
@@ -223,6 +240,8 @@ class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
 
     def compare(self, a: ASet[Outcome[RP, RJ]], b: ASet[Outcome[RP, RJ]]) -> ComparisonOutcome:
         """ <= for the poset """
+        check_isinstance(a, set, _self=self)
+        check_isinstance(b, set, _self=self)
         a_p = self.transform_to_private(a)
         b_p = self.transform_to_private(b)
         res = self.pt.compare(a_p, b_p)
@@ -230,13 +249,19 @@ class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
         return res
 
 
-def solve_final(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
+def solve_final_joint(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
     game_value = frozenset({Outcome(private=frozendict(), joint=gn.joint_final_rewards)})
     actions = frozendict()
     return game_value, actions
 
 
-def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ])-> Tuple[ASet[Outcome], Mapping]:
+def solve_final_personal_both(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
+    game_value = frozenset({Outcome(private=gn.is_final, joint=frozendict())})
+    actions = frozendict()
+    return game_value, actions
+
+
+def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
     p = list(gn.states)[0]
     # logger.info(f"final for {p}")
     game_value = frozenset({Outcome(private=frozendict({p: gn.is_final[p]}), joint=frozendict())})
@@ -248,7 +273,7 @@ def solve_1_player(
     sc: SolvingContext[X, U, Y, RP, RJ],
     gn: GameNode[X, U, Y, RP, RJ],
     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
-)-> Tuple[ASet[Outcome], Mapping]:
+) -> Tuple[ASet[Outcome], Mapping]:
     p = list(gn.states)[0]
     action = list(gn.moves[p])[0]
     actions = frozendict({p: frozenset({action})})
