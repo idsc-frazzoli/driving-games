@@ -5,7 +5,6 @@ import networkx as nx
 from networkx import convert_node_labels_to_integers
 
 from reprep import MIME_GRAPHML, Report
-
 from . import logger
 from .driving_example import VehicleState
 from .game_def import GamePlayer, GamePreprocessed, PlayerName
@@ -20,9 +19,7 @@ def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Re
     return r
 
 
-def report_player(
-    game_pre: GamePreprocessed, player_name: PlayerName, player: GamePlayer
-):
+def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: GamePlayer):
     G = game_pre.players_pre[player_name].player_graph
     r = Report(nid=player_name)
 
@@ -45,9 +42,7 @@ def report_player(
     pos = {_: pos_node(_) for _ in G.nodes}
 
     with r.plot("one") as plt:
-        nx.draw(
-            G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size
-        )
+        nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size)
         plt.xlabel("x")
         plt.ylabel("v")
     logger.info("layout")

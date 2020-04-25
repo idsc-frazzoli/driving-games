@@ -30,9 +30,7 @@ def preprocess_game(game: Game, dt: D) -> GamePreprocessed:
         for player_name, player in game.players.items()
     }
 
-    return GamePreprocessed(
-        game=game, dt=dt, players_pre=players_pre, game_graph=game_graph
-    )
+    return GamePreprocessed(game=game, dt=dt, players_pre=players_pre, game_graph=game_graph)
 
 
 def get_accessible_states(
@@ -136,23 +134,16 @@ def get_game_graph(game: Game, dt: D) -> MultiDiGraph:
                 S2 = frozendict({p1: s1, p2: s2})
                 if S2 not in G.nodes:
                     is_final1 = (
-                        P1.personal_reward_structure.is_personal_final_state(s1)
-                        if s1
-                        else True
+                        P1.personal_reward_structure.is_personal_final_state(s1) if s1 else True
                     )
                     is_final2 = (
-                        P2.personal_reward_structure.is_personal_final_state(s2)
-                        if s2
-                        else True
+                        P2.personal_reward_structure.is_personal_final_state(s2) if s2 else True
                     )
 
                     in_game = "AB" if (s1 and s2) else ("A" if s1 else "B")
                     if s1 and s2:
                         is_joint_final = (
-                            len(
-                                game.joint_reward.is_joint_final_state({p1: s1, p2: s2})
-                            )
-                            > 0
+                            len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2})) > 0
                         )
                     else:
                         is_joint_final = False
@@ -169,9 +160,7 @@ def get_game_graph(game: Game, dt: D) -> MultiDiGraph:
                         if S2 not in stack:
                             stack.append(S2)
                 G.add_edge(S, S2, action=frozendict({p1: u1, p2: u2}))
-                G.nodes[S2]["generation"] = min(
-                    G.nodes[S2]["generation"], generation + 1
-                )
+                G.nodes[S2]["generation"] = min(G.nodes[S2]["generation"], generation + 1)
     return G
 
 
@@ -183,24 +172,24 @@ def compute_graph_layout(G: MultiDiGraph, iterations=30) -> None:
         others.append(n)
 
     logger.info("reorderdering")
-    if False:
-        for g, ordered in list(generations.items()):
-            if g == 0:
-                continue
-            affinities = {}
-            for n in ordered:
-                pred_order = []
-                preds = G.predecessors(n)
-                for p in preds:
-                    gp = G.nodes[p]["generation"]
-                    prev_ = generations[gp]
-                    pred_order.append(prev_.index(p))
-                val = np.mean(pred_order) + np.median(pred_order)
-                affinities[n] = val
-
-            reordered = sorted(ordered, key=lambda _: affinities[_])
-            generations[g] = reordered
-        logger.info("reorderdering")
+    # if False:
+    #     for g, ordered in list(generations.items()):
+    #         if g == 0:
+    #             continue
+    #         affinities = {}
+    #         for n in ordered:
+    #             pred_order = []
+    #             preds = G.predecessors(n)
+    #             for p in preds:
+    #                 gp = G.nodes[p]["generation"]
+    #                 prev_ = generations[gp]
+    #                 pred_order.append(prev_.index(p))
+    #             val = np.mean(pred_order) + np.median(pred_order)
+    #             affinities[n] = val
+    #
+    #         reordered = sorted(ordered, key=lambda _: affinities[_])
+    #         generations[g] = reordered
+    #     logger.info("reorderdering")
 
     for it in range(iterations):
         g = random.choice(list(generations))
@@ -225,10 +214,10 @@ def compute_graph_layout(G: MultiDiGraph, iterations=30) -> None:
             # val =  np.median(pred_order)
             affinities[n] = val
 
-        def ordering(n):
-            in_game = G.nodes[n]["in_game"]
-            i = ["A", "AB", "B"].index(in_game)
-            return (i, affinities[n])
+        def ordering(n_):
+            in_game = G.nodes[n_]["in_game"]
+            in1 = ["A", "AB", "B"].index(in_game)
+            return (in1, affinities[n_])
 
         reordered = sorted(ordered, key=ordering)
 

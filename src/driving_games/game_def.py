@@ -7,11 +7,12 @@ from typing import (
     Mapping,
     NewType,
     Optional,
-    Tuple,
     TypeVar,
 )
 
 from networkx import MultiDiGraph
+
+from .poset import Preference
 
 X = TypeVar("X")
 U = TypeVar("U")
@@ -64,13 +65,10 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
         """ Final reward """
 
 
-P = TypeVar("P")
-
-
-class Poset(Generic[P]):
-    @abstractmethod
-    def leq(self, a: P, b: P) -> bool:
-        """ <= for the poset """
+@dataclass(frozen=True, order=True, unsafe_hash=True)
+class Combined(Generic[RJ, RP]):
+    personal: RP
+    joint: Optional[RJ]
 
 
 @dataclass
@@ -84,7 +82,7 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # The reward
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
     # The preferences
-    preferences: Poset[Tuple[Optional[RJ], RP]]
+    preferences: Preference[Combined[RJ, RP]]
 
 
 @dataclass

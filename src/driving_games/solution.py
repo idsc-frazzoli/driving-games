@@ -2,14 +2,17 @@ import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import Generic, Iterator, Mapping, Optional
+from typing import Callable, Dict, Generic, Iterator, Mapping, Optional, Tuple, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
 
 from zuper_commons.types import ZValueError
 from . import logger
-from .game_def import GamePreprocessed, PlayerName
+from .equilibria import analyze_equilibria
+from .game_def import Combined, GamePreprocessed, PlayerName
+from .poset import COMP_OUTCOMES, ComparisonOutcome, Preference
+from .poset_sets import SetPreference1
 
 
 @dataclass
@@ -96,17 +99,18 @@ def all_combinations(actions: Mapping[PlayerName, ASet[U]]) -> Iterator[Mapping[
         yield c
 
 
-def reduce_future_1(gp: GamePreprocessed, outcome: Outcome[RP, RJ], action: Mapping[PlayerName, U],
-                    incremental: Mapping[PlayerName,
-                                         Mapping[U, RP]],
-                    ) -> Outcome[RP, RJ]:
+def reduce_future_1(
+    gp: GamePreprocessed,
+    outcome: Outcome[RP, RJ],
+    action: Mapping[PlayerName, U],
+    incremental: Mapping[PlayerName, Mapping[U, RP]],
+) -> Outcome[RP, RJ]:
     private = {}
-    logger.info(outcome=outcome, action=action, incremental=incremental)
+    # logger.info(outcome=outcome, action=action, incremental=incremental)
     for name, u in action.items():
         reduce = gp.game.players[name].personal_reward_structure.personal_reward_reduce
         inc = incremental[name][u]
         if name in outcome.private:
-
             private[name] = reduce(inc, outcome.private[name])
         else:
             private[name] = inc
@@ -114,9 +118,12 @@ def reduce_future_1(gp: GamePreprocessed, outcome: Outcome[RP, RJ], action: Mapp
     return Outcome(joint=outcome.joint, private=frozendict(private))
 
 
-def reduce_future(gp: GamePreprocessed, outcomes: ASet[Outcome[RP, RJ]],
-                  incremental: Mapping[PlayerName, Mapping[U, RP]],
-                  actions: Mapping[PlayerName, ASet[U]]) -> ASet[Outcome[RP, RJ]]:
+def reduce_future(
+    gp: GamePreprocessed,
+    outcomes: ASet[Outcome[RP, RJ]],
+    incremental: Mapping[PlayerName, Mapping[U, RP]],
+    actions: Mapping[PlayerName, ASet[U]],
+) -> ASet[Outcome[RP, RJ]]:
     action: Mapping[PlayerName, U]
     obtained = set()
     for action in all_combinations(actions):
@@ -131,10 +138,10 @@ def solve(
     if gn in sc.cache:
         return sc.cache[gn]
 
-    solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]] \
-        = {actions: reduce_future(sc.gp, solve(sc, v).game_value, gn.incremental, actions)
-           for actions,
-               v in gn.outcomes.items()}
+    solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]] = {
+        actions: reduce_future(sc.gp, solve(sc, v).game_value, gn.incremental, actions)
+        for actions, v in gn.outcomes.items()
+    }
 
     # if this is a 1-player node: easy
     if len(gn.states) == 1:
@@ -146,10 +153,7 @@ def solve(
         if gn.joint_final_rewards:  # final costs:
             game_value, actions = solve_final(gn)
         else:
-            game_value = set()
-            actions = {}
-            logger.info(gn=gn, solved=solved)
-            raise Exception()
+            game_value, actions = solve_equilibria(sc, gn, solved)
 
     res = SolvedGameNode(
         gn=gn,
@@ -161,6 +165,57 @@ def solve(
     return res
 
 
+def solve_equilibria(
+    sc: SolvingContext[X, U, Y, RP, RJ],
+    gn: GameNode[X, U, Y, RP, RJ],
+    solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
+):
+    logger.info(gn=gn, solved=solved)
+    logger.info(possibilities=list(solved))
+
+    preferences: Dict[PlayerName, Preference[ASet[Outcome[RP, RJ]]]]
+    preferences = {}
+    for player_name, player in sc.gp.game.players.items():
+        preferences[player_name] = PlayerPreferences(sc.gp, player_name, SetPreference1)
+    analyze_equilibria(solved, preferences)
+    raise Exception()
+
+
+M = TypeVar("M")
+
+
+class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
+    pt: Preference[ASet[Tuple[Optional[RJ], RP]]]
+
+    def __init__(
+        self,
+        gp: GamePreprocessed,
+        name: PlayerName,
+        transformer: Callable[[Preference[M]], Preference[ASet[M]]],
+    ):
+        self.gp = gp
+        self.name = name
+
+        p = self.gp.game.players[self.name].preferences
+        self.pt = transformer(p)
+
+    def transform_to_private(self, a: ASet[Outcome[RP, RJ]]) -> ASet[Combined[RJ, RP]]:
+        res = set()
+        for s in a:
+            p = Combined(joint=s.joint.get(self.name, None), personal=s.private[self.name])
+            logger.info(p=p)
+            res.add(p)
+        return frozenset(res)
+
+    def compare(self, a: ASet[Outcome[RP, RJ]], b: ASet[Outcome[RP, RJ]]) -> ComparisonOutcome:
+        """ <= for the poset """
+        a_p = self.transform_to_private(a)
+        b_p = self.transform_to_private(b)
+        res = self.pt.compare(a_p, b_p)
+        assert res in COMP_OUTCOMES, (res, self.pt)
+        return res
+
+
 def solve_final(gn: GameNode[X, U, Y, RP, RJ]):
     game_value = {Outcome(private=frozendict({}), joint=gn.joint_final_rewards)}
     actions = {}
@@ -169,14 +224,17 @@ def solve_final(gn: GameNode[X, U, Y, RP, RJ]):
 
 def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ]):
     p = list(gn.states)[0]
-    logger.info(f'final for {p}')
+    logger.info(f"final for {p}")
     game_value = {Outcome(private=frozendict({p: gn.is_final[p]}), joint={})}
     actions = {}
     return game_value, frozendict(actions)
 
 
-def solve_1_player(sc: SolvingContext[X, U, Y, RP, RJ], gn: GameNode[X, U, Y, RP, RJ],
-                   solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]]):
+def solve_1_player(
+    sc: SolvingContext[X, U, Y, RP, RJ],
+    gn: GameNode[X, U, Y, RP, RJ],
+    solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
+):
     p = list(gn.states)[0]
     action = list(gn.moves[p])[0]
     actions = frozendict({p: action})
@@ -184,19 +242,6 @@ def solve_1_player(sc: SolvingContext[X, U, Y, RP, RJ], gn: GameNode[X, U, Y, RP
     value = solved[actions]
     game_value = frozenset(value)
     return game_value, actions
-
-
-#
-# def solve_simple_1_player(
-#     sc: SolvingContext[X, U, Y, RP, RJ],
-#     gn: GameNode[X, U, Y, RP, RJ],
-#     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
-# ) -> Tuple[ASet[Outcome], Mapping[PlayerName, ASet[U]]]:
-#     assert len(gn.moves) == 1
-#     values = {k: _.game_value for k, _ in solved.items()}
-#     logger.info(gn=gn, values=values)
-#     raise Exception()
-#     return frozenset(), frozendict()
 
 
 @dataclass
@@ -268,9 +313,8 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
         states=frozendict(states),
         outcomes=frozendict(outcomes),
         incremental=frozendict({k: frozendict(v) for k, v in incremental.items()}),
-        # is_joint_final=frozenset(joint_final),
         joint_final_rewards=frozendict(joint_final_rewards),
-        is_final=frozendict(is_final)
+        is_final=frozendict(is_final),
     )
     ic.cache[N] = res
     return res

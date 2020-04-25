@@ -36,14 +36,9 @@ class App(QuickApp):
                 solver = solvers[solver_name]
                 game_preprocessed = context.comp(preprocess_game, game, solver.dt)
 
-                r = context.comp(
-                    create_report_preprocessed, game_name, game_preprocessed
-                )
+                r = context.comp(create_report_preprocessed, game_name, game_preprocessed)
                 context.add_report(
-                    r,
-                    "report_preprocessed",
-                    game_name=game_name,
-                    solver_name=solver_name,
+                    r, "report_preprocessed", game_name=game_name, solver_name=solver_name,
                 )
 
                 context.comp(solve1, game_preprocessed)
