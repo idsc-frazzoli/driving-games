@@ -13,7 +13,9 @@ from driving_games.game_def import (
     GamePlayer,
     JointRewardStructure,
     Observations,
-    PersonalRewardStructure, PlayerName, Poset,
+    PersonalRewardStructure,
+    PlayerName,
+    Poset,
 )
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import ZException, ZValueError
@@ -23,7 +25,7 @@ from .access import get_accessible_states
 Lights = Literal["none", "headlights", "turn_left", "turn_right"]
 # noinspection PyTypeChecker
 LightsValue: Sequence[Lights] = ["none", "headlights", "turn_left", "turn_right"]
-NO_LIGHTS = cast(Lights, 'none')
+NO_LIGHTS = cast(Lights, "none")
 SE2_disc = Tuple[D, D, D]  # in degrees
 
 
@@ -57,9 +59,14 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
     lights_commands: AbstractSet[Lights]
 
     def __init__(
-        self, max_speed: D, min_speed: D, available_accels: AbstractSet[D], max_wait: D, ref: SE2_disc,
+        self,
+        max_speed: D,
+        min_speed: D,
+        available_accels: AbstractSet[D],
+        max_wait: D,
+        ref: SE2_disc,
         max_path: D,
-        lights_commands: AbstractSet[Lights]
+        lights_commands: AbstractSet[Lights],
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -89,7 +96,9 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
             accels.remove(0)
 
         possible = {}
-        for light, accel in itertools.product(self.lights_commands, self.available_accels):
+        for light, accel in itertools.product(
+            self.lights_commands, self.available_accels
+        ):
             u = VehicleActions(accel=accel, light=light)
             try:
                 x2 = self.successor(x, u, dt)
@@ -112,12 +121,12 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         if v2 > self.max_speed:
             v2 = self.max_speed
         if not (self.min_speed <= v2 <= self.max_speed):
-            msg = 'Invalid action gives speed too fast'
+            msg = "Invalid action gives speed too fast"
             raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
         assert v2 >= 0
         x2 = x.x + (x.v + u.accel * dt) * dt
         if x2 > self.max_path:
-            msg = 'Invalid action gives out of bound'
+            msg = "Invalid action gives out of bound"
             raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
         # if wait2 > self.max_wait:
         #     msg = f'Invalid action gives wait of {wait2}'
@@ -126,7 +135,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         if v2 == 0:
             wait2 = x.wait + dt
             if wait2 > self.max_wait:
-                msg = f'Invalid action gives wait of {wait2}'
+                msg = f"Invalid action gives wait of {wait2}"
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = 0
@@ -223,8 +232,13 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
 X_ = VehicleState
 U_ = VehicleActions
 Y_ = VehicleObservation
-RP_ = int
-RJ_ = bool
+RP_ = D
+
+@dataclass(frozen=True, unsafe_hash=True, order=True)
+class CollisionCost:
+    v: D
+
+RJ_ = CollisionCost
 
 
 class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
@@ -233,11 +247,16 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
     def __init__(self, max_path: D):
         self.max_path = max_path
 
-    def personal_reward_incremental(self, x: VehicleState, u: VehicleActions) -> int:
-        return 1
+    def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D) -> D:
+        return dt
 
-    def personal_reward_reduce(self, r1: int, r2: int) -> int:
+    def personal_reward_reduce(self, r1: D, r2: D) -> D:
         return r1 + r2
+
+    def personal_final_reward(self, x: VehicleState) -> D:
+        # assert self.is_personal_final_state(x)
+        remaining = (self.max_path - x.x) / x.v
+        return remaining
 
     def is_personal_final_state(self, x: VehicleState) -> bool:
         # return x.x > self.max_path
@@ -246,7 +265,6 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
 
 
 class VehiclePreferencesCollTime(Poset[Tuple[Optional[bool], int]]):
-
     def leq(self, a: Tuple[Optional[bool], int], b: Tuple[Optional[bool], int]) -> bool:
         collision_a, time_a = a
         collision_b, time_b = b
@@ -256,7 +274,7 @@ class VehiclePreferencesCollTime(Poset[Tuple[Optional[bool], int]]):
             # (None, False):
             (True, None): False,
             (False, True): True,
-            (True, False): False
+            (True, False): False,
         }
         if (collision_a, collision_b) in col:
             return col[(collision_a, collision_b)]
@@ -279,22 +297,27 @@ class TwoVehicleSimpleParams:
 
 
 def get_game1() -> Game:
-    p = TwoVehicleSimpleParams(side=D(8), road=D(6), road_lane_offset=D(4),
-                               max_speed=D(5),
-                               min_speed=D(1),
-                               max_wait=D(1),
-                               # available_accels={D(-2), D(0), D(+1)},
-                               available_accels={D(-2), D(-1), D(0), D(+1)},
-                               collision_threshold=3.0,
-                               light_actions={NO_LIGHTS},
-                               dt=D(1)
-                               )
+    p = TwoVehicleSimpleParams(
+        side=D(8),
+        road=D(6),
+        road_lane_offset=D(4),
+        max_speed=D(5),
+        min_speed=D(1),
+        max_wait=D(1),
+        # available_accels={D(-2), D(0), D(+1)},
+        available_accels={D(-2), D(-1), D(0), D(+1)},
+        collision_threshold=3.0,
+        light_actions={NO_LIGHTS},
+        dt=D(1),
+    )
     return get_two_vehicle_game(p)
 
 
 def SE2_from_VehicleState(s: VehicleState):
     p = SE2_from_xytheta([float(s.x), 0, 0])
-    ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
+    ref = SE2_from_xytheta(
+        [float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))]
+    )
     return SE2.multiply(ref, p)
 
 
@@ -302,34 +325,42 @@ def pose_diff(a, b):
     S = SE2
     return S.multiply(S.inverse(a), b)
 
-def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float],...]:
-    ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
+
+def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float], ...]:
+    ref = SE2_from_xytheta(
+        [float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))]
+    )
     res = []
-    for i in range(-n,+n+1):
-        x2  = s.x + s.v * D(i) * dt
+    for i in range(-n, +n + 1):
+        x2 = s.x + s.v * D(i) * dt
         p = SE2_from_xytheta([float(x2), 0, 0])
-        p2 =  SE2.multiply(ref, p)
+        p2 = SE2.multiply(ref, p)
         x1, y1, _ = xytheta_from_SE2(p2)
-        res.append((x1,y1))
+        res.append((x1, y1))
     return tuple(res)
 
-class VehicleJointReward(JointRewardStructure):
+
+class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, CollisionCost]):
     def __init__(self, collision_threshold: float):
         self.collision_threshold = collision_threshold
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> AbstractSet[PlayerName]:
+    def is_joint_final_state(
+        self, xs: Mapping[PlayerName, VehicleState]
+    ) -> AbstractSet[PlayerName]:
+        if len(xs) == 1:
+            return set()
         if len(xs) != 2:
             raise NotImplementedError(len(xs))
-        s1,s2 = list(xs.values())
+        s1, s2 = list(xs.values())
         mind = 1000
         dt = D(0.5)
         n = 2
         samples1 = sample_from_traj(s1, dt=dt, n=n)
         samples2 = sample_from_traj(s2, dt=dt, n=n)
-        for (x1,y1), (x2,y2) in itertools.product(samples1,  samples2):
+        for (x1, y1), (x2, y2) in itertools.product(samples1, samples2):
             dist = np.hypot(x1 - x2, y1 - y2)
-            mind =min(mind, dist)
+            mind = min(mind, dist)
         # d = pose_diff(c1, c2)
         # x, y, _ = xytheta_from_SE2(d)
         # dist = np.hypot(x, y)
@@ -339,13 +370,15 @@ class VehicleJointReward(JointRewardStructure):
         else:
             return set()
 
-    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, bool]:
+    def joint_reward(
+        self, xs: Mapping[PlayerName, VehicleState]
+    ) -> Mapping[PlayerName, CollisionCost]:
         players = self.is_joint_final_state(xs)
         if not players:
             raise Exception()
         res = {}
         for p in players:
-            res[p] = True
+            res[p] = CollisionCost(xs[p].v)
         return res
 
 
@@ -365,26 +398,47 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     P1 = PlayerName("p1")
     P2 = PlayerName("p2")
-    p1_initial = {VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")}
-    p2_initial = {VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")}
+    p1_initial = {
+        VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")
+    }
+    p2_initial = {
+        VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")
+    }
     p1_dynamics = VehicleDynamics(
-        max_speed=max_speed, max_wait=max_wait, available_accels=available_accels,
-        max_path=max_path, ref=p1_ref,
+        max_speed=max_speed,
+        max_wait=max_wait,
+        available_accels=available_accels,
+        max_path=max_path,
+        ref=p1_ref,
         lights_commands=params.light_actions,
         min_speed=min_speed,
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
-        max_speed=max_speed, max_wait=max_wait, available_accels=available_accels,
-        max_path=max_path, ref=p2_ref,
-        lights_commands=params.light_actions
+        max_speed=max_speed,
+        max_wait=max_wait,
+        available_accels=available_accels,
+        max_path=max_path,
+        ref=p2_ref,
+        lights_commands=params.light_actions,
     )
-    p1_personal_reward_structure = p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
-    p1_possible_states = set(get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt).nodes)
-    p2_possible_states = set(get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt).nodes)
+    p1_personal_reward_structure = (
+        p2_personal_reward_structure
+    ) = VehiclePersonalRewardStructureTime(max_path)
+    p1_possible_states = set(
+        get_accessible_states(
+            p1_initial, p1_personal_reward_structure, p1_dynamics, dt
+        ).nodes
+    )
+    p2_possible_states = set(
+        get_accessible_states(
+            p2_initial, p2_personal_reward_structure, p2_dynamics, dt
+        ).nodes
+    )
 
-    logger.info('npossiblestates', p1=len(p1_possible_states),
-                p2=len(p2_possible_states))
+    logger.info(
+        "npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states)
+    )
     p1_observations = VehicleDirectObservations(
         my_possible_states=p1_possible_states, possible_states={P2: p2_possible_states}
     )
@@ -412,7 +466,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
         P1: p1,
         P2: p2,
     }
-    joint_reward: JointRewardStructure[X_, U_, RJ_] = VehicleJointReward(collision_threshold=params.collision_threshold)
+    joint_reward: JointRewardStructure[X_, U_, RJ_] = VehicleJointReward(
+        collision_threshold=params.collision_threshold
+    )
 
     game: Game[X_, U_, Y_, RP_, RJ_] = Game(players, joint_reward)
     return game

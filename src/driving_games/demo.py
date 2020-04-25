@@ -8,7 +8,7 @@ from quickapp import QuickApp, QuickAppContext
 from .access import preprocess_game
 from .driving_example import get_game1
 from .game_def import Game
-from .solution import SolverParams
+from .solution import solve1, SolverParams
 from .reports import create_report_preprocessed
 
 
@@ -16,8 +16,8 @@ class App(QuickApp):
     """ Main function """
 
     def define_options(self, params: DecentParams):
-        params.add_string_list('games', default=['game1'])
-        params.add_string_list('solvers', default=['solver1'])
+        params.add_string_list("games", default=["game1"])
+        params.add_string_list("solvers", default=["solver1"])
 
     def define_jobs_context(self, context: QuickAppContext):
         # Creates the examples
@@ -25,9 +25,7 @@ class App(QuickApp):
         games["game1"] = get_game1()
 
         # The solution parameters
-        solvers = {
-            "solver1": SolverParams(D(1.0))
-        }
+        solvers = {"solver1": SolverParams(D(1.0))}
 
         do_solvers = self.get_options().solvers
         do_games = self.get_options().games
@@ -38,8 +36,17 @@ class App(QuickApp):
                 solver = solvers[solver_name]
                 game_preprocessed = context.comp(preprocess_game, game, solver.dt)
 
-                r = context.comp(create_report_preprocessed, game_name, game_preprocessed)
-                context.add_report(r, "report_preprocessed", game_name=game_name, solver_name=solver_name)
+                r = context.comp(
+                    create_report_preprocessed, game_name, game_preprocessed
+                )
+                context.add_report(
+                    r,
+                    "report_preprocessed",
+                    game_name=game_name,
+                    solver_name=solver_name,
+                )
+
+                context.comp(solve1, game_preprocessed)
             #
             # # create solution
             # solution = context.comp(solve, city, sp)

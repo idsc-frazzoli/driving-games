@@ -20,19 +20,21 @@ def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Re
     return r
 
 
-def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: GamePlayer):
+def report_player(
+    game_pre: GamePreprocessed, player_name: PlayerName, player: GamePlayer
+):
     G = game_pre.players_pre[player_name].player_graph
     r = Report(nid=player_name)
 
-    with r.data_file(('player'), mime=MIME_GRAPHML) as fn:
+    with r.data_file(("player"), mime=MIME_GRAPHML) as fn:
         G2 = convert_node_labels_to_integers(G)
         for (n1, n2, d) in G2.edges(data=True):
             d.clear()
         nx.write_graphml(G2, fn)
 
     def color_node(n):
-        is_final = G.nodes[n]['is_final']
-        return 'blue' if is_final else 'green'
+        is_final = G.nodes[n]["is_final"]
+        return "blue" if is_final else "green"
 
     def pos_node(n: VehicleState):
         w = -n.wait * D(0.2)
@@ -42,12 +44,13 @@ def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: G
     node_color = [color_node(_) for _ in G.nodes]
     pos = {_: pos_node(_) for _ in G.nodes}
 
-    with r.plot('one') as plt:
-        nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues,
-                node_size=node_size)
-        plt.xlabel('x')
-        plt.ylabel('v')
-    logger.info('layout')
+    with r.plot("one") as plt:
+        nx.draw(
+            G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size
+        )
+        plt.xlabel("x")
+        plt.ylabel("v")
+    logger.info("layout")
     #
     # pos = graphviz_layout(G, prog='dot')
     # logger.info('drawing')
@@ -72,62 +75,67 @@ def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: G
 def report_game(game_pre: GamePreprocessed) -> Report:
     G = game_pre.game_graph
 
-    r = Report(nid='game')
+    r = Report(nid="game")
 
-    with r.data_file('game', mime=MIME_GRAPHML) as fn:
-        logger.info(f'done writing {fn}')
+    with r.data_file("game", mime=MIME_GRAPHML) as fn:
+        logger.info(f"done writing {fn}")
         G2 = convert_node_labels_to_integers(G)
         for (n1, n2, d) in G2.edges(data=True):
             d.clear()
         nx.write_graphml(G2, fn)
 
     def color_node(n):
-        is_initial = G.nodes[n]['is_initial']
-        is_final1 = G.nodes[n]['is_final1']
-        is_final2 = G.nodes[n]['is_final2']
-        is_joint_final = G.nodes[n]['is_joint_final']
-        in_game = G.nodes[n]['in_game']
+        is_initial = G.nodes[n]["is_initial"]
+        is_final1 = G.nodes[n]["is_final1"]
+        is_final2 = G.nodes[n]["is_final2"]
+        is_joint_final = G.nodes[n]["is_joint_final"]
+        in_game = G.nodes[n]["in_game"]
         if is_initial:
-            return 'red'
+            return "red"
         if is_joint_final:
-            return 'magenta'
-        if in_game == 'AB':
+            return "magenta"
+        if in_game == "AB":
             if is_final1 and is_final2:
-                return 'black'
-            return 'green'
-        elif in_game == 'A':
+                return "black"
+            return "green"
+        elif in_game == "A":
             if is_final1:
-                return 'teal'
+                return "teal"
             else:
-                return 'blue'
-        elif in_game == 'B':
+                return "blue"
+        elif in_game == "B":
             if is_final2:
-                return 'orange'
+                return "orange"
             else:
-                return 'yellow'
+                return "yellow"
 
-        return 'grey'
+        return "grey"
 
-    caption = 'green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta'
+    caption = "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
 
     node_size = 3
     node_color = [color_node(_) for _ in G.nodes]
     # logger.info('layout')
     # pos = graphviz_layout(G, prog='dot')
-    logger.info('drawing')
+    logger.info("drawing")
 
     def pos_node(n: Tuple[VehicleState, VehicleState]):
-        x = G.nodes[n]['x']
-        y = G.nodes[n]['y']
+        x = G.nodes[n]["x"]
+        y = G.nodes[n]["y"]
         return float(x), float(y)
 
     pos = {_: pos_node(_) for _ in G.nodes}
 
-    with r.plot('s', caption=caption) as plt:
-        nx.draw(G, pos=pos, node_color=node_color,
-                cmap=plt.cm.Blues, arrows=False,
-                edge_color=(0, 0, 0, 0.1),
-                node_size=node_size)
-        plt.xlabel('x')
-        plt.ylabel('v')
+    with r.plot("s", caption=caption) as plt:
+        nx.draw(
+            G,
+            pos=pos,
+            node_color=node_color,
+            cmap=plt.cm.Blues,
+            arrows=False,
+            edge_color=(0, 0, 0, 0.1),
+            node_size=node_size,
+        )
+        plt.xlabel("x")
+        plt.ylabel("v")
     return r
