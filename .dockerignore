@@ -1,0 +1,7 @@
+**
+!setup.py
+!src
+!Makefile*
+!docker
+!requirements*
+!.compmake.rc

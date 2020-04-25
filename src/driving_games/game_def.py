@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from decimal import Decimal as D
 from typing import AbstractSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar
 
-from dataclasses import dataclass
+from networkx import DiGraph
 
 X = TypeVar("X")
 U = TypeVar("U")
@@ -13,17 +15,16 @@ PlayerName = NewType("PlayerName", str)
 
 
 class Dynamics(Generic[X, U], ABC):
-    @abstractmethod
-    def all_states(self) -> AbstractSet[X]:
-        """ Returns all possible states """
-
+    # @abstractmethod
+    # def all_states(self) -> AbstractSet[X]:
+    #     """ Returns all possible states """
 
     @abstractmethod
     def all_actions(self) -> AbstractSet[U]:
         """ Returns all actions possible (not all are available at each state). """
 
     @abstractmethod
-    def successors(self, X) -> Mapping[U, AbstractSet[X]]:
+    def successors(self, x: X, dt: D) -> Mapping[U, AbstractSet[X]]:
         """ For each state, returns a dictionary U -> Possible Xs """
 
 
@@ -92,3 +93,16 @@ class Game(Generic[X, U, Y, RP, RJ]):
     players: Mapping[PlayerName, GamePlayer[X, U, Y, RP, RJ]]
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
+
+
+@dataclass
+class GamePlayerPreprocessed:
+    player_graph: DiGraph
+
+
+@dataclass
+class GamePreprocessed:
+    game: Game
+    dt: D
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed]
+    game_graph: DiGraph

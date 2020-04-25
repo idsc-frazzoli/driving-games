@@ -16,8 +16,6 @@ base58<2.0,>=1.0.2
 numpy==1.18.1
 typing_extensions==3.7.4.1
 
-zuper-commons-z6>=6.0.19
-
 ipython # for debugging==7.13.0
 codecov==2.0.16
 
@@ -26,7 +24,10 @@ nose2-html-report==0.6.0
 nose-parallel==0.3.1
 nose_xunitmp==0.4.1
 pipdeptree==0.13.2
-quickapp>=6
-reprep>=6
 scipy
 seaborn
+
+PyGeometry
+zuper-commons-z6>=6.0.19
+quickapp>=6
+reprep>=6.0.3

@@ -15,7 +15,7 @@ extra=--rednose --immediate
 tr=test-results
 coverage_dir=out/coverage
 
-all: 
+all:
 	echo
 
 
@@ -48,9 +48,11 @@ test-failed:
 	nosetests $(extra)  --with-id --failed $(coverage) src  -v
 
 
-tag=zcities
+tag=driving_games
+
 build:
 	docker build -t $(tag) .
 run:
 	mkdir -p out-docker
-	docker run -it -v $(PWD)/src:/cities/src:ro -v $(PWD)/out-docker:/out $(tag) zc-demo -o /out/result --reset -c "rparmake"
+	docker run -it -v $(PWD)/src:/driving_games/src:ro -v $(PWD)/out-docker:/out $(tag) \
+		dg-demo -o /out/result --reset -c "rparmake"
