@@ -2,7 +2,7 @@ import random
 from collections import defaultdict
 from decimal import Decimal as D
 from itertools import product
-from typing import AbstractSet, List, Mapping
+from typing import FrozenSet as ASet, List, Mapping
 
 import numpy as np
 from frozendict import frozendict
@@ -34,7 +34,7 @@ def preprocess_game(game: Game, dt: D) -> GamePreprocessed:
 
 
 def get_accessible_states(
-    initial: AbstractSet,
+    initial: ASet,
     personal_reward_structure: PersonalRewardStructure,
     dynamics: Dynamics,
     dt: D,

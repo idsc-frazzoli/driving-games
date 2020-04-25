@@ -2,9 +2,10 @@ import itertools
 from dataclasses import dataclass
 from decimal import Decimal as D
 from functools import lru_cache
-from typing import AbstractSet, cast, Mapping, Optional, Sequence, Tuple, Union
+from typing import FrozenSet as ASet, cast, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
+from frozendict import frozendict
 from typing_extensions import Literal
 
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
@@ -57,26 +58,26 @@ class VehicleState:
 @dataclass(frozen=True)
 class VehicleActions:
     accel: D
-    light: Lights
+    light: Lights = 'none'
 
 
 class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
     max_speed: D
     min_speed: D
     max_path: D
-    available_accels: AbstractSet[D]
+    available_accels: ASet[D]
     max_wait: D
-    lights_commands: AbstractSet[Lights]
+    lights_commands: ASet[Lights]
 
     def __init__(
         self,
         max_speed: D,
         min_speed: D,
-        available_accels: AbstractSet[D],
+        available_accels: ASet[D],
         max_wait: D,
         ref: SE2_disc,
         max_path: D,
-        lights_commands: AbstractSet[Lights],
+        lights_commands: ASet[Lights],
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -87,16 +88,16 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         self.lights_commands = lights_commands
 
     @lru_cache(None)
-    def all_actions(self) -> AbstractSet[VehicleActions]:
+    def all_actions(self) -> ASet[VehicleActions]:
         res = set()
         for light, accel in itertools.product(LightsValue, self.available_accels):
             res.add(VehicleActions(accel=accel, light=light))
-        return res
+        return frozenset(res)
 
     @lru_cache(None)
     def successors(
         self, x: VehicleState, dt: D
-    ) -> Mapping[VehicleActions, AbstractSet[VehicleState]]:
+    ) -> Mapping[VehicleActions, ASet[VehicleState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accellerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ + x.v >= 0]
@@ -113,9 +114,9 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = {x2}
+                possible[u] = frozenset({x2})
 
-        return possible
+        return frozendict(possible)
 
     @lru_cache(None)
     def successor(self, x: VehicleState, u: VehicleActions, dt: D):
@@ -150,7 +151,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         return VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
 
     # @lru_cache(None)
-    # def all_states(self) -> AbstractSet[VehicleState]:
+    # def all_states(self) -> ASet[VehicleState]:
     #     res = set()
     #     for l in self.lights_commands:
     #         for x in range(self.max_path + 1):
@@ -199,19 +200,19 @@ class VehicleObservation:
 
 
 class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
-    possible_states: Mapping[PlayerName, AbstractSet[VehicleState]]
-    my_possible_states: AbstractSet[VehicleState]
+    possible_states: Mapping[PlayerName, ASet[VehicleState]]
+    my_possible_states: ASet[VehicleState]
 
     def __init__(
         self,
-        my_possible_states: AbstractSet[VehicleState],
-        possible_states: Mapping[PlayerName, AbstractSet[VehicleState]],
+        my_possible_states: ASet[VehicleState],
+        possible_states: Mapping[PlayerName, ASet[VehicleState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
 
     @lru_cache(None)
-    def all_observations(self) -> AbstractSet[VehicleObservation]:
+    def all_observations(self) -> ASet[VehicleObservation]:
         """ Returns all possible observations. """
         assert len(self.possible_states) == 1
         all_of_them = set()
@@ -219,20 +220,20 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
             for k, ks_possible_states in self.possible_states.items():
                 for ks_possible_state in ks_possible_states:
                     others = {k: ks_possible_state}
-                    possible_ys: AbstractSet[VehicleObservation] = self.get_observations(me, others)
+                    possible_ys: ASet[VehicleObservation] = self.get_observations(me, others)
                     for poss_obs in possible_ys:
                         all_of_them.add(poss_obs)
-        return all_of_them
+        return frozenset(all_of_them)
 
     @lru_cache(None)
     def get_observations(
         self, me: VehicleState, others: Mapping[PlayerName, VehicleState]
-    ) -> AbstractSet[VehicleObservation]:
+    ) -> ASet[VehicleObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
         for k, v in others.items():
             others[k] = Seen(ref=v.ref, x=v.x, v=v.v, light=None)
-        return {VehicleObservation(others)}
+        return frozenset({VehicleObservation(others)})
 
 
 X_ = VehicleState
@@ -312,9 +313,9 @@ class TwoVehicleSimpleParams:
     max_speed: D
     min_speed: D
     max_wait: D
-    available_accels: AbstractSet[D]
+    available_accels: ASet[D]
     collision_threshold: float
-    light_actions: AbstractSet[Lights]
+    light_actions: ASet[Lights]
     dt: D
 
 
@@ -327,9 +328,9 @@ def get_game1() -> Game:
         min_speed=D(1),
         max_wait=D(1),
         # available_accels={D(-2), D(0), D(+1)},
-        available_accels={D(-2), D(-1), D(0), D(+1)},
+        available_accels=frozenset({D(-2), D(-1), D(0), D(+1)}),
         collision_threshold=3.0,
-        light_actions={NO_LIGHTS},
+        light_actions=frozenset({NO_LIGHTS}),
         dt=D(1),
     )
     return get_two_vehicle_game(p)
@@ -365,9 +366,9 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
     # @lru_cache(None)
     def is_joint_final_state(
         self, xs: Mapping[PlayerName, VehicleState]
-    ) -> AbstractSet[PlayerName]:
+    ) -> ASet[PlayerName]:
         if len(xs) == 1:
-            return set()
+            return frozenset()
         if len(xs) != 2:
             raise NotImplementedError(len(xs))
         s1, s2 = list(xs.values())
@@ -384,9 +385,9 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         # dist = np.hypot(x, y)
         # logger.info(c1=xytheta_from_SE2(c1), c2=xytheta_from_SE2(c2), dist=dist)
         if mind < self.collision_threshold:
-            return set(xs)
+            return frozenset(xs)
         else:
-            return set()
+            return frozenset()
 
     def joint_reward(
         self, xs: Mapping[PlayerName, VehicleState]
@@ -416,8 +417,8 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     P1 = PlayerName("p1")
     P2 = PlayerName("p2")
-    p1_initial = {VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")}
-    p2_initial = {VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")}
+    p1_initial =frozenset({VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
+    p2_initial =frozenset({VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
         max_wait=max_wait,
@@ -440,9 +441,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
 
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
-    p1_possible_states = set(g1.nodes)
+    p1_possible_states = frozenset(g1.nodes)
     g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
-    p2_possible_states = set(g2.nodes)
+    p2_possible_states = frozenset(g2.nodes)
 
     logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
     p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
