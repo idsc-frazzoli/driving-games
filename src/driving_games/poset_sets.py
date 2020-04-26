@@ -1,4 +1,5 @@
-from typing import FrozenSet as ASet, Mapping, TypeVar
+from dataclasses import dataclass
+from typing import Callable, FrozenSet as ASet, Generic, Mapping, TypeVar
 
 from frozendict import frozendict
 
@@ -15,13 +16,16 @@ class SetPreference1(Preference[ASet[P]]):
     def __init__(self, p0: Preference[P]):
         self.p0 = p0
 
+    def get_type(self):
+        return ASet[self.p0.get_type()]
+
     def __repr__(self):
-        d = {'p0': self.p0}
-        return 'SetPreference1: ' + debug_print(d)
+        d = {"T": self.get_type(), "p0": self.p0}
+        return "SetPreference1: " + debug_print(d)
 
     def compare(self, a: ASet[P], b: ASet[P]) -> ComparisonOutcome:
-        check_isinstance(a, set)
-        check_isinstance(b, set)
+        check_isinstance(a, frozenset)
+        check_isinstance(b, frozenset)
         if len(a) == 1 and len(b) == 1:
             a1 = list(a)[0]
             b1 = list(b)[0]
@@ -31,15 +35,29 @@ class SetPreference1(Preference[ASet[P]]):
         raise ZNotImplementedError(a=a, b=b)
 
 
-A = TypeVar('A')
-B = TypeVar('B')
+A = TypeVar("A")
+B = TypeVar("B")
+
+
+@dataclass
+class TransformSet(Generic[A, B]):
+    convert: Callable[[A], B]
+
+    def __call__(self, X: ASet[A]) -> ASet[B]:
+        res = set()
+        for a in X:
+            b = self.convert(a)
+            res.add(b)
+        return frozenset(res)
 
 
 def remove_dominated(orig: Mapping[A, B], pref: Preference[B]) -> Mapping[A, B]:
+    # logger.info(orig=orig, pref=pref)
+
     def is_strictly_dominated(x: B) -> bool:
         for k1, v1 in orig.items():
-            res = pref.compare(v1, x)
-            if res == FIRST_PREFERRED:
+            r = pref.compare(v1, x)
+            if r == FIRST_PREFERRED:
                 return True
         return False
 

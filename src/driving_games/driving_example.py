@@ -9,7 +9,7 @@ from frozendict import frozendict
 from typing_extensions import Literal
 
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
-from zuper_commons.types import ZException, ZValueError
+from zuper_commons.types import check_isinstance, ZException, ZValueError
 from zuper_typing import debug_print
 from . import logger
 from .access import get_accessible_states
@@ -59,7 +59,7 @@ class VehicleState:
 @dataclass(frozen=True)
 class VehicleActions:
     accel: D
-    light: Lights = 'none'
+    light: Lights = "none"
 
 
 class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
@@ -96,9 +96,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(
-        self, x: VehicleState, dt: D
-    ) -> Mapping[VehicleActions, ASet[VehicleState]]:
+    def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, ASet[VehicleState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accellerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ + x.v >= 0]
@@ -278,6 +276,9 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
     def __init__(self):
         self.p = SmallerPreferred()
 
+    def get_type(self):
+        return Optional[CollisionCost]
+
     def compare(self, a: Optional[CollisionCost], b: Optional[CollisionCost]) -> ComparisonOutcome:
         if a is None and b is None:
             return INDIFFERENT
@@ -290,8 +291,11 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
         return res
 
     def __repr__(self):
-        d = {'p': self.p}
-        return 'CollisionPreference:\n ' + debug_print(d)
+        d = {
+            "T": self.get_type(),
+            "p": self.p,
+        }
+        return "CollisionPreference:\n " + debug_print(d)
 
 
 class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
@@ -300,13 +304,18 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
         time = SmallerPreferred()
         self.lexi = LexicographicPreference((collision, time))
 
+    def get_type(self):
+        return Combined[CollisionCost, D]
+
     def __repr__(self):
-        d = {'lexi': self.lexi}
-        return 'VehiclePreferencesCollTime: ' + debug_print(d)
+        d = {"P": self.get_type(), "lexi": self.lexi}
+        return "VehiclePreferencesCollTime: " + debug_print(d)
 
     def compare(
         self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]
     ) -> ComparisonOutcome:
+        check_isinstance(a, Combined)
+        check_isinstance(b, Combined)
         ct_a = (a.joint, a.personal)
         ct_b = (b.joint, b.personal)
         res = self.lexi.compare(ct_a, ct_b)
@@ -373,9 +382,7 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         self.collision_threshold = collision_threshold
 
     # @lru_cache(None)
-    def is_joint_final_state(
-        self, xs: Mapping[PlayerName, VehicleState]
-    ) -> ASet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> ASet[PlayerName]:
         if len(xs) == 1:
             return frozenset()
         if len(xs) != 2:

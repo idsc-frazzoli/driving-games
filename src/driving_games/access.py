@@ -34,10 +34,7 @@ def preprocess_game(game: Game, dt: D) -> GamePreprocessed:
 
 
 def get_accessible_states(
-    initial: ASet,
-    personal_reward_structure: PersonalRewardStructure,
-    dynamics: Dynamics,
-    dt: D,
+    initial: ASet, personal_reward_structure: PersonalRewardStructure, dynamics: Dynamics, dt: D,
 ) -> MultiDiGraph:
     G = MultiDiGraph()
 

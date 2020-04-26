@@ -1,7 +1,7 @@
-from typing import Dict, Mapping, Tuple, TypeVar
+from typing import Tuple, TypeVar
 
 from zuper_commons.types import check_isinstance
-from zuper_typing import debug_print
+from zuper_typing import debug_print, make_Tuple
 from .poset import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -24,8 +24,12 @@ class LexicographicPreference(Preference[Tuple[A, B]]):
         self.prefs = prefs
 
     def __repr__(self):
-        d = {'prefs': self.prefs}
-        return 'LexicographicPreference:\n' + debug_print(d)
+        d = {"T": self.get_type(), "prefs": self.prefs}
+        return "LexicographicPreference:\n" + debug_print(d)
+
+    def get_type(self):
+        t = make_Tuple(*tuple(_.get_type() for _ in self.prefs))
+        return t
 
     def compare(self, a: Tuple[A, B], b: Tuple[A, B]) -> ComparisonOutcome:
         check_isinstance(a, tuple)
@@ -39,22 +43,32 @@ class LexicographicPreference(Preference[Tuple[A, B]]):
 
         return INDIFFERENT
 
-K = TypeVar('K')
-V = TypeVar('V')
 
-class StrictProductPreference(Preference[Mapping[K, V]]):
-    prefs:  Mapping[K, Preference[V]]
+K = TypeVar("K")
+V = TypeVar("V")
 
-    def __init__(self, prefs: Mapping[K, Preference[V]]):
+
+class StrictProductPreference(Preference[V]):
+    prefs: Tuple[Preference[V], ...]
+
+    def __init__(self, prefs: Tuple[Preference[V], ...]):
         self.prefs = prefs
 
-    def compare(self, a: Mapping[K, V], b: Mapping[K, V]) -> ComparisonOutcome:
-        check_isinstance(a, dict)
-        check_isinstance(b, dict)
-        outcomes = {}
-        for k, pref in self.prefs.items():
-            r =  pref.compare(a[k], b[k])
-            outcomes[k] = r
+    def get_type(self):
+        T = self.prefs[0].get_type()
+        return T
+
+    def __repr__(self):
+        r = {"T": self.get_type(), "prefs": self.prefs}
+        return "StrictProductPreference\n" + debug_print(r)
+
+    def compare(self, a: V, b: V) -> ComparisonOutcome:
+        # check_isinstance(a, dict, _self=self)
+        # check_isinstance(b, dict, _self=self)
+        outcomes = []
+        for pref in self.prefs:
+            r = pref.compare(a, b)
+            outcomes.append(r)
 
         # - any incomparable -> incomparable
         # - no incomparable:
@@ -65,9 +79,9 @@ class StrictProductPreference(Preference[Mapping[K, V]]):
         o = set(outcomes)
         if INCOMPARABLE in o:
             return INCOMPARABLE
-        if o == {FIRST_PREFERRED}:
+        if o == {FIRST_PREFERRED, INDIFFERENT}:
             return FIRST_PREFERRED
-        if o == {SECOND_PREFERRED}:
+        if o == {SECOND_PREFERRED, INDIFFERENT}:
             return SECOND_PREFERRED
         if o == {INDIFFERENT}:
             return INDIFFERENT

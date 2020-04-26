@@ -1,14 +1,13 @@
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, Generic, Mapping, Set, TypeVar
+from typing import Dict, Generic, Mapping, Set, Tuple, TypeVar
 
 from frozendict import frozendict
 
 from zuper_commons.types import ZAssertionError, ZValueError
 from .game_def import ASet, PlayerName
 from .poset import COMP_OUTCOMES, ComparisonOutcome, FIRST_PREFERRED, Preference
-from . import logger
 from .poset_lexi import StrictProductPreference
 from .poset_sets import remove_dominated
 
@@ -41,8 +40,7 @@ def analyze_equilibria(
     combos: Combos[Choice] = check_contains_all_combo(action2outcome)
     player_names = set(combos.player2choices)
     if set(preferences) != set(player_names):
-        raise ZValueError(action2outcome=action2outcome,
-                          preferences=preferences)
+        raise ZValueError(action2outcome=action2outcome, preferences=preferences)
     # logger.info(combos=combos)
     comb: Mapping[PlayerName, Choice]
     ps: Dict[Mapping[PlayerName, Choice], PointStats] = {}
@@ -79,9 +77,12 @@ def analyze_equilibria(
                 happy_players.add(player_name)
             else:
                 unhappy_players.add(player_name)
-        stats = PointStats(happy=frozenset(happy_players), unhappy=frozenset(unhappy_players),
-                           outcome=action2outcome[x0],
-                           alternatives=frozendict(alternatives))
+        stats = PointStats(
+            happy=frozenset(happy_players),
+            unhappy=frozenset(unhappy_players),
+            outcome=action2outcome[x0],
+            alternatives=frozendict(alternatives),
+        )
         ps[x0] = stats
 
         if not unhappy_players:
@@ -89,14 +90,14 @@ def analyze_equilibria(
     # logger.info(ps=ps)
 
     # we need something to compare set of outcomes
-    pref = StrictProductPreference(preferences)
-    logger.info(nash_equilibria=nash_equilibria)
+    preferences_: Tuple[Preference[O], ...] = tuple(preferences.values())
+    pref: Preference[O] = StrictProductPreference(preferences_)
+    # logger.info(nash_equilibria=nash_equilibria, preferences=preferences, pref=pref)
     nondom_nash_equilibria = remove_dominated(nash_equilibria, pref)
 
-    return EquilibriaAnalysis(nondom_nash_equilibria=nondom_nash_equilibria,
-                              nash_equilibria=nash_equilibria
-                              , ps=ps)
-
+    return EquilibriaAnalysis(
+        nondom_nash_equilibria=nondom_nash_equilibria, nash_equilibria=nash_equilibria, ps=ps
+    )
 
 
 def zassert(val: bool, **kwargs):

@@ -31,3 +31,4 @@ PyGeometry
 zuper-commons-z6>=6.0.19
 quickapp>=6
 reprep>=6.0.3
+networkx

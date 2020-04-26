@@ -2,18 +2,18 @@ import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import Callable, Dict, FrozenSet, Generic, Iterator, Mapping, Optional, Tuple, TypeVar
+from typing import Dict, FrozenSet, Generic, Iterator, Mapping, Optional, Tuple, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
 
 from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
-from zuper_typing import debug_print
 from . import logger
 from .equilibria import analyze_equilibria
 from .game_def import Combined, GamePreprocessed, PlayerName
-from .poset import COMP_OUTCOMES, ComparisonOutcome, Preference
+from .poset import Preference
 from .poset_sets import SetPreference1
+from .prefconv import PrefConverter
 
 ASet = FrozenSet
 
@@ -177,15 +177,23 @@ def solve_equilibria(
     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
 ):
     if not gn.moves:
-        msg = 'Cannot solve_equilibria if there are no moves '
-        raise ZValueError(msg, gn=replace(gn, outcomes=None))
+        msg = "Cannot solve_equilibria if there are no moves "
+        raise ZValueError(msg, gn=replace(gn, outcomes={}))
     # logger.info(gn=gn, solved=solved)
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
     preferences: Dict[PlayerName, Preference[ASet[Outcome[RP, RJ]]]]
     preferences = {}
     for player_name in players_active:
-        preferences[player_name] = PlayerPreferences(sc.gp, player_name, SetPreference1)
+        # Comparse Combined[RJ, RP]
+        pref0: Preference[Combined] = sc.gp.game.players[player_name].preferences
+        pref1: Preference[Outcome] = PrefConverter(
+            A=Outcome, B=Combined, convert=CombinedFromOutcome(player_name), p0=pref0
+        )
+        # compares Aset(Combined[RJ, RP]
+        pref2: Preference[ASet[Outcome]] = SetPreference1(pref1)
+        # result: Preference[ASet[Outcome[RP, RJ]]]
+        preferences[player_name] = pref2
     try:
         ea = analyze_equilibria(solved, preferences)
     except ZValueError as e:
@@ -201,7 +209,7 @@ def solve_equilibria(
             game_value = list(outcomes)[0]
             actions = set(ea.nondom_nash_equilibria)
             return game_value, actions
-        msg = 'Multiple Nash Equilibria'
+        msg = "Multiple Nash Equilibria"
         raise ZNotImplementedError(msg, ea=ea)
     raise Exception()
 
@@ -209,44 +217,82 @@ def solve_equilibria(
 M = TypeVar("M")
 
 
-class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
-    pt: Preference[ASet[Combined[RJ, RP]]]
+class TransformToPrivate0(Generic[X, U, Y, RP, RJ]):
+    gp: GamePreprocessed[X, U, Y, RP, RJ]
     name: PlayerName
-    gp: GamePreprocessed
 
-    def __init__(
-        self,
-        gp: GamePreprocessed,
-        name: PlayerName,
-        transformer: Callable[[Preference[M]], Preference[ASet[M]]],
-    ):
+    def __init__(self, gp: GamePreprocessed[X, U, Y, RP, RJ], name: PlayerName):
         self.gp = gp
         self.name = name
 
-        p = self.gp.game.players[self.name].preferences
-        self.pt = transformer(p)
-
-    def __repr__(self):
-        d = {'name': self.name, 'pt': self.pt}
-        return 'PlayerPrefs: ' + debug_print(d)
-    def transform_to_private(self, a: ASet[Outcome[RP, RJ]]) -> ASet[Combined[RJ, RP]]:
+    def __call__(self, a: ASet[Outcome[RP, RJ]]) -> ASet[Combined[RJ, RP]]:
+        check_isinstance(a, frozenset, _self=self)
         res = set()
         for s in a:
-            check_isinstance(a, Outcome, _self=self)
+            check_isinstance(s, Outcome, _self=self)
             p = Combined(joint=s.joint.get(self.name, None), personal=s.private[self.name])
             # logger.info(p=p)
             res.add(p)
         return frozenset(res)
 
-    def compare(self, a: ASet[Outcome[RP, RJ]], b: ASet[Outcome[RP, RJ]]) -> ComparisonOutcome:
-        """ <= for the poset """
-        check_isinstance(a, set, _self=self)
-        check_isinstance(b, set, _self=self)
-        a_p = self.transform_to_private(a)
-        b_p = self.transform_to_private(b)
-        res = self.pt.compare(a_p, b_p)
-        assert res in COMP_OUTCOMES, (res, self.pt)
-        return res
+
+@dataclass
+class CombinedFromOutcome(Generic[RP, RJ]):
+    name: PlayerName
+
+    def __call__(self, outcome: Outcome[RP, RJ]) -> Combined[RJ, RP]:
+        check_isinstance(outcome, Outcome, _self=self)
+        combined = Combined(
+            joint=outcome.joint.get(self.name, None), personal=outcome.private[self.name]
+        )
+        return combined
+
+
+#
+# class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
+#     p: Preference[Combined[RJ, RP]]
+#     pt: Preference[ASet[Combined[RJ, RP]]]
+#     name: PlayerName
+#     gp: GamePreprocessed
+#
+#     def __init__(
+#         self,
+#         gp: GamePreprocessed,
+#         name: PlayerName,
+#         transformer: Callable[[Preference[M]], Preference[ASet[M]]],
+#     ):
+#         self.gp = gp
+#         self.name = name
+#
+#         self.p = self.gp.game.players[self.name].preferences
+#         self.pt = transformer(self.p)
+#
+#     def get_type(self):
+#         return ASet[self.p.get_type()]
+#
+#     def __repr__(self):
+#         d = {'T': self.get_type(), 'name': self.name, 'pt': self.pt}
+#         return 'PlayerPrefs: ' + debug_print(d)
+#
+#     def transform_to_private(self, a: ASet[Outcome[RP, RJ]]) -> ASet[Combined[RJ, RP]]:
+#         check_isinstance(a, frozenset, _self=self)
+#         res = set()
+#         for s in a:
+#             check_isinstance(s, Outcome, _self=self)
+#             p = Combined(joint=s.joint.get(self.name, None), personal=s.private[self.name])
+#             # logger.info(p=p)
+#             res.add(p)
+#         return frozenset(res)
+#
+#     def compare(self, a: ASet[Outcome[RP, RJ]], b: ASet[Outcome[RP, RJ]]) -> ComparisonOutcome:
+#         """ <= for the poset """
+#         check_isinstance(a, frozenset, _self=self.get_type())
+#         check_isinstance(b, frozenset, _self=self.get_type())
+#         a_p = self.transform_to_private(a)
+#         b_p = self.transform_to_private(b)
+#         res = self.pt.compare(a_p, b_p)
+#         assert res in COMP_OUTCOMES, (res, self.pt)
+#         return res
 
 
 def solve_final_joint(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
