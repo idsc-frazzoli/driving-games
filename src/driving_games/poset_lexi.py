@@ -1,5 +1,5 @@
 from typing import Tuple, TypeVar
-
+from driving_games import logger
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print, make_Tuple
 from .poset import (
@@ -70,6 +70,7 @@ class StrictProductPreference(Preference[V]):
             r = pref.compare(a, b)
             outcomes.append(r)
 
+        # logger.info(outcomes=outcomes)
         # - any incomparable -> incomparable
         # - no incomparable:
         #       - all indifferent: INDIFFERENT
@@ -79,9 +80,9 @@ class StrictProductPreference(Preference[V]):
         o = set(outcomes)
         if INCOMPARABLE in o:
             return INCOMPARABLE
-        if o == {FIRST_PREFERRED, INDIFFERENT}:
+        if o == {FIRST_PREFERRED} or o == {FIRST_PREFERRED, INDIFFERENT}:
             return FIRST_PREFERRED
-        if o == {SECOND_PREFERRED, INDIFFERENT}:
+        if o == {SECOND_PREFERRED} or o == {SECOND_PREFERRED, INDIFFERENT}:
             return SECOND_PREFERRED
         if o == {INDIFFERENT}:
             return INDIFFERENT

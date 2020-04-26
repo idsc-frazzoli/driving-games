@@ -2,20 +2,20 @@ import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import Dict, FrozenSet, Generic, Iterator, Mapping, Optional, Tuple, TypeVar
+from typing import Dict, Generic, Iterator, Mapping, Optional, Set, Tuple, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
 
 from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
 from . import logger
-from .equilibria import analyze_equilibria
-from .game_def import Combined, GamePreprocessed, PlayerName
+from .equilibria import analyze_equilibria, get_all_choices_by_players, get_all_combinations
+from .game_def import ASet, Combined, Game, GamePreprocessed, PlayerName, RJ, RP, U, X, Y
 from .poset import Preference
-from .poset_sets import SetPreference1
 from .prefconv import PrefConverter
 
-ASet = FrozenSet
+JointState = Mapping[PlayerName, Optional[X]]
+JointAction = Mapping[PlayerName, Optional[U]]
 
 
 @dataclass
@@ -48,16 +48,13 @@ def solve1(gp: GamePreprocessed):
     logger.info("creating game tree")
     game_tree = create_game_tree(ic, initial)
     logger.info("solving game tree")
-    sc = SolvingContext(gp, {}, depth=0)
+    sc = SolvingContext(
+        gp, {}, depth=0, outcome_set_preferences=get_outcome_set_preferences_for_players(gp.game)
+    )
     solved = solve(sc, game_tree)
-    logger.info("done")
+    logger.info("solved",
+                value_actions=solved.va)
     # logger.info(game_tree=game_tree)
-
-
-from .game_def import X, U, RJ, RP, Y, ASet
-
-JointState = Mapping[PlayerName, Optional[X]]
-JointAction = Mapping[PlayerName, Optional[U]]
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -79,19 +76,52 @@ class Outcome(Generic[RP, RJ]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
+class ValueAndActions(Generic[U, RP, RJ]):
+    actions: Mapping[PlayerName, ASet[U]]
+    game_value: ASet[Outcome[RP, RJ]]
+
+    def __post_init__(self):
+        check_isinstance(self.actions, frozendict, me=self)
+        for k, v in self.actions.items():
+            check_isinstance(v, frozenset, me=self, k=k)
+        check_isinstance(self.game_value, frozenset, me=self)
+        for o in self.game_value:
+            check_isinstance(o, Outcome, me=self)
+
+@dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[X, U, Y, RP, RJ]):
     gn: GameNode[X, U, Y, RP, RJ]
     solved: "Mapping[Mapping[PlayerName, ASet[U]], SolvedGameNode[X, U, Y, RP, RJ]]"
 
-    actions: Mapping[PlayerName, ASet[U]]
-    game_value: ASet[Outcome[RP, RJ]]
+    va: ValueAndActions[U, RP, RJ]
+    # actions: Mapping[PlayerName, ASet[U]]
+    # game_value: ASet[Outcome[RP, RJ]]
 
-
+    def __post_init__(self):
+        check_isinstance(self.va, ValueAndActions, me=self)
 @dataclass
 class SolvingContext(Generic[X, U, Y, RP, RJ]):
     gp: GamePreprocessed[X, U, Y, RP, RJ]
     cache: dict
     depth: int
+    outcome_set_preferences: Mapping[PlayerName, Preference[ASet[Outcome]]]
+
+
+def get_outcome_set_preferences_for_players(
+    game: Game,
+) -> Mapping[PlayerName, Preference[ASet[Outcome]]]:
+    preferences = {}
+    for player_name, player in game.players.items():
+        # Comparse Combined[RJ, RP]
+        pref0: Preference[Combined] = player.preferences
+        pref1: Preference[Outcome] = PrefConverter(
+            A=Outcome, B=Combined, convert=CombinedFromOutcome(player_name), p0=pref0
+        )
+        # compares Aset(Combined[RJ, RP]
+        pref2: Preference[ASet[Outcome]] = player.set_preference_aggregator(pref1)
+        # result: Preference[ASet[Outcome[RP, RJ]]]
+        preferences[player_name] = pref2
+    return preferences
 
 
 def all_combinations(actions: Mapping[PlayerName, ASet[U]]) -> Iterator[Mapping[PlayerName, U]]:
@@ -142,30 +172,30 @@ def solve(
         return sc.cache[gn]
 
     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]] = {
-        actions: reduce_future(sc.gp, solve(sc, v).game_value, gn.incremental, actions)
+        actions: reduce_future(sc.gp, solve(sc, v).va.game_value, gn.incremental, actions)
         for actions, v in gn.outcomes.items()
     }
 
+    va: ValueAndActions[U, RP, RJ]
     # if this is a 1-player node: easy
     if len(gn.states) == 1:
         if len(gn.is_final) == 1:
-            game_value, actions = solve_1_player_final(gn)
+            va = solve_1_player_final(gn)
         else:
-            game_value, actions = solve_1_player(sc, gn, solved)
+            va = solve_1_player( gn, solved)
     else:
         if gn.joint_final_rewards:  # final costs:
-            game_value, actions = solve_final_joint(gn)
+            va = solve_final_joint(gn)
         elif set(gn.states) == set(gn.is_final):
             # They both finished
-            game_value, actions = solve_final_personal_both(gn)
+            va = solve_final_personal_both(gn)
         else:
-            game_value, actions = solve_equilibria(sc, gn, solved)
+            va = solve_equilibria(sc, gn, solved)
 
     res = SolvedGameNode(
         gn=gn,
         solved=frozendict(solved),
-        game_value=frozenset(game_value),
-        actions=frozendict(actions),
+        va=va
     )
     sc.cache[gn] = res
     return res
@@ -175,7 +205,7 @@ def solve_equilibria(
     sc: SolvingContext[X, U, Y, RP, RJ],
     gn: GameNode[X, U, Y, RP, RJ],
     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
-):
+) -> ValueAndActions[U, RP, RJ]:
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "
         raise ZValueError(msg, gn=replace(gn, outcomes={}))
@@ -183,17 +213,8 @@ def solve_equilibria(
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
     preferences: Dict[PlayerName, Preference[ASet[Outcome[RP, RJ]]]]
-    preferences = {}
-    for player_name in players_active:
-        # Comparse Combined[RJ, RP]
-        pref0: Preference[Combined] = sc.gp.game.players[player_name].preferences
-        pref1: Preference[Outcome] = PrefConverter(
-            A=Outcome, B=Combined, convert=CombinedFromOutcome(player_name), p0=pref0
-        )
-        # compares Aset(Combined[RJ, RP]
-        pref2: Preference[ASet[Outcome]] = SetPreference1(pref1)
-        # result: Preference[ASet[Outcome[RP, RJ]]]
-        preferences[player_name] = pref2
+    preferences = {k: sc.outcome_set_preferences[k] for k in players_active}
+
     try:
         ea = analyze_equilibria(solved, preferences)
     except ZValueError as e:
@@ -201,16 +222,35 @@ def solve_equilibria(
     if len(ea.nondom_nash_equilibria) == 1:
         eq = list(ea.nondom_nash_equilibria)[0]
         game_value = solved[eq]
-        actions = eq
-        return game_value, actions
+        return ValueAndActions(game_value=game_value, actions=eq)
     else:
+        # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
+        # but if there is only one outcome,
+        # then that is the game value
         if len(outcomes) == 1:
             game_value = list(outcomes)[0]
-            actions = set(ea.nondom_nash_equilibria)
-            return game_value, actions
-        msg = "Multiple Nash Equilibria"
-        raise ZNotImplementedError(msg, ea=ea)
+            # actions = frozenset(ea.nondom_nash_equilibria)
+            actions = get_all_choices_by_players(ea.nondom_nash_equilibria)
+            return ValueAndActions(game_value=game_value, actions=actions)
+        multiple_nash_mix = True
+        if multiple_nash_mix:
+            player2choices = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
+
+            # Assume that we will have any of the combinations
+            r = get_all_combinations(player2choices)
+            actions: ASet[Mapping[PlayerName, U]] = r
+            game_value_: Set[Outcome[RP, RJ]] = set()
+            for _ in actions:
+                _outcomes = ea.ps[_].outcome
+                game_value_.update(_outcomes)
+            game_value: ASet[Outcome[RP, RJ]] = frozenset(game_value_)
+            return ValueAndActions(game_value=game_value, actions=player2choices)
+
+        else:
+
+            msg = "Multiple Nash Equilibria"
+            raise ZNotImplementedError(msg, ea=ea)
     raise Exception()
 
 
@@ -295,38 +335,37 @@ class CombinedFromOutcome(Generic[RP, RJ]):
 #         return res
 
 
-def solve_final_joint(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
+def solve_final_joint(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
     game_value = frozenset({Outcome(private=frozendict(), joint=gn.joint_final_rewards)})
     actions = frozendict()
-    return game_value, actions
+    return ValueAndActions(game_value=game_value, actions=actions)
 
 
-def solve_final_personal_both(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
+def solve_final_personal_both(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
     game_value = frozenset({Outcome(private=gn.is_final, joint=frozendict())})
     actions = frozendict()
-    return game_value, actions
+    return ValueAndActions(game_value=game_value, actions=actions)
 
 
-def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ]) -> Tuple[ASet[Outcome], Mapping]:
+def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
     p = list(gn.states)[0]
     # logger.info(f"final for {p}")
     game_value = frozenset({Outcome(private=frozendict({p: gn.is_final[p]}), joint=frozendict())})
     actions = frozendict()
-    return game_value, frozendict(actions)
+    return ValueAndActions(game_value=game_value, actions=actions)
 
 
 def solve_1_player(
-    sc: SolvingContext[X, U, Y, RP, RJ],
     gn: GameNode[X, U, Y, RP, RJ],
     solved: Mapping[Mapping[PlayerName, ASet[U]], ASet[Outcome[RP, RJ]]],
-) -> Tuple[ASet[Outcome], Mapping]:
+) -> ValueAndActions[U, RP, RJ]:
     p = list(gn.states)[0]
     action = list(gn.moves[p])[0]
     actions = frozendict({p: frozenset({action})})
     # incremental = gn.incremental[p][action]
     value = solved[actions]
     game_value = frozenset(value)
-    return game_value, actions
+    return ValueAndActions(game_value=game_value, actions=actions)
 
 
 @dataclass

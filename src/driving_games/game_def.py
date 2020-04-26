@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import (
+    Callable,
     FrozenSet as ASet,
     Generic,
     Mapping,
@@ -71,6 +72,9 @@ class Combined(Generic[RJ, RP]):
     joint: Optional[RJ]
 
 
+P = TypeVar("P")
+
+
 @dataclass
 class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # Initial states
@@ -83,6 +87,8 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
     # The preferences
     preferences: Preference[Combined[RJ, RP]]
+    # How to aggregate preferences for sets
+    set_preference_aggregator: Callable[[Preference[P]], Preference[ASet[P]]]
 
 
 @dataclass

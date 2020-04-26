@@ -1,7 +1,7 @@
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, Generic, Mapping, Set, Tuple, TypeVar
+from typing import Collection, Dict, Generic, Mapping, Set, Tuple, TypeVar
 
 from frozendict import frozendict
 
@@ -18,7 +18,7 @@ Choice = TypeVar("Choice")
 
 
 @dataclass
-class PointStats:
+class PointStats(Generic[O]):
     happy: ASet[PlayerName]
     unhappy: ASet[PlayerName]
     outcome: O
@@ -26,16 +26,16 @@ class PointStats:
 
 
 @dataclass
-class EquilibriaAnalysis(Generic[Choice]):
+class EquilibriaAnalysis(Generic[Choice, O]):
     nondom_nash_equilibria: Mapping[Mapping[PlayerName, Choice], O]
     nash_equilibria: Mapping[Mapping[PlayerName, Choice], O]
-    ps: Dict[Mapping[PlayerName, Choice], PointStats]
+    ps: Dict[Mapping[PlayerName, Choice], PointStats[O]]
 
 
 def analyze_equilibria(
     action2outcome: Mapping[Mapping[PlayerName, Choice], O],
     preferences: Mapping[PlayerName, Preference[O]],
-) -> EquilibriaAnalysis:
+) -> EquilibriaAnalysis[Choice, O]:
     # we want to make sure that there are all combinations
     combos: Combos[Choice] = check_contains_all_combo(action2outcome)
     player_names = set(combos.player2choices)
@@ -90,8 +90,10 @@ def analyze_equilibria(
     # logger.info(ps=ps)
 
     # we need something to compare set of outcomes
+
     preferences_: Tuple[Preference[O], ...] = tuple(preferences.values())
     pref: Preference[O] = StrictProductPreference(preferences_)
+
     # logger.info(nash_equilibria=nash_equilibria, preferences=preferences, pref=pref)
     nondom_nash_equilibria = remove_dominated(nash_equilibria, pref)
 
@@ -132,10 +134,12 @@ def variations(
 def check_contains_all_combo(
     action2outcome: Mapping[Mapping[PlayerName, Choice], ASet[O]]
 ) -> Combos[Choice]:
-    player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)
-    for actions in action2outcome:
-        for player_name, action in actions.items():
-            player2choices[player_name].add(action)
+    # player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)[
+    # for actions in action2outcome:
+    #     for player_name, action in actions.items():
+    #         player2choices[player_name].add(action)
+    #         ]
+    player2choices = get_all_choices_by_players(set(action2outcome))
 
     all_comb = get_all_combinations(player2choices)
     for c in all_comb:
@@ -143,6 +147,18 @@ def check_contains_all_combo(
             msg = "Missing combination"
             raise ZValueError(msg, c=c, action2outcome=list(action2outcome))
     return Combos(all_comb, player2choices)
+
+
+def get_all_choices_by_players(possibile: Collection[Dict[PlayerName, X]]) -> Mapping[PlayerName, ASet[X]]:
+    player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)
+    for actions in possibile:
+        for player_name, action in actions.items():
+            player2choices[player_name].add(action)
+    res = {}
+    for player_name, player_actions in player2choices.items():
+        res[player_name] = frozenset(player_actions)
+
+    return frozendict(res)
 
 
 def get_all_combinations(

@@ -1,6 +1,6 @@
 import itertools
 from dataclasses import dataclass
-from decimal import Decimal as D
+from decimal import Decimal as D, localcontext
 from functools import lru_cache
 from typing import cast, FrozenSet as ASet, Mapping, Optional, Sequence, Tuple, Union
 
@@ -30,9 +30,10 @@ from .poset import (
     INDIFFERENT,
     Preference,
     SECOND_PREFERRED,
-    SmallerPreferred,
+    SmallerPreferredTol,
 )
 from .poset_lexi import LexicographicPreference
+from .poset_sets import SetPreference1
 
 Lights = Literal["none", "headlights", "turn_left", "turn_right"]
 # noinspection PyTypeChecker
@@ -119,23 +120,25 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
 
     @lru_cache(None)
     def successor(self, x: VehicleState, u: VehicleActions, dt: D):
-        v2 = x.v + u.accel * dt
-        if v2 < 0:
-            v2 = 0
-            # msg = 'Invalid action gives negative vel'
-            # raise InvalidAction(msg, x=x, u=u)
-        # if v2 < self.min_speed:
-        #     v2 = self.min_speed
-        if v2 > self.max_speed:
-            v2 = self.max_speed
-        if not (self.min_speed <= v2 <= self.max_speed):
-            msg = "Invalid action gives speed too fast"
-            raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
-        assert v2 >= 0
-        x2 = x.x + (x.v + u.accel * dt) * dt
-        if x2 > self.max_path:
-            msg = "Invalid action gives out of bound"
-            raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
+        with localcontext() as ctx:
+            ctx.prec = 2
+            v2 = x.v + u.accel * dt
+            if v2 < 0:
+                v2 = 0
+                # msg = 'Invalid action gives negative vel'
+                # raise InvalidAction(msg, x=x, u=u)
+            # if v2 < self.min_speed:
+            #     v2 = self.min_speed
+            if v2 > self.max_speed:
+                v2 = self.max_speed
+            if not (self.min_speed <= v2 <= self.max_speed):
+                msg = "Invalid action gives speed too fast"
+                raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
+            assert v2 >= 0
+            x2 = x.x + (x.v + u.accel * dt) * dt
+            if x2 > self.max_path:
+                msg = "Invalid action gives out of bound"
+                raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
         # if wait2 > self.max_wait:
         #     msg = f'Invalid action gives wait of {wait2}'
         #     raise InvalidAction(msg, x=x, u=u)
@@ -246,6 +249,8 @@ class CollisionCost:
     v: D
 
 
+# CollisionCost = Coll
+
 RJ_ = CollisionCost
 
 
@@ -263,8 +268,12 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
 
     def personal_final_reward(self, x: VehicleState) -> D:
         # assert self.is_personal_final_state(x)
-        remaining = (self.max_path - x.x) / x.v
-        return remaining
+
+        with localcontext() as ctx:
+            ctx.prec = 2
+            remaining = (self.max_path - x.x) / x.v
+
+            return remaining
 
     def is_personal_final_state(self, x: VehicleState) -> bool:
         # return x.x > self.max_path
@@ -274,7 +283,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
 
 class CollisionPreference(Preference[Optional[CollisionCost]]):
     def __init__(self):
-        self.p = SmallerPreferred()
+        self.p = SmallerPreferredTol(D(0))
 
     def get_type(self):
         return Optional[CollisionCost]
@@ -300,9 +309,9 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
 
 class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
     def __init__(self):
-        collision = CollisionPreference()
-        time = SmallerPreferred()
-        self.lexi = LexicographicPreference((collision, time))
+        self.collision = CollisionPreference()
+        self.time = SmallerPreferredTol(D(0))
+        self.lexi = LexicographicPreference((self.collision, self.time))
 
     def get_type(self):
         return Combined[CollisionCost, D]
@@ -318,7 +327,11 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
         check_isinstance(b, Combined)
         ct_a = (a.joint, a.personal)
         ct_b = (b.joint, b.personal)
-        res = self.lexi.compare(ct_a, ct_b)
+        if a.joint is None and b.joint is None:
+            return self.time.compare(a.personal, b.personal)
+        else:
+            return self.collision.compare(a.joint, b.joint)
+        # res = self.lexi.compare(ct_a, ct_b)
         assert res in COMP_OUTCOMES, (res, self.lexi)
         return res
 
@@ -335,6 +348,9 @@ class TwoVehicleSimpleParams:
     collision_threshold: float
     light_actions: ASet[Lights]
     dt: D
+    # initial positions
+    first_progress: D
+    second_progress: D
 
 
 def get_game1() -> Game:
@@ -350,6 +366,8 @@ def get_game1() -> Game:
         collision_threshold=3.0,
         light_actions=frozenset({NO_LIGHTS}),
         dt=D(1),
+        first_progress=D(2),
+        second_progress=D(0)
     )
     return get_two_vehicle_game(p)
 
@@ -433,8 +451,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     P1 = PlayerName("p1")
     P2 = PlayerName("p2")
-    p1_initial = frozenset({VehicleState(ref=p1_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
-    p2_initial = frozenset({VehicleState(ref=p2_ref, x=D(0), wait=D(0), v=min_speed, light="none")})
+    p1_initial = frozenset({VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")})
+    p2_initial = frozenset({VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed,
+                                         light="none")})
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
         max_wait=max_wait,
@@ -467,12 +486,14 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     p1_preferences = VehiclePreferencesCollTime()
     p2_preferences = VehiclePreferencesCollTime()
+    set_preference_aggregator = SetPreference1
     p1 = GamePlayer(
         initial=p1_initial,
         dynamics=p1_dynamics,
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
+        set_preference_aggregator=set_preference_aggregator,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -480,6 +501,7 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
+        set_preference_aggregator=set_preference_aggregator,
     )
     players: Mapping[PlayerName, GamePlayer[X_, U_, Y_, RP_, RJ_]]
     players = {P1: p1, P2: p2}
