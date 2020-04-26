@@ -4,12 +4,18 @@ from typing import Mapping, Optional, Tuple
 from frozendict import frozendict
 from nose.tools import assert_equal
 
-from driving_games import logger
-from driving_games.driving_example import CollisionCost, CollisionPreference, get_game1
-from driving_games.poset import ComparisonOutcome, FIRST_PREFERRED, INDIFFERENT, SECOND_PREFERRED
-from driving_games.poset_lexi import StrictProductPreference
-from driving_games.solution import get_outcome_set_preferences_for_players, Outcome
-from zuper_typing import debug_print
+from driving_games.driving_example import CollisionCost, CollisionPreference
+from driving_games.game_generation import get_game1
+from games.solution import get_outcome_set_preferences_for_players
+from games.structures_solution import Outcome
+from preferences import (
+    ComparisonOutcome,
+    FIRST_PREFERRED,
+    INDIFFERENT,
+    SECOND_PREFERRED,
+    StrictProductPreference,
+)
+from . import logger
 
 
 def test1():
@@ -65,4 +71,3 @@ def test2():
     res = eq_pref.compare(outcomes_A, outcomes_B)
     logger.info(a=outcomes_A, b=outcomes_B, res=res)
     assert res == SECOND_PREFERRED
-

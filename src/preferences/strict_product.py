@@ -1,9 +1,8 @@
 from typing import Tuple, TypeVar
-from driving_games import logger
-from zuper_commons.types import check_isinstance
-from zuper_typing import debug_print, make_Tuple
-from .poset import (
-    COMP_OUTCOMES,
+
+from zuper_typing import debug_print
+
+from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
     INCOMPARABLE,
@@ -12,39 +11,8 @@ from .poset import (
     SECOND_PREFERRED,
 )
 
-A = TypeVar("A")
-B = TypeVar("B")
-__all__ = ["LexicographicPreference"]
+__all__ = ["StrictProductPreference"]
 
-
-class LexicographicPreference(Preference[Tuple[A, B]]):
-    prefs: Tuple[Preference[A], Preference[B]]
-
-    def __init__(self, prefs: Tuple[Preference[A], Preference[B]]):
-        self.prefs = prefs
-
-    def __repr__(self):
-        d = {"T": self.get_type(), "prefs": self.prefs}
-        return "LexicographicPreference:\n" + debug_print(d)
-
-    def get_type(self):
-        t = make_Tuple(*tuple(_.get_type() for _ in self.prefs))
-        return t
-
-    def compare(self, a: Tuple[A, B], b: Tuple[A, B]) -> ComparisonOutcome:
-        check_isinstance(a, tuple)
-        check_isinstance(b, tuple)
-        n = len(self.prefs)
-        for i in range(n):
-            c_i = self.prefs[i].compare(a[i], b[i])
-            assert c_i in COMP_OUTCOMES, c_i
-            if c_i in (FIRST_PREFERRED, SECOND_PREFERRED, INCOMPARABLE):
-                return c_i
-
-        return INDIFFERENT
-
-
-K = TypeVar("K")
 V = TypeVar("V")
 
 

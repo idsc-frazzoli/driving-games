@@ -3,18 +3,18 @@ from typing import Tuple
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
-
 from reprep import MIME_GRAPHML, Report
+
+from games import GamePlayer, GamePreprocessed, PlayerName
 from . import logger
 from .driving_example import VehicleState
-from .game_def import GamePlayer, GamePreprocessed, PlayerName
 
 
 def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Report:
     r = Report(nid=game_name)
     for player_name, player in game_pre.game.players.items():
         r.add_child(report_player(game_pre, player_name, player))
-        break
+        break  # only one
     r.add_child(report_game(game_pre))
     return r
 
@@ -45,26 +45,7 @@ def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: G
         nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size)
         plt.xlabel("x")
         plt.ylabel("v")
-    logger.info("layout")
-    #
-    # pos = graphviz_layout(G, prog='dot')
-    # logger.info('drawing')
-    # with r.plot('s') as plt:
-    #     nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues,
-    #             node_size=node_size)
-    #     plt.xlabel('x')
-    #     plt.ylabel('v')
-
     return r
-
-
-#
-# def igraph_from_nx(G: DiGraph):
-#     nx.write_graphml(G, 'graph.graphml')  # Export NX graph to file
-#
-#     import igraph as ig
-#     Gix = ig.read('graph.graphml', format="graphml")  # Create new IG graph from file
-#     return Gix
 
 
 def report_game(game_pre: GamePreprocessed) -> Report:

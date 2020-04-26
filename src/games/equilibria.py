@@ -4,12 +4,17 @@ from dataclasses import dataclass
 from typing import Collection, Dict, Generic, Mapping, Set, Tuple, TypeVar
 
 from frozendict import frozendict
-
 from zuper_commons.types import ZAssertionError, ZValueError
-from .game_def import ASet, PlayerName
-from .poset import COMP_OUTCOMES, ComparisonOutcome, FIRST_PREFERRED, Preference
-from .poset_lexi import StrictProductPreference
-from .poset_sets import remove_dominated
+
+from games import ASet, PlayerName
+from preferences import (
+    COMP_OUTCOMES,
+    ComparisonOutcome,
+    FIRST_PREFERRED,
+    Preference,
+    remove_dominated,
+    StrictProductPreference,
+)
 
 X = TypeVar("X")
 O = TypeVar("O")
@@ -149,7 +154,9 @@ def check_contains_all_combo(
     return Combos(all_comb, player2choices)
 
 
-def get_all_choices_by_players(possibile: Collection[Dict[PlayerName, X]]) -> Mapping[PlayerName, ASet[X]]:
+def get_all_choices_by_players(
+    possibile: Collection[Mapping[PlayerName, X]]
+) -> Mapping[PlayerName, ASet[X]]:
     player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)
     for actions in possibile:
         for player_name, action in actions.items():

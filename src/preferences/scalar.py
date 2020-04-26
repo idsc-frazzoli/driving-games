@@ -1,30 +1,16 @@
-from abc import ABC, abstractmethod
 from decimal import Decimal as D
-from typing import (
-    Generic,
-    NewType,
-    Type,
-    TypeVar,
+from typing import Type
+
+from .preferences_base import (
+    ComparisonOutcome,
+    FIRST_PREFERRED,
+    INDIFFERENT,
+    P,
+    Preference,
+    SECOND_PREFERRED,
 )
 
-P = TypeVar("P")
-
-ComparisonOutcome = NewType("ComparisonOutcome", str)
-INCOMPARABLE = ComparisonOutcome("incomparable")
-INDIFFERENT = ComparisonOutcome("indifferent")
-FIRST_PREFERRED = ComparisonOutcome("first_preferred")
-SECOND_PREFERRED = ComparisonOutcome("second_preferred")
-COMP_OUTCOMES = (INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED)
-
-
-class Preference(Generic[P], ABC):
-    @abstractmethod
-    def get_type(self) -> Type[P]:
-        ...
-
-    @abstractmethod
-    def compare(self, a: P, b: P) -> ComparisonOutcome:
-        ...
+__all__ = ["SmallerPreferred", "SmallerPreferredTol"]
 
 
 class SmallerPreferred(Preference[D]):
@@ -46,8 +32,10 @@ class SmallerPreferred(Preference[D]):
 
 class SmallerPreferredTol(Preference[D]):
     tol: D
+
     def __init__(self, tol: D):
         self.tol = tol
+
     def get_type(self) -> Type[P]:
         return D
 

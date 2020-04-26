@@ -6,34 +6,29 @@ from typing import cast, FrozenSet as ASet, Mapping, Optional, Sequence, Tuple, 
 
 import numpy as np
 from frozendict import frozendict
-from typing_extensions import Literal
-
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
+from typing_extensions import Literal
 from zuper_commons.types import check_isinstance, ZException, ZValueError
 from zuper_typing import debug_print
-from . import logger
-from .access import get_accessible_states
-from .game_def import (
+
+from games import (
     Combined,
     Dynamics,
-    Game,
-    GamePlayer,
     JointRewardStructure,
     Observations,
     PersonalRewardStructure,
     PlayerName,
 )
-from .poset import (
+from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
     FIRST_PREFERRED,
     INDIFFERENT,
+    LexicographicPreference,
     Preference,
     SECOND_PREFERRED,
     SmallerPreferredTol,
 )
-from .poset_lexi import LexicographicPreference
-from .poset_sets import SetPreference1
 
 Lights = Literal["none", "headlights", "turn_left", "turn_right"]
 # noinspection PyTypeChecker
@@ -151,23 +146,6 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         else:
             wait2 = 0
         return VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
-
-    # @lru_cache(None)
-    # def all_states(self) -> ASet[VehicleState]:
-    #     res = set()
-    #     for l in self.lights_commands:
-    #         for x in range(self.max_path + 1):
-    #             for wait in range(self.max_wait + 1):
-    #                 speed = 0
-    #                 s = VehicleState(ref=self.ref, x=x, v=speed, wait=wait, light=l)
-    #                 res.add(s)
-    #             for speed in range(self.max_speed + 1):
-    #                 wait = 0
-    #                 s = VehicleState(ref=self.ref, x=x, v=speed, wait=wait, light=l)
-    #                 res.add(s)
-    #     for x in res:
-    #         self.assert_valid_state(x)
-    #     return res
 
     @lru_cache(None)
     def assert_valid_state(self, s: VehicleState):
@@ -325,51 +303,15 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
     ) -> ComparisonOutcome:
         check_isinstance(a, Combined)
         check_isinstance(b, Combined)
-        ct_a = (a.joint, a.personal)
-        ct_b = (b.joint, b.personal)
+        # ct_a = (a.joint, a.personal)
+        # ct_b = (b.joint, b.personal)
         if a.joint is None and b.joint is None:
             return self.time.compare(a.personal, b.personal)
         else:
             return self.collision.compare(a.joint, b.joint)
-        # res = self.lexi.compare(ct_a, ct_b)
-        assert res in COMP_OUTCOMES, (res, self.lexi)
-        return res
-
-
-@dataclass
-class TwoVehicleSimpleParams:
-    side: D
-    road: D
-    road_lane_offset: D
-    max_speed: D
-    min_speed: D
-    max_wait: D
-    available_accels: ASet[D]
-    collision_threshold: float
-    light_actions: ASet[Lights]
-    dt: D
-    # initial positions
-    first_progress: D
-    second_progress: D
-
-
-def get_game1() -> Game:
-    p = TwoVehicleSimpleParams(
-        side=D(8),
-        road=D(6),
-        road_lane_offset=D(4),
-        max_speed=D(5),
-        min_speed=D(1),
-        max_wait=D(1),
-        # available_accels={D(-2), D(0), D(+1)},
-        available_accels=frozenset({D(-2), D(-1), D(0), D(+1)}),
-        collision_threshold=3.0,
-        light_actions=frozenset({NO_LIGHTS}),
-        dt=D(1),
-        first_progress=D(2),
-        second_progress=D(0)
-    )
-    return get_two_vehicle_game(p)
+        # # res = self.lexi.compare(ct_a, ct_b)
+        # assert res in COMP_OUTCOMES, (res, self.lexi)
+        # return res
 
 
 def SE2_from_VehicleState(s: VehicleState):
@@ -433,80 +375,3 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         for p in players:
             res[p] = CollisionCost(xs[p].v)
         return res
-
-
-def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
-    L = params.side + params.road + params.side
-    start = params.side + params.road_lane_offset
-    max_path = L - 1
-    # p1_ref = SE2_from_xytheta([start, 0, np.pi / 2])
-    p1_ref = (D(start), D(0), D(+90))
-    # p2_ref = SE2_from_xytheta([L, start, -np.pi])
-    p2_ref = (D(L - 1), D(start), D(-180))
-    max_speed = params.max_speed
-    min_speed = params.min_speed
-    max_wait = params.max_wait
-    dt = params.dt
-    available_accels = params.available_accels
-
-    P1 = PlayerName("p1")
-    P2 = PlayerName("p2")
-    p1_initial = frozenset({VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")})
-    p2_initial = frozenset({VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed,
-                                         light="none")})
-    p1_dynamics = VehicleDynamics(
-        max_speed=max_speed,
-        max_wait=max_wait,
-        available_accels=available_accels,
-        max_path=max_path,
-        ref=p1_ref,
-        lights_commands=params.light_actions,
-        min_speed=min_speed,
-    )
-    p2_dynamics = VehicleDynamics(
-        min_speed=min_speed,
-        max_speed=max_speed,
-        max_wait=max_wait,
-        available_accels=available_accels,
-        max_path=max_path,
-        ref=p2_ref,
-        lights_commands=params.light_actions,
-    )
-    p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
-    p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
-
-    g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
-    p1_possible_states = frozenset(g1.nodes)
-    g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
-    p2_possible_states = frozenset(g2.nodes)
-
-    logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
-    p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
-    p2_observations = VehicleDirectObservations(p2_possible_states, {P1: p1_possible_states})
-
-    p1_preferences = VehiclePreferencesCollTime()
-    p2_preferences = VehiclePreferencesCollTime()
-    set_preference_aggregator = SetPreference1
-    p1 = GamePlayer(
-        initial=p1_initial,
-        dynamics=p1_dynamics,
-        observations=p1_observations,
-        personal_reward_structure=p1_personal_reward_structure,
-        preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
-    )
-    p2 = GamePlayer(
-        initial=p2_initial,
-        dynamics=p2_dynamics,
-        observations=p2_observations,
-        personal_reward_structure=p2_personal_reward_structure,
-        preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
-    )
-    players: Mapping[PlayerName, GamePlayer[X_, U_, Y_, RP_, RJ_]]
-    players = {P1: p1, P2: p2}
-    joint_reward: JointRewardStructure[X_, U_, RJ_]
-    joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold)
-
-    game: Game[X_, U_, Y_, RP_, RJ_] = Game(players, joint_reward)
-    return game

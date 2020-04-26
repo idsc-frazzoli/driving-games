@@ -13,7 +13,7 @@ from typing import (
 
 from networkx import MultiDiGraph
 
-from .poset import Preference
+from preferences import Preference
 
 X = TypeVar("X")
 U = TypeVar("U")

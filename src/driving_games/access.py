@@ -10,7 +10,7 @@ from networkx import MultiDiGraph
 
 from zuper_commons.types import ZException
 from . import logger
-from .game_def import (
+from games import (
     Dynamics,
     Game,
     GamePlayer,
@@ -19,10 +19,14 @@ from .game_def import (
     PersonalRewardStructure,
     PlayerName,
     X,
+    U,
+    Y,
+    RP,
+    RJ,
 )
 
 
-def preprocess_game(game: Game, dt: D) -> GamePreprocessed:
+def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:
     game_graph = get_game_graph(game, dt)
     compute_graph_layout(game_graph)
     players_pre = {
@@ -102,7 +106,7 @@ def get_game_graph(game: Game, dt: D) -> MultiDiGraph:
     S: Mapping[PlayerName, X]
     while stack:
         if i % 1000 == 0:
-            print(i, len(stack), len(G.nodes))
+            logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))
         i += 1
         # S = stack.pop(0)
         S = stack.pop()
@@ -206,7 +210,10 @@ def compute_graph_layout(G: MultiDiGraph, iterations=30) -> None:
                 if s_g != g + 1:
                     continue
                 pred_order.append(generations[s_g].index(s))
-            val = (np.mean(pred_order) + np.median(pred_order)) / 2
+            if not pred_order:
+                val = 0  # should it happen?
+            else:
+                val = (np.mean(pred_order) + np.median(pred_order)) / 2
             # val =  np.mean(pred_order)
             # val =  np.median(pred_order)
             affinities[n] = val

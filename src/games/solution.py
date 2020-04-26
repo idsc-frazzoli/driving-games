@@ -1,26 +1,29 @@
 import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
-from decimal import Decimal as D
-from typing import Dict, Generic, Iterator, Mapping, Optional, Set, Tuple, TypeVar
+from typing import Dict, Generic, Iterator, Mapping, Optional, Set, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
-
 from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
+
+from preferences import PrefConverter, Preference
 from . import logger
 from .equilibria import analyze_equilibria, get_all_choices_by_players, get_all_combinations
 from .game_def import ASet, Combined, Game, GamePreprocessed, PlayerName, RJ, RP, U, X, Y
-from .poset import Preference
-from .prefconv import PrefConverter
+from .structures_solution import (
+    GameNode,
+    IterationContext,
+    Outcome,
+    SolvedGameNode,
+    SolvingContext,
+    ValueAndActions,
+)
+
+__all__ = ["solve1"]
 
 JointState = Mapping[PlayerName, Optional[X]]
 JointAction = Mapping[PlayerName, Optional[U]]
-
-
-@dataclass
-class SolverParams:
-    dt: D
 
 
 def solve1(gp: GamePreprocessed):
@@ -52,59 +55,9 @@ def solve1(gp: GamePreprocessed):
         gp, {}, depth=0, outcome_set_preferences=get_outcome_set_preferences_for_players(gp.game)
     )
     solved = solve(sc, game_tree)
-    logger.info("solved",
-                value_actions=solved.va)
+    logger.info("solved", value_actions=solved.va)
+    return solved
     # logger.info(game_tree=game_tree)
-
-
-@dataclass(frozen=True, unsafe_hash=True, order=True)
-class GameNode(Generic[X, U, Y, RP, RJ]):
-    states: Mapping[PlayerName, X]
-    moves: Mapping[PlayerName, ASet[U]]
-    outcomes: "Mapping[Mapping[PlayerName, ASet[U]], GameNode[X, U, Y, RP, RJ]]"
-
-    is_final: Mapping[PlayerName, RP]
-    incremental: Mapping[PlayerName, Mapping[U, RP]]
-
-    joint_final_rewards: Mapping[PlayerName, RJ]
-
-
-@dataclass(frozen=True, unsafe_hash=True, order=True)
-class Outcome(Generic[RP, RJ]):
-    private: Mapping[PlayerName, RP]
-    joint: Mapping[PlayerName, RJ]
-
-
-@dataclass(frozen=True, unsafe_hash=True, order=True)
-class ValueAndActions(Generic[U, RP, RJ]):
-    actions: Mapping[PlayerName, ASet[U]]
-    game_value: ASet[Outcome[RP, RJ]]
-
-    def __post_init__(self):
-        check_isinstance(self.actions, frozendict, me=self)
-        for k, v in self.actions.items():
-            check_isinstance(v, frozenset, me=self, k=k)
-        check_isinstance(self.game_value, frozenset, me=self)
-        for o in self.game_value:
-            check_isinstance(o, Outcome, me=self)
-
-@dataclass(frozen=True, unsafe_hash=True, order=True)
-class SolvedGameNode(Generic[X, U, Y, RP, RJ]):
-    gn: GameNode[X, U, Y, RP, RJ]
-    solved: "Mapping[Mapping[PlayerName, ASet[U]], SolvedGameNode[X, U, Y, RP, RJ]]"
-
-    va: ValueAndActions[U, RP, RJ]
-    # actions: Mapping[PlayerName, ASet[U]]
-    # game_value: ASet[Outcome[RP, RJ]]
-
-    def __post_init__(self):
-        check_isinstance(self.va, ValueAndActions, me=self)
-@dataclass
-class SolvingContext(Generic[X, U, Y, RP, RJ]):
-    gp: GamePreprocessed[X, U, Y, RP, RJ]
-    cache: dict
-    depth: int
-    outcome_set_preferences: Mapping[PlayerName, Preference[ASet[Outcome]]]
 
 
 def get_outcome_set_preferences_for_players(
@@ -182,7 +135,7 @@ def solve(
         if len(gn.is_final) == 1:
             va = solve_1_player_final(gn)
         else:
-            va = solve_1_player( gn, solved)
+            va = solve_1_player(gn, solved)
     else:
         if gn.joint_final_rewards:  # final costs:
             va = solve_final_joint(gn)
@@ -192,11 +145,7 @@ def solve(
         else:
             va = solve_equilibria(sc, gn, solved)
 
-    res = SolvedGameNode(
-        gn=gn,
-        solved=frozendict(solved),
-        va=va
-    )
+    res = SolvedGameNode(gn=gn, solved=frozendict(solved), va=va)
     sc.cache[gn] = res
     return res
 
@@ -231,9 +180,9 @@ def solve_equilibria(
         if len(outcomes) == 1:
             game_value = list(outcomes)[0]
             # actions = frozenset(ea.nondom_nash_equilibria)
-            actions = get_all_choices_by_players(ea.nondom_nash_equilibria)
+            actions = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
             return ValueAndActions(game_value=game_value, actions=actions)
-        multiple_nash_mix = True
+        multiple_nash_mix = True  # TODO: make param
         if multiple_nash_mix:
             player2choices = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
 
@@ -251,7 +200,6 @@ def solve_equilibria(
 
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
-    raise Exception()
 
 
 M = TypeVar("M")
@@ -288,53 +236,6 @@ class CombinedFromOutcome(Generic[RP, RJ]):
         return combined
 
 
-#
-# class PlayerPreferences(Preference[ASet[Outcome[RP, RJ]]]):
-#     p: Preference[Combined[RJ, RP]]
-#     pt: Preference[ASet[Combined[RJ, RP]]]
-#     name: PlayerName
-#     gp: GamePreprocessed
-#
-#     def __init__(
-#         self,
-#         gp: GamePreprocessed,
-#         name: PlayerName,
-#         transformer: Callable[[Preference[M]], Preference[ASet[M]]],
-#     ):
-#         self.gp = gp
-#         self.name = name
-#
-#         self.p = self.gp.game.players[self.name].preferences
-#         self.pt = transformer(self.p)
-#
-#     def get_type(self):
-#         return ASet[self.p.get_type()]
-#
-#     def __repr__(self):
-#         d = {'T': self.get_type(), 'name': self.name, 'pt': self.pt}
-#         return 'PlayerPrefs: ' + debug_print(d)
-#
-#     def transform_to_private(self, a: ASet[Outcome[RP, RJ]]) -> ASet[Combined[RJ, RP]]:
-#         check_isinstance(a, frozenset, _self=self)
-#         res = set()
-#         for s in a:
-#             check_isinstance(s, Outcome, _self=self)
-#             p = Combined(joint=s.joint.get(self.name, None), personal=s.private[self.name])
-#             # logger.info(p=p)
-#             res.add(p)
-#         return frozenset(res)
-#
-#     def compare(self, a: ASet[Outcome[RP, RJ]], b: ASet[Outcome[RP, RJ]]) -> ComparisonOutcome:
-#         """ <= for the poset """
-#         check_isinstance(a, frozenset, _self=self.get_type())
-#         check_isinstance(b, frozenset, _self=self.get_type())
-#         a_p = self.transform_to_private(a)
-#         b_p = self.transform_to_private(b)
-#         res = self.pt.compare(a_p, b_p)
-#         assert res in COMP_OUTCOMES, (res, self.pt)
-#         return res
-
-
 def solve_final_joint(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
     game_value = frozenset({Outcome(private=frozendict(), joint=gn.joint_final_rewards)})
     actions = frozendict()
@@ -366,13 +267,6 @@ def solve_1_player(
     value = solved[actions]
     game_value = frozenset(value)
     return ValueAndActions(game_value=game_value, actions=actions)
-
-
-@dataclass
-class IterationContext:
-    gp: GamePreprocessed[X, U, Y, RP, RJ]
-    cache: dict
-    depth: int
 
 
 def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:

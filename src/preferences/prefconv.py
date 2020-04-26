@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Callable, Generic, Type, TypeVar
 
-from .poset import ComparisonOutcome, Preference
+from .preferences_base import ComparisonOutcome, Preference
 
+__all__ = ["PrefConverter"]
 A = TypeVar("A")
 B = TypeVar("B")
 

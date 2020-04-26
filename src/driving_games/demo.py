@@ -1,15 +1,16 @@
-__all__ = ["dg_demo"]
-
 from decimal import Decimal as D
 from typing import Dict
-
+from . import logger
+from compmake.utils import getTerminalSize
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
+
+from games import Game, solve1, SolverParams
 from .access import preprocess_game
-from .driving_example import get_game1
-from .game_def import Game
+from .game_generation import get_game1
 from .reports import create_report_preprocessed
-from .solution import solve1, SolverParams
+
+__all__ = ["dg_demo"]
 
 
 class App(QuickApp):
@@ -25,13 +26,10 @@ class App(QuickApp):
         games["game1"] = get_game1()
 
         # The solution parameters
-        solvers = {
-            "solver1": SolverParams(D(1.0)),
-            "solver0.5": SolverParams(D(0.5))
-        }
-
-        do_solvers = self.get_options().solvers.split(',')
-        do_games = self.get_options().games.split(',')
+        solvers = {"solver1": SolverParams(D(1.0)), "solver0.5": SolverParams(D(0.5))}
+        logger.info(ts=getTerminalSize())
+        do_solvers = self.get_options().solvers.split(",")
+        do_games = self.get_options().games.split(",")
         for game_name in do_games:
             cgame = context.child(game_name)
             game = games[game_name]
