@@ -1,9 +1,19 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import AbstractSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar
+from typing import (
+    Callable,
+    FrozenSet as ASet,
+    Generic,
+    Mapping,
+    NewType,
+    Optional,
+    TypeVar,
+)
 
-from networkx import DiGraph
+from networkx import MultiDiGraph
+
+from preferences import Preference
 
 X = TypeVar("X")
 U = TypeVar("U")
@@ -20,27 +30,27 @@ class Dynamics(Generic[X, U], ABC):
     #     """ Returns all possible states """
 
     @abstractmethod
-    def all_actions(self) -> AbstractSet[U]:
+    def all_actions(self) -> ASet[U]:
         """ Returns all actions possible (not all are available at each state). """
 
     @abstractmethod
-    def successors(self, x: X, dt: D) -> Mapping[U, AbstractSet[X]]:
+    def successors(self, x: X, dt: D) -> Mapping[U, ASet[X]]:
         """ For each state, returns a dictionary U -> Possible Xs """
 
 
 class Observations(Generic[X, Y], ABC):
     @abstractmethod
-    def all_observations(self) -> AbstractSet[Y]:
+    def all_observations(self) -> ASet[Y]:
         """ Returns all possible observations. """
 
     @abstractmethod
-    def get_observations(self, me: X, others: Mapping[PlayerName, X]) -> AbstractSet[Y]:
+    def get_observations(self, me: X, others: Mapping[PlayerName, X]) -> ASet[Y]:
         """ For each state, get all possible observations """
 
 
 class PersonalRewardStructure(Generic[X, U, RP], ABC):
     @abstractmethod
-    def personal_reward_incremental(self, x: X, u: U) -> RP:
+    def personal_reward_incremental(self, x: X, u: U, dt: D) -> RP:
         """What cost are paid at state X when choosing action u"""
 
     @abstractmethod
@@ -51,20 +61,24 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
     def is_personal_final_state(self, x: X) -> bool:
         """ True if this is a final state from the perspective of the agent. """
 
+    @abstractmethod
+    def personal_final_reward(self, x: X) -> RP:
+        """ Final reward """
+
+
+@dataclass(frozen=True, order=True, unsafe_hash=True)
+class Combined(Generic[RJ, RP]):
+    personal: RP
+    joint: Optional[RJ]
+
 
 P = TypeVar("P")
-
-
-class Poset(Generic[P]):
-    @abstractmethod
-    def leq(self, a: P, b: P) -> bool:
-        """ <= for the poset """
 
 
 @dataclass
 class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # Initial states
-    initial: AbstractSet[X]
+    initial: ASet[X]
     # The dynamics
     dynamics: Dynamics[X, U]
     # The observations
@@ -72,13 +86,15 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # The reward
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
     # The preferences
-    preferences: Poset[Tuple[Optional[RJ], RP]]
+    preferences: Preference[Combined[RJ, RP]]
+    # How to aggregate preferences for sets
+    set_preference_aggregator: Callable[[Preference[P]], Preference[ASet[P]]]
 
 
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     @abstractmethod
-    def is_joint_final_state(self, xs: Mapping[PlayerName, X]) -> AbstractSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, X]) -> ASet[PlayerName]:
         """ For which players is this a final state? """
 
     @abstractmethod
@@ -96,13 +112,13 @@ class Game(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class GamePlayerPreprocessed:
-    player_graph: DiGraph
+class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ]):
+    player_graph: MultiDiGraph
 
 
 @dataclass
-class GamePreprocessed:
-    game: Game
+class GamePreprocessed(Generic[X, U, Y, RP, RJ]):
+    game: Game[X, U, Y, RP, RJ]
     dt: D
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed]
-    game_graph: DiGraph
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ]]
+    game_graph: MultiDiGraph

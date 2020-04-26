@@ -18,22 +18,15 @@ def get_version(filename):
 
 
 install_requires = [
-    # "zuper-commons-z6>=6.0.2",
-    # "oyaml",
-    # "pybase64",
-    # "PyYAML",
-    # "validate_email",
-    # "mypy_extensions",
-    # "typing_extensions",
-    # "nose",
-    # "coverage>=1.4.33",
-    # "jsonschema",
-    # "numpy",
-    # "base58<2.0,>=1.0.2",
-    # "frozendict",
-    # "pytz",
-    # "termcolor",
-    # "numpy",
+    'scipy',
+    'seaborn',
+    'PyGeometry',
+    'zuper-commons-z6>=6.0.19',
+    'quickapp>=6',
+    'compmake>=6.0.3',
+    'reprep>=6.0.3',
+    'networkx>=2.4',
+    'zuper-typing-z6>=6.0.65',
 ]
 
 module = "driving_games"

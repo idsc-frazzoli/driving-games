@@ -56,3 +56,8 @@ run:
 	mkdir -p out-docker
 	docker run -it -v $(PWD)/src:/driving_games/src:ro -v $(PWD)/out-docker:/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
+
+
+black:
+	black -l 100 --target-version py37 src
+
