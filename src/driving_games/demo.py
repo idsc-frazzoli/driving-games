@@ -27,7 +27,7 @@ class App(QuickApp):
         # The solution parameters
         solvers = {
             "solver1": SolverParams(D(1.0)),
-            "solver0.75": SolverParams(D(0.75))
+            "solver0.5": SolverParams(D(0.5))
         }
 
         do_solvers = self.get_options().solvers.split(',')
