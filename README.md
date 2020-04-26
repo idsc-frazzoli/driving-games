@@ -33,8 +33,7 @@ Run manually the instructions in the Dockerfile.
 Run using:
 
     $ dg-demo --reset
-    
-(The `--reset` option draws another sample after the first.)
+     
    
 
 
