@@ -4,19 +4,20 @@ CIRCLE_NODE_TOTAL ?= 1
 include Makefile.version
 
 
+out=out
+coverage_dir=$(out)/coverage
+tr=$(out)/test-results
+
+
 test_packages=driving_games_tests,preferences_tests,games_tests
 cover_packages=driving_games,preferences,games
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
 
-xunitmp=--with-xunitmp --xunitmp-file=test-results/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
+xunitmp=--with-xunitmp --xunitmp-file=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 extra=--rednose --immediate
 
-
-out=out
-coverage_dir=$(out)/coverage
-tr=$(out)test-results
 
 all:
 	echo
