@@ -1,13 +1,13 @@
 
 # Code quality
 
-[![CircleCI](https://circleci.com/gh/idsc-frazzoli/driving-games.svg?style=svg&circle-token=8bb1a7723db3a72ed58a7c2aa93ee088b43b1e80)](https://circleci.com/gh/idsc-frazzoli/driving-games)
+[![CircleCI](https://circleci.com/gh/idsc-frazzoli/driving-games.svg?style=svg&circle-token=8bb1a7723db3a72ed58a7c2aa93ee088b43b1e80)](https://circleci.com/gh/idsc-frazzoli/driving-games) See [details here.](https://circleci.com/gh/idsc-frazzoli/driving-games).  
 
-See [CircleCI activity here](https://circleci.com/gh/idsc-frazzoli/driving-games). (Need to be logged in with Github account)
+<!-- Note: there is a "branch" in the url -->
 
-[![codecov](https://codecov.io/gh/idsc-frazzoli/driving-games/branch/visualization/graph/badge.svg?token=w8Sk4CKFpI)](https://codecov.io/gh/idsc-frazzoli/driving-games)
+[![codecov](https://codecov.io/gh/idsc-frazzoli/driving-games/branch/master/graph/badge.svg?token=w8Sk4CKFpI)](https://codecov.io/gh/idsc-frazzoli/driving-games) (for master) - See [details](https://codecov.io/gh/idsc-frazzoli/driving-games).
 
-See [CodeCov activity here](https://codecov.io/gh/idsc-frazzoli/driving-games). (Need to be logged in with Github account)
+(Need to be logged in with Github account in both cases) 
 
 # Driving Games tutorial
 
@@ -42,9 +42,9 @@ Run manually the instructions in the Dockerfile.
 
 Run tests using:
 
-	$ make clean
-	$ make test
-	$ make coverage-report
+	$ make clean test coverage-report
+
+Run some games using:
 
     $ dg-demo --reset
      
