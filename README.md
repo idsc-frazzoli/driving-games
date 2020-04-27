@@ -1,8 +1,13 @@
 
+# Code quality
+
 [![CircleCI](https://circleci.com/gh/idsc-frazzoli/driving-games.svg?style=svg&circle-token=8bb1a7723db3a72ed58a7c2aa93ee088b43b1e80)](https://circleci.com/gh/idsc-frazzoli/driving-games)
+
+See [CircleCI activity here](https://circleci.com/gh/idsc-frazzoli/driving-games). (Need to be logged in with Github account)
 
 [![codecov](https://codecov.io/gh/idsc-frazzoli/driving-games/branch/visualization/graph/badge.svg?token=w8Sk4CKFpI)](https://codecov.io/gh/idsc-frazzoli/driving-games)
 
+See [CodeCov activity here](https://codecov.io/gh/idsc-frazzoli/driving-games). (Need to be logged in with Github account)
 
 # Driving Games tutorial
 
@@ -35,7 +40,11 @@ Requires Python >= 3.7.
     
 Run manually the instructions in the Dockerfile.
 
-Run using:
+Run tests using:
+
+	$ make clean
+	$ make test
+	$ make coverage-report
 
     $ dg-demo --reset
      

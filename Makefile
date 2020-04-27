@@ -34,7 +34,7 @@ test:
 	$(MAKE) clean
 	mkdir -p  $(tr)
 	nosetests $(extra) $(coverage) $(xunitmp) src  -v
-
+	coverage combine
 
 test-parallel:
 	$(MAKE) clean
