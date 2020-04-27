@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet as ASet, Mapping
+from typing import cast, FrozenSet as ASet, Mapping, Set
 
-from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName
+from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName, X
 from preferences import SetPreference1
 from . import logger
 from .access import get_accessible_states
@@ -76,8 +76,8 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     # P1 = PlayerName("👩‍🦰")  # "👩🏿")
     # P2 = PlayerName("👳🏾‍")
-    P1 = 'p1'
-    P2 = 'p2'
+    P1 = PlayerName('p1')
+    P2 = PlayerName('p2')
     p1_initial = frozenset(
         {VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")}
     )
@@ -110,9 +110,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
 
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
-    p1_possible_states = frozenset(g1.nodes)
+    p1_possible_states = cast(ASet[VehicleState], frozenset(g1.nodes))
     g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
-    p2_possible_states = frozenset(g2.nodes)
+    p2_possible_states = cast(ASet[VehicleState], frozenset(g2.nodes))
 
     logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
     p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
