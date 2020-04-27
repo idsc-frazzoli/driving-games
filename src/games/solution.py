@@ -1,10 +1,11 @@
+from collections import defaultdict
 from dataclasses import dataclass, replace
 from typing import Dict, Generic, Mapping, Set, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
 from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
-from collections import defaultdict
+
 from preferences import PrefConverter, Preference, remove_dominated
 from . import GamePreprocessed, get_all_choices_by_players, get_all_combinations, logger
 from .agent import RandomAgent
@@ -15,6 +16,7 @@ from .equilibria import (
     EquilibriaAnalysis,
 )
 from .game_def import (
+    AgentBelief,
     ASet,
     Combined,
     Game,
@@ -56,12 +58,14 @@ def solve_random(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Simulation[X, U, Y, R
     return sim
 
 
+IState = ASet[Mapping[PlayerName, X]]
+
+
 @dataclass
 class GameSolution(Generic[X, U, Y, RP, RJ]):
     gn: GameNode[X, U, Y, RP, RJ]
     gn_solved: SolvedGameNode[X, U, Y, RP, RJ]
 
-    IState = ASet[Mapping[PlayerName, X]]
     policies: Mapping[PlayerName, Mapping[X, Mapping[IState, ASet[U]]]]
 
     def __post_init__(self):
@@ -76,7 +80,13 @@ class GameSolution(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
+class SolutionsPlayer(Generic[X, U, Y, RP, RJ]):
+    alone_solutions: Mapping[X, GameSolution]
+
+
+@dataclass
 class Solutions(Generic[X, U, Y, RP, RJ]):
+    solutions_players: Mapping[PlayerName, SolutionsPlayer]
     game_solution: GameSolution[X, U, Y, RP, RJ]
     game_tree: GameNode[X, U, Y, RP, RJ]
 
@@ -108,18 +118,136 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     logger.info("solving game tree")
 
     game_solution = solve_game(gp, game_tree)
-    logger.info("solved", value_actions=game_solution.gn_solved.va, policy=game_solution.policies)
+    # logger.info("solved", value_actions=game_solution.gn_solved.va, policy=game_solution.policies)
     a = 2
-    #
+
+    solutions_players: Dict[PlayerName, SolutionsPlayer] = {}
+    initial_state = game_tree.states
+    alone_solutions: Dict[PlayerName, Dict[X, GameSolution]] = {}
     for player_name, pp in gp.players_pre.items():
+        alone_solutions[player_name] = {}
         for x0, personal_tree in pp.alone_tree.items():
             solved_x0 = solve_game(gp, personal_tree)
-            logger.info(
-                "alone solution", value_actions=solved_x0.gn_solved.va, policy=solved_x0.policies
+            alone_solutions[player_name][x0] = solved_x0
+            # logger.info(
+            #     "alone solution", value_actions=solved_x0.gn_solved.va,
+            #     policy=solved_x0.policies
+            # )
+
+    for player_name, pp in gp.players_pre.items():
+        # use other solutions
+        logger.info("looking for ghost solutions")
+        controllers_others = {}
+        for p2 in gp.players_pre:
+            if p2 == player_name:
+                continue
+            x_p2 = initial_state[p2]
+            alone_solutions_p2 = alone_solutions[p2]
+            if x_p2 not in alone_solutions_p2:
+                raise ZValueError(
+                    x_p2=x_p2, avail=set(alone_solutions_p2), is_it=x_p2 in alone_solutions_p2
+                )
+            policy = alone_solutions_p2[x_p2].policies[p2]
+            controllers_others[p2] = AgentFromPolicy(policy)
+
+        tree_ghost = get_ghost_tree(player_name, game_tree, controllers_others)
+        logger.info(
+            "first node of tree ghost",
+            tree_ghost=replace(tree_ghost, outcomes=frozendict()),
+            outcomes=set(tree_ghost.outcomes),
+        )
+        solution_ghost = solve_game(gp, tree_ghost)
+        logger.info(
+            "solution_ghost",
+            value_actions=solution_ghost.gn_solved.va,
+            policy=solution_ghost.policies,
+        )
+
+    return Solutions(
+        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players
+    )
+    # logger.info(game_tree=game_tree)
+
+
+class AgentFromPolicy(AgentBelief[X, U]):
+    policy: Mapping[X, Mapping[IState, ASet[U]]]
+
+    def __init__(self, policy: Mapping[X, Mapping[IState, ASet[U]]]):
+        self.policy = policy
+
+    def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+        lookup = self.policy[state_self]
+        if len(lookup) == 1:
+            return list(lookup.values())[0]
+
+        raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)
+
+
+def get_ghost_tree(
+    player_name: PlayerName,
+    game_tree: GameNode[X, U, Y, RP, RJ],
+    controllers: Mapping[PlayerName, AgentBelief[X, U]],
+) -> GameNode[X, U, Y, RP, RJ]:
+    assert len(controllers) >= 1, controllers
+    assert player_name not in controllers, (player_name, set(controllers))
+    return replace_others(player_name, game_tree, controllers)
+
+
+def replace_others(
+    dreamer: PlayerName,
+    node: GameNode[X, U, Y, RP, RJ],
+    controllers: Mapping[PlayerName, AgentBelief[X, U]],
+) -> GameNode[X, U, Y, RP, RJ]:
+    assert dreamer not in controllers
+    assert controllers
+    # what would they do?
+    action_others = {}
+    for player_name, controller in controllers.items():
+        if player_name == dreamer:
+            continue
+        state_self = node.states[player_name]
+        state_others = {k: v for k, v in node.states.items() if k != player_name}
+        options = controller.get_commands(state_self, state_others)
+        if len(options) != 1:
+            raise ZNotImplementedError(options=options)
+        action_others[player_name] = list(options)[0]
+
+    # find out which actions are compatible
+    outcomes = {k: v for k, v in node.outcomes.items() if is_compatible(k, action_others)}
+
+    logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
+    moves = get_all_choices_by_players(set(outcomes))
+    for player_name in action_others:
+        if len(moves[player_name]) != 1:
+            raise ZValueError(
+                moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves
             )
 
-    return Solutions(game_solution=game_solution, game_tree=game_tree)
-    # logger.info(game_tree=game_tree)
+    # if len(moves) == len(node.moves):
+    #     raise ZValueError(moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves)
+    return GameNode(
+        outcomes=frozendict(outcomes),
+        states=node.states,
+        is_final=node.is_final,
+        incremental=node.incremental,
+        joint_final_rewards=node.joint_final_rewards,
+        moves=moves,
+    )
+    # states: JointState
+    # moves: JointMixedActions
+    # outcomes: "Mapping[JointPureActions, GameNode[X, U, Y, RP, RJ]]"
+    #
+    # is_final: Mapping[PlayerName, RP]
+    # incremental: Mapping[PlayerName, Mapping[U, RP]]
+    #
+    # joint_final_rewards: Mapping[PlayerName, RJ]
+
+
+def is_compatible(a: JointPureActions, constraints: JointPureActions) -> bool:
+    for k, v in constraints.items():
+        if a[k] != v:
+            return False
+    return True
 
 
 #

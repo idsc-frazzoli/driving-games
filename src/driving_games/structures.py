@@ -31,7 +31,7 @@ class VehicleState:
     wait: D
     light: Lights
 
-    __print_order__ = ["x", "v"]
+    __print_order__ = ["x", "v"]  # only print these attributes
 
 
 @dataclass(frozen=True)
