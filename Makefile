@@ -52,6 +52,10 @@ tag=driving_games
 
 build:
 	docker build -t $(tag) .
+
+build-no-cache:
+	docker build --no-cache -t $(tag) .
+
 run:
 	mkdir -p out-docker
 	docker run -it -v $(PWD)/src:/driving_games/src:ro -v $(PWD)/out-docker:/out $(tag) \
