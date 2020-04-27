@@ -40,20 +40,24 @@ jobs:
             make test
 
       - store_test_results:
+          when: always  
           path: out/test-results
  
       - run:
           name: Coverage report
+          when: always
           command: |
             make coverage-report
 
 
       - store_artifacts:
+          when: always
           path: cover
           destination: coverage
 
       - run:
           name: CodeCov
+          when: always
           command: |
             codecov
 
