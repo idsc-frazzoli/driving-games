@@ -4,7 +4,6 @@ from typing import Optional, Sequence, Tuple
 
 import numpy as np
 from decorator import contextmanager
-from duckietown_world.geo.transforms import SE2value
 from matplotlib import patches
 
 from games import GameVisualization, PlayerName
@@ -81,7 +80,7 @@ class DrivingGameVisualization(
         plot_car(self.pylab, q, velocity=velocity, car_color="blue", light_colors=colors[light])
 
 
-def plot_car(pylab, q: SE2value, velocity, car_color, light_colors):
+def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
     L = 4
     W = 2.5
     car = ((-L / 2, -W / 2), (-L / 2, +W / 2), (+L / 2, +W / 2), (+L / 2, -W / 2), (-L / 2, -W / 2))
@@ -113,7 +112,7 @@ def plot_car(pylab, q: SE2value, velocity, car_color, light_colors):
 
 
 def get_transformed_xy(
-    q: SE2value, points: Sequence[Tuple[Number, Number]]
+    q: np.array, points: Sequence[Tuple[Number, Number]]
 ) -> Tuple[np.array, np.array]:
     car = tuple((x, y, 1) for x, y in points)
     car = np.array(car).T
