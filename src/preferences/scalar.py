@@ -5,7 +5,6 @@ from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
     INDIFFERENT,
-    P,
     Preference,
     SECOND_PREFERRED,
 )
@@ -14,7 +13,7 @@ __all__ = ["SmallerPreferred", "SmallerPreferredTol"]
 
 
 class SmallerPreferred(Preference[D]):
-    def get_type(self) -> Type[P]:
+    def get_type(self) -> Type[D]:
         return D
 
     def compare(self, a: D, b: D) -> ComparisonOutcome:
@@ -26,7 +25,7 @@ class SmallerPreferred(Preference[D]):
             return SECOND_PREFERRED
         assert False, (a, b)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "SmallerPreferred"
 
 
@@ -36,7 +35,7 @@ class SmallerPreferredTol(Preference[D]):
     def __init__(self, tol: D):
         self.tol = tol
 
-    def get_type(self) -> Type[P]:
+    def get_type(self) -> Type[D]:
         return D
 
     def compare(self, a: D, b: D) -> ComparisonOutcome:
@@ -48,5 +47,5 @@ class SmallerPreferredTol(Preference[D]):
             return SECOND_PREFERRED
         assert False, (a, b)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"SmallerPreferredTol({self.tol})"

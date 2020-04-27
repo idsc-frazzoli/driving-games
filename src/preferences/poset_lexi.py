@@ -1,4 +1,4 @@
-from typing import Tuple, TypeVar
+from typing import Tuple, Type, TypeVar
 
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print, make_Tuple
@@ -26,11 +26,11 @@ class LexicographicPreference(Preference[Tuple[A, B]]):
     def __init__(self, prefs: Tuple[Preference[A], Preference[B]]):
         self.prefs = prefs
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         d = {"T": self.get_type(), "prefs": self.prefs}
         return "LexicographicPreference:\n" + debug_print(d)
 
-    def get_type(self):
+    def get_type(self) -> Type[Tuple[A, B]]:
         t = make_Tuple(*tuple(_.get_type() for _ in self.prefs))
         return t
 

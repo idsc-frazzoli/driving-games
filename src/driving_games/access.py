@@ -7,9 +7,8 @@ from typing import FrozenSet as ASet, List, Mapping
 import numpy as np
 from frozendict import frozendict
 from networkx import MultiDiGraph
-
 from zuper_commons.types import ZException
-from . import logger
+
 from games import (
     Dynamics,
     Game,
@@ -18,27 +17,46 @@ from games import (
     GamePreprocessed,
     PersonalRewardStructure,
     PlayerName,
-    X,
-    U,
-    Y,
-    RP,
     RJ,
+    RP,
+    U,
+    X,
+    Y,
 )
+from games.single_game_tree import get_one_player_game_tree
+from . import logger
 
 
 def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:
     game_graph = get_game_graph(game, dt)
-    compute_graph_layout(game_graph)
+    compute_graph_layout(game_graph, iterations=1)
     players_pre = {
-        player_name: GamePlayerPreprocessed(get_player_graph(player, dt))
+        player_name: preprocess_player(player_name=player_name, player=player, dt=dt)
         for player_name, player in game.players.items()
     }
 
-    return GamePreprocessed(game=game, dt=dt, players_pre=players_pre, game_graph=game_graph)
+    gp = GamePreprocessed(game=game, dt=dt, players_pre=players_pre, game_graph=game_graph)
+
+    return gp
+
+
+def preprocess_player(player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], dt: D):
+    graph = get_player_graph(player, dt)
+    alone_trees = {}
+    for x0 in player.initial:
+        alone_trees[x0] = get_one_player_game_tree(
+            player_name=player_name, player=player, x0=x0, dt=dt
+        )
+
+    alone_trees = frozendict(alone_trees)
+    return GamePlayerPreprocessed(graph, alone_trees)
 
 
 def get_accessible_states(
-    initial: ASet, personal_reward_structure: PersonalRewardStructure, dynamics: Dynamics, dt: D,
+    initial: ASet[X],
+    personal_reward_structure: PersonalRewardStructure[X, U, RP],
+    dynamics: Dynamics[X, U],
+    dt: D,
 ) -> MultiDiGraph:
     G = MultiDiGraph()
 
@@ -77,7 +95,7 @@ def get_accessible_states(
     return G
 
 
-def get_game_graph(game: Game, dt: D) -> MultiDiGraph:
+def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     players = game.players
     assert len(players) == 2
     p1, p2 = list(players)
@@ -165,32 +183,14 @@ def get_game_graph(game: Game, dt: D) -> MultiDiGraph:
     return G
 
 
-def compute_graph_layout(G: MultiDiGraph, iterations=30) -> None:
+def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
     generations = defaultdict(list)
     for n in G.nodes:
         g = G.nodes[n]["generation"]
         others = generations[g]
         others.append(n)
 
-    logger.info("reorderdering")
-    # if False:
-    #     for g, ordered in list(generations.items()):
-    #         if g == 0:
-    #             continue
-    #         affinities = {}
-    #         for n in ordered:
-    #             pred_order = []
-    #             preds = G.predecessors(n)
-    #             for p in preds:
-    #                 gp = G.nodes[p]["generation"]
-    #                 prev_ = generations[gp]
-    #                 pred_order.append(prev_.index(p))
-    #             val = np.mean(pred_order) + np.median(pred_order)
-    #             affinities[n] = val
-    #
-    #         reordered = sorted(ordered, key=lambda _: affinities[_])
-    #         generations[g] = reordered
-    #     logger.info("reorderdering")
+    logger.info("reordering")
 
     for it in range(iterations):
         g = random.choice(list(generations))
@@ -242,7 +242,7 @@ def compute_graph_layout(G: MultiDiGraph, iterations=30) -> None:
         G.nodes[n]["x"] = g * 200
 
 
-def get_player_graph(player: GamePlayer, dt: D) -> MultiDiGraph:
+def get_player_graph(player: GamePlayer[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     return get_accessible_states(
         player.initial, player.personal_reward_structure, player.dynamics, dt=dt
     )

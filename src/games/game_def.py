@@ -11,7 +11,8 @@ from typing import (
     TypeVar,
 )
 
-from networkx import MultiDiGraph
+from frozendict import frozendict
+from zuper_commons.types import check_isinstance
 
 from preferences import Preference
 
@@ -102,6 +103,19 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
         """ The joint reward for the agents. Only available for a final state. """
 
 
+class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
+    @abstractmethod
+    def plot_arena(self, pylab, ax):
+        pass
+
+    @abstractmethod
+    def plot_player(
+        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0
+    ):
+        """ Draw the player at a certain state doing certain commands (if givne)"""
+        pass
+
+
 @dataclass
 class Game(Generic[X, U, Y, RP, RJ]):
     """ The players """
@@ -110,15 +124,28 @@ class Game(Generic[X, U, Y, RP, RJ]):
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
 
-
-@dataclass
-class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ]):
-    player_graph: MultiDiGraph
+    game_visualization: GameVisualization[X, U, Y, RP, RJ]
 
 
-@dataclass
-class GamePreprocessed(Generic[X, U, Y, RP, RJ]):
-    game: Game[X, U, Y, RP, RJ]
-    dt: D
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ]]
-    game_graph: MultiDiGraph
+class AgentBelief(Generic[X, U], ABC):
+    """ This agent's policy is a function of its own state
+        and the product of the beliefs about the state of the other agents.
+    """
+
+    @abstractmethod
+    def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+        ...
+
+
+JointState = Mapping[PlayerName, X]
+JointPureActions = Mapping[PlayerName, U]
+JointMixedActions = Mapping[PlayerName, ASet[U]]
+
+
+def check_joint_state(js: JointState):
+    from driving_games.structures import VehicleState  # XXX : for debug
+
+    check_isinstance(js, frozendict)
+    for n, x in js.items():
+        check_isinstance(n, str)
+        check_isinstance(x, VehicleState)

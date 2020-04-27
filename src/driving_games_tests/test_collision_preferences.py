@@ -4,7 +4,8 @@ from typing import Mapping, Optional, Tuple
 from frozendict import frozendict
 from nose.tools import assert_equal
 
-from driving_games.driving_example import CollisionCost, CollisionPreference
+from driving_games.driving_example import CollisionPreference
+from driving_games.structures import CollisionCost
 from driving_games.game_generation import get_game1
 from games.solution import get_outcome_set_preferences_for_players
 from games.structures_solution import Outcome
@@ -18,7 +19,7 @@ from preferences import (
 from . import logger
 
 
-def test1():
+def test1() -> None:
     C1 = CollisionCost(D(1))
     C2 = CollisionCost(D(2))
     expect: Mapping[Tuple[Optional[CollisionCost], Optional[CollisionCost]], ComparisonOutcome]
@@ -37,7 +38,7 @@ def test1():
         assert_equal(res, c)
 
 
-def test2():
+def test2() -> None:
     # *│ * ╔═════════════════════════════════╗
     # > │     │ │   ║Outcome *                        ║
     # > │     │ │   ║│ private: {p1: Dec 3, p2: Dec 3}║

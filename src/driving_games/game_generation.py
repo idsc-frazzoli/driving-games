@@ -1,26 +1,27 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet as ASet, Mapping
+from typing import cast, FrozenSet as ASet, Mapping, Set
 
-from driving_games import logger
-from driving_games.access import get_accessible_states
-from driving_games.driving_example import (
-    Lights,
-    NO_LIGHTS,
-    RJ_,
-    RP_,
-    U_,
-    VehicleDirectObservations,
-    VehicleDynamics,
+from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName, X
+from preferences import SetPreference1
+from . import logger
+from .access import get_accessible_states
+from .driving_example import (
     VehicleJointReward,
     VehiclePersonalRewardStructureTime,
     VehiclePreferencesCollTime,
-    VehicleState,
-    X_,
-    Y_,
 )
-from games import Game, GamePlayer, JointRewardStructure, PlayerName
-from preferences import SetPreference1
+from .structures import (
+    CollisionCost,
+    Lights,
+    NO_LIGHTS,
+    VehicleActions,
+    VehicleDirectObservations,
+    VehicleDynamics,
+    VehicleObservation,
+    VehicleState,
+)
+from .visualization import DrivingGameVisualization
 
 
 @dataclass
@@ -53,7 +54,7 @@ def get_game1() -> Game:
         collision_threshold=3.0,
         light_actions=frozenset({NO_LIGHTS}),
         dt=D(1),
-        first_progress=D(2),
+        first_progress=D(0),
         second_progress=D(0),
     )
     return get_two_vehicle_game(p)
@@ -66,15 +67,17 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     # p1_ref = SE2_from_xytheta([start, 0, np.pi / 2])
     p1_ref = (D(start), D(0), D(+90))
     # p2_ref = SE2_from_xytheta([L, start, -np.pi])
-    p2_ref = (D(L - 1), D(start), D(-180))
+    p2_ref = (D(L), D(start), D(-180))
     max_speed = params.max_speed
     min_speed = params.min_speed
     max_wait = params.max_wait
     dt = params.dt
     available_accels = params.available_accels
 
-    P1 = PlayerName("p1")
-    P2 = PlayerName("p2")
+    # P1 = PlayerName("👩‍🦰")  # "👩🏿")
+    # P2 = PlayerName("👳🏾‍")
+    P1 = PlayerName('p1')
+    P2 = PlayerName('p2')
     p1_initial = frozenset(
         {VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")}
     )
@@ -107,9 +110,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
 
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
-    p1_possible_states = frozenset(g1.nodes)
+    p1_possible_states = cast(ASet[VehicleState], frozenset(g1.nodes))
     g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
-    p2_possible_states = frozenset(g2.nodes)
+    p2_possible_states = cast(ASet[VehicleState], frozenset(g2.nodes))
 
     logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
     p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
@@ -134,10 +137,17 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
         preferences=p2_preferences,
         set_preference_aggregator=set_preference_aggregator,
     )
-    players: Mapping[PlayerName, GamePlayer[X_, U_, Y_, RP_, RJ_]]
+    players: Mapping[
+        PlayerName, GamePlayer[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    ]
     players = {P1: p1, P2: p2}
-    joint_reward: JointRewardStructure[X_, U_, RJ_]
+    joint_reward: JointRewardStructure[VehicleState, VehicleActions, CollisionCost]
     joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold)
 
-    game: Game[X_, U_, Y_, RP_, RJ_] = Game(players, joint_reward)
+    game_visualization: GameVisualization[
+        VehicleState, VehicleActions, VehicleObservation, D, CollisionCost
+    ]
+    game_visualization = DrivingGameVisualization(params, L)
+    game: Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    game = Game(players, joint_reward, game_visualization=game_visualization)
     return game

@@ -1,14 +1,17 @@
 from decimal import Decimal as D
 from typing import Dict
-from . import logger
+
 from compmake.utils import getTerminalSize
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
 
 from games import Game, solve1, SolverParams
+from games.solution import solve_random
+from . import logger
 from .access import preprocess_game
+from .animations import report_animation
 from .game_generation import get_game1
-from .reports import create_report_preprocessed
+from .reports import create_report_preprocessed, report_game_visualization
 
 __all__ = ["dg_demo"]
 
@@ -33,7 +36,10 @@ class App(QuickApp):
         for game_name in do_games:
             cgame = context.child(game_name)
             game = games[game_name]
-
+            rgame = cgame.comp(report_game_visualization, game)
+            cgame.add_report(
+                rgame, "visualization", game_name=game_name,
+            )
             for solver_name in do_solvers:
                 cgamesolver = cgame.child(solver_name)
                 solver = solvers[solver_name]
@@ -45,6 +51,12 @@ class App(QuickApp):
                 )
 
                 cgamesolver.comp(solve1, game_preprocessed)
+                random_sim = cgamesolver.comp(solve_random, game_preprocessed)
+                r = cgamesolver.comp(report_animation, game_preprocessed, random_sim)
+                cgamesolver.add_report(
+                    r, "random_animation", game_name=game_name, solver_name=solver_name,
+                )
+
             #
             # # create solution
             # solution = context.comp(solve, city, sp)

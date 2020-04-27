@@ -1,4 +1,4 @@
-from typing import FrozenSet as ASet
+from typing import FrozenSet as ASet, Type
 
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print
@@ -23,10 +23,10 @@ class SetPreference1(Preference[ASet[P]]):
     def __init__(self, p0: Preference[P]):
         self.p0 = p0
 
-    def get_type(self):
+    def get_type(self) -> Type[ASet[P]]:
         return ASet[self.p0.get_type()]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         d = {"T": self.get_type(), "p0": self.p0}
         return "SetPreference1: " + debug_print(d)
 
