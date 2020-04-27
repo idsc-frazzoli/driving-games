@@ -4,7 +4,8 @@ from typing import Mapping, Optional, Tuple
 from frozendict import frozendict
 from nose.tools import assert_equal
 
-from driving_games.driving_example import CollisionCost, CollisionPreference
+from driving_games.driving_example import CollisionPreference
+from driving_games.structures import CollisionCost
 from driving_games.game_generation import get_game1
 from games.solution import get_outcome_set_preferences_for_players
 from games.structures_solution import Outcome

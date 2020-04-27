@@ -7,34 +7,27 @@ from typing import FrozenSet as ASet, List, Mapping
 import numpy as np
 from frozendict import frozendict
 from networkx import MultiDiGraph
-
 from zuper_commons.types import ZException
+
+from games import (Dynamics, Game, GamePlayer, GamePlayerPreprocessed, GamePreprocessed, PersonalRewardStructure,
+                   PlayerName, RJ, RP, U, X, Y)
 from . import logger
-from games import (
-    Dynamics,
-    Game,
-    GamePlayer,
-    GamePlayerPreprocessed,
-    GamePreprocessed,
-    PersonalRewardStructure,
-    PlayerName,
-    X,
-    U,
-    Y,
-    RP,
-    RJ,
-)
 
 
 def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:
     game_graph = get_game_graph(game, dt)
     compute_graph_layout(game_graph)
     players_pre = {
-        player_name: GamePlayerPreprocessed(get_player_graph(player, dt))
+        player_name: preprocess_player(player, dt)
         for player_name, player in game.players.items()
     }
 
     return GamePreprocessed(game=game, dt=dt, players_pre=players_pre, game_graph=game_graph)
+
+
+def preprocess_player(player, dt: D):
+    graph = get_player_graph(player, dt)
+    return GamePlayerPreprocessed(graph)
 
 
 def get_accessible_states(
@@ -173,24 +166,6 @@ def compute_graph_layout(G: MultiDiGraph, iterations=30) -> None:
         others.append(n)
 
     logger.info("reorderdering")
-    # if False:
-    #     for g, ordered in list(generations.items()):
-    #         if g == 0:
-    #             continue
-    #         affinities = {}
-    #         for n in ordered:
-    #             pred_order = []
-    #             preds = G.predecessors(n)
-    #             for p in preds:
-    #                 gp = G.nodes[p]["generation"]
-    #                 prev_ = generations[gp]
-    #                 pred_order.append(prev_.index(p))
-    #             val = np.mean(pred_order) + np.median(pred_order)
-    #             affinities[n] = val
-    #
-    #         reordered = sorted(ordered, key=lambda _: affinities[_])
-    #         generations[g] = reordered
-    #     logger.info("reorderdering")
 
     for it in range(iterations):
         g = random.choice(list(generations))

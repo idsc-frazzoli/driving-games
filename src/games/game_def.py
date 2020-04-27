@@ -102,13 +102,28 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
         """ The joint reward for the agents. Only available for a final state. """
 
 
+
+class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
+
+    @abstractmethod
+    def plot_arena(self, pylab, ax):
+        pass
+
+    @abstractmethod
+    def plot_player(self, player_name: PlayerName, state: X, commands: Optional[U],
+                    opacity: float = 1.0):
+        """ Draw the player at a certain state doing certain commands (if givne)"""
+        pass
+
+
 @dataclass
 class Game(Generic[X, U, Y, RP, RJ]):
     """ The players """
-
     players: Mapping[PlayerName, GamePlayer[X, U, Y, RP, RJ]]
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
+
+    game_visualization: GameVisualization[X, U, Y, RP, RJ]
 
 
 @dataclass
@@ -122,3 +137,17 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ]):
     dt: D
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ]]
     game_graph: MultiDiGraph
+
+
+class AgentBelief(Generic[X, U], ABC):
+    """ This agent's policy is a function of its own state
+        and the product of the beliefs about the state of the other agents.
+    """
+
+    @abstractmethod
+    def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+        ...
+
+
+JointState = Mapping[PlayerName, Optional[X]]
+JointAction = Mapping[PlayerName, Optional[U]]

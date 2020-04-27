@@ -1,7 +1,6 @@
 import itertools
-from collections import defaultdict
 from dataclasses import dataclass, replace
-from typing import Dict, Generic, Iterator, Mapping, Optional, Set, TypeVar
+from typing import Dict, Generic, Iterator, Mapping, Set, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
@@ -9,8 +8,11 @@ from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueEr
 
 from preferences import PrefConverter, Preference
 from . import logger
+from .agent import RandomAgent
+from .create_joint_game_tree import create_game_tree
 from .equilibria import analyze_equilibria, get_all_choices_by_players, get_all_combinations
 from .game_def import ASet, Combined, Game, GamePreprocessed, PlayerName, RJ, RP, U, X, Y
+from .simulate import simulate1, Simulation
 from .structures_solution import (
     GameNode,
     IterationContext,
@@ -22,11 +24,22 @@ from .structures_solution import (
 
 __all__ = ["solve1"]
 
-JointState = Mapping[PlayerName, Optional[X]]
-JointAction = Mapping[PlayerName, Optional[U]]
+
+def solve_random(gp: GamePreprocessed) -> Simulation:
+    policies = {player_name: RandomAgent(player.dynamics) for player_name, player in gp.game.players.items()}
+    initial_states = {player_name: list(player.initial)[0] for player_name, player in gp.game.players.items()}
+    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.dt)
+    logger.info(sim=sim)
+    return sim
 
 
-def solve1(gp: GamePreprocessed):
+@dataclass
+class Solutions(Generic[X, U, Y, RP, RJ]):
+    solved: SolvedGameNode[X, U, Y, RP, RJ]
+    game_tree: GameNode[X, U, Y, RP, RJ]
+
+
+def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     G = gp.game_graph
 
     # find initial states
@@ -56,9 +69,50 @@ def solve1(gp: GamePreprocessed):
     )
     solved = solve(sc, game_tree)
     logger.info("solved", value_actions=solved.va)
-    return solved
-    # logger.info(game_tree=game_tree)
 
+    #
+    # for player_name in gp.game.players:
+    #     personal_tree = get_personal_tree(game_tree, player_name)
+
+
+    return Solutions(solved=solved, game_tree=game_tree)
+    # logger.info(game_tree=game_tree)
+#
+# @dataclass
+# class PersonalContext:
+#     cache: dict
+# def get_personal_tree(node: GameNode, player_name: PlayerName) -> GameNode:
+#     """ Removes the others from the tree """
+#     context =  PersonalContext({})
+#     return get_personal_tree_(context, node, player_name)
+#
+#
+# def get_personal_tree_(pc: PersonalContext, node: GameNode, player_name: PlayerName) -> GameNode:
+#     if node.states in pc.cache:
+#         return pc.cache[node.states]
+#
+#     if node.is_final.get(player_name, None):
+#         outcomes = {}
+#     else:
+#         outcomes = {}
+#         for actions, outcome in node.outcomes.items():
+#             outcomes[only_keep(actions, player_name)] = get_personal_tree_(pc, outcome, player_name)
+#
+#     is_final = only_keep(node.is_final, player_name)
+#     moves = only_keep(node.moves, player_name)
+#     states = only_keep(node.states, player_name)
+#     incremental= only_keep(node.incremental, player_name)
+#     joint_final_rewards = frozendict()
+#     res = GameNode(states=states, moves=moves, outcomes=outcomes, is_final=is_final,
+#                     incremental=incremental, joint_final_rewards=joint_final_rewards)
+#     pc.cache[node.states] = res
+#     return res
+#
+# K = TypeVar('K')
+# V = TypeVar('V')
+# def only_keep(d: Mapping[K, V], one: K) -> Mapping[K, V]:
+#     return frozendict({k: v for k,v in d.items() if k == one})
+#
 
 def get_outcome_set_preferences_for_players(
     game: Game,
@@ -269,70 +323,3 @@ def solve_1_player(
     return ValueAndActions(game_value=game_value, actions=actions)
 
 
-def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:
-    if N in ic.cache:
-        return ic.cache[N]
-    states = {k: v for k, v in N.items() if v is not None}
-    # if ic.depth > 20:
-    #     return None
-    # get all possible successors
-    G = ic.gp.game_graph
-
-    N2: JointState
-
-    moves = defaultdict(set)
-
-    pure_outcomes = {}
-
-    ic2 = replace(ic, depth=ic.depth + 1)
-    # noinspection PyArgumentList
-    for N_, N2, attrs in G.out_edges(N, data=True):
-        joint_action: JointAction = attrs["action"]
-
-        for p, m in joint_action.items():
-            if m is not None:
-                moves[p].add(m)
-
-        pure_action = frozendict(
-            {
-                pname: frozenset([action])
-                for pname, action in joint_action.items()
-                if action is not None
-            }
-        )
-        pure_outcomes[pure_action] = create_game_tree(ic2, N2)
-
-    is_final = {}
-    for player_name, player_state in states.items():
-        _ = ic.gp.game.players[player_name]
-        if _.personal_reward_structure.is_personal_final_state(player_state):
-            f = _.personal_reward_structure.personal_final_reward(player_state)
-            is_final[player_name] = f
-
-    incremental = defaultdict(dict)
-    for k, its_moves in moves.items():
-        for move in its_moves:
-            pri = ic.gp.game.players[k].personal_reward_structure.personal_reward_incremental
-            inc = pri(states[k], move, ic.gp.dt)
-            incremental[k][move] = inc
-
-    who_exits = frozenset(ic.gp.game.joint_reward.is_joint_final_state(states))
-    joint_final = who_exits
-    if joint_final:
-        joint_final_rewards = ic.gp.game.joint_reward.joint_reward(states)
-    else:
-        joint_final_rewards = {}
-
-    moves = {k: frozenset(v) for k, v in moves.items()}
-
-    outcomes = pure_outcomes
-    res = GameNode(
-        moves=frozendict(moves),
-        states=frozendict(states),
-        outcomes=frozendict(outcomes),
-        incremental=frozendict({k: frozendict(v) for k, v in incremental.items()}),
-        joint_final_rewards=frozendict(joint_final_rewards),
-        is_final=frozendict(is_final),
-    )
-    ic.cache[N] = res
-    return res
