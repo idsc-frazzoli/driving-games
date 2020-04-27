@@ -1,6 +1,9 @@
 
 [![CircleCI](https://circleci.com/gh/idsc-frazzoli/driving-games.svg?style=svg&circle-token=8bb1a7723db3a72ed58a7c2aa93ee088b43b1e80)](https://circleci.com/gh/idsc-frazzoli/driving-games)
- 
+
+[![codecov](https://codecov.io/gh/idsc-frazzoli/driving-games/branch/visualization/graph/badge.svg?token=w8Sk4CKFpI)](https://codecov.io/gh/idsc-frazzoli/driving-games)
+
+
 # Driving Games tutorial
 
 Reachable states for player 1:
