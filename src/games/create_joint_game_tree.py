@@ -1,9 +1,21 @@
 from collections import defaultdict
 from dataclasses import replace
+from typing import Dict
 
 from frozendict import frozendict
 
-from games import GameNode, IterationContext, JointAction, JointState, RJ, RP, U, X, Y
+from games import (
+    check_joint_pure_actions,
+    GameNode,
+    IterationContext,
+    JointPureActions,
+    JointState,
+    RJ,
+    RP,
+    U,
+    X,
+    Y,
+)
 
 
 def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:
@@ -19,23 +31,21 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
 
     moves = defaultdict(set)
 
-    pure_outcomes = {}
+    pure_outcomes: Dict[JointPureActions, GameNode[X, U, Y, RP, RJ]] = {}
 
     ic2 = replace(ic, depth=ic.depth + 1)
     # noinspection PyArgumentList
     for N_, N2, attrs in G.out_edges(N, data=True):
-        joint_action: JointAction = attrs["action"]
+        joint_action: JointPureActions = attrs["action"]
+        # note: can be null
+        # check_joint_pure_actions(joint_action)
 
         for p, m in joint_action.items():
             if m is not None:
                 moves[p].add(m)
-
+        pure_action: JointPureActions
         pure_action = frozendict(
-            {
-                pname: frozenset([action])
-                for pname, action in joint_action.items()
-                if action is not None
-            }
+            {pname: action for pname, action in joint_action.items() if action is not None}
         )
         pure_outcomes[pure_action] = create_game_tree(ic2, N2)
 

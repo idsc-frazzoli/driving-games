@@ -4,36 +4,41 @@ from typing import Dict, Generic, Mapping, Optional
 
 from frozendict import frozendict
 
-from .game_def import AgentBelief, Game, PlayerName, RJ, RP, U, X, Y
+from .structures_solution import check_joint_pure_actions
+from .game_def import AgentBelief, Game, PlayerName, RJ, RP, U, X, Y, JointPureActions, JointState
 
 
 @dataclass
 class SimulationStep(Generic[X, U, Y, RP, RJ]):
-    states: Mapping[PlayerName, X]
-    actions: Mapping[PlayerName, U]
+    states: JointState
+    pure_actions: JointPureActions
     incremental_costs: Mapping[PlayerName, RP]
     joint_cost: Optional[RJ]
+
+    def __post_init__(self):
+        check_joint_pure_actions(self.pure_actions)
 
 
 @dataclass
 class Simulation(Generic[X, U, Y, RP, RJ]):
-    states: Mapping[D, Mapping[PlayerName, X]]
-    actions: Mapping[D, Mapping[PlayerName, U]]
+    states: Mapping[D, JointState]
+    actions: Mapping[D, JointPureActions]
     costs: Mapping[D, Mapping[PlayerName, RP]]
     joint_costs: Mapping[D, Mapping[PlayerName, RJ]]
 
 
-def simulate1(game: Game[X, U, Y, RP, RJ],
-                          policies: Mapping[PlayerName, AgentBelief[X, U]],
-                          initial_states: Mapping[PlayerName, X],
-                          dt: D) -> Simulation[X, U, Y, RP, RJ]:
+def simulate1(
+    game: Game[X, U, Y, RP, RJ],
+    policies: Mapping[PlayerName, AgentBelief[X, U]],
+    initial_states: Mapping[PlayerName, X],
+    dt: D,
+) -> Simulation[X, U, Y, RP, RJ]:
     S_states: Dict[D, Mapping[PlayerName, X]] = {}
     S_actions: Dict[D, Mapping[PlayerName, X]] = {}
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}
-    S_joint_costs:Dict[D, Mapping[PlayerName, RJ]] = {}
+    S_joint_costs: Dict[D, Mapping[PlayerName, RJ]] = {}
 
     S_states[D(0)] = initial_states
-
 
     while True:
         # last time
@@ -68,20 +73,21 @@ def simulate1(game: Game[X, U, Y, RP, RJ],
             action = policy.get_commands(state_self, belief_state_others)
             incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
-
             dynamics = game.players[player_name].dynamics
             successors = dynamics.successors(s1[player_name], dt)[action]
             next_state = list(successors)[0]
 
             s1_actions[player_name] = action
-            next_states[player_name]  = next_state
-
+            next_states[player_name] = next_state
 
         S_actions[t1] = frozendict(s1_actions)
         S_costs[t1] = frozendict(incremental_costs)
         t2 = t1 + dt
         S_states[t2] = frozendict(next_states)
 
-
-    return Simulation(states=frozendict(S_states), actions=frozendict(S_actions),
-                      costs=frozendict(S_costs), joint_costs=frozendict(S_joint_costs))
+    return Simulation(
+        states=frozendict(S_states),
+        actions=frozendict(S_actions),
+        costs=frozendict(S_costs),
+        joint_costs=frozendict(S_joint_costs),
+    )

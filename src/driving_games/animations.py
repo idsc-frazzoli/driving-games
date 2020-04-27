@@ -3,11 +3,14 @@ from decimal import Decimal as D
 from reprep import MIME_GIF, Report
 
 from games import GamePreprocessed, Optional
+from games.game_def import X, U, Y, RP, RJ
 from games.simulate import Simulation
 from . import logger
 
 
-def report_animation(gp: GamePreprocessed, sim: Simulation) -> Report:
+def report_animation(
+    gp: GamePreprocessed[X, U, Y, RP, RJ], sim: Simulation[X, U, Y, RP, RJ]
+) -> Report:
     r = Report()
     f = r.figure()
     with f.data_file("sim", MIME_GIF) as fn:
@@ -62,9 +65,12 @@ def get_next_state(gp, s0, actions, dt2):
     return next_state
 
 
-def create_log_animation(gp: GamePreprocessed,
-                         sim: Simulation, fn: str, upsample_log: Optional[int]
-                         ):
+def create_log_animation(
+    gp: GamePreprocessed[X, U, Y, RP, RJ],
+    sim: Simulation[X, U, Y, RP, RJ],
+    fn: str,
+    upsample_log: Optional[int],
+):
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
 
@@ -87,14 +93,14 @@ def create_log_animation(gp: GamePreprocessed,
     frames = list(use_states)
 
     def update(t: D):
-        logger.info(f'plotting t = {t}')
+        logger.info(f"plotting t = {t}")
         ax.clear()
         states = use_states[t]
         with viz.plot_arena(plt, ax):
             for player_name, player_state in states.items():
                 if player_state is not None:
                     viz.plot_player(player_name, state=player_state, commands=None)
-        ax.set_title(f't = {t}')
+        ax.set_title(f"t = {t}")
 
     # noinspection PyTypeChecker
     anim = FuncAnimation(fig, func=update, frames=frames, interval=interval)

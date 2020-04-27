@@ -52,7 +52,7 @@ class App(QuickApp):
 
                 cgamesolver.comp(solve1, game_preprocessed)
                 random_sim = cgamesolver.comp(solve_random, game_preprocessed)
-                r = cgamesolver.comp(report_animation,game_preprocessed, random_sim)
+                r = cgamesolver.comp(report_animation, game_preprocessed, random_sim)
                 cgamesolver.add_report(
                     r, "random_animation", game_name=game_name, solver_name=solver_name,
                 )

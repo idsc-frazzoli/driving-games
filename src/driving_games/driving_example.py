@@ -38,7 +38,7 @@ from preferences import (
 # RJ_ = CollisionCost
 
 
-class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
+class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, VehicleActions, D]):
     max_path: D
 
     def __init__(self, max_path: D):
@@ -51,6 +51,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
         return r1 + r2
 
     def personal_final_reward(self, x: VehicleState) -> D:
+        check_isinstance(x, VehicleState)
         # assert self.is_personal_final_state(x)
 
         with localcontext() as ctx:
@@ -60,6 +61,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure):
             return remaining
 
     def is_personal_final_state(self, x: VehicleState) -> bool:
+        check_isinstance(x, VehicleState)
         # return x.x > self.max_path
 
         return x.x + x.v > self.max_path

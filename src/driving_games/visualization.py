@@ -8,12 +8,13 @@ from duckietown_world.geo.transforms import SE2value
 from matplotlib import patches
 
 from games import GameVisualization, PlayerName
-from . import logger
 from .driving_example import SE2_from_VehicleState
 from .structures import CollisionCost, VehicleActions, VehicleObservation, VehicleState
 
 
-class DrivingGameVisualization(GameVisualization[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]):
+class DrivingGameVisualization(
+    GameVisualization[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+):
     side: D
 
     def __init__(self, params, side: D):
@@ -30,49 +31,54 @@ class DrivingGameVisualization(GameVisualization[VehicleState, VehicleActions, V
         points = ((0, 0), (L, 0), (L, L), (0, L), (0, 0))
         px, py = zip(*points)
         # logger.info(px=px, py=py, points=points)
-        pylab.plot(px, py, 'k-')
+        pylab.plot(px, py, "k-")
         self.pylab = pylab
 
         # t2 = pylab.transforms.Affine2D().rotate_deg(-45) + ax.transData
         # r2.set_transform(t2)
 
-        grass = patches.Rectangle((0, 0), L, L, linewidth=0, edgecolor='r', facecolor='green')
+        grass = patches.Rectangle((0, 0), L, L, linewidth=0, edgecolor="r", facecolor="green")
         ax.add_patch(grass)
         # Create a Rectangle patch
-        rect = patches.Rectangle((side, 0), road, L, linewidth=0, edgecolor='r', facecolor='grey')
+        rect = patches.Rectangle((side, 0), road, L, linewidth=0, edgecolor="r", facecolor="grey")
         # Add the patch to the Axes
         ax.add_patch(rect)
-        rect = patches.Rectangle((0, side), L, road, linewidth=0, edgecolor='r', facecolor='grey')
+        rect = patches.Rectangle((0, side), L, road, linewidth=0, edgecolor="r", facecolor="grey")
         # Add the patch to the Axes
         ax.add_patch(rect)
 
         yield
         b = 0.1 * L
         pylab.axis((0 - b, L + b, 0 - b, L + b))
-        pylab.axis('off')
-        ax.set_aspect('equal')
+        pylab.axis("off")
+        ax.set_aspect("equal")
 
-    def plot_player(self, player_name: PlayerName, state: VehicleState, commands: Optional[VehicleActions],
-                    opacity: float = 1.0):
+    def plot_player(
+        self,
+        player_name: PlayerName,
+        state: VehicleState,
+        commands: Optional[VehicleActions],
+        opacity: float = 1.0,
+    ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         q = SE2_from_VehicleState(state)
 
         if commands is None:
-            light = 'none'
+            light = "none"
         else:
             light = commands.light
 
         colors = {
             "none": {
-                'back_left': 'red',
-                'back_right': 'red',
-                'front_right': 'white',
-                'front_left': 'white'
+                "back_left": "red",
+                "back_right": "red",
+                "front_right": "white",
+                "front_left": "white",
             },
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
-        plot_car(self.pylab, q, velocity=velocity, car_color='blue', light_colors=colors[light])
+        plot_car(self.pylab, q, velocity=velocity, car_color="blue", light_colors=colors[light])
 
 
 def plot_car(pylab, q: SE2value, velocity, car_color, light_colors):
@@ -85,11 +91,10 @@ def plot_car(pylab, q: SE2value, velocity, car_color, light_colors):
     l = 0.1 * L
     radius_light = 0.03 * L
     light_position = {
-        'back_left': (-L / 2, +W / 2 - l),
-        'back_right': (-L / 2, -W / 2 + l),
-        'front_left': (+L / 2, +W / 2 - l),
-        'front_right': (+L / 2, -W / 2 + l),
-
+        "back_left": (-L / 2, +W / 2 - l),
+        "back_right": (-L / 2, -W / 2 + l),
+        "front_left": (+L / 2, +W / 2 - l),
+        "front_right": (+L / 2, -W / 2 + l),
     }
     for name in light_position:
         light_color = light_colors[name]
@@ -99,17 +104,17 @@ def plot_car(pylab, q: SE2value, velocity, car_color, light_colors):
         ax = pylab.gca()
         ax.add_patch(patch)
 
-
-    arrow = ((+L/2, 0), (+L/2 + velocity, 0))
+    arrow = ((+L / 2, 0), (+L / 2 + velocity, 0))
     x, y = get_transformed_xy(q, arrow)
-    pylab.plot(x, y, '-', zorder=99)
-
+    pylab.plot(x, y, "-", zorder=99)
 
     x, y = get_transformed_xy(q, ((0, 0),))
-    pylab.plot(x, y, 'k*', zorder=15)
+    pylab.plot(x, y, "k*", zorder=15)
 
 
-def get_transformed_xy(q: SE2value, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
+def get_transformed_xy(
+    q: SE2value, points: Sequence[Tuple[Number, Number]]
+) -> Tuple[np.array, np.array]:
     car = tuple((x, y, 1) for x, y in points)
     car = np.array(car).T
     points = q @ car

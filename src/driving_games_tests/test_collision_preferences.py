@@ -19,7 +19,7 @@ from preferences import (
 from . import logger
 
 
-def test1():
+def test1() -> None:
     C1 = CollisionCost(D(1))
     C2 = CollisionCost(D(2))
     expect: Mapping[Tuple[Optional[CollisionCost], Optional[CollisionCost]], ComparisonOutcome]
@@ -38,7 +38,7 @@ def test1():
         assert_equal(res, c)
 
 
-def test2():
+def test2() -> None:
     # *│ * ╔═════════════════════════════════╗
     # > │     │ │   ║Outcome *                        ║
     # > │     │ │   ║│ private: {p1: Dec 3, p2: Dec 3}║

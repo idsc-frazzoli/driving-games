@@ -6,6 +6,7 @@ from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
 from games import Game, GamePlayer, GamePreprocessed, PlayerName
+from games.game_def import X, U, Y, RP, RJ
 from . import logger
 from .structures import VehicleState
 
@@ -16,12 +17,18 @@ def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Re
         r.add_child(report_player(game_pre, player_name, player))
         break  # only one
     r.add_child(report_game(game_pre))
-    r.add_child(report_game_collisions(game_pre))
+    r.add_child(report_game_joint_final(game_pre))
     return r
 
 
-def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: GamePlayer):
-    G = game_pre.players_pre[player_name].player_graph
+def report_player(
+    game_pre: GamePreprocessed[X, U, Y, RP, RJ],
+    player_name: PlayerName,
+    player: GamePlayer[X, U, Y, RP, RJ],
+):
+    pp = game_pre.players_pre[player_name]
+
+    G = pp.player_graph
     r = Report(nid=player_name)
 
     with r.data_file(("player"), mime=MIME_GRAPHML) as fn:
@@ -48,10 +55,11 @@ def report_player(game_pre: GamePreprocessed, player_name: PlayerName, player: G
         plt.ylabel("v")
     return r
 
+
 def report_game_visualization(game: Game) -> Report:
     viz = game.game_visualization
-    r = Report('vis')
-    with r.plot('initial') as pylab:
+    r = Report("vis")
+    with r.plot("initial") as pylab:
         ax = pylab.gca()
         with viz.plot_arena(pylab, ax):
             for player_name, player in game.players.items():
@@ -60,30 +68,33 @@ def report_game_visualization(game: Game) -> Report:
 
     return r
 
-def report_game_collisions(game_pre: GamePreprocessed) -> Report:
+
+def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
     r = Report(nid="collisions")
     G = game_pre.game_graph
 
-    final1 = [node for node in G if G.nodes[node]['is_final1']]
-    visualize_states(game_pre, r, 'final1', final1[:5])
-    final2 = [node for node in G if G.nodes[node]['is_final2']]
-    visualize_states(game_pre, r, 'final2', final2[:5])
-    joint_final = [node for node in G if G.nodes[node]['is_joint_final']]
-    visualize_states(game_pre, r, 'joint_final', joint_final[:5])
+    final1 = [node for node in G if G.nodes[node]["is_final1"]]
+    visualize_states(game_pre, r, "final1", final1[:5])
+    final2 = [node for node in G if G.nodes[node]["is_final2"]]
+    visualize_states(game_pre, r, "final2", final2[:5])
+    joint_final = [node for node in G if G.nodes[node]["is_joint_final"]]
+    visualize_states(game_pre, r, "joint_final", joint_final[:5])
 
     return r
 
-def visualize_states(game_pre: GamePreprocessed, r: Report, name: str, nodes):
+
+def visualize_states(game_pre: GamePreprocessed[X, U, Y, RP, RJ], r: Report, name: str, nodes):
     viz = game_pre.game.game_visualization
     f = r.figure(name)
     for i, node in enumerate(nodes):
-        with f.plot(f'f{i}') as pylab:
+        with f.plot(f"f{i}") as pylab:
             ax = pylab.gca()
             with viz.plot_arena(pylab, ax):
                 for player_name, player_state in node.items():
                     if player_state is not None:
                         viz.plot_player(player_name, state=player_state, commands=None)
     return f
+
 
 def report_game(game_pre: GamePreprocessed) -> Report:
     G = game_pre.game_graph

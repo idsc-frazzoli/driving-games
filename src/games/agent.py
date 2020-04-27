@@ -5,7 +5,7 @@ from typing import Generic, Mapping
 
 from .game_def import ASet, Dynamics, PlayerName, U, X
 
-__all__ = ['RandomAgent']
+__all__ = ["RandomAgent"]
 
 
 class RandomAgent(Generic[X, U], ABC):

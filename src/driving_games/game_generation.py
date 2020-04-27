@@ -11,9 +11,16 @@ from .driving_example import (
     VehiclePersonalRewardStructureTime,
     VehiclePreferencesCollTime,
 )
-from .structures import (CollisionCost, Lights, NO_LIGHTS, VehicleActions, VehicleDirectObservations,
-                         VehicleDynamics,
-                         VehicleObservation, VehicleState)
+from .structures import (
+    CollisionCost,
+    Lights,
+    NO_LIGHTS,
+    VehicleActions,
+    VehicleDirectObservations,
+    VehicleDynamics,
+    VehicleObservation,
+    VehicleState,
+)
 from .visualization import DrivingGameVisualization
 
 
@@ -67,8 +74,8 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     dt = params.dt
     available_accels = params.available_accels
 
-    P1 = PlayerName("p1")
-    P2 = PlayerName("p2")
+    P1 = PlayerName("👩‍🦰")  # "👩🏿")
+    P2 = PlayerName("👳🏾‍")
     p1_initial = frozenset(
         {VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")}
     )
@@ -128,12 +135,16 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
         preferences=p2_preferences,
         set_preference_aggregator=set_preference_aggregator,
     )
-    players: Mapping[PlayerName, GamePlayer[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]]
+    players: Mapping[
+        PlayerName, GamePlayer[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    ]
     players = {P1: p1, P2: p2}
     joint_reward: JointRewardStructure[VehicleState, VehicleActions, CollisionCost]
     joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold)
 
-    game_visualization: GameVisualization[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    game_visualization: GameVisualization[
+        VehicleState, VehicleActions, VehicleObservation, D, CollisionCost
+    ]
     game_visualization = DrivingGameVisualization(params, L)
     game: Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
     game = Game(players, joint_reward, game_visualization=game_visualization)

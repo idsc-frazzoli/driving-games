@@ -31,6 +31,8 @@ class VehicleState:
     wait: D
     light: Lights
 
+    __print_order__ = ["x", "v"]
+
 
 @dataclass(frozen=True)
 class VehicleActions:
@@ -124,7 +126,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
                 msg = f"Invalid action gives wait of {wait2}"
                 raise InvalidAction(msg, x=x, u=u)
         else:
-            wait2 = 0
+            wait2 = D(0)
         return VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
 
     @lru_cache(None)
