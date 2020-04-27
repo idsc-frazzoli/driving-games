@@ -52,13 +52,20 @@ tag=driving_games
 
 build:
 	docker build -t $(tag) .
+
 build-no-cache:
-	docker build -t $(tag) --no-cache .
+	docker build --no-cache -t $(tag) .
+
+
 run:
+	mkdir -p out-docker
+	docker run -it -v $(PWD)/out-docker:/out $(tag) \
+		dg-demo -o /out/result --reset -c "rparmake"
+
+run-with-mounted-src:
 	mkdir -p out-docker
 	docker run -it -v $(PWD)/src:/driving_games/src:ro -v $(PWD)/out-docker:/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
-
 
 black:
 	black -l 100 --target-version py37 src

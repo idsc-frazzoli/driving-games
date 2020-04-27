@@ -6,6 +6,8 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+RUN find .
+
 ENV DISABLE_CONTRACTS=1
 #ENV COLUMNS=130
 

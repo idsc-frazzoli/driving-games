@@ -1,6 +1,7 @@
 **
 !setup.py
 !src
+src/*.egg-info
 !Makefile*
 !docker
 !requirements*

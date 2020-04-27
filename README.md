@@ -3,7 +3,7 @@
 
 Reachable states for player 1:
 
-<img src="pics/player1.png" width=400>
+<img src="pics/player1.png" style="width: 80%; margin-left: auto; margin-right: auto">
 
 Jointly reachable states for two players. 
 Red is the initial state.
@@ -11,7 +11,7 @@ Magenta are collision states. Green are states where two players are active.
 Yellow and blue are states in which there is only one agent. 
 Black are terminating states for the single-player game.
 
-<img src="pics/game.png" width=400>
+<img src="pics/game.png" style="width: 80%; margin-left: auto; margin-right: auto">
 
 
 ## Docker installation and run
@@ -33,8 +33,7 @@ Run manually the instructions in the Dockerfile.
 Run using:
 
     $ dg-demo --reset
-    
-(The `--reset` option draws another sample after the first.)
+     
    
 
 
