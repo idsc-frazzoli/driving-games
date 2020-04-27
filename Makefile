@@ -28,16 +28,17 @@ clean:
 	rm -f .coverage
 	rm -rf cover
 	rm -rf $(tr)
-	mkdir -p  $(tr)
 	rm -rf $(out) $(coverage_dir) 
 
 test:
 	$(MAKE) clean
+	mkdir -p  $(tr)
 	nosetests $(extra) $(coverage) $(xunitmp) src  -v
 
 
 test-parallel:
 	$(MAKE) clean
+	mkdir -p  $(tr)
 	nosetests $(extra) $(coverage) src  -v  $(parallel)
 	coverage combine
 
