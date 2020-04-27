@@ -1,7 +1,7 @@
 **
 !setup.py
 !src
-src/driving_games.egg-info
+src/*.egg-info
 !Makefile*
 !docker
 !requirements*
