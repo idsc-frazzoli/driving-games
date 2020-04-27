@@ -10,7 +10,7 @@ tr=$(out)/test-results
 
 
 test_packages=driving_games_tests,preferences_tests,games_tests
-cover_packages=driving_games,preferences,games
+cover_packages=driving_games_tests,preferences_tests,games_tests,driving_games,preferences,games
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
