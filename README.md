@@ -1,3 +1,5 @@
+
+[![CircleCI](https://circleci.com/gh/idsc-frazzoli/driving-games.svg?style=svg&circle-token=8bb1a7723db3a72ed58a7c2aa93ee088b43b1e80)](https://circleci.com/gh/idsc-frazzoli/driving-games)
  
 # Driving Games tutorial
 

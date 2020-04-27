@@ -36,11 +36,16 @@ jobs:
       - run:
           name: Run tests
           command: |
-            mkdir test-results
+            mkdir -p out/test-results
             make test
 
       - store_test_results:
-          path: test-results
+          path: out/test-results
+ 
+      - run:
+          name: Coverage report
+          command: |
+            make coverage-report
 
 
       - store_artifacts:

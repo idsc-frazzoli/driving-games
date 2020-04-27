@@ -35,5 +35,5 @@ exclude_lines =
 
 sort = Miss
 
-# [html]
-# directory = coverage_html_report
+[html]
+directory = out/coverage

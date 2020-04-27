@@ -1,10 +1,11 @@
 
-
+CIRCLE_NODE_INDEX ?= 0
+CIRCLE_NODE_TOTAL ?= 1
 include Makefile.version
 
 
-test_packages=zcities
-cover_packages=zcities,zcities_tests
+test_packages=driving_games_tests,preferences_tests,games_tests
+cover_packages=driving_games,preferences,games
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -12,19 +13,22 @@ coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_pack
 xunitmp=--with-xunitmp --xunitmp-file=test-results/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 extra=--rednose --immediate
 
-tr=test-results
-coverage_dir=out/coverage
+
+out=out
+coverage_dir=$(out)/coverage
+tr=$(out)test-results
 
 all:
 	echo
 
 
 clean:
+	coverage erase 
 	rm -f .coverage
 	rm -rf cover
 	rm -rf $(tr)
 	mkdir -p  $(tr)
-	rm -rf $(out) $(coverage_dir) .coverage .coverage.*
+	rm -rf $(out) $(coverage_dir) 
 
 test:
 	$(MAKE) clean
@@ -34,18 +38,21 @@ test:
 test-parallel:
 	$(MAKE) clean
 	nosetests $(extra) $(coverage) src  -v  $(parallel)
-
-test-parallel-failed:
-	$(MAKE) clean
-	nosetests  $(extra)  $(coverage) src  -v  $(parallel)
+	coverage combine
 
 test-parallel-circle:
 	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
 	(parallel)
+	coverage combine
 
-test-failed:
-	$(MAKE) clean
-	nosetests $(extra)  --with-id --failed $(coverage) src  -v
+
+# test-parallel-failed:
+# 	$(MAKE) clean
+# 	nosetests  $(extra)  $(coverage) src  -v  $(parallel)
+
+# test-failed:
+# 	$(MAKE) clean
+# 	nosetests $(extra)  --with-id --failed $(coverage) src  -v
 
 
 tag=driving_games
@@ -70,3 +77,5 @@ run-with-mounted-src:
 black:
 	black -l 100 --target-version py37 src
 
+coverage-report: 
+	coverage html  -d $(coverage_dir)

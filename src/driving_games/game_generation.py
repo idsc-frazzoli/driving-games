@@ -74,8 +74,10 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     dt = params.dt
     available_accels = params.available_accels
 
-    P1 = PlayerName("👩‍🦰")  # "👩🏿")
-    P2 = PlayerName("👳🏾‍")
+    # P1 = PlayerName("👩‍🦰")  # "👩🏿")
+    # P2 = PlayerName("👳🏾‍")
+    P1 = 'p1'
+    P2 = 'p2'
     p1_initial = frozenset(
         {VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")}
     )
