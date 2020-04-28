@@ -126,11 +126,11 @@ def SE2_from_VehicleState(s: VehicleState):
     p = SE2_from_xytheta([float(s.x), 0, 0])
     ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
     return SE2.multiply(ref, p)
-
-
-def pose_diff(a: np.array, b: np.array):
-    S = SE2
-    return S.multiply(S.inverse(a), b)
+#
+#
+# def pose_diff(a: np.array, b: np.array):
+#     S = SE2
+#     return S.multiply(S.inverse(a), b)
 
 
 def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float], ...]:
@@ -177,7 +177,7 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         self, xs: Mapping[PlayerName, VehicleState]
     ) -> Mapping[PlayerName, CollisionCost]:
         players = self.is_joint_final_state(xs)
-        if not players:
+        if not players: # pragma: no cover
             raise Exception()
         res = {}
         for p in players:

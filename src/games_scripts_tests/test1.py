@@ -6,5 +6,5 @@ from games_scripts import dg_demo
 def test_run1():
     args = ["-o", "out/tests/test_run1"]
     ret = dg_demo(args=args, sys_exit=False)
-    if ret:
+    if ret: # pragma: no cover
         raise ZValueError(ret=ret)

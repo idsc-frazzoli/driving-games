@@ -73,7 +73,7 @@ def check_contains_all_combo(
     all_comb: ASet[JointPureActions] = get_all_combinations(mixed_actions=mixed_actions)
     c: JointPureActions
     for c in all_comb:
-        if c not in possibilities:
+        if c not in possibilities: # pragma: no cover
             msg = "Missing combination"
             raise ZValueError(msg, c=c, possibilities=possibilities)
     return Combos(all_comb, mixed_actions)
@@ -86,7 +86,7 @@ def analyze_equilibria(
     # we want to make sure that there are all combinations
     combos: Combos[X, U, Y, RP, RJ] = check_contains_all_combo(set(solved))
     player_names = set(combos.player2choices)
-    if set(preferences) != set(player_names):
+    if set(preferences) != set(player_names): # pragma: no cover
         raise ZValueError(solved=solved, preferences=preferences)
     # logger.info(combos=combos)
     comb: JointPureActions
@@ -151,7 +151,7 @@ def analyze_equilibria(
 
 
 def zassert(val: bool, **kwargs):
-    if not val:
+    if not val: # pragma: no cover
         msg = "Assertion failed"
         raise ZAssertionError(msg, val=val, **kwargs)
 
