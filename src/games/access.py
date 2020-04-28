@@ -2,19 +2,19 @@ import random
 from collections import defaultdict
 from decimal import Decimal as D
 from itertools import product
-from typing import FrozenSet as ASet, List, Mapping
+from typing import FrozenSet as ASet, List
 
 import numpy as np
 from frozendict import frozendict
 from networkx import MultiDiGraph
 from zuper_commons.types import ZException
 
-from games import (
+from . import logger
+from .game_def import (
     Dynamics,
     Game,
     GamePlayer,
-    GamePlayerPreprocessed,
-    GamePreprocessed,
+    JointState,
     PersonalRewardStructure,
     PlayerName,
     RJ,
@@ -23,8 +23,8 @@ from games import (
     X,
     Y,
 )
-from games.single_game_tree import get_one_player_game_tree
-from driving_games import logger
+from .single_game_tree import get_one_player_game_tree
+from .structures_solution import GamePlayerPreprocessed, GamePreprocessed
 
 
 def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:
@@ -105,7 +105,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     # G2 = get_player_graph(players[p2])
 
     G = MultiDiGraph()
-    stack: List[Mapping[PlayerName, X]] = []
+    stack: List[JointState] = []
     for n1, n2 in product(P1.initial, P2.initial):
         S = frozendict({p1: n1, p2: n2})
         G.add_node(
@@ -121,7 +121,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
 
     logger.info(stack=stack)
     i = 0
-    S: Mapping[PlayerName, X]
+    S: JointState
     while stack:
         if i % 1000 == 0:
             logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))

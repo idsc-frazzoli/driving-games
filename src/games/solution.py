@@ -22,6 +22,7 @@ from .game_def import (
     Game,
     JointMixedActions,
     JointPureActions,
+    JointState,
     PlayerName,
     RJ,
     RP,
@@ -58,7 +59,7 @@ def solve_random(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Simulation[X, U, Y, R
     return sim
 
 
-IState = ASet[Mapping[PlayerName, X]]
+# IState = ASet[JointState]
 
 
 @dataclass
@@ -66,7 +67,7 @@ class GameSolution(Generic[X, U, Y, RP, RJ]):
     gn: GameNode[X, U, Y, RP, RJ]
     gn_solved: SolvedGameNode[X, U, Y, RP, RJ]
 
-    policies: Mapping[PlayerName, Mapping[X, Mapping[IState, ASet[U]]]]
+    policies: Mapping[PlayerName, Mapping[X, Mapping[ASet[JointState], ASet[U]]]]
 
     def __post_init__(self):
         if False:
@@ -132,7 +133,8 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
             solved_x0 = solve_game(gp, personal_tree)
             alone_solutions[player_name][x0] = solved_x0
             logger.info(
-                f"Solution for {player_name} alone", game_value=solved_x0.gn_solved.va.game_value,
+                f"Solution for {player_name} alone",
+                game_value=solved_x0.gn_solved.va.game_value,
                 # policy=solved_x0.policies
             )
 
@@ -165,12 +167,15 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
             # policy=solution_ghost.policies,
         )
         controllers = dict(controllers_others)
-        controllers[player_name] = AgentFromPolicy(solution_ghost.policies)
-        sims[f'{player_name}-follows'] = simulate1(gp.game, policies=controllers, initial_states=initial_state,
-                                                   dt=gp.dt)
+        controllers[player_name] = AgentFromPolicy(solution_ghost.policies[player_name])
+        sims[f"{player_name}-follows"] = simulate1(
+            gp.game, policies=controllers, initial_states=initial_state, dt=gp.dt
+        )
     return Solutions(
-        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players,
-        sims=sims
+        game_solution=game_solution,
+        game_tree=game_tree,
+        solutions_players=solutions_players,
+        sims=sims,
     )
     # logger.info(game_tree=game_tree)
 
@@ -180,22 +185,31 @@ class DoesNotKnowPolicy(ZException):
 
 
 class AgentFromPolicy(AgentBelief[X, U]):
-    policy: Mapping[X, Mapping[IState, ASet[U]]]
+    policy: Mapping[X, Mapping[ASet[JointState], ASet[U]]]
 
-    def __init__(self, policy: Mapping[X, Mapping[IState, ASet[U]]]):
+    def __init__(self, policy: Mapping[X, Mapping[ASet[JointState], ASet[U]]]):
         self.policy = policy
 
-    def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+    def get_commands(self, state_self: X, state_others: ASet[JointState]) -> ASet[U]:
         if state_self not in self.policy:
-            msg = 'I do not know the policy for this state'
-            raise DoesNotKnowPolicy(msg, state_self=state_self, state_others=state_others,
-                                    states_self_known=set(self.policy))
+            msg = "I do not know the policy for this state"
+            raise DoesNotKnowPolicy(
+                msg,
+                state_self=state_self,
+                state_others=state_others,
+                states_self_known=set(self.policy),
+            )
 
         lookup = self.policy[state_self]
         if len(lookup) == 1:
             return list(lookup.values())[0]
 
-        raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)
+        if state_others in lookup:
+            return lookup[state_others]
+        else:
+            raise ZNotImplementedError(
+                state_self=state_self, state_others=state_others, lookup=lookup
+            )
 
 
 def get_ghost_tree(
@@ -213,7 +227,7 @@ def replace_others(
     dreamer: PlayerName,
     node: GameNode[X, U, Y, RP, RJ],
     controllers: Mapping[PlayerName, AgentBelief[X, U]],
-    cache: Dict[GameNode, GameNode]
+    cache: Dict[GameNode, GameNode],
 ) -> GameNode[X, U, Y, RP, RJ]:
     if node in cache:
         return cache[node]
@@ -237,8 +251,11 @@ def replace_others(
         action_others[player_name] = list(options)[0]
 
     # find out which actions are compatible
-    outcomes = {k: replace_others(dreamer, v, controllers, cache)
-                for k, v in node.outcomes.items() if is_compatible(k, action_others)}
+    outcomes = {
+        k: replace_others(dreamer, v, controllers, cache)
+        for k, v in node.outcomes.items()
+        if is_compatible(k, action_others)
+    }
 
     # logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
     moves = get_all_choices_by_players(set(outcomes))
@@ -390,7 +407,7 @@ def solve_game(
     )
     gn_solved = _solve_game(sc, gn)
 
-    policies: Dict[PlayerName, Dict[X, Dict[ASet[Mapping[PlayerName, X]], ASet[U]]]]
+    policies: Dict[PlayerName, Dict[X, Dict[ASet[JointState], ASet[U]]]]
 
     policies = defaultdict(lambda: defaultdict(dict))
     for g0, s0 in sc.cache.items():

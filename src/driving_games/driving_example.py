@@ -46,6 +46,8 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
         self.max_path = max_path
 
     def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D) -> D:
+        check_isinstance(x, VehicleState)
+        check_isinstance(u, VehicleActions)
         return dt
 
     def personal_reward_reduce(self, r1: D, r2: D) -> D:

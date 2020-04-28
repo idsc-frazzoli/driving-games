@@ -76,27 +76,27 @@ def check_contains_all_combo(
     c: JointPureActions
     for c in all_comb:
         check_joint_pure_actions(c)
-        if False: # XXX: bug
-            if c not in possibilities: # pragma: no cover
+        if False:  # XXX: bug
+            if c not in possibilities:  # pragma: no cover
                 msg = "Missing combination"
-                raise ZValueError(msg,
-                                  c=c,
-                                  id_c=id(c),
-                                  p=possibilities,
-                                  type_p=type(possibilities),
-                                  type_c=type(c),
-                                  repr_c=repr(c),
-                                  repr_p=repr(possibilities),
-                                  id_ps=set(id(_) for _ in possibilities),
-                                  c_in_p=c in possibilities,
-                                  c_in_list_p=c in list(possibilities),
-
-                                  c_in_fset_p=c in frozenset(possibilities),
-
-                                  c_in_set_p=c in set(possibilities),
-                                  p_contains_c=possibilities.__contains__(c),
-                                  p_eq_frozen_c=possibilities == frozenset({c}),
-                                  same_as_first=list(possibilities)[0] == c)
+                raise ZValueError(
+                    msg,
+                    c=c,
+                    id_c=id(c),
+                    p=possibilities,
+                    type_p=type(possibilities),
+                    type_c=type(c),
+                    repr_c=repr(c),
+                    repr_p=repr(possibilities),
+                    id_ps=set(id(_) for _ in possibilities),
+                    c_in_p=c in possibilities,
+                    c_in_list_p=c in list(possibilities),
+                    c_in_fset_p=c in frozenset(possibilities),
+                    c_in_set_p=c in set(possibilities),
+                    p_contains_c=possibilities.__contains__(c),
+                    p_eq_frozen_c=possibilities == frozenset({c}),
+                    same_as_first=list(possibilities)[0] == c,
+                )
     return Combos(all_comb, mixed_actions)
 
 
@@ -107,7 +107,7 @@ def analyze_equilibria(
     # we want to make sure that there are all combinations
     combos: Combos[X, U, Y, RP, RJ] = check_contains_all_combo(frozenset(solved))
     player_names = set(combos.player2choices)
-    if set(preferences) != set(player_names): # pragma: no cover
+    if set(preferences) != set(player_names):  # pragma: no cover
         raise ZValueError(solved=solved, preferences=preferences)
     # logger.info(combos=combos)
     comb: JointPureActions
@@ -174,7 +174,7 @@ def analyze_equilibria(
 
 
 def zassert(val: bool, **kwargs):
-    if not val: # pragma: no cover
+    if not val:  # pragma: no cover
         msg = "Assertion failed"
         raise ZAssertionError(msg, val=val, **kwargs)
 

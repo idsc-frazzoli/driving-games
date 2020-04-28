@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, Generic, Mapping, Optional
+from typing import Collection, Dict, Generic, Mapping, Optional
 
 from frozendict import frozendict
+from zuper_commons.types import check_isinstance
 
+from .game_def import AgentBelief, Game, JointPureActions, JointState, PlayerName, RJ, RP, U, X, Y
 from .structures_solution import check_joint_pure_actions
-from .game_def import AgentBelief, Game, PlayerName, RJ, RP, U, X, Y, JointPureActions, JointState
 
 
 @dataclass
@@ -30,15 +31,18 @@ class Simulation(Generic[X, U, Y, RP, RJ]):
 def simulate1(
     game: Game[X, U, Y, RP, RJ],
     policies: Mapping[PlayerName, AgentBelief[X, U]],
-    initial_states: Mapping[PlayerName, X],
+    initial_states: JointState,
     dt: D,
 ) -> Simulation[X, U, Y, RP, RJ]:
-    S_states: Dict[D, Mapping[PlayerName, X]] = {}
-    S_actions: Dict[D, Mapping[PlayerName, X]] = {}
+    S_states: Dict[D, JointState] = {}
+    S_actions: Dict[D, JointState] = {}
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}
     S_joint_costs: Dict[D, Mapping[PlayerName, RJ]] = {}
 
     S_states[D(0)] = initial_states
+
+    def pick_one(x: Collection):
+        return list(x)[0]
 
     while True:
         # last time
@@ -69,13 +73,20 @@ def simulate1(
 
             policy = policies[player_name]
 
-            belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
-            action = policy.get_commands(state_self, belief_state_others)
+            # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
+            state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
+            belief_state_others = frozenset({state_others})
+
+            action_set = policy.get_commands(state_self, belief_state_others)
+            check_isinstance(action_set, frozenset)
+            action = pick_one(action_set)
             incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
             dynamics = game.players[player_name].dynamics
-            successors = dynamics.successors(s1[player_name], dt)[action]
-            next_state = list(successors)[0]
+            state_player = s1[player_name]
+            action_to_successors = dynamics.successors(state_player, dt)
+            succ = action_to_successors[action]
+            next_state = pick_one(succ)
 
             s1_actions[player_name] = action
             next_states[player_name] = next_state

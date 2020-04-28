@@ -8,7 +8,8 @@ from typing import (
     Mapping,
     NewType,
     Optional,
-    Tuple, TypeVar,
+    Tuple,
+    TypeVar,
 )
 
 from frozendict import frozendict
@@ -16,13 +17,19 @@ from zuper_commons.types import check_isinstance
 
 from preferences import Preference
 
+PlayerName = NewType("PlayerName", str)
+
 X = TypeVar("X")
+JointState = Mapping[PlayerName, X]
+
 U = TypeVar("U")
+
+JointPureActions = Mapping[PlayerName, U]
+JointMixedActions = Mapping[PlayerName, ASet[U]]
+
 Y = TypeVar("Y")
 RP = TypeVar("RP")
 RJ = TypeVar("RJ")
-
-PlayerName = NewType("PlayerName", str)
 
 
 class Dynamics(Generic[X, U], ABC):
@@ -45,7 +52,7 @@ class Observations(Generic[X, Y], ABC):
         """ Returns all possible observations. """
 
     @abstractmethod
-    def get_observations(self, me: X, others: Mapping[PlayerName, X]) -> ASet[Y]:
+    def get_observations(self, me: X, others: JointState) -> ASet[Y]:
         """ For each state, get all possible observations """
 
 
@@ -72,8 +79,10 @@ class Combined(Generic[RJ, RP]):
     personal: RP
     joint: Optional[RJ]
 
+
 #
 P = TypeVar("P")
+
 
 @dataclass
 class GamePlayer(Generic[X, U, Y, RP, RJ]):
@@ -94,11 +103,11 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     @abstractmethod
-    def is_joint_final_state(self, xs: Mapping[PlayerName, X]) -> ASet[PlayerName]:
+    def is_joint_final_state(self, xs: JointState) -> ASet[PlayerName]:
         """ For which players is this a final state? """
 
     @abstractmethod
-    def joint_reward(self, xs: Mapping[PlayerName, X]) -> Mapping[PlayerName, RJ]:
+    def joint_reward(self, xs: JointState) -> Mapping[PlayerName, RJ]:
         """ The joint reward for the agents. Only available for a final state. """
 
 
@@ -137,13 +146,8 @@ class AgentBelief(Generic[X, U], ABC):
     """
 
     @abstractmethod
-    def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+    def get_commands(self, state_self: X, state_others: ASet[JointState]) -> ASet[U]:
         ...
-
-
-JointState = Mapping[PlayerName, X]
-JointPureActions = Mapping[PlayerName, U]
-JointMixedActions = Mapping[PlayerName, ASet[U]]
 
 
 def check_joint_state(js: JointState):

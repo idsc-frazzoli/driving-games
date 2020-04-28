@@ -6,6 +6,17 @@ from games import GamePreprocessed, Optional
 from games.game_def import X, U, Y, RP, RJ
 from games.simulate import Simulation
 from driving_games import logger
+from games.solution import Solutions
+
+
+def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ], s: Solutions[X, U, Y, RP, RJ]):
+    r = Report()
+    for k, sim in s.sims.items():
+        f = r.figure(k)
+        with f.data_file("sim", MIME_GIF) as fn:
+            create_log_animation(gp, sim, fn=fn, upsample_log=None)
+
+    return r
 
 
 def report_animation(
