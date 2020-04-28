@@ -1,58 +1,24 @@
-from decimal import Decimal as D
 from typing import Tuple
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
-from games import Game, GamePlayer, GamePreprocessed, PlayerName
-from games.game_def import X, U, Y, RP, RJ
 from . import logger
-from .structures import VehicleState
+from .game_def import Game, RJ, RP, U, X, Y
+from .reports_player import report_player
+from .structures_solution import GamePreprocessed
+
+__all__ = ["create_report_preprocessed", "report_game_visualization", "report_game_joint_final"]
 
 
 def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Report:
     r = Report(nid=game_name)
     for player_name, player in game_pre.game.players.items():
         r.add_child(report_player(game_pre, player_name, player))
-        break  # only one
+        # break  # only one
     r.add_child(report_game(game_pre))
     r.add_child(report_game_joint_final(game_pre))
-    return r
-
-
-def report_player(
-    game_pre: GamePreprocessed[X, U, Y, RP, RJ],
-    player_name: PlayerName,
-    player: GamePlayer[X, U, Y, RP, RJ],
-):
-    pp = game_pre.players_pre[player_name]
-
-    G = pp.player_graph
-    r = Report(nid=player_name)
-
-    with r.data_file(("player"), mime=MIME_GRAPHML) as fn:
-        G2 = convert_node_labels_to_integers(G)
-        for (n1, n2, d) in G2.edges(data=True):
-            d.clear()
-        nx.write_graphml(G2, fn)
-
-    def color_node(n):
-        is_final = G.nodes[n]["is_final"]
-        return "blue" if is_final else "green"
-
-    def pos_node(n: VehicleState):
-        w = -n.wait * D(0.2)
-        return float(n.x), float(n.v + w)
-
-    node_size = 20
-    node_color = [color_node(_) for _ in G.nodes]
-    pos = {_: pos_node(_) for _ in G.nodes}
-
-    with r.plot("one") as plt:
-        nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size)
-        plt.xlabel("x")
-        plt.ylabel("v")
     return r
 
 
@@ -135,7 +101,9 @@ def report_game(game_pre: GamePreprocessed) -> Report:
 
         return "grey"
 
-    caption = "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
+    caption = (
+        "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
+    )
 
     node_size = 3
     node_color = [color_node(_) for _ in G.nodes]
@@ -143,7 +111,7 @@ def report_game(game_pre: GamePreprocessed) -> Report:
     # pos = graphviz_layout(G, prog='dot')
     logger.info("drawing")
 
-    def pos_node(n: Tuple[VehicleState, VehicleState]):
+    def pos_node(n: Tuple[X, X]):
         x = G.nodes[n]["x"]
         y = G.nodes[n]["y"]
         return float(x), float(y)

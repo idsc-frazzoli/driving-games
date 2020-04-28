@@ -15,7 +15,6 @@ from .preferences_base import (
 
 __all__ = ["LexicographicPreference"]
 
-
 A = TypeVar("A")
 B = TypeVar("B")
 

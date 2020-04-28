@@ -42,7 +42,7 @@ Run manually the instructions in the Dockerfile.
 
 Run tests using:
 
-	$ make clean test coverage-report
+	$ make clean test coverage-combine coverage-report
 
 Run some games using:
 

@@ -6,7 +6,7 @@ from typing import cast, FrozenSet as ASet, Mapping, Optional, Sequence, Tuple, 
 
 from frozendict import frozendict
 from typing_extensions import Literal
-from zuper_commons.types import ZException, ZValueError
+from zuper_commons.types import ZException
 
 from games import Dynamics, Observations, PlayerName
 
@@ -31,10 +31,10 @@ class VehicleState:
     wait: D
     light: Lights
 
-    __print_order__ = ["x", "v"]
+    __print_order__ = ["x", "v"]  # only print these attributes
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
     accel: D
     light: Lights = "none"
@@ -129,25 +129,25 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
             wait2 = D(0)
         return VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
 
-    @lru_cache(None)
-    def assert_valid_state(self, s: VehicleState):
-        if s.wait and s.v:
-            raise ZValueError(s=s)
+    # @lru_cache(None)
+    # def assert_valid_state(self, s: VehicleState):
+    #     if s.wait and s.v:
+    #         raise ZValueError(s=s)
+    #
+    #     if not (0 <= s.x <= self.max_path):
+    #         raise ZValueError(s=s)
+    #     if not (0 <= s.v <= self.max_speed):
+    #         raise ZValueError(s=s)
+    #     if not (0 <= s.wait <= self.max_wait):
+    #         raise ZValueError(s=s)
 
-        if not (0 <= s.x <= self.max_path):
-            raise ZValueError(s=s)
-        if not (0 <= s.v <= self.max_speed):
-            raise ZValueError(s=s)
-        if not (0 <= s.wait <= self.max_wait):
-            raise ZValueError(s=s)
 
-
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class NotSeen:
     pass
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class Seen:
     ref: SE2_disc
     x: Optional[int]
@@ -156,7 +156,7 @@ class Seen:
     light: Optional[Lights]
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleObservation:
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 

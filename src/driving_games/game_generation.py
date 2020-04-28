@@ -1,11 +1,17 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, FrozenSet as ASet, Mapping, Set
+from typing import cast, FrozenSet as ASet, Mapping
 
-from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName, X
+from games import (
+    Game,
+    GamePlayer,
+    GameVisualization,
+    get_accessible_states,
+    JointRewardStructure,
+    PlayerName,
+)
 from preferences import SetPreference1
 from . import logger
-from .access import get_accessible_states
 from .driving_example import (
     VehicleJointReward,
     VehiclePersonalRewardStructureTime,
@@ -41,7 +47,7 @@ class TwoVehicleSimpleParams:
     second_progress: D
 
 
-def get_game1() -> Game:
+def get_game1() -> Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
     p = TwoVehicleSimpleParams(
         side=D(8),
         road=D(6),
@@ -76,17 +82,13 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
 
     # P1 = PlayerName("👩‍🦰")  # "👩🏿")
     # P2 = PlayerName("👳🏾‍")
-    P1 = PlayerName('p1')
-    P2 = PlayerName('p2')
+    P1 = PlayerName("p1")
+    P2 = PlayerName("p2")
     p1_initial = frozenset(
         {VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")}
     )
     p2_initial = frozenset(
-        {
-            VehicleState(
-                ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light="none"
-            )
-        }
+        {VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light="none")}
     )
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
@@ -137,16 +139,13 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
         preferences=p2_preferences,
         set_preference_aggregator=set_preference_aggregator,
     )
-    players: Mapping[
-        PlayerName, GamePlayer[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
-    ]
+    Player = GamePlayer[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    players: Mapping[PlayerName, Player]
     players = {P1: p1, P2: p2}
     joint_reward: JointRewardStructure[VehicleState, VehicleActions, CollisionCost]
     joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold)
 
-    game_visualization: GameVisualization[
-        VehicleState, VehicleActions, VehicleObservation, D, CollisionCost
-    ]
+    game_visualization: GameVisualization[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
     game_visualization = DrivingGameVisualization(params, L)
     game: Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
     game = Game(players, joint_reward, game_visualization=game_visualization)

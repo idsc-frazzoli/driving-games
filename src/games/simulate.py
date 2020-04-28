@@ -1,11 +1,27 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, Generic, Mapping, Optional
+from typing import Dict, Generic, Mapping, Optional, TypeVar
 
 from frozendict import frozendict
+from numpy.random.mtrand import RandomState
+from zuper_commons.types import check_isinstance
 
-from .structures_solution import check_joint_pure_actions
-from .game_def import AgentBelief, Game, PlayerName, RJ, RP, U, X, Y, JointPureActions, JointState
+from .game_def import (
+    AgentBelief,
+    ASet,
+    check_joint_pure_actions,
+    Game,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    RJ,
+    RP,
+    U,
+    X,
+    Y,
+)
+
+__all__ = []
 
 
 @dataclass
@@ -27,18 +43,35 @@ class Simulation(Generic[X, U, Y, RP, RJ]):
     joint_costs: Mapping[D, Mapping[PlayerName, RJ]]
 
 
+N = TypeVar("N")
+
+
+class Sampler:
+    def __init__(self, seed: int):
+        self.rs = RandomState(seed)
+
+    def pick_one(self, options: ASet[N]) -> N:
+        options = list(options)
+        indices = list(range(len(options)))
+        i = self.rs.choice(indices, 1, replace=False)
+        return options[int(i)]
+
+
 def simulate1(
     game: Game[X, U, Y, RP, RJ],
     policies: Mapping[PlayerName, AgentBelief[X, U]],
-    initial_states: Mapping[PlayerName, X],
+    initial_states: JointState,
     dt: D,
+    seed: int,
 ) -> Simulation[X, U, Y, RP, RJ]:
-    S_states: Dict[D, Mapping[PlayerName, X]] = {}
-    S_actions: Dict[D, Mapping[PlayerName, X]] = {}
+    S_states: Dict[D, JointState] = {}
+    S_actions: Dict[D, JointState] = {}
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}
     S_joint_costs: Dict[D, Mapping[PlayerName, RJ]] = {}
 
     S_states[D(0)] = initial_states
+
+    sampler = Sampler(seed)
 
     while True:
         # last time
@@ -69,13 +102,20 @@ def simulate1(
 
             policy = policies[player_name]
 
-            belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
-            action = policy.get_commands(state_self, belief_state_others)
+            # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
+            state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
+            belief_state_others = frozenset({state_others})
+
+            action_set = policy.get_commands(state_self, belief_state_others)
+            check_isinstance(action_set, frozenset)
+            action = sampler.pick_one(action_set)
             incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
             dynamics = game.players[player_name].dynamics
-            successors = dynamics.successors(s1[player_name], dt)[action]
-            next_state = list(successors)[0]
+            state_player = s1[player_name]
+            action_to_successors = dynamics.successors(state_player, dt)
+            succ = action_to_successors[action]
+            next_state = sampler.pick_one(succ)
 
             s1_actions[player_name] = action
             next_states[player_name] = next_state

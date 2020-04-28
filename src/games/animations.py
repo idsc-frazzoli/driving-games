@@ -1,16 +1,27 @@
 from decimal import Decimal as D
+from typing import Optional
 
 from reprep import MIME_GIF, Report
 
-from games import GamePreprocessed, Optional
-from games.game_def import X, U, Y, RP, RJ
-from games.simulate import Simulation
 from . import logger
+from .game_def import RJ, RP, U, X, Y
+from .simulate import Simulation
+from .structures_solution import GamePreprocessed, Solutions
+
+__all__ = ["report_animation", "report_solutions"]
 
 
-def report_animation(
-    gp: GamePreprocessed[X, U, Y, RP, RJ], sim: Simulation[X, U, Y, RP, RJ]
-) -> Report:
+def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ], s: Solutions[X, U, Y, RP, RJ]):
+    r = Report()
+    for k, sim in s.sims.items():
+        f = r.figure(k)
+        with f.data_file("sim", MIME_GIF) as fn:
+            create_log_animation(gp, sim, fn=fn, upsample_log=None)
+
+    return r
+
+
+def report_animation(gp: GamePreprocessed[X, U, Y, RP, RJ], sim: Simulation[X, U, Y, RP, RJ]) -> Report:
     r = Report()
     f = r.figure()
     with f.data_file("sim", MIME_GIF) as fn:
@@ -25,7 +36,7 @@ def report_animation(
 
 def upsample(gp, states0, actions0, n: int):
     states2 = {}
-    dt = gp.dt
+    dt = gp.solver_params.dt
     dt2 = dt / n
     for i, (t, s0) in enumerate(states0.items()):
 
@@ -61,6 +72,7 @@ def get_next_state(gp, s0, actions, dt2):
             next_state[player_name] = player_state
         else:
             successors = suc[action]
+
             next_state[player_name] = list(successors)[0]
     return next_state
 

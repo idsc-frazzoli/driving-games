@@ -68,26 +68,31 @@ class DrivingGameVisualization(
             light = commands.light
 
         colors = {
-            "none": {
-                "back_left": "red",
-                "back_right": "red",
-                "front_right": "white",
-                "front_left": "white",
-            },
+            "none": {"back_left": "red", "back_right": "red", "front_right": "white", "front_left": "white",},
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
         plot_car(self.pylab, q, velocity=velocity, car_color="blue", light_colors=colors[light])
 
+    def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
+        w = -state.wait * D(0.2)
+        return float(state.x), float(state.v + w)
+
 
 def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
-    L = 4
-    W = 2.5
-    car = ((-L / 2, -W / 2), (-L / 2, +W / 2), (+L / 2, +W / 2), (+L / 2, -W / 2), (-L / 2, -W / 2))
-    x, y = get_transformed_xy(q, car)
-    pylab.fill(x, y, color=car_color, zorder=10)
+    L: float = 4.0
+    W: float = 2.5
+    car: Tuple[Tuple[float, float], ...] = (
+        (-L / 2, -W / 2),
+        (-L / 2, +W / 2),
+        (+L / 2, +W / 2),
+        (+L / 2, -W / 2),
+        (-L / 2, -W / 2),
+    )
+    x1, y1 = get_transformed_xy(q, car)
+    pylab.fill(x1, y1, color=car_color, zorder=10)
 
-    l = 0.1 * L
+    l: float = 0.1 * L
     radius_light = 0.03 * L
     light_position = {
         "back_left": (-L / 2, +W / 2 - l),
@@ -98,22 +103,20 @@ def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
     for name in light_position:
         light_color = light_colors[name]
         position = light_position[name]
-        x, y = get_transformed_xy(q, (position,))
-        patch = patches.Circle((x[0], y[0]), radius=radius_light, color=light_color)
+        x2, y2 = get_transformed_xy(q, (position,))
+        patch = patches.Circle((x2[0], y2[0]), radius=radius_light, color=light_color)
         ax = pylab.gca()
         ax.add_patch(patch)
 
     arrow = ((+L / 2, 0), (+L / 2 + velocity, 0))
-    x, y = get_transformed_xy(q, arrow)
-    pylab.plot(x, y, "-", zorder=99)
+    x3, y3 = get_transformed_xy(q, arrow)
+    pylab.plot(x3, y3, "r-", zorder=99)
 
-    x, y = get_transformed_xy(q, ((0, 0),))
-    pylab.plot(x, y, "k*", zorder=15)
+    x4, y4 = get_transformed_xy(q, ((0, 0),))
+    pylab.plot(x4, y4, "k*", zorder=15)
 
 
-def get_transformed_xy(
-    q: np.array, points: Sequence[Tuple[Number, Number]]
-) -> Tuple[np.array, np.array]:
+def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
     car = tuple((x, y, 1) for x, y in points)
     car = np.array(car).T
     points = q @ car

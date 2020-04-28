@@ -8,6 +8,7 @@ from typing import (
     Mapping,
     NewType,
     Optional,
+    Tuple,
     TypeVar,
 )
 
@@ -16,13 +17,50 @@ from zuper_commons.types import check_isinstance
 
 from preferences import Preference
 
+__all__ = [
+    "Dynamics",
+    "Y",
+    "X",
+    "U",
+    "RP",
+    "RJ",
+    "Observations",
+    "JointState",
+    "JointPureActions",
+    "JointMixedActions",
+    "JointRewardStructure",
+    "Outcome",
+    "SetOfOutcomes",
+    "PersonalRewardStructure",
+    "PlayerName",
+    "Combined",
+    "Game",
+    "GamePlayer",
+    "GameVisualization",
+]
+
+PlayerName = NewType("PlayerName", str)
+
 X = TypeVar("X")
+JointState = Mapping[PlayerName, X]
+
 U = TypeVar("U")
+
+JointPureActions = Mapping[PlayerName, U]
+JointMixedActions = Mapping[PlayerName, ASet[U]]
+
 Y = TypeVar("Y")
 RP = TypeVar("RP")
 RJ = TypeVar("RJ")
 
-PlayerName = NewType("PlayerName", str)
+
+@dataclass(frozen=True, unsafe_hash=True, order=True)
+class Outcome(Generic[RP, RJ]):
+    private: Mapping[PlayerName, RP]
+    joint: Mapping[PlayerName, RJ]
+
+
+SetOfOutcomes = ASet[Outcome[RP, RJ]]
 
 
 class Dynamics(Generic[X, U], ABC):
@@ -45,7 +83,7 @@ class Observations(Generic[X, Y], ABC):
         """ Returns all possible observations. """
 
     @abstractmethod
-    def get_observations(self, me: X, others: Mapping[PlayerName, X]) -> ASet[Y]:
+    def get_observations(self, me: X, others: JointState) -> ASet[Y]:
         """ For each state, get all possible observations """
 
 
@@ -73,6 +111,7 @@ class Combined(Generic[RJ, RP]):
     joint: Optional[RJ]
 
 
+#
 P = TypeVar("P")
 
 
@@ -95,24 +134,27 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     @abstractmethod
-    def is_joint_final_state(self, xs: Mapping[PlayerName, X]) -> ASet[PlayerName]:
+    def is_joint_final_state(self, xs: JointState) -> ASet[PlayerName]:
         """ For which players is this a final state? """
 
     @abstractmethod
-    def joint_reward(self, xs: Mapping[PlayerName, X]) -> Mapping[PlayerName, RJ]:
+    def joint_reward(self, xs: JointState) -> Mapping[PlayerName, RJ]:
         """ The joint reward for the agents. Only available for a final state. """
 
 
 class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
     @abstractmethod
     def plot_arena(self, pylab, ax):
+        """ Context manager """
         pass
 
     @abstractmethod
-    def plot_player(
-        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0
-    ):
+    def plot_player(self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0):
         """ Draw the player at a certain state doing certain commands (if givne)"""
+        pass
+
+    @abstractmethod
+    def hint_graph_node_pos(self, state: X) -> Tuple[float, float]:
         pass
 
 
@@ -133,19 +175,40 @@ class AgentBelief(Generic[X, U], ABC):
     """
 
     @abstractmethod
-    def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+    def get_commands(self, state_self: X, state_others: ASet[JointState]) -> ASet[U]:
         ...
 
 
-JointState = Mapping[PlayerName, X]
-JointPureActions = Mapping[PlayerName, U]
-JointMixedActions = Mapping[PlayerName, ASet[U]]
-
-
 def check_joint_state(js: JointState):
-    from driving_games.structures import VehicleState  # XXX : for debug
+    # from driving_games import VehicleState  # XXX : for debug
 
     check_isinstance(js, frozendict)
     for n, x in js.items():
         check_isinstance(n, str)
-        check_isinstance(x, VehicleState)
+        # check_isinstance(x, VehicleState)
+
+
+def check_set_outcomes(a: SetOfOutcomes):
+    check_isinstance(a, frozenset)
+    for _ in a:
+        check_isinstance(_, Outcome, a=a)
+
+
+def check_joint_pure_actions(a: JointPureActions):
+    # from driving_games.structures import VehicleActions
+
+    check_isinstance(a, frozendict)
+    for k, v in a.items():
+        pass
+        # check_isinstance(v, VehicleActions, a=a)
+
+
+def check_joint_mixed_actions(a: JointMixedActions):
+    # from driving_games.structures import VehicleActions
+
+    check_isinstance(a, frozendict)
+    for k, v in a.items():
+        check_isinstance(v, frozenset, a=a)
+        for _ in v:
+            pass
+            # check_isinstance(_, VehicleActions, a=a)

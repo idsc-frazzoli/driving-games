@@ -3,15 +3,9 @@ from decimal import Decimal as D
 from typing import Dict, Generic
 
 from frozendict import frozendict
-from networkx import MultiDiGraph
-from zuper_commons.types import ZException
 
-from . import logger
 from .game_def import (
-    ASet,
-    Dynamics,
     GamePlayer,
-    PersonalRewardStructure,
     PlayerName,
     RJ,
     RP,
@@ -20,6 +14,8 @@ from .game_def import (
     Y,
 )
 from .structures_solution import GameNode
+
+__all__ = []
 
 
 @dataclass
@@ -36,11 +32,7 @@ def get_one_player_game_tree(
 
 
 def get_1p_game_tree(
-    *,
-    c: P1Context[X, U, Y, RP, RJ],
-    player_name: PlayerName,
-    player: GamePlayer[X, U, Y, RP, RJ],
-    x0: X,
+    *, c: P1Context[X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], x0: X,
 ) -> GameNode[X, U, Y, RP, RJ]:
     assert not isinstance(x0, set), x0
     prs = player.personal_reward_structure
@@ -80,56 +72,3 @@ def get_1p_game_tree(
     )
     c.cache[x0] = res
     return res
-
-
-#    states: Mapping[PlayerName, X]
-#     moves: Mapping[PlayerName, ASet[U]]
-#     outcomes: "Mapping[Mapping[PlayerName, ASet[U]], GameNode[X, U, Y, RP, RJ]]"
-#
-#     is_final: Mapping[PlayerName, RP]
-#     incremental: Mapping[PlayerName, Mapping[U, RP]]
-#
-#     joint_final_rewards: Mapping[PlayerName, RJ]
-
-
-def get_accessible_states(
-    initial: ASet[X],
-    personal_reward_structure: PersonalRewardStructure[X, U, RP],
-    dynamics: Dynamics[X, U],
-    dt: D,
-) -> MultiDiGraph:
-    G = MultiDiGraph()
-
-    for i in initial:
-        i_final = personal_reward_structure.is_personal_final_state(i)
-        if i_final:
-            raise ZException(i_final=i_final)
-
-        G.add_node(i, is_final=False)
-    stack = list(initial)
-    logger.info(stack=stack)
-    i = 0
-    expanded = set()
-    while stack:
-        # print(i, len(stack), len(G.nodes))
-        i += 1
-        s1 = stack.pop(0)
-        assert s1 in G.nodes
-        if s1 in expanded:
-            continue
-        # is_final =  player.personal_reward_structure.is_personal_final_state(s1)
-        # G.add_node(s1, is_final=is_final)
-        # # logger.info(s1=G.nodes[s1])
-
-        expanded.add(s1)
-        successors = dynamics.successors(s1, dt)
-        for u, s2s in successors.items():
-            for s2 in s2s:
-                if s2 not in G.nodes:
-                    is_final2 = personal_reward_structure.is_personal_final_state(s2)
-                    G.add_node(s2, is_final=is_final2)
-                    if not is_final2:
-                        stack.append(s2)
-
-                G.add_edge(s1, s2, u=u)
-    return G

@@ -1,13 +1,12 @@
 import itertools
 from decimal import Decimal as D, localcontext
-from typing import FrozenSet as ASet, Mapping, Optional, Tuple
+from typing import FrozenSet as ASet, Mapping, Optional, Tuple, Type
 
 import numpy as np
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print
 
-from driving_games.structures import CollisionCost, VehicleActions, VehicleState
 from games import (
     Combined,
     JointRewardStructure,
@@ -24,6 +23,8 @@ from preferences import (
     SECOND_PREFERRED,
     SmallerPreferredTol,
 )
+from .structures import CollisionCost, VehicleActions, VehicleState
+
 
 # noinspection PyTypeChecker
 
@@ -45,6 +46,8 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
         self.max_path = max_path
 
     def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D) -> D:
+        check_isinstance(x, VehicleState)
+        check_isinstance(u, VehicleActions)
         return dt
 
     def personal_reward_reduce(self, r1: D, r2: D) -> D:
@@ -71,7 +74,7 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
     def __init__(self):
         self.p = SmallerPreferredTol(D(0))
 
-    def get_type(self):
+    def get_type(self) -> Type[Optional[CollisionCost]]:
         return Optional[CollisionCost]
 
     def compare(self, a: Optional[CollisionCost], b: Optional[CollisionCost]) -> ComparisonOutcome:
@@ -85,7 +88,7 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
         assert res in COMP_OUTCOMES, (res, self.p)
         return res
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         d = {
             "T": self.get_type(),
             "p": self.p,
@@ -94,32 +97,35 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
 
 
 class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
-    def __init__(self):
+    def __init__(self, ignore_second=False):
+        self.ignore_second = ignore_second
         self.collision = CollisionPreference()
         self.time = SmallerPreferredTol(D(0))
         self.lexi = LexicographicPreference((self.collision, self.time))
 
-    def get_type(self):
+    def get_type(self) -> Type[Combined[CollisionCost, D]]:
         return Combined[CollisionCost, D]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(
-        self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]
-    ) -> ComparisonOutcome:
+    def compare(self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]) -> ComparisonOutcome:
         check_isinstance(a, Combined)
         check_isinstance(b, Combined)
-        # ct_a = (a.joint, a.personal)
-        # ct_b = (b.joint, b.personal)
-        if a.joint is None and b.joint is None:
-            return self.time.compare(a.personal, b.personal)
+        if self.ignore_second:
+            if a.joint is None and b.joint is None:
+                return self.time.compare(a.personal, b.personal)
+            else:
+                return self.collision.compare(a.joint, b.joint)
+
         else:
-            return self.collision.compare(a.joint, b.joint)
-        # # res = self.lexi.compare(ct_a, ct_b)
-        # assert res in COMP_OUTCOMES, (res, self.lexi)
-        # return res
+            ct_a = (a.joint, a.personal)
+            ct_b = (b.joint, b.personal)
+
+            res = self.lexi.compare(ct_a, ct_b)
+            assert res in COMP_OUTCOMES, (res, self.lexi)
+            return res
 
 
 def SE2_from_VehicleState(s: VehicleState):
@@ -128,9 +134,11 @@ def SE2_from_VehicleState(s: VehicleState):
     return SE2.multiply(ref, p)
 
 
-def pose_diff(a, b):
-    S = SE2
-    return S.multiply(S.inverse(a), b)
+#
+#
+# def pose_diff(a: np.array, b: np.array):
+#     S = SE2
+#     return S.multiply(S.inverse(a), b)
 
 
 def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float], ...]:
@@ -173,11 +181,9 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         else:
             return frozenset()
 
-    def joint_reward(
-        self, xs: Mapping[PlayerName, VehicleState]
-    ) -> Mapping[PlayerName, CollisionCost]:
+    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, CollisionCost]:
         players = self.is_joint_final_state(xs)
-        if not players:
+        if not players:  # pragma: no cover
             raise Exception()
         res = {}
         for p in players:

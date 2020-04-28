@@ -1,17 +1,21 @@
 import itertools
 from collections import defaultdict
-from typing import Collection, Dict, Set
+from typing import AbstractSet, Collection, Dict, Iterable, Mapping, Set, TypeVar
 
 from frozendict import frozendict
 
-from .game_def import ASet, U
-from .structures_solution import (
+from . import SetOfOutcomes
+from .game_def import (
+    ASet,
     check_joint_mixed_actions,
     check_joint_pure_actions,
     JointMixedActions,
     JointPureActions,
     PlayerName,
+    U,
 )
+
+__all__ = []
 
 
 def mixed_from_pure(pure_actions: JointPureActions) -> JointMixedActions:
@@ -57,3 +61,30 @@ def all_pure_actions(mixed_actions: JointMixedActions) -> ASet[JointPureActions]
         res.append(pure_actions)
     ret = frozenset(res)
     return ret
+
+
+def flatten_outcomes(
+    solved: Mapping[JointPureActions, SetOfOutcomes], options: ASet[JointPureActions]
+) -> SetOfOutcomes:
+    return flatten_sets(solved[_] for _ in options)
+
+
+M = TypeVar("M")
+
+
+def flatten_sets(x: Iterable[AbstractSet[M]]) -> ASet[M]:
+    res = set()
+    for _ in x:
+        res.update(_)
+    return frozenset(res)
+
+
+def add_action(
+    player_name: PlayerName, player_action: U, set_pure_actions_others: ASet[JointPureActions]
+) -> ASet[JointPureActions]:
+    set_pure_actions: Set[JointPureActions] = set()
+    for v in set_pure_actions_others:
+        v2 = dict(v)
+        v2[player_name] = player_action
+        set_pure_actions.add(frozendict(v2))
+    return frozenset(set_pure_actions)

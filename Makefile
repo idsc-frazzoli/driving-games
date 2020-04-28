@@ -9,8 +9,8 @@ coverage_dir=$(out)/coverage
 tr=$(out)/test-results
 
 
-test_packages=driving_games_tests,preferences_tests,games_tests
-cover_packages=driving_games_tests,preferences_tests,games_tests,driving_games,preferences,games
+test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests
+cover_packages=$(test_packages),driving_games,preferences,games,games_scripts
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -24,29 +24,31 @@ all:
 
 
 clean:
-	coverage erase 
+	coverage erase
 	rm -f .coverage
 	rm -rf cover
 	rm -rf $(tr)
-	rm -rf $(out) $(coverage_dir) 
+	rm -rf $(out) $(coverage_dir)
 
 test:
 	$(MAKE) clean
 	mkdir -p  $(tr)
-	nosetests $(extra) $(coverage) $(xunitmp) src  -v
-	coverage combine
+	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture #$(xunitmp)
+	 
 
 test-parallel:
 	$(MAKE) clean
 	mkdir -p  $(tr)
-	nosetests $(extra) $(coverage) src  -v  $(parallel)
-	coverage combine
+	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(parallel)
+	
 
 test-parallel-circle:
-	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
+	DISABLE_CONTRACTS=1 NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
 	(parallel)
-	coverage combine
+	
 
+coverage-combine:
+	coverage combine
 
 # test-parallel-failed:
 # 	$(MAKE) clean
@@ -77,7 +79,7 @@ run-with-mounted-src:
 		dg-demo -o /out/result --reset -c "rparmake"
 
 black:
-	black -l 100 --target-version py37 src
+	black -l 110 --target-version py37 src
 
-coverage-report: 
+coverage-report:
 	coverage html  -d $(coverage_dir)

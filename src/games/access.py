@@ -2,19 +2,19 @@ import random
 from collections import defaultdict
 from decimal import Decimal as D
 from itertools import product
-from typing import FrozenSet as ASet, List, Mapping
+from typing import FrozenSet as ASet, List
 
 import numpy as np
 from frozendict import frozendict
 from networkx import MultiDiGraph
 from zuper_commons.types import ZException
 
-from games import (
+from . import logger
+from .game_def import (
     Dynamics,
     Game,
     GamePlayer,
-    GamePlayerPreprocessed,
-    GamePreprocessed,
+    JointState,
     PersonalRewardStructure,
     PlayerName,
     RJ,
@@ -23,19 +23,25 @@ from games import (
     X,
     Y,
 )
-from games.single_game_tree import get_one_player_game_tree
-from . import logger
+from .single_game_tree import get_one_player_game_tree
+from .structures_solution import GamePlayerPreprocessed, GamePreprocessed, SolverParams
+
+__all__ = ["preprocess_game", "get_accessible_states"]
 
 
-def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:
-    game_graph = get_game_graph(game, dt)
+def preprocess_game(
+    game: Game[X, U, Y, RP, RJ], solver_params: SolverParams
+) -> GamePreprocessed[X, U, Y, RP, RJ]:
+    game_graph = get_game_graph(game, dt=solver_params.dt)
     compute_graph_layout(game_graph, iterations=1)
     players_pre = {
-        player_name: preprocess_player(player_name=player_name, player=player, dt=dt)
+        player_name: preprocess_player(player_name=player_name, player=player, dt=solver_params.dt)
         for player_name, player in game.players.items()
     }
 
-    gp = GamePreprocessed(game=game, dt=dt, players_pre=players_pre, game_graph=game_graph)
+    gp = GamePreprocessed(
+        game=game, players_pre=players_pre, game_graph=game_graph, solver_params=solver_params
+    )
 
     return gp
 
@@ -44,9 +50,7 @@ def preprocess_player(player_name: PlayerName, player: GamePlayer[X, U, Y, RP, R
     graph = get_player_graph(player, dt)
     alone_trees = {}
     for x0 in player.initial:
-        alone_trees[x0] = get_one_player_game_tree(
-            player_name=player_name, player=player, x0=x0, dt=dt
-        )
+        alone_trees[x0] = get_one_player_game_tree(player_name=player_name, player=player, x0=x0, dt=dt)
 
     alone_trees = frozendict(alone_trees)
     return GamePlayerPreprocessed(graph, alone_trees)
@@ -60,15 +64,15 @@ def get_accessible_states(
 ) -> MultiDiGraph:
     G = MultiDiGraph()
 
-    for i in initial:
-        i_final = personal_reward_structure.is_personal_final_state(i)
+    for node in initial:
+        i_final = personal_reward_structure.is_personal_final_state(node)
         if i_final:
             raise ZException(i_final=i_final)
 
-        G.add_node(i, is_final=False)
+        G.add_node(node, is_final=False)
     stack = list(initial)
     logger.info(stack=stack)
-    i = 0
+    i: int = 0
     expanded = set()
     while stack:
         # print(i, len(stack), len(G.nodes))
@@ -105,7 +109,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     # G2 = get_player_graph(players[p2])
 
     G = MultiDiGraph()
-    stack: List[Mapping[PlayerName, X]] = []
+    stack: List[JointState] = []
     for n1, n2 in product(P1.initial, P2.initial):
         S = frozendict({p1: n1, p2: n2})
         G.add_node(
@@ -121,7 +125,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
 
     logger.info(stack=stack)
     i = 0
-    S: Mapping[PlayerName, X]
+    S: JointState
     while stack:
         if i % 1000 == 0:
             logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))
@@ -152,18 +156,12 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
                     continue
                 S2 = frozendict({p1: s1, p2: s2})
                 if S2 not in G.nodes:
-                    is_final1 = (
-                        P1.personal_reward_structure.is_personal_final_state(s1) if s1 else True
-                    )
-                    is_final2 = (
-                        P2.personal_reward_structure.is_personal_final_state(s2) if s2 else True
-                    )
+                    is_final1 = P1.personal_reward_structure.is_personal_final_state(s1) if s1 else True
+                    is_final2 = P2.personal_reward_structure.is_personal_final_state(s2) if s2 else True
 
                     in_game = "AB" if (s1 and s2) else ("A" if s1 else "B")
                     if s1 and s2:
-                        is_joint_final = (
-                            len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2})) > 0
-                        )
+                        is_joint_final = len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2})) > 0
                     else:
                         is_joint_final = False
                     G.add_node(
@@ -243,6 +241,4 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
 
 
 def get_player_graph(player: GamePlayer[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
-    return get_accessible_states(
-        player.initial, player.personal_reward_structure, player.dynamics, dt=dt
-    )
+    return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)

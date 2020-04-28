@@ -4,10 +4,7 @@ from typing import Dict
 
 from frozendict import frozendict
 
-from games import (
-    check_joint_pure_actions,
-    GameNode,
-    IterationContext,
+from .game_def import (
     JointPureActions,
     JointState,
     RJ,
@@ -16,6 +13,9 @@ from games import (
     X,
     Y,
 )
+from .structures_solution import GameNode, IterationContext
+
+__all__ = []
 
 
 def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:
@@ -60,7 +60,7 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
     for k, its_moves in moves.items():
         for move in its_moves:
             pri = ic.gp.game.players[k].personal_reward_structure.personal_reward_incremental
-            inc = pri(states[k], move, ic.gp.dt)
+            inc = pri(states[k], move, ic.gp.solver_params.dt)
             incremental[k][move] = inc
 
     who_exits = frozenset(ic.gp.game.joint_reward.is_joint_final_state(states))

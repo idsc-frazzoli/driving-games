@@ -19,6 +19,6 @@ class PrefConverter(Preference[A], Generic[A, B]):
         return self.B
 
     def compare(self, x: A, y: A) -> ComparisonOutcome:
-        x1 = self.convert(x)
-        y1 = self.convert(y)
+        x1: B = self.convert(x)
+        y1: B = self.convert(y)
         return self.p0.compare(x1, y1)
