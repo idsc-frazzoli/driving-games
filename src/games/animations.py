@@ -5,7 +5,7 @@ from reprep import MIME_GIF, Report
 from games import GamePreprocessed, Optional
 from games.game_def import X, U, Y, RP, RJ
 from games.simulate import Simulation
-from . import logger
+from driving_games import logger
 
 
 def report_animation(

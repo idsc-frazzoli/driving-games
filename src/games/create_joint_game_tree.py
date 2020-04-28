@@ -5,7 +5,6 @@ from typing import Dict
 from frozendict import frozendict
 
 from games import (
-    check_joint_pure_actions,
     GameNode,
     IterationContext,
     JointPureActions,

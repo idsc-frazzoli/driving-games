@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, FrozenSet as ASet, Mapping, Set
+from typing import cast, FrozenSet as ASet, Mapping
 
-from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName, X
+from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName
+from games.access import get_accessible_states
 from preferences import SetPreference1
 from . import logger
-from .access import get_accessible_states
 from .driving_example import (
     VehicleJointReward,
     VehiclePersonalRewardStructureTime,
@@ -41,7 +41,7 @@ class TwoVehicleSimpleParams:
     second_progress: D
 
 
-def get_game1() -> Game:
+def get_game1() -> Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
     p = TwoVehicleSimpleParams(
         side=D(8),
         road=D(6),

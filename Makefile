@@ -9,8 +9,8 @@ coverage_dir=$(out)/coverage
 tr=$(out)/test-results
 
 
-test_packages=driving_games_tests,preferences_tests,games_tests
-cover_packages=driving_games_tests,preferences_tests,games_tests,driving_games,preferences,games
+test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests
+cover_packages=$(test_packages),driving_games,preferences,games,games_scripts
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -24,11 +24,11 @@ all:
 
 
 clean:
-	coverage erase 
+	coverage erase
 	rm -f .coverage
 	rm -rf cover
 	rm -rf $(tr)
-	rm -rf $(out) $(coverage_dir) 
+	rm -rf $(out) $(coverage_dir)
 
 test:
 	$(MAKE) clean
@@ -79,5 +79,5 @@ run-with-mounted-src:
 black:
 	black -l 100 --target-version py37 src
 
-coverage-report: 
+coverage-report:
 	coverage html  -d $(coverage_dir)

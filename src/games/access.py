@@ -24,7 +24,7 @@ from games import (
     Y,
 )
 from games.single_game_tree import get_one_player_game_tree
-from . import logger
+from driving_games import logger
 
 
 def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:

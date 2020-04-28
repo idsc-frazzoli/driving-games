@@ -12,7 +12,6 @@ from preferences import (
     remove_dominated,
     StrictProductPreference,
 )
-from . import check_joint_mixed_actions
 from .comb_utils import get_all_choices_by_players, get_all_combinations
 from .game_def import ASet, JointMixedActions, JointPureActions, PlayerName, RJ, RP, U, X, Y
 from .structures_solution import check_joint_pure_actions, check_set_outcomes, SetOfOutcomes

@@ -115,6 +115,11 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
 
+    #
+    # @abstractmethod
+    # def hint_graph_node_pos(self, player_name: PlayerName, state: X) -> Tuple[float, float]:
+    #     pass
+
 
 @dataclass
 class Game(Generic[X, U, Y, RP, RJ]):

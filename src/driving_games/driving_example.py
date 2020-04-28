@@ -1,6 +1,6 @@
 import itertools
 from decimal import Decimal as D, localcontext
-from typing import FrozenSet as ASet, Mapping, Optional, Tuple
+from typing import FrozenSet as ASet, Mapping, Optional, Tuple, Type
 
 import numpy as np
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
@@ -71,7 +71,7 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
     def __init__(self):
         self.p = SmallerPreferredTol(D(0))
 
-    def get_type(self):
+    def get_type(self) -> Type[Optional[CollisionCost]]:
         return Optional[CollisionCost]
 
     def compare(self, a: Optional[CollisionCost], b: Optional[CollisionCost]) -> ComparisonOutcome:
@@ -85,7 +85,7 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
         assert res in COMP_OUTCOMES, (res, self.p)
         return res
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         d = {
             "T": self.get_type(),
             "p": self.p,
@@ -99,10 +99,10 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
         self.time = SmallerPreferredTol(D(0))
         self.lexi = LexicographicPreference((self.collision, self.time))
 
-    def get_type(self):
+    def get_type(self) -> Type[Combined[CollisionCost, D]]:
         return Combined[CollisionCost, D]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
@@ -128,7 +128,7 @@ def SE2_from_VehicleState(s: VehicleState):
     return SE2.multiply(ref, p)
 
 
-def pose_diff(a, b):
+def pose_diff(a: np.array, b: np.array):
     S = SE2
     return S.multiply(S.inverse(a), b)
 
