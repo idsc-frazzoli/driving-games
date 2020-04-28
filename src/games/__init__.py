@@ -1,6 +1,14 @@
+from typing import ClassVar
+
 from zuper_commons.logs import ZLogger
 
 logger = ZLogger(__name__)
+
+
+class GameConstants:
+    extra_checks: ClassVar[bool] = False
+
+
 from .access import *
 from .game_def import *
 from .structures_solution import *

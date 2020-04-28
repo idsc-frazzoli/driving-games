@@ -6,8 +6,7 @@ from reprep import MIME_GIF, Report
 from . import logger
 from .game_def import RJ, RP, U, X, Y
 from .simulate import Simulation
-from .solution import Solutions
-from .structures_solution import GamePreprocessed
+from .structures_solution import GamePreprocessed, Solutions
 
 __all__ = ["report_animation", "report_solutions"]
 
@@ -22,9 +21,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ], s: Solutions[X, U, Y
     return r
 
 
-def report_animation(
-    gp: GamePreprocessed[X, U, Y, RP, RJ], sim: Simulation[X, U, Y, RP, RJ]
-) -> Report:
+def report_animation(gp: GamePreprocessed[X, U, Y, RP, RJ], sim: Simulation[X, U, Y, RP, RJ]) -> Report:
     r = Report()
     f = r.figure()
     with f.data_file("sim", MIME_GIF) as fn:
@@ -39,7 +36,7 @@ def report_animation(
 
 def upsample(gp, states0, actions0, n: int):
     states2 = {}
-    dt = gp.dt
+    dt = gp.solver_params.dt
     dt2 = dt / n
     for i, (t, s0) in enumerate(states0.items()):
 

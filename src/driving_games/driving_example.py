@@ -97,7 +97,8 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
 
 
 class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
-    def __init__(self):
+    def __init__(self, ignore_second=False):
+        self.ignore_second = ignore_second
         self.collision = CollisionPreference()
         self.time = SmallerPreferredTol(D(0))
         self.lexi = LexicographicPreference((self.collision, self.time))
@@ -109,20 +110,22 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
         d = {"P": self.get_type(), "lexi": self.lexi}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(
-        self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]
-    ) -> ComparisonOutcome:
+    def compare(self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]) -> ComparisonOutcome:
         check_isinstance(a, Combined)
         check_isinstance(b, Combined)
-        # ct_a = (a.joint, a.personal)
-        # ct_b = (b.joint, b.personal)
-        if a.joint is None and b.joint is None:
-            return self.time.compare(a.personal, b.personal)
+        if self.ignore_second:
+            if a.joint is None and b.joint is None:
+                return self.time.compare(a.personal, b.personal)
+            else:
+                return self.collision.compare(a.joint, b.joint)
+
         else:
-            return self.collision.compare(a.joint, b.joint)
-        # # res = self.lexi.compare(ct_a, ct_b)
-        # assert res in COMP_OUTCOMES, (res, self.lexi)
-        # return res
+            ct_a = (a.joint, a.personal)
+            ct_b = (b.joint, b.personal)
+
+            res = self.lexi.compare(ct_a, ct_b)
+            assert res in COMP_OUTCOMES, (res, self.lexi)
+            return res
 
 
 def SE2_from_VehicleState(s: VehicleState):
@@ -178,9 +181,7 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         else:
             return frozenset()
 
-    def joint_reward(
-        self, xs: Mapping[PlayerName, VehicleState]
-    ) -> Mapping[PlayerName, CollisionCost]:
+    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, CollisionCost]:
         players = self.is_joint_final_state(xs)
         if not players:  # pragma: no cover
             raise Exception()

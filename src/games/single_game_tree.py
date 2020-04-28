@@ -32,11 +32,7 @@ def get_one_player_game_tree(
 
 
 def get_1p_game_tree(
-    *,
-    c: P1Context[X, U, Y, RP, RJ],
-    player_name: PlayerName,
-    player: GamePlayer[X, U, Y, RP, RJ],
-    x0: X,
+    *, c: P1Context[X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], x0: X,
 ) -> GameNode[X, U, Y, RP, RJ]:
     assert not isinstance(x0, set), x0
     prs = player.personal_reward_structure

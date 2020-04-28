@@ -1,16 +1,17 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
-from typing import Callable, Dict, Generic, Mapping, Set, TypeVar
+from typing import Callable, Dict, Generic, Mapping, Set
 
 from frozendict import frozendict
 from networkx import simple_cycles
 from zuper_commons.types import check_isinstance, ZException, ZNotImplementedError, ZValueError
 
-from preferences import PrefConverter, Preference, remove_dominated
+from preferences import PrefConverter, Preference
 from . import logger
 from .agent import RandomAgent
 from .comb_utils import (
     all_pure_actions,
+    flatten_outcomes,
     get_all_choices_by_players,
     get_all_combinations,
     mixed_from_pure,
@@ -28,26 +29,33 @@ from .game_def import (
     JointMixedActions,
     JointPureActions,
     JointState,
+    Outcome,
     P,
     PlayerName,
     RJ,
     RP,
+    SetOfOutcomes,
     U,
     X,
     Y,
 )
 from .simulate import simulate1, Simulation
+from .solution_security import get_security_policies
 from .structures_solution import (
     check_joint_mixed_actions,
     check_joint_pure_actions,
     check_set_outcomes,
     GameNode,
     GamePreprocessed,
+    GameSolution,
     IterationContext,
-    Outcome,
-    SetOfOutcomes,
+    Solutions,
+    SolutionsPlayer,
     SolvedGameNode,
     SolvingContext,
+    STRATEGY_BAIL,
+    STRATEGY_MIX,
+    STRATEGY_SECURITY,
     ValueAndActions,
 )
 
@@ -55,50 +63,14 @@ __all__ = ["solve1", "solve_random", "get_outcome_set_preferences_for_players"]
 
 
 def solve_random(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Simulation[X, U, Y, RP, RJ]:
-    policies = {
-        player_name: RandomAgent(player.dynamics) for player_name, player in gp.game.players.items()
-    }
-    initial_states = {
-        player_name: list(player.initial)[0] for player_name, player in gp.game.players.items()
-    }
-    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.dt, seed=0)
+    policies = {player_name: RandomAgent(player.dynamics) for player_name, player in gp.game.players.items()}
+    initial_states = {player_name: list(player.initial)[0] for player_name, player in gp.game.players.items()}
+    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.solver_params.dt, seed=0)
     logger.info(sim=sim)
     return sim
 
 
 # IState = ASet[JointState]
-
-
-@dataclass
-class GameSolution(Generic[X, U, Y, RP, RJ]):
-    gn: GameNode[X, U, Y, RP, RJ]
-    gn_solved: SolvedGameNode[X, U, Y, RP, RJ]
-
-    policies: Mapping[PlayerName, Mapping[X, Mapping[ASet[JointState], ASet[U]]]]
-
-    def __post_init__(self):
-        if False:
-            for player_name, player_policy in self.policies.items():
-
-                check_isinstance(player_policy, frozendict)
-                for own_state, state_policy in player_policy.items():
-                    check_isinstance(state_policy, frozendict)
-                    for istate, us in state_policy.items():
-                        check_isinstance(us, frozenset)
-
-
-@dataclass
-class SolutionsPlayer(Generic[X, U, Y, RP, RJ]):
-    alone_solutions: Mapping[X, GameSolution]
-
-
-@dataclass
-class Solutions(Generic[X, U, Y, RP, RJ]):
-    solutions_players: Mapping[PlayerName, SolutionsPlayer]
-    game_solution: GameSolution[X, U, Y, RP, RJ]
-    game_tree: GameNode[X, U, Y, RP, RJ]
-
-    sims: Mapping[str, Simulation]
 
 
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
@@ -141,10 +113,13 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     )
     for seed in range(5):
         sim_joint = simulate1(
-            gp.game, policies=controllers0, initial_states=game_tree.states, dt=gp.dt,
-            seed=seed
+            gp.game,
+            policies=controllers0,
+            initial_states=game_tree.states,
+            dt=gp.solver_params.dt,
+            seed=seed,
         )
-        sims[f'joint-{seed}'] = sim_joint
+        sims[f"joint-{seed}"] = sim_joint
 
     solutions_players: Dict[PlayerName, SolutionsPlayer] = {}
     initial_state = game_tree.states
@@ -191,16 +166,11 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(solution_ghost.policies[player_name])
         sim_ = simulate1(
-            gp.game, policies=controllers, initial_states=initial_state, dt=gp.dt,
-            seed=0
-
+            gp.game, policies=controllers, initial_states=initial_state, dt=gp.solver_params.dt, seed=0,
         )
         sims[f"{player_name}-follows"] = sim_
     return Solutions(
-        game_solution=game_solution,
-        game_tree=game_tree,
-        solutions_players=solutions_players,
-        sims=sims,
+        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players, sims=sims,
     )
     # logger.info(game_tree=game_tree)
 
@@ -219,10 +189,7 @@ class AgentFromPolicy(AgentBelief[X, U]):
         if state_self not in self.policy:
             msg = "I do not know the policy for this state"
             raise DoesNotKnowPolicy(
-                msg,
-                state_self=state_self,
-                state_others=state_others,
-                states_self_known=set(self.policy),
+                msg, state_self=state_self, state_others=state_others, states_self_known=set(self.policy),
             )
 
         lookup = self.policy[state_self]
@@ -232,9 +199,7 @@ class AgentFromPolicy(AgentBelief[X, U]):
         if state_others in lookup:
             return lookup[state_others]
         else:
-            raise ZNotImplementedError(
-                state_self=state_self, state_others=state_others, lookup=lookup
-            )
+            raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)
 
 
 def get_ghost_tree(
@@ -269,9 +234,7 @@ def replace_others(
         if player_name == dreamer:
             continue
         state_self = node.states[player_name]
-        state_others: JointState = frozendict(
-            {k: v for k, v in node.states.items() if k != player_name}
-        )
+        state_others: JointState = frozendict({k: v for k, v in node.states.items() if k != player_name})
         options = controllers[player_name].get_commands(state_self, state_others)
         if len(options) != 1:
             raise ZNotImplementedError(options=options)
@@ -304,14 +267,6 @@ def replace_others(
     )
     cache[node] = ret
     return ret
-    # states: JointState
-    # moves: JointMixedActions
-    # outcomes: "Mapping[JointPureActions, GameNode[X, U, Y, RP, RJ]]"
-    #
-    # is_final: Mapping[PlayerName, RP]
-    # incremental: Mapping[PlayerName, Mapping[U, RP]]
-    #
-    # joint_final_rewards: Mapping[PlayerName, RJ]
 
 
 def is_compatible(a: JointPureActions, constraints: JointPureActions) -> bool:
@@ -381,9 +336,7 @@ def reduce_future(
     for pure_actions in all_pure_actions(mixed_actions=mixed_actions):
         check_joint_pure_actions(pure_actions)
         for outcome in mixed_outcomes:
-            more = reduce_future_1(
-                gp, outcome=outcome, pure_actions=pure_actions, incremental=incremental
-            )
+            more = reduce_future_1(gp, outcome=outcome, pure_actions=pure_actions, incremental=incremental)
             obtained.add(more)
     ret = frozenset(obtained)
     check_set_outcomes(mixed_outcomes)
@@ -393,9 +346,8 @@ def reduce_future(
 def solve_game(
     gp: GamePreprocessed[X, U, Y, RP, RJ], gn: GameNode[X, U, Y, RP, RJ]
 ) -> GameSolution[X, U, Y, RP, RJ]:
-    sc = SolvingContext(
-        gp, {}, depth=0, outcome_set_preferences=get_outcome_set_preferences_for_players(gp.game)
-    )
+    outcome_set_preferences = get_outcome_set_preferences_for_players(gp.game)
+    sc = SolvingContext(gp, {}, outcome_set_preferences)
     gn_solved = _solve_game(sc, gn)
 
     policies: Dict[PlayerName, Dict[X, Dict[ASet[JointState], ASet[U]]]]
@@ -431,30 +383,27 @@ def _solve_game(
         mixed_actions = mixed_from_pure(pure_actions)
         mixed_outcomes = _solve_game(sc, v).va.game_value
         res = reduce_future(
-            sc.gp,
-            mixed_outcomes=mixed_outcomes,
-            incremental=gn.incremental,
-            mixed_actions=mixed_actions,
+            sc.gp, mixed_outcomes=mixed_outcomes, incremental=gn.incremental, mixed_actions=mixed_actions,
         )
         check_set_outcomes(res)
         solved[pure_actions] = res
 
     va: ValueAndActions[U, RP, RJ]
     # if this is a 1-player node: easy
-    if False and len(gn.states) == 1:
-        if len(gn.is_final) == 1:
-            va = solve_1_player_final(gn)
-        else:
-            player_name = list(gn.states)[0]
-            va = solve_1_player(sc, player_name, gn, solved)
+    # if False and len(gn.states) == 1:
+    #     if len(gn.is_final) == 1:
+    #         va = solve_1_player_final(gn)
+    #     else:
+    #         player_name = list(gn.states)[0]
+    #         va = solve_1_player(sc, player_name, gn, solved)
+    # else:
+    if gn.joint_final_rewards:  # final costs:
+        va = solve_final_joint(gn)
+    elif set(gn.states) == set(gn.is_final):
+        # They both finished
+        va = solve_final_personal_both(gn)
     else:
-        if gn.joint_final_rewards:  # final costs:
-            va = solve_final_joint(gn)
-        elif set(gn.states) == set(gn.is_final):
-            # They both finished
-            va = solve_final_personal_both(gn)
-        else:
-            va = solve_equilibria(sc, gn, solved)
+        va = solve_equilibria(sc, gn, solved)
 
     ret = SolvedGameNode(gn=gn, solved=frozendict(solved), va=va)
     sc.cache[gn] = ret
@@ -478,11 +427,9 @@ def solve_equilibria(
     preferences: Dict[PlayerName, Preference[SetOfOutcomes]]
     preferences = {k: sc.outcome_set_preferences[k] for k in players_active}
 
-    # try:
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
     ea = analyze_equilibria(solved, preferences)
-    # except ZValueError as e:
-    #     raise ZValueError(moves=gn.moves, states=gn.states) from e
+
     if len(ea.nondom_nash_equilibria) == 1:
         eq = list(ea.nondom_nash_equilibria)[0]
         check_joint_pure_actions(eq)
@@ -498,28 +445,33 @@ def solve_equilibria(
             game_value = list(outcomes)[0]
             mixed_actions_ = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
             return ValueAndActions(game_value=game_value, mixed_actions=mixed_actions_)
-        multiple_nash_mix = True  # TODO: make param
-        if multiple_nash_mix:
-            player2choices = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
+
+        strategy = sc.gp.solver_params.strategy_multiple_nash
+        if strategy == STRATEGY_MIX:
+            mixed_actions: JointMixedActions = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
 
             # Assume that we will have any of the combinations
-            set_pure_actions: ASet[JointPureActions] = get_all_combinations(
-                mixed_actions=player2choices
-            )
+            set_pure_actions: ASet[JointPureActions]
+            set_pure_actions = get_all_combinations(mixed_actions=mixed_actions)
             game_value_: Set[Outcome[RP, RJ]] = set()
             for pure_action in set_pure_actions:
                 _outcomes = ea.ps[pure_action].outcome
                 game_value_.update(_outcomes)
             game_value__: SetOfOutcomes = frozenset(game_value_)
-            return ValueAndActions(game_value=game_value__, mixed_actions=player2choices)
+            return ValueAndActions(game_value=game_value__, mixed_actions=mixed_actions)
 
-        else:
-
+        elif strategy == STRATEGY_SECURITY:
+            security_policies: JointMixedActions = get_security_policies(
+                solved, gn.moves, sc.outcome_set_preferences
+            )
+            set_pure_actions = get_all_combinations(mixed_actions=security_policies)
+            set_outcomes: SetOfOutcomes = flatten_outcomes(solved, set_pure_actions)
+            return ValueAndActions(game_value=set_outcomes, mixed_actions=security_policies)
+        elif strategy == STRATEGY_BAIL:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
-
-
-M = TypeVar("M")
+        else:
+            assert False, strategy
 
 
 class TransformToPrivate0(Generic[X, U, Y, RP, RJ]):
@@ -547,9 +499,7 @@ class CombinedFromOutcome(Generic[RP, RJ]):
 
     def __call__(self, outcome: Outcome[RP, RJ]) -> Combined[RJ, RP]:
         check_isinstance(outcome, Outcome, _self=self)
-        combined = Combined(
-            joint=outcome.joint.get(self.name, None), personal=outcome.private[self.name]
-        )
+        combined = Combined(joint=outcome.joint.get(self.name, None), personal=outcome.private[self.name])
         return combined
 
 
@@ -565,37 +515,34 @@ def solve_final_personal_both(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[
     return ValueAndActions(game_value=game_value, mixed_actions=actions)
 
 
-def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
-    p = list(gn.states)[0]
-    # logger.info(f"final for {p}")
-    game_value = frozenset({Outcome(private=frozendict({p: gn.is_final[p]}), joint=frozendict())})
-    actions = frozendict()
-    return ValueAndActions(game_value=game_value, mixed_actions=actions)
+#
+# def solve_1_player_final(gn: GameNode[X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
+#     p = list(gn.states)[0]
+#     # logger.info(f"final for {p}")
+#     game_value = frozenset({Outcome(private=frozendict({p: gn.is_final[p]}), joint=frozendict())})
+#     actions = frozendict()
+#     return ValueAndActions(game_value=game_value, mixed_actions=actions)
 
-
-def solve_1_player(
-    sc: SolvingContext[X, U, Y, RP, RJ],
-    player_name: PlayerName,
-    gn: GameNode[X, U, Y, RP, RJ],
-    solved: Mapping[JointPureActions, SetOfOutcomes],
-) -> ValueAndActions[U, RP, RJ]:
-    for pure_action in solved:
-        check_joint_pure_actions(pure_action)
-    # p = list(gn.states)[0]
-    # action = list(gn.moves[p])[0]
-
-    pref = sc.outcome_set_preferences[player_name]
-    nondominated = remove_dominated(solved, pref)
-
-    all_actions = frozenset({_[player_name] for _ in nondominated})
-    actions = frozendict({player_name: all_actions})
-    # incremental = gn.incremental[p][action]
-    # if actions not in solved:
-    #     raise ZValueError(actions=actions, solved=solved)
-    value = set()
-    for action, out in nondominated.items():
-        value.update(out)
-    # value = solved[actions]
-    game_value = frozenset(value)
-
-    return ValueAndActions(game_value=game_value, mixed_actions=actions)
+#
+# def solve_1_player(
+#     sc: SolvingContext[X, U, Y, RP, RJ],
+#     player_name: PlayerName,
+#     gn: GameNode[X, U, Y, RP, RJ],
+#     solved: Mapping[JointPureActions, SetOfOutcomes],
+# ) -> ValueAndActions[U, RP, RJ]:
+#     for pure_action in solved:
+#         check_joint_pure_actions(pure_action)
+#
+#     pref = sc.outcome_set_preferences[player_name]
+#     nondominated = remove_dominated(solved, pref)
+#
+#     all_actions = frozenset({_[player_name] for _ in nondominated})
+#     actions = frozendict({player_name: all_actions})
+#
+#     value = set()
+#     for action, out in nondominated.items():
+#         value.update(out)
+#
+#     game_value = frozenset(value)
+#
+#     return ValueAndActions(game_value=game_value, mixed_actions=actions)

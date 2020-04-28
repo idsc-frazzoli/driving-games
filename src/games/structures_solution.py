@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, Generic, Mapping
+from typing import Dict, Generic, Mapping, NewType
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
@@ -17,7 +17,6 @@ from .game_def import (
     JointMixedActions,
     JointPureActions,
     JointState,
-    Outcome,
     PlayerName,
     RJ,
     RP,
@@ -26,6 +25,7 @@ from .game_def import (
     X,
     Y,
 )
+from .simulate import Simulation
 
 __all__ = [
     "GameNode",
@@ -34,7 +34,22 @@ __all__ = [
     "SolvedGameNode",
     "SolverParams",
     "SolvingContext",
+    "STRATEGY_BAIL",
+    "STRATEGY_SECURITY",
+    "STRATEGY_MIX",
+    "StrategyForMultipleNash",
 ]
+
+StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
+STRATEGY_MIX = StrategyForMultipleNash("strategy-mix")
+STRATEGY_SECURITY = StrategyForMultipleNash("strategy-security")
+STRATEGY_BAIL = StrategyForMultipleNash("strategy-bail")
+
+
+@dataclass
+class SolverParams:
+    dt: D
+    strategy_multiple_nash: StrategyForMultipleNash
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -76,9 +91,9 @@ class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ]):
 @dataclass
 class GamePreprocessed(Generic[X, U, Y, RP, RJ]):
     game: Game[X, U, Y, RP, RJ]
-    dt: D
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ]]
     game_graph: MultiDiGraph
+    solver_params: SolverParams
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -112,8 +127,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ]):
 class SolvingContext(Generic[X, U, Y, RP, RJ]):
     gp: GamePreprocessed[X, U, Y, RP, RJ]
     cache: Dict[GameNode, SolvedGameNode]
-    depth: int
-    outcome_set_preferences: Mapping[PlayerName, Preference[ASet[Outcome]]]
+    outcome_set_preferences: Mapping[PlayerName, Preference[SetOfOutcomes]]
 
 
 @dataclass
@@ -124,5 +138,32 @@ class IterationContext:
 
 
 @dataclass
-class SolverParams:
-    dt: D
+class GameSolution(Generic[X, U, Y, RP, RJ]):
+    gn: GameNode[X, U, Y, RP, RJ]
+    gn_solved: SolvedGameNode[X, U, Y, RP, RJ]
+
+    policies: Mapping[PlayerName, Mapping[X, Mapping[ASet[JointState], ASet[U]]]]
+
+    def __post_init__(self):
+        if False:
+            for player_name, player_policy in self.policies.items():
+
+                check_isinstance(player_policy, frozendict)
+                for own_state, state_policy in player_policy.items():
+                    check_isinstance(state_policy, frozendict)
+                    for istate, us in state_policy.items():
+                        check_isinstance(us, frozenset)
+
+
+@dataclass
+class SolutionsPlayer(Generic[X, U, Y, RP, RJ]):
+    alone_solutions: Mapping[X, GameSolution]
+
+
+@dataclass
+class Solutions(Generic[X, U, Y, RP, RJ]):
+    solutions_players: Mapping[PlayerName, SolutionsPlayer]
+    game_solution: GameSolution[X, U, Y, RP, RJ]
+    game_tree: GameNode[X, U, Y, RP, RJ]
+
+    sims: Mapping[str, Simulation]

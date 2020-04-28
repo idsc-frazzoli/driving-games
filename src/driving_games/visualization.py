@@ -68,12 +68,7 @@ class DrivingGameVisualization(
             light = commands.light
 
         colors = {
-            "none": {
-                "back_left": "red",
-                "back_right": "red",
-                "front_right": "white",
-                "front_left": "white",
-            },
+            "none": {"back_left": "red", "back_right": "red", "front_right": "white", "front_left": "white",},
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
@@ -121,9 +116,7 @@ def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
     pylab.plot(x4, y4, "k*", zorder=15)
 
 
-def get_transformed_xy(
-    q: np.array, points: Sequence[Tuple[Number, Number]]
-) -> Tuple[np.array, np.array]:
+def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
     car = tuple((x, y, 1) for x, y in points)
     car = np.array(car).T
     points = q @ car

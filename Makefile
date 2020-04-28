@@ -77,7 +77,7 @@ run-with-mounted-src:
 		dg-demo -o /out/result --reset -c "rparmake"
 
 black:
-	black -l 100 --target-version py37 src
+	black -l 110 --target-version py37 src
 
 coverage-report:
 	coverage html  -d $(coverage_dir)

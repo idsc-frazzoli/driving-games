@@ -9,9 +9,7 @@ __all__ = []
 
 
 def report_player(
-    game_pre: GamePreprocessed[X, U, Y, RP, RJ],
-    player_name: PlayerName,
-    player: GamePlayer[X, U, Y, RP, RJ],
+    game_pre: GamePreprocessed[X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ],
 ):
     pp = game_pre.players_pre[player_name]
     viz = game_pre.game.game_visualization

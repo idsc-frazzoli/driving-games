@@ -74,9 +74,7 @@ class Combos(Generic[X, U, Y, RP, RJ]):
             check_joint_pure_actions(_)
 
 
-def check_contains_all_combo(
-    possibilities: Collection[JointPureActions],
-) -> Combos[X, U, Y, RP, RJ]:
+def check_contains_all_combo(possibilities: Collection[JointPureActions],) -> Combos[X, U, Y, RP, RJ]:
     for _ in possibilities:
         check_joint_pure_actions(_)
     # player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)[

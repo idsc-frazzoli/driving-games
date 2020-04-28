@@ -6,8 +6,20 @@ from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from zuper_commons.types import check_isinstance
 
-from .game_def import (AgentBelief, ASet, check_joint_pure_actions, Game, JointPureActions, JointState, PlayerName, RJ,
-                       RP, U, X, Y)
+from .game_def import (
+    AgentBelief,
+    ASet,
+    check_joint_pure_actions,
+    Game,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    RJ,
+    RP,
+    U,
+    X,
+    Y,
+)
 
 __all__ = []
 
@@ -31,7 +43,7 @@ class Simulation(Generic[X, U, Y, RP, RJ]):
     joint_costs: Mapping[D, Mapping[PlayerName, RJ]]
 
 
-N = TypeVar('N')
+N = TypeVar("N")
 
 
 class Sampler:
