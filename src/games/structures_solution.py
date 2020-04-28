@@ -9,27 +9,32 @@ from zuper_commons.types import check_isinstance
 from preferences import Preference
 from .game_def import (
     ASet,
+    check_joint_mixed_actions,
+    check_joint_pure_actions,
     check_joint_state,
+    check_set_outcomes,
+    Game,
     JointMixedActions,
+    JointPureActions,
     JointState,
+    Outcome,
     PlayerName,
     RJ,
     RP,
+    SetOfOutcomes,
     U,
     X,
     Y,
-    Game,
-    JointPureActions,
 )
 
-
-@dataclass(frozen=True, unsafe_hash=True, order=True)
-class Outcome(Generic[RP, RJ]):
-    private: Mapping[PlayerName, RP]
-    joint: Mapping[PlayerName, RJ]
-
-
-SetOfOutcomes = ASet[Outcome[RP, RJ]]
+__all__ = [
+    "GameNode",
+    "GamePreprocessed",
+    "GamePlayerPreprocessed",
+    "SolvedGameNode",
+    "SolverParams",
+    "SolvingContext",
+]
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -121,27 +126,3 @@ class IterationContext:
 @dataclass
 class SolverParams:
     dt: D
-
-
-def check_set_outcomes(a: SetOfOutcomes):
-    check_isinstance(a, frozenset)
-    for _ in a:
-        check_isinstance(_, Outcome, a=a)
-
-
-def check_joint_pure_actions(a: JointPureActions):
-    from driving_games.structures import VehicleActions
-
-    check_isinstance(a, frozendict)
-    for k, v in a.items():
-        check_isinstance(v, VehicleActions, a=a)
-
-
-def check_joint_mixed_actions(a: JointMixedActions):
-    from driving_games.structures import VehicleActions
-
-    check_isinstance(a, frozendict)
-    for k, v in a.items():
-        check_isinstance(v, frozenset, a=a)
-        for _ in v:
-            check_isinstance(_, VehicleActions, a=a)

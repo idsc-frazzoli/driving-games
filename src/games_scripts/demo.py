@@ -1,13 +1,18 @@
-from typing import Mapping, Sequence
+from os.path import join
+from typing import Mapping
 
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
-from os.path import join
-from games import solve1
-from games.access import preprocess_game
-from games.animations import report_animation, report_solutions
-from games.reports import create_report_preprocessed, report_game_visualization
-from games.solution import solve_random
+
+from games import (
+    create_report_preprocessed,
+    preprocess_game,
+    report_animation,
+    report_game_visualization,
+    report_solutions,
+    solve1,
+    solve_random,
+)
 from .solvers import solvers_zoo, SolverSpec
 from .zoo import games_zoo, GameSpec
 
@@ -45,30 +50,32 @@ class DGDemo(QuickApp):
 
                 random_sim = c.comp(solve_random, game_preprocessed)
                 r = c.comp(report_animation, game_preprocessed, random_sim)
-                c.add_report(r, "random_animation", )
+                c.add_report(
+                    r, "random_animation",
+                )
 
 
-def without_compmake(games: Mapping[str, GameSpec],
-                     solvers: Mapping[str, SolverSpec]):
-    d = 'out-without'
+def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, SolverSpec]):
+    d = "out-without"
     for game_name, game_spec in games.items():
         dg = join(d, game_name)
         game = game_spec.game
         r_game = report_game_visualization(game)
-        r_game.to_html(join(dg, 'r_animation.r_game'))
+        r_game.to_html(join(dg, "r_animation.r_game"))
 
         for solver_name, solver_spec in solvers.items():
             ds = join(dg, solver_name)
             solver_params = solver_spec.solver_params
             game_preprocessed = preprocess_game(game, solver_params.dt)
             solutions = solve1(game_preprocessed)
-            random_sim =  solve_random(game_preprocessed)
+            random_sim = solve_random(game_preprocessed)
             r_animation = report_animation(game_preprocessed, random_sim)
             r_solutions = report_solutions(game_preprocessed, solutions)
             r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
 
-            r_animation.to_html(join(ds, 'r_animation.html'))
-            r_solutions.to_html(join(ds, 'r_solutions.html'))
-            r_preprocessed.to_html(join(ds, 'r_preprocessed.html'))
+            r_animation.to_html(join(ds, "r_animation.html"))
+            r_solutions.to_html(join(ds, "r_solutions.html"))
+            r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+
 
 dg_demo = DGDemo.get_sys_main()

@@ -13,8 +13,22 @@ from preferences import (
     StrictProductPreference,
 )
 from .comb_utils import get_all_choices_by_players, get_all_combinations
-from .game_def import ASet, JointMixedActions, JointPureActions, PlayerName, RJ, RP, U, X, Y
-from .structures_solution import check_joint_pure_actions, check_set_outcomes, SetOfOutcomes
+from .game_def import (
+    ASet,
+    check_joint_pure_actions,
+    check_set_outcomes,
+    JointMixedActions,
+    JointPureActions,
+    PlayerName,
+    RJ,
+    RP,
+    SetOfOutcomes,
+    U,
+    X,
+    Y,
+)
+
+__all__ = []
 
 
 # Choice = TypeVar("Choice")

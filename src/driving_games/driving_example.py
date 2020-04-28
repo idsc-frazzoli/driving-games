@@ -7,7 +7,6 @@ from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print
 
-from .structures import CollisionCost, VehicleActions, VehicleState
 from games import (
     Combined,
     JointRewardStructure,
@@ -24,6 +23,7 @@ from preferences import (
     SECOND_PREFERRED,
     SmallerPreferredTol,
 )
+from .structures import CollisionCost, VehicleActions, VehicleState
 
 
 # noinspection PyTypeChecker

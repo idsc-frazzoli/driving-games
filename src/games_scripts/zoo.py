@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Dict
 
-from driving_games.game_generation import get_game1
+from driving_games import get_game1
 from games import Game
 
 __all__ = ["games_zoo"]

@@ -4,14 +4,17 @@ from typing import Collection, Dict, Set
 
 from frozendict import frozendict
 
-from .game_def import ASet, U
-from .structures_solution import (
+from .game_def import (
+    ASet,
     check_joint_mixed_actions,
     check_joint_pure_actions,
     JointMixedActions,
     JointPureActions,
     PlayerName,
+    U,
 )
+
+__all__ = []
 
 
 def mixed_from_pure(pure_actions: JointPureActions) -> JointMixedActions:

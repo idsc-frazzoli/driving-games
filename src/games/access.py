@@ -26,6 +26,8 @@ from .game_def import (
 from .single_game_tree import get_one_player_game_tree
 from .structures_solution import GamePlayerPreprocessed, GamePreprocessed
 
+__all__ = ["preprocess_game", "get_accessible_states"]
+
 
 def preprocess_game(game: Game[X, U, Y, RP, RJ], dt: D) -> GamePreprocessed[X, U, Y, RP, RJ]:
     game_graph = get_game_graph(game, dt)
@@ -60,15 +62,15 @@ def get_accessible_states(
 ) -> MultiDiGraph:
     G = MultiDiGraph()
 
-    for i in initial:
-        i_final = personal_reward_structure.is_personal_final_state(i)
+    for node in initial:
+        i_final = personal_reward_structure.is_personal_final_state(node)
         if i_final:
             raise ZException(i_final=i_final)
 
-        G.add_node(i, is_final=False)
+        G.add_node(node, is_final=False)
     stack = list(initial)
     logger.info(stack=stack)
-    i = 0
+    i: int = 0
     expanded = set()
     while stack:
         # print(i, len(stack), len(G.nodes))

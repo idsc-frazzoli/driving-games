@@ -15,6 +15,8 @@ from .game_def import (
 )
 from .structures_solution import GameNode
 
+__all__ = []
+
 
 @dataclass
 class P1Context(Generic[X, U, Y, RP, RJ]):

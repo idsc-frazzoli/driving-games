@@ -1,12 +1,15 @@
 from decimal import Decimal as D
+from typing import Optional
 
 from reprep import MIME_GIF, Report
 
-from games import GamePreprocessed, Optional
-from games.game_def import X, U, Y, RP, RJ
-from games.simulate import Simulation
-from driving_games import logger
-from games.solution import Solutions
+from . import logger
+from .game_def import RJ, RP, U, X, Y
+from .simulate import Simulation
+from .solution import Solutions
+from .structures_solution import GamePreprocessed
+
+__all__ = ["report_animation", "report_solutions"]
 
 
 def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ], s: Solutions[X, U, Y, RP, RJ]):

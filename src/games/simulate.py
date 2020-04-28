@@ -5,8 +5,21 @@ from typing import Collection, Dict, Generic, Mapping, Optional
 from frozendict import frozendict
 from zuper_commons.types import check_isinstance
 
-from .game_def import AgentBelief, Game, JointPureActions, JointState, PlayerName, RJ, RP, U, X, Y
-from .structures_solution import check_joint_pure_actions
+from .game_def import (
+    AgentBelief,
+    check_joint_pure_actions,
+    Game,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    RJ,
+    RP,
+    U,
+    X,
+    Y,
+)
+
+__all__ = []
 
 
 @dataclass

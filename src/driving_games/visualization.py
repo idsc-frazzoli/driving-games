@@ -85,13 +85,19 @@ class DrivingGameVisualization(
 
 
 def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
-    L = 4
-    W = 2.5
-    car = ((-L / 2, -W / 2), (-L / 2, +W / 2), (+L / 2, +W / 2), (+L / 2, -W / 2), (-L / 2, -W / 2))
-    x, y = get_transformed_xy(q, car)
-    pylab.fill(x, y, color=car_color, zorder=10)
+    L: float = 4.0
+    W: float = 2.5
+    car: Tuple[Tuple[float, float], ...] = (
+        (-L / 2, -W / 2),
+        (-L / 2, +W / 2),
+        (+L / 2, +W / 2),
+        (+L / 2, -W / 2),
+        (-L / 2, -W / 2),
+    )
+    x1, y1 = get_transformed_xy(q, car)
+    pylab.fill(x1, y1, color=car_color, zorder=10)
 
-    l = 0.1 * L
+    l: float = 0.1 * L
     radius_light = 0.03 * L
     light_position = {
         "back_left": (-L / 2, +W / 2 - l),
@@ -102,17 +108,17 @@ def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
     for name in light_position:
         light_color = light_colors[name]
         position = light_position[name]
-        x, y = get_transformed_xy(q, (position,))
-        patch = patches.Circle((x[0], y[0]), radius=radius_light, color=light_color)
+        x2, y2 = get_transformed_xy(q, (position,))
+        patch = patches.Circle((x2[0], y2[0]), radius=radius_light, color=light_color)
         ax = pylab.gca()
         ax.add_patch(patch)
 
     arrow = ((+L / 2, 0), (+L / 2 + velocity, 0))
-    x, y = get_transformed_xy(q, arrow)
-    pylab.plot(x, y, "-", zorder=99)
+    x3, y3 = get_transformed_xy(q, arrow)
+    pylab.plot(x3, y3, "-", zorder=99)
 
-    x, y = get_transformed_xy(q, ((0, 0),))
-    pylab.plot(x, y, "k*", zorder=15)
+    x4, y4 = get_transformed_xy(q, ((0, 0),))
+    pylab.plot(x4, y4, "k*", zorder=15)
 
 
 def get_transformed_xy(

@@ -17,6 +17,28 @@ from zuper_commons.types import check_isinstance
 
 from preferences import Preference
 
+__all__ = [
+    "Dynamics",
+    "Y",
+    "X",
+    "U",
+    "RP",
+    "RJ",
+    "Observations",
+    "JointState",
+    "JointPureActions",
+    "JointMixedActions",
+    "JointRewardStructure",
+    "Outcome",
+    "SetOfOutcomes",
+    "PersonalRewardStructure",
+    "PlayerName",
+    "Combined",
+    "Game",
+    "GamePlayer",
+    "GameVisualization",
+]
+
 PlayerName = NewType("PlayerName", str)
 
 X = TypeVar("X")
@@ -30,6 +52,15 @@ JointMixedActions = Mapping[PlayerName, ASet[U]]
 Y = TypeVar("Y")
 RP = TypeVar("RP")
 RJ = TypeVar("RJ")
+
+
+@dataclass(frozen=True, unsafe_hash=True, order=True)
+class Outcome(Generic[RP, RJ]):
+    private: Mapping[PlayerName, RP]
+    joint: Mapping[PlayerName, RJ]
+
+
+SetOfOutcomes = ASet[Outcome[RP, RJ]]
 
 
 class Dynamics(Generic[X, U], ABC):
@@ -151,9 +182,33 @@ class AgentBelief(Generic[X, U], ABC):
 
 
 def check_joint_state(js: JointState):
-    from driving_games.structures import VehicleState  # XXX : for debug
+    from driving_games import VehicleState  # XXX : for debug
 
     check_isinstance(js, frozendict)
     for n, x in js.items():
         check_isinstance(n, str)
         check_isinstance(x, VehicleState)
+
+
+def check_set_outcomes(a: SetOfOutcomes):
+    check_isinstance(a, frozenset)
+    for _ in a:
+        check_isinstance(_, Outcome, a=a)
+
+
+def check_joint_pure_actions(a: JointPureActions):
+    from driving_games.structures import VehicleActions
+
+    check_isinstance(a, frozendict)
+    for k, v in a.items():
+        check_isinstance(v, VehicleActions, a=a)
+
+
+def check_joint_mixed_actions(a: JointMixedActions):
+    from driving_games.structures import VehicleActions
+
+    check_isinstance(a, frozendict)
+    for k, v in a.items():
+        check_isinstance(v, frozenset, a=a)
+        for _ in v:
+            check_isinstance(_, VehicleActions, a=a)

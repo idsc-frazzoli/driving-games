@@ -4,9 +4,7 @@ from typing import Dict
 
 from frozendict import frozendict
 
-from games import (
-    GameNode,
-    IterationContext,
+from .game_def import (
     JointPureActions,
     JointState,
     RJ,
@@ -15,6 +13,9 @@ from games import (
     X,
     Y,
 )
+from .structures_solution import GameNode, IterationContext
+
+__all__ = []
 
 
 def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:

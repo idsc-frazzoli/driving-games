@@ -2,7 +2,10 @@ import networkx as nx
 from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
-from games import GamePlayer, GamePreprocessed, PlayerName, RJ, RP, U, X, Y
+from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y
+from .structures_solution import GamePreprocessed
+
+__all__ = []
 
 
 def report_player(

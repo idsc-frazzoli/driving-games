@@ -2,8 +2,14 @@ from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import cast, FrozenSet as ASet, Mapping
 
-from games import Game, GamePlayer, GameVisualization, JointRewardStructure, PlayerName
-from games.access import get_accessible_states
+from games import (
+    Game,
+    GamePlayer,
+    GameVisualization,
+    get_accessible_states,
+    JointRewardStructure,
+    PlayerName,
+)
 from preferences import SetPreference1
 from . import logger
 from .driving_example import (
