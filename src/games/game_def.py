@@ -8,7 +8,7 @@ from typing import (
     Mapping,
     NewType,
     Optional,
-    TypeVar,
+    Tuple, TypeVar,
 )
 
 from frozendict import frozendict
@@ -16,7 +16,7 @@ from zuper_commons.types import check_isinstance
 
 from preferences import Preference
 
-X = TypeVar("X")
+X = Ξ = TypeVar("Ξ")
 U = TypeVar("U")
 Y = TypeVar("Y")
 RP = TypeVar("RP")
@@ -72,9 +72,8 @@ class Combined(Generic[RJ, RP]):
     personal: RP
     joint: Optional[RJ]
 
-
-P = TypeVar("P")
-
+#
+# P = TypeVar("P")
 
 @dataclass
 class GamePlayer(Generic[X, U, Y, RP, RJ]):
@@ -89,7 +88,7 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # The preferences
     preferences: Preference[Combined[RJ, RP]]
     # How to aggregate preferences for sets
-    set_preference_aggregator: Callable[[Preference[P]], Preference[ASet[P]]]
+    set_preference_aggregator: Callable[[Preference[Combined[RJ, RP]]], Preference[ASet[Combined[RJ, RP]]]]
 
 
 @dataclass
@@ -106,6 +105,7 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
 class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
     @abstractmethod
     def plot_arena(self, pylab, ax):
+        """ Context manager """
         pass
 
     @abstractmethod
@@ -115,10 +115,9 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
 
-    #
-    # @abstractmethod
-    # def hint_graph_node_pos(self, player_name: PlayerName, state: X) -> Tuple[float, float]:
-    #     pass
+    @abstractmethod
+    def hint_graph_node_pos(self, state: X) -> Tuple[float, float]:
+        pass
 
 
 @dataclass

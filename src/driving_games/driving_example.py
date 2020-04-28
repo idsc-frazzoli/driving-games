@@ -7,7 +7,7 @@ from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print
 
-from driving_games.structures import CollisionCost, VehicleActions, VehicleState
+from .structures import CollisionCost, VehicleActions, VehicleState
 from games import (
     Combined,
     JointRewardStructure,
@@ -24,6 +24,7 @@ from preferences import (
     SECOND_PREFERRED,
     SmallerPreferredTol,
 )
+
 
 # noinspection PyTypeChecker
 
@@ -126,6 +127,8 @@ def SE2_from_VehicleState(s: VehicleState):
     p = SE2_from_xytheta([float(s.x), 0, 0])
     ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
     return SE2.multiply(ref, p)
+
+
 #
 #
 # def pose_diff(a: np.array, b: np.array):
@@ -177,7 +180,7 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         self, xs: Mapping[PlayerName, VehicleState]
     ) -> Mapping[PlayerName, CollisionCost]:
         players = self.is_joint_final_state(xs)
-        if not players: # pragma: no cover
+        if not players:  # pragma: no cover
             raise Exception()
         res = {}
         for p in players:

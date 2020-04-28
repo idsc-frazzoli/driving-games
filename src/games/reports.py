@@ -4,10 +4,10 @@ import networkx as nx
 from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
-from driving_games.reports import report_player
 from games import Game, GamePreprocessed
 from games.game_def import RJ, RP, U, X, Y
 from . import logger
+from .reports_player import report_player
 
 
 def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Report:

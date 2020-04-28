@@ -79,6 +79,10 @@ class DrivingGameVisualization(
         velocity = float(state.v)
         plot_car(self.pylab, q, velocity=velocity, car_color="blue", light_colors=colors[light])
 
+    def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
+        w = -state.wait * D(0.2)
+        return float(state.x), float(state.v + w)
+
 
 def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
     L = 4
