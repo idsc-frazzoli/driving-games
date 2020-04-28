@@ -33,13 +33,13 @@ clean:
 test:
 	$(MAKE) clean
 	mkdir -p  $(tr)
-	nosetests $(extra) $(coverage) $(xunitmp) src  -v
+	nosetests $(extra) $(coverage) $(xunitmp) src  -v --nologcapture
 	coverage combine
 
 test-parallel:
 	$(MAKE) clean
 	mkdir -p  $(tr)
-	nosetests $(extra) $(coverage) src  -v  $(parallel)
+	nosetests $(extra) $(coverage) src  -v --nologcapture $(parallel)
 	coverage combine
 
 test-parallel-circle:
