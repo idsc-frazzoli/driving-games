@@ -61,7 +61,7 @@ def solve_random(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Simulation[X, U, Y, R
     initial_states = {
         player_name: list(player.initial)[0] for player_name, player in gp.game.players.items()
     }
-    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.dt)
+    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.dt, seed=0)
     logger.info(sim=sim)
     return sim
 
@@ -121,6 +121,8 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
         msg = "Did not expect cycles in the graph"
         raise ZValueError(msg, cycles=cycles)
 
+    sims: Dict[str, Simulation] = {}
+
     cache = {}
     ic = IterationContext(gp, cache, depth=0)
     logger.info("creating game tree")
@@ -128,8 +130,22 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     logger.info("solving game tree")
 
     game_solution = solve_game(gp, game_tree)
+    controllers0 = {}
+    for player_name, pp in gp.players_pre.items():
+        policy = game_solution.policies[player_name]
+        controllers0[player_name] = AgentFromPolicy(policy)
+    logger.info(
+        f"Value of joint solution",
+        game_value=game_solution.gn_solved.va.game_value,
+        # policy=solution_ghost.policies,
+    )
+    for seed in range(5):
+        sim_joint = simulate1(
+            gp.game, policies=controllers0, initial_states=game_tree.states, dt=gp.dt,
+            seed=seed
+        )
+        sims[f'joint-{seed}'] = sim_joint
 
-    sims: Dict[str, Simulation] = {}
     solutions_players: Dict[PlayerName, SolutionsPlayer] = {}
     initial_state = game_tree.states
     alone_solutions: Dict[PlayerName, Dict[X, GameSolution]] = {}
@@ -174,9 +190,12 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
         )
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(solution_ghost.policies[player_name])
-        sims[f"{player_name}-follows"] = simulate1(
-            gp.game, policies=controllers, initial_states=initial_state, dt=gp.dt
+        sim_ = simulate1(
+            gp.game, policies=controllers, initial_states=initial_state, dt=gp.dt,
+            seed=0
+
         )
+        sims[f"{player_name}-follows"] = sim_
     return Solutions(
         game_solution=game_solution,
         game_tree=game_tree,

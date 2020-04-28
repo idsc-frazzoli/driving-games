@@ -75,6 +75,7 @@ def get_next_state(gp, s0, actions, dt2):
             next_state[player_name] = player_state
         else:
             successors = suc[action]
+
             next_state[player_name] = list(successors)[0]
     return next_state
 
