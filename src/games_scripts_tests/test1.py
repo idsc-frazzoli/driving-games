@@ -11,7 +11,10 @@ from games_scripts.demo import without_compmake
 
 def test_run1():
     do_games = ["game1"]
-    do_solvers = ["solver1"]
+    do_solvers = ["solver-1-strategy-security",
+                  "solver-1-strategy-mix",
+                  ]
+
     games = {k: games_zoo[k] for k in do_games}
     solvers = {k: solvers_zoo[k] for k in do_solvers}
     res = without_compmake(games, solvers)
