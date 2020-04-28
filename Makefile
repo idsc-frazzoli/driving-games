@@ -34,19 +34,21 @@ test:
 	$(MAKE) clean
 	mkdir -p  $(tr)
 	nosetests $(extra) $(coverage) $(xunitmp) src  -v --nologcapture
-	coverage combine
+	
 
 test-parallel:
 	$(MAKE) clean
 	mkdir -p  $(tr)
 	nosetests $(extra) $(coverage) src  -v --nologcapture $(parallel)
-	coverage combine
+	
 
 test-parallel-circle:
 	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
 	(parallel)
-	coverage combine
+	
 
+coverage-combine:
+	coverage combine
 
 # test-parallel-failed:
 # 	$(MAKE) clean
