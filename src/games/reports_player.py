@@ -25,7 +25,7 @@ def report_player(
             d.clear()
         nx.write_graphml(G2, fn)
 
-    def color_node(n):
+    def color_node(n) -> str:
         is_final = G.nodes[n]["is_final"]
         return "blue" if is_final else "green"
 

@@ -128,9 +128,8 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     logger.info("solving game tree")
 
     game_solution = solve_game(gp, game_tree)
-    # logger.info("solved", value_actions=game_solution.gn_solved.va, policy=game_solution.policies)
-    a = 2
-    sims = {}
+
+    sims: Dict[str, Simulation] = {}
     solutions_players: Dict[PlayerName, SolutionsPlayer] = {}
     initial_state = game_tree.states
     alone_solutions: Dict[PlayerName, Dict[X, GameSolution]] = {}
@@ -154,10 +153,10 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
                 continue
             x_p2 = initial_state[p2]
             alone_solutions_p2 = alone_solutions[p2]
-            if x_p2 not in alone_solutions_p2:
-                raise ZValueError(
-                    x_p2=x_p2, avail=set(alone_solutions_p2), is_it=x_p2 in alone_solutions_p2
-                )
+            # if x_p2 not in alone_solutions_p2:
+            #     raise ZValueError(
+            #         x_p2=x_p2, avail=set(alone_solutions_p2), is_it=x_p2 in alone_solutions_p2
+            #     )
             policy = alone_solutions_p2[x_p2].policies[p2]
             controllers_others[p2] = AgentFromPolicy(policy)
 

@@ -115,7 +115,7 @@ def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
 
     arrow = ((+L / 2, 0), (+L / 2 + velocity, 0))
     x3, y3 = get_transformed_xy(q, arrow)
-    pylab.plot(x3, y3, "-", zorder=99)
+    pylab.plot(x3, y3, "r-", zorder=99)
 
     x4, y4 = get_transformed_xy(q, ((0, 0),))
     pylab.plot(x4, y4, "k*", zorder=15)

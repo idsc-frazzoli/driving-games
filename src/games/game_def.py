@@ -182,12 +182,12 @@ class AgentBelief(Generic[X, U], ABC):
 
 
 def check_joint_state(js: JointState):
-    from driving_games import VehicleState  # XXX : for debug
+    # from driving_games import VehicleState  # XXX : for debug
 
     check_isinstance(js, frozendict)
     for n, x in js.items():
         check_isinstance(n, str)
-        check_isinstance(x, VehicleState)
+        # check_isinstance(x, VehicleState)
 
 
 def check_set_outcomes(a: SetOfOutcomes):
@@ -197,18 +197,20 @@ def check_set_outcomes(a: SetOfOutcomes):
 
 
 def check_joint_pure_actions(a: JointPureActions):
-    from driving_games.structures import VehicleActions
+    # from driving_games.structures import VehicleActions
 
     check_isinstance(a, frozendict)
     for k, v in a.items():
-        check_isinstance(v, VehicleActions, a=a)
+        pass
+        # check_isinstance(v, VehicleActions, a=a)
 
 
 def check_joint_mixed_actions(a: JointMixedActions):
-    from driving_games.structures import VehicleActions
+    # from driving_games.structures import VehicleActions
 
     check_isinstance(a, frozendict)
     for k, v in a.items():
         check_isinstance(v, frozenset, a=a)
         for _ in v:
-            check_isinstance(_, VehicleActions, a=a)
+            pass
+            # check_isinstance(_, VehicleActions, a=a)
