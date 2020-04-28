@@ -4,7 +4,7 @@ from typing import Dict, Generic, Mapping, Set, TypeVar
 
 from frozendict import frozendict
 from networkx import simple_cycles
-from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
+from zuper_commons.types import check_isinstance, ZException, ZNotImplementedError, ZValueError
 
 from preferences import PrefConverter, Preference, remove_dominated
 from . import GamePreprocessed, get_all_choices_by_players, get_all_combinations, logger
@@ -90,6 +90,8 @@ class Solutions(Generic[X, U, Y, RP, RJ]):
     game_solution: GameSolution[X, U, Y, RP, RJ]
     game_tree: GameNode[X, U, Y, RP, RJ]
 
+    sims: Mapping[str, Simulation]
+
 
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     G = gp.game_graph
@@ -120,7 +122,7 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
     game_solution = solve_game(gp, game_tree)
     # logger.info("solved", value_actions=game_solution.gn_solved.va, policy=game_solution.policies)
     a = 2
-
+    sims = {}
     solutions_players: Dict[PlayerName, SolutionsPlayer] = {}
     initial_state = game_tree.states
     alone_solutions: Dict[PlayerName, Dict[X, GameSolution]] = {}
@@ -129,14 +131,14 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
         for x0, personal_tree in pp.alone_tree.items():
             solved_x0 = solve_game(gp, personal_tree)
             alone_solutions[player_name][x0] = solved_x0
-            # logger.info(
-            #     "alone solution", value_actions=solved_x0.gn_solved.va,
-            #     policy=solved_x0.policies
-            # )
+            logger.info(
+                f"Solution for {player_name} alone", game_value=solved_x0.gn_solved.va.game_value,
+                # policy=solved_x0.policies
+            )
 
     for player_name, pp in gp.players_pre.items():
         # use other solutions
-        logger.info("looking for ghost solutions")
+        # logger.info("looking for ghost solutions")
         controllers_others = {}
         for p2 in gp.players_pre:
             if p2 == player_name:
@@ -151,22 +153,30 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
             controllers_others[p2] = AgentFromPolicy(policy)
 
         tree_ghost = get_ghost_tree(player_name, game_tree, controllers_others)
-        logger.info(
-            "first node of tree ghost",
-            tree_ghost=replace(tree_ghost, outcomes=frozendict()),
-            outcomes=set(tree_ghost.outcomes),
-        )
+        # logger.info(
+        #     "first node of tree ghost",
+        #     tree_ghost=replace(tree_ghost, outcomes=frozendict()),
+        #     outcomes=set(tree_ghost.outcomes),
+        # )
         solution_ghost = solve_game(gp, tree_ghost)
         logger.info(
-            "solution_ghost",
-            value_actions=solution_ghost.gn_solved.va,
+            f"Stackelberg solution when {player_name} is a follower",
+            game_value=solution_ghost.gn_solved.va.game_value,
             # policy=solution_ghost.policies,
         )
-
+        controllers = dict(controllers_others)
+        controllers[player_name] = AgentFromPolicy(solution_ghost.policies)
+        sims[f'{player_name}-follows'] = simulate1(gp.game, policies=controllers, initial_states=initial_state,
+                                                   dt=gp.dt)
     return Solutions(
-        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players
+        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players,
+        sims=sims
     )
     # logger.info(game_tree=game_tree)
+
+
+class DoesNotKnowPolicy(ZException):
+    pass
 
 
 class AgentFromPolicy(AgentBelief[X, U]):
@@ -176,6 +186,11 @@ class AgentFromPolicy(AgentBelief[X, U]):
         self.policy = policy
 
     def get_commands(self, state_self: X, state_others: Mapping[PlayerName, ASet[X]]) -> ASet[U]:
+        if state_self not in self.policy:
+            msg = 'I do not know the policy for this state'
+            raise DoesNotKnowPolicy(msg, state_self=state_self, state_others=state_others,
+                                    states_self_known=set(self.policy))
+
         lookup = self.policy[state_self]
         if len(lookup) == 1:
             return list(lookup.values())[0]
@@ -190,33 +205,42 @@ def get_ghost_tree(
 ) -> GameNode[X, U, Y, RP, RJ]:
     assert len(controllers) >= 1, controllers
     assert player_name not in controllers, (player_name, set(controllers))
-    return replace_others(player_name, game_tree, controllers)
+    cache = {}
+    return replace_others(player_name, game_tree, controllers, cache=cache)
 
 
 def replace_others(
     dreamer: PlayerName,
     node: GameNode[X, U, Y, RP, RJ],
     controllers: Mapping[PlayerName, AgentBelief[X, U]],
+    cache: Dict[GameNode, GameNode]
 ) -> GameNode[X, U, Y, RP, RJ]:
+    if node in cache:
+        return cache[node]
     assert dreamer not in controllers
     assert controllers
     # what would they do?
     action_others = {}
-    for player_name, controller in controllers.items():
+    for player_name in node.states:
+        # for player_name, controller in controllers.items():
+        if player_name in node.is_final:
+            continue
+        if player_name in node.joint_final_rewards:
+            continue
         if player_name == dreamer:
             continue
         state_self = node.states[player_name]
         state_others = {k: v for k, v in node.states.items() if k != player_name}
-        options = controller.get_commands(state_self, state_others)
+        options = controllers[player_name].get_commands(state_self, state_others)
         if len(options) != 1:
             raise ZNotImplementedError(options=options)
         action_others[player_name] = list(options)[0]
 
     # find out which actions are compatible
-    outcomes = {k: replace_others(dreamer, v, controllers)
+    outcomes = {k: replace_others(dreamer, v, controllers, cache)
                 for k, v in node.outcomes.items() if is_compatible(k, action_others)}
 
-    logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
+    # logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
     moves = get_all_choices_by_players(set(outcomes))
     for player_name in action_others:
         if len(moves[player_name]) != 1:
@@ -226,7 +250,7 @@ def replace_others(
 
     # if len(moves) == len(node.moves):
     #     raise ZValueError(moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves)
-    return GameNode(
+    ret = GameNode(
         outcomes=frozendict(outcomes),
         states=node.states,
         is_final=node.is_final,
@@ -234,6 +258,8 @@ def replace_others(
         joint_final_rewards=node.joint_final_rewards,
         moves=moves,
     )
+    cache[node] = ret
+    return ret
     # states: JointState
     # moves: JointMixedActions
     # outcomes: "Mapping[JointPureActions, GameNode[X, U, Y, RP, RJ]]"
@@ -291,16 +317,16 @@ def is_compatible(a: JointPureActions, constraints: JointPureActions) -> bool:
 
 def get_outcome_set_preferences_for_players(
     game: Game[X, U, Y, RP, RJ],
-) -> Mapping[PlayerName, Preference[ASet[Outcome]]]:
+) -> Mapping[PlayerName, Preference[ASet[Outcome[RJ, RP]]]]:
     preferences = {}
     for player_name, player in game.players.items():
         # Comparse Combined[RJ, RP]
-        pref0: Preference[Combined] = player.preferences
-        pref1: Preference[Outcome] = PrefConverter(
+        pref0: Preference[Combined[RJ, RP]] = player.preferences
+        pref1: Preference[Outcome[RJ, RP]] = PrefConverter(
             A=Outcome, B=Combined, convert=CombinedFromOutcome(player_name), p0=pref0
         )
         # compares Aset(Combined[RJ, RP]
-        pref2: Preference[ASet[Outcome]] = player.set_preference_aggregator(pref1)
+        pref2: Preference[ASet[Outcome[RJ, RP]]] = player.set_preference_aggregator(pref1)
         # result: Preference[ASet[Outcome[RP, RJ]]]
         preferences[player_name] = pref2
     return preferences

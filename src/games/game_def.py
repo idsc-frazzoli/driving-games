@@ -73,7 +73,7 @@ class Combined(Generic[RJ, RP]):
     joint: Optional[RJ]
 
 #
-# P = TypeVar("P")
+P = TypeVar("P")
 
 @dataclass
 class GamePlayer(Generic[X, U, Y, RP, RJ]):
@@ -88,7 +88,7 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # The preferences
     preferences: Preference[Combined[RJ, RP]]
     # How to aggregate preferences for sets
-    set_preference_aggregator: Callable[[Preference[Combined[RJ, RP]]], Preference[ASet[Combined[RJ, RP]]]]
+    set_preference_aggregator: Callable[[Preference[P]], Preference[ASet[P]]]
 
 
 @dataclass
