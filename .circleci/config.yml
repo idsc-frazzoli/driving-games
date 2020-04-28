@@ -38,7 +38,7 @@ jobs:
           name: Run tests
           command: |
             mkdir -p out/test-results
-            make test
+            make test 
 
       - store_test_results:
           when: always  
@@ -48,6 +48,7 @@ jobs:
           name: Coverage report
           when: always
           command: |
+            make coverage-combine
             make coverage-report
 
 

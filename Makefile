@@ -33,20 +33,22 @@ clean:
 test:
 	$(MAKE) clean
 	mkdir -p  $(tr)
-	nosetests $(extra) $(coverage) $(xunitmp) src  -v
-	coverage combine
+	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture #$(xunitmp)
+	 
 
 test-parallel:
 	$(MAKE) clean
 	mkdir -p  $(tr)
-	nosetests $(extra) $(coverage) src  -v  $(parallel)
-	coverage combine
+	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(parallel)
+	
 
 test-parallel-circle:
-	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
+	DISABLE_CONTRACTS=1 NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
 	(parallel)
-	coverage combine
+	
 
+coverage-combine:
+	coverage combine
 
 # test-parallel-failed:
 # 	$(MAKE) clean
