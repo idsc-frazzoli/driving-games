@@ -38,7 +38,7 @@ __all__ = []
 
 
 @dataclass
-class PointStats(Generic[X, U, Y, RP, RJ]):
+class PointStats(Generic[Pr, X, U, Y, RP, RJ]):
     happy: ASet[PlayerName]
     unhappy: ASet[PlayerName]
     outcome: SetOfOutcomes
@@ -49,7 +49,7 @@ class PointStats(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
+class EquilibriaAnalysis(Generic[Pr, X, U, Y, RP, RJ]):
     nondom_nash_equilibria: Mapping[JointPureActions, SetOfOutcomes]
     nash_equilibria: Mapping[JointPureActions, SetOfOutcomes]
     ps: Dict[JointPureActions, PointStats]
@@ -64,7 +64,7 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class Combos(Generic[X, U, Y, RP, RJ]):
+class Combos(Generic[Pr, X, U, Y, RP, RJ]):
     all_comb: ASet[JointPureActions]
     player2choices: JointMixedActions
 
@@ -74,7 +74,7 @@ class Combos(Generic[X, U, Y, RP, RJ]):
             check_joint_pure_actions(_)
 
 
-def check_contains_all_combo(possibilities: Collection[JointPureActions],) -> Combos[X, U, Y, RP, RJ]:
+def check_contains_all_combo(possibilities: Collection[JointPureActions],) -> Combos[Pr, X, U, Y, RP, RJ]:
     for _ in possibilities:
         check_joint_pure_actions(_)
     # player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)[
@@ -117,7 +117,7 @@ def analyze_equilibria(
     preferences: Mapping[PlayerName, Preference[SetOfOutcomes]],
 ) -> EquilibriaAnalysis:
     # we want to make sure that there are all combinations
-    combos: Combos[X, U, Y, RP, RJ] = check_contains_all_combo(frozenset(solved))
+    combos: Combos[Pr, X, U, Y, RP, RJ] = check_contains_all_combo(frozenset(solved))
     player_names = set(combos.player2choices)
     if set(preferences) != set(player_names):  # pragma: no cover
         raise ZValueError(solved=solved, preferences=preferences)
@@ -192,7 +192,7 @@ def zassert(val: bool, **kwargs):
 
 
 def variations(
-    c: Combos[X, U, Y, RP, RJ], x0: JointPureActions, player_name: PlayerName
+    c: Combos[Pr, X, U, Y, RP, RJ], x0: JointPureActions, player_name: PlayerName
 ) -> Mapping[U, JointPureActions]:
     check_joint_pure_actions(x0)
     all_actions: Set[U] = set(c.player2choices[player_name])

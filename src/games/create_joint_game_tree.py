@@ -18,7 +18,7 @@ from .structures_solution import GameNode, IterationContext
 __all__ = []
 
 
-def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:
+def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, Y, RP, RJ]:
     if N in ic.cache:
         return ic.cache[N]
     states = {k: v for k, v in N.items() if v is not None}
@@ -31,7 +31,7 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
 
     moves = defaultdict(set)
 
-    pure_outcomes: Dict[JointPureActions, GameNode[X, U, Y, RP, RJ]] = {}
+    pure_outcomes: Dict[JointPureActions, GameNode[Pr, X, U, Y, RP, RJ]] = {}
 
     ic2 = replace(ic, depth=ic.depth + 1)
     # noinspection PyArgumentList

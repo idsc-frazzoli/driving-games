@@ -1,15 +1,15 @@
 import itertools
 from collections import defaultdict
-from typing import AbstractSet, Collection, Dict, Iterable, Mapping, Set, TypeVar
+from typing import AbstractSet, Collection, Dict, FrozenSet, Iterable, Mapping, Set, TypeVar
 
 from frozendict import frozendict
 
-from . import SetOfOutcomes
+from .game_def import PlayerOptions, Pr, SetOfOutcomes
 from .game_def import (
-    ASet,
-    check_joint_mixed_actions,
+    # ASet,
+    check_joint_mixed_actions2,
     check_joint_pure_actions,
-    JointMixedActions,
+    JointMixedActions2,
     JointPureActions,
     PlayerName,
     U,
@@ -17,18 +17,20 @@ from .game_def import (
 
 __all__ = []
 
-
-def mixed_from_pure(pure_actions: JointPureActions) -> JointMixedActions:
-    return frozendict({k: frozenset({v}) for k, v in pure_actions.items()})
+from .possibilities import Poss
 
 
-def get_all_choices_by_players(possibile: Collection[JointPureActions]) -> JointMixedActions:
+def mixed_from_pure(pure_actions: JointPureActions) -> JointMixedActions2:
+    return frozendict({k: frozenset({v}) for k, v in pure_actions.items()}) # FIXME
+
+
+def get_all_choices_by_players(possibile: Collection[JointPureActions]) -> PlayerOptions:
     player2choices: Dict[PlayerName, Set[U]] = defaultdict(set)
     for pure_actions in possibile:
         for player_name, u in pure_actions.items():
             # assert not isinstance(action, (frozenset, set)), action
             player2choices[player_name].add(u)
-    res: Dict[PlayerName, ASet[U]] = {}
+    res: Dict[PlayerName, FrozenSet[U]] = {}
     for player_name, player_actions in player2choices.items():
         res[player_name] = frozenset(player_actions)
 
@@ -64,7 +66,7 @@ def all_pure_actions(mixed_actions: JointMixedActions) -> ASet[JointPureActions]
 
 
 def flatten_outcomes(
-    solved: Mapping[JointPureActions, SetOfOutcomes], options: ASet[JointPureActions]
+    solved: Mapping[JointPureActions, SetOfOutcomes], options: Poss[JointPureActions, Pr]
 ) -> SetOfOutcomes:
     return flatten_sets(solved[_] for _ in options)
 
@@ -80,11 +82,11 @@ def flatten_sets(x: Iterable[AbstractSet[M]]) -> ASet[M]:
 
 
 def add_action(
-    player_name: PlayerName, player_action: U, set_pure_actions_others: ASet[JointPureActions]
-) -> ASet[JointPureActions]:
-    set_pure_actions: Set[JointPureActions] = set()
+    player_name: PlayerName, player_action: U, set_pure_actions_others: Poss[JointPureActions, Pr]
+) -> Poss[JointPureActions, Pr]:
+    res: Dict[JointPureActions, Pr] = {}
     for v in set_pure_actions_others:
         v2 = dict(v)
         v2[player_name] = player_action
         set_pure_actions.add(frozendict(v2))
-    return frozenset(set_pure_actions)
+    return Poss(frozendict(res))

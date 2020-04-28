@@ -19,21 +19,21 @@ __all__ = []
 
 
 @dataclass
-class P1Context(Generic[X, U, Y, RP, RJ]):
-    cache: Dict[X, GameNode[X, U, Y, RP, RJ]]
+class P1Context(Generic[Pr, X, U, Y, RP, RJ]):
+    cache: Dict[X, GameNode[Pr, X, U, Y, RP, RJ]]
     dt: D
 
 
 def get_one_player_game_tree(
-    *, player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], x0: X, dt: D
-) -> GameNode[X, U, Y, RP, RJ]:
+    *, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], x0: X, dt: D
+) -> GameNode[Pr, X, U, Y, RP, RJ]:
     context = P1Context({}, dt)
     return get_1p_game_tree(c=context, player_name=player_name, player=player, x0=x0)
 
 
 def get_1p_game_tree(
-    *, c: P1Context[X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], x0: X,
-) -> GameNode[X, U, Y, RP, RJ]:
+    *, c: P1Context[Pr, X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], x0: X,
+) -> GameNode[Pr, X, U, Y, RP, RJ]:
     assert not isinstance(x0, set), x0
     prs = player.personal_reward_structure
     dyn = player.dynamics

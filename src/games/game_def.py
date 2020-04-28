@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import (
     Callable,
-    FrozenSet as ASet,
-    Generic,
+    # FrozenSet as ASet,
+    FrozenSet, Generic,
     Mapping,
     NewType,
     Optional,
@@ -15,6 +15,7 @@ from typing import (
 from frozendict import frozendict
 from zuper_commons.types import check_isinstance
 
+from games.possibilities import Poss
 from preferences import Preference
 
 __all__ = [
@@ -27,7 +28,7 @@ __all__ = [
     "Observations",
     "JointState",
     "JointPureActions",
-    "JointMixedActions",
+    "JointMixedActions2",
     "JointRewardStructure",
     "Outcome",
     "SetOfOutcomes",
@@ -45,9 +46,11 @@ X = TypeVar("X")
 JointState = Mapping[PlayerName, X]
 
 U = TypeVar("U")
+Pr = TypeVar("Pr") # how to express probabilities
 
+PlayerOptions = Mapping[PlayerName, FrozenSet[U]]
 JointPureActions = Mapping[PlayerName, U]
-JointMixedActions = Mapping[PlayerName, ASet[U]]
+JointMixedActions2 = Mapping[PlayerName, Poss[U, Pr]]
 
 Y = TypeVar("Y")
 RP = TypeVar("RP")
@@ -60,30 +63,30 @@ class Outcome(Generic[RP, RJ]):
     joint: Mapping[PlayerName, RJ]
 
 
-SetOfOutcomes = ASet[Outcome[RP, RJ]]
+SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
 
 
-class Dynamics(Generic[X, U], ABC):
+class Dynamics(Generic[X, U, Pr], ABC):
     # @abstractmethod
     # def all_states(self) -> AbstractSet[X]:
     #     """ Returns all possible states """
 
     @abstractmethod
-    def all_actions(self) -> ASet[U]:
+    def all_actions(self) -> FrozenSet[U]:
         """ Returns all actions possible (not all are available at each state). """
 
     @abstractmethod
-    def successors(self, x: X, dt: D) -> Mapping[U, ASet[X]]:
+    def successors(self, x: X, dt: D) -> Mapping[U, Poss[X, Pr]]:
         """ For each state, returns a dictionary U -> Possible Xs """
 
 
 class Observations(Generic[X, Y], ABC):
     @abstractmethod
-    def all_observations(self) -> ASet[Y]:
+    def all_observations(self) -> FrozenSet[Y]:
         """ Returns all possible observations. """
 
     @abstractmethod
-    def get_observations(self, me: X, others: JointState) -> ASet[Y]:
+    def get_observations(self, me: X, others: JointState) -> Poss[Y, Pr]:
         """ For each state, get all possible observations """
 
 
@@ -116,9 +119,9 @@ P = TypeVar("P")
 
 
 @dataclass
-class GamePlayer(Generic[X, U, Y, RP, RJ]):
+class GamePlayer(Generic[Pr, X, U, Y, RP, RJ]):
     # Initial states
-    initial: ASet[X]
+    initial: Poss[X, Pr]
     # The dynamics
     dynamics: Dynamics[X, U]
     # The observations
@@ -128,13 +131,13 @@ class GamePlayer(Generic[X, U, Y, RP, RJ]):
     # The preferences
     preferences: Preference[Combined[RJ, RP]]
     # How to aggregate preferences for sets
-    set_preference_aggregator: Callable[[Preference[P]], Preference[ASet[P]]]
+    set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P, Pr]]]
 
 
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     @abstractmethod
-    def is_joint_final_state(self, xs: JointState) -> ASet[PlayerName]:
+    def is_joint_final_state(self, xs: JointState) -> FrozenSet[PlayerName]:
         """ For which players is this a final state? """
 
     @abstractmethod
@@ -142,7 +145,7 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
         """ The joint reward for the agents. Only available for a final state. """
 
 
-class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
+class GameVisualization(Generic[Pr, X, U, Y, RP, RJ], ABC):
     @abstractmethod
     def plot_arena(self, pylab, ax):
         """ Context manager """
@@ -159,14 +162,14 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
 
 @dataclass
-class Game(Generic[X, U, Y, RP, RJ]):
+class Game(Generic[Pr, X, U, Y, RP, RJ]):
     """ The players """
 
-    players: Mapping[PlayerName, GamePlayer[X, U, Y, RP, RJ]]
+    players: Mapping[PlayerName, GamePlayer[Pr, X, U, Y, RP, RJ]]
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
 
-    game_visualization: GameVisualization[X, U, Y, RP, RJ]
+    game_visualization: GameVisualization[Pr, X, U, Y, RP, RJ]
 
 
 class AgentBelief(Generic[X, U], ABC):
@@ -175,7 +178,7 @@ class AgentBelief(Generic[X, U], ABC):
     """
 
     @abstractmethod
-    def get_commands(self, state_self: X, state_others: ASet[JointState]) -> ASet[U]:
+    def get_commands(self, state_self: X, state_others: Poss[JointState, Pr]) -> Poss[U, Pr]:
         ...
 
 
@@ -188,10 +191,14 @@ def check_joint_state(js: JointState):
         # check_isinstance(x, VehicleState)
 
 
+def check_player_options(a: PlayerOptions):
+    check_isinstance(a, frozendict)
+    for k, v in a.items():
+        check_isinstance(k, str)
+        check_isinstance(v, frozenset)
+
 def check_set_outcomes(a: SetOfOutcomes):
-    check_isinstance(a, frozenset)
-    for _ in a:
-        check_isinstance(_, Outcome, a=a)
+    a.check_contains(Outcome)
 
 
 def check_joint_pure_actions(a: JointPureActions):
@@ -203,12 +210,12 @@ def check_joint_pure_actions(a: JointPureActions):
         # check_isinstance(v, VehicleActions, a=a)
 
 
-def check_joint_mixed_actions(a: JointMixedActions):
+def check_joint_mixed_actions2(a: JointMixedActions2):
     # from driving_games.structures import VehicleActions
-
-    check_isinstance(a, frozendict)
-    for k, v in a.items():
-        check_isinstance(v, frozenset, a=a)
-        for _ in v:
-            pass
+    check_isinstance(a, Poss)
+    # check_isinstance(a, frozendict)
+    # for k, v in a.items():
+    #     check_isinstance(v, frozenset, a=a)
+    #     for _ in v:
+    #         pass
             # check_isinstance(_, VehicleActions, a=a)

@@ -49,7 +49,7 @@ def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
     return r
 
 
-def visualize_states(game_pre: GamePreprocessed[X, U, Y, RP, RJ], r: Report, name: str, nodes):
+def visualize_states(game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ], r: Report, name: str, nodes):
     viz = game_pre.game.game_visualization
     f = r.figure(name)
     for i, node in enumerate(nodes):

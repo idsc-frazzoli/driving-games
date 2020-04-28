@@ -7,24 +7,24 @@ from networkx import MultiDiGraph
 from zuper_commons.types import check_isinstance
 
 from preferences import Preference
-from .game_def import (
-    ASet,
-    check_joint_mixed_actions,
-    check_joint_pure_actions,
-    check_joint_state,
-    check_set_outcomes,
-    Game,
-    JointMixedActions,
-    JointPureActions,
-    JointState,
-    PlayerName,
-    RJ,
-    RP,
-    SetOfOutcomes,
-    U,
-    X,
-    Y,
-)
+from .game_def import (check_player_options, PlayerOptions, Pr,
+                       check_joint_mixed_actions2,
+                       check_joint_pure_actions,
+                       check_joint_state,
+                       check_set_outcomes,
+                       Game,
+                       JointMixedActions2,
+                       JointPureActions,
+                       JointState,
+                       PlayerName,
+                       RJ,
+                       RP,
+                       SetOfOutcomes,
+                       U,
+                       X,
+                       Y,
+                       )
+from .possibilities import Poss
 from .simulate import Simulation
 
 __all__ = [
@@ -53,10 +53,10 @@ class SolverParams:
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class GameNode(Generic[X, U, Y, RP, RJ]):
+class GameNode(Generic[Pr, X, U, Y, RP, RJ]):
     states: JointState
-    moves: JointMixedActions
-    outcomes: "Mapping[JointPureActions, GameNode[X, U, Y, RP, RJ]]"
+    moves: PlayerOptions
+    outcomes: "Mapping[JointPureActions, GameNode[Pr, X, U, Y, RP, RJ]]"
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -65,7 +65,7 @@ class GameNode(Generic[X, U, Y, RP, RJ]):
 
     def __post_init__(self):
         check_joint_state(self.states)
-        check_joint_mixed_actions(self.moves)
+        check_player_options(self.moves)
         check_isinstance(self.outcomes, frozendict, _=self)
         for pure_actions, game_node in self.outcomes.items():
             check_joint_pure_actions(pure_actions)
@@ -83,33 +83,33 @@ class GameNode(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ]):
+class GamePlayerPreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
     player_graph: MultiDiGraph
-    alone_tree: Mapping[X, GameNode[X, U, Y, RP, RJ]]
+    alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ]]
 
 
 @dataclass
-class GamePreprocessed(Generic[X, U, Y, RP, RJ]):
-    game: Game[X, U, Y, RP, RJ]
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ]]
+class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
+    game: Game[Pr, X, U, Y, RP, RJ]
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ]]
     game_graph: MultiDiGraph
     solver_params: SolverParams
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class ValueAndActions(Generic[U, RP, RJ]):
-    mixed_actions: JointMixedActions
+    mixed_actions: JointMixedActions2
     game_value: SetOfOutcomes
 
     def __post_init__(self):
-        check_joint_mixed_actions(self.mixed_actions)
+        check_joint_mixed_actions2(self.mixed_actions)
         check_set_outcomes(self.game_value)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class SolvedGameNode(Generic[X, U, Y, RP, RJ]):
-    gn: GameNode[X, U, Y, RP, RJ]
-    solved: "Mapping[JointPureActions, SolvedGameNode[X, U, Y, RP, RJ]]"
+class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ]):
+    gn: GameNode[Pr, X, U, Y, RP, RJ]
+    solved: "Mapping[JointPureActions, SolvedGameNode[Pr, X, U, Y, RP, RJ]]"
 
     va: ValueAndActions[U, RP, RJ]
 
@@ -124,25 +124,25 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class SolvingContext(Generic[X, U, Y, RP, RJ]):
-    gp: GamePreprocessed[X, U, Y, RP, RJ]
+class SolvingContext(Generic[Pr, X, U, Y, RP, RJ]):
+    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
     cache: Dict[GameNode, SolvedGameNode]
     outcome_set_preferences: Mapping[PlayerName, Preference[SetOfOutcomes]]
 
 
 @dataclass
 class IterationContext:
-    gp: GamePreprocessed[X, U, Y, RP, RJ]
+    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
     cache: dict
     depth: int
 
 
 @dataclass
-class GameSolution(Generic[X, U, Y, RP, RJ]):
-    gn: GameNode[X, U, Y, RP, RJ]
-    gn_solved: SolvedGameNode[X, U, Y, RP, RJ]
+class GameSolution(Generic[Pr, X, U, Y, RP, RJ]):
+    gn: GameNode[Pr, X, U, Y, RP, RJ]
+    gn_solved: SolvedGameNode[Pr, X, U, Y, RP, RJ]
 
-    policies: Mapping[PlayerName, Mapping[X, Mapping[ASet[JointState], ASet[U]]]]
+    policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]]
 
     def __post_init__(self):
         if False:
@@ -156,14 +156,14 @@ class GameSolution(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class SolutionsPlayer(Generic[X, U, Y, RP, RJ]):
+class SolutionsPlayer(Generic[Pr, X, U, Y, RP, RJ]):
     alone_solutions: Mapping[X, GameSolution]
 
 
 @dataclass
-class Solutions(Generic[X, U, Y, RP, RJ]):
+class Solutions(Generic[Pr, X, U, Y, RP, RJ]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer]
-    game_solution: GameSolution[X, U, Y, RP, RJ]
-    game_tree: GameNode[X, U, Y, RP, RJ]
+    game_solution: GameSolution[Pr, X, U, Y, RP, RJ]
+    game_tree: GameNode[Pr, X, U, Y, RP, RJ]
 
     sims: Mapping[str, Simulation]

@@ -12,7 +12,7 @@ from zuper_commons.types import ZException
 from . import logger
 from .game_def import (
     Dynamics,
-    Game,
+    Game, Pr,
     GamePlayer,
     JointState,
     PersonalRewardStructure,
@@ -30,8 +30,8 @@ __all__ = ["preprocess_game", "get_accessible_states"]
 
 
 def preprocess_game(
-    game: Game[X, U, Y, RP, RJ], solver_params: SolverParams
-) -> GamePreprocessed[X, U, Y, RP, RJ]:
+    game: Game[Pr, X, U, Y, RP, RJ], solver_params: SolverParams
+) -> GamePreprocessed[Pr, X, U, Y, RP, RJ]:
     game_graph = get_game_graph(game, dt=solver_params.dt)
     compute_graph_layout(game_graph, iterations=1)
     players_pre = {
@@ -46,7 +46,7 @@ def preprocess_game(
     return gp
 
 
-def preprocess_player(player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], dt: D):
+def preprocess_player(player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D):
     graph = get_player_graph(player, dt)
     alone_trees = {}
     for x0 in player.initial:
@@ -99,7 +99,7 @@ def get_accessible_states(
     return G
 
 
-def get_game_graph(game: Game[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
+def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     players = game.players
     assert len(players) == 2
     p1, p2 = list(players)
@@ -240,5 +240,5 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
         G.nodes[n]["x"] = g * 200
 
 
-def get_player_graph(player: GamePlayer[X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
+def get_player_graph(player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)

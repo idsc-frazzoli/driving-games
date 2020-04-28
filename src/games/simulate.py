@@ -25,7 +25,7 @@ __all__ = []
 
 
 @dataclass
-class SimulationStep(Generic[X, U, Y, RP, RJ]):
+class SimulationStep(Generic[Pr, X, U, Y, RP, RJ]):
     states: JointState
     pure_actions: JointPureActions
     incremental_costs: Mapping[PlayerName, RP]
@@ -36,7 +36,7 @@ class SimulationStep(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class Simulation(Generic[X, U, Y, RP, RJ]):
+class Simulation(Generic[Pr, X, U, Y, RP, RJ]):
     states: Mapping[D, JointState]
     actions: Mapping[D, JointPureActions]
     costs: Mapping[D, Mapping[PlayerName, RP]]
@@ -58,12 +58,12 @@ class Sampler:
 
 
 def simulate1(
-    game: Game[X, U, Y, RP, RJ],
+    game: Game[Pr, X, U, Y, RP, RJ],
     policies: Mapping[PlayerName, AgentBelief[X, U]],
     initial_states: JointState,
     dt: D,
     seed: int,
-) -> Simulation[X, U, Y, RP, RJ]:
+) -> Simulation[Pr, X, U, Y, RP, RJ]:
     S_states: Dict[D, JointState] = {}
     S_actions: Dict[D, JointState] = {}
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}

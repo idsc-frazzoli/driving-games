@@ -4,14 +4,14 @@ from typing import Optional
 from reprep import MIME_GIF, Report
 
 from . import logger
-from .game_def import RJ, RP, U, X, Y
+from .game_def import RJ, RP, U, X, Y, Pr
 from .simulate import Simulation
 from .structures_solution import GamePreprocessed, Solutions
 
 __all__ = ["report_animation", "report_solutions"]
 
 
-def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ], s: Solutions[X, U, Y, RP, RJ]):
+def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], s: Solutions[Pr, X, U, Y, RP, RJ]):
     r = Report()
     for k, sim in s.sims.items():
         f = r.figure(k)
@@ -21,7 +21,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ], s: Solutions[X, U, Y
     return r
 
 
-def report_animation(gp: GamePreprocessed[X, U, Y, RP, RJ], sim: Simulation[X, U, Y, RP, RJ]) -> Report:
+def report_animation(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], sim: Simulation[Pr, X, U, Y, RP, RJ]) -> Report:
     r = Report()
     f = r.figure()
     with f.data_file("sim", MIME_GIF) as fn:
@@ -78,8 +78,8 @@ def get_next_state(gp, s0, actions, dt2):
 
 
 def create_log_animation(
-    gp: GamePreprocessed[X, U, Y, RP, RJ],
-    sim: Simulation[X, U, Y, RP, RJ],
+    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ],
+    sim: Simulation[Pr, X, U, Y, RP, RJ],
     fn: str,
     upsample_log: Optional[int],
 ):
