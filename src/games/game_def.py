@@ -16,7 +16,7 @@ from zuper_commons.types import check_isinstance
 
 from preferences import Preference
 
-X = Ξ = TypeVar("Ξ")
+X = TypeVar("X")
 U = TypeVar("U")
 Y = TypeVar("Y")
 RP = TypeVar("RP")
