@@ -160,7 +160,7 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ]) -> Solutions[X, U, Y, RP, RJ]:
         logger.info(
             "solution_ghost",
             value_actions=solution_ghost.gn_solved.va,
-            policy=solution_ghost.policies,
+            # policy=solution_ghost.policies,
         )
 
     return Solutions(
@@ -213,7 +213,8 @@ def replace_others(
         action_others[player_name] = list(options)[0]
 
     # find out which actions are compatible
-    outcomes = {k: v for k, v in node.outcomes.items() if is_compatible(k, action_others)}
+    outcomes = {k: replace_others(dreamer, v, controllers)
+                for k, v in node.outcomes.items() if is_compatible(k, action_others)}
 
     logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
     moves = get_all_choices_by_players(set(outcomes))
@@ -406,7 +407,7 @@ def _solve_game(
 
     va: ValueAndActions[U, RP, RJ]
     # if this is a 1-player node: easy
-    if len(gn.states) == 1:
+    if False and len(gn.states) == 1:
         if len(gn.is_final) == 1:
             va = solve_1_player_final(gn)
         else:

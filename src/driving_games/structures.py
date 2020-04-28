@@ -34,7 +34,7 @@ class VehicleState:
     __print_order__ = ["x", "v"]  # only print these attributes
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
     accel: D
     light: Lights = "none"
@@ -142,12 +142,12 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
     #         raise ZValueError(s=s)
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class NotSeen:
     pass
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class Seen:
     ref: SE2_disc
     x: Optional[int]
@@ -156,7 +156,7 @@ class Seen:
     light: Optional[Lights]
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleObservation:
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 

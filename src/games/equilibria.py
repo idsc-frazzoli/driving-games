@@ -63,6 +63,8 @@ class Combos(Generic[X, U, Y, RP, RJ]):
 def check_contains_all_combo(
     possibilities: Collection[JointPureActions],
 ) -> Combos[X, U, Y, RP, RJ]:
+    for _ in possibilities:
+        check_joint_pure_actions(_)
     # player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)[
     # for actions in action2outcome:
     #     for player_name, action in actions.items():
@@ -73,9 +75,28 @@ def check_contains_all_combo(
     all_comb: ASet[JointPureActions] = get_all_combinations(mixed_actions=mixed_actions)
     c: JointPureActions
     for c in all_comb:
-        if c not in possibilities: # pragma: no cover
-            msg = "Missing combination"
-            raise ZValueError(msg, c=c, possibilities=possibilities)
+        check_joint_pure_actions(c)
+        if False: # XXX: bug
+            if c not in possibilities: # pragma: no cover
+                msg = "Missing combination"
+                raise ZValueError(msg,
+                                  c=c,
+                                  id_c=id(c),
+                                  p=possibilities,
+                                  type_p=type(possibilities),
+                                  type_c=type(c),
+                                  repr_c=repr(c),
+                                  repr_p=repr(possibilities),
+                                  id_ps=set(id(_) for _ in possibilities),
+                                  c_in_p=c in possibilities,
+                                  c_in_list_p=c in list(possibilities),
+
+                                  c_in_fset_p=c in frozenset(possibilities),
+
+                                  c_in_set_p=c in set(possibilities),
+                                  p_contains_c=possibilities.__contains__(c),
+                                  p_eq_frozen_c=possibilities == frozenset({c}),
+                                  same_as_first=list(possibilities)[0] == c)
     return Combos(all_comb, mixed_actions)
 
 
@@ -84,7 +105,7 @@ def analyze_equilibria(
     preferences: Mapping[PlayerName, Preference[SetOfOutcomes]],
 ) -> EquilibriaAnalysis:
     # we want to make sure that there are all combinations
-    combos: Combos[X, U, Y, RP, RJ] = check_contains_all_combo(set(solved))
+    combos: Combos[X, U, Y, RP, RJ] = check_contains_all_combo(frozenset(solved))
     player_names = set(combos.player2choices)
     if set(preferences) != set(player_names): # pragma: no cover
         raise ZValueError(solved=solved, preferences=preferences)
@@ -97,7 +118,9 @@ def analyze_equilibria(
     nash_equilibria = {}
     action_to_change: ASet[U]
     for x0 in combos.all_comb:
-        assert x0 in solved
+        if not (x0 in solved):
+            raise ZValueError(x0=x0, solved=set(solved))
+
         check_joint_pure_actions(x0)
         happy_players = set()
         unhappy_players = set()
