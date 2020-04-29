@@ -21,26 +21,13 @@ from .equilibria import (
     analyze_equilibria,
     EquilibriaAnalysis,
 )
-from .game_def import (
-    AgentBelief, Pr,
-    Combined,
-    Game,
-    JointPureActions,
-    JointState,
-    Outcome,
-    P,
-    PlayerName,
-    RJ,
-    RP,
-    SetOfOutcomes,
-    U,
-    X,
-    Y,
-)
+from .game_def import (AgentBelief, Combined, Game, JointPureActions, JointState, Outcome, P, PlayerName, Pr, RJ, RP,
+                       SetOfOutcomes, U, X, Y)
+from .possibilities import Poss
 from .simulate import simulate1, Simulation
 from .solution_security import get_security_policies
 from .structures_solution import (
-    check_joint_mixed_actions,
+    check_joint_mixed_actions2,
     check_joint_pure_actions,
     check_set_outcomes,
     GameNode,
@@ -178,12 +165,12 @@ class DoesNotKnowPolicy(ZException):
 
 
 class AgentFromPolicy(AgentBelief[X, U]):
-    policy: Mapping[X, Mapping[ASet[JointState], ASet[U]]]
+    policy: Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]
 
-    def __init__(self, policy: Mapping[X, Mapping[ASet[JointState], ASet[U]]]):
+    def __init__(self, policy: Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]):
         self.policy = policy
 
-    def get_commands(self, state_self: X, state_others: ASet[JointState]) -> ASet[U]:
+    def get_commands(self, state_self: X, state_others: Poss[JointState, Pr]) -> Poss[U, Pr]:
         if state_self not in self.policy:
             msg = "I do not know the policy for this state"
             raise DoesNotKnowPolicy(
@@ -276,18 +263,19 @@ def is_compatible(a: JointPureActions, constraints: JointPureActions) -> bool:
 
 def get_outcome_set_preferences_for_players(
     game: Game[Pr, X, U, Y, RP, RJ],
-) -> Mapping[PlayerName, Preference[ASet[Outcome[RJ, RP]]]]:
+) -> Mapping[PlayerName, Preference[SetOfOutcomes]]:
     preferences = {}
     for player_name, player in game.players.items():
         # Comparse Combined[RJ, RP]
         pref0: Preference[Combined[RJ, RP]] = player.preferences
-        pref1: Preference[Outcome[RJ, RP]] = PrefConverter(
+        pref1: Preference[Outcome[RJ, RP]]
+        pref1 = PrefConverter(
             A=Outcome, B=Combined, convert=CombinedFromOutcome(player_name), p0=pref0
         )
         # compares Aset(Combined[RJ, RP]
-        set_preference_aggregator: Callable[[Preference[P]], Preference[ASet[P]]]
+        set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P, Pr]]]
         set_preference_aggregator = player.set_preference_aggregator
-        pref2: Preference[ASet[Outcome[RJ, RP]]] = set_preference_aggregator(pref1)
+        pref2: Preference[SetOfOutcomes] = set_preference_aggregator(pref1)
         # result: Preference[ASet[Outcome[RP, RJ]]]
         preferences[player_name] = pref2
     return preferences
@@ -348,7 +336,7 @@ def solve_game(
     sc = SolvingContext(gp, {}, outcome_set_preferences)
     gn_solved = _solve_game(sc, gn)
 
-    policies: Dict[PlayerName, Dict[X, Dict[ASet[JointState], ASet[U]]]]
+    policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState, Pr], Poss[U, Pr]]]]
 
     policies = defaultdict(lambda: defaultdict(dict))
     for g0, s0 in sc.cache.items():
@@ -511,7 +499,6 @@ def solve_final_personal_both(gn: GameNode[Pr, X, U, Y, RP, RJ]) -> ValueAndActi
     game_value = frozenset({Outcome(private=gn.is_final, joint=frozendict())})
     actions = frozendict()
     return ValueAndActions(game_value=game_value, mixed_actions=actions)
-
 
 #
 # def solve_1_player_final(gn: GameNode[Pr, X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:

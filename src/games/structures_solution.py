@@ -24,7 +24,7 @@ from .game_def import (check_player_options, PlayerOptions, Pr,
                        X,
                        Y,
                        )
-from .possibilities import Poss
+from .possibilities import check_poss, Poss
 from .simulate import Simulation
 
 __all__ = [
@@ -56,7 +56,7 @@ class SolverParams:
 class GameNode(Generic[Pr, X, U, Y, RP, RJ]):
     states: JointState
     moves: PlayerOptions
-    outcomes: "Mapping[JointPureActions, GameNode[Pr, X, U, Y, RP, RJ]]"
+    outcomes2: "Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]"
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -66,10 +66,11 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ]):
     def __post_init__(self):
         check_joint_state(self.states)
         check_player_options(self.moves)
-        check_isinstance(self.outcomes, frozendict, _=self)
-        for pure_actions, game_node in self.outcomes.items():
+        check_isinstance(self.outcomes2, frozendict, _=self)
+        for pure_actions, pr_game_node in self.outcomes2.items():
             check_joint_pure_actions(pure_actions)
-            check_isinstance(game_node, GameNode)
+            check_isinstance(pr_game_node, Poss)
+            pr_game_node.check_contains(GameNode)
 
         check_isinstance(self.is_final, frozendict, _=self)
         check_isinstance(self.incremental, frozendict, _=self)
@@ -109,18 +110,18 @@ class ValueAndActions(Generic[U, RP, RJ]):
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ]):
     gn: GameNode[Pr, X, U, Y, RP, RJ]
-    solved: "Mapping[JointPureActions, SolvedGameNode[Pr, X, U, Y, RP, RJ]]"
+    solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ], Pr]]"
 
     va: ValueAndActions[U, RP, RJ]
 
-    # actions: Mapping[PlayerName, ASet[U]]
-    # game_value: ASet[Outcome[RP, RJ]]
 
     def __post_init__(self):
         check_isinstance(self.va, ValueAndActions, me=self)
         check_isinstance(self.solved, frozendict, _=self)
-        for _ in self.solved:
+        for _, then in self.solved.items():
             check_joint_pure_actions(_)
+            check_poss(then, SolvedGameNode)
+
 
 
 @dataclass
@@ -145,14 +146,13 @@ class GameSolution(Generic[Pr, X, U, Y, RP, RJ]):
     policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]]
 
     def __post_init__(self):
-        if False:
-            for player_name, player_policy in self.policies.items():
+        for player_name, player_policy in self.policies.items():
 
-                check_isinstance(player_policy, frozendict)
-                for own_state, state_policy in player_policy.items():
-                    check_isinstance(state_policy, frozendict)
-                    for istate, us in state_policy.items():
-                        check_isinstance(us, frozenset)
+            check_isinstance(player_policy, frozendict)
+            for own_state, state_policy in player_policy.items():
+                check_isinstance(state_policy, frozendict)
+                for istate, us in state_policy.items():
+                    check_isinstance(us, frozenset)
 
 
 @dataclass

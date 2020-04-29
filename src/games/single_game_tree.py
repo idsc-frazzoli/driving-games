@@ -4,15 +4,7 @@ from typing import Dict, Generic
 
 from frozendict import frozendict
 
-from .game_def import (
-    GamePlayer,
-    PlayerName,
-    RJ,
-    RP,
-    U,
-    X,
-    Y,
-)
+from .game_def import (GamePlayer, PlayerName, Pr, RJ, RP, U, X, Y)
 from .structures_solution import GameNode
 
 __all__ = []
@@ -56,8 +48,10 @@ def get_1p_game_tree(
         outcomes = {}
         for u, x1s in successors.items():
             actions = frozendict({player_name: u})
-            x1 = list(x1s)[0]  # XXX: no multimodal
-            outcomes[actions] = get_1p_game_tree(c=c, player_name=player_name, player=player, x0=x1)
+
+            outcomes[actions] = x1s.build(
+                lambda _: get_1p_game_tree(c=c, player_name=player_name, player=player, x0=_)
+            )
 
         outcomes = frozendict(outcomes)
     joint_final_rewards = frozendict()
@@ -65,7 +59,7 @@ def get_1p_game_tree(
     res = GameNode(
         states=states,
         moves=moves,
-        outcomes=outcomes,
+        outcomes2=outcomes,
         is_final=is_final,
         incremental=incremental,
         joint_final_rewards=joint_final_rewards,

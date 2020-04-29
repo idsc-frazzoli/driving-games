@@ -8,7 +8,7 @@ from zuper_commons.types import check_isinstance
 
 from .game_def import (
     AgentBelief,
-    ASet,
+    Pr,
     check_joint_pure_actions,
     Game,
     JointPureActions,
@@ -22,6 +22,8 @@ from .game_def import (
 )
 
 __all__ = []
+
+from .possibilities import Poss
 
 
 @dataclass
@@ -50,11 +52,16 @@ class Sampler:
     def __init__(self, seed: int):
         self.rs = RandomState(seed)
 
-    def pick_one(self, options: ASet[N]) -> N:
-        options = list(options)
-        indices = list(range(len(options)))
-        i = self.rs.choice(indices, 1, replace=False)
-        return options[int(i)]
+    def pick_one(self, options: Poss[N, Pr]) -> N:
+        support =[]
+        prob = []
+        for a, b in options.it():
+            support.append(a)
+            prob.append(float(b))
+
+        indices = list(range(len(support)))
+        i = self.rs.choice(indices, 1, replace=False, p=prob)
+        return support[int(i)]
 
 
 def simulate1(

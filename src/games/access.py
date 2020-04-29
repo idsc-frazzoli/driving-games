@@ -49,7 +49,7 @@ def preprocess_game(
 def preprocess_player(player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D):
     graph = get_player_graph(player, dt)
     alone_trees = {}
-    for x0 in player.initial:
+    for x0 in player.initial.support():
         alone_trees[x0] = get_one_player_game_tree(player_name=player_name, player=player, x0=x0, dt=dt)
 
     alone_trees = frozendict(alone_trees)
@@ -87,8 +87,9 @@ def get_accessible_states(
 
         expanded.add(s1)
         successors = dynamics.successors(s1, dt)
-        for u, s2s in successors.items():
-            for s2 in s2s:
+        for u, p_s2 in successors.items():
+        # for u, s2s in successors.items():
+            for s2 in p_s2.support():
                 if s2 not in G.nodes:
                     is_final2 = personal_reward_structure.is_personal_final_state(s2)
                     G.add_node(s2, is_final=is_final2)
@@ -241,4 +242,4 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
 
 
 def get_player_graph(player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
-    return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)
+    return get_accessible_states(player.initial.support(), player.personal_reward_structure, player.dynamics, dt=dt)
