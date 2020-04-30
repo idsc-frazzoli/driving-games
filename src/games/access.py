@@ -2,21 +2,23 @@ import random
 from collections import defaultdict
 from decimal import Decimal as D
 from itertools import product
-from typing import FrozenSet as ASet, List
+from typing import List
 
 import numpy as np
 from frozendict import frozendict
 from networkx import MultiDiGraph
 from zuper_commons.types import ZException
 
+from possibilities import check_poss, Poss
 from . import logger
 from .game_def import (
     Dynamics,
-    Game, Pr,
+    Game,
     GamePlayer,
     JointState,
     PersonalRewardStructure,
     PlayerName,
+    Pr,
     RJ,
     RP,
     U,
@@ -35,7 +37,7 @@ def preprocess_game(
     game_graph = get_game_graph(game, dt=solver_params.dt)
     compute_graph_layout(game_graph, iterations=1)
     players_pre = {
-        player_name: preprocess_player(player_name=player_name, player=player, dt=solver_params.dt)
+        player_name: preprocess_player(game=game, player_name=player_name, player=player, dt=solver_params.dt)
         for player_name, player in game.players.items()
     }
 
@@ -46,31 +48,34 @@ def preprocess_game(
     return gp
 
 
-def preprocess_player(player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D):
+def preprocess_player(game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D):
     graph = get_player_graph(player, dt)
     alone_trees = {}
     for x0 in player.initial.support():
-        alone_trees[x0] = get_one_player_game_tree(player_name=player_name, player=player, x0=x0, dt=dt)
+        alone_trees[x0] = get_one_player_game_tree(
+            game=game, player_name=player_name, player=player, x0=x0, dt=dt
+        )
 
     alone_trees = frozendict(alone_trees)
     return GamePlayerPreprocessed(graph, alone_trees)
 
 
 def get_accessible_states(
-    initial: ASet[X],
+    initial: Poss[X, Pr],
     personal_reward_structure: PersonalRewardStructure[X, U, RP],
-    dynamics: Dynamics[X, U],
+    dynamics: Dynamics[Pr, X, U],
     dt: D,
 ) -> MultiDiGraph:
+    check_poss(initial, object)
     G = MultiDiGraph()
 
-    for node in initial:
+    for node in initial.support():
         i_final = personal_reward_structure.is_personal_final_state(node)
         if i_final:
             raise ZException(i_final=i_final)
 
         G.add_node(node, is_final=False)
-    stack = list(initial)
+    stack = list(initial.support())
     logger.info(stack=stack)
     i: int = 0
     expanded = set()
@@ -88,7 +93,8 @@ def get_accessible_states(
         expanded.add(s1)
         successors = dynamics.successors(s1, dt)
         for u, p_s2 in successors.items():
-        # for u, s2s in successors.items():
+            check_poss(p_s2, object)
+            # for u, s2s in successors.items():
             for s2 in p_s2.support():
                 if s2 not in G.nodes:
                     is_final2 = personal_reward_structure.is_personal_final_state(s2)
@@ -111,7 +117,7 @@ def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
 
     G = MultiDiGraph()
     stack: List[JointState] = []
-    for n1, n2 in product(P1.initial, P2.initial):
+    for n1, n2 in product(P1.initial.support(), P2.initial.support()):
         S = frozendict({p1: n1, p2: n2})
         G.add_node(
             S,
@@ -127,6 +133,7 @@ def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
     logger.info(stack=stack)
     i = 0
     S: JointState
+    ps = game.ps
     while stack:
         if i % 1000 == 0:
             logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))
@@ -138,19 +145,21 @@ def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
         n1, n2 = S[p1], S[p2]
 
         if n1 is None or G.nodes[S]["is_final1"]:
-            succ1 = {None: {None}}
+            succ1 = {None: ps.lift_one(None)}
         else:
             succ1 = P1.dynamics.successors(n1, dt)
 
         if n2 is None or G.nodes[S]["is_final2"]:
-            succ2 = {None: {None}}
+            succ2 = {None: ps.lift_one(None)}
         else:
             succ2 = P2.dynamics.successors(n2, dt)
 
         generation = G.nodes[S]["generation"]
 
         for (u1, s1s), (u2, s2s) in product(succ1.items(), succ2.items()):
-            for s1, s2 in product(s1s, s2s):
+            check_poss(s1s, object)
+            check_poss(s2s, object)
+            for (s1, w1), (s2, w2) in product(s1s.it(), s2s.it()):
                 # check_isinstance(s1, VehicleState)
                 # check_isinstance(s2, VehicleState)
                 if (s1, s2) == (None, None):
@@ -242,4 +251,4 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
 
 
 def get_player_graph(player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
-    return get_accessible_states(player.initial.support(), player.personal_reward_structure, player.dynamics, dt=dt)
+    return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)

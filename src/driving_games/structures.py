@@ -2,13 +2,15 @@ import itertools
 from dataclasses import dataclass
 from decimal import Decimal as D, localcontext
 from functools import lru_cache
-from typing import cast, FrozenSet as ASet, Mapping, Optional, Sequence, Tuple, Union
+from typing import cast, FrozenSet, Mapping, Optional, Sequence, Tuple, Union
 
 from frozendict import frozendict
 from typing_extensions import Literal
 from zuper_commons.types import ZException
 
 from games import Dynamics, Observations, PlayerName
+from possibilities import Poss
+from possibilities.sets import One, ProbabilitySet
 
 Lights = Literal["none", "headlights", "turn_left", "turn_right"]
 # noinspection PyTypeChecker
@@ -40,23 +42,23 @@ class VehicleActions:
     light: Lights = "none"
 
 
-class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
+class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     max_speed: D
     min_speed: D
     max_path: D
-    available_accels: ASet[D]
+    available_accels: FrozenSet[D]
     max_wait: D
-    lights_commands: ASet[Lights]
+    lights_commands: FrozenSet[Lights]
 
     def __init__(
         self,
         max_speed: D,
         min_speed: D,
-        available_accels: ASet[D],
+        available_accels: FrozenSet[D],
         max_wait: D,
         ref: SE2_disc,
         max_path: D,
-        lights_commands: ASet[Lights],
+        lights_commands: FrozenSet[Lights],
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -67,14 +69,14 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         self.lights_commands = lights_commands
 
     @lru_cache(None)
-    def all_actions(self) -> ASet[VehicleActions]:
+    def all_actions(self) -> FrozenSet[VehicleActions]:
         res = set()
         for light, accel in itertools.product(LightsValue, self.available_accels):
             res.add(VehicleActions(accel=accel, light=light))
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, ASet[VehicleState]]:
+    def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState, One]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accellerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ + x.v >= 0]
@@ -82,6 +84,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
         if x.wait >= self.max_wait:
             assert x.v == 0, x
             accels.remove(D(0))
+        ps = ProbabilitySet()
 
         possible = {}
         for light, accel in itertools.product(self.lights_commands, self.available_accels):
@@ -91,7 +94,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = frozenset({x2})
+                possible[u] = ps.lift_one(x2)
 
         return frozendict(possible)
 
@@ -161,20 +164,20 @@ class VehicleObservation:
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 
 
-class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
-    possible_states: Mapping[PlayerName, ASet[VehicleState]]
-    my_possible_states: ASet[VehicleState]
+class VehicleDirectObservations(Observations[One, VehicleState, VehicleObservation]):
+    possible_states: Mapping[PlayerName, FrozenSet[VehicleState]]
+    my_possible_states: FrozenSet[VehicleState]
 
     def __init__(
         self,
-        my_possible_states: ASet[VehicleState],
-        possible_states: Mapping[PlayerName, ASet[VehicleState]],
+        my_possible_states: FrozenSet[VehicleState],
+        possible_states: Mapping[PlayerName, FrozenSet[VehicleState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
 
     @lru_cache(None)
-    def all_observations(self) -> ASet[VehicleObservation]:
+    def all_observations(self) -> FrozenSet[VehicleObservation]:
         """ Returns all possible observations. """
         assert len(self.possible_states) == 1
         all_of_them = set()
@@ -182,7 +185,7 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
             for k, ks_possible_states in self.possible_states.items():
                 for ks_possible_state in ks_possible_states:
                     others = {k: ks_possible_state}
-                    possible_ys: ASet[VehicleObservation] = self.get_observations(me, others)
+                    possible_ys: FrozenSet[VehicleObservation] = self.get_observations(me, others)
                     for poss_obs in possible_ys:
                         all_of_them.add(poss_obs)
         return frozenset(all_of_them)
@@ -190,7 +193,7 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
     @lru_cache(None)
     def get_observations(
         self, me: VehicleState, others: Mapping[PlayerName, VehicleState]
-    ) -> ASet[VehicleObservation]:
+    ) -> FrozenSet[VehicleObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
         for k, v in others.items():

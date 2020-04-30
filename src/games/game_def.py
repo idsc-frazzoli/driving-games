@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal as D
+from numbers import Number
 from typing import (
     Callable,
     # FrozenSet as ASet,
-    FrozenSet, Generic,
+    FrozenSet,
+    Generic,
     Mapping,
     NewType,
     Optional,
@@ -15,7 +17,7 @@ from typing import (
 from frozendict import frozendict
 from zuper_commons.types import check_isinstance
 
-from games.possibilities import Poss
+from possibilities import check_poss, Poss, PossibilityStructure
 from preferences import Preference
 
 __all__ = [
@@ -46,7 +48,7 @@ X = TypeVar("X")
 JointState = Mapping[PlayerName, X]
 
 U = TypeVar("U")
-Pr = TypeVar("Pr") # how to express probabilities
+Pr = TypeVar("Pr", bound=Number)  # how to express probabilities
 
 PlayerOptions = Mapping[PlayerName, FrozenSet[U]]
 JointPureActions = Mapping[PlayerName, U]
@@ -66,7 +68,7 @@ class Outcome(Generic[RP, RJ]):
 SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
 
 
-class Dynamics(Generic[X, U, Pr], ABC):
+class Dynamics(Generic[Pr, X, U], ABC):
     # @abstractmethod
     # def all_states(self) -> AbstractSet[X]:
     #     """ Returns all possible states """
@@ -80,7 +82,7 @@ class Dynamics(Generic[X, U, Pr], ABC):
         """ For each state, returns a dictionary U -> Possible Xs """
 
 
-class Observations(Generic[X, Y], ABC):
+class Observations(Generic[Pr, X, Y], ABC):
     @abstractmethod
     def all_observations(self) -> FrozenSet[Y]:
         """ Returns all possible observations. """
@@ -123,9 +125,9 @@ class GamePlayer(Generic[Pr, X, U, Y, RP, RJ]):
     # Initial states
     initial: Poss[X, Pr]
     # The dynamics
-    dynamics: Dynamics[X, U]
+    dynamics: Dynamics[Pr, X, U]
     # The observations
-    observations: Observations[X, Y]
+    observations: Observations[Pr, X, Y]
     # The reward
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
     # The preferences
@@ -165,6 +167,8 @@ class GameVisualization(Generic[Pr, X, U, Y, RP, RJ], ABC):
 class Game(Generic[Pr, X, U, Y, RP, RJ]):
     """ The players """
 
+    ps: PossibilityStructure[Pr]
+
     players: Mapping[PlayerName, GamePlayer[Pr, X, U, Y, RP, RJ]]
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
@@ -172,7 +176,7 @@ class Game(Generic[Pr, X, U, Y, RP, RJ]):
     game_visualization: GameVisualization[Pr, X, U, Y, RP, RJ]
 
 
-class AgentBelief(Generic[X, U], ABC):
+class AgentBelief(Generic[Pr, X, U], ABC):
     """ This agent's policy is a function of its own state
         and the product of the beliefs about the state of the other agents.
     """
@@ -197,25 +201,28 @@ def check_player_options(a: PlayerOptions):
         check_isinstance(k, str)
         check_isinstance(v, frozenset)
 
-def check_set_outcomes(a: SetOfOutcomes):
-    a.check_contains(Outcome)
+
+def check_set_outcomes(a: SetOfOutcomes, **kwargs):
+    check_poss(a, Outcome, **kwargs)
 
 
-def check_joint_pure_actions(a: JointPureActions):
+def check_joint_pure_actions(a: JointPureActions, **kwargs):
     # from driving_games.structures import VehicleActions
 
-    check_isinstance(a, frozendict)
+    check_isinstance(a, frozendict, **kwargs)
     for k, v in a.items():
+        assert isinstance(k, str), k
+        assert not isinstance(v, Poss), v
         pass
         # check_isinstance(v, VehicleActions, a=a)
 
 
-def check_joint_mixed_actions2(a: JointMixedActions2):
+def check_joint_mixed_actions2(a: JointMixedActions2, **kwargs):
     # from driving_games.structures import VehicleActions
-    check_isinstance(a, Poss)
-    # check_isinstance(a, frozendict)
-    # for k, v in a.items():
-    #     check_isinstance(v, frozenset, a=a)
-    #     for _ in v:
-    #         pass
-            # check_isinstance(_, VehicleActions, a=a)
+    check_isinstance(a, frozendict, **kwargs)
+
+    for k, v in a.items():
+        check_isinstance(k, str)  # player name
+        check_isinstance(v, Poss, **kwargs)
+
+    # check_isinstance(_, VehicleActions, a=a)

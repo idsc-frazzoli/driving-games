@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, FrozenSet as ASet, Mapping
+from typing import cast, Dict, FrozenSet as ASet
+
+from frozendict import frozendict
 
 from games import (
     Game,
@@ -10,6 +12,8 @@ from games import (
     JointRewardStructure,
     PlayerName,
 )
+from possibilities import PossibilityStructure
+from possibilities.sets import One, ProbabilitySet
 from preferences import SetPreference1
 from . import logger
 from .driving_example import (
@@ -47,7 +51,7 @@ class TwoVehicleSimpleParams:
     second_progress: D
 
 
-def get_game1() -> Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
+def get_game1() -> Game[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
     p = TwoVehicleSimpleParams(
         side=D(8),
         road=D(6),
@@ -66,7 +70,10 @@ def get_game1() -> Game[VehicleState, VehicleActions, VehicleObservation, D, Col
     return get_two_vehicle_game(p)
 
 
-def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
+def get_two_vehicle_game(
+    params: TwoVehicleSimpleParams,
+) -> Game[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
+    ps: PossibilityStructure[One] = ProbabilitySet()
     L = params.side + params.road + params.side
     start = params.side + params.road_lane_offset
     max_path = L - 1
@@ -84,11 +91,11 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
     # P2 = PlayerName("👳🏾‍")
     P1 = PlayerName("p1")
     P2 = PlayerName("p2")
-    p1_initial = frozenset(
-        {VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")}
+    p1_initial = ps.lift_one(
+        VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")
     )
-    p2_initial = frozenset(
-        {VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light="none")}
+    p2_initial = ps.lift_one(
+        VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light="none")
     )
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
@@ -139,14 +146,19 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams) -> Game:
         preferences=p2_preferences,
         set_preference_aggregator=set_preference_aggregator,
     )
-    Player = GamePlayer[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
-    players: Mapping[PlayerName, Player]
+    Player = GamePlayer[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    players: Dict[PlayerName, Player]
     players = {P1: p1, P2: p2}
     joint_reward: JointRewardStructure[VehicleState, VehicleActions, CollisionCost]
     joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold)
 
-    game_visualization: GameVisualization[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    game_visualization: GameVisualization[
+        One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost
+    ]
     game_visualization = DrivingGameVisualization(params, L)
-    game: Game[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
-    game = Game(players, joint_reward, game_visualization=game_visualization)
+    game: Game[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+
+    game = Game(
+        players=frozendict(players), ps=ps, joint_reward=joint_reward, game_visualization=game_visualization
+    )
     return game

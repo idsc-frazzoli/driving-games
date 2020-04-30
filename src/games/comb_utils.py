@@ -4,24 +4,24 @@ from typing import AbstractSet, Collection, Dict, FrozenSet, Iterable, Mapping, 
 
 from frozendict import frozendict
 
-from .game_def import PlayerOptions, Pr, SetOfOutcomes
+from possibilities import Poss, PossibilityStructure
 from .game_def import (
-    # ASet,
     check_joint_mixed_actions2,
     check_joint_pure_actions,
     JointMixedActions2,
     JointPureActions,
     PlayerName,
+    PlayerOptions,
+    Pr,
+    SetOfOutcomes,
     U,
 )
 
 __all__ = []
 
-from .possibilities import Poss
-
 
 def mixed_from_pure(pure_actions: JointPureActions) -> JointMixedActions2:
-    return frozendict({k: frozenset({v}) for k, v in pure_actions.items()}) # FIXME
+    return frozendict({k: frozenset({v}) for k, v in pure_actions.items()})  # FIXME
 
 
 def get_all_choices_by_players(possibile: Collection[JointPureActions]) -> PlayerOptions:
@@ -37,8 +37,8 @@ def get_all_choices_by_players(possibile: Collection[JointPureActions]) -> Playe
     return frozendict(res)
 
 
-def get_all_combinations(*, mixed_actions: JointMixedActions) -> ASet[JointPureActions]:
-    check_joint_mixed_actions(mixed_actions)
+def get_all_combinations(*, mixed_actions: JointMixedActions2) -> FrozenSet[JointPureActions]:
+    check_joint_mixed_actions2(mixed_actions)
     players = list(mixed_actions)
     choices = list(mixed_actions[_] for _ in players)
     all_combs = itertools.product(*tuple(choices))
@@ -52,8 +52,8 @@ def get_all_combinations(*, mixed_actions: JointMixedActions) -> ASet[JointPureA
     return r
 
 
-def all_pure_actions(mixed_actions: JointMixedActions) -> ASet[JointPureActions]:
-    check_joint_mixed_actions(mixed_actions)
+def all_pure_actions(mixed_actions: JointMixedActions2) -> FrozenSet[JointPureActions]:
+    check_joint_mixed_actions2(mixed_actions)
     names = list(mixed_actions)
     possible = [mixed_actions[_] for _ in names]
     res = []
@@ -74,7 +74,7 @@ def flatten_outcomes(
 M = TypeVar("M")
 
 
-def flatten_sets(x: Iterable[AbstractSet[M]]) -> ASet[M]:
+def flatten_sets(x: Iterable[AbstractSet[M]]) -> FrozenSet[M]:
     res = set()
     for _ in x:
         res.update(_)
@@ -82,11 +82,14 @@ def flatten_sets(x: Iterable[AbstractSet[M]]) -> ASet[M]:
 
 
 def add_action(
-    player_name: PlayerName, player_action: U, set_pure_actions_others: Poss[JointPureActions, Pr]
+    ps: PossibilityStructure[Pr],
+    player_name: PlayerName,
+    player_action: U,
+    set_pure_actions_others: Poss[JointPureActions, Pr],
 ) -> Poss[JointPureActions, Pr]:
-    res: Dict[JointPureActions, Pr] = {}
-    for v in set_pure_actions_others:
-        v2 = dict(v)
+    def add(x: JointPureActions) -> JointPureActions:
+        v2 = dict(x)
         v2[player_name] = player_action
-        set_pure_actions.add(frozendict(v2))
-    return Poss(frozendict(res))
+        return v2
+
+    return ps.build(set_pure_actions_others, add)

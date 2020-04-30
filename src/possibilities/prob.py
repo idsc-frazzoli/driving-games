@@ -1,0 +1,114 @@
+from collections import defaultdict
+from fractions import Fraction
+from itertools import permutations
+from typing import AbstractSet, Callable, Collection, FrozenSet, Tuple, TypeVar
+
+from frozendict import frozendict
+from numpy.random.mtrand import RandomState
+from toolz import valfilter
+
+from .base import PossibilityStructure, Sampler
+from .poss import Poss
+
+__all__ = ["ProbabilityFraction"]
+
+A = TypeVar("A")
+B = TypeVar("B")
+
+
+class ProbabilityFraction(PossibilityStructure[Fraction]):
+    def lift_one(self, a: A) -> Poss[A, Fraction]:
+        return self.lift_many([a])
+
+    def lift_many(self, a: Collection[A]) -> Poss[A, Fraction]:
+        elements = list(a)
+        n = len(elements)
+        w = Fraction(1, n)
+        x = {_: w for _ in elements}
+        return Poss(frozendict(x))
+
+    def flatten(self, a: Poss[Poss[A, Fraction], Fraction]) -> Poss[A, Fraction]:
+        res = defaultdict(Fraction)
+        for dist, weight in a.it():
+            for a, wa in dist.it():
+                res[a] += weight * wa
+        return Poss(frozendict(res))
+
+    def build(self, a: Poss[A, Fraction], f: Callable[[A], B]) -> Poss[B, Fraction]:
+        res = defaultdict(Fraction)
+        for x, weight in a.it():
+            y = f(x)
+            res[y] += weight
+        return Poss(frozendict(res))
+
+    def get_sampler(self, seed: int) -> "ProbSampler[Fraction]":
+        return ProbSampler(seed)
+
+    def mix(self, a: Collection[A]) -> FrozenSet[Poss[A, Fraction]]:
+        l = list(a)
+        n = len(l)
+        res = set()
+        for c in enumerate_prob_assignments(n):
+            p = frozendict(valfilter(lambda _: _ > 0, dict(zip(l, c))))
+            res.add(Poss(p))
+        return frozenset(res)
+
+
+def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
+    zero = Fraction(0)
+    one = Fraction(1)
+    half = Fraction(1, 2)
+    third = Fraction(1, 3)
+    fourth = Fraction(1, 4)
+    if n == 1:
+        cases = {(one,)}
+    elif n == 2:
+        cases = {(one, zero), (half, half)}
+    elif n == 3:
+        cases = [(one, zero, zero), (third, third, third), (third, 2 * third, zero)]
+    elif n == 4:
+        cases = [
+            (one, zero, zero, zero),
+            (half, fourth, fourth, zero),
+            (half, half, zero, zero),
+            (fourth, fourth, fourth, fourth),
+        ]
+    elif n == 5:
+        f = Fraction(1, 5)
+        cases = [
+            (f, f, f, f, f),
+            (2 * f, f, f, f, zero),
+            (2 * f, 2 * f, f, zero, zero),
+            (3 * f, f, f, zero, zero),
+            (3 * f, 2 * f, zero, zero, zero),
+            (4 * f, f, zero, zero, zero),
+            (one, zero, zero, zero, zero),
+        ]
+    else:
+        raise NotImplementedError(n)
+    res = set()
+    for c in cases:
+        for _ in permutations(c, n):
+            # a = permute(c, _)
+            res.add(_)
+    return res
+
+
+def permute(c, _):
+    return tuple(c[i] for i in _)
+
+
+class ProbSampler(Sampler[Fraction]):
+    def __init__(self, seed: int):
+        self.rs = RandomState(seed)
+
+    def sample(self, options: Poss[A, Fraction]) -> A:
+        support = []
+        prob = []
+        for a, b in options.it():
+            support.append(a)
+            prob.append(float(b))
+
+        indices = list(range(len(support)))
+        i = self.rs.choice(indices, 1, replace=False, p=prob)
+        return support[int(i)]

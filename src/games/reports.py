@@ -5,7 +5,7 @@ from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
 from . import logger
-from .game_def import Game, RJ, RP, U, X, Y
+from .game_def import Game, RJ, RP, U, X, Y, Pr
 from .reports_player import report_player
 from .structures_solution import GamePreprocessed
 
@@ -29,7 +29,7 @@ def report_game_visualization(game: Game) -> Report:
         ax = pylab.gca()
         with viz.plot_arena(pylab, ax):
             for player_name, player in game.players.items():
-                for x in player.initial:
+                for x in player.initial.support():
                     viz.plot_player(player_name, state=x, commands=None)
 
     return r

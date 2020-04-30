@@ -6,25 +6,28 @@ from frozendict import frozendict
 from networkx import MultiDiGraph
 from zuper_commons.types import check_isinstance
 
+from possibilities import check_poss, Poss
 from preferences import Preference
-from .game_def import (check_player_options, PlayerOptions, Pr,
-                       check_joint_mixed_actions2,
-                       check_joint_pure_actions,
-                       check_joint_state,
-                       check_set_outcomes,
-                       Game,
-                       JointMixedActions2,
-                       JointPureActions,
-                       JointState,
-                       PlayerName,
-                       RJ,
-                       RP,
-                       SetOfOutcomes,
-                       U,
-                       X,
-                       Y,
-                       )
-from .possibilities import check_poss, Poss
+from .game_def import (
+    check_joint_mixed_actions2,
+    check_joint_pure_actions,
+    check_joint_state,
+    check_player_options,
+    check_set_outcomes,
+    Game,
+    JointMixedActions2,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    PlayerOptions,
+    Pr,
+    RJ,
+    RP,
+    SetOfOutcomes,
+    U,
+    X,
+    Y,
+)
 from .simulate import Simulation
 
 __all__ = [
@@ -103,8 +106,8 @@ class ValueAndActions(Generic[U, RP, RJ]):
     game_value: SetOfOutcomes
 
     def __post_init__(self):
-        check_joint_mixed_actions2(self.mixed_actions)
-        check_set_outcomes(self.game_value)
+        check_joint_mixed_actions2(self.mixed_actions, ValueAndActions=self)
+        check_set_outcomes(self.game_value, ValueAndActions=self)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -114,14 +117,12 @@ class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ]):
 
     va: ValueAndActions[U, RP, RJ]
 
-
     def __post_init__(self):
         check_isinstance(self.va, ValueAndActions, me=self)
         check_isinstance(self.solved, frozendict, _=self)
         for _, then in self.solved.items():
             check_joint_pure_actions(_)
             check_poss(then, SolvedGameNode)
-
 
 
 @dataclass

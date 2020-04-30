@@ -21,7 +21,9 @@ def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], s: Solutions[Pr,
     return r
 
 
-def report_animation(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], sim: Simulation[Pr, X, U, Y, RP, RJ]) -> Report:
+def report_animation(
+    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], sim: Simulation[Pr, X, U, Y, RP, RJ]
+) -> Report:
     r = Report()
     f = r.figure()
     with f.data_file("sim", MIME_GIF) as fn:

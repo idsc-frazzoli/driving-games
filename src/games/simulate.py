@@ -23,7 +23,7 @@ from .game_def import (
 
 __all__ = []
 
-from .possibilities import Poss
+from possibilities import Poss
 
 
 @dataclass
@@ -48,25 +48,9 @@ class Simulation(Generic[Pr, X, U, Y, RP, RJ]):
 N = TypeVar("N")
 
 
-class Sampler:
-    def __init__(self, seed: int):
-        self.rs = RandomState(seed)
-
-    def pick_one(self, options: Poss[N, Pr]) -> N:
-        support =[]
-        prob = []
-        for a, b in options.it():
-            support.append(a)
-            prob.append(float(b))
-
-        indices = list(range(len(support)))
-        i = self.rs.choice(indices, 1, replace=False, p=prob)
-        return support[int(i)]
-
-
 def simulate1(
     game: Game[Pr, X, U, Y, RP, RJ],
-    policies: Mapping[PlayerName, AgentBelief[X, U]],
+    policies: Mapping[PlayerName, AgentBelief[Pr, X, U]],
     initial_states: JointState,
     dt: D,
     seed: int,
@@ -77,8 +61,8 @@ def simulate1(
     S_joint_costs: Dict[D, Mapping[PlayerName, RJ]] = {}
 
     S_states[D(0)] = initial_states
-
-    sampler = Sampler(seed)
+    ps = game.ps
+    sampler = ps.get_sampler(seed)
 
     while True:
         # last time
@@ -111,18 +95,18 @@ def simulate1(
 
             # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
-            belief_state_others = frozenset({state_others})
+            belief_state_others = ps.lift_one(state_others)
 
-            action_set = policy.get_commands(state_self, belief_state_others)
-            check_isinstance(action_set, frozenset)
-            action = sampler.pick_one(action_set)
+            p_action = policy.get_commands(state_self, belief_state_others)
+
+            action = sampler.sample(p_action)
             incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
             dynamics = game.players[player_name].dynamics
             state_player = s1[player_name]
             action_to_successors = dynamics.successors(state_player, dt)
             succ = action_to_successors[action]
-            next_state = sampler.pick_one(succ)
+            next_state = sampler.sample(succ)
 
             s1_actions[player_name] = action
             next_states[player_name] = next_state

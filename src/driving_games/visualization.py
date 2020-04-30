@@ -7,12 +7,13 @@ from decorator import contextmanager
 from matplotlib import patches
 
 from games import GameVisualization, PlayerName
+from possibilities.sets import One
 from .driving_example import SE2_from_VehicleState
 from .structures import CollisionCost, VehicleActions, VehicleObservation, VehicleState
 
 
 class DrivingGameVisualization(
-    GameVisualization[VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
 ):
     side: D
 
