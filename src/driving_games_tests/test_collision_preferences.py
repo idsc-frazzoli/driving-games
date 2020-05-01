@@ -57,10 +57,11 @@ def test2() -> None:
     )
     o_B = Outcome(private=frozendict({p1: D(13), p2: D(4)}), joint=frozendict())
 
-    outcomes_A = frozenset({o_A})
-    outcomes_B = frozenset({o_B})
-
     game = get_game1()
+
+    outcomes_A = game.ps.lift_one(o_A)
+    outcomes_B = game.ps.lift_one(o_B)
+
     preferences = get_outcome_set_preferences_for_players(game)
 
     preferences_ = tuple(preferences.values())
@@ -68,4 +69,4 @@ def test2() -> None:
 
     res = eq_pref.compare(outcomes_A, outcomes_B)
     logger.info(a=outcomes_A, b=outcomes_B, res=res)
-    assert res == SECOND_PREFERRED
+    assert res == SECOND_PREFERRED, res

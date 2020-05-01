@@ -4,20 +4,24 @@ from typing import Dict, Generic, Mapping, NewType
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
-from zuper_commons.types import check_isinstance
 
+from possibilities import check_poss, Poss
 from preferences import Preference
+from zuper_commons.types import check_isinstance
+from . import GameConstants
 from .game_def import (
-    ASet,
-    check_joint_mixed_actions,
+    check_joint_mixed_actions2,
     check_joint_pure_actions,
     check_joint_state,
+    check_player_options,
     check_set_outcomes,
     Game,
-    JointMixedActions,
+    JointMixedActions2,
     JointPureActions,
     JointState,
     PlayerName,
+    PlayerOptions,
+    Pr,
     RJ,
     RP,
     SetOfOutcomes,
@@ -53,10 +57,10 @@ class SolverParams:
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class GameNode(Generic[X, U, Y, RP, RJ]):
+class GameNode(Generic[Pr, X, U, Y, RP, RJ]):
     states: JointState
-    moves: JointMixedActions
-    outcomes: "Mapping[JointPureActions, GameNode[X, U, Y, RP, RJ]]"
+    moves: PlayerOptions
+    outcomes2: "Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]"
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -64,12 +68,15 @@ class GameNode(Generic[X, U, Y, RP, RJ]):
     joint_final_rewards: Mapping[PlayerName, RJ]
 
     def __post_init__(self):
+        if not GameConstants.checks:
+            return
+
         check_joint_state(self.states)
-        check_joint_mixed_actions(self.moves)
-        check_isinstance(self.outcomes, frozendict, _=self)
-        for pure_actions, game_node in self.outcomes.items():
+        check_player_options(self.moves)
+        check_isinstance(self.outcomes2, frozendict, _=self)
+        for pure_actions, pr_game_node in self.outcomes2.items():
             check_joint_pure_actions(pure_actions)
-            check_isinstance(game_node, GameNode)
+            check_poss(pr_game_node, GameNode)
 
         check_isinstance(self.is_final, frozendict, _=self)
         check_isinstance(self.incremental, frozendict, _=self)
@@ -83,87 +90,93 @@ class GameNode(Generic[X, U, Y, RP, RJ]):
 
 
 @dataclass
-class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ]):
+class GamePlayerPreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
     player_graph: MultiDiGraph
-    alone_tree: Mapping[X, GameNode[X, U, Y, RP, RJ]]
+    alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ]]
 
 
 @dataclass
-class GamePreprocessed(Generic[X, U, Y, RP, RJ]):
-    game: Game[X, U, Y, RP, RJ]
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ]]
+class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
+    game: Game[Pr, X, U, Y, RP, RJ]
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ]]
     game_graph: MultiDiGraph
     solver_params: SolverParams
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class ValueAndActions(Generic[U, RP, RJ]):
-    mixed_actions: JointMixedActions
+    mixed_actions: JointMixedActions2
     game_value: SetOfOutcomes
 
     def __post_init__(self):
-        check_joint_mixed_actions(self.mixed_actions)
-        check_set_outcomes(self.game_value)
+        if not GameConstants.checks:
+            return
+
+        check_joint_mixed_actions2(self.mixed_actions, ValueAndActions=self)
+        check_set_outcomes(self.game_value, ValueAndActions=self)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class SolvedGameNode(Generic[X, U, Y, RP, RJ]):
-    gn: GameNode[X, U, Y, RP, RJ]
-    solved: "Mapping[JointPureActions, SolvedGameNode[X, U, Y, RP, RJ]]"
+class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ]):
+    gn: GameNode[Pr, X, U, Y, RP, RJ]
+    solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ], Pr]]"
 
     va: ValueAndActions[U, RP, RJ]
 
-    # actions: Mapping[PlayerName, ASet[U]]
-    # game_value: ASet[Outcome[RP, RJ]]
-
     def __post_init__(self):
+        if not GameConstants.checks:
+            return
+
         check_isinstance(self.va, ValueAndActions, me=self)
         check_isinstance(self.solved, frozendict, _=self)
-        for _ in self.solved:
+        for _, then in self.solved.items():
             check_joint_pure_actions(_)
+            check_poss(then, SolvedGameNode)
 
 
 @dataclass
-class SolvingContext(Generic[X, U, Y, RP, RJ]):
-    gp: GamePreprocessed[X, U, Y, RP, RJ]
+class SolvingContext(Generic[Pr, X, U, Y, RP, RJ]):
+    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
     cache: Dict[GameNode, SolvedGameNode]
     outcome_set_preferences: Mapping[PlayerName, Preference[SetOfOutcomes]]
 
 
 @dataclass
 class IterationContext:
-    gp: GamePreprocessed[X, U, Y, RP, RJ]
+    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
     cache: dict
     depth: int
 
 
 @dataclass
-class GameSolution(Generic[X, U, Y, RP, RJ]):
-    gn: GameNode[X, U, Y, RP, RJ]
-    gn_solved: SolvedGameNode[X, U, Y, RP, RJ]
+class GameSolution(Generic[Pr, X, U, Y, RP, RJ]):
+    gn: GameNode[Pr, X, U, Y, RP, RJ]
+    gn_solved: SolvedGameNode[Pr, X, U, Y, RP, RJ]
 
-    policies: Mapping[PlayerName, Mapping[X, Mapping[ASet[JointState], ASet[U]]]]
+    policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]]
 
     def __post_init__(self):
-        if False:
-            for player_name, player_policy in self.policies.items():
+        if not GameConstants.checks:
+            return
 
-                check_isinstance(player_policy, frozendict)
-                for own_state, state_policy in player_policy.items():
-                    check_isinstance(state_policy, frozendict)
-                    for istate, us in state_policy.items():
-                        check_isinstance(us, frozenset)
+        for player_name, player_policy in self.policies.items():
+
+            check_isinstance(player_policy, frozendict)
+            for own_state, state_policy in player_policy.items():
+                check_isinstance(state_policy, frozendict)
+                for istate, us in state_policy.items():
+                    check_poss(us)
 
 
 @dataclass
-class SolutionsPlayer(Generic[X, U, Y, RP, RJ]):
+class SolutionsPlayer(Generic[Pr, X, U, Y, RP, RJ]):
     alone_solutions: Mapping[X, GameSolution]
 
 
 @dataclass
-class Solutions(Generic[X, U, Y, RP, RJ]):
+class Solutions(Generic[Pr, X, U, Y, RP, RJ]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer]
-    game_solution: GameSolution[X, U, Y, RP, RJ]
-    game_tree: GameNode[X, U, Y, RP, RJ]
+    game_solution: GameSolution[Pr, X, U, Y, RP, RJ]
+    game_tree: GameNode[Pr, X, U, Y, RP, RJ]
 
     sims: Mapping[str, Simulation]

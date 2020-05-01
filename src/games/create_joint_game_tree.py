@@ -4,21 +4,14 @@ from typing import Dict
 
 from frozendict import frozendict
 
-from .game_def import (
-    JointPureActions,
-    JointState,
-    RJ,
-    RP,
-    U,
-    X,
-    Y,
-)
+from possibilities import Poss
+from .game_def import JointPureActions, JointState, Pr, RJ, RP, U, X, Y
 from .structures_solution import GameNode, IterationContext
 
 __all__ = []
 
 
-def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, RP, RJ]:
+def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, Y, RP, RJ]:
     if N in ic.cache:
         return ic.cache[N]
     states = {k: v for k, v in N.items() if v is not None}
@@ -31,14 +24,12 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
 
     moves = defaultdict(set)
 
-    pure_outcomes: Dict[JointPureActions, GameNode[X, U, Y, RP, RJ]] = {}
+    pure_outcomes: Dict[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]] = {}
 
     ic2 = replace(ic, depth=ic.depth + 1)
     # noinspection PyArgumentList
     for N_, N2, attrs in G.out_edges(N, data=True):
         joint_action: JointPureActions = attrs["action"]
-        # note: can be null
-        # check_joint_pure_actions(joint_action)
 
         for p, m in joint_action.items():
             if m is not None:
@@ -47,7 +38,9 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
         pure_action = frozendict(
             {pname: action for pname, action in joint_action.items() if action is not None}
         )
-        pure_outcomes[pure_action] = create_game_tree(ic2, N2)
+        gt = create_game_tree(ic2, N2)
+
+        pure_outcomes[pure_action] = ic.gp.game.ps.lift_one(gt)
 
     is_final = {}
     for player_name, player_state in states.items():
@@ -76,7 +69,7 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[X, U, Y, R
     res = GameNode(
         moves=frozendict(moves),
         states=frozendict(states),
-        outcomes=frozendict(outcomes),
+        outcomes2=frozendict(outcomes),
         incremental=frozendict({k: frozendict(v) for k, v in incremental.items()}),
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),

@@ -2,7 +2,6 @@ from typing import Tuple, Type, TypeVar
 
 from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print, make_Tuple
-
 from .preferences_base import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -34,8 +33,8 @@ class LexicographicPreference(Preference[Tuple[A, B]]):
         return t
 
     def compare(self, a: Tuple[A, B], b: Tuple[A, B]) -> ComparisonOutcome:
-        check_isinstance(a, tuple)
-        check_isinstance(b, tuple)
+        # check_isinstance(a, tuple)
+        # check_isinstance(b, tuple)
         n = len(self.prefs)
         for i in range(n):
             c_i = self.prefs[i].compare(a[i], b[i])

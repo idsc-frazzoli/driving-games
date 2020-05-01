@@ -4,39 +4,41 @@ from typing import Dict, Generic
 
 from frozendict import frozendict
 
-from .game_def import (
-    GamePlayer,
-    PlayerName,
-    RJ,
-    RP,
-    U,
-    X,
-    Y,
-)
+from .game_def import Game, GamePlayer, PlayerName, Pr, RJ, RP, U, X, Y
 from .structures_solution import GameNode
 
 __all__ = []
 
 
 @dataclass
-class P1Context(Generic[X, U, Y, RP, RJ]):
-    cache: Dict[X, GameNode[X, U, Y, RP, RJ]]
+class P1Context(Generic[Pr, X, U, Y, RP, RJ]):
+
+    cache: Dict[X, GameNode[Pr, X, U, Y, RP, RJ]]
     dt: D
 
 
 def get_one_player_game_tree(
-    *, player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], x0: X, dt: D
-) -> GameNode[X, U, Y, RP, RJ]:
+    *, game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], x0: X, dt: D
+) -> GameNode[Pr, X, U, Y, RP, RJ]:
     context = P1Context({}, dt)
-    return get_1p_game_tree(c=context, player_name=player_name, player=player, x0=x0)
+    return get_1p_game_tree(game=game, c=context, player_name=player_name, player=player, x0=x0)
 
 
 def get_1p_game_tree(
-    *, c: P1Context[X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ], x0: X,
-) -> GameNode[X, U, Y, RP, RJ]:
+    *,
+    game: Game,
+    c: P1Context[Pr, X, U, Y, RP, RJ],
+    player_name: PlayerName,
+    player: GamePlayer[Pr, X, U, Y, RP, RJ],
+    x0: X,
+) -> GameNode[Pr, X, U, Y, RP, RJ]:
+    if x0 in c.cache:
+        return c.cache[x0]
+    # logger.info('game tree', x0=x0)
     assert not isinstance(x0, set), x0
     prs = player.personal_reward_structure
     dyn = player.dynamics
+    ps = game.ps
 
     states = frozendict({player_name: x0})
 
@@ -56,8 +58,12 @@ def get_1p_game_tree(
         outcomes = {}
         for u, x1s in successors.items():
             actions = frozendict({player_name: u})
-            x1 = list(x1s)[0]  # XXX: no multimodal
-            outcomes[actions] = get_1p_game_tree(c=c, player_name=player_name, player=player, x0=x1)
+
+            r = ps.build(
+                x1s, lambda _: get_1p_game_tree(game=game, c=c, player_name=player_name, player=player, x0=_)
+            )
+
+            outcomes[actions] = r
 
         outcomes = frozendict(outcomes)
     joint_final_rewards = frozendict()
@@ -65,7 +71,7 @@ def get_1p_game_tree(
     res = GameNode(
         states=states,
         moves=moves,
-        outcomes=outcomes,
+        outcomes2=outcomes,
         is_final=is_final,
         incremental=incremental,
         joint_final_rewards=joint_final_rewards,

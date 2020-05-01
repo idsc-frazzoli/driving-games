@@ -1,17 +1,19 @@
 from decimal import Decimal as D
 
-from .game_def import AgentBelief, ASet, Dynamics, JointState, U, X
+from possibilities import Poss, PossibilityStructure
+from .game_def import AgentBelief, Dynamics, JointState, Pr, U, X
 
 __all__ = ["RandomAgent"]
 
 
-class RandomAgent(AgentBelief[X, U]):
-    dynamics: Dynamics[X, U]
+class RandomAgent(AgentBelief[Pr, X, U]):
+    dynamics: Dynamics[Pr, X, U]
+    ps: PossibilityStructure[Pr]
 
-    def __init__(self, dynamics: Dynamics[X, U]):
+    def __init__(self, dynamics: Dynamics[Pr, X, U], ps: PossibilityStructure[Pr]):
         self.dynamics = dynamics
+        self.ps = ps
 
-    def get_commands(self, state_self: X, state_others: ASet[JointState]) -> ASet[U]:
+    def get_commands(self, state_self: X, state_others: Poss[JointState, Pr]) -> Poss[U, Pr]:
         options = self.dynamics.successors(state_self, dt=D(1))  # doesn't matter
-        possible = list(options)
-        return frozenset(possible)
+        return self.ps.lift_many(options)

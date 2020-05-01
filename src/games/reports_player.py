@@ -2,14 +2,16 @@ import networkx as nx
 from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
-from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y
+from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y, Pr
 from .structures_solution import GamePreprocessed
 
 __all__ = []
 
 
 def report_player(
-    game_pre: GamePreprocessed[X, U, Y, RP, RJ], player_name: PlayerName, player: GamePlayer[X, U, Y, RP, RJ],
+    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ],
+    player_name: PlayerName,
+    player: GamePlayer[Pr, X, U, Y, RP, RJ],
 ):
     pp = game_pre.players_pre[player_name]
     viz = game_pre.game.game_visualization
