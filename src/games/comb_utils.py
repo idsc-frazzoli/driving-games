@@ -1,20 +1,14 @@
-import itertools
 from collections import defaultdict
-from typing import AbstractSet, Callable, Collection, Dict, FrozenSet, Iterable, Mapping, Set, TypeVar
+from collections import defaultdict
+from typing import Callable, Collection, Dict, FrozenSet, Mapping, Set, TypeVar
 
 import toolz
 from frozendict import frozendict
 
-from possibilities import Poss, PossibilityStructure
 from .game_def import (
-    check_joint_mixed_actions2,
-    check_joint_pure_actions,
-    JointMixedActions2,
     JointPureActions,
     PlayerName,
     PlayerOptions,
-    Pr,
-    SetOfOutcomes,
     U,
 )
 

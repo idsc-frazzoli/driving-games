@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from functools import reduce
 from itertools import permutations
-from typing import AbstractSet, Callable, Collection, FrozenSet, Iterator, Mapping, Tuple, TypeVar
+from typing import AbstractSet, Callable, Collection, Dict, FrozenSet, Iterator, Mapping, Tuple, TypeVar
 
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
@@ -15,8 +15,6 @@ from .base import PossibilityStructure, Sampler, Φ
 from .poss import Poss
 
 __all__ = ["ProbabilityFraction"]
-
-from .sets import SetPoss
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -86,7 +84,7 @@ class ProbabilityFraction(PossibilityStructure[Fraction]):
     def build_multiple(self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]) -> ProbPoss[B]:
         sources = list(a)
         supports = [_.support() for _ in sources]
-        res = defaultdict(Fraction)
+        res: Dict[Mapping[K, A], Fraction] = defaultdict(Fraction)
         for _ in itertools.product(*tuple(supports)):
             elements = frozendict(zip(sources, _))
             probs = [a[source].get(elements[source]) for source in sources]
@@ -149,8 +147,6 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     return res
 
 
-# def permute(c, _):
-#     return tuple(c[i] for i in _)
 
 
 class ProbSampler(Sampler[Fraction]):

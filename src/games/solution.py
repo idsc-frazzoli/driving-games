@@ -1,25 +1,22 @@
-import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from typing import Callable, Dict, Generic, Mapping
 
 from frozendict import frozendict
 from networkx import simple_cycles
-from toolz import keyfilter
 
 from possibilities import Poss
 from preferences import PrefConverter, Preference
-from zuper_commons.types import check_isinstance, ZException, ZNotImplementedError, ZValueError
+from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
 from . import logger
 from .agent import RandomAgent
-from .comb_utils import get_all_choices_by_players, valmap
+from .agent_from_policy import AgentFromPolicy
 from .create_joint_game_tree import create_game_tree
 from .equilibria import (
     analyze_equilibria,
     EquilibriaAnalysis,
 )
 from .game_def import (
-    AgentBelief,
     check_joint_mixed_actions2,
     Combined,
     Game,
@@ -38,6 +35,7 @@ from .game_def import (
     Y,
 )
 from .simulate import simulate1, Simulation
+from .solution_ghost import get_ghost_tree
 from .solution_security import get_mixed2, get_security_policies
 from .structures_solution import (
     check_joint_pure_actions,
@@ -180,155 +178,6 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]) -> Solutions[Pr, X, U, Y, 
     # logger.info(game_tree=game_tree)
 
 
-class DoesNotKnowPolicy(ZException):
-    pass
-
-
-class AgentFromPolicy(AgentBelief[Pr, X, U]):
-    policy: Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]
-
-    def __init__(self, policy: Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]):
-        self.policy = policy
-
-    def get_commands(self, state_self: X, state_others: Poss[JointState, Pr]) -> Poss[U, Pr]:
-        if state_self not in self.policy:
-            msg = "I do not know the policy for this state"
-            raise DoesNotKnowPolicy(
-                msg, state_self=state_self, state_others=state_others, states_self_known=set(self.policy),
-            )
-
-        lookup = self.policy[state_self]
-        if len(lookup) == 1:
-            return list(lookup.values())[0]
-
-        if state_others in lookup:
-            return lookup[state_others]
-        else:
-            raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)
-
-
-def get_ghost_tree(
-    gp: GamePreprocessed,
-    player_name: PlayerName,
-    game_tree: GameNode[Pr, X, U, Y, RP, RJ],
-    controllers: Mapping[PlayerName, AgentBelief[Pr, X, U]],
-) -> GameNode[Pr, X, U, Y, RP, RJ]:
-    assert len(controllers) >= 1, controllers
-    assert player_name not in controllers, (player_name, set(controllers))
-
-    roc = ROContext(gp, {}, controllers, dreamer=player_name)
-    return replace_others(roc, game_tree)
-
-
-@dataclass
-class ROContext:
-    gp: GamePreprocessed
-    cache: Dict[GameNode[Pr, X, U, Y, RP, RJ], GameNode[Pr, X, U, Y, RP, RJ]]
-    controllers: Mapping[PlayerName, AgentBelief[Pr, X, U]]
-    dreamer: PlayerName
-
-
-def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> GameNode[Pr, X, U, Y, RP, RJ]:
-    ps = roc.gp.game.ps
-    if node in roc.cache:
-        return roc.cache[node]
-    assert roc.dreamer not in roc.controllers
-    assert roc.controllers
-    # what would the fixed ones do?
-    # evaluate the results
-    action_fixed: Dict[PlayerName, Poss[U, Pr]] = {}
-    for player_name in node.states:
-        # for player_name, controller in controllers.items():
-        if player_name in node.is_final:
-            continue
-        if player_name in node.joint_final_rewards:
-            continue
-        if player_name == roc.dreamer:
-            continue
-        state_self = node.states[player_name]
-        state_others: JointState = frozendict({k: v for k, v in node.states.items() if k != player_name})
-        istate = roc.gp.game.ps.lift_one(state_others)
-        options = roc.controllers[player_name].get_commands(state_self, istate)
-        # if len(options) != 1:
-        #     raise ZNotImplementedError(options=options)
-        action_fixed[player_name] = options
-
-    still_moving = set(node.moves) - set(action_fixed)
-    # now we redo everything:
-
-    res: Dict[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]] = {}
-
-    players = list(still_moving)
-
-    if players:
-        choices = [node.moves[_] for _ in players]
-        for _ in itertools.product(*tuple(choices)):
-            active_pure_action = frozendict(zip(players, _))
-            active_mixed: Dict[PlayerName, Poss[U, Pr]]
-            active_mixed = valmap(ps.lift_one, active_pure_action)
-            active_mixed.update(action_fixed)
-
-            # find out which actions are compatible
-            def f(a: JointPureActions) -> Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]:
-                if a not in node.outcomes2:
-                    raise ZValueError(a=a, node=node, choices=choices, av=set(node.outcomes2))
-                nodes2: Poss[GameNode, Pr] = node.outcomes2[a]
-
-                def g(r: GameNode) -> GameNode:
-                    return replace_others(roc, r)
-
-                return ps.build(nodes2, g)
-
-            m: Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr] = ps.flatten(ps.build_multiple(active_mixed, f))
-            res[active_pure_action] = m
-    moves = frozendict(keyfilter(still_moving.__contains__, node.moves))
-
-    ret: GameNode[Pr, X, U, Y, RP, RJ]
-    ret = GameNode(
-        states=node.states,
-        moves=moves,
-        outcomes2=frozendict(res),
-        is_final=node.is_final,
-        incremental=node.incremental,
-        joint_final_rewards=node.joint_final_rewards,
-    )
-    roc.cache[node] = ret
-    return ret
-    #
-    #
-    # compatible: Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]
-    # compatible = {k: v for k, v in node.outcomes2.items()
-    #               if is_compatible(k, action_others)}
-    #
-    #
-    #
-    # outcomes = Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]
-    # outcomes = {
-    #     k: replace_others(dreamer, v, controllers, cache)
-    #     for k, v in node.outcomes.items()
-    #     if is_compatible(k, action_others)
-    # }
-
-    # logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
-
-    # moves = get_all_choices_by_players(set(outcomes))
-    # for player_name in action_others:
-    #     if len(moves[player_name]) != 1:
-    #         raise ZValueError(
-    #             moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves
-    #         )
-
-    # if len(moves) == len(node.moves):
-    #     raise ZValueError(moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves)
-
-
-def is_compatible(a: JointPureActions, constraints: JointPureActions) -> bool:
-    for k, v in constraints.items():
-        if a[k] != v:
-            return False
-    return True
-
-
 def get_outcome_set_preferences_for_players(
     game: Game[Pr, X, U, Y, RP, RJ],
 ) -> Mapping[PlayerName, Preference[SetOfOutcomes]]:
@@ -337,7 +186,7 @@ def get_outcome_set_preferences_for_players(
         # Comparse Combined[RJ, RP]
         pref0: Preference[Combined[RJ, RP]] = player.preferences
         pref1: Preference[Outcome[RJ, RP]]
-        pref1 = PrefConverter(A=Outcome, B=Combined, convert=CombinedFromOutcome(player_name), p0=pref0)
+        pref1 = PrefConverter(AT=Outcome, BT=Combined, convert=CombinedFromOutcome(player_name), p0=pref0)
         # compares Aset(Combined[RJ, RP]
         set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P, Pr]]]
         set_preference_aggregator = player.set_preference_aggregator
@@ -580,7 +429,6 @@ def solve_final_personal_both(
     game_value = sc.gp.game.ps.lift_one(outcome)
     actions = frozendict()
     return ValueAndActions(game_value=game_value, mixed_actions=actions)
-
 
 #
 # def solve_1_player_final(gn: GameNode[Pr, X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:

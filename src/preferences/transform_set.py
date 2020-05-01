@@ -14,6 +14,7 @@ class TransformSet(Generic[A, B]):
     def __call__(self, X: ASet[A]) -> ASet[B]:
         res = set()
         for a in X:
-            b = self.convert(a)
+            c: Callable[[A], B] = self.convert
+            b = c(a)
             res.add(b)
         return frozenset(res)

@@ -63,11 +63,20 @@ def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -
 def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
     if A is B:
         return INDIFFERENT
+
+    has_first_preferred = False
+    has_second_preferred = False
     all_res = set()
     for a in A:
         for b in B:
             r1 = pref.compare(a, b)
             if r1 == INCOMPARABLE:
+                return INCOMPARABLE
+            if r1 == FIRST_PREFERRED:
+                has_first_preferred = True
+            if r1 == SECOND_PREFERRED:
+                has_second_preferred = True
+            if has_first_preferred and has_second_preferred:
                 return INCOMPARABLE
             all_res.add(r1)
 
