@@ -4,21 +4,11 @@ from typing import FrozenSet, Mapping, Tuple
 
 import numpy as np
 
-from driving_games import CollisionCost, VehicleActions, VehicleState
 from games import JointRewardStructure, PlayerName
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
+from .structures import CollisionCost, VehicleActions, VehicleState
 
-
-def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float], ...]:
-    ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
-    res = []
-    for i in range(-n, +n + 1):
-        x2 = s.x + s.v * D(i) * dt
-        p = SE2_from_xytheta([float(x2), 0, 0])
-        p2 = SE2.multiply(ref, p)
-        x1, y1, _ = xytheta_from_SE2(p2)
-        res.append((x1, y1))
-    return tuple(res)
+__all__ = ["VehicleJointReward"]
 
 
 class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, CollisionCost]):
@@ -57,3 +47,15 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         for p in players:
             res[p] = CollisionCost(xs[p].v)
         return res
+
+
+def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float], ...]:
+    ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
+    res = []
+    for i in range(-n, +n + 1):
+        x2 = s.x + s.v * D(i) * dt
+        p = SE2_from_xytheta([float(x2), 0, 0])
+        p2 = SE2.multiply(ref, p)
+        x1, y1, _ = xytheta_from_SE2(p2)
+        res.append((x1, y1))
+    return tuple(res)

@@ -15,9 +15,7 @@ from games import (
 from possibilities import One, PossibilityStructure, ProbabilitySet
 from preferences import SetPreference1
 from . import logger
-from .driving_example import (
-    VehiclePersonalRewardStructureTime,
-)
+from .driving_example import VehiclePersonalRewardStructureTime
 from .joint_reward import VehicleJointReward
 from .pref_coll_time import VehiclePreferencesCollTime
 from .structures import (

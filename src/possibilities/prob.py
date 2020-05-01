@@ -147,8 +147,6 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     return res
 
 
-
-
 class ProbSampler(Sampler[Fraction]):
     def __init__(self, seed: int):
         self.rs = RandomState(seed)

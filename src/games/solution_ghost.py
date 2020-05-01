@@ -33,7 +33,7 @@ class ROContext:
     dreamer: PlayerName
 
 
-def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ], ) -> GameNode[Pr, X, U, Y, RP, RJ]:
+def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> GameNode[Pr, X, U, Y, RP, RJ]:
     ps = roc.gp.game.ps
     if node in roc.cache:
         return roc.cache[node]

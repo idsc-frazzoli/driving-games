@@ -2,9 +2,7 @@ from decimal import Decimal as D, localcontext
 
 import numpy as np
 
-from games import (
-    PersonalRewardStructure,
-)
+from games import PersonalRewardStructure
 from geometry import SE2, SE2_from_xytheta
 from zuper_commons.types import check_isinstance
 from .structures import VehicleActions, VehicleState
@@ -45,5 +43,3 @@ def SE2_from_VehicleState(s: VehicleState):
     p = SE2_from_xytheta([float(s.x), 0, 0])
     ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
     return SE2.multiply(ref, p)
-
-

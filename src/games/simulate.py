@@ -4,8 +4,20 @@ from typing import Dict, Generic, Mapping, Optional, TypeVar
 
 from frozendict import frozendict
 
-from .game_def import (AgentBelief, check_joint_pure_actions, Game, JointPureActions, JointState, PlayerName, Pr, RJ,
-                       RP, U, X, Y)
+from .game_def import (
+    AgentBelief,
+    check_joint_pure_actions,
+    Game,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    Pr,
+    RJ,
+    RP,
+    U,
+    X,
+    Y,
+)
 
 __all__ = []
 

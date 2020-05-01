@@ -94,4 +94,3 @@ def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> Compa
     if all_res == {INDIFFERENT, SECOND_PREFERRED} or all_res == {SECOND_PREFERRED}:
         return SECOND_PREFERRED
     assert False, all_res
-

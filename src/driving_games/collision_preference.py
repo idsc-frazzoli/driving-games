@@ -1,10 +1,19 @@
 from decimal import Decimal as D
 from typing import Optional, Type
 
-from .structures import CollisionCost
-from preferences import (COMP_OUTCOMES, ComparisonOutcome, FIRST_PREFERRED, INDIFFERENT, Preference, SECOND_PREFERRED,
-                         SmallerPreferredTol)
+from preferences import (
+    COMP_OUTCOMES,
+    ComparisonOutcome,
+    FIRST_PREFERRED,
+    INDIFFERENT,
+    Preference,
+    SECOND_PREFERRED,
+    SmallerPreferredTol,
+)
 from zuper_typing import debug_print
+from .structures import CollisionCost
+
+__all__ = ["CollisionPreference"]
 
 
 class CollisionPreference(Preference[Optional[CollisionCost]]):
@@ -19,7 +28,7 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
             return INDIFFERENT
         if a is None and b is not None:
             return FIRST_PREFERRED
-        if a is not None and  b is None:
+        if a is not None and b is None:
             return SECOND_PREFERRED
         res = self.p.compare(a.v, b.v)
         assert res in COMP_OUTCOMES, (res, self.p)

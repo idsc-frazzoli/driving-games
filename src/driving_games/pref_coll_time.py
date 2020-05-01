@@ -2,10 +2,18 @@ from decimal import Decimal as D
 from typing import Type
 
 from games import Combined
-from preferences import COMP_OUTCOMES, ComparisonOutcome, LexicographicPreference, Preference, SmallerPreferredTol
+from preferences import (
+    COMP_OUTCOMES,
+    ComparisonOutcome,
+    LexicographicPreference,
+    Preference,
+    SmallerPreferredTol,
+)
 from zuper_typing import debug_print
 from .collision_preference import CollisionPreference
 from .structures import CollisionCost
+
+__all__ = ["VehiclePreferencesCollTime"]
 
 
 class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):

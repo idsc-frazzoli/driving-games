@@ -259,6 +259,7 @@ def _solve_game(
         check_set_outcomes(flattened)
         # Now we need to add the incremental costs
         f = lambda _: add_incremental_cost(gp=sc.gp, incremental_for_player=inc, outcome=_)
+        # logger.info(flattened=flattened)
         added: SetOfOutcomes = ps.build(flattened, f)
 
         check_set_outcomes(added)
@@ -295,6 +296,7 @@ def add_incremental_cost(
     outcome: Outcome[RP, RJ],
     incremental_for_player: Mapping[PlayerName, RP],
 ) -> Outcome[RP, RJ]:
+    check_isinstance(outcome, Outcome)
     private = {}
     # logger.info(outcome=outcome, action=action, incremental=incremental)
     u: U
@@ -314,8 +316,9 @@ def solve_equilibria(
     gn: GameNode[Pr, X, U, Y, RP, RJ],
     solved: Mapping[JointPureActions, SetOfOutcomes],
 ) -> ValueAndActions[U, RP, RJ]:
-    for pure_action in solved:
-        check_joint_pure_actions(pure_action)
+    ps = sc.gp.game.ps
+    # for pure_action in solved:
+    #     check_joint_pure_actions(pure_action)
 
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "
@@ -341,33 +344,40 @@ def solve_equilibria(
         # but if there is only one outcome,
         # then that is the game value
         # TODO: think more
-        if len(outcomes) == 1:
-            game_value = list(outcomes)[0]
-            mixed_actions_ = list(ea.nondom_nash_equilibria)[0]
-            # mixed_actions_ = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
-            return ValueAndActions(game_value=game_value, mixed_actions=mixed_actions_)
+        if False:
+            if len(outcomes) == 1:
+                game_value2 = list(outcomes)[0]
+                mixed_actions_ = list(ea.nondom_nash_equilibria)[0]
+                # mixed_actions_ = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
+                return ValueAndActions(game_value=game_value2, mixed_actions=mixed_actions_)
 
         strategy = sc.gp.solver_params.strategy_multiple_nash
         if strategy == STRATEGY_MIX:
-            raise NotImplementedError()
-            # mixed_actions: JointMixedActions2 = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
-            #
-            # # Assume that we will have any of the combinations
-            # set_pure_actions: ASet[JointPureActions]
-            # set_pure_actions = get_all_combinations(mixed_actions=mixed_actions)
-            # game_value_: Set[Outcome[RP, RJ]] = set()
-            # for pure_action in set_pure_actions:
-            #     _outcomes = ea.ps[pure_action].outcome
-            #     game_value_.update(_outcomes)
-            # game_value__: SetOfOutcomes = frozenset(game_value_)
-            # return ValueAndActions(game_value=game_value__, mixed_actions=mixed_actions)
+            # XXX: Not really sure this makes sense when there are probability
+            profile: Dict[PlayerName, Poss[U, Pr]] = {}
+            for player_name in players_active:
+                # find all the mixed strategies he would play at equilibria
+                res = set()
+                for _ in ea.nondom_nash_equilibria:
+                    res.add(_[player_name])
+                strategy = ps.flatten(ps.lift_many(res))
+                # check_poss(strategy)
+                profile[player_name] = strategy
+            # profile = frozendict(profile)
+
+            def f(y: JointPureActions) -> JointPureActions:
+                return frozendict(y)
+
+            dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=profile, f=f)
+
+            game_value1: Poss[SetOfOutcomes, Pr] = ps.flatten(ps.build(dist, solved.__getitem__))
+            # logger.info(dist=dist, game_value1=game_value1)
+            return ValueAndActions(game_value=game_value1, mixed_actions=frozendict(profile))
 
         elif strategy == STRATEGY_SECURITY:
             ps = sc.gp.game.ps
             security_policies: JointMixedActions2
-            security_policies = get_security_policies(
-                ps=ps, solved=solved, preferences=sc.outcome_set_preferences, ea=ea
-            )
+            security_policies = get_security_policies(ps, solved, sc.outcome_set_preferences, ea)
             check_joint_mixed_actions2(security_policies)
             dist: Poss[JointPureActions, Pr]
             dist = get_mixed2(ps, security_policies)
@@ -429,6 +439,7 @@ def solve_final_personal_both(
     game_value = sc.gp.game.ps.lift_one(outcome)
     actions = frozendict()
     return ValueAndActions(game_value=game_value, mixed_actions=actions)
+
 
 #
 # def solve_1_player_final(gn: GameNode[Pr, X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:

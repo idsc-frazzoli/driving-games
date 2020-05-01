@@ -62,7 +62,6 @@ def test2() -> None:
     outcomes_A = game.ps.lift_one(o_A)
     outcomes_B = game.ps.lift_one(o_B)
 
-
     preferences = get_outcome_set_preferences_for_players(game)
 
     preferences_ = tuple(preferences.values())

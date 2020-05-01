@@ -8,3 +8,6 @@ from .driving_example import *
 from .game_generation import *
 from .structures import *
 from .visualization import *
+from .collision_preference import *
+from .pref_coll_time import *
+from .joint_reward import *
