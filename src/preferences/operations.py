@@ -4,7 +4,7 @@ from frozendict import frozendict
 
 from .preferences_base import FIRST_PREFERRED, Preference, SECOND_PREFERRED
 
-__all__ = ["remove_dominated"]
+__all__ = ["remove_dominated", "worst_cases"]
 
 A = TypeVar("A")
 B = TypeVar("B")

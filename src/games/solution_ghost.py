@@ -5,11 +5,11 @@ from typing import Dict, Mapping
 from frozendict import frozendict
 from toolz import keyfilter
 
-from games import GameNode, GamePreprocessed, JointPureActions, JointState, PlayerName, RJ, RP, U, X, Y
-from games.comb_utils import valmap
-from games.game_def import AgentBelief, Pr
 from possibilities import Poss
 from zuper_commons.types import ZValueError
+from .comb_utils import valmap
+from .game_def import AgentBelief, JointPureActions, JointState, PlayerName, Pr, RJ, RP, U, X, Y
+from .structures_solution import GameNode, GamePreprocessed
 
 
 def get_ghost_tree(
@@ -99,29 +99,3 @@ def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> Game
     )
     roc.cache[node] = ret
     return ret
-    #
-    #
-    # compatible: Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]
-    # compatible = {k: v for k, v in node.outcomes2.items()
-    #               if is_compatible(k, action_others)}
-    #
-    #
-    #
-    # outcomes = Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]
-    # outcomes = {
-    #     k: replace_others(dreamer, v, controllers, cache)
-    #     for k, v in node.outcomes.items()
-    #     if is_compatible(k, action_others)
-    # }
-
-    # logger.info(action_others=action_others, original=set(node.outcomes), compatible=set(outcomes))
-
-    # moves = get_all_choices_by_players(set(outcomes))
-    # for player_name in action_others:
-    #     if len(moves[player_name]) != 1:
-    #         raise ZValueError(
-    #             moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves
-    #         )
-
-    # if len(moves) == len(node.moves):
-    #     raise ZValueError(moves=moves, dreamer=dreamer, controllers=list(controllers), orig_moves=node.moves)

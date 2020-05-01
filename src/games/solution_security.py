@@ -1,12 +1,11 @@
 import itertools
-from typing import Dict, FrozenSet, List, Mapping, Tuple
+from typing import Dict, FrozenSet, Mapping
 
 from frozendict import frozendict
 from toolz import keyfilter
 
 from possibilities import check_poss, Poss, PossibilityStructure
-from preferences import Preference, remove_dominated
-from preferences.operations import worst_cases
+from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
 from .game_def import (
@@ -114,17 +113,7 @@ def get_mixed(
     results: Dict[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes] = {}
     for choices in itertools.product(*tuple(players_strategies)):
         choice: Mapping[PlayerName, Poss[U, Pr]] = frozendict(zip(players_ordered, choices))
-        #
-        # p: List[Tuple[JointPureActions, Pr]] = []
-        # choose: List[FrozenSet[U]] = [choice[k].support() for k in players_ordered]
-        # for pure in itertools.product(*tuple(choose)):
-        #     pure_action: JointPureActions = frozendict(zip(players_ordered, pure))
-        #     probs: Tuple = tuple(
-        #         choice[player_name].get(pure_action[player_name])
-        #         for player_name in players_ordered
-        #     )
-        #     p.append((pure_action, ps.multiply(probs)))
-        # dist: Poss[JointPureActions, Pr] = ps.fold(p)
+
         dist: Poss[JointPureActions, Pr]
         dist = get_mixed2(ps, choice)
         mixed_outcome: Poss[SetOfOutcomes, Pr] = ps.build(dist, pure_outcomes.__getitem__)
@@ -142,18 +131,6 @@ def get_mixed2(
             if isinstance(x, Poss):
                 raise ZValueError(x=x, v=v, k=k, mixed=mixed)
 
-    # p: List[Tuple[JointPureActions, Pr]] = []
-    # players_ordered = list(mixed)
-    # choose: List[FrozenSet[U]] = [mixed[k].support() for k in players_ordered]
-    # for pure in itertools.product(*tuple(choose)):
-    #     pure_action: JointPureActions = frozendict(zip(players_ordered, pure))
-    #     check_joint_pure_actions(pure_action, pure=pure, choose=choose, mixed=mixed)
-    #     probs: Tuple = tuple(
-    #         mixed[player_name].get(pure_action[player_name]) for player_name in players_ordered
-    #     )
-    #     p.append((pure_action, ps.multiply(probs)))
-    # dist: Poss[JointPureActions, Pr] = ps.fold(p)
-
     def f(y: JointPureActions) -> JointPureActions:
         return y
 
@@ -162,18 +139,3 @@ def get_mixed2(
     for _ in dist.support():
         check_joint_pure_actions(_)
     return dist
-
-
-#
-# def add_action(
-#     ps: PossibilityStructure[Pr],
-#     player_name: PlayerName,
-#     player_action: U,
-#     set_pure_actions_others: Poss[JointPureActions, Pr],
-# ) -> Poss[JointPureActions, Pr]:
-#     def add(x: JointPureActions) -> JointPureActions:
-#         v2 = dict(x)
-#         v2[player_name] = player_action
-#         return v2
-#
-#     return ps.build(set_pure_actions_others, add)

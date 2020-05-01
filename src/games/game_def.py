@@ -4,7 +4,6 @@ from decimal import Decimal as D
 from numbers import Number
 from typing import (
     Callable,
-    # FrozenSet as ASet,
     FrozenSet,
     Generic,
     Mapping,
@@ -16,11 +15,10 @@ from typing import (
 
 from frozendict import frozendict
 
-from games import GameConstants
-from zuper_commons.types import check_isinstance, ZValueError
-
 from possibilities import check_poss, Poss, PossibilityStructure
 from preferences import Preference
+from zuper_commons.types import check_isinstance, ZValueError
+from . import GameConstants
 
 __all__ = [
     "Dynamics",
@@ -71,10 +69,6 @@ SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
 
 
 class Dynamics(Generic[Pr, X, U], ABC):
-    # @abstractmethod
-    # def all_states(self) -> AbstractSet[X]:
-    #     """ Returns all possible states """
-
     @abstractmethod
     def all_actions(self) -> FrozenSet[U]:
         """ Returns all actions possible (not all are available at each state). """
@@ -118,7 +112,6 @@ class Combined(Generic[RJ, RP]):
     joint: Optional[RJ]
 
 
-#
 P = TypeVar("P")
 
 

@@ -35,12 +35,6 @@ from .game_def import (
 __all__ = []
 
 
-# Choice = TypeVar("Choice")
-# Choice = ASet[U]
-# Mapping[PlayerName, Choice] -> JointMixedActions
-# O -> SetOfOutcomes
-
-
 @dataclass
 class PointStats(Generic[Pr, X, U, Y, RP, RJ]):
     happy: FrozenSet[PlayerName]
@@ -74,20 +68,6 @@ class EquilibriaAnalysis(Generic[Pr, X, U, Y, RP, RJ]):
             check_joint_mixed_actions2(_)
 
 
-# @dataclass
-# class Combos(Generic[Pr, X, U, Y, RP, RJ]):
-#     all_comb: FrozenSet[JointPureActions]
-#     player2choices: JointMixedActions2
-#
-#     def __post_init__(self):
-#         if not GameConstants.checks:
-#             return
-#
-#         check_isinstance(self.all_comb, frozenset)
-#         for _ in self.all_comb:
-#             check_joint_pure_actions(_)
-
-
 def analyze_equilibria(
     *,
     ps: PossibilityStructure[Pr],
@@ -95,11 +75,6 @@ def analyze_equilibria(
     solved: Mapping[JointPureActions, SetOfOutcomes],
     preferences: Mapping[PlayerName, Preference[SetOfOutcomes]],
 ) -> EquilibriaAnalysis:
-    # First we want to make sure that there are all combinations
-    # combos: Combos[Pr, X, U, Y, RP, RJ] = check_contains_all_combo(frozenset(solved))
-    # player_names = set(combos.player2choices)
-    # if set(preferences) != set(player_names):  # pragma: no cover
-    #     raise ZValueError(solved=solved, preferences=preferences)
 
     # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
@@ -115,28 +90,14 @@ def analyze_equilibria(
     results: Dict[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes] = {}
     for choices in itertools.product(*tuple(players_strategies)):
         choice: Mapping[PlayerName, Poss[U, Pr]] = frozendict(zip(players_ordered, choices))
-        #
-        # p: List[Tuple[JointPureActions, Pr]] = []
-        # choose: List[FrozenSet[U]] = [choice[k].support() for k in players_ordered]
-        # for pure in itertools.product(*tuple(choose)):
-        #     pure_action: JointPureActions = frozendict(zip(players_ordered, pure))
-        #     probs: Tuple = tuple(
-        #         choice[player_name].get(pure_action[player_name]) for player_name in players_ordered
-        #     )
-        #
-        #     p.append((pure_action, ps.multiply(probs)))
-        # dist: Poss[JointPureActions, Pr] = ps.fold(p)
-        #
+
         def f(y: JointPureActions) -> JointPureActions:
             return y
 
         dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=choice, f=f)
-        # logger.info(dist=dist,
-        #             solved=solved)
+
         mixed_outcome: Poss[SetOfOutcomes, Pr] = ps.build(dist, solved.__getitem__)
         results[choice] = ps.flatten(mixed_outcome)
-
-    # logger.info(results=results)
 
     return analyze(player_mixed_strategies, results, preferences)
 
@@ -165,9 +126,6 @@ def analyze(
             variations_: Mapping[U, Mapping[PlayerName, Poss[U, Pr]]] = variations(
                 player_mixed_strategies, x0, player_name
             )
-            # if not variations_:
-            #     logger.info(combos=combos,x0=x0, player_name=player_name)
-            # assert len(variations_) >= 1
             alternatives_player = {}
             # logger.info('looking for variations', variations_=variations_)
             for action_to_change, x1 in variations_.items():

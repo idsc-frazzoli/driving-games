@@ -341,19 +341,10 @@ def solve_equilibria(
     else:
         # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
-        # but if there is only one outcome,
-        # then that is the game value
-        # TODO: think more
-        if False:
-            if len(outcomes) == 1:
-                game_value2 = list(outcomes)[0]
-                mixed_actions_ = list(ea.nondom_nash_equilibria)[0]
-                # mixed_actions_ = get_all_choices_by_players(set(ea.nondom_nash_equilibria))
-                return ValueAndActions(game_value=game_value2, mixed_actions=mixed_actions_)
 
         strategy = sc.gp.solver_params.strategy_multiple_nash
         if strategy == STRATEGY_MIX:
-            # XXX: Not really sure this makes sense when there are probability
+            # XXX: Not really sure this makes sense when there are probabilities
             profile: Dict[PlayerName, Poss[U, Pr]] = {}
             for player_name in players_active:
                 # find all the mixed strategies he would play at equilibria
@@ -363,7 +354,6 @@ def solve_equilibria(
                 strategy = ps.flatten(ps.lift_many(res))
                 # check_poss(strategy)
                 profile[player_name] = strategy
-            # profile = frozendict(profile)
 
             def f(y: JointPureActions) -> JointPureActions:
                 return frozendict(y)
@@ -394,13 +384,10 @@ def solve_equilibria(
             assert False, strategy
 
 
-
-
 @dataclass(frozen=True)
 class CombinedFromOutcome(Generic[RP, RJ]):
     name: PlayerName
 
-    # @lru_cache(None)
     def __call__(self, outcome: Outcome[RP, RJ]) -> Combined[RJ, RP]:
         # check_isinstance(outcome, Outcome, _self=self)
         combined = Combined(joint=outcome.joint.get(self.name, None), personal=outcome.private[self.name])
@@ -424,36 +411,3 @@ def solve_final_personal_both(
     game_value = sc.gp.game.ps.lift_one(outcome)
     actions = frozendict()
     return ValueAndActions(game_value=game_value, mixed_actions=actions)
-
-
-#
-# def solve_1_player_final(gn: GameNode[Pr, X, U, Y, RP, RJ]) -> ValueAndActions[U, RP, RJ]:
-#     p = list(gn.states)[0]
-#     # logger.info(f"final for {p}")
-#     game_value = frozenset({Outcome(private=frozendict({p: gn.is_final[p]}), joint=frozendict())})
-#     actions = frozendict()
-#     return ValueAndActions(game_value=game_value, mixed_actions=actions)
-
-#
-# def solve_1_player(
-#     sc: SolvingContext[Pr, X, U, Y, RP, RJ],
-#     player_name: PlayerName,
-#     gn: GameNode[Pr, X, U, Y, RP, RJ],
-#     solved: Mapping[JointPureActions, SetOfOutcomes],
-# ) -> ValueAndActions[U, RP, RJ]:
-#     for pure_action in solved:
-#         check_joint_pure_actions(pure_action)
-#
-#     pref = sc.outcome_set_preferences[player_name]
-#     nondominated = remove_dominated(solved, pref)
-#
-#     all_actions = frozenset({_[player_name] for _ in nondominated})
-#     actions = frozendict({player_name: all_actions})
-#
-#     value = set()
-#     for action, out in nondominated.items():
-#         value.update(out)
-#
-#     game_value = frozenset(value)
-#
-#     return ValueAndActions(game_value=game_value, mixed_actions=actions)

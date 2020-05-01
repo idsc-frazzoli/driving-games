@@ -1,9 +1,8 @@
 from typing import Mapping
 
-from games import JointState, U, X
-from games.game_def import AgentBelief, Pr
 from possibilities import Poss
 from zuper_commons.types import ZException, ZNotImplementedError
+from .game_def import AgentBelief, JointState, Pr, U, X
 
 
 class DoesNotKnowPolicy(ZException):
