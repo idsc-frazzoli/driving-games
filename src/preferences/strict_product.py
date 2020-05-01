@@ -1,6 +1,7 @@
 from typing import Tuple, Type, TypeVar
 
 from zuper_typing import debug_print
+from . import logger
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -33,8 +34,10 @@ class StrictProductPreference(Preference[V]):
         # check_isinstance(a, dict, _self=self)
         # check_isinstance(b, dict, _self=self)
         outcomes = []
-        for pref in self.prefs:
+        # logger.info('Product', a=a, b=b)
+        for i, pref in enumerate(self.prefs):
             r = pref.compare(a, b)
+            # logger.info(pref=pref, i=i,  r=r)
             outcomes.append(r)
 
         # logger.info(outcomes=outcomes)
@@ -46,11 +49,15 @@ class StrictProductPreference(Preference[V]):
         #       - a mix of first, second, indifferent -> incomparable
         o = set(outcomes)
         if INCOMPARABLE in o:
-            return INCOMPARABLE
-        if o == {FIRST_PREFERRED} or o == {FIRST_PREFERRED, INDIFFERENT}:
-            return FIRST_PREFERRED
-        if o == {SECOND_PREFERRED} or o == {SECOND_PREFERRED, INDIFFERENT}:
-            return SECOND_PREFERRED
-        if o == {INDIFFERENT}:
-            return INDIFFERENT
-        return INCOMPARABLE
+            r = INCOMPARABLE
+        elif o == {FIRST_PREFERRED} or o == {FIRST_PREFERRED, INDIFFERENT}:
+            r = FIRST_PREFERRED
+        elif o == {SECOND_PREFERRED} or o == {SECOND_PREFERRED, INDIFFERENT}:
+            r = SECOND_PREFERRED
+        elif o == {INDIFFERENT}:
+            r = INDIFFERENT
+        else:
+            r = INCOMPARABLE
+
+        # logger.info('StrictProduct', a=a, b=b, outcomes=outcomes, r=r, prefs=self.prefs)
+        return r

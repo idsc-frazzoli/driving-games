@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, Dict, FrozenSet as ASet
+from typing import cast, Dict, FrozenSet as ASet, FrozenSet
 
 from frozendict import frozendict
 
@@ -12,15 +12,14 @@ from games import (
     JointRewardStructure,
     PlayerName,
 )
-from possibilities import PossibilityStructure
-from possibilities.sets import One, ProbabilitySet
+from possibilities import One, PossibilityStructure, ProbabilitySet
 from preferences import SetPreference1
 from . import logger
 from .driving_example import (
-    VehicleJointReward,
     VehiclePersonalRewardStructureTime,
-    VehiclePreferencesCollTime,
 )
+from .joint_reward import VehicleJointReward
+from .pref_coll_time import VehiclePreferencesCollTime
 from .structures import (
     CollisionCost,
     Lights,
@@ -42,9 +41,9 @@ class TwoVehicleSimpleParams:
     max_speed: D
     min_speed: D
     max_wait: D
-    available_accels: ASet[D]
+    available_accels: FrozenSet[D]
     collision_threshold: float
-    light_actions: ASet[Lights]
+    light_actions: FrozenSet[Lights]
     dt: D
     # initial positions
     first_progress: D

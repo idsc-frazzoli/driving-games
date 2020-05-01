@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Callable, Generic, Type, TypeVar
 
+from . import logger
 from .preferences_base import ComparisonOutcome, Preference
 
 __all__ = ["PrefConverter"]
@@ -24,4 +25,6 @@ class PrefConverter(Preference[A], Generic[A, B]):
         c: Callable[[A], B] = self.convert
         x1: B = c(x)
         y1: B = c(y)
-        return self.p0.compare(x1, y1)
+        ret = self.p0.compare(x1, y1)
+        # logger.info('PrefConverter', x=x, y=y, y1=y1, x1=x1, ret=ret)
+        return ret

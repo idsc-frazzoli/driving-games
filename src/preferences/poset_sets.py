@@ -3,6 +3,7 @@ from typing import FrozenSet, Type
 
 from possibilities import One, Poss
 from zuper_typing import debug_print
+from . import logger
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -39,8 +40,11 @@ class SetPreference1(Preference[Poss[P, One]]):
         #     res = self.p0.compare(a1, b1)
         #     assert res in COMP_OUTCOMES, (res, self.p0)
         #     return res
-
-        return compare_sets(A.support(), B.support(), self.p0)
+        a_s = A.support()
+        b_s = B.support()
+        r = compare_sets(a_s, b_s, self.p0)
+        # logger.info('SetPreference1', a_s=a_s, b_s=b_s, r=r)
+        return r
 
         # return compare_sets_cached(A.support(), B.support(), self.p0)
 
@@ -70,20 +74,24 @@ def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> Compa
     for a in A:
         for b in B:
             r1 = pref.compare(a, b)
+            all_res.add(r1)
+
             if r1 == INCOMPARABLE:
+                # logger.info('compare_sets', a=a, b=b, r1=r1, all_res=all_res)
                 return INCOMPARABLE
             if r1 == FIRST_PREFERRED:
                 has_first_preferred = True
             if r1 == SECOND_PREFERRED:
                 has_second_preferred = True
             if has_first_preferred and has_second_preferred:
+                # logger.info('both', a=a, b=b, r1=r1, all_res=all_res)
                 return INCOMPARABLE
-            all_res.add(r1)
 
     if all_res == {INDIFFERENT}:
         return INDIFFERENT
-    if all_res == {INDIFFERENT, FIRST_PREFERRED}:
+    if all_res == {INDIFFERENT, FIRST_PREFERRED} or all_res == {FIRST_PREFERRED}:
         return FIRST_PREFERRED
-    if all_res == {INDIFFERENT, SECOND_PREFERRED}:
+    if all_res == {INDIFFERENT, SECOND_PREFERRED} or all_res == {SECOND_PREFERRED}:
         return SECOND_PREFERRED
-    return INCOMPARABLE
+    assert False, all_res
+
