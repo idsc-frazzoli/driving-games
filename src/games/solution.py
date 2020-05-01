@@ -286,7 +286,7 @@ def _solve_game(
     sc.cache[gn] = ret
     n = len(sc.cache)
     if n % 30 == 0:
-        logger.info(f"nsolved: {n}", game_value=va.game_value)
+        logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
 
 

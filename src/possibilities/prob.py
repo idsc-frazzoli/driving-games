@@ -24,6 +24,7 @@ K = TypeVar("K")
 @dataclass(unsafe_hash=True)
 class ProbPoss(Poss[A, Fraction]):
     p: Mapping[A, Fraction]
+    __print_order__ = ["p"]
     _support: FrozenSet[A] = None
     _range: FrozenSet[Fraction] = None
 

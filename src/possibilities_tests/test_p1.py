@@ -57,5 +57,5 @@ def test_prob_mix4():
     S = set("abcd")
     ps = ProbabilityFraction()
     r = ps.mix(S)
-    if len(r) != 10:
+    if len(r) != 23:
         raise ZValueError(S=S, r=r, l=len(r))
