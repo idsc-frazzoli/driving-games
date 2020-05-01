@@ -19,6 +19,9 @@ exclude_lines =
     pragma: no cover
     if TYPE_CHECKING
     if enable_type_checking
+    if not GameConstants.checks:
+    ...
+    pass
 
     do_extra_checks()
     # Don't complain if tests don't hit defensive assertion code:

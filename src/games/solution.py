@@ -394,21 +394,6 @@ def solve_equilibria(
             assert False, strategy
 
 
-class TransformToPrivate0(Generic[Pr, X, U, Y, RP, RJ]):
-    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
-    name: PlayerName
-
-    def __init__(self, gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], name: PlayerName):
-        self.gp = gp
-        self.name = name
-
-    def __call__(self, a: SetOfOutcomes) -> Poss[Combined[RJ, RP], Pr]:
-        check_isinstance(a, frozenset, _self=self)
-
-        def f(s: Outcome[RP, RJ]) -> Combined[RJ, RP]:
-            return Combined(joint=s.joint.get(self.name, None), personal=s.private[self.name])
-
-        return self.gp.game.ps.build(a, f)
 
 
 @dataclass(frozen=True)

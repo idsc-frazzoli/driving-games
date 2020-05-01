@@ -13,19 +13,19 @@ from .game_def import (
 )
 
 __all__ = []
-
-
-def get_all_choices_by_players(possibile: Collection[JointPureActions]) -> PlayerOptions:
-    player2choices: Dict[PlayerName, Set[U]] = defaultdict(set)
-    for pure_actions in possibile:
-        for player_name, u in pure_actions.items():
-            # assert not isinstance(action, (frozenset, set)), action
-            player2choices[player_name].add(u)
-    res: Dict[PlayerName, FrozenSet[U]] = {}
-    for player_name, player_actions in player2choices.items():
-        res[player_name] = frozenset(player_actions)
-
-    return frozendict(res)
+#
+#
+# def get_all_choices_by_players(possibile: Collection[JointPureActions]) -> PlayerOptions:
+#     player2choices: Dict[PlayerName, Set[U]] = defaultdict(set)
+#     for pure_actions in possibile:
+#         for player_name, u in pure_actions.items():
+#             # assert not isinstance(action, (frozenset, set)), action
+#             player2choices[player_name].add(u)
+#     res: Dict[PlayerName, FrozenSet[U]] = {}
+#     for player_name, player_actions in player2choices.items():
+#         res[player_name] = frozenset(player_actions)
+#
+#     return frozendict(res)
 
 
 #
