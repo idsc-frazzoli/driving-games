@@ -32,6 +32,9 @@ def get_1p_game_tree(
     player: GamePlayer[Pr, X, U, Y, RP, RJ],
     x0: X,
 ) -> GameNode[Pr, X, U, Y, RP, RJ]:
+    if x0 in c.cache:
+        return c.cache[x0]
+    # logger.info('game tree', x0=x0)
     assert not isinstance(x0, set), x0
     prs = player.personal_reward_structure
     dyn = player.dynamics

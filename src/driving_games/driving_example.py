@@ -111,8 +111,8 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
     def compare(self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]) -> ComparisonOutcome:
-        check_isinstance(a, Combined)
-        check_isinstance(b, Combined)
+        # check_isinstance(a, Combined)
+        # check_isinstance(b, Combined)
         if self.ignore_second:
             if a.joint is None and b.joint is None:
                 return self.time.compare(a.personal, b.personal)

@@ -1,7 +1,7 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import FrozenSet, Generic, Iterator, Mapping, Tuple, Type, TypeVar
 
-from frozendict import frozendict
 from zuper_commons.types import check_isinstance
 
 __all__ = ["Poss", "Φ", "check_poss"]
@@ -10,29 +10,21 @@ __all__ = ["Poss", "Φ", "check_poss"]
 A = TypeVar("A")
 
 
-@dataclass(frozen=True)
-class Poss(Generic[A, Φ]):
-    p: Mapping[A, Φ]
-
-    def __post_init__(self):
-        check_isinstance(self.p, frozendict)
-
+class Poss(Generic[A, Φ], ABC):
+    @abstractmethod
     def check_contains(self, T: type, **kwargs):
-        for _ in self.p:
-            check_isinstance(_, T, poss=self, **kwargs)
+        pass
 
-    def it(self) -> Iterator[Tuple[A, Φ]]:
-        for _ in self.p.items():
-            yield _
-
+    @abstractmethod
     def support(self) -> FrozenSet[A]:
-        """ Returns the support of the distribution """
-        return frozenset(self.p)
+        pass
 
-    def get(self, a: A) -> Φ:
-        return self.p[a]
+
+CHECK = False
 
 
 def check_poss(a: Poss[A, Φ], T: Type[A] = object, **kwargs):
+    if not CHECK:
+        return
     check_isinstance(a, Poss, **kwargs)
     a.check_contains(T, **kwargs)

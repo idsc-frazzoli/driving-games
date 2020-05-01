@@ -1,7 +1,6 @@
 from typing import Tuple, Type, TypeVar
 
 from zuper_typing import debug_print
-
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,

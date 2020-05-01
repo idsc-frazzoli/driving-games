@@ -7,9 +7,9 @@ from typing import List
 import numpy as np
 from frozendict import frozendict
 from networkx import MultiDiGraph
-from zuper_commons.types import ZException
 
 from possibilities import check_poss, Poss
+from zuper_commons.types import ZException
 from . import logger
 from .game_def import (
     Dynamics,

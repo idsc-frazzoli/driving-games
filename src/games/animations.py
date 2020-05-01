@@ -2,9 +2,8 @@ from decimal import Decimal as D
 from typing import Optional
 
 from reprep import MIME_GIF, Report
-
 from . import logger
-from .game_def import RJ, RP, U, X, Y, Pr
+from .game_def import Pr, RJ, RP, U, X, Y
 from .simulate import Simulation
 from .structures_solution import GamePreprocessed, Solutions
 

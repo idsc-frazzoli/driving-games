@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Callable, Generic, Type, TypeVar
 
 from .preferences_base import ComparisonOutcome, Preference
@@ -8,7 +9,7 @@ A = TypeVar("A")
 B = TypeVar("B")
 
 
-@dataclass
+@dataclass(frozen=True)
 class PrefConverter(Preference[A], Generic[A, B]):
     A: Type[A]
     B: Type[B]
@@ -18,6 +19,7 @@ class PrefConverter(Preference[A], Generic[A, B]):
     def get_type(self) -> Type[B]:
         return self.B
 
+    @lru_cache(None)
     def compare(self, x: A, y: A) -> ComparisonOutcome:
         x1: B = self.convert(x)
         y1: B = self.convert(y)

@@ -15,7 +15,9 @@ from typing import (
 )
 
 from frozendict import frozendict
-from zuper_commons.types import check_isinstance
+
+from games import GameConstants
+from zuper_commons.types import check_isinstance, ZValueError
 
 from possibilities import check_poss, Poss, PossibilityStructure
 from preferences import Preference
@@ -188,6 +190,8 @@ class AgentBelief(Generic[Pr, X, U], ABC):
 
 def check_joint_state(js: JointState):
     # from driving_games import VehicleState  # XXX : for debug
+    if not GameConstants.checks:
+        return
 
     check_isinstance(js, frozendict)
     for n, x in js.items():
@@ -196,6 +200,9 @@ def check_joint_state(js: JointState):
 
 
 def check_player_options(a: PlayerOptions):
+    if not GameConstants.checks:
+        return
+
     check_isinstance(a, frozendict)
     for k, v in a.items():
         check_isinstance(k, str)
@@ -203,26 +210,39 @@ def check_player_options(a: PlayerOptions):
 
 
 def check_set_outcomes(a: SetOfOutcomes, **kwargs):
+    if not GameConstants.checks:
+        return
+
     check_poss(a, Outcome, **kwargs)
 
 
 def check_joint_pure_actions(a: JointPureActions, **kwargs):
+    if not GameConstants.checks:
+        return
+
     # from driving_games.structures import VehicleActions
 
     check_isinstance(a, frozendict, **kwargs)
     for k, v in a.items():
         assert isinstance(k, str), k
-        assert not isinstance(v, Poss), v
+        if isinstance(v, Poss):
+            msg = "I thought this would be pure actions, found Poss inside"
+            raise ZValueError(msg, k=k, v=v, **kwargs)
         pass
         # check_isinstance(v, VehicleActions, a=a)
 
 
 def check_joint_mixed_actions2(a: JointMixedActions2, **kwargs):
+    if not GameConstants.checks:
+        return
     # from driving_games.structures import VehicleActions
     check_isinstance(a, frozendict, **kwargs)
 
     for k, v in a.items():
         check_isinstance(k, str)  # player name
         check_isinstance(v, Poss, **kwargs)
+        for _ in v.support():
+            if isinstance(_, Poss):
+                raise ZValueError(_=_, **kwargs)
 
     # check_isinstance(_, VehicleActions, a=a)

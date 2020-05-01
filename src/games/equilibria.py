@@ -1,10 +1,9 @@
 import itertools
 from dataclasses import dataclass
-from typing import Callable, Collection, Dict, FrozenSet, Generic, List, Mapping, Set, Tuple, TypeVar
+from typing import Dict, FrozenSet, Generic, List, Mapping, Set, Tuple
 
-import toolz
 from frozendict import frozendict
-
+from . import logger
 from possibilities import Poss, PossibilityStructure
 from preferences import (
     COMP_OUTCOMES,
@@ -14,11 +13,11 @@ from preferences import (
     remove_dominated,
     StrictProductPreference,
 )
-from zuper_commons.types import check_isinstance, ZAssertionError
-from . import logger
+from zuper_commons.types import ZAssertionError
+from . import GameConstants
+from .comb_utils import valmap
 from .game_def import (
     check_joint_mixed_actions2,
-    check_joint_pure_actions,
     check_set_outcomes,
     JointMixedActions2,
     JointPureActions,
@@ -50,16 +49,23 @@ class PointStats(Generic[Pr, X, U, Y, RP, RJ]):
     alternatives: Mapping[PlayerName, FrozenSet[ComparisonOutcome]]
 
     def __post_init__(self):
+        if not GameConstants.checks:
+            return
+
         check_set_outcomes(self.outcome)
 
 
 @dataclass
 class EquilibriaAnalysis(Generic[Pr, X, U, Y, RP, RJ]):
+    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]]
     nondom_nash_equilibria: Mapping[JointMixedActions2, SetOfOutcomes]
     nash_equilibria: Mapping[JointMixedActions2, SetOfOutcomes]
     ps: Dict[JointMixedActions2, PointStats]
 
     def __post_init__(self):
+        if not GameConstants.checks:
+            return
+
         for _ in self.ps:
             check_joint_mixed_actions2(_)
         for _ in self.nondom_nash_equilibria:
@@ -68,68 +74,18 @@ class EquilibriaAnalysis(Generic[Pr, X, U, Y, RP, RJ]):
             check_joint_mixed_actions2(_)
 
 
-@dataclass
-class Combos(Generic[Pr, X, U, Y, RP, RJ]):
-    all_comb: FrozenSet[JointPureActions]
-    player2choices: JointMixedActions2
-
-    def __post_init__(self):
-        check_isinstance(self.all_comb, frozenset)
-        for _ in self.all_comb:
-            check_joint_pure_actions(_)
-
-
-def get_mixed_strategies(ps: PossibilityStructure, possible_actions: Collection[JointPureActions]):
-    for pure_action in possible_actions:
-        check_joint_pure_actions(pure_action)
-
-
+# @dataclass
+# class Combos(Generic[Pr, X, U, Y, RP, RJ]):
+#     all_comb: FrozenSet[JointPureActions]
+#     player2choices: JointMixedActions2
 #
-# def check_contains_all_combo(possibilities: Collection[JointPureActions]) -> Combos[Pr, X, U, Y, RP, RJ]:
-#     for _ in possibilities:
-#         check_joint_pure_actions(_)
-#     # player2choices: Dict[PlayerName, Set[X]] = defaultdict(set)[
-#     # for actions in action2outcome:
-#     #     for player_name, action in actions.items():
-#     #         player2choices[player_name].add(action)
-#     #         ]
-#     mixed_actions: JointMixedActions2 = get_all_choices_by_players(possibilities)
+#     def __post_init__(self):
+#         if not GameConstants.checks:
+#             return
 #
-#     all_comb: FrozenSet[JointPureActions] = get_all_combinations(mixed_actions=mixed_actions)
-#     c: JointPureActions
-#     for c in all_comb:
-#         check_joint_pure_actions(c)
-#         if False:  # XXX: bug
-#             if c not in possibilities:  # pragma: no cover
-#                 msg = "Missing combination"
-#                 raise ZValueError(
-#                     msg,
-#                     c=c,
-#                     id_c=id(c),
-#                     p=possibilities,
-#                     type_p=type(possibilities),
-#                     type_c=type(c),
-#                     repr_c=repr(c),
-#                     repr_p=repr(possibilities),
-#                     id_ps=set(id(_) for _ in possibilities),
-#                     c_in_p=c in possibilities,
-#                     c_in_list_p=c in list(possibilities),
-#                     c_in_fset_p=c in frozenset(possibilities),
-#                     c_in_set_p=c in set(possibilities),
-#                     p_contains_c=possibilities.__contains__(c),
-#                     p_eq_frozen_c=possibilities == frozenset({c}),
-#                     same_as_first=list(possibilities)[0] == c,
-#                 )
-#     return Combos(all_comb, mixed_actions)
-
-
-A = TypeVar("A")
-B = TypeVar("B")
-K = TypeVar("K")
-
-
-def valmap(f: Callable[[A], B], d: Mapping[K, A]) -> Dict[K, B]:
-    return toolz.valmap(f, d)
+#         check_isinstance(self.all_comb, frozenset)
+#         for _ in self.all_comb:
+#             check_joint_pure_actions(_)
 
 
 def analyze_equilibria(
@@ -150,7 +106,7 @@ def analyze_equilibria(
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
 
     player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U, Pr]]] = valmap(ps.mix, moves)
-    logger.info(player_mixed_strategies=player_mixed_strategies)
+    # logger.info(player_mixed_strategies=player_mixed_strategies)
     # now we do the product of the mixed strategies
     # let's order them
     players_ordered = list(player_mixed_strategies)
@@ -159,21 +115,28 @@ def analyze_equilibria(
     results: Dict[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes] = {}
     for choices in itertools.product(*tuple(players_strategies)):
         choice: Mapping[PlayerName, Poss[U, Pr]] = frozendict(zip(players_ordered, choices))
+        #
+        # p: List[Tuple[JointPureActions, Pr]] = []
+        # choose: List[FrozenSet[U]] = [choice[k].support() for k in players_ordered]
+        # for pure in itertools.product(*tuple(choose)):
+        #     pure_action: JointPureActions = frozendict(zip(players_ordered, pure))
+        #     probs: Tuple = tuple(
+        #         choice[player_name].get(pure_action[player_name]) for player_name in players_ordered
+        #     )
+        #
+        #     p.append((pure_action, ps.multiply(probs)))
+        # dist: Poss[JointPureActions, Pr] = ps.fold(p)
+        #
+        def f(y: JointPureActions) -> JointPureActions:
+            return y
 
-        p: List[Tuple[JointPureActions, Pr]] = []
-        choose: List[FrozenSet[U]] = [choice[k].support() for k in players_ordered]
-        for pure in itertools.product(*tuple(choose)):
-            pure_action: JointPureActions = frozendict(zip(players_ordered, pure))
-            probs: Tuple = tuple(
-                choice[player_name].get(pure_action[player_name]) for player_name in players_ordered
-            )
-
-            p.append((pure_action, ps.multiply(probs)))
-        dist: Poss[JointPureActions, Pr] = ps.fold(p)
-        mixed_outcome: Poss[SetOfOutcomes, Pr] = ps.build(dist, lambda _: solved[_])
+        dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=choice, f=f)
+        # logger.info(dist=dist,
+        #             solved=solved)
+        mixed_outcome: Poss[SetOfOutcomes, Pr] = ps.build(dist, solved.__getitem__)
         results[choice] = ps.flatten(mixed_outcome)
 
-    logger.info(results=results)
+    # logger.info(results=results)
 
     return analyze(player_mixed_strategies, results, preferences)
 
@@ -208,7 +171,7 @@ def analyze(
             alternatives_player = {}
             # logger.info('looking for variations', variations_=variations_)
             for action_to_change, x1 in variations_.items():
-                zassert(x1 in results, x1=x1, results=set(results))
+                # zassert(x1 in results, x1=x1, results=set(results))
                 o1, o0 = results[x1], results[x0]
                 res = pref.compare(o1, o0)
                 assert res in COMP_OUTCOMES, (res, pref)
@@ -242,7 +205,10 @@ def analyze(
     nondom_nash_equilibria = remove_dominated(nash_equilibria, pref)
 
     return EquilibriaAnalysis(
-        nondom_nash_equilibria=nondom_nash_equilibria, nash_equilibria=nash_equilibria, ps=ps
+        player_mixed_strategies=player_mixed_strategies,
+        nondom_nash_equilibria=nondom_nash_equilibria,
+        nash_equilibria=nash_equilibria,
+        ps=ps,
     )
 
 

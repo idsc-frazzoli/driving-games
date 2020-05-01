@@ -5,16 +5,7 @@ from typing import Dict
 from frozendict import frozendict
 
 from possibilities import Poss
-from .game_def import (
-    JointPureActions,
-    JointState,
-    RJ,
-    Pr,
-    RP,
-    U,
-    X,
-    Y,
-)
+from .game_def import JointPureActions, JointState, Pr, RJ, RP, U, X, Y
 from .structures_solution import GameNode, IterationContext
 
 __all__ = []

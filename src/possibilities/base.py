@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Collection, FrozenSet, Generic, Iterable, Tuple, TypeVar
+from typing import Callable, Collection, FrozenSet, Generic, Iterable, Mapping, Tuple, TypeVar
 
 from .poss import Poss, Φ
 
 __all__ = ["PossibilityStructure"]
 
-
 A = TypeVar("A")
 B = TypeVar("B")
+K = TypeVar("K")
 
 
 class Sampler(Generic[Φ], ABC):
@@ -30,6 +30,10 @@ class PossibilityStructure(Generic[Φ], ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def build_multiple(self, a: Mapping[K, Poss[A, Φ]], f: Callable[[Mapping[K, A]], B]) -> Poss[B, Φ]:
+        raise NotImplementedError()
+
+    @abstractmethod
     def flatten(self, a: Poss[Poss[A, Φ], Φ]) -> Poss[A, Φ]:
         raise NotImplementedError()
 
@@ -41,10 +45,11 @@ class PossibilityStructure(Generic[Φ], ABC):
     def mix(self, a: Collection[A]) -> FrozenSet[Poss[A, Φ]]:
         """ Return """
 
-    @abstractmethod
-    def multiply(self, a: Iterable[Φ]) -> Φ:
-        """  """
-
-    @abstractmethod
-    def fold(self, a: Iterable[Tuple[A, Φ]]) -> Poss[A, Φ]:
-        """  """
+    #
+    # @abstractmethod
+    # def multiply(self, a: Iterable[Φ]) -> Φ:
+    #     """  """
+    #
+    # @abstractmethod
+    # def fold(self, a: Iterable[Tuple[A, Φ]]) -> Poss[A, Φ]:
+    #     """  """

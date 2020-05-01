@@ -1,12 +1,9 @@
-from typing import FrozenSet as ASet, FrozenSet, Type
+from functools import lru_cache
+from typing import FrozenSet, Type
 
-from possibilities import check_poss, Poss
-from possibilities.sets import One
-from zuper_commons.types import check_isinstance
+from possibilities import One, Poss
 from zuper_typing import debug_print
-
 from .preferences_base import (
-    COMP_OUTCOMES,
     ComparisonOutcome,
     FIRST_PREFERRED,
     INCOMPARABLE,
@@ -32,9 +29,10 @@ class SetPreference1(Preference[Poss[P, One]]):
         d = {"T": self.get_type(), "p0": self.p0}
         return "SetPreference1: " + debug_print(d)
 
+    # @lru_cache(None)
     def compare(self, A: Poss[P, One], B: Poss[P, One]) -> ComparisonOutcome:
-        check_poss(A)
-        check_poss(B)
+        # check_poss(A)
+        # check_poss(B)
         # if len(A) == 1 and len(B) == 1:
         #     a1 = list(A)[0]
         #     b1 = list(B)[0]
@@ -44,14 +42,34 @@ class SetPreference1(Preference[Poss[P, One]]):
 
         return compare_sets(A.support(), B.support(), self.p0)
 
+        # return compare_sets_cached(A.support(), B.support(), self.p0)
 
+
+class CompareCache:
+    cache = {}
+
+
+def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+    sa = repr(A)
+    sb = repr(B)
+    key = sa, sb
+    if key not in CompareCache.cache:
+        res = compare_sets(A, B, pref)
+        CompareCache.cache[key] = res
+    return CompareCache.cache[key]
+
+
+@lru_cache(None)
 def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+    if A is B:
+        return INDIFFERENT
     all_res = set()
     for a in A:
-        res = set(pref.compare(a, b) for b in B)
-        all_res.update(res)
-        if INCOMPARABLE in res:
-            return INCOMPARABLE
+        for b in B:
+            r1 = pref.compare(a, b)
+            if r1 == INCOMPARABLE:
+                return INCOMPARABLE
+            all_res.add(r1)
 
     if all_res == {INDIFFERENT}:
         return INDIFFERENT
