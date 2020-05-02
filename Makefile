@@ -1,13 +1,12 @@
-
 CIRCLE_NODE_INDEX ?= 0
 CIRCLE_NODE_TOTAL ?= 1
-include Makefile.version
-
 
 out=out
 coverage_dir=$(out)/coverage
 tr=$(out)/test-results
+xunit_output=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 
+tag=driving_games
 
 test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests,possibilities_tests
 cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,possibilities
@@ -15,51 +14,44 @@ cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,po
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
 
-xunitmp=--with-xunitmp --xunitmp-file=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
+xunitmp=--with-xunitmp --xunitmp-file=$(xunit_output)
 extra=--rednose --immediate
 
 
 all:
-	echo
+	@echo "You can try:"
+	@echo
+	@echo "  make build run"
+	@echo "  make docs "
+	@echo "  make test coverage-combine coverage-report"
+
 
 
 clean:
 	coverage erase
-	rm -f .coverage
-	rm -rf cover
-	rm -rf $(tr)
-	rm -rf $(out) $(coverage_dir)
+	rm -rf $(out) $(coverage_dir) $(tr)
 
-test:
-	$(MAKE) clean
+test: clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture #$(xunitmp)
 
 
-test-parallel:
-	$(MAKE) clean
+test-parallel: clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(parallel)
 
 
 test-parallel-circle:
-	DISABLE_CONTRACTS=1 NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
-	(parallel)
+	DISABLE_CONTRACTS=1 \
+	NODE_TOTAL=$(CIRCLE_NODE_TOTAL) \
+	NODE_INDEX=$(CIRCLE_NODE_INDEX) \
+	nosetests $(coverage) $(xunitmp) src  -v  $(parallel)
 
 
 coverage-combine:
 	coverage combine
 
-# test-parallel-failed:
-# 	$(MAKE) clean
-# 	nosetests  $(extra)  $(coverage) src  -v  $(parallel)
 
-# test-failed:
-# 	$(MAKE) clean
-# 	nosetests $(extra)  --with-id --failed $(coverage) src  -v
-
-
-tag=driving_games
 
 build:
 	docker build -t $(tag) .
@@ -86,4 +78,6 @@ coverage-report:
 
 docs:
 	sphinx-build src $(out)/docs
-	
+
+
+include Makefile.version

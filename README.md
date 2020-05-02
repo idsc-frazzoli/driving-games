@@ -7,7 +7,7 @@
 
 [![codecov](https://codecov.io/gh/idsc-frazzoli/driving-games/branch/master/graph/badge.svg?token=w8Sk4CKFpI)](https://codecov.io/gh/idsc-frazzoli/driving-games) (for master) - See [details](https://codecov.io/gh/idsc-frazzoli/driving-games).
 
-(Need to be logged in with Github account in both cases) 
+(You need to be logged in with Github account in both cases.) 
 
 # Driving Games tutorial
 
@@ -34,21 +34,27 @@ With Docker:
 
 The results are going to be written in the `out-docker` dir.
 
-## Without Docker
+## Native installation 
 
 Requires Python >= 3.7.
     
 Run manually the instructions in the Dockerfile.
+You want to install all the reqs in `requirements.txt`.
 
 Run tests using:
 
-	$ make clean test coverage-combine coverage-report
+    $ make clean test coverage-combine coverage-report
+
+Make the docs using:
+
+    $ make docs
 
 Run some games using:
 
     $ dg-demo --reset
      
-   
-
+Reformat with `black` using:
+	
+	$ make black
 
  
