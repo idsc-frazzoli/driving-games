@@ -37,7 +37,7 @@ def get_1p_game_tree(
     if x0 in c.cache:
         return c.cache[x0]
     if x0 in c.processing:
-        msg = 'Found loop'
+        msg = "Found loop"
         raise ZValueError(msg, x0=x0, processing=c.processing)
     c.processing.add(x0)
     # logger.info(x0=x0)

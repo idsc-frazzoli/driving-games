@@ -64,7 +64,7 @@ def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -
 
 @lru_cache(None)
 def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
-    if A is B:
+    if A is B or (A == B):
         return INDIFFERENT
 
     has_first_preferred = False
@@ -76,14 +76,12 @@ def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> Compa
             all_res.add(r1)
 
             if r1 == INCOMPARABLE:
-                # logger.info('compare_sets', a=a, b=b, r1=r1, all_res=all_res)
                 return INCOMPARABLE
             if r1 == FIRST_PREFERRED:
                 has_first_preferred = True
             if r1 == SECOND_PREFERRED:
                 has_second_preferred = True
             if has_first_preferred and has_second_preferred:
-                # logger.info('both', a=a, b=b, r1=r1, all_res=all_res)
                 return INCOMPARABLE
 
     if all_res == {INDIFFERENT}:

@@ -4,8 +4,8 @@ from typing import Callable, cast, Collection, FrozenSet, Iterator, Mapping, New
 
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
-
-from contracts import check_isinstance
+from . import logger
+from zuper_commons.types import check_isinstance
 from .base import PossibilityStructure, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
@@ -64,7 +64,9 @@ class Cache:
 
 
 def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
+    return SetPoss(f)
     if f not in Cache.cache:
+        # logger.info(f=f)
         Cache.cache[f] = SetPoss(f)
     return Cache.cache[f]
 

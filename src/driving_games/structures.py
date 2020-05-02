@@ -47,7 +47,7 @@ class VehicleState:
     wait: D
     light: Lights
 
-    __print_order__ = ["x", "v", 'wait']  # only print these attributes
+    __print_order__ = ["x", "v", "wait"]  # only print these attributes
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -93,7 +93,7 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState, One]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accellerations that make the speed non-negative
-        accels = [_ for _ in self.available_accels if _*dt + x.v >= 0]
+        accels = [_ for _ in self.available_accels if _ * dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever
         if x.wait >= self.max_wait:
             assert x.v == 0, x
@@ -147,7 +147,7 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
             wait2 = D(0)
         ret = VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
         if ret.x < 0:
-            raise ZValueError(x=x, u=u, accel_effective=accel_effective,ret=ret)
+            raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
 
     # @lru_cache(None)

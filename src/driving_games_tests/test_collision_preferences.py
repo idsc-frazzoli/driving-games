@@ -52,8 +52,10 @@ def test2() -> None:
     p2 = PlayerName("⬅")
     p1 = PlayerName("⬆")
     c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
-    o_A = Outcome(private=frozendict({p1: VehicleCosts(D(3)), p2: VehicleCosts(D(3))}), joint=frozendict({p1: c0,
-                                                                                                         p2: c0}), )
+    o_A = Outcome(
+        private=frozendict({p1: VehicleCosts(D(3)), p2: VehicleCosts(D(3))}),
+        joint=frozendict({p1: c0, p2: c0}),
+    )
     o_B = Outcome(private=frozendict({p1: VehicleCosts(D(13)), p2: VehicleCosts(D(4))}), joint=frozendict())
 
     game = get_asym().game

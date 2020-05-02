@@ -4,9 +4,7 @@ from typing import Dict
 
 from games import GameSpec
 from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams
-from .structures import (
-    NO_LIGHTS,
-)
+from .structures import NO_LIGHTS
 
 road = D(6)
 p0 = TwoVehicleSimpleParams(
@@ -27,13 +25,16 @@ p0 = TwoVehicleSimpleParams(
 
 p_sym = p0
 
+
 def get_sym() -> GameSpec:
     desc = """
     Super symmetric case. Min v = 1.
     """
     return GameSpec(desc, get_two_vehicle_game(p_sym))
 
+
 p_asym = replace(p0, road_lane_offset=D(4))  # to the right
+
 
 def get_asym() -> GameSpec:
     desc = """
@@ -42,7 +43,9 @@ def get_asym() -> GameSpec:
     """
     return GameSpec(desc, get_two_vehicle_game(p_asym))
 
+
 p_asym_minv0 = replace(p_asym, min_speed=D(0))
+
 
 def get_asym_minv0() -> GameSpec:
     desc = """

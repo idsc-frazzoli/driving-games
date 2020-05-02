@@ -1,9 +1,9 @@
 import itertools
 from dataclasses import dataclass
-from typing import Dict, FrozenSet, Generic, List, Mapping, Set, Tuple
+from typing import Dict, FrozenSet, Generic, Mapping, Set, Tuple
 
 from frozendict import frozendict
-from . import logger
+
 from possibilities import Poss, PossibilityStructure
 from preferences import (
     COMP_OUTCOMES,
@@ -75,7 +75,6 @@ def analyze_equilibria(
     solved: Mapping[JointPureActions, SetOfOutcomes],
     preferences: Mapping[PlayerName, Preference[SetOfOutcomes]],
 ) -> EquilibriaAnalysis:
-
     # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
@@ -116,16 +115,14 @@ def analyze(
     nash_equilibria = {}
     action_to_change: FrozenSet[U]
     for x0 in results:
-
         happy_players = set()
         unhappy_players = set()
         alternatives = {}
         for player_name in player_names:
             pref = preferences[player_name]
             is_happy: bool = True
-            variations_: Mapping[U, Mapping[PlayerName, Poss[U, Pr]]] = variations(
-                player_mixed_strategies, x0, player_name
-            )
+            variations_: Mapping[U, Mapping[PlayerName, Poss[U, Pr]]]
+            variations_ = variations(player_mixed_strategies, x0, player_name)
             alternatives_player = {}
             # logger.info('looking for variations', variations_=variations_)
             for action_to_change, x1 in variations_.items():

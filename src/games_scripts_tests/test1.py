@@ -24,5 +24,17 @@ def test_run2() -> None:
     res = without_compmake(games, solvers)
 
 
+def run3() -> None:
+    do_games = ["asym_v0"]
+    do_solvers = [
+        "solver-1-security",
+    ]
+
+    games = {k: games_zoo[k] for k in do_games}
+    solvers = {k: solvers_zoo[k] for k in do_solvers}
+    res = without_compmake(games, solvers)
+
+
 if __name__ == "__main__":
-    test_run2()
+    # test_run2()
+    run3()
