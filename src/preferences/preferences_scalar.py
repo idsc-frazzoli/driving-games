@@ -14,10 +14,18 @@ __all__ = ["SmallerPreferred", "SmallerPreferredTol"]
 
 
 class SmallerPreferred(Preference[D]):
+    """
+        The usual total order on the scalars.
+
+        It is equivalent to `SmallerPreferredTol(0)`.
+
+    """
+
     def get_type(self) -> Type[D]:
         return D
 
     def compare(self, a: D, b: D) -> ComparisonOutcome:
+        """ """
         if a == b:
             return INDIFFERENT
         if a < b:
@@ -31,6 +39,8 @@ class SmallerPreferred(Preference[D]):
 
 
 class SmallerPreferredTol(Preference[D]):
+    """ The semi-order on the scalar given a tolerance. """
+
     tol: D
 
     def __init__(self, tol: D):
@@ -40,6 +50,7 @@ class SmallerPreferredTol(Preference[D]):
         return D
 
     def compare(self, a: D, b: D) -> ComparisonOutcome:
+        """ Returns :any:`INDIFFERENT` if `|a-b|<=tol`. """
         check_isinstance(a, D)
         check_isinstance(b, D)
         if abs(a - b) <= self.tol:

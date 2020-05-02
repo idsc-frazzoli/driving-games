@@ -83,3 +83,7 @@ black:
 
 coverage-report:
 	coverage html  -d $(coverage_dir)
+
+docs:
+	sphinx-build src $(out)/docs
+	

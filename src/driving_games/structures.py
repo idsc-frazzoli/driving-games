@@ -10,12 +10,25 @@ from games import Dynamics
 from possibilities import One, Poss, ProbabilitySet
 from zuper_commons.types import ZException
 
-Lights = NewType('Lights', str)
-NO_LIGHTS = Lights('none')
-LIGHTS_HEADLIGHTS = Lights('headlights')
-LIGHTS_TURN_LEFT = Lights('turn_left')
-LIGHTS_TURN_RIGHT = Lights('turn_right')
-LightsValue: AbstractSet[Lights] = frozenset({NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT})
+__all__ = [
+    "Lights",
+    "NO_LIGHTS",
+    "LightsValue",
+    "LIGHTS_HEADLIGHTS",
+    "LIGHTS_TURN_LEFT",
+    "LIGHTS_TURN_RIGHT",
+    "VehicleCosts",
+    "VehicleGeometry",
+]
+
+Lights = NewType("Lights", str)
+NO_LIGHTS = Lights("none")
+LIGHTS_HEADLIGHTS = Lights("headlights")
+LIGHTS_TURN_LEFT = Lights("turn_left")
+LIGHTS_TURN_RIGHT = Lights("turn_right")
+LightsValue: AbstractSet[Lights] = frozenset(
+    {NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT}
+)
 
 SE2_disc = Tuple[D, D, D]  # in degrees
 
@@ -30,7 +43,7 @@ class VehicleState:
     ref: SE2_disc
     x: D
     v: D
-    # how long at speed = 0 (we want to bound)
+    # How long we have been at speed = 0. We want to keep track so bound this.
     wait: D
     light: Lights
 
@@ -146,9 +159,10 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     #         raise ZValueError(s=s)
 
 
-@dataclass(frozen=True)
-class CollisionCost:
-    v: D
+#
+# @dataclass(frozen=True)
+# class JointCost:
+#     c: Collision
 
 
 @dataclass(frozen=True)
@@ -160,6 +174,7 @@ class VehicleCosts:
 
 @dataclass(frozen=True)
 class VehicleGeometry:
+    mass: D
     width: D
     length: D
     color: Tuple[float, float, float]

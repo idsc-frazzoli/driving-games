@@ -1,6 +1,6 @@
 from decimal import Decimal as D
 from numbers import Number
-from typing import Optional, Sequence, Tuple
+from typing import Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from decorator import contextmanager
@@ -8,19 +8,26 @@ from matplotlib import patches
 
 from games import GameVisualization, PlayerName
 from possibilities import One
-from .driving_example import SE2_from_VehicleState
-from .structures import CollisionCost, VehicleActions, VehicleCosts, VehicleState
-from . import VehicleObservation
+from .collisions import Collision
+from .personal_reward import SE2_from_VehicleState
+from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
+from .vehicle_observation import VehicleObservation
+
+__all__ = ["DrivingGameVisualization"]
 
 
 class DrivingGameVisualization(
-    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost]
+    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
 ):
-    side: D
+    """ Visualization for the driving games"""
 
-    def __init__(self, params, side: D):
+    side: D
+    geometries: Mapping[PlayerName, VehicleGeometry]
+
+    def __init__(self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry]):
         self.params = params
         self.side = side
+        self.geometries = geometries
 
     @contextmanager
     def plot_arena(self, pylab, ax):
@@ -69,21 +76,25 @@ class DrivingGameVisualization(
         else:
             light = commands.light
 
+        # TODO: finish here
         colors = {
             "none": {"back_left": "red", "back_right": "red", "front_right": "white", "front_left": "white",},
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
-        plot_car(self.pylab, q, velocity=velocity, car_color="blue", light_colors=colors[light])
+        plot_car(
+            self.pylab, q, velocity=velocity, light_colors=colors[light], vg=self.geometries[player_name]
+        )
 
     def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
         w = -state.wait * D(0.2)
         return float(state.x), float(state.v + w)
 
 
-def plot_car(pylab, q: np.array, velocity, car_color, light_colors):
-    L: float = 4.0
-    W: float = 2.5
+def plot_car(pylab, q: np.array, velocity, light_colors, vg: VehicleGeometry):
+    L = float(vg.length)
+    W = float(vg.width)
+    car_color = vg.color
     car: Tuple[Tuple[float, float], ...] = (
         (-L / 2, -W / 2),
         (-L / 2, +W / 2),

@@ -3,9 +3,9 @@ from typing import Dict
 
 from games import Game, GameSpec
 from possibilities import One
+from .collisions import Collision
 from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams
 from .structures import (
-    CollisionCost,
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
@@ -14,7 +14,7 @@ from .structures import (
 from .vehicle_observation import VehicleObservation
 
 
-def get_game1() -> Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost]:
+def get_game1() -> Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]:
     p = TwoVehicleSimpleParams(
         side=D(8),
         road=D(6),
@@ -33,7 +33,7 @@ def get_game1() -> Game[One, VehicleState, VehicleActions, VehicleObservation, V
     return get_two_vehicle_game(p)
 
 
-def get_game2() -> Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost]:
+def get_game2() -> Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]:
     p = TwoVehicleSimpleParams(
         side=D(8),
         road=D(6),

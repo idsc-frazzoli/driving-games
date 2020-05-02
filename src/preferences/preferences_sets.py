@@ -3,7 +3,6 @@ from typing import FrozenSet, Type
 
 from possibilities import One, Poss
 from zuper_typing import debug_print
-from . import logger
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,

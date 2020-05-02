@@ -54,21 +54,21 @@ from .structures_solution import (
     ValueAndActions,
 )
 
-__all__ = ["solve1", "solve_random", "get_outcome_set_preferences_for_players"]
-
-
-def solve_random(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]) -> Simulation[Pr, X, U, Y, RP, RJ]:
-    ps = gp.game.ps
-
-    policies = {
-        player_name: RandomAgent(player.dynamics, ps) for player_name, player in gp.game.players.items()
-    }
-    initial_states = {
-        player_name: list(player.initial.support())[0] for player_name, player in gp.game.players.items()
-    }
-    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.solver_params.dt, seed=0)
-    logger.info(sim=sim)
-    return sim
+__all__ = ["solve1", "get_outcome_set_preferences_for_players"]
+#
+#
+# def solve_random(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]) -> Simulation[Pr, X, U, Y, RP, RJ]:
+#     ps = gp.game.ps
+#
+#     policies = {
+#         player_name: RandomAgent(player.dynamics, ps) for player_name, player in gp.game.players.items()
+#     }
+#     initial_states = {
+#         player_name: list(player.initial.support())[0] for player_name, player in gp.game.players.items()
+#     }
+#     sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.solver_params.dt, seed=0)
+#     logger.info(sim=sim)
+#     return sim
 
 
 # IState = ASet[JointState]

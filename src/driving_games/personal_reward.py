@@ -7,6 +7,8 @@ from geometry import SE2, SE2_from_xytheta
 from zuper_commons.types import check_isinstance
 from .structures import VehicleActions, VehicleCosts, VehicleState
 
+__all__ = ["VehiclePersonalRewardStructureTime"]
+
 
 class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]):
     max_path: D

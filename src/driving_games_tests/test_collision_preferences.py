@@ -4,7 +4,8 @@ from typing import Mapping, Optional, Tuple
 from frozendict import frozendict
 from nose.tools import assert_equal
 
-from driving_games import CollisionCost, CollisionPreference, get_game1
+from driving_games import Collision, CollisionPreference, get_game1
+from driving_games.collisions import IMPACT_FRONT
 from games import get_outcome_set_preferences_for_players, Outcome
 from preferences import (
     ComparisonOutcome,
@@ -17,9 +18,9 @@ from . import logger
 
 
 def test1() -> None:
-    C1 = CollisionCost(D(1))
-    C2 = CollisionCost(D(2))
-    expect: Mapping[Tuple[Optional[CollisionCost], Optional[CollisionCost]], ComparisonOutcome]
+    C1 = Collision(IMPACT_FRONT, True, D(1), D(0))
+    C2 = Collision(IMPACT_FRONT, True, D(2), D(0))
+    expect: Mapping[Tuple[Optional[Collision], Optional[Collision]], ComparisonOutcome]
     expect = {
         (None, None): INDIFFERENT,
         (C1, C1): INDIFFERENT,
@@ -51,10 +52,8 @@ def test2() -> None:
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
     p1 = "p1"
     p2 = "p2"
-    o_A = Outcome(
-        private=frozendict({p1: D(3), p2: D(3)}),
-        joint=frozendict({p1: CollisionCost(D(1)), p2: CollisionCost(D(1))}),
-    )
+    c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
+    o_A = Outcome(private=frozendict({p1: D(3), p2: D(3)}), joint=frozendict({p1: c0, p2: c0}),)
     o_B = Outcome(private=frozendict({p1: D(13), p2: D(4)}), joint=frozendict())
 
     game = get_game1()

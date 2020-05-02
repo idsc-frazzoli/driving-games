@@ -8,7 +8,6 @@ from games import (
     report_game_visualization,
     report_solutions,
     solve1,
-    solve_random,
 )
 from games.zoo import GameSpec
 from quickapp import QuickApp, QuickAppContext
@@ -73,12 +72,11 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
             solver_params = solver_spec.solver_params
             game_preprocessed = preprocess_game(game, solver_params)
             solutions = solve1(game_preprocessed)
-            random_sim = solve_random(game_preprocessed)
-            r_animation = report_animation(game_preprocessed, random_sim)
+            # random_sim = solve_random(game_preprocessed)
+
             r_solutions = report_solutions(game_preprocessed, solutions)
             r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
 
-            r_animation.to_html(join(ds, "r_animation.html"))
             r_solutions.to_html(join(ds, "r_solutions.html"))
             r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
 

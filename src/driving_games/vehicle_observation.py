@@ -2,9 +2,11 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import FrozenSet, Mapping, Optional, Union
 
-from driving_games import Lights, SE2_disc, VehicleState
 from games import Observations, PlayerName
 from possibilities import One
+from .structures import Lights, SE2_disc, VehicleState
+
+__all__ = ["NotSeen", "Seen", "VehicleObservation", "VehicleDirectObservations"]
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
