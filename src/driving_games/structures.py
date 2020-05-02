@@ -2,19 +2,21 @@ import itertools
 from dataclasses import dataclass
 from decimal import Decimal as D, localcontext
 from functools import lru_cache
-from typing import cast, FrozenSet, Mapping, Optional, Sequence, Tuple, Union
+from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
 
 from frozendict import frozendict
-from typing_extensions import Literal
 
-from games import Dynamics, Observations, PlayerName
+from games import Dynamics
 from possibilities import One, Poss, ProbabilitySet
 from zuper_commons.types import ZException
 
-Lights = Literal["none", "headlights", "turn_left", "turn_right"]
-# noinspection PyTypeChecker
-LightsValue: Sequence[Lights] = ["none", "headlights", "turn_left", "turn_right"]
-NO_LIGHTS = cast(Lights, "none")
+Lights = NewType('Lights', str)
+NO_LIGHTS = Lights('none')
+LIGHTS_HEADLIGHTS = Lights('headlights')
+LIGHTS_TURN_LEFT = Lights('turn_left')
+LIGHTS_TURN_RIGHT = Lights('turn_right')
+LightsValue: AbstractSet[Lights] = frozenset({NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT})
+
 SE2_disc = Tuple[D, D, D]  # in degrees
 
 
@@ -144,63 +146,7 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     #         raise ZValueError(s=s)
 
 
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class NotSeen:
-    pass
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class Seen:
-    ref: SE2_disc
-    x: Optional[int]
-    v: Optional[int]
-    # if not None, we could also see the light value
-    light: Optional[Lights]
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class VehicleObservation:
-    others: Mapping[PlayerName, Union[Seen, NotSeen]]
-
-
-class VehicleDirectObservations(Observations[One, VehicleState, VehicleObservation]):
-    possible_states: Mapping[PlayerName, FrozenSet[VehicleState]]
-    my_possible_states: FrozenSet[VehicleState]
-
-    def __init__(
-        self,
-        my_possible_states: FrozenSet[VehicleState],
-        possible_states: Mapping[PlayerName, FrozenSet[VehicleState]],
-    ):
-        self.possible_states = possible_states
-        self.my_possible_states = my_possible_states
-
-    @lru_cache(None)
-    def all_observations(self) -> FrozenSet[VehicleObservation]:
-        """ Returns all possible observations. """
-        assert len(self.possible_states) == 1
-        all_of_them = set()
-        for me in self.my_possible_states:
-            for k, ks_possible_states in self.possible_states.items():
-                for ks_possible_state in ks_possible_states:
-                    others = {k: ks_possible_state}
-                    possible_ys: FrozenSet[VehicleObservation] = self.get_observations(me, others)
-                    for poss_obs in possible_ys:
-                        all_of_them.add(poss_obs)
-        return frozenset(all_of_them)
-
-    @lru_cache(None)
-    def get_observations(
-        self, me: VehicleState, others: Mapping[PlayerName, VehicleState]
-    ) -> FrozenSet[VehicleObservation]:
-        # ''' For each state, get all possible observations '''
-        others = {}
-        for k, v in others.items():
-            others[k] = Seen(ref=v.ref, x=v.x, v=v.v, light=None)
-        return frozenset({VehicleObservation(others)})
-
-
-@dataclass(frozen=True, unsafe_hash=True, order=True)
+@dataclass(frozen=True)
 class CollisionCost:
     v: D
 
@@ -210,3 +156,10 @@ class VehicleCosts:
     """ The incremental costs"""
 
     duration: D
+
+
+@dataclass(frozen=True)
+class VehicleGeometry:
+    width: D
+    length: D
+    color: Tuple[float, float, float]

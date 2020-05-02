@@ -9,9 +9,9 @@ from .structures import (
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
-    VehicleObservation,
     VehicleState,
 )
+from .vehicle_observation import VehicleObservation
 
 
 def get_game1() -> Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost]:

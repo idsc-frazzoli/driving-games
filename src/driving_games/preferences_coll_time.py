@@ -10,7 +10,7 @@ from preferences import (
     SmallerPreferredTol,
 )
 from zuper_typing import debug_print
-from .collision_preference import CollisionPreference
+from .preferences_collision import CollisionPreference
 from .structures import CollisionCost, VehicleCosts
 
 __all__ = ["VehiclePreferencesCollTime"]

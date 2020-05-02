@@ -9,7 +9,8 @@ from matplotlib import patches
 from games import GameVisualization, PlayerName
 from possibilities import One
 from .driving_example import SE2_from_VehicleState
-from .structures import CollisionCost, VehicleActions, VehicleCosts, VehicleObservation, VehicleState
+from .structures import CollisionCost, VehicleActions, VehicleCosts, VehicleState
+from . import VehicleObservation
 
 
 class DrivingGameVisualization(
