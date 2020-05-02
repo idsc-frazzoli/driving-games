@@ -32,6 +32,11 @@ class CollisionPreference(Preference[Optional[Collision]]):
             return SECOND_PREFERRED
         assert a is not None
         assert b is not None
+        if a.active and not b.active:
+            return SECOND_PREFERRED
+        if b.active and not a.active:
+            return FIRST_PREFERRED
+
         ea = a.energy_received + a.energy_transmitted
         eb = b.energy_received + b.energy_transmitted
         res = self.p.compare(ea, eb)

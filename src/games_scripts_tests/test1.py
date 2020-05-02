@@ -3,7 +3,7 @@ from games_scripts.demo import without_compmake
 
 
 def test_run1() -> None:
-    do_games = ["game1"]
+    do_games = ["sym_v1"]
     do_solvers = [
         "solver-1-mix",
     ]
@@ -14,7 +14,7 @@ def test_run1() -> None:
 
 
 def test_run2() -> None:
-    do_games = ["game1"]
+    do_games = ["sym_v1"]
     do_solvers = [
         "solver-1-security",
     ]

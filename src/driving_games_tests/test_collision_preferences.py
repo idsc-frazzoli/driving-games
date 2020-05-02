@@ -4,8 +4,7 @@ from typing import Mapping, Optional, Tuple
 from frozendict import frozendict
 from nose.tools import assert_equal
 
-from driving_games import Collision, CollisionPreference, get_game1
-from driving_games.collisions import IMPACT_FRONT
+from driving_games import Collision, CollisionPreference, get_asym, IMPACT_FRONT, PlayerName, VehicleCosts
 from games import get_outcome_set_preferences_for_players, Outcome
 from preferences import (
     ComparisonOutcome,
@@ -50,13 +49,14 @@ def test2() -> None:
     # > │     │ │ │ p2: {VehicleActions(accel=Dec 1) *}:
     # > │     │ │ fset
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
-    p1 = "p1"
-    p2 = "p2"
+    p2 = PlayerName("⬅")
+    p1 = PlayerName("⬆")
     c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
-    o_A = Outcome(private=frozendict({p1: D(3), p2: D(3)}), joint=frozendict({p1: c0, p2: c0}),)
-    o_B = Outcome(private=frozendict({p1: D(13), p2: D(4)}), joint=frozendict())
+    o_A = Outcome(private=frozendict({p1: VehicleCosts(D(3)), p2: VehicleCosts(D(3))}), joint=frozendict({p1: c0,
+                                                                                                         p2: c0}), )
+    o_B = Outcome(private=frozendict({p1: VehicleCosts(D(13)), p2: VehicleCosts(D(4))}), joint=frozendict())
 
-    game = get_game1()
+    game = get_asym().game
 
     outcomes_A = game.ps.lift_one(o_A)
     outcomes_B = game.ps.lift_one(o_B)

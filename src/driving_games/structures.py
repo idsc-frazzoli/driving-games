@@ -8,7 +8,7 @@ from frozendict import frozendict
 
 from games import Dynamics
 from possibilities import One, Poss, ProbabilitySet
-from zuper_commons.types import ZException
+from zuper_commons.types import ZException, ZValueError
 
 __all__ = [
     "Lights",
@@ -47,7 +47,7 @@ class VehicleState:
     wait: D
     light: Lights
 
-    __print_order__ = ["x", "v"]  # only print these attributes
+    __print_order__ = ["x", "v", 'wait']  # only print these attributes
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -93,7 +93,7 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState, One]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accellerations that make the speed non-negative
-        accels = [_ for _ in self.available_accels if _ + x.v >= 0]
+        accels = [_ for _ in self.available_accels if _*dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever
         if x.wait >= self.max_wait:
             assert x.v == 0, x
@@ -116,7 +116,8 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     def successor(self, x: VehicleState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
             ctx.prec = 2
-            v2 = x.v + u.accel * dt
+            accel_effective = max(-x.v / dt, u.accel)
+            v2 = x.v + accel_effective * dt
             if v2 < 0:
                 v2 = 0
                 # msg = 'Invalid action gives negative vel'
@@ -129,7 +130,7 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
                 msg = "Invalid action gives speed too fast"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
             assert v2 >= 0
-            x2 = x.x + (x.v + u.accel * dt) * dt
+            x2 = x.x + (x.v + accel_effective * dt) * dt
             if x2 > self.max_path:
                 msg = "Invalid action gives out of bound"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
@@ -144,7 +145,10 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = D(0)
-        return VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
+        ret = VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
+        if ret.x < 0:
+            raise ZValueError(x=x, u=u, accel_effective=accel_effective,ret=ret)
+        return ret
 
     # @lru_cache(None)
     # def assert_valid_state(self, s: VehicleState):

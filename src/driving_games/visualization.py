@@ -78,12 +78,12 @@ class DrivingGameVisualization(
 
         # TODO: finish here
         colors = {
-            "none": {"back_left": "red", "back_right": "red", "front_right": "white", "front_left": "white",},
+            "none": {"back_left": "red", "back_right": "red", "front_right": "white", "front_left": "white", },
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
         plot_car(
-            self.pylab, q, velocity=velocity, light_colors=colors[light], vg=self.geometries[player_name]
+            self.pylab, player_name, q, velocity=velocity, light_colors=colors[light], vg=self.geometries[player_name]
         )
 
     def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
@@ -91,7 +91,7 @@ class DrivingGameVisualization(
         return float(state.x), float(state.v + w)
 
 
-def plot_car(pylab, q: np.array, velocity, light_colors, vg: VehicleGeometry):
+def plot_car(pylab, player_name: PlayerName, q: np.array, velocity, light_colors, vg: VehicleGeometry):
     L = float(vg.length)
     W = float(vg.width)
     car_color = vg.color
@@ -126,7 +126,9 @@ def plot_car(pylab, q: np.array, velocity, light_colors, vg: VehicleGeometry):
     pylab.plot(x3, y3, "r-", zorder=99)
 
     x4, y4 = get_transformed_xy(q, ((0, 0),))
-    pylab.plot(x4, y4, "k*", zorder=15)
+    # pylab.plot(x4, y4, "k*", zorder=15)
+    pylab.text(x4, y4, player_name, zorder=15, horizontalalignment='center',
+               verticalalignment='center')
 
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:

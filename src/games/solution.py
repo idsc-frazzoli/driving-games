@@ -9,7 +9,6 @@ from possibilities import Poss
 from preferences import PrefConverter, Preference
 from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
 from . import logger
-from .agent import RandomAgent
 from .agent_from_policy import AgentFromPolicy
 from .create_joint_game_tree import create_game_tree
 from .equilibria import (
@@ -55,6 +54,8 @@ from .structures_solution import (
 )
 
 __all__ = ["solve1", "get_outcome_set_preferences_for_players"]
+
+
 #
 #
 # def solve_random(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]) -> Simulation[Pr, X, U, Y, RP, RJ]:
@@ -322,7 +323,7 @@ def solve_equilibria(
 
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "
-        raise ZValueError(msg, gn=replace(gn, outcomes2={}))
+        raise ZValueError(msg, gn=replace(gn, outcomes2=frozendict()))
     # logger.info(gn=gn, solved=solved)
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
@@ -390,6 +391,9 @@ class CombinedFromOutcome(Generic[RP, RJ]):
 
     def __call__(self, outcome: Outcome[RP, RJ]) -> Combined[RJ, RP]:
         # check_isinstance(outcome, Outcome, _self=self)
+        if not self.name in outcome.private:
+            msg = 'Looks like the personal value was not included.'
+            raise ZValueError(name=self.name, outcome=outcome)
         combined = Combined(joint=outcome.joint.get(self.name, None), personal=outcome.private[self.name])
         return combined
 
