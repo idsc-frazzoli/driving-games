@@ -30,6 +30,8 @@ class CollisionPreference(Preference[Optional[CollisionCost]]):
             return FIRST_PREFERRED
         if a is not None and b is None:
             return SECOND_PREFERRED
+        assert a is not None
+        assert b is not None
         res = self.p.compare(a.v, b.v)
         assert res in COMP_OUTCOMES, (res, self.p)
         # logger.info('collision_pref', a=a, b=b, res=res)

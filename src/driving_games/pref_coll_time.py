@@ -11,12 +11,12 @@ from preferences import (
 )
 from zuper_typing import debug_print
 from .collision_preference import CollisionPreference
-from .structures import CollisionCost
+from .structures import CollisionCost, VehicleCosts
 
 __all__ = ["VehiclePreferencesCollTime"]
 
 
-class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
+class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, VehicleCosts]]):
     def __init__(self, ignore_second=False):
         self.ignore_second = ignore_second
         self.collision = CollisionPreference()
@@ -24,24 +24,27 @@ class VehiclePreferencesCollTime(Preference[Combined[CollisionCost, D]]):
         self.lexi = LexicographicPreference((self.collision, self.time))
 
     def get_type(self) -> Type[Combined[CollisionCost, D]]:
-        return Combined[CollisionCost, D]
+        return Combined[CollisionCost, VehicleCosts]
 
     def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(self, a: Combined[CollisionCost, D], b: Combined[CollisionCost, D]) -> ComparisonOutcome:
+    def compare(
+        self, a: Combined[CollisionCost, VehicleCosts], b: Combined[CollisionCost, VehicleCosts]
+    ) -> ComparisonOutcome:
         # check_isinstance(a, Combined)
         # check_isinstance(b, Combined)
         if self.ignore_second:
             if a.joint is None and b.joint is None:
-                return self.time.compare(a.personal, b.personal)
+
+                return self.time.compare(a.personal.duration, b.personal.duration)
             else:
                 return self.collision.compare(a.joint, b.joint)
 
         else:
-            ct_a = (a.joint, a.personal)
-            ct_b = (b.joint, b.personal)
+            ct_a = (a.joint, a.personal.duration)
+            ct_b = (b.joint, b.personal.duration)
 
             res = self.lexi.compare(ct_a, ct_b)
             assert res in COMP_OUTCOMES, (res, self.lexi)

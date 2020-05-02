@@ -9,8 +9,8 @@ coverage_dir=$(out)/coverage
 tr=$(out)/test-results
 
 
-test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests
-cover_packages=$(test_packages),driving_games,preferences,games,games_scripts
+test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests,possibilities_tests
+cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,possibilities
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -34,18 +34,18 @@ test:
 	$(MAKE) clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture #$(xunitmp)
-	 
+
 
 test-parallel:
 	$(MAKE) clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(parallel)
-	
+
 
 test-parallel-circle:
 	DISABLE_CONTRACTS=1 NODE_TOTAL=$(CIRCLE_NODE_TOTAL) NODE_INDEX=$(CIRCLE_NODE_INDEX) nosetests $(coverage) $(xunitmp) src  -v  $
 	(parallel)
-	
+
 
 coverage-combine:
 	coverage combine

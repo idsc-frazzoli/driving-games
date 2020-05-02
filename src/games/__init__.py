@@ -19,3 +19,4 @@ from .reports import *
 from .simulate import *
 from .single_game_tree import *
 from .animations import *
+from .zoo import *

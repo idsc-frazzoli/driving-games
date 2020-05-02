@@ -1,6 +1,7 @@
 from decimal import Decimal as D
 from typing import Type
 
+from zuper_commons.types import check_isinstance
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -39,6 +40,8 @@ class SmallerPreferredTol(Preference[D]):
         return D
 
     def compare(self, a: D, b: D) -> ComparisonOutcome:
+        check_isinstance(a, D)
+        check_isinstance(b, D)
         if abs(a - b) <= self.tol:
             return INDIFFERENT
         if a < b:

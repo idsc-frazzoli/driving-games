@@ -45,9 +45,9 @@ __all__ = [
 ]
 
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
-STRATEGY_MIX = StrategyForMultipleNash("strategy-mix")
-STRATEGY_SECURITY = StrategyForMultipleNash("strategy-security")
-STRATEGY_BAIL = StrategyForMultipleNash("strategy-bail")
+STRATEGY_MIX = StrategyForMultipleNash("mix")
+STRATEGY_SECURITY = StrategyForMultipleNash("security")
+STRATEGY_BAIL = StrategyForMultipleNash("bail")
 
 
 @dataclass

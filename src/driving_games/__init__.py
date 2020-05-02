@@ -11,3 +11,4 @@ from .visualization import *
 from .collision_preference import *
 from .pref_coll_time import *
 from .joint_reward import *
+from .zoo import *

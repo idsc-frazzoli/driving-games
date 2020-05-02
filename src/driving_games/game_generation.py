@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, Dict, FrozenSet as ASet, FrozenSet
+from typing import cast, Dict, FrozenSet, FrozenSet as ASet
 
 from frozendict import frozendict
 
@@ -14,21 +14,25 @@ from games import (
 )
 from possibilities import One, PossibilityStructure, ProbabilitySet
 from preferences import SetPreference1
-from . import logger
 from .driving_example import VehiclePersonalRewardStructureTime
 from .joint_reward import VehicleJointReward
 from .pref_coll_time import VehiclePreferencesCollTime
 from .structures import (
     CollisionCost,
     Lights,
-    NO_LIGHTS,
     VehicleActions,
+    VehicleCosts,
     VehicleDirectObservations,
     VehicleDynamics,
     VehicleObservation,
     VehicleState,
 )
 from .visualization import DrivingGameVisualization
+
+DrivingGame = Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost]
+DrivingGamePlayer = GamePlayer[
+    One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost
+]
 
 
 @dataclass
@@ -48,28 +52,7 @@ class TwoVehicleSimpleParams:
     second_progress: D
 
 
-def get_game1() -> Game[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
-    p = TwoVehicleSimpleParams(
-        side=D(8),
-        road=D(6),
-        road_lane_offset=D(4),
-        max_speed=D(5),
-        min_speed=D(1),
-        max_wait=D(1),
-        # available_accels={D(-2), D(0), D(+1)},
-        available_accels=frozenset({D(-2), D(-1), D(0), D(+1)}),
-        collision_threshold=3.0,
-        light_actions=frozenset({NO_LIGHTS}),
-        dt=D(1),
-        first_progress=D(0),
-        second_progress=D(0),
-    )
-    return get_two_vehicle_game(p)
-
-
-def get_two_vehicle_game(
-    params: TwoVehicleSimpleParams,
-) -> Game[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]:
+def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
     ps: PossibilityStructure[One] = ProbabilitySet()
     L = params.side + params.road + params.side
     start = params.side + params.road_lane_offset
@@ -88,6 +71,9 @@ def get_two_vehicle_game(
     # P2 = PlayerName("👳🏾‍")
     P1 = PlayerName("p1")
     P2 = PlayerName("p2")
+    P2 = PlayerName("⬅")
+    P1 = PlayerName("⬆")
+
     p1_initial = ps.lift_one(
         VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light="none")
     )
@@ -120,7 +106,7 @@ def get_two_vehicle_game(
     g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
     p2_possible_states = cast(ASet[VehicleState], frozenset(g2.nodes))
 
-    logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
+    # logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
     p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
     p2_observations = VehicleDirectObservations(p2_possible_states, {P1: p1_possible_states})
 
@@ -143,17 +129,16 @@ def get_two_vehicle_game(
         preferences=p2_preferences,
         set_preference_aggregator=set_preference_aggregator,
     )
-    Player = GamePlayer[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
-    players: Dict[PlayerName, Player]
+    players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
     joint_reward: JointRewardStructure[VehicleState, VehicleActions, CollisionCost]
     joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold)
 
     game_visualization: GameVisualization[
-        One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost
+        One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost
     ]
     game_visualization = DrivingGameVisualization(params, L)
-    game: Game[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    game: DrivingGame
 
     game = Game(
         players=frozendict(players), ps=ps, joint_reward=joint_reward, game_visualization=game_visualization

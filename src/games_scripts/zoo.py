@@ -1,19 +1,11 @@
-from dataclasses import dataclass
 from typing import Dict
 
-from driving_games import get_game1
-from games import Game
+from driving_games import driving_games_zoo
 
 __all__ = ["games_zoo"]
 
-
-@dataclass
-class GameSpec:
-    desc: str
-    game: Game
-
+from games import GameSpec
 
 games_zoo: Dict[str, GameSpec] = {}
 
-# Creates the examples
-games_zoo["game1"] = GameSpec(desc="", game=get_game1())
+games_zoo.update(driving_games_zoo)

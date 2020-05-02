@@ -9,11 +9,11 @@ from matplotlib import patches
 from games import GameVisualization, PlayerName
 from possibilities import One
 from .driving_example import SE2_from_VehicleState
-from .structures import CollisionCost, VehicleActions, VehicleObservation, VehicleState
+from .structures import CollisionCost, VehicleActions, VehicleCosts, VehicleObservation, VehicleState
 
 
 class DrivingGameVisualization(
-    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, D, CollisionCost]
+    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionCost]
 ):
     side: D
 

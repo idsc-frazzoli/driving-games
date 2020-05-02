@@ -203,3 +203,10 @@ class VehicleDirectObservations(Observations[One, VehicleState, VehicleObservati
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class CollisionCost:
     v: D
+
+
+@dataclass(frozen=True)
+class VehicleCosts:
+    """ The incremental costs"""
+
+    duration: D

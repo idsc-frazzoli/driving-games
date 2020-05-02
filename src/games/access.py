@@ -76,7 +76,7 @@ def get_accessible_states(
 
         G.add_node(node, is_final=False)
     stack = list(initial.support())
-    logger.info(stack=stack)
+    # logger.info(stack=stack)
     i: int = 0
     expanded = set()
     while stack:

@@ -2,20 +2,20 @@ from os.path import join
 from typing import Mapping
 
 from decent_params import DecentParams
-from quickapp import QuickApp, QuickAppContext
-from zuper_commons.types import ZValueError
-
 from games import (
     create_report_preprocessed,
     preprocess_game,
-    report_animation,
     report_game_visualization,
     report_solutions,
     solve1,
     solve_random,
 )
+from games.zoo import GameSpec
+from quickapp import QuickApp, QuickAppContext
+from zuper_commons.text import expand_string
+from zuper_commons.types import ZValueError
 from .solvers import solvers_zoo, SolverSpec
-from .zoo import games_zoo, GameSpec
+from .zoo import games_zoo
 
 __all__ = ["dg_demo", "DGDemo"]
 
@@ -31,6 +31,9 @@ class DGDemo(QuickApp):
 
         do_solvers = self.get_options().solvers.split(",")
         do_games = self.get_options().games.split(",")
+
+        do_games = expand_string(do_games, list(games_zoo))
+        do_solvers = expand_string(do_solvers, list(solvers_zoo))
         for game_name in do_games:
             if not game_name in games_zoo:
                 raise ZValueError(f"Cannot find {game_name!r}", available=set(games_zoo))
@@ -42,7 +45,7 @@ class DGDemo(QuickApp):
             cgame = context.child(game_name, extra_report_keys=dict(game=game_name))
             game = games_zoo[game_name].game
             rgame = cgame.comp(report_game_visualization, game)
-            cgame.add_report(rgame, "visualization")
+            cgame.add_report(rgame, "game_tree")
             for solver_name in do_solvers:
                 c = cgame.child(solver_name, extra_report_keys=dict(solver=solver_name))
                 solver_params = solvers_zoo[solver_name].solver_params
@@ -50,17 +53,11 @@ class DGDemo(QuickApp):
                 game_preprocessed = c.comp(preprocess_game, game, solver_params)
 
                 r = c.comp(create_report_preprocessed, game_name, game_preprocessed)
-                c.add_report(r, "report_preprocessed")
+                c.add_report(r, "preprocessed")
 
                 solutions = c.comp(solve1, game_preprocessed)
                 r = c.comp(report_solutions, game_preprocessed, solutions)
-                c.add_report(r, "report_solve1_result")
-
-                random_sim = c.comp(solve_random, game_preprocessed)
-                r = c.comp(report_animation, game_preprocessed, random_sim)
-                c.add_report(
-                    r, "random_animation",
-                )
+                c.add_report(r, "solutions")
 
 
 def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, SolverSpec]):
