@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import FrozenSet, Generic, Iterator, Mapping, Tuple, Type, TypeVar
+from typing import FrozenSet, Generic, Type, TypeVar
 
 from zuper_commons.types import check_isinstance, ZValueError
 

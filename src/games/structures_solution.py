@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, Generic, Mapping, NewType
+from typing import Dict, Generic, Mapping, NewType, Set
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
@@ -45,9 +45,9 @@ __all__ = [
 ]
 
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
-STRATEGY_MIX = StrategyForMultipleNash("strategy-mix")
-STRATEGY_SECURITY = StrategyForMultipleNash("strategy-security")
-STRATEGY_BAIL = StrategyForMultipleNash("strategy-bail")
+STRATEGY_MIX = StrategyForMultipleNash("mix")
+STRATEGY_SECURITY = StrategyForMultipleNash("security")
+STRATEGY_BAIL = StrategyForMultipleNash("bail")
 
 
 @dataclass
@@ -137,8 +137,9 @@ class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ]):
 @dataclass
 class SolvingContext(Generic[Pr, X, U, Y, RP, RJ]):
     gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
-    cache: Dict[GameNode, SolvedGameNode]
     outcome_set_preferences: Mapping[PlayerName, Preference[SetOfOutcomes]]
+    cache: Dict[GameNode, SolvedGameNode]
+    processing: Set[JointState]
 
 
 @dataclass

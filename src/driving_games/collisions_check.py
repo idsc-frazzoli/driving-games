@@ -1,0 +1,115 @@
+from decimal import Decimal as D
+from typing import List, Mapping
+
+import numpy as np
+from frozendict import frozendict
+
+from games import PlayerName
+from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
+from zuper_commons.types import ZNotImplementedError
+from .collisions import Collision, IMPACT_FRONT, IMPACT_SIDES, ProjectedCar
+from .rectangle import make_rectangle
+from .structures import SE2_disc, VehicleGeometry, VehicleState
+
+__all__ = ["collision_check"]
+
+
+# XXX: Note that this only works for the simplest cases.
+#      For example it does not work for head-to-back collision.
+def collision_check(
+    poses: Mapping[PlayerName, VehicleState], geometries: Mapping[PlayerName, VehicleGeometry]
+) -> Mapping[PlayerName, Collision]:
+    dt = D(0.5)
+    n = 2
+    if len(poses) == 1:
+        return frozendict({})
+    if len(poses) > 2:
+        raise ZNotImplementedError(players=set(poses))
+
+    p1, p2 = list(poses)
+    s1 = poses[p1]
+    s2 = poses[p2]
+    g1 = geometries[p1]
+    g2 = geometries[p2]
+
+    x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
+    x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+
+    for x1, x2 in zip(x1s, x2s):
+        pc1 = rectangle_from_pose(s1.ref, x1, g1)
+        pc2 = rectangle_from_pose(s2.ref, x2, g2)
+
+        # did p1 collide with p2?
+        p1_caused = a_caused_collision_with_b(pc1, pc2)
+        p2_caused = a_caused_collision_with_b(pc2, pc1)
+
+        p1_active = p1_caused
+        p2_active = p2_caused
+        if p1_caused and p2_caused:
+            # head-on collision
+            i1 = i2 = IMPACT_FRONT
+            vs = s1.v * g1.mass + s2.v * g2.mass
+            energy_received_1 = vs
+            energy_received_2 = vs
+            energy_given_1 = vs
+            energy_given_2 = vs
+            pass
+        elif p1_caused:
+            i1 = IMPACT_FRONT
+            i2 = IMPACT_SIDES
+            energy_received_1 = D(0)
+            energy_received_2 = s1.v * g1.mass
+            energy_given_1 = s1.v * g1.mass
+            energy_given_2 = D(0)
+        elif p2_caused:
+            i1 = IMPACT_SIDES
+            i2 = IMPACT_FRONT
+            energy_received_2 = D(0)
+            energy_received_1 = s1.v * g1.mass
+            energy_given_2 = s1.v * g1.mass
+            energy_given_1 = D(0)
+        else:
+            continue
+
+        c1 = Collision(i1, p1_active, energy_received_1, energy_given_1)
+        c2 = Collision(i2, p2_active, energy_received_2, energy_given_2)
+        return frozendict({p1: c1, p2: c2})
+
+    return frozendict({})
+
+
+def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
+    return any(b.rectangle.contains(_) for _ in (a.front_right, a.front_center, a.front_left))
+
+
+def sample_x(x: D, v: D, dt: D, n: int) -> List[D]:
+    return [x + v * dt * i for i in range(-n, +n + 1)]
+
+
+def rectangle_from_pose(ref: SE2_disc, x: D, vg: VehicleGeometry) -> ProjectedCar:
+    qref = SE2_from_xytheta([float(ref[0]), float(ref[1]), np.deg2rad(float(ref[2]))])
+    qd = SE2.multiply(qref, SE2_from_xytheta([x, 0, 0]))
+
+    cx, cy, _ = xytheta_from_SE2(qd)
+    angle_deg = ref[2]
+    p = D(cx), D(cy)
+    if angle_deg == 0 or angle_deg == 180 or angle_deg == -180:
+        sides = (vg.length, vg.width)
+        rectangle = make_rectangle(p, sides)
+    elif angle_deg == 90 or angle_deg == 270:
+        sides = (vg.width, vg.length)
+        rectangle = make_rectangle(p, sides)
+    else:
+        raise ZNotImplementedError(p=p, angle_deg=angle_deg, vg=vg)
+
+    L = float(vg.length)
+    W = float(vg.width)
+    front_left_b = (L / 2, W / 2, 1)
+    front_center_b = (L / 2, 0, 1)
+    front_right_b = (L / 2, -W / 2, 1)
+
+    front_left = (qd @ front_left_b)[:2]
+    front_center = (qd @ front_center_b)[:2]
+    front_right = (qd @ front_right_b)[:2]
+
+    return ProjectedCar(rectangle, front_left=front_left, front_center=front_center, front_right=front_right)

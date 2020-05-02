@@ -1,6 +1,5 @@
 from typing import Tuple, Type, TypeVar
 
-from zuper_commons.types import check_isinstance
 from zuper_typing import debug_print, make_Tuple
 from .preferences_base import (
     COMP_OUTCOMES,

@@ -9,7 +9,6 @@ from possibilities import Poss
 from preferences import PrefConverter, Preference
 from zuper_commons.types import check_isinstance, ZNotImplementedError, ZValueError
 from . import logger
-from .agent import RandomAgent
 from .agent_from_policy import AgentFromPolicy
 from .create_joint_game_tree import create_game_tree
 from .equilibria import (
@@ -54,21 +53,23 @@ from .structures_solution import (
     ValueAndActions,
 )
 
-__all__ = ["solve1", "solve_random", "get_outcome_set_preferences_for_players"]
+__all__ = ["solve1", "get_outcome_set_preferences_for_players"]
 
 
-def solve_random(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]) -> Simulation[Pr, X, U, Y, RP, RJ]:
-    ps = gp.game.ps
-
-    policies = {
-        player_name: RandomAgent(player.dynamics, ps) for player_name, player in gp.game.players.items()
-    }
-    initial_states = {
-        player_name: list(player.initial.support())[0] for player_name, player in gp.game.players.items()
-    }
-    sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.solver_params.dt, seed=0)
-    logger.info(sim=sim)
-    return sim
+#
+#
+# def solve_random(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]) -> Simulation[Pr, X, U, Y, RP, RJ]:
+#     ps = gp.game.ps
+#
+#     policies = {
+#         player_name: RandomAgent(player.dynamics, ps) for player_name, player in gp.game.players.items()
+#     }
+#     initial_states = {
+#         player_name: list(player.initial.support())[0] for player_name, player in gp.game.players.items()
+#     }
+#     sim = simulate1(gp.game, policies=policies, initial_states=initial_states, dt=gp.solver_params.dt, seed=0)
+#     logger.info(sim=sim)
+#     return sim
 
 
 # IState = ASet[JointState]
@@ -200,7 +201,7 @@ def solve_game(
     gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], gn: GameNode[Pr, X, U, Y, RP, RJ]
 ) -> GameSolution[Pr, X, U, Y, RP, RJ]:
     outcome_set_preferences = get_outcome_set_preferences_for_players(gp.game)
-    sc = SolvingContext(gp, {}, outcome_set_preferences)
+    sc = SolvingContext(gp, outcome_set_preferences, {}, set())
     gn_solved = _solve_game(sc, gn)
 
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState, Pr], Poss[U, Pr]]]]
@@ -230,9 +231,16 @@ def _solve_game(
 ) -> SolvedGameNode[Pr, X, U, Y, RP, RJ]:
     if gn in sc.cache:
         return sc.cache[gn]
+    if gn.states in sc.processing:
+        msg = "Loop found"
+        raise ZValueError(msg, states=gn.states)
 
-    for pure_actions in gn.outcomes2:
-        check_joint_pure_actions(pure_actions)
+    sc.processing.add(gn.states)
+
+    # logger.debug(gn_states=gn.states, processing=len(sc.processing),
+    #              processed=len(sc.cache))
+    # for pure_actions in gn.outcomes2:
+    #     check_joint_pure_actions(pure_actions)
 
     ps = sc.gp.game.ps
     # what happens for each action?
@@ -256,13 +264,13 @@ def _solve_game(
         next_outcomes_solutions = ps.build(next_nodes_solutions, lambda _: _.va.game_value)
         # and now we flatten
         flattened: SetOfOutcomes = ps.flatten(next_outcomes_solutions)
-        check_set_outcomes(flattened)
+        # check_set_outcomes(flattened)
         # Now we need to add the incremental costs
         f = lambda _: add_incremental_cost(gp=sc.gp, incremental_for_player=inc, outcome=_)
         # logger.info(flattened=flattened)
         added: SetOfOutcomes = ps.build(flattened, f)
 
-        check_set_outcomes(added)
+        # check_set_outcomes(added)
         solved[pure_actions] = added
 
     va: ValueAndActions[U, RP, RJ]
@@ -284,9 +292,14 @@ def _solve_game(
 
     ret = SolvedGameNode(gn=gn, solved=frozendict(solved_to_node), va=va)
     sc.cache[gn] = ret
+    sc.processing.remove(gn.states)
+
     n = len(sc.cache)
     if n % 30 == 0:
-        logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
+        logger.info(
+            states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache)
+        )
+        # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
 
 
@@ -322,7 +335,7 @@ def solve_equilibria(
 
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "
-        raise ZValueError(msg, gn=replace(gn, outcomes2={}))
+        raise ZValueError(msg, gn=replace(gn, outcomes2=frozendict()))
     # logger.info(gn=gn, solved=solved)
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
@@ -390,6 +403,9 @@ class CombinedFromOutcome(Generic[RP, RJ]):
 
     def __call__(self, outcome: Outcome[RP, RJ]) -> Combined[RJ, RP]:
         # check_isinstance(outcome, Outcome, _self=self)
+        if not self.name in outcome.private:
+            msg = "Looks like the personal value was not included."
+            raise ZValueError(name=self.name, outcome=outcome)
         combined = Combined(joint=outcome.joint.get(self.name, None), personal=outcome.private[self.name])
         return combined
 

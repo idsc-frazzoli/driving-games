@@ -1,11 +1,13 @@
+import random
 from typing import Tuple
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
-from reprep import MIME_GRAPHML, Report
 
+from reprep import MIME_GRAPHML, Report
+from zuper_commons.text import remove_escapes
 from . import logger
-from .game_def import Game, RJ, RP, U, X, Y, Pr
+from .game_def import Game, Pr, RJ, RP, U, X, Y
 from .reports_player import report_player
 from .structures_solution import GamePreprocessed
 
@@ -36,24 +38,31 @@ def report_game_visualization(game: Game) -> Report:
 
 
 def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
-    r = Report(nid="collisions")
+    r = Report(nid="some_states", caption="Some interesting states.")
     G = game_pre.game_graph
 
     final1 = [node for node in G if G.nodes[node]["is_final1"]]
-    visualize_states(game_pre, r, "final1", final1[:5])
+    final1 = random.sample(final1, 5)
+    visualize_states(game_pre, r, "final1", final1, "Some final nodes for p1")
+
     final2 = [node for node in G if G.nodes[node]["is_final2"]]
-    visualize_states(game_pre, r, "final2", final2[:5])
+    final2 = random.sample(final2, 5)
+    visualize_states(game_pre, r, "final2", final2, "Some final nodes for p2")
     joint_final = [node for node in G if G.nodes[node]["is_joint_final"]]
-    visualize_states(game_pre, r, "joint_final", joint_final[:5])
+    joint_final = random.sample(joint_final, 5)
+    visualize_states(game_pre, r, "joint_final", joint_final, "Some final joint nodes.")
 
     return r
 
 
-def visualize_states(game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ], r: Report, name: str, nodes):
+def visualize_states(
+    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ], r: Report, name: str, nodes, caption: str
+):
     viz = game_pre.game.game_visualization
-    f = r.figure(name)
+    f = r.figure(name, caption=caption)
     for i, node in enumerate(nodes):
-        with f.plot(f"f{i}") as pylab:
+        c = remove_escapes("")
+        with f.plot(f"f{i}", caption=c) as pylab:
             ax = pylab.gca()
             with viz.plot_arena(pylab, ax):
                 for player_name, player_state in node.items():

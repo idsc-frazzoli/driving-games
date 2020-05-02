@@ -2,37 +2,63 @@ from decimal import Decimal as D
 from typing import Optional
 
 from reprep import MIME_GIF, Report
+from zuper_commons.text import remove_escapes
+from zuper_typing import debug_print
 from . import logger
 from .game_def import Pr, RJ, RP, U, X, Y
 from .simulate import Simulation
 from .structures_solution import GamePreprocessed, Solutions
 
-__all__ = ["report_animation", "report_solutions"]
+__all__ = ["report_solutions"]
+
+
+def good_id(s: str) -> str:
+    s = s.replace("-", "_")
+    return s
 
 
 def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], s: Solutions[Pr, X, U, Y, RP, RJ]):
     r = Report()
-    for k, sim in s.sims.items():
-        f = r.figure(k)
-        with f.data_file("sim", MIME_GIF) as fn:
+
+    sims = dict(s.sims)
+
+    f = r.figure("stackelberg", cols=5)
+    for k, sim in list(sims.items()):
+        if "follows" not in k:
+            continue
+        logger.info(f"drawing episode {k!r}")
+        with f.data_file((k), MIME_GIF) as fn:
             create_log_animation(gp, sim, fn=fn, upsample_log=None)
+        sims.pop(k)
+
+    f = r.figure("joint", cols=5)
+    for k, sim in list(sims.items()):
+        if "joint" not in k:
+            continue
+        logger.info(f"drawing episode {k!r}")
+        with f.data_file((k), MIME_GIF) as fn:
+            create_log_animation(gp, sim, fn=fn, upsample_log=None)
+        sims.pop(k)
+
+    r.text("joint_st", remove_escapes(debug_print(s.game_solution.gn_solved.va.game_value)))
 
     return r
 
 
-def report_animation(
-    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], sim: Simulation[Pr, X, U, Y, RP, RJ]
-) -> Report:
-    r = Report()
-    f = r.figure()
-    with f.data_file("sim", MIME_GIF) as fn:
-        create_log_animation(gp, sim, fn=fn, upsample_log=None)
-
-    if False:
-        with f.data_file("upsampled", MIME_GIF) as fn:
-            create_log_animation(gp, sim, fn=fn, upsample_log=8)
-
-    return r
+#
+# def report_animation(
+#     gp: GamePreprocessed[Pr, X, U, Y, RP, RJ], sim: Simulation[Pr, X, U, Y, RP, RJ]
+# ) -> Report:
+#     r = Report()
+#     f = r.figure()
+#     with f.data_file("sim", MIME_GIF) as fn:
+#         create_log_animation(gp, sim, fn=fn, upsample_log=None)
+#
+#     if False:
+#         with f.data_file("upsampled", MIME_GIF) as fn:
+#             create_log_animation(gp, sim, fn=fn, upsample_log=8)
+#
+#     return r
 
 
 def upsample(gp, states0, actions0, n: int):

@@ -1,4 +1,3 @@
-import itertools
 from decimal import Decimal as D
 from typing import FrozenSet, Mapping, Tuple
 
@@ -6,47 +5,56 @@ import numpy as np
 
 from games import JointRewardStructure, PlayerName
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
-from .structures import CollisionCost, VehicleActions, VehicleState
+from .collisions import Collision
+from .collisions_check import collision_check
+from .structures import VehicleActions, VehicleGeometry, VehicleState
 
 __all__ = ["VehicleJointReward"]
 
 
-class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, CollisionCost]):
-    def __init__(self, collision_threshold: float):
+class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
+    def __init__(self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry]):
         self.collision_threshold = collision_threshold
+        self.geometries = geometries
 
     # @lru_cache(None)
     def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:
-        if len(xs) == 1:
-            return frozenset()
-        if len(xs) != 2:
-            raise NotImplementedError(len(xs))
-        s1, s2 = list(xs.values())
-        mind = 1000
-        dt = D(0.5)
-        n = 2
-        samples1 = sample_from_traj(s1, dt=dt, n=n)
-        samples2 = sample_from_traj(s2, dt=dt, n=n)
-        for (x1, y1), (x2, y2) in itertools.product(samples1, samples2):
-            dist = np.hypot(x1 - x2, y1 - y2)
-            mind = min(mind, dist)
-        # d = pose_diff(c1, c2)
-        # x, y, _ = xytheta_from_SE2(d)
-        # dist = np.hypot(x, y)
-        # logger.info(c1=xytheta_from_SE2(c1), c2=xytheta_from_SE2(c2), dist=dist)
-        if mind < self.collision_threshold:
-            return frozenset(xs)
-        else:
-            return frozenset()
+        # if len(xs) == 1:
+        #     return frozenset()
+        # if len(xs) != 2:
+        #     raise NotImplementedError(len(xs))
+        # s1, s2 = list(xs.values())
+        # mind = 1000
+        # dt = D(0.5)
+        # n = 2
+        # samples1 = sample_from_traj(s1, dt=dt, n=n)
+        # samples2 = sample_from_traj(s2, dt=dt, n=n)
+        # for (x1, y1), (x2, y2) in itertools.product(samples1, samples2):
+        #     dist = np.hypot(x1 - x2, y1 - y2)
+        #     mind = min(mind, dist)
+        # # d = pose_diff(c1, c2)
+        # # x, y, _ = xytheta_from_SE2(d)
+        # # dist = np.hypot(x, y)
+        # # logger.info(c1=xytheta_from_SE2(c1), c2=xytheta_from_SE2(c2), dist=dist)
+        # if mind < self.collision_threshold:
+        #     return frozenset(xs)
+        # else:
+        #     return frozenset()
+        res = collision_check(xs, self.geometries)
+        return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, CollisionCost]:
-        players = self.is_joint_final_state(xs)
-        if not players:  # pragma: no cover
-            raise Exception()
-        res = {}
-        for p in players:
-            res[p] = CollisionCost(xs[p].v)
+    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, Collision]:
+        res = collision_check(xs, self.geometries)
         return res
+
+        #
+        # players = self.is_joint_final_state(xs)
+        # if not players:  # pragma: no cover
+        #     raise Exception()
+        # res = {}
+        # for p in players:
+        #     res[p] = CollisionCost(xs[p].v)
+        # return res
 
 
 def sample_from_traj(s: VehicleState, dt: D, n: int) -> Tuple[Tuple[float, float], ...]:

@@ -1,7 +1,6 @@
 from typing import Tuple, Type, TypeVar
 
 from zuper_typing import debug_print
-from . import logger
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -17,6 +16,8 @@ V = TypeVar("V")
 
 
 class StrictProductPreference(Preference[V]):
+    """ Computes the product of the preferences. """
+
     prefs: Tuple[Preference[V], ...]
 
     def __init__(self, prefs: Tuple[Preference[V], ...]):
@@ -31,6 +32,19 @@ class StrictProductPreference(Preference[V]):
         return "StrictProductPreference\n" + debug_print(r)
 
     def compare(self, a: V, b: V) -> ComparisonOutcome:
+        """
+        Returns the product of the preferences specified in the constructor.
+
+        This returns:
+
+        - :any:`FIRST_PREFERRED` if all voices agree on either :any:`FIRST_PREFERRED` or :any:`INDIFFERENT`.
+        - :any:`SECOND_PREFERRED` if all voices agree on either :any:`SECOND_PREFERRED` or :any:`INDIFFERENT`.
+        - :any:`INDIFFERENT` if it is :any:`INDIFFERENT` for everybody.
+        - :any:`INCOMPARABLE` if there is any :any:`INCOMPARABLE` or both :any:`FIRST_PREFERRED`  and
+          :any:`SECOND_PREFERRED`.
+
+
+        """
         # check_isinstance(a, dict, _self=self)
         # check_isinstance(b, dict, _self=self)
         outcomes = []

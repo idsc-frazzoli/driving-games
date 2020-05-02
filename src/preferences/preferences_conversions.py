@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Callable, Generic, Type, TypeVar
 
-from . import logger
 from .preferences_base import ComparisonOutcome, Preference
 
 __all__ = ["PrefConverter"]

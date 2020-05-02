@@ -11,26 +11,35 @@ from preferences import (
     SmallerPreferredTol,
 )
 from zuper_typing import debug_print
-from .structures import CollisionCost
+from .collisions import Collision
 
 __all__ = ["CollisionPreference"]
 
 
-class CollisionPreference(Preference[Optional[CollisionCost]]):
+class CollisionPreference(Preference[Optional[Collision]]):
     def __init__(self):
         self.p = SmallerPreferredTol(D(0))
 
-    def get_type(self) -> Type[Optional[CollisionCost]]:
-        return Optional[CollisionCost]
+    def get_type(self) -> Type[Optional[Collision]]:
+        return Optional[Collision]
 
-    def compare(self, a: Optional[CollisionCost], b: Optional[CollisionCost]) -> ComparisonOutcome:
+    def compare(self, a: Optional[Collision], b: Optional[Collision]) -> ComparisonOutcome:
         if a is None and b is None:
             return INDIFFERENT
         if a is None and b is not None:
             return FIRST_PREFERRED
         if a is not None and b is None:
             return SECOND_PREFERRED
-        res = self.p.compare(a.v, b.v)
+        assert a is not None
+        assert b is not None
+        if a.active and not b.active:
+            return SECOND_PREFERRED
+        if b.active and not a.active:
+            return FIRST_PREFERRED
+
+        ea = a.energy_received + a.energy_transmitted
+        eb = b.energy_received + b.energy_transmitted
+        res = self.p.compare(ea, eb)
         assert res in COMP_OUTCOMES, (res, self.p)
         # logger.info('collision_pref', a=a, b=b, res=res)
         return res
