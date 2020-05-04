@@ -4,6 +4,7 @@ workflows:
   test:
     jobs:
       - test-3.7
+      - test-3.8
 jobs:
   test-3.7: &test-template
     environment:
@@ -33,11 +34,14 @@ jobs:
           command: |
             python setup.py develop --prefix ~/.local --no-deps
 
+      - run:
+          name: Make docs
+          command: |
+            make docs
 
       - run:
           name: Run tests
           command: |
-            mkdir -p out/test-results
             make test 
 
       - store_test_results:
@@ -50,6 +54,7 @@ jobs:
           command: |
             make coverage-combine
             make coverage-report
+            coverage xml
 
 
       - store_artifacts:

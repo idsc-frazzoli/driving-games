@@ -20,7 +20,7 @@ exclude_lines =
     if TYPE_CHECKING
     if enable_type_checking
     if not GameConstants.checks:
-    ...
+    \.\.\.
     pass
 
     do_extra_checks()
