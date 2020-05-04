@@ -62,12 +62,15 @@ build-no-cache:
 
 run:
 	mkdir -p out-docker
-	docker run -it -v $(PWD)/out-docker:/out $(tag) \
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/out-docker:/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
 run-with-mounted-src:
 	mkdir -p out-docker
-	docker run -it -v $(PWD)/src:/driving_games/src:ro -v $(PWD)/out-docker:/out $(tag) \
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/src:/driving_games/src:ro \
+		-v $(PWD)/out-docker:/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
 black:

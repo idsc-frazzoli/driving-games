@@ -15,7 +15,9 @@ evaluator.log
 .coverage.dorothy.98795.443718
 trace-cover
 out
-out
+out-docker
 .coverage.dorothy.18145.743791
 .compmake_history.txt
 *graphml
+.idea
+

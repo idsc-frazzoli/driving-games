@@ -92,7 +92,7 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     @lru_cache(None)
     def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState, One]]:
         """ For each state, returns a dictionary U -> Possible Xs """
-        # only allow accellerations that make the speed non-negative
+        # only allow accelerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ * dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever
         if x.wait >= self.max_wait:

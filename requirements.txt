@@ -16,7 +16,7 @@ networkx
 zuper-typing-z6>=6.0.65
 
 # testing and coverage 
-
+seaborn
 
 codecov==2.0.16
 
