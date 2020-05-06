@@ -61,7 +61,7 @@ jobs:
           when: always
           path: out/coverage
           destination: coverage
-          
+
       - store_artifacts:
           when: always
           path: out/tests

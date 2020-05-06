@@ -352,6 +352,8 @@ def solve_equilibria(
         game_value = ea.nondom_nash_equilibria[eq]
         return ValueAndActions(game_value=game_value, mixed_actions=eq)
     else:
+        # multiple nondominated, but same outcome
+
         # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
 
@@ -373,10 +375,11 @@ def solve_equilibria(
 
             dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=profile, f=f)
 
-            game_value1: Poss[SetOfOutcomes, Pr] = ps.flatten(ps.build(dist, solved.__getitem__))
+            game_value1: SetOfOutcomes
+            game_value1 = ps.flatten(ps.build(dist, solved.__getitem__))
             # logger.info(dist=dist, game_value1=game_value1)
             return ValueAndActions(game_value=game_value1, mixed_actions=frozendict(profile))
-
+        # Anything can happen
         elif strategy == STRATEGY_SECURITY:
             ps = sc.gp.game.ps
             security_policies: JointMixedActions2
