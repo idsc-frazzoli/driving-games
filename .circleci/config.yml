@@ -38,16 +38,20 @@ jobs:
           name: Make docs
           command: |
             make docs
+      - run:
+          name: Notebooks
+          command: |
+            make -C notebooks cleanup all
 
       - run:
           name: Run tests
           command: |
-            make test 
+            make test
 
       - store_test_results:
-          when: always  
+          when: always
           path: out/test-results
- 
+
       - run:
           name: Coverage report
           when: always
@@ -59,8 +63,13 @@ jobs:
 
       - store_artifacts:
           when: always
-          path: cover
+          path: out/coverage
           destination: coverage
+
+      - store_artifacts:
+          when: always
+          path: out/tests
+          destination: tests
 
       - run:
           name: CodeCov

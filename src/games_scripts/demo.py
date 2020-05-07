@@ -60,7 +60,7 @@ class DGDemo(QuickApp):
 
 
 def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, SolverSpec]):
-    d = "out-without"
+    d = "out/tests/"
     for game_name, game_spec in games.items():
         dg = join(d, game_name)
         game = game_spec.game
