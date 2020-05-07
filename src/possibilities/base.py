@@ -24,7 +24,6 @@ class Sampler(Generic[Φ], ABC):
 class PossibilityStructure(Generic[Φ], ABC):
     """
         The interface for a generic uncertainty monad.
-
     """
 
     @abstractmethod

@@ -22,6 +22,7 @@ from .game_def import (
 __all__ = []
 
 
+# fixme az this is not used anywhere
 @dataclass
 class SimulationStep(Generic[Pr, X, U, Y, RP, RJ]):
     states: JointState
@@ -45,14 +46,14 @@ N = TypeVar("N")
 
 
 def simulate1(
-    game: Game[Pr, X, U, Y, RP, RJ],
-    policies: Mapping[PlayerName, AgentBelief[Pr, X, U]],
-    initial_states: JointState,
-    dt: D,
-    seed: int,
+        game: Game[Pr, X, U, Y, RP, RJ],
+        policies: Mapping[PlayerName, AgentBelief[Pr, X, U]],
+        initial_states: JointState,
+        dt: D,
+        seed: int,
 ) -> Simulation[Pr, X, U, Y, RP, RJ]:
     S_states: Dict[D, JointState] = {}
-    S_actions: Dict[D, JointState] = {}
+    S_actions: Dict[D, JointState] = {}  # fixme az JointPureActions?
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}
     S_joint_costs: Dict[D, Mapping[PlayerName, RJ]] = {}
 
@@ -109,7 +110,7 @@ def simulate1(
 
         S_actions[t1] = frozendict(s1_actions)
         S_costs[t1] = frozendict(incremental_costs)
-        t2 = t1 + dt
+        t2 = t1+dt
         S_states[t2] = frozendict(next_states)
 
     return Simulation(

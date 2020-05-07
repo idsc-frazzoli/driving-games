@@ -20,4 +20,5 @@ out-docker
 .compmake_history.txt
 *graphml
 .idea
+venv
 

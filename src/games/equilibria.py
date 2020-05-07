@@ -105,7 +105,7 @@ def analyze(
     player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
     results: Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes],
     preferences: Mapping[PlayerName, Preference[SetOfOutcomes]],
-):
+) -> EquilibriaAnalysis:
     # logger.info(combos=combos)
     comb: JointPureActions
     ps: Dict[JointPureActions, PointStats] = {}

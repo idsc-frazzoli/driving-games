@@ -83,4 +83,5 @@ docs:
 	sphinx-build src $(out)/docs
 
 
-include Makefile.version
+include makefiles/Makefile.version
+include makefiles/Makefile.az
