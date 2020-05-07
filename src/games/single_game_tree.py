@@ -5,7 +5,6 @@ from typing import Dict, Generic, Set
 from frozendict import frozendict
 
 from zuper_commons.types import ZValueError
-from . import logger
 from .game_def import Game, GamePlayer, PlayerName, Pr, RJ, RP, U, X, Y
 from .structures_solution import GameNode
 

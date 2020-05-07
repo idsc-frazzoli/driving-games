@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, FrozenSet, Mapping
+from typing import Dict, FrozenSet, List, Mapping
 
 from frozendict import frozendict
 from toolz import keyfilter
@@ -96,8 +96,11 @@ def what_if_player_chooses(
     mixed: Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
     mixed = get_mixed(ps, choices, solved)
 
+
+    w:  Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
     w = worst_cases(mixed, preference)
-    # Note that there might be more nondonimnate
+    # Note that there might be more nondominated
+    values: List[SetOfOutcomes]
     values = list(w.values())
     # XXX not sure it is so simple
     return ps.flatten(ps.lift_many(values))
@@ -117,6 +120,8 @@ def get_mixed(
         dist: Poss[JointPureActions, Pr]
         dist = get_mixed2(ps, choice)
         mixed_outcome: Poss[SetOfOutcomes, Pr] = ps.build(dist, pure_outcomes.__getitem__)
+        # TODO: for probabilities, there is something more complicated than just "build"
+        # ...
         results[choice] = ps.flatten(mixed_outcome)
     return results
 

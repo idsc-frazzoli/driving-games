@@ -12,7 +12,7 @@ test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_te
 cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,possibilities
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
-coverage=--cover-html --cover-tests --with-coverage --cover-package=$(cover_packages)
+coverage=--cover-html --cover-html-dir=$(coverage_dir) --cover-tests --with-coverage --cover-package=$(cover_packages)
 
 xunitmp=--with-xunitmp --xunitmp-file=$(xunit_output)
 extra=--rednose --immediate
