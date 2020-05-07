@@ -38,6 +38,10 @@ jobs:
           name: Make docs
           command: |
             make docs
+      - run:
+          name: Notebooks
+          command: |
+            make -C notebooks cleanup all
 
       - run:
           name: Run tests
