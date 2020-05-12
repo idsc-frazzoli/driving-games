@@ -15,9 +15,10 @@ reprep>=6.0.3,<7
 networkx
 zuper-typing-z6>=6.0.65
 
-# testing and coverage 
 seaborn
+nashpy
 
+# testing and coverage 
 codecov==2.0.16
 
 nose==1.3.7

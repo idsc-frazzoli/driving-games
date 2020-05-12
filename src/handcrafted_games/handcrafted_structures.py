@@ -4,17 +4,16 @@ from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional
 from decimal import Decimal as D
 
 from frozendict import frozendict
-from zuper_commons.types import ZValueError, check_isinstance
+from zuper_commons.types import ZValueError
 
 from driving_games.structures import InvalidAction
-from games import Dynamics, PlayerName, Observations, PersonalRewardStructure
+from games import Dynamics, PlayerName, Observations
 from possibilities import One, Poss, ProbabilitySet
-from preferences import Preference, SmallerPreferredTol, SmallerPreferred
 
-Pull = NewType("Pull", str)
-UP = Pull("up")
-DOWN = Pull("down")
-PullValue: AbstractSet[Pull] = frozenset(
+Go = NewType("Go", str)
+UP = Go("up")
+DOWN = Go("down")
+GoValue: AbstractSet[Go] = frozenset(
     {UP, DOWN}
 )
 
@@ -26,18 +25,18 @@ class NotSeen:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class Seen:
-    z: Optional[int]
+    z: Optional[D]
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BirdActions:
-    pull: Pull
+    go: Go
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BirdState(object):
     # flying altitude
-    z: int = 0
+    z: D = 0
     # augment the state with the stage number for stage-dependent costs
     stage: int = 0
 
@@ -48,8 +47,8 @@ class FlyingDynamics(Dynamics[One, BirdState, BirdActions]):
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[BirdActions]:
         res = set()
-        for pull in PullValue:
-            res.add(BirdActions(pull))
+        for go in GoValue:
+            res.add(BirdActions(go))
         return frozenset(res)
 
     @lru_cache(None)
@@ -70,10 +69,13 @@ class FlyingDynamics(Dynamics[One, BirdState, BirdActions]):
 
     @lru_cache(None)
     def successor(self, x: BirdState, u: BirdActions) -> BirdState:
-        if u == UP:
-            return replace(x, z=x.z+1, stage=x.stage+1)
-        if u == DOWN:
-            return replace(x, z=x.z-1, stage=x.stage+1)
+        # trick to get unique NOT path dependent final states and
+        # allow arbitrary payoff matrices
+        altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
+        if u.go == UP:
+            return replace(x, z=x.z+altitude_incr, stage=x.stage+1)
+        if u.go == DOWN:
+            return replace(x, z=x.z-altitude_incr, stage=x.stage+1)
         else:
             raise ZValueError(x=x, u=u)
 
@@ -124,40 +126,3 @@ class BirdDirectObservations(Observations[One, BirdState, BirdObservation]):
 @dataclass(frozen=True)
 class BirdCosts:
     cost: int
-
-    def __add__(self, other):
-        return BirdCosts(self.cost+other.cost)
-
-
-class BirdPersonalRewardStructureCustom(
-    PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
-    max_stages: int
-
-    def __init__(self, max_stages: int):
-        self.max_stages = max_stages
-
-    def personal_reward_incremental(self, x: BirdState, u: BirdActions, dt: D) -> BirdCosts:
-        check_isinstance(x, BirdState)
-        check_isinstance(u, BirdActions)
-        if x.stage == self.max_stages:
-            # todo here we should implement the arbitrary payoff matrices
-            pass
-        else:
-            return BirdCosts(1)
-
-    def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
-        return r1+r2
-
-    def personal_final_reward(self, x: BirdState) -> BirdCosts:
-        check_isinstance(x, BirdState)
-        # assert self.is_personal_final_state(x)
-        return BirdCosts(0)
-
-    def is_personal_final_state(self, x: BirdState) -> bool:
-        check_isinstance(x, BirdState)
-        return x.stage > self.max_stages
-
-
-class BirdPreferences(SmallerPreferred):
-    ...
-

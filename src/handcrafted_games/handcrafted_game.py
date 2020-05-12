@@ -3,21 +3,24 @@ from frozendict import frozendict
 from games import (
     GameSpec, Game,
     PlayerName, GamePlayer, get_accessible_states)
+from handcrafted_games.handcrafted_rewards import (
+    BirdPersonalRewardStructureCustom,
+    BirdPreferences, BirdJointReward)
 from handcrafted_games.handcrafted_structures import (
-    FlyingDynamics, BirdState, BirdDirectObservations,
-    BirdPersonalRewardStructureCustom, BirdPreferences)
+    FlyingDynamics, BirdState, BirdDirectObservations)
 from possibilities import PossibilityStructure, One, ProbabilitySet
-from typing import FrozenSet as ASet, cast
+from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
-
+import numpy as np
 from preferences import SetPreference1
 
+__all__ = ["get_handcrafted_game_spec"]
 
-def get_handcrafted_game_spec() -> GameSpec:
+
+def get_handcrafted_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> GameSpec:
     ps: PossibilityStructure[One] = ProbabilitySet()
     P1, P2 = PlayerName("1"), PlayerName("2")
     dt = D(1)  # not relevant for this example
-    max_stages: int = 2
 
     # state
     p1_x = BirdState()
@@ -45,6 +48,11 @@ def get_handcrafted_game_spec() -> GameSpec:
     p1_preferences = BirdPreferences()
     p2_preferences = BirdPreferences()
     set_preference_aggregator = SetPreference1
+    birds_joint_reward = BirdJointReward(
+        max_stages=max_stages,
+        leaves_payoffs=leaves_payoffs,
+        row_player=P1, col_player=P2)
+
     p1 = GamePlayer(
         initial=p1_initial,
         dynamics=p1_dynamics,
@@ -64,7 +72,7 @@ def get_handcrafted_game_spec() -> GameSpec:
 
     handcrafted_game = Game(ps=ps,
                             players=frozendict({P1: p1, P2: p2}),
-                            joint_reward=,
+                            joint_reward=birds_joint_reward,
                             game_visualization=None)
     gs = GameSpec("Handcrafted game to study edge cases",
                   handcrafted_game)
