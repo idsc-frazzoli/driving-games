@@ -1,3 +1,5 @@
+import logging
+
 import networkx as nx
 from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
@@ -5,11 +7,13 @@ from reprep import MIME_GRAPHML, Report
 from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y, Pr, SR
 from .structures_solution import GamePreprocessed
 
+logging.getLogger("matplotlib.backends.backend_pdf").setLevel(logging.CRITICAL)
+
 __all__ = []
 
 
 def report_player(
-    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ],
+    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR],
     player_name: PlayerName,
     player: GamePlayer[Pr, X, U, Y, RP, RJ, SR],
 ):

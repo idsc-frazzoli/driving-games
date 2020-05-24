@@ -9,7 +9,6 @@ from games import (
     report_solutions,
     solve1,
 )
-from games.compute_indiv_solutions import compute_individual_solutions
 from games.zoo import GameSpec
 from quickapp import QuickApp, QuickAppContext
 from zuper_commons.text import expand_string
@@ -49,8 +48,8 @@ class DGDemo(QuickApp):
             for solver_name in do_solvers:
                 c = cgame.child(solver_name, extra_report_keys=dict(solver=solver_name))
                 solver_params = solvers_zoo[solver_name].solver_params
-                individual = c.comp(compute_individual_solutions, game, solver_params)
-                game_preprocessed = c.comp(preprocess_game, game, solver_params, individual=individual)
+                # individual = c.comp(compute_individual_solutions, game, solver_params)
+                game_preprocessed = c.comp(preprocess_game, game, solver_params)
 
                 r = c.comp(create_report_preprocessed, game_name, game_preprocessed)
                 c.add_report(r, "preprocessed")

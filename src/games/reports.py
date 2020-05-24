@@ -7,7 +7,7 @@ from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
 from . import logger
-from .game_def import Game, Pr, RJ, RP, U, X, Y
+from .game_def import Game, Pr, RJ, RP, U, X, Y, SR
 from .reports_player import report_player
 from .structures_solution import GamePreprocessed
 
@@ -56,7 +56,7 @@ def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
 
 
 def visualize_states(
-    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ], r: Report, name: str, nodes, caption: str
+    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], r: Report, name: str, nodes, caption: str
 ):
     viz = game_pre.game.game_visualization
     f = r.figure(name, caption=caption)

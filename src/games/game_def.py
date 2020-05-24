@@ -226,6 +226,8 @@ def check_joint_pure_actions(a: JointPureActions, **kwargs):
     # from driving_games.structures import VehicleActions
 
     check_isinstance(a, frozendict, **kwargs)
+    if len(a) == 0:
+        raise ZValueError("empty actions", a=a)
     for k, v in a.items():
         assert isinstance(k, str), k
         if isinstance(v, Poss):

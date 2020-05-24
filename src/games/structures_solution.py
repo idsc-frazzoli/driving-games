@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set
+from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
 
 from possibilities import check_poss, Poss
 from preferences import Preference
-from zuper_commons.types import check_isinstance
+from zuper_commons.types import check_isinstance, ZValueError
 from . import GameConstants
 from .game_def import (
     check_joint_mixed_actions2,
@@ -61,7 +61,7 @@ class SolverParams:
 class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     states: JointState
     moves: PlayerOptions
-    outcomes2: "Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ, SR], Pr]]"
+    outcomes3: "Mapping[JointPureActions, Poss[JointState, Pr]]"
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -70,32 +70,49 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
     resources: Mapping[PlayerName, FSet[SR]]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not GameConstants.checks:
             return
 
         check_joint_state(self.states)
         check_player_options(self.moves)
-        check_isinstance(self.outcomes2, frozendict, _=self)
-        for pure_actions, pr_game_node in self.outcomes2.items():
+        check_isinstance(self.outcomes3, frozendict, _=self)
+        for pure_actions, pr_game_node in self.outcomes3.items():
             check_joint_pure_actions(pure_actions)
-            check_poss(pr_game_node, GameNode)
+            check_poss(pr_game_node, JointState)
 
         check_isinstance(self.is_final, frozendict, _=self)
         check_isinstance(self.incremental, frozendict, _=self)
         check_isinstance(self.joint_final_rewards, frozendict, _=self)
 
         # check_isinstance(joint_actions, frozendict, _=self)
-        # for player_name, actions in self.outcomes.items():
+        for player_name, player_moves in self.moves.items():
+            if player_moves == {None}:
+                raise ZValueError(_self=self)
+        #
+        # for player_name in self.states:
+        #     last_for_player=  (player_name in self.joint_final_rewards) or (player_name in self.is_final)
+        #     if not last_for_player:
+        #         if player_name not in self.moves:
+        #             msg = f'If the player {player_name!r} is not final, then it should have some moves.'
+        #             raise ZValueError(msg, _self=self)
         #     if isinstance(actions, (set, frozenset)):
         #         raise ZValueError(_=self)
         # assert type(actions).__name__ in ['VehicleActions'], actions
 
 
 @dataclass
-class GamePlayerPreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
+class GameGraph(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    initials: AbstractSet[JointState]
+    state2node: Mapping[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+
+
+@dataclass
+class GamePlayerPreprocessed(Generic[Pr, X, U, Y, RP, RJ, SR]):
     player_graph: MultiDiGraph
-    alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+    # alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+    game_graph: GameGraph[Pr, X, U, Y, RP, RJ, SR]
+    gs: "GameSolution[Pr, X, U, Y, RP, RJ, SR]"
 
 
 @dataclass
@@ -103,13 +120,15 @@ class GameFactorization(Generic[X]):
     partitions: Mapping[FSet[FSet[PlayerName]], FSet[JointState]]
     ipartitions: Mapping[JointState, FSet[FSet[PlayerName]]]
 
+
 @dataclass
-class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
+class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ, SR]):
     game: Game[Pr, X, U, Y, RP, RJ, SR]
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ]]
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]]
     game_graph: MultiDiGraph
     solver_params: SolverParams
     game_factorization: GameFactorization[X]
+
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class ValueAndActions(Generic[Pr, U, RP, RJ]):
@@ -152,30 +171,23 @@ class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
 
 @dataclass
-class SolvingContext(Generic[Pr, X, U, Y, RP, RJ]):
-    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
+class SolvingContext(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    game: Game[Pr, X, U, Y, RP, RJ, SR]
+    # gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]
     outcome_set_preferences: Mapping[PlayerName, Preference[SetOfOutcomes]]
-    cache: Dict[GameNode, SolvedGameNode]
+    cache: Dict[JointState, SolvedGameNode]
     processing: Set[JointState]
+    gg: GameGraph[Pr, X, U, Y, RP, RJ, SR]
+    solver_params: SolverParams
 
 
 @dataclass
-class IterationContext:
-    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ]
-    cache: dict
-    depth: int
-
-
-@dataclass
-class GameSolution(Generic[Pr, X, U, Y, RP, RJ]):
-    gn: GameNode[Pr, X, U, Y, RP, RJ, SR]
-    gn_solved: SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]
-
+class GameSolution(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    initials: AbstractSet[JointState]
     states_to_solution: Dict[JointState, SolvedGameNode]
-
     policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not GameConstants.checks:
             return
 
@@ -189,14 +201,14 @@ class GameSolution(Generic[Pr, X, U, Y, RP, RJ]):
 
 
 @dataclass
-class SolutionsPlayer(Generic[Pr, X, U, Y, RP, RJ]):
-    alone_solutions: Mapping[X, GameSolution]
+class SolutionsPlayer(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    alone_solutions: Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ, SR]]
 
 
 @dataclass
-class Solutions(Generic[Pr, X, U, Y, RP, RJ]):
-    solutions_players: Mapping[PlayerName, SolutionsPlayer]
-    game_solution: GameSolution[Pr, X, U, Y, RP, RJ]
+class Solutions(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    solutions_players: Mapping[PlayerName, SolutionsPlayer[Pr, X, U, Y, RP, RJ, SR]]
+    game_solution: GameSolution[Pr, X, U, Y, RP, RJ, SR]
     game_tree: GameNode[Pr, X, U, Y, RP, RJ, SR]
 
     sims: Mapping[str, Simulation]

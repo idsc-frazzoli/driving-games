@@ -6,7 +6,7 @@ logger = ZLogger(__name__)
 
 
 class GameConstants:
-    checks: ClassVar[bool] = False
+    checks: ClassVar[bool] = True
 
 
 from .access import *

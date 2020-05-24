@@ -1,12 +1,10 @@
 import itertools
 import random
 from collections import defaultdict
-from dataclasses import dataclass
 from decimal import Decimal as D
 from functools import reduce
 from itertools import product
-from typing import (AbstractSet, Collection, Dict, FrozenSet as FSet, Generic, Iterator, List, Mapping, Set, Tuple,
-                    TypeVar)
+from typing import AbstractSet, Collection, Dict, FrozenSet as FSet, List, Mapping, Set, Tuple
 
 import numpy as np
 from frozendict import frozendict
@@ -16,6 +14,7 @@ from toolz import itemmap, valmap
 from possibilities import check_poss, Poss, PossibilityStructure
 from zuper_commons.types import ZException
 from . import logger
+from .create_joint_game_tree import create_game_graph
 from .game_def import (
     Dynamics,
     Game,
@@ -31,9 +30,12 @@ from .game_def import (
     X,
     Y,
 )
-from .single_game_tree import get_one_player_game_tree
+from .get_indiv_games import get_individual_games
+from .solution import solve_game2
 from .structures_solution import (
-    GameFactorization, GamePlayerPreprocessed,
+    GameFactorization,
+    GameGraph,
+    GamePlayerPreprocessed,
     GamePreprocessed,
     GameSolution,
     SolvedGameNode,
@@ -43,36 +45,44 @@ from .structures_solution import (
 
 __all__ = ["preprocess_game", "get_accessible_states"]
 
+from .utils import iterate_dict_combinations
+
 
 def preprocess_game(
-    game: Game[Pr, X, U, Y, RP, RJ, SR],
-    solver_params: SolverParams,
-    individual: Mapping[PlayerName, Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ]]],
-) -> GamePreprocessed[Pr, X, U, Y, RP, RJ]:
+    game: Game[Pr, X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+) -> GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]:
     game_factorization: GameFactorization[X]
-    game_factorization = get_game_factorization(game.ps, individual)
+
     game_graph = get_game_graph(game, dt=solver_params.dt)
     compute_graph_layout(game_graph, iterations=1)
-    players_pre = {
-        player_name: preprocess_player(game=game, player_name=player_name, player=player, dt=solver_params.dt)
-        for player_name, player in game.players.items()
-    }
+    individual_games = get_individual_games(game)
+    players_pre = valmap(
+        lambda individual_game: preprocess_player(
+            solver_params=solver_params, individual_game=individual_game
+        ),
+        individual_games,
+    )
+
+    game_factorization = get_game_factorization(game.ps, players_pre)
 
     gp = GamePreprocessed(
-        game=game, players_pre=players_pre, game_graph=game_graph, solver_params=solver_params,
-        game_factorization=game_factorization
+        game=game,
+        players_pre=players_pre,
+        game_graph=game_graph,
+        solver_params=solver_params,
+        game_factorization=game_factorization,
     )
 
     return gp
 
 
-
 def get_game_factorization(
     ps: PossibilityStructure[Pr],
-    individual: Mapping[PlayerName, Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ]]],
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]],
+    # individual: Mapping[PlayerName, Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ, SR]]],
 ) -> GameFactorization[X]:
-    known: Mapping[PlayerName, Mapping[X, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]]
-    known = valmap(collapse_states, individual)
+    known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]]
+    known = valmap(collapse_states, players_pre)
     js: JointState
 
     partitions: Dict[FSet[FSet[PlayerName]], Set[JointState]]
@@ -81,6 +91,7 @@ def get_game_factorization(
 
     def get_ur(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
         player_name, state = items
+        # state = frozendict({player_name: x})
         return player_name, known[player_name][state].ur
 
     # iterate all combinations
@@ -145,40 +156,45 @@ def flatten_sets(c: Collection[AbstractSet[X]]) -> FSet[X]:
     return frozenset(sets)
 
 
-K = TypeVar("K")
-V = TypeVar("V")
-
-
-def iterate_dict_combinations(a: Mapping[K, Collection[V]]) -> Iterator[Mapping[K, V]]:
-    ks = list(a)
-    vs = [a[_] for _ in ks]
-    alls = list(itertools.product(*tuple(vs)))
-    for x in alls:
-        d = frozendict(zip(ks, x))
-        yield d
-
-
 def collapse_states(
-    sols: Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ]]
-) -> Mapping[X, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]:
-    res = {}
-    for x, gs in sols.items():
-        res.update(gs.states_to_solution)
-    return res
+    gp: GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]
+) -> Mapping[JointState, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]:
+    return gp.gs.states_to_solution
 
 
 def preprocess_player(
-    game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ, SR], dt: D
-):
-    graph = get_player_graph(player, dt)
-    alone_trees = {}
-    for x0 in player.initial.support():
-        alone_trees[x0] = get_one_player_game_tree(
-            game=game, player_name=player_name, player=player, x0=x0, dt=dt
-        )
+    # player: GamePlayer[Pr, X, U, Y, RP, RJ, SR],
+    individual_game: Game[Pr, X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
+) -> GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]:
+    l = list(individual_game.players)
+    assert len(l) == 1
+    player_name = l[0]
+    player = individual_game.players[player_name]
+    graph = get_player_graph(player, solver_params.dt)
+    # alone_trees = {}
+    # for x0 in player.initial.support():
+    #     alone_trees[x0] = get_one_player_game_tree(
+    #         game=game, player_name=player_name, player=player, x0=x0, dt=dt
+    #     )
+    game_graph: GameGraph[Pr, X, U, Y, RP, RJ, SR]
+    initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
+    # gp = GamePreprocessed(
+    #     game=individual_game, players_pre=players_pre, game_graph=None, solver_params=solver_params,
+    #     game_factorization=None
+    # )
+    game_graph = create_game_graph(individual_game, solver_params.dt, initials)
 
-    alone_trees = frozendict(alone_trees)
-    return GamePlayerPreprocessed(graph, alone_trees)
+    gs: GameSolution[Pr, X, U, Y, RP, RJ, SR]
+    gs = solve_game2(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
+
+    # pres: Dict[X, GameSolution[Pr, X, U, Y, RP, RJ, SR]] = {}
+    # for x0, personal_tree in player_pre.alone_tree.items():
+    #     solved_x0: GameSolution[Pr, X, U, Y, RP, RJ, SR] =
+    #     pres[x0] = solved_x0
+
+    # alone_trees = frozendict(alone_trees)
+    return GamePlayerPreprocessed(graph, game_graph, gs)
 
 
 def get_accessible_states(

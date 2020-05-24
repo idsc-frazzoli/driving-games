@@ -66,7 +66,10 @@ def get_1p_game_tree(
             actions = frozendict({player_name: u})
             # logger.info(successors=successors)
             r = ps.build(
-                x1s, lambda _: get_1p_game_tree(game=game, c=c, player_name=player_name, player=player, x0=_)
+                x1s,
+                lambda _: get_1p_game_tree(
+                    game=game, c=c, player_name=player_name, player=player, x0=_
+                ).states,
             )
 
             outcomes[actions] = r
@@ -78,7 +81,7 @@ def get_1p_game_tree(
     res = GameNode(
         states=states,
         moves=moves,
-        outcomes2=outcomes,
+        outcomes3=outcomes,
         is_final=is_final,
         incremental=incremental,
         joint_final_rewards=joint_final_rewards,
