@@ -5,7 +5,7 @@ from reprep import MIME_GIF, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
 from . import logger
-from .game_def import Pr, RJ, RP, U, X, Y, SR
+from .game_def import JointState, Pr, RJ, RP, U, X, Y, SR
 from .simulate import Simulation
 from .structures_solution import GamePreprocessed, Solutions
 
@@ -39,10 +39,11 @@ def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], s: Solutions
         with f.data_file((k), MIME_GIF) as fn:
             create_log_animation(gp, sim, fn=fn, upsample_log=None)
         sims.pop(k)
-    for i, js in s.game_solution.initials:
-        s = remove_escapes(debug_print(js))
-        s += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[js].va.game_value))
-        r.text(f"joint_st{i}", s)
+    js: JointState
+    for i, js in enumerate(s.game_solution.initials):
+        st = remove_escapes(debug_print(js))
+        st += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[js].va.game_value))
+        r.text(f"joint_st{i}", st)
 
     return r
 

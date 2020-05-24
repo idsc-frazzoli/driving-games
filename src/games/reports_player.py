@@ -8,6 +8,7 @@ from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y, Pr, SR
 from .structures_solution import GamePreprocessed
 
 logging.getLogger("matplotlib.backends.backend_pdf").setLevel(logging.CRITICAL)
+logging.getLogger("matplotlib.animation").setLevel(logging.CRITICAL)
 
 __all__ = []
 
