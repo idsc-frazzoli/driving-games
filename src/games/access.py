@@ -1,14 +1,19 @@
+import itertools
 import random
 from collections import defaultdict
+from dataclasses import dataclass
 from decimal import Decimal as D
+from functools import reduce
 from itertools import product
-from typing import List
+from typing import (AbstractSet, Collection, Dict, FrozenSet as FSet, Generic, Iterator, List, Mapping, Set, Tuple,
+                    TypeVar)
 
 import numpy as np
 from frozendict import frozendict
-from networkx import MultiDiGraph
+from networkx import connected_components, Graph, MultiDiGraph
+from toolz import itemmap, valmap
 
-from possibilities import check_poss, Poss
+from possibilities import check_poss, Poss, PossibilityStructure
 from zuper_commons.types import ZException
 from . import logger
 from .game_def import (
@@ -21,19 +26,31 @@ from .game_def import (
     Pr,
     RJ,
     RP,
+    SR,
     U,
     X,
     Y,
 )
 from .single_game_tree import get_one_player_game_tree
-from .structures_solution import GamePlayerPreprocessed, GamePreprocessed, SolverParams
+from .structures_solution import (
+    GameFactorization, GamePlayerPreprocessed,
+    GamePreprocessed,
+    GameSolution,
+    SolvedGameNode,
+    SolverParams,
+    UsedResources,
+)
 
 __all__ = ["preprocess_game", "get_accessible_states"]
 
 
 def preprocess_game(
-    game: Game[Pr, X, U, Y, RP, RJ], solver_params: SolverParams
+    game: Game[Pr, X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
+    individual: Mapping[PlayerName, Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ]]],
 ) -> GamePreprocessed[Pr, X, U, Y, RP, RJ]:
+    game_factorization: GameFactorization[X]
+    game_factorization = get_game_factorization(game.ps, individual)
     game_graph = get_game_graph(game, dt=solver_params.dt)
     compute_graph_layout(game_graph, iterations=1)
     players_pre = {
@@ -42,13 +59,117 @@ def preprocess_game(
     }
 
     gp = GamePreprocessed(
-        game=game, players_pre=players_pre, game_graph=game_graph, solver_params=solver_params
+        game=game, players_pre=players_pre, game_graph=game_graph, solver_params=solver_params,
+        game_factorization=game_factorization
     )
 
     return gp
 
 
-def preprocess_player(game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D):
+
+def get_game_factorization(
+    ps: PossibilityStructure[Pr],
+    individual: Mapping[PlayerName, Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ]]],
+) -> GameFactorization[X]:
+    known: Mapping[PlayerName, Mapping[X, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]]
+    known = valmap(collapse_states, individual)
+    js: JointState
+
+    partitions: Dict[FSet[FSet[PlayerName]], Set[JointState]]
+    partitions = defaultdict(set)
+    ipartitions: Dict[JointState, FSet[FSet[PlayerName]]] = {}
+
+    def get_ur(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
+        player_name, state = items
+        return player_name, known[player_name][state].ur
+
+    # iterate all combinations
+    for js in iterate_dict_combinations(known):
+        resources_used = itemmap(get_ur, js)
+        independent = find_dependencies(ps, resources_used)
+        partitions[independent].add(js)
+        ipartitions[js] = independent
+
+    mpartitions = valmap(frozenset, partitions)
+    logger.info("stats", partitions=valmap(lambda _: len(_), partitions))
+    return GameFactorization(mpartitions, ipartitions)
+
+
+def find_dependencies(
+    ps: PossibilityStructure[Pr], resources_used: Mapping[PlayerName, UsedResources[Pr, X, U, Y, RP, RJ, SR]]
+) -> FSet[FSet[PlayerName]]:
+    """
+        Returns the dependency structure from the use of shared resources.
+        Returns the partitions of players that are independent.
+
+        Example: for 3 players '{a,b,c}' this could return  `{{a}, {b,c}}`.
+        That means that `a` is independent
+        of b and c. A return of  `{{a}, {b}, {c}}` means that all three are independent.
+     """
+    interaction_graph = Graph()
+    interaction_graph.add_nodes_from(resources_used)
+    max_instants = max(max(_.used) if _.used else 0 for _ in resources_used.values())
+    for i in range(int(max_instants)):
+        i = D(i)
+
+        def getused(items) -> Tuple[PlayerName, FSet[SR]]:
+            ur: UsedResources
+            player_name, ur = items
+            used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]], Pr]] = ur.used
+            if i not in used:
+                res = frozenset()
+            else:
+                at_i: Poss[Mapping[PlayerName, FSet[SR]], Pr] = ur.used[i]
+                at_i_player: Poss[FSet[SR], Pr]
+                at_i_player = ps.build(at_i, lambda _: _[player_name])
+                support_sets = flatten_sets(at_i_player.support())
+                res = support_sets
+
+            return player_name, res
+
+        used_at_i = itemmap(getused, resources_used)
+
+        p1: PlayerName
+        p2: PlayerName
+        for p1, p2 in itertools.combinations(resources_used, 2):
+            intersection = used_at_i[p1] & used_at_i[p2]
+            intersects = len(intersection) > 0
+            if intersects:
+                interaction_graph.add_edge(p1, p2)
+
+    return frozenset(map(frozenset, connected_components(interaction_graph)))
+
+
+def flatten_sets(c: Collection[AbstractSet[X]]) -> FSet[X]:
+    sets = reduce(lambda a, b: a | b, c)
+    return frozenset(sets)
+
+
+K = TypeVar("K")
+V = TypeVar("V")
+
+
+def iterate_dict_combinations(a: Mapping[K, Collection[V]]) -> Iterator[Mapping[K, V]]:
+    ks = list(a)
+    vs = [a[_] for _ in ks]
+    alls = list(itertools.product(*tuple(vs)))
+    for x in alls:
+        d = frozendict(zip(ks, x))
+        yield d
+
+
+def collapse_states(
+    sols: Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ]]
+) -> Mapping[X, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]:
+    res = {}
+    for x, gs in sols.items():
+        res.update(gs.states_to_solution)
+    return res
+
+
+def preprocess_player(
+    game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ, SR], dt: D
+):
     graph = get_player_graph(player, dt)
     alone_trees = {}
     for x0 in player.initial.support():
@@ -63,7 +184,7 @@ def preprocess_player(game: Game, player_name: PlayerName, player: GamePlayer[Pr
 def get_accessible_states(
     initial: Poss[X, Pr],
     personal_reward_structure: PersonalRewardStructure[X, U, RP],
-    dynamics: Dynamics[Pr, X, U],
+    dynamics: Dynamics[Pr, X, U, SR],
     dt: D,
 ) -> MultiDiGraph:
     check_poss(initial, object)
@@ -106,7 +227,7 @@ def get_accessible_states(
     return G
 
 
-def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
+def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     players = game.players
     assert len(players) == 2
     p1, p2 = list(players)
@@ -250,5 +371,5 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
         G.nodes[n]["x"] = g * 200
 
 
-def get_player_graph(player: GamePlayer[Pr, X, U, Y, RP, RJ], dt: D) -> MultiDiGraph:
+def get_player_graph(player: GamePlayer[Pr, X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)

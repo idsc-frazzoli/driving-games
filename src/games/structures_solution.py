@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, Generic, Mapping, NewType, Set
+from typing import Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
@@ -25,6 +25,7 @@ from .game_def import (
     RJ,
     RP,
     SetOfOutcomes,
+    SR,
     U,
     X,
     Y,
@@ -57,15 +58,17 @@ class SolverParams:
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class GameNode(Generic[Pr, X, U, Y, RP, RJ]):
+class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     states: JointState
     moves: PlayerOptions
-    outcomes2: "Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]]"
+    outcomes2: "Mapping[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ, SR], Pr]]"
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
 
     joint_final_rewards: Mapping[PlayerName, RJ]
+
+    resources: Mapping[PlayerName, FSet[SR]]
 
     def __post_init__(self):
         if not GameConstants.checks:
@@ -92,23 +95,28 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ]):
 @dataclass
 class GamePlayerPreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
     player_graph: MultiDiGraph
-    alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ]]
+    alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ, SR]]
 
 
 @dataclass
+class GameFactorization(Generic[X]):
+    partitions: Mapping[FSet[FSet[PlayerName]], FSet[JointState]]
+    ipartitions: Mapping[JointState, FSet[FSet[PlayerName]]]
+
+@dataclass
 class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ]):
-    game: Game[Pr, X, U, Y, RP, RJ]
+    game: Game[Pr, X, U, Y, RP, RJ, SR]
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ]]
     game_graph: MultiDiGraph
     solver_params: SolverParams
-
+    game_factorization: GameFactorization[X]
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class ValueAndActions(Generic[U, RP, RJ]):
+class ValueAndActions(Generic[Pr, U, RP, RJ]):
     mixed_actions: JointMixedActions2
     game_value: SetOfOutcomes
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not GameConstants.checks:
             return
 
@@ -117,13 +125,22 @@ class ValueAndActions(Generic[U, RP, RJ]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ]):
-    gn: GameNode[Pr, X, U, Y, RP, RJ]
-    solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ], Pr]]"
+class UsedResources(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    # Used resources at each time.
+    # D = 0 means now. +1 means next step, etc.
+    used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]], Pr]]
 
-    va: ValueAndActions[U, RP, RJ]
 
-    def __post_init__(self):
+@dataclass(frozen=True, unsafe_hash=True, order=True)
+class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    gn: GameNode[Pr, X, U, Y, RP, RJ, SR]
+    solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ, SR], Pr]]"
+
+    va: ValueAndActions[Pr, U, RP, RJ]
+
+    ur: UsedResources[Pr, X, U, Y, RP, RJ, SR]
+
+    def __post_init__(self) -> None:
         if not GameConstants.checks:
             return
 
@@ -151,8 +168,10 @@ class IterationContext:
 
 @dataclass
 class GameSolution(Generic[Pr, X, U, Y, RP, RJ]):
-    gn: GameNode[Pr, X, U, Y, RP, RJ]
-    gn_solved: SolvedGameNode[Pr, X, U, Y, RP, RJ]
+    gn: GameNode[Pr, X, U, Y, RP, RJ, SR]
+    gn_solved: SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]
+
+    states_to_solution: Dict[JointState, SolvedGameNode]
 
     policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]]
 
@@ -178,6 +197,6 @@ class SolutionsPlayer(Generic[Pr, X, U, Y, RP, RJ]):
 class Solutions(Generic[Pr, X, U, Y, RP, RJ]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer]
     game_solution: GameSolution[Pr, X, U, Y, RP, RJ]
-    game_tree: GameNode[Pr, X, U, Y, RP, RJ]
+    game_tree: GameNode[Pr, X, U, Y, RP, RJ, SR]
 
     sims: Mapping[str, Simulation]

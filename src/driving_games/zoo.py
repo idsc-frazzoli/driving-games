@@ -21,6 +21,7 @@ p0 = TwoVehicleSimpleParams(
     dt=D(1),
     first_progress=D(0),
     second_progress=D(0),
+    shared_resources_ds=D(1),
 )
 
 p_sym = p0
@@ -56,7 +57,6 @@ def get_asym_minv0() -> GameSpec:
 
 
 driving_games_zoo: Dict[str, GameSpec] = {}
-
 
 driving_games_zoo["sym_v1"] = get_sym()
 driving_games_zoo["asym_v1"] = get_asym()

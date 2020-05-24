@@ -5,13 +5,13 @@ from typing import Dict
 from frozendict import frozendict
 
 from possibilities import Poss
-from .game_def import JointPureActions, JointState, Pr, RJ, RP, U, X, Y
+from .game_def import JointPureActions, JointState, Pr, RJ, RP, SR, U, X, Y
 from .structures_solution import GameNode, IterationContext
 
 __all__ = []
 
 
-def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, Y, RP, RJ]:
+def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
     if N in ic.cache:
         return ic.cache[N]
     states = {k: v for k, v in N.items() if v is not None}
@@ -24,7 +24,7 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, 
 
     moves = defaultdict(set)
 
-    pure_outcomes: Dict[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]] = {}
+    pure_outcomes: Dict[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ, SR], Pr]] = {}
 
     ic2 = replace(ic, depth=ic.depth + 1)
     # noinspection PyArgumentList
@@ -65,6 +65,9 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, 
 
     moves = {k: frozenset(v) for k, v in moves.items()}
 
+    resources = {}
+    for player_name, player_state in states.items():
+        resources[player_name] = ic.gp.game.players[player_name].dynamics.get_shared_resources(player_state)
     outcomes = pure_outcomes
     res = GameNode(
         moves=frozendict(moves),
@@ -73,6 +76,7 @@ def create_game_tree(ic: IterationContext, N: JointState) -> GameNode[Pr, X, U, 
         incremental=frozendict({k: frozendict(v) for k, v in incremental.items()}),
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
+        resources=frozendict(resources),
     )
     ic.cache[N] = res
     return res

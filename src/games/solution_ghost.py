@@ -8,16 +8,16 @@ from toolz import keyfilter
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from .comb_utils import valmap
-from .game_def import AgentBelief, JointPureActions, JointState, PlayerName, Pr, RJ, RP, U, X, Y
+from .game_def import AgentBelief, JointPureActions, JointState, PlayerName, Pr, RJ, RP, SR, U, X, Y
 from .structures_solution import GameNode, GamePreprocessed
 
 
 def get_ghost_tree(
     gp: GamePreprocessed,
     player_name: PlayerName,
-    game_tree: GameNode[Pr, X, U, Y, RP, RJ],
+    game_tree: GameNode[Pr, X, U, Y, RP, RJ, SR],
     controllers: Mapping[PlayerName, AgentBelief[Pr, X, U]],
-) -> GameNode[Pr, X, U, Y, RP, RJ]:
+) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
     assert len(controllers) >= 1, controllers
     assert player_name not in controllers, (player_name, set(controllers))
 
@@ -28,12 +28,14 @@ def get_ghost_tree(
 @dataclass
 class ROContext:
     gp: GamePreprocessed
-    cache: Dict[GameNode[Pr, X, U, Y, RP, RJ], GameNode[Pr, X, U, Y, RP, RJ]]
+    cache: Dict[GameNode[Pr, X, U, Y, RP, RJ, SR], GameNode[Pr, X, U, Y, RP, RJ, SR]]
     controllers: Mapping[PlayerName, AgentBelief[Pr, X, U]]
     dreamer: PlayerName
 
 
-def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> GameNode[Pr, X, U, Y, RP, RJ]:
+def replace_others(
+    roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ, SR],
+) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
     ps = roc.gp.game.ps
     if node in roc.cache:
         return roc.cache[node]
@@ -61,7 +63,7 @@ def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> Game
     still_moving = set(node.moves) - set(action_fixed)
     # now we redo everything:
 
-    res: Dict[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]] = {}
+    res: Dict[JointPureActions, Poss[GameNode[Pr, X, U, Y, RP, RJ, SR], Pr]] = {}
 
     players = list(still_moving)
 
@@ -74,7 +76,7 @@ def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> Game
             active_mixed.update(action_fixed)
 
             # find out which actions are compatible
-            def f(a: JointPureActions) -> Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr]:
+            def f(a: JointPureActions) -> Poss[GameNode[Pr, X, U, Y, RP, RJ, SR], Pr]:
                 if a not in node.outcomes2:
                     raise ZValueError(a=a, node=node, choices=choices, av=set(node.outcomes2))
                 nodes2: Poss[GameNode, Pr] = node.outcomes2[a]
@@ -84,11 +86,11 @@ def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> Game
 
                 return ps.build(nodes2, g)
 
-            m: Poss[GameNode[Pr, X, U, Y, RP, RJ], Pr] = ps.flatten(ps.build_multiple(active_mixed, f))
+            m: Poss[GameNode[Pr, X, U, Y, RP, RJ, SR], Pr] = ps.flatten(ps.build_multiple(active_mixed, f))
             res[active_pure_action] = m
     moves = frozendict(keyfilter(still_moving.__contains__, node.moves))
 
-    ret: GameNode[Pr, X, U, Y, RP, RJ]
+    ret: GameNode[Pr, X, U, Y, RP, RJ, SR]
     ret = GameNode(
         states=node.states,
         moves=moves,
@@ -96,6 +98,7 @@ def replace_others(roc: ROContext, node: GameNode[Pr, X, U, Y, RP, RJ],) -> Game
         is_final=node.is_final,
         incremental=node.incremental,
         joint_final_rewards=node.joint_final_rewards,
+        resources=node.resources,
     )
     roc.cache[node] = ret
     return ret

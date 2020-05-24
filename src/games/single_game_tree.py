@@ -5,22 +5,22 @@ from typing import Dict, Generic, Set
 from frozendict import frozendict
 
 from zuper_commons.types import ZValueError
-from .game_def import Game, GamePlayer, PlayerName, Pr, RJ, RP, U, X, Y
+from .game_def import Game, GamePlayer, PlayerName, Pr, RJ, RP, U, X, Y, SR
 from .structures_solution import GameNode
 
 __all__ = []
 
 
 @dataclass
-class P1Context(Generic[Pr, X, U, Y, RP, RJ]):
-    cache: Dict[X, GameNode[Pr, X, U, Y, RP, RJ]]
+class P1Context(Generic[Pr, X, U, Y, RP, RJ, SR]):
+    cache: Dict[X, GameNode[Pr, X, U, Y, RP, RJ, SR]]
     dt: D
     processing: Set[X]
 
 
 def get_one_player_game_tree(
-    *, game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ], x0: X, dt: D
-) -> GameNode[Pr, X, U, Y, RP, RJ]:
+    *, game: Game, player_name: PlayerName, player: GamePlayer[Pr, X, U, Y, RP, RJ, SR], x0: X, dt: D
+) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
     context = P1Context({}, dt, set())
     return get_1p_game_tree(game=game, c=context, player_name=player_name, player=player, x0=x0)
 
@@ -28,11 +28,11 @@ def get_one_player_game_tree(
 def get_1p_game_tree(
     *,
     game: Game,
-    c: P1Context[Pr, X, U, Y, RP, RJ],
+    c: P1Context[Pr, X, U, Y, RP, RJ, SR],
     player_name: PlayerName,
-    player: GamePlayer[Pr, X, U, Y, RP, RJ],
+    player: GamePlayer[Pr, X, U, Y, RP, RJ, SR],
     x0: X,
-) -> GameNode[Pr, X, U, Y, RP, RJ]:
+) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
     if x0 in c.cache:
         return c.cache[x0]
     if x0 in c.processing:
@@ -73,7 +73,8 @@ def get_1p_game_tree(
 
         outcomes = frozendict(outcomes)
     joint_final_rewards = frozendict()
-
+    player_resources = game.players[player_name].dynamics.get_shared_resources(x0)
+    resources = frozendict({player_name: player_resources})
     res = GameNode(
         states=states,
         moves=moves,
@@ -81,6 +82,7 @@ def get_1p_game_tree(
         is_final=is_final,
         incremental=incremental,
         joint_final_rewards=joint_final_rewards,
+        resources=resources,
     )
     c.cache[x0] = res
     c.processing.remove(x0)

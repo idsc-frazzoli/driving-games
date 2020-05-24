@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Tuple
+from typing import List, Tuple
 
 __all__ = ["Coordinates", "Rectangle", "make_rectangle"]
 Coordinates = Tuple[D, D]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Rectangle:
     """ Represents a rectangle """
 
@@ -27,6 +27,12 @@ class Rectangle:
         bl = self.bottom_left
         tr = self.top_right
         return (bl[0] <= c[0] <= tr[0]) and (bl[1] <= c[1] <= tr[1])
+
+
+def get_rectangle_points_around(r: Rectangle) -> List[Coordinates]:
+    bl = r.bottom_left
+    tr = r.top_right
+    return [(bl[0], bl[1]), (tr[0], bl[1]), (tr[0], tr[1]), (bl[0], tr[1])]
 
 
 def make_rectangle(center: Coordinates, sides: Tuple[D, D]) -> Rectangle:

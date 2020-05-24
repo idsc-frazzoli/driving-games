@@ -85,8 +85,14 @@ def what_if_player_chooses(
     others_choices: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
     preference: Preference[SetOfOutcomes],
 ) -> SetOfOutcomes:
-    """ Assume the player chooses u, and the others choose any other mixed policy.
-        What is the worst case? """
+    """
+        Assume the player chooses u, and the others choose any other mixed policy.
+        What is the worst case?
+
+        :param ps: Possibility monad.
+        :param player_name: Player name.
+
+    """
     assert player_name not in others_choices
     # I have decided to do player_action
     # While I assume the others are going to mix theirs
@@ -96,8 +102,7 @@ def what_if_player_chooses(
     mixed: Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
     mixed = get_mixed(ps, choices, solved)
 
-
-    w:  Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
+    w: Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
     w = worst_cases(mixed, preference)
     # Note that there might be more nondominated
     values: List[SetOfOutcomes]

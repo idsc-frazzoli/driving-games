@@ -4,6 +4,8 @@ from possibilities import Poss
 from zuper_commons.types import ZException, ZNotImplementedError
 from .game_def import AgentBelief, JointState, Pr, U, X
 
+__all__ = ["DoesNotKnowPolicy", "AgentFromPolicy"]
+
 
 class DoesNotKnowPolicy(ZException):
     pass

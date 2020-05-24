@@ -58,6 +58,9 @@ Y = TypeVar("Y")
 RP = TypeVar("RP")
 RJ = TypeVar("RJ")
 
+SR = TypeVar("SR")
+""" Shared resources """
+
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class Outcome(Generic[RP, RJ]):
@@ -68,7 +71,7 @@ class Outcome(Generic[RP, RJ]):
 SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
 
 
-class Dynamics(Generic[Pr, X, U], ABC):
+class Dynamics(Generic[Pr, X, U, SR], ABC):
     @abstractmethod
     def all_actions(self) -> FrozenSet[U]:
         """ Returns all actions possible (not all are available at each state). """
@@ -76,6 +79,11 @@ class Dynamics(Generic[Pr, X, U], ABC):
     @abstractmethod
     def successors(self, x: X, dt: D) -> Mapping[U, Poss[X, Pr]]:
         """ For each state, returns a dictionary U -> Possible Xs """
+
+    @abstractmethod
+    def get_shared_resources(self, x: X) -> FrozenSet[SR]:
+        """ Returns the "shared resources" for each state. For example,
+            the set of spatio-temporal cells occupied by the agent. """
 
 
 class Observations(Generic[Pr, X, Y], ABC):
@@ -116,11 +124,11 @@ P = TypeVar("P")
 
 
 @dataclass
-class GamePlayer(Generic[Pr, X, U, Y, RP, RJ]):
+class GamePlayer(Generic[Pr, X, U, Y, RP, RJ, SR]):
     # Initial states
     initial: Poss[X, Pr]
     # The dynamics
-    dynamics: Dynamics[Pr, X, U]
+    dynamics: Dynamics[Pr, X, U, SR]
     # The observations
     observations: Observations[Pr, X, Y]
     # The reward
@@ -159,12 +167,12 @@ class GameVisualization(Generic[Pr, X, U, Y, RP, RJ], ABC):
 
 
 @dataclass
-class Game(Generic[Pr, X, U, Y, RP, RJ]):
+class Game(Generic[Pr, X, U, Y, RP, RJ, SR]):
     """ The players """
 
     ps: PossibilityStructure[Pr]
 
-    players: Mapping[PlayerName, GamePlayer[Pr, X, U, Y, RP, RJ]]
+    players: Mapping[PlayerName, GamePlayer[Pr, X, U, Y, RP, RJ, SR]]
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
 
@@ -172,7 +180,8 @@ class Game(Generic[Pr, X, U, Y, RP, RJ]):
 
 
 class AgentBelief(Generic[Pr, X, U], ABC):
-    """ This agent's policy is a function of its own state
+    """
+        This agent's policy is a function of its own state
         and the product of the beliefs about the state of the other agents.
     """
 
@@ -182,6 +191,7 @@ class AgentBelief(Generic[Pr, X, U], ABC):
 
 
 def check_joint_state(js: JointState):
+    """ Checks js is a :any:`JointState`."""
     # from driving_games import VehicleState  # XXX : for debug
     if not GameConstants.checks:
         return
