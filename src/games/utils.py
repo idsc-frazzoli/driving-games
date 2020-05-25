@@ -3,9 +3,7 @@ from typing import Callable, Collection, Dict, FrozenSet, Iterator, Mapping, Typ
 
 import toolz
 from frozendict import frozendict
-from toolz import keyfilter, valfilter, valmap
-
-from games.comb_utils import A, B, K
+from toolz import keyfilter, valmap as valmap_
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -33,7 +31,7 @@ def fkeyfilter(pred: Callable[[K], bool], a: Mapping[K, V]) -> Mapping[K, V]:
 
 def fvalmap(pred: Callable[[V], W], a: Mapping[K, V]) -> Mapping[K, W]:
     """ Wrapper around `toolz.keyfilter`. Adds frozendict, and helps with types."""
-    return frozendict(valmap(pred, a))
+    return frozendict(valmap_(pred, a))
 
 
 def fd(a: Mapping[K, V]) -> Mapping[K, V]:
@@ -46,5 +44,6 @@ def fs(a: Collection[V]) -> FrozenSet[V]:
     return frozenset(a)
 
 
-def valmap(f: Callable[[A], B], d: Mapping[K, A]) -> Dict[K, B]:
+
+def valmap(f: Callable[[V], W], d: Mapping[K, V]) -> Dict[K, W]:
     return toolz.valmap(f, d)
