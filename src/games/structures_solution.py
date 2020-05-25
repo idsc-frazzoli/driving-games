@@ -15,8 +15,9 @@ from .game_def import (
     check_joint_state,
     check_player_options,
     check_set_outcomes,
+    Combined,
     Game,
-    JointMixedActions2,
+    JointMixedActions,
     JointPureActions,
     JointState,
     PlayerName,
@@ -27,6 +28,7 @@ from .game_def import (
     SetOfOutcomes,
     SR,
     U,
+    UncertainCombined,
     X,
     Y,
 )
@@ -45,6 +47,8 @@ __all__ = [
     "StrategyForMultipleNash",
 ]
 
+from .utils import iterate_dict_combinations
+
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 STRATEGY_MIX = StrategyForMultipleNash("mix")
 STRATEGY_SECURITY = StrategyForMultipleNash("security")
@@ -55,13 +59,14 @@ STRATEGY_BAIL = StrategyForMultipleNash("bail")
 class SolverParams:
     dt: D
     strategy_multiple_nash: StrategyForMultipleNash
+    use_factorization: bool
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     states: JointState
     moves: PlayerOptions
-    outcomes3: "Mapping[JointPureActions, Poss[JointState, Pr]]"
+    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -74,12 +79,18 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
         if not GameConstants.checks:
             return
 
-        check_joint_state(self.states)
-        check_player_options(self.moves)
-        check_isinstance(self.outcomes3, frozendict, _=self)
-        for pure_actions, pr_game_node in self.outcomes3.items():
+        check_joint_state(self.states, GameNode=self)
+        check_player_options(self.moves, GameNode=self)
+        check_isinstance(self.outcomes, frozendict, GameNode=self)
+        for pure_actions, pr_game_node in self.outcomes.items():
             check_joint_pure_actions(pure_actions)
-            check_poss(pr_game_node, JointState)
+            # check_isinstance(pr_game_node, dict)
+            check_poss(pr_game_node, frozendict)
+            for x in pr_game_node.support():
+                check_isinstance(x, frozendict)
+                for k, js in x.items():
+                    check_isinstance(k, str)
+                    check_joint_state(js)
 
         check_isinstance(self.is_final, frozendict, _=self)
         check_isinstance(self.incremental, frozendict, _=self)
@@ -89,7 +100,71 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
         for player_name, player_moves in self.moves.items():
             if player_moves == {None}:
                 raise ZValueError(_self=self)
-        #
+
+        # check that the actions are available
+        for jpa in self.outcomes:
+            for player_name, action in jpa.items():
+                if player_name not in self.moves:
+                    msg = f"The player {player_name!r} does not have any moves, so how can it choose?"
+                    raise ZValueError(msg, action=action, GameNode=self)
+                if action not in self.moves[player_name]:
+                    msg = f"The action is not available to the player."
+                    raise ZValueError(msg, player_name=player_name, action=action, GameNode=self)
+        # check that if a player is not final then it has at least 1 move
+        all_players = set(self.states)
+        final_players = set(self.is_final) | set(self.joint_final_rewards)
+        continuing_players = all_players - final_players
+        for player_name in continuing_players:
+            if not player_name in self.moves:
+                msg = f"Player {player_name!r} is continuing but does not have any move."
+                raise ZValueError(msg, GameNode=self)
+
+        # check that we have in outcomes all combinations of actions
+        all_combinations = set(iterate_dict_combinations(self.moves))
+        if all_combinations == {frozendict()}:
+            all_combinations = set()
+        if all_combinations != set(self.outcomes):
+            msg = "There is a mismatch between the actions and the outcomes."
+            raise ZValueError(
+                msg, all_combinations=all_combinations, pure_actions=set(self.outcomes), GameNode=self
+            )
+
+        # check that for each action we have a cost
+        for player_name, player_moves in self.moves.items():
+            moves_with_cost = set(self.incremental[player_name])
+            if player_moves != moves_with_cost:
+                msg = "Invalid match between moves and costs."
+                raise ZValueError(
+                    msg,
+                    player_name=player_name,
+                    player_moves=player_moves,
+                    moves_with_cost=moves_with_cost,
+                    GameNode=self,
+                )
+
+        self.check_players_in_outcome()
+
+    def check_players_in_outcome(self) -> None:
+        """ We want to make sure that each player transitions in a game in which he is present. """
+        jpa: JointPureActions
+        consequences: Poss[Mapping[PlayerName, JointState], Pr]
+        for jpa, consequences in self.outcomes.items():
+            for new_games in consequences.support():
+                for player_name, next_state in new_games.items():
+                    if not player_name in next_state:
+                        msg = f"The player {player_name!r} is transitioning to a state without it. "
+                        raise ZValueError(msg, GameNode=self)
+
+                    if player_name in self.is_final:
+                        msg = (
+                            f"The player {player_name!r} is transitioning to a state but it is marked as "
+                            f"personal final."
+                        )
+                        raise ZValueError(msg, GameNode=self)
+                    if player_name in self.joint_final_rewards:
+                        msg = f"The player {player_name!r} is transitioning to a state but it is marked as joint final."
+                        raise ZValueError(msg, GameNode=self)
+
         # for player_name in self.states:
         #     last_for_player=  (player_name in self.joint_final_rewards) or (player_name in self.is_final)
         #     if not last_for_player:
@@ -131,16 +206,20 @@ class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class ValueAndActions(Generic[Pr, U, RP, RJ]):
-    mixed_actions: JointMixedActions2
-    game_value: SetOfOutcomes
+class ValueAndActions2(Generic[Pr, U, RP, RJ]):
+    mixed_actions: JointMixedActions
+    game_value: Mapping[PlayerName, UncertainCombined]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
             return
-
+        check_isinstance(self.game_value, frozendict, ValueAndActions=self)
+        for _ in self.game_value.values():
+            check_poss(_, Combined, ValueAndActions=self)
         check_joint_mixed_actions2(self.mixed_actions, ValueAndActions=self)
-        check_set_outcomes(self.game_value, ValueAndActions=self)
+        # check_set_outcomes(self.game_value, ValueAndActions=self)
+        # check_isinstance(self.game_values, frozendict, ValueAndActions=self)
+        # check_set_outcomes(self.game_value, ValueAndActions=self)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -150,12 +229,16 @@ class UsedResources(Generic[Pr, X, U, Y, RP, RJ, SR]):
     used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]], Pr]]
 
 
+M = Mapping
+
+
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
-    gn: GameNode[Pr, X, U, Y, RP, RJ, SR]
-    solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ, SR], Pr]]"
+    states: JointState
+    solved: M[JointPureActions, Poss[M[PlayerName, JointState], Pr]]
+    # solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ, SR], Pr]]"
 
-    va: ValueAndActions[Pr, U, RP, RJ]
+    va: ValueAndActions2[Pr, U, RP, RJ]
 
     ur: UsedResources[Pr, X, U, Y, RP, RJ, SR]
 
@@ -163,19 +246,26 @@ class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
         if not GameConstants.checks:
             return
 
-        check_isinstance(self.va, ValueAndActions, me=self)
-        check_isinstance(self.solved, frozendict, _=self)
-        for _, then in self.solved.items():
-            check_joint_pure_actions(_)
-            check_poss(then, SolvedGameNode)
+        check_isinstance(self.va, ValueAndActions2, SolvedGameNode=self)
+        check_isinstance(self.solved, frozendict, SolvedGameNode=self)
+        for jpa, then in self.solved.items():
+            check_joint_pure_actions(jpa)
+            check_poss(then, SolvedGameNode=self)
+
+        players = list(self.states)
+
+        for p in players:
+            if p not in self.va.game_value:
+                msg = f"There is no player {p!r} appearing in the game value"
+                raise ZValueError(msg, SolvedGameNode=self)
 
 
 @dataclass
 class SolvingContext(Generic[Pr, X, U, Y, RP, RJ, SR]):
     game: Game[Pr, X, U, Y, RP, RJ, SR]
     # gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]
-    outcome_set_preferences: Mapping[PlayerName, Preference[SetOfOutcomes]]
-    cache: Dict[JointState, SolvedGameNode]
+    outcome_set_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
+    cache: Dict[JointState, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]
     processing: Set[JointState]
     gg: GameGraph[Pr, X, U, Y, RP, RJ, SR]
     solver_params: SolverParams

@@ -17,7 +17,7 @@ solvers_zoo: Dict[str, SolverSpec] = {}
 
 # The solution parameters
 for strategy in [STRATEGY_MIX, STRATEGY_SECURITY]:
-    params = SolverParams(dt=D(1.0), strategy_multiple_nash=strategy)
+    params = SolverParams(dt=D(1.0), strategy_multiple_nash=strategy, use_factorization=True)  # XXX
     solvers_zoo[f"solver-1-{strategy}"] = SolverSpec("discretization = 1", params)
 #
 # solvers_zoo["solver0.5"] = SolverSpec(

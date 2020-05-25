@@ -7,19 +7,20 @@ from toolz import keyfilter
 from possibilities import check_poss, Poss, PossibilityStructure
 from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
+from . import logger
 from .equilibria import EquilibriaAnalysis
 from .game_def import (
     check_joint_mixed_actions2,
     check_joint_pure_actions,
-    JointMixedActions2,
+    JointMixedActions,
     JointPureActions,
-    Outcome,
     PlayerName,
     Pr,
     RJ,
     RP,
     SetOfOutcomes,
     U,
+    UncertainCombined,
     X,
     Y,
 )
@@ -27,10 +28,10 @@ from .game_def import (
 
 def get_security_policies(
     ps: PossibilityStructure[Pr],
-    solved: Mapping[JointPureActions, SetOfOutcomes],
-    preferences: Mapping[PlayerName, Preference[SetOfOutcomes]],
+    solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
+    preferences: Mapping[PlayerName, Preference[UncertainCombined]],
     ea: EquilibriaAnalysis[Pr, X, U, Y, RP, RJ],
-) -> JointMixedActions2:
+) -> JointMixedActions:
     actions: Dict[PlayerName, Poss[U, Pr]] = {}
     for player_name in ea.player_mixed_strategies:
         player_pref = preferences[player_name]
@@ -45,17 +46,16 @@ def get_security_policies(
 
 def get_security_policy(
     ps: PossibilityStructure[Pr],
-    solved: Mapping[JointPureActions, SetOfOutcomes],
-    # moves: JointMixedActions2,
+    solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     player_name: PlayerName,
-    preference: Preference[SetOfOutcomes],
+    preference: Preference[UncertainCombined],
     ea: EquilibriaAnalysis[Pr, X, U, Y, RP, RJ],
 ) -> Poss[U, Pr]:
     player_choices = ea.player_mixed_strategies[player_name]
     others_choices = frozendict(keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies))
     # preferences: Dict[PlayerName, Preference[SetOfOutcomes]]
 
-    action2outcomes: Dict[U, Poss[Outcome, Pr]] = {}
+    action2outcomes: Dict[Poss[U, Pr], UncertainCombined] = {}
     player_choice: Poss[U, Pr]
     for player_choice in player_choices:
         option_outcomes = what_if_player_chooses(
@@ -80,11 +80,11 @@ def what_if_player_chooses(
     ps: PossibilityStructure[Pr],
     player_name: PlayerName,
     ea: EquilibriaAnalysis[Pr, X, U, Y, RP, RJ],
-    solved: Mapping[JointPureActions, SetOfOutcomes],
+    solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     player_action: Poss[U, Pr],
     others_choices: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
-    preference: Preference[SetOfOutcomes],
-) -> SetOfOutcomes:
+    preference: Preference[UncertainCombined],
+) -> UncertainCombined:
     """
         Assume the player chooses u, and the others choose any other mixed policy.
         What is the worst case?
@@ -99,10 +99,10 @@ def what_if_player_chooses(
     choices = dict(others_choices)
     choices[player_name] = frozenset({player_action})
 
-    mixed: Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
-    mixed = get_mixed(ps, choices, solved)
+    mixed: Mapping[JointMixedActions, SetOfOutcomes]
+    mixed = _what_if_player_chooses_get_mixed(ps, choices, solved, player_name)
 
-    w: Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]
+    w: Mapping[JointMixedActions, SetOfOutcomes]
     w = worst_cases(mixed, preference)
     # Note that there might be more nondominated
     values: List[SetOfOutcomes]
@@ -111,22 +111,30 @@ def what_if_player_chooses(
     return ps.flatten(ps.lift_many(values))
 
 
-def get_mixed(
+def _what_if_player_chooses_get_mixed(
     ps: PossibilityStructure[Pr],
     choices: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
-    pure_outcomes: Mapping[JointPureActions, SetOfOutcomes],
-) -> Mapping[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes]:
+    pure_outcomes: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
+    player_name: PlayerName,
+) -> Mapping[JointMixedActions, UncertainCombined]:
     players_ordered = list(choices)
     players_strategies = [choices[_] for _ in players_ordered]
-    results: Dict[Mapping[PlayerName, Poss[U, Pr]], SetOfOutcomes] = {}
+    results: Dict[JointMixedActions, UncertainCombined] = {}
     for choices in itertools.product(*tuple(players_strategies)):
-        choice: Mapping[PlayerName, Poss[U, Pr]] = frozendict(zip(players_ordered, choices))
+        choice: JointMixedActions = frozendict(zip(players_ordered, choices))
 
         dist: Poss[JointPureActions, Pr]
         dist = get_mixed2(ps, choice)
-        mixed_outcome: Poss[SetOfOutcomes, Pr] = ps.build(dist, pure_outcomes.__getitem__)
+
+        def get_for_me(x: JointPureActions) -> UncertainCombined:
+            r = pure_outcomes[x][player_name]
+
+            return r
+
+        mixed_outcome: Poss[UncertainCombined, Pr] = ps.build(dist, get_for_me)
         # TODO: for probabilities, there is something more complicated than just "build"
         # ...
+        # logger.info(mixed_outcome=mixed_outcome)
         results[choice] = ps.flatten(mixed_outcome)
     return results
 

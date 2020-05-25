@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, Generic, Set
+from typing import Dict, Generic, Mapping, Set
 
 from frozendict import frozendict
 
+from possibilities import Poss
 from zuper_commons.types import ZValueError
-from .game_def import Game, GamePlayer, PlayerName, Pr, RJ, RP, U, X, Y, SR
+from .game_def import Game, GamePlayer, JointPureActions, JointState, PlayerName, Pr, RJ, RP, U, X, Y, SR
 from .structures_solution import GameNode
 
 __all__ = []
@@ -49,6 +50,7 @@ def get_1p_game_tree(
     states = frozendict({player_name: x0})
 
     is_final_state = prs.is_personal_final_state(x0)
+    outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
     if is_final_state:
         moves = frozendict()
         outcomes = frozendict()
@@ -65,6 +67,7 @@ def get_1p_game_tree(
         for u, x1s in successors.items():
             actions = frozendict({player_name: u})
             # logger.info(successors=successors)
+
             r = ps.build(
                 x1s,
                 lambda _: get_1p_game_tree(
@@ -72,16 +75,19 @@ def get_1p_game_tree(
                 ).states,
             )
 
-            outcomes[actions] = r
+            def add_name(js0: JointState) -> Mapping[PlayerName, JointState]:
+                return frozendict({player_name: js0})
 
-        outcomes = frozendict(outcomes)
+            outcomes[actions] = ps.build(r, add_name)
+
+        # outcomes = {player_name: frozendict(outcomes)}
     joint_final_rewards = frozendict()
     player_resources = game.players[player_name].dynamics.get_shared_resources(x0)
     resources = frozendict({player_name: player_resources})
     res = GameNode(
         states=states,
         moves=moves,
-        outcomes3=outcomes,
+        outcomes=outcomes,
         is_final=is_final,
         incremental=incremental,
         joint_final_rewards=joint_final_rewards,

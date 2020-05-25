@@ -1,15 +1,16 @@
 import itertools
 from dataclasses import dataclass, replace
 from typing import Dict, Mapping
-from . import logger
+
 from frozendict import frozendict
-from toolz import keyfilter
 
 from possibilities import Poss
 from zuper_commons.types import ZValueError
+from . import logger
 from .comb_utils import valmap
 from .game_def import AgentBelief, Game, JointPureActions, JointState, PlayerName, Pr, RJ, RP, SR, U, X, Y
-from .structures_solution import GameGraph, GameNode, GamePreprocessed
+from .structures_solution import GameGraph, GameNode
+from .utils import iterate_dict_combinations
 
 
 def get_ghost_tree(
@@ -65,41 +66,58 @@ def replace_others(
     still_moving = set(node.moves) - set(action_fixed)
     # now we redo everything:
 
-    res: Dict[JointPureActions, Poss[JointState, Pr]] = {}
+    res: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]] = {}
 
     players = list(still_moving)
+    CONTEMPLATE = "contemplate"
+    new_moves = {}
 
-    if players:
-        choices = [node.moves[_] for _ in players]
-        for _ in itertools.product(*tuple(choices)):
-            active_pure_action = frozendict(zip(players, _))
+    for player_name, player_moves in node.moves.items():
+        if player_name in still_moving:
+            new_moves[player_name] = player_moves
+        else:
+            new_moves[player_name] = frozenset({CONTEMPLATE})
+
+    new_incremental = {}
+    for player_name, player_costs in node.incremental.items():
+        if player_name in still_moving:
+            new_incremental[player_name] = player_costs
+        else:
+            identity_cost = roc.game.players[player_name].personal_reward_structure.personal_reward_identity()
+            # FIXME: use true cost, but need to have the model include a distribution of costs
+            new_incremental[player_name] = frozendict({CONTEMPLATE: identity_cost})
+
+    new_moves = frozendict(new_moves)
+    # if players
+    if new_moves:
+        for active_pure_action in iterate_dict_combinations(new_moves):
+
             active_mixed: Dict[PlayerName, Poss[U, Pr]]
             active_mixed = valmap(ps.lift_one, active_pure_action)
             active_mixed.update(action_fixed)
 
             # find out which actions are compatible
             def f(a: JointPureActions) -> Poss[JointState, Pr]:
-                if a not in node.outcomes3:
-                    raise ZValueError(a=a, node=node, choices=choices, av=set(node.outcomes3))
-                nodes2: Poss[JointState, Pr] = node.outcomes3[a]
+                if a not in node.outcomes:
+                    raise ZValueError(
+                        msg, a=a, node=node, active_pure_action=active_pure_action, av=set(node.outcomes)
+                    )
+                nodes2: Poss[JointState, Pr] = node.outcomes[a]
                 return nodes2
-                # def g(r: GameNode) -> GameNode:
-                #     return replace_others(roc, r)
-                #
-                # return ps.build(nodes2, g)
 
             m: Poss[JointState, Pr] = ps.flatten(ps.build_multiple(active_mixed, f))
+
             res[active_pure_action] = m
-    moves = frozendict(keyfilter(still_moving.__contains__, node.moves))
+    # moves = frozendict(keyfilter(still_moving.__contains__, node.moves))
 
     ret: GameNode[Pr, X, U, Y, RP, RJ, SR]
     try:
         ret = GameNode(
             states=node.states,
-            moves=moves,
-            outcomes3=frozendict(res),
+            moves=new_moves,
+            outcomes=frozendict(res),
             is_final=node.is_final,
-            incremental=node.incremental,
+            incremental=frozendict(new_incremental),
             joint_final_rewards=node.joint_final_rewards,
             resources=node.resources,
         )

@@ -24,6 +24,9 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
     def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
         return VehicleCosts(r1.duration + r2.duration)
 
+    def personal_reward_identity(self):
+        return VehicleCosts(D(0))
+
     def personal_final_reward(self, x: VehicleState) -> VehicleCosts:
         check_isinstance(x, VehicleState)
         # assert self.is_personal_final_state(x)

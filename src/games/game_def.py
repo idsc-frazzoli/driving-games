@@ -30,16 +30,16 @@ __all__ = [
     "Observations",
     "JointState",
     "JointPureActions",
-    "JointMixedActions2",
+    "JointMixedActions",
     "JointRewardStructure",
-    "Outcome",
-    "SetOfOutcomes",
     "PersonalRewardStructure",
     "PlayerName",
     "Combined",
     "Game",
     "GamePlayer",
     "GameVisualization",
+    "Outcome",
+    "SetOfOutcomes",
 ]
 
 PlayerName = NewType("PlayerName", str)
@@ -52,7 +52,7 @@ Pr = TypeVar("Pr", bound=Number)  # how to express probabilities
 
 PlayerOptions = Mapping[PlayerName, FrozenSet[U]]
 JointPureActions = Mapping[PlayerName, U]
-JointMixedActions2 = Mapping[PlayerName, Poss[U, Pr]]
+JointMixedActions = Mapping[PlayerName, Poss[U, Pr]]
 
 Y = TypeVar("Y")
 RP = TypeVar("RP")
@@ -62,13 +62,27 @@ SR = TypeVar("SR")
 """ Shared resources """
 
 
-@dataclass(frozen=True, unsafe_hash=True, order=True)
-class Outcome(Generic[RP, RJ]):
-    private: Mapping[PlayerName, RP]
-    joint: Mapping[PlayerName, RJ]
+# @dataclass(frozen=True, unsafe_hash=True, order=True)
+# class Outcome(Generic[RP, RJ]):
+#     private: Mapping[PlayerName, RP]
+#     joint: Mapping[PlayerName, RJ]
 
 
-SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
+# SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
+
+
+@dataclass(frozen=True, order=True, unsafe_hash=True)
+class Combined(Generic[RJ, RP]):
+    """ An outcome: personal cost, plus an optional joint cost."""
+
+    personal: RP
+    joint: Optional[RJ] = None
+
+
+UncertainCombined = Poss[Combined[RP, RJ], Pr]
+
+Outcome = Mapping[PlayerName, Combined[RP, RJ]]
+SetOfOutcomes = Poss[Outcome, Pr]
 
 
 class Dynamics(Generic[Pr, X, U, SR], ABC):
@@ -103,7 +117,11 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
 
     @abstractmethod
     def personal_reward_reduce(self, r1: RP, r2: RP) -> RP:
-        """ How to accumulate reward (sum) """
+        """ How to accumulate reward (sum, monoid operation) """
+
+    @abstractmethod
+    def personal_reward_identity(self) -> RP:
+        """ The identity for the monoid"""
 
     @abstractmethod
     def is_personal_final_state(self, x: X) -> bool:
@@ -112,12 +130,6 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
     @abstractmethod
     def personal_final_reward(self, x: X) -> RP:
         """ Final reward """
-
-
-@dataclass(frozen=True, order=True, unsafe_hash=True)
-class Combined(Generic[RJ, RP]):
-    personal: RP
-    joint: Optional[RJ]
 
 
 P = TypeVar("P")
@@ -190,7 +202,7 @@ class AgentBelief(Generic[Pr, X, U], ABC):
         ...
 
 
-def check_joint_state(js: JointState):
+def check_joint_state(js: JointState, **kwargs):
     """ Checks js is a :any:`JointState`."""
     # from driving_games import VehicleState  # XXX : for debug
     if not GameConstants.checks:
@@ -198,25 +210,41 @@ def check_joint_state(js: JointState):
 
     check_isinstance(js, frozendict)
     for n, x in js.items():
-        check_isinstance(n, str)
+        check_isinstance(n, str, **kwargs)
         # check_isinstance(x, VehicleState)
 
 
-def check_player_options(a: PlayerOptions):
+def check_player_options(a: PlayerOptions, **kwargs):
     if not GameConstants.checks:
         return
 
-    check_isinstance(a, frozendict)
+    check_isinstance(a, frozendict, **kwargs)
     for k, v in a.items():
         check_isinstance(k, str)
         check_isinstance(v, frozenset)
+
+
+def check_outcome(a: Outcome):
+    check_isinstance(a, frozendict)
+    for player_name, v in a.items():
+        check_isinstance(v, Combined)
 
 
 def check_set_outcomes(a: SetOfOutcomes, **kwargs):
     if not GameConstants.checks:
         return
 
-    check_poss(a, Outcome, **kwargs)
+    check_poss(a, frozendict, **kwargs)
+    for x in a.support():
+        check_outcome(x)
+
+
+# def check_set_outcomes(a: SetOfOutcomes, **kwargs):
+#     if not GameConstants.checks:
+#         return
+#
+#     check_poss(a, Outcome, **kwargs)
+#
 
 
 def check_joint_pure_actions(a: JointPureActions, **kwargs):
@@ -237,7 +265,7 @@ def check_joint_pure_actions(a: JointPureActions, **kwargs):
         # check_isinstance(v, VehicleActions, a=a)
 
 
-def check_joint_mixed_actions2(a: JointMixedActions2, **kwargs):
+def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
     if not GameConstants.checks:
         return
     # from driving_games.structures import VehicleActions

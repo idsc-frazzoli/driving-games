@@ -1,26 +1,26 @@
-from dataclasses import replace
 from typing import Dict, Mapping
 
 from frozendict import frozendict
 
-# from games import (GameNode, JointMixedActions2, JointPureActions, PlayerName, RJ, RP, SetOfOutcomes, SolvingContext,
-#                    STRATEGY_BAIL, STRATEGY_MIX,
-#                    STRATEGY_SECURITY, U, X, Y)
-from games.equilibria import analyze_equilibria, EquilibriaAnalysis
-from games.game_def import check_joint_mixed_actions2, check_joint_pure_actions, JointMixedActions2
 from games.solution_security import get_mixed2, get_security_policies
 from possibilities import Poss
 from preferences import Preference
 from zuper_commons.types import ZNotImplementedError, ZValueError
+from . import logger
+from .equilibria import analyze_equilibria, EquilibriaAnalysis
 from .game_def import (
+    check_joint_mixed_actions2,
+    check_joint_pure_actions,
+    Combined,
+    JointMixedActions,
     JointPureActions,
     PlayerName,
     Pr,
     RJ,
     RP,
-    SetOfOutcomes,
     SR,
     U,
+    UncertainCombined,
     X,
     Y,
 )
@@ -30,37 +30,41 @@ from .structures_solution import (
     STRATEGY_BAIL,
     STRATEGY_MIX,
     STRATEGY_SECURITY,
-    ValueAndActions,
+    ValueAndActions2,
 )
 
 
 def solve_equilibria(
     sc: SolvingContext[Pr, X, U, Y, RP, RJ, SR],
     gn: GameNode[Pr, X, U, Y, RP, RJ, SR],
-    solved: Mapping[JointPureActions, SetOfOutcomes],
-) -> ValueAndActions[Pr, U, RP, RJ]:
+    solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
+) -> ValueAndActions2[Pr, U, RP, RJ]:
     ps = sc.game.ps
     for pure_action in solved:
         check_joint_pure_actions(pure_action)
 
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "
-        raise ZValueError(msg, gn=gn)  # replace(gn, outcomes3=frozendict()))
+        raise ZValueError(msg, gn=gn)
     # logger.info(gn=gn, solved=solved)
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
-    preferences: Dict[PlayerName, Preference[SetOfOutcomes]]
+    preferences: Dict[PlayerName, Preference[UncertainCombined]]
     preferences = {k: sc.outcome_set_preferences[k] for k in players_active}
 
     ea: EquilibriaAnalysis[Pr, X, U, Y, RP, RJ]
-    ea = analyze_equilibria(ps=sc.game.ps, moves=gn.moves, solved=solved, preferences=preferences)
+    ea = analyze_equilibria(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences)
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
         eq = list(ea.nondom_nash_equilibria)[0]
         check_joint_mixed_actions2(eq)
-        # eq_ = mixed_from_pure(eq)
-        game_value = ea.nondom_nash_equilibria[eq]
-        return ValueAndActions(game_value=game_value, mixed_actions=eq)
+
+        game_value = dict(ea.nondom_nash_equilibria[eq])
+        for player_final, final_value in gn.is_final.items():
+            game_value[player_final] = ps.lift_one(Combined(final_value, None))
+        if set(game_value) != set(gn.states):
+            raise ZValueError("incomplete", game_value=game_value, gn=gn)
+        return ValueAndActions2(game_value=frozendict(game_value), mixed_actions=eq)
     else:
         # multiple nondominated, but same outcome
 
@@ -85,14 +89,13 @@ def solve_equilibria(
 
             dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=profile, f=f)
 
-            game_value1: SetOfOutcomes
+            game_value1: Mapping[PlayerName, UncertainCombined]
             game_value1 = ps.flatten(ps.build(dist, solved.__getitem__))
             # logger.info(dist=dist, game_value1=game_value1)
-            return ValueAndActions(game_value=game_value1, mixed_actions=frozendict(profile))
+            return ValueAndActions2(game_value=game_value1, mixed_actions=frozendict(profile))
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
-
-            security_policies: JointMixedActions2
+            security_policies: JointMixedActions
             security_policies = get_security_policies(ps, solved, sc.outcome_set_preferences, ea)
             check_joint_mixed_actions2(security_policies)
             dist: Poss[JointPureActions, Pr]
@@ -100,9 +103,19 @@ def solve_equilibria(
             # logger.info(dist=dist)
             for _ in dist.support():
                 check_joint_pure_actions(_)
+            # logger.info(dist=dist)
+            game_value = {}
+            for player_name in gn.states:
 
-            set_outcomes: SetOfOutcomes = ps.flatten(ps.build(dist, solved.__getitem__))
-            return ValueAndActions(game_value=set_outcomes, mixed_actions=security_policies)
+                def f(jpa: JointPureActions) -> UncertainCombined:
+                    return solved[jpa][player_name]
+
+                game_value[player_name] = ps.flatten(ps.build(dist, f))
+
+            # game_value: Mapping[PlayerName, UncertainCombined]
+            # game_value = ps.flatten(ps.build(dist, solved.__getitem__))
+            game_value_ = frozendict(game_value)
+            return ValueAndActions2(game_value=game_value_, mixed_actions=security_policies)
         elif strategy == STRATEGY_BAIL:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
