@@ -1,6 +1,6 @@
 from decimal import Decimal as D
 from numbers import Number
-from typing import FrozenSet, Mapping, Optional, Sequence, Tuple
+from typing import Any, FrozenSet, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from decorator import contextmanager
@@ -27,12 +27,14 @@ class DrivingGameVisualization(
     side: D
     geometries: Mapping[PlayerName, VehicleGeometry]
     ds: D
+    pylab: Any
 
     def __init__(self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry], ds: D):
         self.params = params
         self.ds = ds
         self.side = side
         self.geometries = geometries
+        self.pylab = None
 
     @contextmanager
     def plot_arena(self, pylab, ax):

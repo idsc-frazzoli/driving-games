@@ -1,7 +1,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "Driving Games Tutorial"
-copyright = ""
+
 author = "ETH Zürich"
 
 # -- General configuration ---------------------------------------------------

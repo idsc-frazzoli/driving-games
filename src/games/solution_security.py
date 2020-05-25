@@ -99,13 +99,13 @@ def what_if_player_chooses(
     choices = dict(others_choices)
     choices[player_name] = frozenset({player_action})
 
-    mixed: Mapping[JointMixedActions, SetOfOutcomes]
+    mixed: Mapping[JointMixedActions, UncertainCombined]
     mixed = _what_if_player_chooses_get_mixed(ps, choices, solved, player_name)
 
-    w: Mapping[JointMixedActions, SetOfOutcomes]
+    w: Mapping[JointMixedActions, UncertainCombined]
     w = worst_cases(mixed, preference)
     # Note that there might be more nondominated
-    values: List[SetOfOutcomes]
+    values: List[UncertainCombined]
     values = list(w.values())
     # XXX not sure it is so simple
     return ps.flatten(ps.lift_many(values))
