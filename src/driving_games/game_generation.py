@@ -18,6 +18,7 @@ from .collisions import Collision
 from .joint_reward import VehicleJointReward
 from .personal_reward import VehiclePersonalRewardStructureTime
 from .preferences_coll_time import VehiclePreferencesCollTime
+from .rectangle import Rectangle
 from .structures import (
     Lights,
     NO_LIGHTS,
@@ -30,8 +31,10 @@ from .structures import (
 from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 
-DrivingGame = Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
-DrivingGamePlayer = GamePlayer[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
+DrivingGame = Game[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
+DrivingGamePlayer = GamePlayer[
+    One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle
+]
 
 
 @dataclass
@@ -49,6 +52,7 @@ class TwoVehicleSimpleParams:
     # initial positions
     first_progress: D
     second_progress: D
+    shared_resources_ds: D
 
 
 def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
@@ -70,9 +74,10 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
     # P2 = PlayerName("👳🏾‍")
     # P1 = PlayerName("p1")
     # P2 = PlayerName("p2")
-    P2 = PlayerName("⬅")
-    P1 = PlayerName("⬆")
-
+    # P2 = PlayerName("⬅")
+    # P1 = PlayerName("⬆")
+    P2 = PlayerName("W←")
+    P1 = PlayerName("N↑")
     mass = D(1000)
     length = D(4.5)
     width = D(1.8)
@@ -92,6 +97,8 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         ref=p1_ref,
         lights_commands=params.light_actions,
         min_speed=min_speed,
+        vg=g1,
+        shared_resources_ds=params.shared_resources_ds,
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -101,6 +108,8 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         max_path=max_path,
         ref=p2_ref,
         lights_commands=params.light_actions,
+        vg=g2,
+        shared_resources_ds=params.shared_resources_ds,
     )
     p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
@@ -142,7 +151,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
     game_visualization: GameVisualization[
         One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
     ]
-    game_visualization = DrivingGameVisualization(params, L, geometries=geometries)
+    game_visualization = DrivingGameVisualization(
+        params, L, geometries=geometries, ds=params.shared_resources_ds
+    )
     game: DrivingGame
 
     game = Game(

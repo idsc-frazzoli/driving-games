@@ -1,6 +1,6 @@
 from decimal import Decimal as D
 from numbers import Number
-from typing import Mapping, Optional, Sequence, Tuple
+from typing import Any, FrozenSet, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 from decorator import contextmanager
@@ -8,8 +8,11 @@ from matplotlib import patches
 
 from games import GameVisualization, PlayerName
 from possibilities import One
+from .rectangle import Rectangle
 from .collisions import Collision
+from .collisions_check import get_resources_used
 from .personal_reward import SE2_from_VehicleState
+from .rectangle import get_rectangle_countour
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
 from .vehicle_observation import VehicleObservation
 
@@ -23,11 +26,15 @@ class DrivingGameVisualization(
 
     side: D
     geometries: Mapping[PlayerName, VehicleGeometry]
+    ds: D
+    pylab: Any
 
-    def __init__(self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry]):
+    def __init__(self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry], ds: D):
         self.params = params
+        self.ds = ds
         self.side = side
         self.geometries = geometries
+        self.pylab = None
 
     @contextmanager
     def plot_arena(self, pylab, ax):
@@ -82,14 +89,18 @@ class DrivingGameVisualization(
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
-        plot_car(
-            self.pylab,
-            player_name,
-            q,
-            velocity=velocity,
-            light_colors=colors[light],
-            vg=self.geometries[player_name],
-        )
+        vg = self.geometries[player_name]
+        resources: FrozenSet[Rectangle]
+        vcolor = np.array(vg.color) * 0.5 + np.array([0.5, 0.5, 0.5]) * 0.5
+        resources = get_resources_used(vs=state, vg=vg, ds=self.ds)
+        for rectangle in resources:
+            countour_points = np.array(get_rectangle_countour(rectangle)).T
+
+            x, y = countour_points[0, :], countour_points[1, :]
+
+            self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
+
+        plot_car(self.pylab, player_name, q, velocity=velocity, light_colors=colors[light], vg=vg)
 
     def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
         w = -state.wait * D(0.2)

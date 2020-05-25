@@ -19,7 +19,7 @@ class Poss(Generic[A, Φ], ABC):
         pass
 
 
-CHECK = False
+CHECK = True
 
 
 def check_poss(a: Poss[A, Φ], T: Type[A] = object, **kwargs):

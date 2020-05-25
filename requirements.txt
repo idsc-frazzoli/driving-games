@@ -36,3 +36,5 @@ jupyter
  
 sphinx 
 sphinx-rtd-theme
+sphinx-autodoc-typehints
+sphinx-autodoc-annotation

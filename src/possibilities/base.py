@@ -54,3 +54,11 @@ class PossibilityStructure(Generic[Φ], ABC):
     @abstractmethod
     def mix(self, support: Collection[A]) -> FrozenSet[Poss[A, Φ]]:
         """ Returns a set of "distributions" with the given support. """
+
+
+# V = TypeVar('V')
+# Z = TypeVar('Z')
+#
+# def compute_marginals(ps: PossibilityStructure, a: Poss[Mapping[K, V], Φ],
+#               f: Callable[[K, V], Z]) -> Mapping[K, Poss[Z]]:
+#     pass

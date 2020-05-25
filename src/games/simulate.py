@@ -14,6 +14,7 @@ from .game_def import (
     Pr,
     RJ,
     RP,
+    SR,
     U,
     X,
     Y,
@@ -45,7 +46,7 @@ N = TypeVar("N")
 
 
 def simulate1(
-    game: Game[Pr, X, U, Y, RP, RJ],
+    game: Game[Pr, X, U, Y, RP, RJ, SR],
     policies: Mapping[PlayerName, AgentBelief[Pr, X, U]],
     initial_states: JointState,
     dt: D,
