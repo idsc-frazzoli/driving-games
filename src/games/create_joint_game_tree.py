@@ -33,7 +33,6 @@ __all__ = []
 class IterationContext(Generic[Pr, X, U, Y, RP, RJ, SR]):
     game: Game[Pr, X, U, Y, RP, RJ, SR]
     dt: D
-    # gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]
     cache: Dict[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]
     depth: int
     gf: Optional[GameFactorization[X]]
@@ -79,11 +78,6 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr,
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
-
-    # states = {k: v for k, v in js.items() if v is not None}
-    # if states != js:
-    #     raise ZValueError(states=states, js=js)
-    N2: JointState
 
     moves_to_state_everybody = get_moves(ic, states)
     pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]] = {}

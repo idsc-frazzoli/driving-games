@@ -12,9 +12,9 @@ from .structures_solution import GamePreprocessed, Solutions
 __all__ = ["report_solutions"]
 
 
-def good_id(s: str) -> str:
-    s = s.replace("-", "_")
-    return s
+# def good_id(s: str) -> str:
+#     s = s.replace("-", "_")
+#     return s
 
 
 def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], s: Solutions[Pr, X, U, Y, RP, RJ, SR]):

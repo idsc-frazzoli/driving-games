@@ -22,10 +22,10 @@ agent_from_policy
 .. automodule:: games.agent_from_policy
    :members:
 
-comb_utils
+utils
 ------------------
 
-.. automodule:: games.comb_utils
+.. automodule:: games.utils
    :members:
 
 

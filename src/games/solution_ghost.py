@@ -4,10 +4,9 @@ from typing import Dict, Mapping
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from . import logger
-from .comb_utils import valmap
 from .game_def import AgentBelief, Game, JointPureActions, JointState, PlayerName, Pr, RJ, RP, SR, U, X, Y
 from .structures_solution import GameGraph, GameNode
-from .utils import fd, iterate_dict_combinations
+from .utils import fd, iterate_dict_combinations, valmap
 
 
 def get_ghost_tree(

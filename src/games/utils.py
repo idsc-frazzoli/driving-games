@@ -1,8 +1,11 @@
 import itertools
-from typing import Callable, Collection, FrozenSet, Iterator, Mapping, TypeVar
+from typing import Callable, Collection, Dict, FrozenSet, Iterator, Mapping, TypeVar
 
+import toolz
 from frozendict import frozendict
 from toolz import keyfilter, valfilter, valmap
+
+from games.comb_utils import A, B, K
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -23,9 +26,9 @@ def fkeyfilter(pred: Callable[[K], bool], a: Mapping[K, V]) -> Mapping[K, V]:
     return frozendict(keyfilter(pred, a))
 
 
-def fvalfilter(pred: Callable[[V], bool], a: Mapping[K, V]) -> Mapping[K, V]:
-    """ Wrapper around `toolz.valfilter`. Adds frozendict, and helps with types."""
-    return frozendict(valfilter(pred, a))
+# def fvalfilter(pred: Callable[[V], bool], a: Mapping[K, V]) -> Mapping[K, V]:
+#     """ Wrapper around `toolz.valfilter`. Adds frozendict, and helps with types."""
+#     return frozendict(valfilter(pred, a))
 
 
 def fvalmap(pred: Callable[[V], W], a: Mapping[K, V]) -> Mapping[K, W]:
@@ -41,3 +44,7 @@ def fd(a: Mapping[K, V]) -> Mapping[K, V]:
 def fs(a: Collection[V]) -> FrozenSet[V]:
     """ Needed for type """
     return frozenset(a)
+
+
+def valmap(f: Callable[[A], B], d: Mapping[K, A]) -> Dict[K, B]:
+    return toolz.valmap(f, d)

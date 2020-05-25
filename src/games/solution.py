@@ -105,13 +105,6 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
             # logger.info(gg_nodes=set(ghost_game_graph.state2node))
             # logger.info(gg=ghost_game_graph)
 
-        # player_start = list(pp.game_graph.initials)[0]
-        # player_start = frozendict({player_name: x0})
-        # logger.info(
-        #     "first node of tree ghost",
-        #     tree_ghost=replace(tree_ghost, outcomes=frozendict()),
-        #     outcomes=set(tree_ghost.outcomes),
-        # )
         solution_ghost = solve_game2(
             game=gp.game, gg=ghost_game_graph, solver_params=gp.solver_params, jss={initial_state}
         )
@@ -152,18 +145,6 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
         game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players, sims=sims,
     )
     # logger.info(game_tree=game_tree)
-
-
-# @dataclass(frozen=True)
-# class CombinedFromOutcome(Generic[RP, RJ]):
-#     name: PlayerName
-#
-#     def __call__(self, outcome: Outcome) -> Combined[RJ, RP]:
-#         # check_isinstance(outcome, Outcome, _self=self)
-#         if not self.name in outcome:
-#             msg = "Looks like the personal value was not included."
-#             raise ZValueError(msg, name=self.name, outcome=outcome)
-#         return outcome[self.name]
 
 
 def get_outcome_set_preferences_for_players(
@@ -212,7 +193,7 @@ def solve_game2(
                 iset = ps.lift_one(other_states)  # frozenset({other_states})
                 policy_for_this_state[iset] = s0.va.mixed_actions[player_name]
 
-    # policies2 = frozendict(valmap(policies, )
+
     policies2 = frozendict({k: fr(v) for k, v in policies.items()})
 
     return GameSolution(
@@ -285,19 +266,7 @@ def _solve_game(
 
         # logger.info(players_dist=players_dist)
         solved[pure_actions] = frozendict(players_dist)
-        #
-        # next_outcomes_solutions = ps.build(solved_to_node[pure_actions], get_game_value)
-        # # and now we flatten
-        # flattened: Poss[M[PlayerName, Combined[RP, RJ]], Pr] = ps.flatten(next_outcomes_solutions)
-        # # check_set_outcomes(flattened)
-        # # Now we need to add the incremental costs
-        #
-        # # logger.info(flattened=flattened)
-        # added: Poss[M[PlayerName, Combined[RP, RJ]], Pr] = ps.build(flattened, f)
-        #
-        # # check_set_outcomes(added)
-        # solved[pure_actions] = added
-    # logger.info(solved=solved)
+
     va: ValueAndActions2[Pr, U, RP, RJ]
     if gn.joint_final_rewards:  # final costs:
 
@@ -315,16 +284,7 @@ def _solve_game(
     if va.mixed_actions:  # not a final state
         next_states: Poss[M[PlayerName, SolvedGameNode[Pr, X, U, U, RP, RJ, SR], Pr]]
         next_states = ps.flatten(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
-        # logger.info(next_states=next_states)
-        # next_resources: Poss[M[PlayerName, UsedResources], Pr]
-        #
-        # marginals: Mapping[PlayerName, Poss[UsedResources, Pr]]
-        # def get_resources(player_name: PlayerName, sg: SolvedGameNode[Pr, X, U, U, RP, RJ, SR]) -> UsedResources:
-        #     return sg.
-        # marginals = compute_marginals(ps, )
-        # next_resources = ps.build(next_states, lambda _: _.ur)
-        # usages: Dict[D, Poss[M[PlayerName, FrozenSet[SR]], Pr]]
-        # logger.info(next_resources=next_resources)
+
 
         usages: Dict[D, Poss[M[PlayerName, FrozenSet[SR]], Pr]]
         usages = {D(0): usage_current}
@@ -387,25 +347,6 @@ def _solve_game(
     return ret
 
 
-# def add_incremental_cost(
-#     game: Game[Pr, X, U, Y, RP, RJ, SR], *, outcome: Outcome, incremental_for_player: M[PlayerName, RP],
-# ) -> Outcome:
-#     check_outcome(outcome)
-#     # private = {}
-#     res: Dict[PlayerName, Combined[RP, RJ]] = {}
-#     # logger.info(outcome=outcome, action=action, incremental=incremental)
-#     u: U
-#     for player_name, inc in incremental_for_player.items():
-#         reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-#
-#         if player_name in outcome:
-#             personal = reduce(inc, outcome[player_name].private)
-#         else:
-#             personal = inc
-#         joint = outcome[player_name].joint
-#         res[player_name] = Combined(personal=personal, joint=joint)
-#
-#     return frozendict(res)
 
 
 def add_incremental_cost_single(

@@ -123,7 +123,6 @@ def solve_equilibria(
                 game_value[player_name] = ps.flatten(ps.build(dist, f))
 
             # game_value: Mapping[PlayerName, UncertainCombined]
-            # game_value = ps.flatten(ps.build(dist, solved.__getitem__))
             game_value_ = fd(game_value)
             return ValueAndActions2(game_value=game_value_, mixed_actions=security_policies)
         elif strategy == STRATEGY_BAIL:

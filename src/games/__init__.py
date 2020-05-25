@@ -18,5 +18,5 @@ from .reports_player import *
 from .reports import *
 from .simulate import *
 
-from .animations import *
+from .report_animations import *
 from .zoo import *

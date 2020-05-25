@@ -231,14 +231,14 @@ def check_outcome(a: Outcome):
     for player_name, v in a.items():
         check_isinstance(v, Combined)
 
-
-def check_set_outcomes(a: SetOfOutcomes, **kwargs):
-    if not GameConstants.checks:
-        return
-
-    check_poss(a, frozendict, **kwargs)
-    for x in a.support():
-        check_outcome(x)
+#
+# def check_set_outcomes(a: SetOfOutcomes, **kwargs):
+#     if not GameConstants.checks:
+#         return
+#
+#     check_poss(a, frozendict, **kwargs)
+#     for x in a.support():
+#         check_outcome(x)
 
 
 # def check_set_outcomes(a: SetOfOutcomes, **kwargs):

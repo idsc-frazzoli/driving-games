@@ -15,7 +15,7 @@ from preferences import (
 )
 from zuper_commons.types import ZAssertionError, ZValueError
 from . import GameConstants, logger
-from .comb_utils import valmap
+from .utils import valmap
 from .game_def import (
     check_joint_mixed_actions2,
     JointMixedActions,
@@ -175,8 +175,6 @@ def analyze(
     # logger.info(ps=ps)
 
     # we need something to compare set of outcomes
-
-    # preferences_: Tuple[Preference[UncertainCombined], ...] = tuple(preferences.values())
     pref: Preference[Mapping[PlayerName, UncertainCombined]] = StrictProductPreferenceDict(preferences)
 
     # logger.info(nash_equilibria=nash_equilibria, preferences=preferences, pref=pref)
@@ -189,12 +187,12 @@ def analyze(
         ps=ps,
     )
 
-
-def zassert(val: bool, **kwargs):
-    if not val:  # pragma: no cover
-        msg = "Assertion failed"
-        raise ZAssertionError(msg, val=val, **kwargs)
-
+#
+# def zassert(val: bool, **kwargs):
+#     if not val:  # pragma: no cover
+#         msg = "Assertion failed"
+#         raise ZAssertionError(msg, val=val, **kwargs)
+#
 
 def variations(
     player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
@@ -213,6 +211,6 @@ def variations(
         d = dict(x0)
         d[player_name] = alternative
         _ = frozendict(d)
-        # check_joint_pure_actions(_)
+
         res[alternative] = _
     return frozendict(res)

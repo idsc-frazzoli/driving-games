@@ -174,16 +174,6 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
                         msg = f"The player {player_name!r} is transitioning to a state but it is marked as joint final."
                         raise ZValueError(msg, GameNode=self)
 
-        # for player_name in self.states:
-        #     last_for_player=  (player_name in self.joint_final_rewards) or (player_name in self.is_final)
-        #     if not last_for_player:
-        #         if player_name not in self.moves:
-        #             msg = f'If the player {player_name!r} is not final, then it should have some moves.'
-        #             raise ZValueError(msg, _self=self)
-        #     if isinstance(actions, (set, frozenset)):
-        #         raise ZValueError(_=self)
-        # assert type(actions).__name__ in ['VehicleActions'], actions
-
 
 def states_mentioned(game_node: GameNode) -> FSet[JointState]:
     # outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]

@@ -7,7 +7,6 @@ from toolz import keyfilter
 from possibilities import check_poss, Poss, PossibilityStructure
 from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
-from . import logger
 from .equilibria import EquilibriaAnalysis
 from .game_def import (
     check_joint_mixed_actions2,
@@ -18,7 +17,6 @@ from .game_def import (
     Pr,
     RJ,
     RP,
-    SetOfOutcomes,
     U,
     UncertainCombined,
     X,
@@ -36,9 +34,7 @@ def get_security_policies(
     for player_name in ea.player_mixed_strategies:
         player_pref = preferences[player_name]
         sp = get_security_policy(ps=ps, player_name=player_name, preference=player_pref, ea=ea, solved=solved)
-        # check_poss(sp)
-        # for _ in sp.support():
-        #     assert not isinstance(_, Poss), sp
+
         actions[player_name] = sp
 
     return frozendict(actions)
@@ -53,7 +49,6 @@ def get_security_policy(
 ) -> Poss[U, Pr]:
     player_choices = ea.player_mixed_strategies[player_name]
     others_choices = frozendict(keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies))
-    # preferences: Dict[PlayerName, Preference[SetOfOutcomes]]
 
     action2outcomes: Dict[Poss[U, Pr], UncertainCombined] = {}
     player_choice: Poss[U, Pr]
@@ -73,8 +68,6 @@ def get_security_policy(
     ret = ps.lift_many(plausible)
     ret = ps.flatten(ret)
     return ret
-    # player_could_do: ASet[U]  =
-
 
 def what_if_player_chooses(
     ps: PossibilityStructure[Pr],
