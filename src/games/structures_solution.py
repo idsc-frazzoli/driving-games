@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set
@@ -47,7 +48,7 @@ __all__ = [
     "StrategyForMultipleNash",
 ]
 
-from .utils import iterate_dict_combinations
+from .utils import fkeyfilter, iterate_dict_combinations
 
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 STRATEGY_MIX = StrategyForMultipleNash("mix")
@@ -74,6 +75,16 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     joint_final_rewards: Mapping[PlayerName, RJ]
 
     resources: Mapping[PlayerName, FSet[SR]]
+
+    __print_order__ = [
+        "states",
+        "moves",
+        "outcomes",
+        "is_final",
+        "incremental",
+        "joint_final_rewards",
+    ]  # only print
+    # these attributes
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -176,10 +187,35 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
         # assert type(actions).__name__ in ['VehicleActions'], actions
 
 
+def states_mentioned(game_node: GameNode) -> FSet[JointState]:
+    # outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
+    res = set()
+    for _, out in game_node.outcomes.items():
+        for player_to_js in out.support():
+            for player_name, js in player_to_js.items():
+                res.add(js)
+    return frozenset(res)
+
+
 @dataclass
 class GameGraph(Generic[Pr, X, U, Y, RP, RJ, SR]):
     initials: AbstractSet[JointState]
     state2node: Mapping[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+
+    def __post_init__(self) -> None:
+        if not GameConstants.checks:
+            return
+
+        # Check that there are all states mentioned
+        mentioned = defaultdict(set)
+        for joint_state, game_node in self.state2node.items():
+            for m in states_mentioned(game_node):
+                mentioned[m].add(joint_state)
+        missing = set(mentioned) - set(self.state2node)
+        if missing:
+            m = fkeyfilter(missing.__contains__, mentioned)
+            msg = "There are states mentioned but missing"
+            raise ZValueError(msg, missing_and_mention=m)
 
 
 @dataclass

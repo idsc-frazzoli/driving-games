@@ -1,13 +1,14 @@
 import random
-from typing import Tuple
+from typing import List, Tuple
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
 
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
+from zuper_typing import debug_print
 from . import logger
-from .game_def import Game, Pr, RJ, RP, U, X, Y, SR
+from .game_def import Game, JointState, Pr, RJ, RP, U, X, Y, SR
 from .reports_player import report_player
 from .structures_solution import GamePreprocessed
 
@@ -56,7 +57,11 @@ def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
 
 
 def visualize_states(
-    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], r: Report, name: str, nodes, caption: str
+    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR],
+    r: Report,
+    name: str,
+    nodes: List[JointState],
+    caption: str,
 ):
     viz = game_pre.game.game_visualization
     f = r.figure(name, caption=caption)
@@ -68,6 +73,10 @@ def visualize_states(
                 for player_name, player_state in node.items():
                     if player_state is not None:
                         viz.plot_player(player_name, state=player_state, commands=None)
+    texts = list(map(debug_print, nodes))
+
+    text = "\n".join(texts)
+    r.text(f"{name}-states", remove_escapes(text))
     return f
 
 

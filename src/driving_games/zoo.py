@@ -14,14 +14,13 @@ p0 = TwoVehicleSimpleParams(
     max_speed=D(5),
     min_speed=D(1),
     max_wait=D(1),
-    # available_accels={D(-2), D(0), D(+1)},
     available_accels=frozenset({D(-2), D(-1), D(0), D(+1)}),
     collision_threshold=3.0,
     light_actions=frozenset({NO_LIGHTS}),
     dt=D(1),
     first_progress=D(0),
     second_progress=D(0),
-    shared_resources_ds=D(1),
+    shared_resources_ds=D(1.5),
 )
 
 p_sym = p0

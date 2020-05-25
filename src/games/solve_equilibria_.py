@@ -32,6 +32,7 @@ from .structures_solution import (
     STRATEGY_SECURITY,
     ValueAndActions2,
 )
+from .utils import fd
 
 
 def solve_equilibria(
@@ -90,9 +91,18 @@ def solve_equilibria(
             dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=profile, f=f)
 
             game_value1: Mapping[PlayerName, UncertainCombined]
-            game_value1 = ps.flatten(ps.build(dist, solved.__getitem__))
-            # logger.info(dist=dist, game_value1=game_value1)
-            return ValueAndActions2(game_value=game_value1, mixed_actions=frozendict(profile))
+            game_value1 = {}
+            for player_name in gn.states:
+
+                def f(jpa: JointPureActions) -> UncertainCombined:
+                    return solved[jpa][player_name]
+
+                game_value1[player_name] = ps.flatten(ps.build(dist, f))
+
+            # logger.info(dist=dist)
+            # game_value1 = ps.flatten(ps.build(dist, solved.__getitem__))
+
+            return ValueAndActions2(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
             security_policies: JointMixedActions
@@ -114,7 +124,7 @@ def solve_equilibria(
 
             # game_value: Mapping[PlayerName, UncertainCombined]
             # game_value = ps.flatten(ps.build(dist, solved.__getitem__))
-            game_value_ = frozendict(game_value)
+            game_value_ = fd(game_value)
             return ValueAndActions2(game_value=game_value_, mixed_actions=security_policies)
         elif strategy == STRATEGY_BAIL:
             msg = "Multiple Nash Equilibria"

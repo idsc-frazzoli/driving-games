@@ -1,5 +1,5 @@
 import itertools
-from typing import Callable, Collection, Iterator, Mapping, TypeVar
+from typing import Callable, Collection, FrozenSet, Iterator, Mapping, TypeVar
 
 from frozendict import frozendict
 from toolz import keyfilter, valfilter, valmap
@@ -31,3 +31,13 @@ def fvalfilter(pred: Callable[[V], bool], a: Mapping[K, V]) -> Mapping[K, V]:
 def fvalmap(pred: Callable[[V], W], a: Mapping[K, V]) -> Mapping[K, W]:
     """ Wrapper around `toolz.keyfilter`. Adds frozendict, and helps with types."""
     return frozendict(valmap(pred, a))
+
+
+def fd(a: Mapping[K, V]) -> Mapping[K, V]:
+    """ Needed for type """
+    return frozendict(a)
+
+
+def fs(a: Collection[V]) -> FrozenSet[V]:
+    """ Needed for type """
+    return frozenset(a)

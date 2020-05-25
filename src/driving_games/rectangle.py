@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
+from itertools import product
 from typing import List, Tuple
 
 __all__ = ["Coordinates", "Rectangle", "make_rectangle"]
@@ -32,7 +33,22 @@ class Rectangle:
 def get_rectangle_points_around(r: Rectangle) -> List[Coordinates]:
     bl = r.bottom_left
     tr = r.top_right
-    return [(bl[0], bl[1]), (tr[0], bl[1]), (tr[0], tr[1]), (bl[0], tr[1])]
+
+    n = 6
+    res = []
+    for i, j in product(range(n), range(n)):
+        alpha = D(i) / D(n - 1)
+        beta = D(j) / D(n - 1)
+        x = bl[0] * alpha + (1 - alpha) * tr[0]
+        y = bl[1] * beta + (1 - beta) * tr[1]
+        res.append((D(x), D(y)))
+    return res
+
+
+def get_rectangle_countour(r: Rectangle) -> List[Tuple[float, float]]:
+    bl = list(map(float, r.bottom_left))
+    tr = list(map(float, r.top_right))
+    return [(bl[0], bl[1]), (tr[0], bl[1]), (tr[0], tr[1]), (bl[0], tr[1]), (bl[0], bl[1])]
 
 
 def make_rectangle(center: Coordinates, sides: Tuple[D, D]) -> Rectangle:

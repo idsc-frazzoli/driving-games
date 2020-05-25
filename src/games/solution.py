@@ -72,48 +72,38 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
     # We will fill this with some simulations of different policies
     sims: Dict[str, Simulation] = {}
 
-    # cache = {}
-
     logger.info("creating game tree")
 
+    # Use game factorization only if the option is set
     if gp.game_factorization and gp.solver_params.use_factorization:
         gf = gp.game_factorization
     else:
         gf = None
 
-    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, game_factorization=gf)
+    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf)
 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[Pr, X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
-    # alone_solutions: Dict[PlayerName, Dict[X, GameSolution]] = {}
-    # for player_name, pp in gp.players_pre.items():
-    #
-    #     alone_solutions[player_name] = {}
-    #     for x0, personal_tree in pp.alone_tree.items():
-    #         solved_x0 = solve_game2(gp, gg, x0)
-    #         alone_solutions[player_name][x0] = solved_x0
-    #         logger.info(
-    #             f"Solution for {player_name} alone",
-    #             game_value=solved_x0.gn_solved.va.game_value,
-    #             # policy=solved_x0.policies
-    #         )
 
     for player_name, pp in gp.players_pre.items():
         # use other solutions
-        # logger.info("looking for ghost solutions")
         controllers_others = {}
         for p2 in gp.players_pre:
             if p2 == player_name:
                 continue
             x_p2 = initial_state[p2]
             policy = gp.players_pre[p2].gs.policies[p2]
-            # alone_solutions_p2 = alone_solutions[p2]
+            controllers_others[p2] = AgentFromPolicy(gp.game.ps, policy)
 
-            # policy = alone_solutions_p2[x_p2].policies[p2]
-            controllers_others[p2] = AgentFromPolicy(policy)
+        if player_name.startswith("N"):
+            logger.info(f"looking for solution for {player_name} follower")
 
         ghost_game_graph = get_ghost_tree(gp.game, player_name, gg, controllers_others)
+        if player_name.startswith("N"):
+            logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
+            # logger.info(gg_nodes=set(ghost_game_graph.state2node))
+            # logger.info(gg=ghost_game_graph)
 
         # player_start = list(pp.game_graph.initials)[0]
         # player_start = frozendict({player_name: x0})
@@ -128,10 +118,9 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
         logger.info(
             f"Stackelberg solution when {player_name} is a follower",
             game_values=solution_ghost.states_to_solution[initial_state].va.game_value,
-            # policy=solution_ghost.policies,
         )
         controllers = dict(controllers_others)
-        controllers[player_name] = AgentFromPolicy(solution_ghost.policies[player_name])
+        controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
         sim_ = simulate1(
             gp.game, policies=controllers, initial_states=initial_state, dt=gp.solver_params.dt, seed=0,
         )
@@ -142,7 +131,7 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
-        controllers0[player_name] = AgentFromPolicy(policy)
+        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy)
 
     logger.info(
         f"Value of joint solution",

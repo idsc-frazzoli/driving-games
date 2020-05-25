@@ -151,7 +151,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
     game_visualization: GameVisualization[
         One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
     ]
-    game_visualization = DrivingGameVisualization(params, L, geometries=geometries)
+    game_visualization = DrivingGameVisualization(
+        params, L, geometries=geometries, ds=params.shared_resources_ds
+    )
     game: DrivingGame
 
     game = Game(

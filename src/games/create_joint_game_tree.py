@@ -7,8 +7,22 @@ from frozendict import frozendict
 from toolz import itemmap
 
 from possibilities import Poss
+from zuper_commons.types import ZValueError
 from . import logger
-from .game_def import Game, JointPureActions, JointState, PlayerName, Pr, RJ, RP, SR, U, X, Y
+from .game_def import (
+    check_joint_state,
+    Game,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    Pr,
+    RJ,
+    RP,
+    SR,
+    U,
+    X,
+    Y,
+)
 from .structures_solution import GameFactorization, GameGraph, GameNode
 from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
@@ -61,15 +75,17 @@ def get_moves(
     return res
 
 
-def create_game_graph_(ic: IterationContext, js: JointState) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
-    if js in ic.cache:
-        return ic.cache[js]
-    # logger.info(depth=ic.depth, js=js)
-    states = {k: v for k, v in js.items() if v is not None}
+def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
+    check_joint_state(states)
+    if states in ic.cache:
+        return ic.cache[states]
 
+    # states = {k: v for k, v in js.items() if v is not None}
+    # if states != js:
+    #     raise ZValueError(states=states, js=js)
     N2: JointState
 
-    moves_to_state_everybody = get_moves(ic, js)
+    moves_to_state_everybody = get_moves(ic, states)
     pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]] = {}
     ps = ic.game.ps
     ic2 = replace(ic, depth=ic.depth + 1)
@@ -125,40 +141,44 @@ def create_game_graph_(ic: IterationContext, js: JointState) -> GameNode[Pr, X, 
 
         outcomes: Poss[JointState, Pr] = ps.build_multiple(selected, f)
 
-        # gt = create_game_graph_(ic2, N2)
-        for _ in outcomes.support():
-            if _:
-                create_game_graph_(ic2, _)
-
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
-            x = {k: js0 for k in states}
-            return fkeyfilter(not_exiting, x)
+            if ic.gf is not None:
+                # using game factorization
+                js_continuing = fkeyfilter(not_exiting, js0)
+                if js_continuing not in ic.gf.ipartitions:
+                    msg = "Cannot find the state in the factorization info"
+                    raise ZValueError(msg, js0=js_continuing, known=set(ic.gf.ipartitions))
+                partitions = ic.gf.ipartitions[js_continuing]
+                re = {}
+                for players_in_partition in partitions:
+                    this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
+                    for pname in players_in_partition:
+                        re[pname] = this_partition_state
+                return frozendict(re)
+            else:
+                x = {k_: js0 for k_ in states}
+                return fkeyfilter(not_exiting, x)
 
-        pure_outcomes[pure_action] = ps.build(outcomes, r)
-        # pure_outcomes[pure_action] = ic.gp.game.ps.lift_one(gt.states)
+        poutcomes: Poss[Mapping[PlayerName, JointState], Pr] = ps.build(outcomes, r)
+        pure_outcomes[pure_action] = poutcomes
 
-    # moves = {k: frozenset(v) for k, v in moves.items()}
-    # remove the fake moves {None}
-    # for k, v in list(moves.items()):
-    #     if v == {None}:
-    #         moves.pop(k)
-    # for player_name in joint_final:
-    #     moves.pop(player_name, None)
-    # for player_name in is_final:
-    #     moves.pop(player_name, None)
+        for p in poutcomes.support():
+            for _, js_ in p.items():
+                create_game_graph_(ic2, js_)
 
     resources = {}
     for player_name, player_state in states.items():
-        resources[player_name] = ic.game.players[player_name].dynamics.get_shared_resources(player_state)
+        dynamics = ic.game.players[player_name].dynamics
+        resources[player_name] = dynamics.get_shared_resources(player_state)
 
     res = GameNode(
         moves=(movesets_for_remaining),
         states=frozendict(states),
         outcomes=frozendict(pure_outcomes),
-        incremental=frozendict({k: frozendict(v) for k, v in incremental.items()}),
+        incremental=fvalmap(frozendict, incremental),
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
         resources=frozendict(resources),
     )
-    ic.cache[js] = res
+    ic.cache[states] = res
     return res

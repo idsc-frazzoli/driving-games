@@ -6,6 +6,7 @@ import numpy as np
 from frozendict import frozendict
 
 from games import PlayerName
+from games.utils import fs
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import ZNotImplementedError
 from .collisions import Collision, IMPACT_FRONT, IMPACT_SIDES, ProjectedCar
@@ -84,6 +85,13 @@ def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
 
 
 def sample_x(x: D, v: D, dt: D, n: int) -> List[D]:
+    """ Samples n points in each direction at distance dt
+
+        For n = 2 and dt = 0.5 it will be
+
+            -1, -0.5, 0, +0.5, +1
+
+    """
     return [x + v * dt * i for i in range(-n, +n + 1)]
 
 
@@ -126,8 +134,18 @@ class SpaceTimeCell:
 
 def get_vehicle_points(vs: VehicleState, vg: VehicleGeometry) -> FrozenSet[Coordinates]:
     """ Gets a set of representative points for the vehicle"""
-    r = rectangle_from_pose(vs.ref, vs.x, vg).rectangle
-    return frozenset(get_rectangle_points_around(r))
+    # this will extend -0.5 0.25 0 0.25 0.5
+    dt = D(0.25)
+    n = 2
+    xs = sample_x(vs.x, vs.v, dt=dt, n=n)
+
+    points = set()
+    for x in xs:
+        r = rectangle_from_pose(vs.ref, x, vg).rectangle
+        rp = get_rectangle_points_around(r)
+        points.update(rp)
+
+    return fs(points)
 
 
 def get_resources_used(vs: VehicleState, vg: VehicleGeometry, ds: D) -> FrozenSet[Rectangle]:

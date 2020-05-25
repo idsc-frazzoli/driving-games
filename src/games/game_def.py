@@ -211,6 +211,8 @@ def check_joint_state(js: JointState, **kwargs):
     check_isinstance(js, frozendict)
     for n, x in js.items():
         check_isinstance(n, str, **kwargs)
+        if x is None:
+            raise ZValueError(js=js, **kwargs)
         # check_isinstance(x, VehicleState)
 
 

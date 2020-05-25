@@ -29,15 +29,18 @@ def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], s: Solutions
         logger.info(f"drawing episode {k!r}")
         with f.data_file((k), MIME_GIF) as fn:
             create_log_animation(gp, sim, fn=fn, upsample_log=None)
+        write_states(r, k, sim)
         sims.pop(k)
 
     f = r.figure("joint", cols=5)
+    sim: Simulation
     for k, sim in list(sims.items()):
         if "joint" not in k:
             continue
         logger.info(f"drawing episode {k!r}")
         with f.data_file((k), MIME_GIF) as fn:
             create_log_animation(gp, sim, fn=fn, upsample_log=None)
+        write_states(r, k, sim)
         sims.pop(k)
     js: JointState
     for i, js in enumerate(s.game_solution.initials):
@@ -46,6 +49,25 @@ def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], s: Solutions
         r.text(f"joint_st{i}", st)
 
     return r
+
+
+def write_states(r: Report, k: str, sim: Simulation):
+    texts = [f"{j}: {debug_print(v)}" for j, v in sim.states.items()]
+    text = "\n".join(texts)
+
+    r.text(f"{k}-states", remove_escapes(text))
+
+    texts = [f"{j}: {debug_print(v)}" for j, v in sim.actions.items()]
+    text = "\n".join(texts)
+    r.text(f"{k}-actions", remove_escapes(text))
+
+    texts = [f"{j}: {debug_print(v)}" for j, v in sim.costs.items()]
+    text = "\n".join(texts)
+    r.text(f"{k}-costs", remove_escapes(text))
+
+    texts = [f"{j}: {debug_print(v)}" for j, v in sim.joint_costs.items()]
+    text = "\n".join(texts)
+    r.text(f"{k}-joint_costs", remove_escapes(text))
 
 
 #
