@@ -1,17 +1,16 @@
 from decimal import Decimal as D
 from typing import Mapping, Optional, Tuple
 
-from frozendict import frozendict
 from nose.tools import assert_equal
 
 from driving_games import Collision, CollisionPreference, get_asym, IMPACT_FRONT, PlayerName, VehicleCosts
-from games import get_outcome_set_preferences_for_players, Outcome
+from games import Combined, get_outcome_set_preferences_for_players
 from preferences import (
     ComparisonOutcome,
     FIRST_PREFERRED,
     INDIFFERENT,
     SECOND_PREFERRED,
-    StrictProductPreference,
+    StrictProductPreferenceDict,
 )
 from . import logger
 
@@ -49,25 +48,33 @@ def test2() -> None:
     # > │     │ │ │ p2: {VehicleActions(accel=Dec 1) *}:
     # > │     │ │ fset
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
-    p2 = PlayerName("⬅")
-    p1 = PlayerName("⬆")
-    c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
-    o_A = Outcome(
-        private=frozendict({p1: VehicleCosts(D(3)), p2: VehicleCosts(D(3))}),
-        joint=frozendict({p1: c0, p2: c0}),
-    )
-    o_B = Outcome(private=frozendict({p1: VehicleCosts(D(13)), p2: VehicleCosts(D(4))}), joint=frozendict())
-
     game = get_asym().game
+    p1, p2 = list(game.players)
+    c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
 
-    outcomes_A = game.ps.lift_one(o_A)
-    outcomes_B = game.ps.lift_one(o_B)
+    o_A = {
+        p1: game.ps.lift_one(Combined(VehicleCosts(D(3)), c0)),
+        p2: game.ps.lift_one(Combined(VehicleCosts(D(3)), c0)),
+    }
+    o_B = {
+        p1: game.ps.lift_one(Combined(VehicleCosts(D(13)), None)),
+        p2: game.ps.lift_one(Combined(VehicleCosts(D(4)), None)),
+    }
+
 
     preferences = get_outcome_set_preferences_for_players(game)
 
-    preferences_ = tuple(preferences.values())
-    eq_pref = StrictProductPreference(preferences_)
+    # preferences_ = tuple(preferences.values())
+    eq_pref = StrictProductPreferenceDict(preferences)
 
-    res = eq_pref.compare(outcomes_A, outcomes_B)
-    logger.info(a=outcomes_A, b=outcomes_B, res=res)
+    res = eq_pref.compare(o_A, o_B)
+    logger.info(a=o_A, b=o_B, res=res)
     assert res == SECOND_PREFERRED, res
+
+
+def test_3() -> None:
+    game = get_asym().game
+    p1, p2 = list(game.players)
+    s1 = list(game.players[p1].initial.support())[0]
+    sr = game.players[p1].dynamics.get_shared_resources(s1)
+    logger.info(sr=sr)

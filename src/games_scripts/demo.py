@@ -24,7 +24,7 @@ class DGDemo(QuickApp):
 
     def define_options(self, params: DecentParams):
         params.add_string("games", default="asym_v1")
-        params.add_string("solvers", default="solver-1-security")
+        params.add_string("solvers", default="solver-1-security-fact")
 
     def define_jobs_context(self, context: QuickAppContext):
 
@@ -48,7 +48,7 @@ class DGDemo(QuickApp):
             for solver_name in do_solvers:
                 c = cgame.child(solver_name, extra_report_keys=dict(solver=solver_name))
                 solver_params = solvers_zoo[solver_name].solver_params
-
+                # individual = c.comp(compute_individual_solutions, game, solver_params)
                 game_preprocessed = c.comp(preprocess_game, game, solver_params)
 
                 r = c.comp(create_report_preprocessed, game_name, game_preprocessed)

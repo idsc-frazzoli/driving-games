@@ -9,6 +9,7 @@ from frozendict import frozendict
 from games import Dynamics
 from possibilities import One, Poss, ProbabilitySet
 from zuper_commons.types import ZException, ZValueError
+from .rectangle import Rectangle
 
 __all__ = [
     "Lights",
@@ -37,6 +38,21 @@ class InvalidAction(ZException):
     pass
 
 
+@dataclass(frozen=True)
+class VehicleCosts:
+    """ The incremental costs"""
+
+    duration: D
+
+
+@dataclass(frozen=True)
+class VehicleGeometry:
+    mass: D
+    width: D
+    length: D
+    color: Tuple[float, float, float]
+
+
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleState:
     # reference frame from where the vehicle started
@@ -56,13 +72,15 @@ class VehicleActions:
     light: Lights = "none"
 
 
-class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
+class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions, Rectangle]):
     max_speed: D
     min_speed: D
     max_path: D
     available_accels: FrozenSet[D]
     max_wait: D
     lights_commands: FrozenSet[Lights]
+    shared_resources_ds: D
+    vg: VehicleGeometry
 
     def __init__(
         self,
@@ -73,6 +91,8 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
         ref: SE2_disc,
         max_path: D,
         lights_commands: FrozenSet[Lights],
+        shared_resources_ds: D,
+        vg: VehicleGeometry,
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -81,6 +101,8 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
         self.ref = ref
         self.max_path = max_path
         self.lights_commands = lights_commands
+        self.shared_resources_ds = shared_resources_ds
+        self.vg = vg
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
@@ -150,6 +172,11 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
             raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
 
+    def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:
+        from .collisions_check import get_resources_used
+
+        return get_resources_used(vs=x, vg=self.vg, ds=self.shared_resources_ds)
+
     # @lru_cache(None)
     # def assert_valid_state(self, s: VehicleState):
     #     if s.wait and s.v:
@@ -161,24 +188,3 @@ class VehicleDynamics(Dynamics[One, VehicleState, VehicleActions]):
     #         raise ZValueError(s=s)
     #     if not (0 <= s.wait <= self.max_wait):
     #         raise ZValueError(s=s)
-
-
-#
-# @dataclass(frozen=True)
-# class JointCost:
-#     c: Collision
-
-
-@dataclass(frozen=True)
-class VehicleCosts:
-    """ The incremental costs"""
-
-    duration: D
-
-
-@dataclass(frozen=True)
-class VehicleGeometry:
-    mass: D
-    width: D
-    length: D
-    color: Tuple[float, float, float]
