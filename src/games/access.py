@@ -124,8 +124,8 @@ def get_game_factorization(
             resources_used = itemmap(get_ur, ljs)
             deps = find_dependencies(ps, resources_used)
 
-            if special:
-                logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
+            # if special:
+            #     logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
             for players_subsets, independent in deps.items():
                 if special:
                     logger.info(" - ", players_subsets=players_subsets, independent=independent)

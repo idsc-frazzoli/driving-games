@@ -114,6 +114,6 @@ def replace_others(
         )
     except ZValueError as e:
         raise ZValueError("cannot translate", node=node,) from e
-    if any(_.x == 0 for _ in node.states.values()):
-        logger.info(original=node, translated=ret)
+    # if any(_.x == 0 for _ in node.states.values()):
+    #     logger.info(original=node, translated=ret)
     return ret

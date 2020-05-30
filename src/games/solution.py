@@ -51,7 +51,7 @@ __all__ = ["solve1", "get_outcome_set_preferences_for_players"]
 
 def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U, Y, RP, RJ, SR]:
     G = gp.game_graph
-
+    dt = gp.solver_params.dt
     # find initial states
     # noinspection PyCallingNonCallable
     initials = list((node for node, degree in G.in_degree() if degree == 0))
@@ -108,14 +108,14 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
         solution_ghost = solve_game2(
             game=gp.game, gg=ghost_game_graph, solver_params=gp.solver_params, jss={initial_state}
         )
-        logger.info(
-            f"Stackelberg solution when {player_name} is a follower",
-            game_values=solution_ghost.states_to_solution[initial_state].va.game_value,
-        )
+        msg = f"Stackelberg solution when {player_name} is a follower"
+        game_values = solution_ghost.states_to_solution[initial_state].va.game_value
+        logger.info(msg, game_values=game_values)
+
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
         sim_ = simulate1(
-            gp.game, policies=controllers, initial_states=initial_state, dt=gp.solver_params.dt, seed=0,
+            gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0,
         )
         sims[f"{player_name}-follows"] = sim_
 

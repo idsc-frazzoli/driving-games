@@ -65,7 +65,15 @@ class SolverParams:
 class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     states: JointState
     moves: PlayerOptions
-    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
+    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName,JointState], Pr]]
+
+    #  {a:x, b:y}
+    #
+    #   a:{a:x}  b:{b: y}
+    #   a:{a:x}
+
+    #  {a:x, b:y, c: z}
+    #  a: {a:x}   b: {b:y, c:z}   c: {b:y, c:z}
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -186,9 +194,15 @@ def states_mentioned(game_node: GameNode) -> FSet[JointState]:
 
 
 @dataclass
+class AccessibilityInfo(Generic[X]):
+    state2times: Dict[JointState, Set[D]]
+    time2states: Dict[D, Set[JointState]]
+
+@dataclass
 class GameGraph(Generic[Pr, X, U, Y, RP, RJ, SR]):
     initials: AbstractSet[JointState]
     state2node: Mapping[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+    ti: AccessibilityInfo[X]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:

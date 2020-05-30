@@ -1,9 +1,10 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Optional, Tuple
+from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
 
 from frozendict import frozendict
+from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
 from possibilities import Poss
@@ -23,8 +24,8 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import GameFactorization, GameGraph, GameNode
-from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
+from .structures_solution import AccessibilityInfo, GameFactorization, GameGraph, GameNode
+from .utils import fkeyfilter, fvalmap, iterate_dict_combinations, valmap
 
 __all__ = []
 
@@ -50,7 +51,49 @@ def create_game_graph(
     for js in initials:
         create_game_graph_(ic, js)
 
-    return GameGraph(initials, state2node)
+    # create networkx graph
+    G = get_networkx_graph(state2node)
+    ti = get_timestep_info(G)
+    # time2nstates = valmap(len, ti.time2states)
+    # logger.info('States accessible at each time', time2nstates=time2nstates)
+    sizes = {}
+    for t, states in ti.time2states.items():
+        res = defaultdict(lambda: 0)
+        for js in states:
+            res[len(js)] += 1
+        sizes[t] = dict(sorted(res.items()))
+    logger.info('Number of states by time', sizes=sizes)
+
+
+    return GameGraph(initials, state2node, ti)
+
+
+def get_timestep_info(G: DiGraph) -> AccessibilityInfo[X]:
+    ts = list(topological_sort(G))
+    # logger.info(ts=ts)
+    state2times: Dict[JointState, Set[D]] = defaultdict(set)
+    time2states: Dict[D, Set[JointState]] = defaultdict(set)
+    for n1 in ts:
+        if n1 not in state2times:
+            state2times[n1].add(D(0))
+            time2states[D(0)].add(n1)
+        for n2 in G.successors(n1):
+            for t1 in state2times[n1]:
+                t2 = t1 + D(1)
+                state2times[n2].add(t2)
+                time2states[t2].add(n2)
+    return AccessibilityInfo(state2times, time2states)
+
+
+def get_networkx_graph(state2node: Dict[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]):
+    G = DiGraph()
+    G.add_nodes_from(state2node)
+    for js, gn in state2node.items():
+        for p in gn.outcomes.values():
+            for d in p.support():
+                for _, js2 in d.items():
+                    G.add_edge(js, js2)
+    return G
 
 
 def get_moves(
