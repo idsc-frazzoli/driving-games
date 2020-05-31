@@ -39,7 +39,9 @@ def report_player(
     pos = {_: viz.hint_graph_node_pos(_) for _ in G.nodes}
 
     with r.plot("one") as plt:
-        nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size)
+        nx.draw(
+            G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size
+        )
         plt.xlabel("x")
         plt.ylabel("v")
     return r

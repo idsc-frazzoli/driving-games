@@ -169,7 +169,13 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         pass
 
     @abstractmethod
-    def plot_player(self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0):
+    def plot_player(
+        self,
+        player_name: PlayerName,
+        state: X,
+        commands: Optional[U],
+        opacity: float = 1.0,
+    ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
 

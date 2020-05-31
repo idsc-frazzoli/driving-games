@@ -71,7 +71,9 @@ class ProbabilitySet(PossibilityStructure):
             raise ZValueError(msg, f=f, res=res) from e
         return self.lift_many(res)
 
-    def build_multiple(self, a: Mapping[K, SetPoss[A]], f: Callable[[Mapping[K, A]], B]) -> SetPoss[B]:
+    def build_multiple(
+        self, a: Mapping[K, SetPoss[A]], f: Callable[[Mapping[K, A]], B]
+    ) -> SetPoss[B]:
         sources = list(a)
         supports = [a[_].support() for _ in sources]
         res: Set[B] = set()

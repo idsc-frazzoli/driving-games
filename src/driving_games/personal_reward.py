@@ -10,18 +10,24 @@ from .structures import VehicleActions, VehicleCosts, VehicleState
 __all__ = ["VehiclePersonalRewardStructureTime"]
 
 
-class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]):
+class VehiclePersonalRewardStructureTime(
+    PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
+):
     max_path: D
 
     def __init__(self, max_path: D):
         self.max_path = max_path
 
-    def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D) -> VehicleCosts:
+    def personal_reward_incremental(
+        self, x: VehicleState, u: VehicleActions, dt: D
+    ) -> VehicleCosts:
         check_isinstance(x, VehicleState)
         check_isinstance(u, VehicleActions)
         return VehicleCosts(dt)
 
-    def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
+    def personal_reward_reduce(
+        self, r1: VehicleCosts, r2: VehicleCosts
+    ) -> VehicleCosts:
         return VehicleCosts(r1.duration + r2.duration)
 
     def personal_reward_identity(self) -> VehicleCosts:
@@ -46,5 +52,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
 
 def SE2_from_VehicleState(s: VehicleState):
     p = SE2_from_xytheta([float(s.x), 0, 0])
-    ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
+    ref = SE2_from_xytheta(
+        [float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))]
+    )
     return SE2.multiply(ref, p)

@@ -4,7 +4,19 @@ from typing import Dict, Mapping
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from . import logger
-from .game_def import AgentBelief, Game, JointPureActions, JointState, PlayerName, RJ, RP, SR, U, X, Y
+from .game_def import (
+    AgentBelief,
+    Game,
+    JointPureActions,
+    JointState,
+    PlayerName,
+    RJ,
+    RP,
+    SR,
+    U,
+    X,
+    Y,
+)
 from .structures_solution import GameGraph, GameNode
 from .utils import fd, iterate_dict_combinations, valmap
 
@@ -35,7 +47,9 @@ class ROContext:
     dreamer: PlayerName
 
 
-def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> GameNode[X, U, Y, RP, RJ, SR]:
+def replace_others(
+    roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],
+) -> GameNode[X, U, Y, RP, RJ, SR]:
     ps = roc.game.ps
 
     # what would the fixed ones do?
@@ -49,7 +63,9 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
         if player_name == roc.dreamer:
             continue
         state_self = node.states[player_name]
-        state_others: JointState = fd({k: v for k, v in node.states.items() if k != player_name})
+        state_others: JointState = fd(
+            {k: v for k, v in node.states.items() if k != player_name}
+        )
         istate = roc.game.ps.lift_one(state_others)
         options = roc.controllers[player_name].get_commands(state_self, istate)
         action_fixed[player_name] = options
@@ -72,7 +88,9 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
         if player_name in still_moving:
             new_incremental[player_name] = player_costs
         else:
-            identity_cost = roc.game.players[player_name].personal_reward_structure.personal_reward_identity()
+            identity_cost = roc.game.players[
+                player_name
+            ].personal_reward_structure.personal_reward_identity()
             # FIXME: use true cost, but need to have the model include a distribution of costs
             new_incremental[player_name] = fd({CONTEMPLATE: identity_cost})
 
@@ -89,7 +107,10 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
             def f(a: JointPureActions) -> Poss[JointState]:
                 if a not in node.outcomes:
                     raise ZValueError(
-                        a=a, node=node, active_pure_action=active_pure_action, av=set(node.outcomes)
+                        a=a,
+                        node=node,
+                        active_pure_action=active_pure_action,
+                        av=set(node.outcomes),
                     )
                 nodes2: Poss[JointState] = node.outcomes[a]
                 return nodes2

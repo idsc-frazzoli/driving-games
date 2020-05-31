@@ -48,7 +48,9 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
             for k, ks_possible_states in self.possible_states.items():
                 for ks_possible_state in ks_possible_states:
                     others = {k: ks_possible_state}
-                    possible_ys: FrozenSet[VehicleObservation] = self.get_observations(me, others)
+                    possible_ys: FrozenSet[VehicleObservation] = self.get_observations(
+                        me, others
+                    )
                     for poss_obs in possible_ys:
                         all_of_them.add(poss_obs)
         return frozenset(all_of_them)

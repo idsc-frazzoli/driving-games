@@ -17,7 +17,11 @@ class AgentFromPolicy(AgentBelief[X, U]):
     policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]]
     ps: PossibilityStructure
 
-    def __init__(self, ps: PossibilityStructure, policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]]):
+    def __init__(
+        self,
+        ps: PossibilityStructure,
+        policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]],
+    ):
         self.policy = policy
         self.ps = ps
 
@@ -25,7 +29,10 @@ class AgentFromPolicy(AgentBelief[X, U]):
         if state_self not in self.policy:
             msg = "I do not know the policy for this state"
             raise DoesNotKnowPolicy(
-                msg, state_self=state_self, state_others=state_others, states_self_known=set(self.policy),
+                msg,
+                state_self=state_self,
+                state_others=state_others,
+                states_self_known=set(self.policy),
             )
 
         lookup = self.policy[state_self]
@@ -41,4 +48,6 @@ class AgentFromPolicy(AgentBelief[X, U]):
             if when_nobody_there in lookup:
                 return lookup[when_nobody_there]
 
-            raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)
+            raise ZNotImplementedError(
+                state_self=state_self, state_others=state_others, lookup=lookup
+            )

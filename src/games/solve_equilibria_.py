@@ -54,7 +54,9 @@ def solve_equilibria(
     preferences = {k: sc.outcome_set_preferences[k] for k in players_active}
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
-    ea = analyze_equilibria(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences)
+    ea = analyze_equilibria(
+        ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences
+    )
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
         eq = list(ea.nondom_nash_equilibria)[0]
@@ -102,11 +104,15 @@ def solve_equilibria(
             # logger.info(dist=dist)
             # game_value1 = ps.flatten(ps.build(dist, solved.__getitem__))
 
-            return ValueAndActions2(game_value=fd(game_value1), mixed_actions=frozendict(profile))
+            return ValueAndActions2(
+                game_value=fd(game_value1), mixed_actions=frozendict(profile)
+            )
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
             security_policies: JointMixedActions
-            security_policies = get_security_policies(ps, solved, sc.outcome_set_preferences, ea)
+            security_policies = get_security_policies(
+                ps, solved, sc.outcome_set_preferences, ea
+            )
             check_joint_mixed_actions2(security_policies)
             dist: Poss[JointPureActions]
             dist = get_mixed2(ps, security_policies)
@@ -124,7 +130,9 @@ def solve_equilibria(
 
             # game_value: Mapping[PlayerName, UncertainCombined]
             game_value_ = fd(game_value)
-            return ValueAndActions2(game_value=game_value_, mixed_actions=security_policies)
+            return ValueAndActions2(
+                game_value=game_value_, mixed_actions=security_policies
+            )
         elif strategy == STRATEGY_BAIL:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)

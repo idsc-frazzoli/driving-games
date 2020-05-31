@@ -53,7 +53,9 @@ class PointStats(Generic[X, U, Y, RP, RJ]):
 @dataclass
 class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
     player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U]]]
-    nondom_nash_equilibria: Mapping[JointMixedActions, Mapping[PlayerName, UncertainCombined]]
+    nondom_nash_equilibria: Mapping[
+        JointMixedActions, Mapping[PlayerName, UncertainCombined]
+    ]
     nash_equilibria: Mapping[JointMixedActions, Mapping[PlayerName, UncertainCombined]]
     ps: Dict[JointMixedActions, PointStats]
 
@@ -80,7 +82,9 @@ def analyze_equilibria(
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
 
-    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
+    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(
+        ps.mix, gn.moves
+    )
     # logger.info(player_mixed_strategies=player_mixed_strategies)
     # now we do the product of the mixed strategies
     # let's order them
@@ -108,7 +112,12 @@ def analyze_equilibria(
                 if player_name not in _:
                     msg = f"Cannot get value for {player_name!r}."
                     raise ZValueError(
-                        msg, player_name=player_name, _=_, mixed_outcome=mixed_outcome, solved=solved, gn=gn
+                        msg,
+                        player_name=player_name,
+                        _=_,
+                        mixed_outcome=mixed_outcome,
+                        solved=solved,
+                        gn=gn,
                     )
                 return _[player_name]
 
@@ -175,7 +184,9 @@ def analyze(
     # logger.info(ps=ps)
 
     # we need something to compare set of outcomes
-    pref: Preference[Mapping[PlayerName, UncertainCombined]] = StrictProductPreferenceDict(preferences)
+    pref: Preference[
+        Mapping[PlayerName, UncertainCombined]
+    ] = StrictProductPreferenceDict(preferences)
 
     # logger.info(nash_equilibria=nash_equilibria, preferences=preferences, pref=pref)
     nondom_nash_equilibria = remove_dominated(nash_equilibria, pref)

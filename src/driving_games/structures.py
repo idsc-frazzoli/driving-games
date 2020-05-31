@@ -112,7 +112,9 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState]]:
+    def successors(
+        self, x: VehicleState, dt: D
+    ) -> Mapping[VehicleActions, Poss[VehicleState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accellerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ * dt + x.v >= 0]
@@ -123,7 +125,9 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         ps = ProbabilitySet()
 
         possible = {}
-        for light, accel in itertools.product(self.lights_commands, self.available_accels):
+        for light, accel in itertools.product(
+            self.lights_commands, self.available_accels
+        ):
             u = VehicleActions(accel=accel, light=light)
             try:
                 x2 = self.successor(x, u, dt)

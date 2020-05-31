@@ -4,7 +4,17 @@ from dataclasses import dataclass
 from fractions import Fraction
 from functools import reduce
 from itertools import permutations
-from typing import AbstractSet, Callable, Collection, Dict, FrozenSet, Iterator, Mapping, Tuple, TypeVar
+from typing import (
+    AbstractSet,
+    Callable,
+    Collection,
+    Dict,
+    FrozenSet,
+    Iterator,
+    Mapping,
+    Tuple,
+    TypeVar,
+)
 
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
@@ -82,7 +92,9 @@ class ProbabilityFraction(PossibilityStructure):
             res[y] += weight
         return ProbPoss(frozendict(res))
 
-    def build_multiple(self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]) -> ProbPoss[B]:
+    def build_multiple(
+        self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]
+    ) -> ProbPoss[B]:
         sources = list(a)
         supports = [_.support() for _ in sources]
         res: Dict[Mapping[K, A], Fraction] = defaultdict(Fraction)

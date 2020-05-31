@@ -12,4 +12,9 @@ def non_empty_sets(iterable: FrozenSet[A]) -> FrozenSet[FrozenSet[A]]:
     """
     xs = list(iterable)
     # note we return an iterator rather than a list
-    return frozenset(map(frozenset, chain.from_iterable(combinations(xs, n) for n in range(1, len(xs) + 1))))
+    return frozenset(
+        map(
+            frozenset,
+            chain.from_iterable(combinations(xs, n) for n in range(1, len(xs) + 1)),
+        )
+    )

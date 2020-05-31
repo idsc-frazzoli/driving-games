@@ -52,7 +52,9 @@ class CompareCache:
     cache = {}
 
 
-def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+def compare_sets_cached(
+    A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]
+) -> ComparisonOutcome:
     sa = repr(A)
     sb = repr(B)
     key = sa, sb
@@ -63,7 +65,9 @@ def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -
 
 
 @lru_cache(None)
-def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+def compare_sets(
+    A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]
+) -> ComparisonOutcome:
     if A is B or (A == B):
         return INDIFFERENT
 
