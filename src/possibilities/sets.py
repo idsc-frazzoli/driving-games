@@ -6,7 +6,7 @@ from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 
 from zuper_commons.types import ZValueError
-from .base import PossibilityStructure, Sampler
+from .base import PossibilityMonad, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
 
@@ -46,7 +46,7 @@ def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
     # return Cache.cache[f]
 
 
-class ProbabilitySet(PossibilityStructure):
+class ProbabilitySet(PossibilityMonad):
     def unit(self, a: A) -> SetPoss[A]:
         return self.lift_many([a])
 

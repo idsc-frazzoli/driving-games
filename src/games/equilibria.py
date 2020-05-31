@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import Dict, FrozenSet, Generic, Mapping, Set
 
 from frozendict import frozendict
-from .structures_solution import GameNode
-from possibilities import Poss, PossibilityStructure
+
+from possibilities import Poss, PossibilityMonad
 from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -13,16 +13,13 @@ from preferences import (
     remove_dominated,
     StrictProductPreferenceDict,
 )
-from zuper_commons.types import ZAssertionError, ZValueError
-from . import GameConstants, logger
-from .utils import valmap
+from zuper_commons.types import ZValueError
+from . import GameConstants
 from .game_def import (
     check_joint_mixed_actions2,
     JointMixedActions,
     JointPureActions,
     PlayerName,
-    PlayerOptions,
-    Pr,
     RJ,
     RP,
     SR,
@@ -31,6 +28,8 @@ from .game_def import (
     X,
     Y,
 )
+from .structures_solution import GameNode
+from .utils import valmap
 
 __all__ = []
 
@@ -70,7 +69,7 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
 
 def analyze_equilibria(
     *,
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     gn: GameNode[X, U, Y, RP, RJ, SR],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],

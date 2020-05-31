@@ -12,7 +12,7 @@ from games import (
     JointRewardStructure,
     PlayerName,
 )
-from possibilities import PossibilityStructure, ProbabilitySet
+from possibilities import PossibilityMonad, ProbabilitySet
 from preferences import SetPreference1
 from .collisions import Collision
 from .joint_reward import VehicleJointReward
@@ -56,7 +56,7 @@ class TwoVehicleSimpleParams:
 
 
 def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
-    ps: PossibilityStructure = ProbabilitySet()
+    ps: PossibilityMonad = ProbabilitySet()
     L = params.side + params.road + params.side
     start = params.side + params.road_lane_offset
     max_path = L - 1

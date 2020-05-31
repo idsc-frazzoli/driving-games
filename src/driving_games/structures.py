@@ -23,13 +23,20 @@ __all__ = [
 ]
 
 Lights = NewType("Lights", str)
+""" The type of light commands. """
+
 NO_LIGHTS = Lights("none")
+""" Lights are off. """
 LIGHTS_HEADLIGHTS = Lights("headlights")
+""" The front lights are on. """
 LIGHTS_TURN_LEFT = Lights("turn_left")
+""" Blinkers turn left """
 LIGHTS_TURN_RIGHT = Lights("turn_right")
+""" Blinkers turn right """
 LightsValue: AbstractSet[Lights] = frozenset(
     {NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT}
 )
+""" All possible lights command value"""
 
 SE2_disc = Tuple[D, D, D]  # in degrees
 
@@ -40,28 +47,40 @@ class InvalidAction(ZException):
 
 @dataclass(frozen=True)
 class VehicleCosts:
-    """ The incremental costs"""
+    """ The personal costs of the vehicle"""
 
     duration: D
+    """ Duration of the episode. """
 
 
 @dataclass(frozen=True)
 class VehicleGeometry:
     mass: D
+    """ Mass [kg] """
     width: D
+    """ Car width [m] """
     length: D
+    """ Car length [m] """
     color: Tuple[float, float, float]
+    """ Car color """
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleState:
-    # reference frame from where the vehicle started
     ref: SE2_disc
+    """ Reference frame from where the vehicle started """
+
     x: D
+    """ Longitudinal position """
+
     v: D
-    # How long we have been at speed = 0. We want to keep track so bound this.
+    """ Longitudinal velocity """
+
     wait: D
+    """ How long we have been at speed = 0. We want to keep track so bound this. """
+
     light: Lights
+    """ The current lights signal. """
 
     __print_order__ = ["x", "v"]  # only print these attributes
 
@@ -74,13 +93,28 @@ class VehicleActions:
 
 class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     max_speed: D
+    """ Maximum speed [m/s] """
+
     min_speed: D
+    """ Minimum speed [m/s] """
+
     max_path: D
+    """ Maximum `x` until end of episode [m] """
+
     available_accels: FrozenSet[D]
+    """ Available accelleration values. """
+
     max_wait: D
+    """ Maximum wait [s] -- maximum duration at v=0. """
+
     lights_commands: FrozenSet[Lights]
+    """ Allowed light commands """
+
     shared_resources_ds: D
+    """ Size of the spatial cells to consider as resources [m]"""
+
     vg: VehicleGeometry
+    """ The vehicle's geometry. """
 
     def __init__(
         self,

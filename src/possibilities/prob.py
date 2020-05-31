@@ -20,7 +20,7 @@ from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from toolz import valfilter
 
-from .base import PossibilityStructure, Sampler
+from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
 __all__ = ["ProbabilityFraction"]
@@ -62,7 +62,7 @@ class ProbPoss(Poss[A]):
         return self.p == other.p
 
 
-class ProbabilityFraction(PossibilityStructure):
+class ProbabilityFraction(PossibilityMonad):
     def unit(self, a: A) -> ProbPoss[A]:
         return self.lift_many([a])
 

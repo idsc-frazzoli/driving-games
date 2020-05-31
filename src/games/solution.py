@@ -28,7 +28,6 @@ from .game_def import (
     JointState,
     P,
     PlayerName,
-    Pr,
     RJ,
     RP,
     SR,

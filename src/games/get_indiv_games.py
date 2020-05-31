@@ -5,6 +5,8 @@ from frozendict import frozendict
 
 from .game_def import Game, PlayerName, RJ, RP, SR, U, X, Y
 
+__all__ = ["get_individual_games"]
+
 
 def get_individual_games(game: Game[X, U, Y, RP, RJ, SR]) -> M[PlayerName, Game[X, U, Y, RP, RJ, SR]]:
     """ Returns the individual games (by removing all others players)"""

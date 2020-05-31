@@ -2,7 +2,7 @@ from typing import Mapping
 
 from frozendict import frozendict
 
-from possibilities import Poss, PossibilityStructure
+from possibilities import Poss, PossibilityMonad
 from zuper_commons.types import ZException, ZNotImplementedError
 from .game_def import AgentBelief, JointState, U, X
 
@@ -15,10 +15,10 @@ class DoesNotKnowPolicy(ZException):
 
 class AgentFromPolicy(AgentBelief[X, U]):
     policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]]
-    ps: PossibilityStructure
+    ps: PossibilityMonad
 
     def __init__(
-        self, ps: PossibilityStructure, policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]],
+        self, ps: PossibilityMonad, policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]],
     ):
         self.policy = policy
         self.ps = ps

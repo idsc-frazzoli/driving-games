@@ -20,7 +20,7 @@ from frozendict import frozendict
 from networkx import connected_components, Graph, MultiDiGraph
 from toolz import itemmap, valmap
 
-from possibilities import check_poss, Poss, PossibilityStructure
+from possibilities import check_poss, Poss, PossibilityMonad
 from zuper_commons.types import ZException
 from . import logger
 from .create_joint_game_tree import create_game_graph
@@ -154,7 +154,7 @@ def get_game_factorization(
 
 
 def find_dependencies(
-    ps: PossibilityStructure, resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
+    ps: PossibilityMonad, resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
 ) -> Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]:
     """
         Returns the dependency structure from the use of shared resources.

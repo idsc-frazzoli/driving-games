@@ -6,7 +6,13 @@ logger = ZLogger(__name__)
 
 
 class GameConstants:
+    """ Global constants for the program. """
+
     checks: ClassVar[bool] = True
+    """ 
+        If true activates extensive checks and assertions. 
+        Slows down the solving a lot. 
+    """
 
 
 from .access import *

@@ -4,7 +4,7 @@ from typing import Dict, FrozenSet, List, Mapping
 from frozendict import frozendict
 from toolz import keyfilter
 
-from possibilities import check_poss, Poss, PossibilityStructure
+from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
@@ -14,7 +14,6 @@ from .game_def import (
     JointMixedActions,
     JointPureActions,
     PlayerName,
-    Pr,
     RJ,
     RP,
     U,
@@ -25,7 +24,7 @@ from .game_def import (
 
 
 def get_security_policies(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
@@ -41,7 +40,7 @@ def get_security_policies(
 
 
 def get_security_policy(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     player_name: PlayerName,
     preference: Preference[UncertainCombined],
@@ -71,7 +70,7 @@ def get_security_policy(
 
 
 def what_if_player_chooses(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     player_name: PlayerName,
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
@@ -106,7 +105,7 @@ def what_if_player_chooses(
 
 
 def _what_if_player_chooses_get_mixed(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     choices: Mapping[PlayerName, FrozenSet[Poss[U]]],
     pure_outcomes: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     player_name: PlayerName,
@@ -133,7 +132,7 @@ def _what_if_player_chooses_get_mixed(
     return results
 
 
-def get_mixed2(ps: PossibilityStructure, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
+def get_mixed2(ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
     check_joint_mixed_actions2(mixed)
     for k, v in mixed.items():
         check_poss(v)

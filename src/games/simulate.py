@@ -29,7 +29,7 @@ class SimulationStep(Generic[X, U, Y, RP, RJ]):
     incremental_costs: Mapping[PlayerName, RP]
     joint_cost: Optional[RJ]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         check_joint_pure_actions(self.pure_actions)
 
 

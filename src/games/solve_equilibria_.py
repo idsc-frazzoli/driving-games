@@ -6,7 +6,6 @@ from games.solution_security import get_mixed2, get_security_policies
 from possibilities import Poss
 from preferences import Preference
 from zuper_commons.types import ZNotImplementedError, ZValueError
-from . import logger
 from .equilibria import analyze_equilibria, EquilibriaAnalysis
 from .game_def import (
     check_joint_mixed_actions2,
@@ -15,7 +14,6 @@ from .game_def import (
     JointMixedActions,
     JointPureActions,
     PlayerName,
-    Pr,
     RJ,
     RP,
     SR,

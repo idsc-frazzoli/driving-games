@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set
+from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
@@ -48,16 +48,28 @@ __all__ = [
 from .utils import fkeyfilter, iterate_dict_combinations
 
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
+""" How to deal with multiple nash equilibria. """
+
 STRATEGY_MIX = StrategyForMultipleNash("mix")
+""" Mix all the states in the multiple nash equilibria. """
+
 STRATEGY_SECURITY = StrategyForMultipleNash("security")
+""" Use a securety policy. """
+
 STRATEGY_BAIL = StrategyForMultipleNash("bail")
+""" Throw an error. """
 
 
 @dataclass
 class SolverParams:
+    """ Parameters for the solver"""
+
     dt: D
+    """ The delta-t when discretizing. """
     strategy_multiple_nash: StrategyForMultipleNash
+    """ How to deal with multiple Nash equilibria """
     use_factorization: bool
+    """ Whether to use the factorization properties to reduce the game graph."""
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -198,7 +210,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
 
 def states_mentioned(game_node: GameNode) -> FSet[JointState]:
-    # outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
+    """ Returns the set of state mentioned in a GameNode"""
     res = set()
     for _, out in game_node.outcomes.items():
         for player_to_js in out.support():
@@ -209,15 +221,30 @@ def states_mentioned(game_node: GameNode) -> FSet[JointState]:
 
 @dataclass
 class AccessibilityInfo(Generic[X]):
-    state2times: Dict[JointState, Set[D]]
-    time2states: Dict[D, Set[JointState]]
+    """ The time accessibility info of the states of a game"""
+
+    state2times: Dict[JointState, AbstractSet[D]]
+    """ For each state, at what time can it be visited? """
+
+    time2states: Dict[D, AbstractSet[JointState]]
+    """ For each time, what states can be visited? """
 
 
 @dataclass
 class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
+    """ The game graph."""
+
     initials: AbstractSet[JointState]
+    """ The initial states of the game. """
+
     state2node: Mapping[JointState, GameNode[X, U, Y, RP, RJ, SR]]
+    """ 
+        Maps to each joint state a GameNode. Inside a GameNode the next
+        states are identified by their JointState only. 
+    """
+
     ti: AccessibilityInfo[X]
+    """ The time accessibility info for the states. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -237,31 +264,58 @@ class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass
 class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ, SR]):
+    """ Pre-processed data for each game player"""
+
     player_graph: MultiDiGraph
-    # alone_tree: Mapping[X, GameNode[X, U, Y, RP, RJ, SR]]
+    """ A NetworkX graph used fo visualization. """
+
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
+    """ The game graph for the alone game. """
+
     gs: "GameSolution[X, U, Y, RP, RJ, SR]"
+    """ The solution to the alone game."""
 
 
 @dataclass
 class GameFactorization(Generic[X]):
+    """ Factorization information for the game"""
+
     partitions: Mapping[FSet[FSet[PlayerName]], FSet[JointState]]
+    """ For each partition of players, what joint states have that partition? """
+
     ipartitions: Mapping[JointState, FSet[FSet[PlayerName]]]
+    """ For each joint state, how can we partition the players? """
 
 
 @dataclass
 class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
+    """ A pre-processed game. """
+
     game: Game[X, U, Y, RP, RJ, SR]
+    """ The original game. """
+
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
+    """ The pre-processed data for each player"""
+
     game_graph: MultiDiGraph
+    """ A NetworkX graph used only for visualization """
+
     solver_params: SolverParams
+    """ The solver parameters. """
+
     game_factorization: GameFactorization[X]
+    """ The factorization information for the game"""
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class ValueAndActions2(Generic[U, RP, RJ]):
+    """ The solution for a game node. """
+
     mixed_actions: JointMixedActions
+    """ What players choose. """
+
     game_value: Mapping[PlayerName, UncertainCombined]
+    """ What is the value of the game for each player. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -270,30 +324,35 @@ class ValueAndActions2(Generic[U, RP, RJ]):
         for _ in self.game_value.values():
             check_poss(_, Combined, ValueAndActions=self)
         check_joint_mixed_actions2(self.mixed_actions, ValueAndActions=self)
-        # check_set_outcomes(self.game_value, ValueAndActions=self)
-        # check_isinstance(self.game_values, frozendict, ValueAndActions=self)
-        # check_set_outcomes(self.game_value, ValueAndActions=self)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
-    # Used resources at each time.
-    # D = 0 means now. +1 means next step, etc.
+    """ The used *future* resources for a particular state. """
+
     used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]]]]
-
-
-M = Mapping
+    """
+        For each delta time (D = 0 means now. +1 means next step, etc.) 
+        what states are the agents going to use. 
+        For each delta time we have a distribution of spatial resource occupancy.
+    """
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
+    """ A solved game node. """
+
     states: JointState
+    """ The joint state for this node. """
+
     solved: M[JointPureActions, Poss[M[PlayerName, JointState]]]
-    # solved: "Mapping[JointPureActions, Poss[SolvedGameNode[X, U, Y, RP, RJ, SR]]]"
+    """ For each joint action, this is the outcome (where each player goes). """
 
     va: ValueAndActions2[U, RP, RJ]
+    """ The strategy profiles and the game values"""
 
     ur: UsedResources[X, U, Y, RP, RJ, SR]
+    """ The future used resources. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -315,20 +374,40 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass
 class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
+    """ Context for the solution of the game"""
+
     game: Game[X, U, Y, RP, RJ, SR]
-    # gp: GamePreprocessed[X, U, Y, RP, RJ, SR]
+    """ The original game. """
+
     outcome_set_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
+    """ The preferences of each player"""
+
     cache: Dict[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]
+    """ The nodes already solved."""
+
     processing: Set[JointState]
+    """ The nodes currently processing. """
+
     gg: GameGraph[X, U, Y, RP, RJ, SR]
+    """ The game graph. """
+
     solver_params: SolverParams
+    """ The solver parameters. """
 
 
 @dataclass
 class GameSolution(Generic[X, U, Y, RP, RJ, SR]):
+    """ Solution of a game. """
+
     initials: AbstractSet[JointState]
+    """ Set of initial states for which we have a solution """
+
     states_to_solution: Dict[JointState, SolvedGameNode]
+    """ The solution of each state. """
+
     policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState], Poss[U]]]]
+    """ The policies resulting from this solution. For each player, for each state,
+        a map from belief on others to distribution of actions. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
