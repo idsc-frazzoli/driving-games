@@ -18,9 +18,7 @@ __all__ = ["DrivingGameVisualization"]
 
 
 class DrivingGameVisualization(
-    GameVisualization[
-        VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
-    ]
+    GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
 ):
     """ Visualization for the driving games"""
 
@@ -29,9 +27,7 @@ class DrivingGameVisualization(
     ds: D
     pylab: Any
 
-    def __init__(
-        self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry], ds: D
-    ):
+    def __init__(self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry], ds: D):
         self.params = params
         self.ds = ds
         self.side = side
@@ -54,19 +50,13 @@ class DrivingGameVisualization(
         # t2 = pylab.transforms.Affine2D().rotate_deg(-45) + ax.transData
         # r2.set_transform(t2)
 
-        grass = patches.Rectangle(
-            (0, 0), L, L, linewidth=0, edgecolor="r", facecolor="green"
-        )
+        grass = patches.Rectangle((0, 0), L, L, linewidth=0, edgecolor="r", facecolor="green")
         ax.add_patch(grass)
         # Create a Rectangle patch
-        rect = patches.Rectangle(
-            (side, 0), road, L, linewidth=0, edgecolor="r", facecolor="grey"
-        )
+        rect = patches.Rectangle((side, 0), road, L, linewidth=0, edgecolor="r", facecolor="grey")
         # Add the patch to the Axes
         ax.add_patch(rect)
-        rect = patches.Rectangle(
-            (0, side), L, road, linewidth=0, edgecolor="r", facecolor="grey"
-        )
+        rect = patches.Rectangle((0, side), L, road, linewidth=0, edgecolor="r", facecolor="grey")
         # Add the patch to the Axes
         ax.add_patch(rect)
 
@@ -93,12 +83,7 @@ class DrivingGameVisualization(
 
         # TODO: finish here
         colors = {
-            "none": {
-                "back_left": "red",
-                "back_right": "red",
-                "front_right": "white",
-                "front_left": "white",
-            },
+            "none": {"back_left": "red", "back_right": "red", "front_right": "white", "front_left": "white",},
             # "headlights", "turn_left", "turn_right"
         }
         velocity = float(state.v)
@@ -114,12 +99,7 @@ class DrivingGameVisualization(
             self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
 
         plot_car(
-            self.pylab,
-            player_name,
-            q,
-            velocity=velocity,
-            light_colors=colors[light],
-            vg=vg,
+            self.pylab, player_name, q, velocity=velocity, light_colors=colors[light], vg=vg,
         )
 
     def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
@@ -128,12 +108,7 @@ class DrivingGameVisualization(
 
 
 def plot_car(
-    pylab,
-    player_name: PlayerName,
-    q: np.array,
-    velocity,
-    light_colors,
-    vg: VehicleGeometry,
+    pylab, player_name: PlayerName, q: np.array, velocity, light_colors, vg: VehicleGeometry,
 ):
     L = float(vg.length)
     W = float(vg.width)
@@ -171,18 +146,11 @@ def plot_car(
     x4, y4 = get_transformed_xy(q, ((0, 0),))
     # pylab.plot(x4, y4, "k*", zorder=15)
     pylab.text(
-        x4,
-        y4,
-        player_name,
-        zorder=15,
-        horizontalalignment="center",
-        verticalalignment="center",
+        x4, y4, player_name, zorder=15, horizontalalignment="center", verticalalignment="center",
     )
 
 
-def get_transformed_xy(
-    q: np.array, points: Sequence[Tuple[Number, Number]]
-) -> Tuple[np.array, np.array]:
+def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
     car = tuple((x, y, 1) for x, y in points)
     car = np.array(car).T
     points = q @ car

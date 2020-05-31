@@ -17,9 +17,7 @@ __all__ = ["report_solutions"]
 #     return s
 
 
-def report_solutions(
-    gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, U, Y, RP, RJ, SR]
-):
+def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, U, Y, RP, RJ, SR]):
     r = Report()
 
     sims = dict(s.sims)
@@ -47,9 +45,7 @@ def report_solutions(
     js: JointState
     for i, js in enumerate(s.game_solution.initials):
         st = remove_escapes(debug_print(js))
-        st += ":\n" + remove_escapes(
-            debug_print(s.game_solution.states_to_solution[js].va.game_value)
-        )
+        st += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[js].va.game_value))
         r.text(f"joint_st{i}", st)
 
     return r

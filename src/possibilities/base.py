@@ -44,9 +44,7 @@ class PossibilityStructure(ABC):
         """ Computes the push-forward of a distribution. """
 
     @abstractmethod
-    def build_multiple(
-        self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]
-    ) -> Poss[B]:
+    def build_multiple(self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]) -> Poss[B]:
         """ Computes the push-forward from a set of independent distributions. """
 
     @abstractmethod

@@ -92,9 +92,7 @@ class ProbabilityFraction(PossibilityStructure):
             res[y] += weight
         return ProbPoss(frozendict(res))
 
-    def build_multiple(
-        self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]
-    ) -> ProbPoss[B]:
+    def build_multiple(self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]) -> ProbPoss[B]:
         sources = list(a)
         supports = [_.support() for _ in sources]
         res: Dict[Mapping[K, A], Fraction] = defaultdict(Fraction)

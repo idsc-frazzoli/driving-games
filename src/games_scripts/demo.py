@@ -35,14 +35,10 @@ class DGDemo(QuickApp):
         do_solvers = expand_string(do_solvers, list(solvers_zoo))
         for game_name in do_games:
             if not game_name in games_zoo:
-                raise ZValueError(
-                    f"Cannot find {game_name!r}", available=set(games_zoo)
-                )
+                raise ZValueError(f"Cannot find {game_name!r}", available=set(games_zoo))
         for solver_name in do_solvers:
             if not solver_name in solvers_zoo:
-                raise ZValueError(
-                    f"Cannot find {solver_name!r}", available=set(solvers_zoo)
-                )
+                raise ZValueError(f"Cannot find {solver_name!r}", available=set(solvers_zoo))
 
         for game_name in do_games:
             cgame = context.child(game_name, extra_report_keys=dict(game=game_name))

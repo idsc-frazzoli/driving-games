@@ -33,9 +33,7 @@ def get_security_policies(
     actions: Dict[PlayerName, Poss[U]] = {}
     for player_name in ea.player_mixed_strategies:
         player_pref = preferences[player_name]
-        sp = get_security_policy(
-            ps=ps, player_name=player_name, preference=player_pref, ea=ea, solved=solved
-        )
+        sp = get_security_policy(ps=ps, player_name=player_name, preference=player_pref, ea=ea, solved=solved)
 
         actions[player_name] = sp
 
@@ -50,9 +48,7 @@ def get_security_policy(
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
 ) -> Poss[U]:
     player_choices = ea.player_mixed_strategies[player_name]
-    others_choices = frozendict(
-        keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies)
-    )
+    others_choices = frozendict(keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies))
 
     action2outcomes: Dict[Poss[U], UncertainCombined] = {}
     player_choice: Poss[U]
@@ -137,9 +133,7 @@ def _what_if_player_chooses_get_mixed(
     return results
 
 
-def get_mixed2(
-    ps: PossibilityStructure, mixed: Mapping[PlayerName, Poss[U]]
-) -> Poss[JointPureActions]:
+def get_mixed2(ps: PossibilityStructure, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
     check_joint_mixed_actions2(mixed)
     for k, v in mixed.items():
         check_poss(v)

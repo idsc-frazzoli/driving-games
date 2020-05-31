@@ -96,9 +96,7 @@ def simulate1(
             p_action = policy.get_commands(state_self, belief_state_others)
 
             action = sampler.sample(p_action)
-            incremental_costs[player_name] = prs.personal_reward_incremental(
-                state_self, action, dt
-            )
+            incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
             dynamics = game.players[player_name].dynamics
             state_player = s1[player_name]

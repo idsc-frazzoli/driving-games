@@ -125,18 +125,14 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                     raise ZValueError(msg, action=action, GameNode=self)
                 if action not in self.moves[player_name]:
                     msg = f"The action is not available to the player."
-                    raise ZValueError(
-                        msg, player_name=player_name, action=action, GameNode=self
-                    )
+                    raise ZValueError(msg, player_name=player_name, action=action, GameNode=self)
         # check that if a player is not final then it has at least 1 move
         all_players = set(self.states)
         final_players = set(self.is_final) | set(self.joint_final_rewards)
         continuing_players = all_players - final_players
         for player_name in continuing_players:
             if not player_name in self.moves:
-                msg = (
-                    f"Player {player_name!r} is continuing but does not have any move."
-                )
+                msg = f"Player {player_name!r} is continuing but does not have any move."
                 raise ZValueError(msg, GameNode=self)
 
         # check that we have in outcomes all combinations of actions
@@ -146,10 +142,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         if all_combinations != set(self.outcomes):
             msg = "There is a mismatch between the actions and the outcomes."
             raise ZValueError(
-                msg,
-                all_combinations=all_combinations,
-                pure_actions=set(self.outcomes),
-                GameNode=self,
+                msg, all_combinations=all_combinations, pure_actions=set(self.outcomes), GameNode=self,
             )
 
         # check that for each action we have a cost

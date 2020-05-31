@@ -110,11 +110,7 @@ def get_moves(
     for player_name, state in js.items():
         player = ic.game.players[player_name]
         # is it a final state?
-        is_final = (
-            player.personal_reward_structure.is_personal_final_state(state)
-            if state
-            else True
-        )
+        is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
 
         if state is None or is_final:
             succ = {None: ps.lift_one(None)}
@@ -124,9 +120,7 @@ def get_moves(
     return res
 
 
-def create_game_graph_(
-    ic: IterationContext, states: JointState
-) -> GameNode[X, U, Y, RP, RJ, SR]:
+def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
@@ -163,9 +157,7 @@ def create_game_graph_(
         for move in its_moves:
             if move is None:
                 continue
-            pri = ic.game.players[
-                k
-            ].personal_reward_structure.personal_reward_incremental
+            pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
             inc = pri(states[k], move, ic.dt)
             incremental[k][move] = inc
 
@@ -195,15 +187,11 @@ def create_game_graph_(
                 js_continuing = fkeyfilter(not_exiting, js0)
                 if js_continuing not in ic.gf.ipartitions:
                     msg = "Cannot find the state in the factorization info"
-                    raise ZValueError(
-                        msg, js0=js_continuing, known=set(ic.gf.ipartitions)
-                    )
+                    raise ZValueError(msg, js0=js_continuing, known=set(ic.gf.ipartitions))
                 partitions = ic.gf.ipartitions[js_continuing]
                 re = {}
                 for players_in_partition in partitions:
-                    this_partition_state = fkeyfilter(
-                        lambda pn: pn in players_in_partition, js_continuing
-                    )
+                    this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
                     for pname in players_in_partition:
                         re[pname] = this_partition_state
                 return frozendict(re)

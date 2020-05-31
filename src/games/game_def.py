@@ -38,8 +38,6 @@ __all__ = [
     "Game",
     "GamePlayer",
     "GameVisualization",
-    "Outcome",
-    "SetOfOutcomes",
 ]
 
 PlayerName = NewType("PlayerName", str)
@@ -59,16 +57,6 @@ RP = TypeVar("RP")
 RJ = TypeVar("RJ")
 
 SR = TypeVar("SR")
-""" Shared resources """
-
-
-# @dataclass(frozen=True, unsafe_hash=True, order=True)
-# class Outcome(Generic[RP, RJ]):
-#     private: Mapping[PlayerName, RP]
-#     joint: Mapping[PlayerName, RJ]
-
-
-# SetOfOutcomes = Poss[Outcome[RP, RJ]]
 
 
 @dataclass(frozen=True, order=True, unsafe_hash=True)
@@ -80,9 +68,6 @@ class Combined(Generic[RJ, RP]):
 
 
 UncertainCombined = Poss[Combined[RP, RJ]]
-
-Outcome = Mapping[PlayerName, Combined[RP, RJ]]
-SetOfOutcomes = Poss[Outcome]
 
 
 class Dynamics(Generic[X, U, SR], ABC):
@@ -170,11 +155,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
     @abstractmethod
     def plot_player(
-        self,
-        player_name: PlayerName,
-        state: X,
-        commands: Optional[U],
-        opacity: float = 1.0,
+        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
     ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
@@ -232,35 +213,9 @@ def check_player_options(a: PlayerOptions, **kwargs):
         check_isinstance(v, frozenset)
 
 
-def check_outcome(a: Outcome):
-    check_isinstance(a, frozendict)
-    for player_name, v in a.items():
-        check_isinstance(v, Combined)
-
-
-#
-# def check_set_outcomes(a: SetOfOutcomes, **kwargs):
-#     if not GameConstants.checks:
-#         return
-#
-#     check_poss(a, frozendict, **kwargs)
-#     for x in a.support():
-#         check_outcome(x)
-
-
-# def check_set_outcomes(a: SetOfOutcomes, **kwargs):
-#     if not GameConstants.checks:
-#         return
-#
-#     check_poss(a, Outcome, **kwargs)
-#
-
-
 def check_joint_pure_actions(a: JointPureActions, **kwargs):
     if not GameConstants.checks:
         return
-
-    # from driving_games.structures import VehicleActions
 
     check_isinstance(a, frozendict, **kwargs)
     if len(a) == 0:
@@ -270,14 +225,11 @@ def check_joint_pure_actions(a: JointPureActions, **kwargs):
         if isinstance(v, Poss):
             msg = "I thought this would be pure actions, found Poss inside"
             raise ZValueError(msg, k=k, v=v, **kwargs)
-        pass
-        # check_isinstance(v, VehicleActions, a=a)
 
 
 def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
     if not GameConstants.checks:
         return
-    # from driving_games.structures import VehicleActions
     check_isinstance(a, frozendict, **kwargs)
 
     for k, v in a.items():
@@ -286,5 +238,3 @@ def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
         for _ in v.support():
             if isinstance(_, Poss):
                 raise ZValueError(_=_, **kwargs)
-
-    # check_isinstance(_, VehicleActions, a=a)
