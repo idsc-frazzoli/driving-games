@@ -62,24 +62,39 @@ class SolverParams:
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class GameNode(Generic[X, U, Y, RP, RJ, SR]):
+    """ The game node """
+
     states: JointState
+    """ The state for each player."""
+
     moves: PlayerOptions
+    """ 
+        The possible moves for each player. Note that each player must have at least one move.
+        In case there is only one move, then there is nothing for them to choose to do.
+    """
+
     outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
-
-    #  {a:x, b:y}
-    #
-    #   a:{a:x}  b:{b: y}
-    #   a:{a:x}
-
-    #  {a:x, b:y, c: z}
-    #  a: {a:x}   b: {b:y, c:z}   c: {b:y, c:z}
+    """ 
+        The outcomes. Fixed an action for each player (a JointPureAction), we have
+        a distribution of outcomes. Each outcome is a map that tells us which 
+        player goes to which joint state. This is a generalization beyond the usual
+        formalization of games that allows us to send different players to different games.
+        
+        For example, suppose that the next state is = {A:x, B:y} and that in those states
+        the play can be decoupled. Then we would send A to the game {A:x} and B to the game {B:y}.
+    """
 
     is_final: Mapping[PlayerName, RP]
+    """ Final cost for the players that terminate here."""
+
     incremental: Mapping[PlayerName, Mapping[U, RP]]
+    """ Incremental cost according to action taken. """
 
     joint_final_rewards: Mapping[PlayerName, RJ]
+    """ For the players that terminate here due to "collision", their final rewards. """
 
     resources: Mapping[PlayerName, FSet[SR]]
+    """ Resources used by each player """
 
     __print_order__ = [
         "states",
