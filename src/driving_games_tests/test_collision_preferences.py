@@ -59,12 +59,12 @@ def test2() -> None:
     c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
 
     o_A = {
-        p1: game.ps.lift_one(Combined(VehicleCosts(D(3)), c0)),
-        p2: game.ps.lift_one(Combined(VehicleCosts(D(3)), c0)),
+        p1: game.ps.unit(Combined(VehicleCosts(D(3)), c0)),
+        p2: game.ps.unit(Combined(VehicleCosts(D(3)), c0)),
     }
     o_B = {
-        p1: game.ps.lift_one(Combined(VehicleCosts(D(13)), None)),
-        p2: game.ps.lift_one(Combined(VehicleCosts(D(4)), None)),
+        p1: game.ps.unit(Combined(VehicleCosts(D(13)), None)),
+        p2: game.ps.unit(Combined(VehicleCosts(D(4)), None)),
     }
 
     preferences = get_outcome_set_preferences_for_players(game)

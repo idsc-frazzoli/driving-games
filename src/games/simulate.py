@@ -29,7 +29,7 @@ class SimulationStep(Generic[X, U, Y, RP, RJ]):
     incremental_costs: Mapping[PlayerName, RP]
     joint_cost: Optional[RJ]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         check_joint_pure_actions(self.pure_actions)
 
 
@@ -91,14 +91,12 @@ def simulate1(
 
             # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
-            belief_state_others = ps.lift_one(state_others)
+            belief_state_others = ps.unit(state_others)
 
             p_action = policy.get_commands(state_self, belief_state_others)
 
             action = sampler.sample(p_action)
-            incremental_costs[player_name] = prs.personal_reward_incremental(
-                state_self, action, dt
-            )
+            incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
             dynamics = game.players[player_name].dynamics
             state_player = s1[player_name]

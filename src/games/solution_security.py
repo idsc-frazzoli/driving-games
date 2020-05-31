@@ -4,7 +4,7 @@ from typing import Dict, FrozenSet, List, Mapping
 from frozendict import frozendict
 from toolz import keyfilter
 
-from possibilities import check_poss, Poss, PossibilityStructure
+from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
@@ -14,7 +14,6 @@ from .game_def import (
     JointMixedActions,
     JointPureActions,
     PlayerName,
-    Pr,
     RJ,
     RP,
     U,
@@ -25,7 +24,7 @@ from .game_def import (
 
 
 def get_security_policies(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
@@ -33,9 +32,7 @@ def get_security_policies(
     actions: Dict[PlayerName, Poss[U]] = {}
     for player_name in ea.player_mixed_strategies:
         player_pref = preferences[player_name]
-        sp = get_security_policy(
-            ps=ps, player_name=player_name, preference=player_pref, ea=ea, solved=solved
-        )
+        sp = get_security_policy(ps=ps, player_name=player_name, preference=player_pref, ea=ea, solved=solved)
 
         actions[player_name] = sp
 
@@ -43,16 +40,14 @@ def get_security_policies(
 
 
 def get_security_policy(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     player_name: PlayerName,
     preference: Preference[UncertainCombined],
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
 ) -> Poss[U]:
     player_choices = ea.player_mixed_strategies[player_name]
-    others_choices = frozendict(
-        keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies)
-    )
+    others_choices = frozendict(keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies))
 
     action2outcomes: Dict[Poss[U], UncertainCombined] = {}
     player_choice: Poss[U]
@@ -70,12 +65,12 @@ def get_security_policy(
 
     plausible = remove_dominated(action2outcomes, preference)
     ret = ps.lift_many(plausible)
-    ret = ps.flatten(ret)
+    ret = ps.join(ret)
     return ret
 
 
 def what_if_player_chooses(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     player_name: PlayerName,
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
@@ -106,11 +101,11 @@ def what_if_player_chooses(
     values: List[UncertainCombined]
     values = list(w.values())
     # XXX not sure it is so simple
-    return ps.flatten(ps.lift_many(values))
+    return ps.join(ps.lift_many(values))
 
 
 def _what_if_player_chooses_get_mixed(
-    ps: PossibilityStructure,
+    ps: PossibilityMonad,
     choices: Mapping[PlayerName, FrozenSet[Poss[U]]],
     pure_outcomes: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     player_name: PlayerName,
@@ -133,13 +128,11 @@ def _what_if_player_chooses_get_mixed(
         # TODO: for probabilities, there is something more complicated than just "build"
         # ...
         # logger.info(mixed_outcome=mixed_outcome)
-        results[choice] = ps.flatten(mixed_outcome)
+        results[choice] = ps.join(mixed_outcome)
     return results
 
 
-def get_mixed2(
-    ps: PossibilityStructure, mixed: Mapping[PlayerName, Poss[U]]
-) -> Poss[JointPureActions]:
+def get_mixed2(ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
     check_joint_mixed_actions2(mixed)
     for k, v in mixed.items():
         check_poss(v)

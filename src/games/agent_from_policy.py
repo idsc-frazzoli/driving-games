@@ -2,7 +2,7 @@ from typing import Mapping
 
 from frozendict import frozendict
 
-from possibilities import Poss, PossibilityStructure
+from possibilities import Poss, PossibilityMonad
 from zuper_commons.types import ZException, ZNotImplementedError
 from .game_def import AgentBelief, JointState, U, X
 
@@ -15,12 +15,10 @@ class DoesNotKnowPolicy(ZException):
 
 class AgentFromPolicy(AgentBelief[X, U]):
     policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]]
-    ps: PossibilityStructure
+    ps: PossibilityMonad
 
     def __init__(
-        self,
-        ps: PossibilityStructure,
-        policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]],
+        self, ps: PossibilityMonad, policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]],
     ):
         self.policy = policy
         self.ps = ps
@@ -29,10 +27,7 @@ class AgentFromPolicy(AgentBelief[X, U]):
         if state_self not in self.policy:
             msg = "I do not know the policy for this state"
             raise DoesNotKnowPolicy(
-                msg,
-                state_self=state_self,
-                state_others=state_others,
-                states_self_known=set(self.policy),
+                msg, state_self=state_self, state_others=state_others, states_self_known=set(self.policy),
             )
 
         lookup = self.policy[state_self]
@@ -42,12 +37,8 @@ class AgentFromPolicy(AgentBelief[X, U]):
         if state_others in lookup:
             return lookup[state_others]
         else:
-            # SetPoss(_p=f❨f{}❩):
-
-            when_nobody_there = self.ps.lift_one(frozendict())
+            when_nobody_there = self.ps.unit(frozendict())
             if when_nobody_there in lookup:
                 return lookup[when_nobody_there]
 
-            raise ZNotImplementedError(
-                state_self=state_self, state_others=state_others, lookup=lookup
-            )
+            raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)

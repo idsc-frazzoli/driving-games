@@ -1,6 +1,6 @@
 from decimal import Decimal as D
 
-from possibilities import Poss, PossibilityStructure
+from possibilities import Poss, PossibilityMonad
 from .game_def import AgentBelief, Dynamics, JointState, SR, U, X
 
 __all__ = ["RandomAgent"]
@@ -8,9 +8,9 @@ __all__ = ["RandomAgent"]
 
 class RandomAgent(AgentBelief[X, U]):
     dynamics: Dynamics[X, U, SR]
-    ps: PossibilityStructure
+    ps: PossibilityMonad
 
-    def __init__(self, dynamics: Dynamics[X, U, SR], ps: PossibilityStructure):
+    def __init__(self, dynamics: Dynamics[X, U, SR], ps: PossibilityMonad):
         self.dynamics = dynamics
         self.ps = ps
 

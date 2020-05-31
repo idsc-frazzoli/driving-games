@@ -1,18 +1,18 @@
 from nose.tools import assert_equal
 
-from possibilities import PossibilityStructure, ProbabilityFraction, ProbabilitySet
+from possibilities import PossibilityMonad, ProbabilityFraction, ProbabilitySet
 from zuper_commons.types import ZValueError
 from . import logger
 
 
-def check_possibilities(ps: PossibilityStructure):
-    a = ps.lift_one("a")
+def check_possibilities(ps: PossibilityMonad):
+    a = ps.unit("a")
     logger.info(a=a)
     b = ps.lift_many({"A", "c"})
     logger.info(b=b)
     ab = ps.lift_many({a, b})
     logger.info(ab=ab)
-    f = ps.flatten(ab)
+    f = ps.join(ab)
     logger.info(f=f)
     g = ps.build(f, lambda _: _.upper())
     logger.info(g=g)

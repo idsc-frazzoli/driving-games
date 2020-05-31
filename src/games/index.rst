@@ -49,12 +49,6 @@ simulate
    :members:
 
 
-single_game_tree
-------------------
-
-.. automodule:: games.single_game_tree
-   :members:
-
 
 solution
 ------------------
@@ -81,5 +75,5 @@ solution_security
 structures_solutions
 ---------------------
 
-.. automodule:: games.solution_security
+.. automodule:: games.structures_solution
    :members:

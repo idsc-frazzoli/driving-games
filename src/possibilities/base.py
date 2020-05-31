@@ -3,7 +3,7 @@ from typing import Callable, Collection, FrozenSet, Mapping, TypeVar
 
 from .poss import Poss
 
-__all__ = ["PossibilityStructure"]
+__all__ = ["PossibilityMonad"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -21,14 +21,14 @@ class Sampler(ABC):
         """
 
 
-class PossibilityStructure(ABC):
+class PossibilityMonad(ABC):
     """
         The interface for a generic uncertainty monad.
 
     """
 
     @abstractmethod
-    def lift_one(self, a: A) -> Poss[A]:
+    def unit(self, a: A) -> Poss[A]:
         """ Constructs a distribution from one element. """
 
     @abstractmethod
@@ -36,7 +36,7 @@ class PossibilityStructure(ABC):
         """ Constructs a distribution from a set of elements element. """
 
     @abstractmethod
-    def flatten(self, a: Poss[Poss[A]]) -> Poss[A]:
+    def join(self, a: Poss[Poss[A]]) -> Poss[A]:
         """ The flattening operations for a monad. """
 
     @abstractmethod
@@ -44,9 +44,7 @@ class PossibilityStructure(ABC):
         """ Computes the push-forward of a distribution. """
 
     @abstractmethod
-    def build_multiple(
-        self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]
-    ) -> Poss[B]:
+    def build_multiple(self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]) -> Poss[B]:
         """ Computes the push-forward from a set of independent distributions. """
 
     @abstractmethod
@@ -61,6 +59,6 @@ class PossibilityStructure(ABC):
 # V = TypeVar('V')
 # Z = TypeVar('Z')
 #
-# def compute_marginals(ps: PossibilityStructure, a: Poss[Mapping[K, V]],
+# def compute_marginals(ps: PossibilityMonad, a: Poss[Mapping[K, V]],
 #               f: Callable[[K, V], Z]) -> Mapping[K, Poss[Z]]:
 #     pass

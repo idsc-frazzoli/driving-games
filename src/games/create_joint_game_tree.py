@@ -36,11 +36,20 @@ __all__ = []
 
 @dataclass
 class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
+    """ Iteration structure while creating the game graph. """
+
     game: Game[X, U, Y, RP, RJ, SR]
     dt: D
     cache: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]
+    """ Nodes that were already computed. """
+
     depth: int
+    """ The current depth. """
+
     gf: Optional[GameFactorization[X]]
+    """ Optional GameFactorization that will be used in the 
+        graph creation to recognize decoupled states.
+    """
 
 
 def create_game_graph(
@@ -49,6 +58,7 @@ def create_game_graph(
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
+    """ Create the game graph. """
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
@@ -57,9 +67,9 @@ def create_game_graph(
 
     # create networkx graph
     G = get_networkx_graph(state2node)
-    ti = get_timestep_info(G)
-    # time2nstates = valmap(len, ti.time2states)
-    # logger.info('States accessible at each time', time2nstates=time2nstates)
+    ti = get_timestep_info(G, dt)
+
+    # visualize number of states by time
     sizes = {}
     for t, states in ti.time2states.items():
         res = defaultdict(lambda: 0)
@@ -71,24 +81,32 @@ def create_game_graph(
     return GameGraph(initials, state2node, ti)
 
 
-def get_timestep_info(G: DiGraph) -> AccessibilityInfo[X]:
-    ts = list(topological_sort(G))
-    # logger.info(ts=ts)
+def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
+    """ Computes which states are reachable at what time. """
     state2times: Dict[JointState, Set[D]] = defaultdict(set)
     time2states: Dict[D, Set[JointState]] = defaultdict(set)
+
+    # traverse in topological sort
+    ts = list(topological_sort(G))
     for n1 in ts:
+        # if first time
         if n1 not in state2times:
+            # it is at time 0
             state2times[n1].add(D(0))
             time2states[D(0)].add(n1)
+        # for all its successors
         for n2 in G.successors(n1):
+            # for each time t1 at which we can be at n1
             for t1 in state2times[n1]:
-                t2 = t1 + D(1)
+                # we can be at n2 at time t2
+                t2 = t1 + dt
                 state2times[n2].add(t2)
                 time2states[t2].add(n2)
     return AccessibilityInfo(state2times, time2states)
 
 
 def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]):
+    """ Returns a NetworkX DiGraph that summarizes the relation of the nodes. """
     G = DiGraph()
     G.add_nodes_from(state2node)
     for js, gn in state2node.items():
@@ -110,23 +128,17 @@ def get_moves(
     for player_name, state in js.items():
         player = ic.game.players[player_name]
         # is it a final state?
-        is_final = (
-            player.personal_reward_structure.is_personal_final_state(state)
-            if state
-            else True
-        )
+        is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
 
         if state is None or is_final:
-            succ = {None: ps.lift_one(None)}
+            succ = {None: ps.unit(None)}
         else:
             succ = player.dynamics.successors(state, dt)
         res[player_name] = succ
     return res
 
 
-def create_game_graph_(
-    ic: IterationContext, states: JointState
-) -> GameNode[X, U, Y, RP, RJ, SR]:
+def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
@@ -163,9 +175,7 @@ def create_game_graph_(
         for move in its_moves:
             if move is None:
                 continue
-            pri = ic.game.players[
-                k
-            ].personal_reward_structure.personal_reward_incremental
+            pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
             inc = pri(states[k], move, ic.dt)
             incremental[k][move] = inc
 
@@ -195,15 +205,11 @@ def create_game_graph_(
                 js_continuing = fkeyfilter(not_exiting, js0)
                 if js_continuing not in ic.gf.ipartitions:
                     msg = "Cannot find the state in the factorization info"
-                    raise ZValueError(
-                        msg, js0=js_continuing, known=set(ic.gf.ipartitions)
-                    )
+                    raise ZValueError(msg, js0=js_continuing, known=set(ic.gf.ipartitions))
                 partitions = ic.gf.ipartitions[js_continuing]
                 re = {}
                 for players_in_partition in partitions:
-                    this_partition_state = fkeyfilter(
-                        lambda pn: pn in players_in_partition, js_continuing
-                    )
+                    this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
                     for pname in players_in_partition:
                         re[pname] = this_partition_state
                 return frozendict(re)

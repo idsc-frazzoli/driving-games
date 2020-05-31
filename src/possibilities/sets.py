@@ -5,8 +5,8 @@ from typing import Callable, Collection, FrozenSet, Mapping, Set, TypeVar
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 
-from zuper_commons.types import check_isinstance, ZValueError
-from .base import PossibilityStructure, Sampler
+from zuper_commons.types import ZValueError
+from .base import PossibilityMonad, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
 
@@ -29,14 +29,6 @@ class SetPoss(Poss[A]):
             self._r = f"Set({self._p.__repr__()})"
         return self._r
 
-    def check_contains(self, T: type, **kwargs):
-        for _ in self.support():
-            check_isinstance(_, T, poss=self, **kwargs)
-
-    # def it(self) -> Iterator[Tuple[A]]:
-    #     for _ in self._p:
-    #         yield _, one
-
     def support(self) -> FrozenSet[A]:
         """ Returns the support of the distribution """
         return self._p
@@ -54,8 +46,8 @@ def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
     # return Cache.cache[f]
 
 
-class ProbabilitySet(PossibilityStructure):
-    def lift_one(self, a: A) -> SetPoss[A]:
+class ProbabilitySet(PossibilityMonad):
+    def unit(self, a: A) -> SetPoss[A]:
         return self.lift_many([a])
 
     def lift_many(self, a: Collection[A]) -> SetPoss[A]:
@@ -71,9 +63,7 @@ class ProbabilitySet(PossibilityStructure):
             raise ZValueError(msg, f=f, res=res) from e
         return self.lift_many(res)
 
-    def build_multiple(
-        self, a: Mapping[K, SetPoss[A]], f: Callable[[Mapping[K, A]], B]
-    ) -> SetPoss[B]:
+    def build_multiple(self, a: Mapping[K, SetPoss[A]], f: Callable[[Mapping[K, A]], B]) -> SetPoss[B]:
         sources = list(a)
         supports = [a[_].support() for _ in sources]
         res: Set[B] = set()
@@ -84,7 +74,7 @@ class ProbabilitySet(PossibilityStructure):
 
         return make_setposs(frozenset(res))
 
-    def flatten(self, a: SetPoss[SetPoss[A]]) -> SetPoss[A]:
+    def join(self, a: SetPoss[SetPoss[A]]) -> SetPoss[A]:
         supports = [_.support() for _ in a.support()]
         s = set(itertools.chain.from_iterable(supports))
         return self.lift_many(s)
@@ -95,15 +85,6 @@ class ProbabilitySet(PossibilityStructure):
     def mix(self, a: Collection[A]) -> FrozenSet[SetPoss[A]]:
         poss = non_empty_sets(frozenset(a))
         return frozenset(map(self.lift_many, poss))
-
-    # def multiply(self, a: Iterable[One]) -> One:
-    #     a = set(a)
-    #     assert a == {one}, (a, one)
-    #     return one
-
-    # def fold(self, a: Iterable[Tuple[A]]) -> SetPoss[A]:
-    #     res = set(x for x, _ in a)
-    #     return self.lift_many(res)
 
 
 class SetSampler(Sampler):
