@@ -61,7 +61,6 @@ def test2() -> None:
         p2: game.ps.lift_one(Combined(VehicleCosts(D(4)), None)),
     }
 
-
     preferences = get_outcome_set_preferences_for_players(game)
 
     # preferences_ = tuple(preferences.values())

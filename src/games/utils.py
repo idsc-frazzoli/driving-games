@@ -44,6 +44,5 @@ def fs(a: Collection[V]) -> FrozenSet[V]:
     return frozenset(a)
 
 
-
 def valmap(f: Callable[[V], W], d: Mapping[K, V]) -> Dict[K, W]:
     return toolz.valmap(f, d)

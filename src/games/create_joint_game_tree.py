@@ -25,7 +25,7 @@ from .game_def import (
     Y,
 )
 from .structures_solution import AccessibilityInfo, GameFactorization, GameGraph, GameNode
-from .utils import fkeyfilter, fvalmap, iterate_dict_combinations, valmap
+from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = []
 
@@ -62,8 +62,7 @@ def create_game_graph(
         for js in states:
             res[len(js)] += 1
         sizes[t] = dict(sorted(res.items()))
-    logger.info('Number of states by time', sizes=sizes)
-
+    logger.info("Number of states by time", sizes=sizes)
 
     return GameGraph(initials, state2node, ti)
 

@@ -114,9 +114,7 @@ def solve1(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]) -> Solutions[Pr, X, U,
 
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
-        sim_ = simulate1(
-            gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0,
-        )
+        sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0,)
         sims[f"{player_name}-follows"] = sim_
 
     logger.info("solving game tree")
@@ -192,7 +190,6 @@ def solve_game2(
                 other_states = frozendict({k: v for k, v in state.items() if k != player_name})
                 iset = ps.lift_one(other_states)  # frozenset({other_states})
                 policy_for_this_state[iset] = s0.va.mixed_actions[player_name]
-
 
     policies2 = frozendict({k: fr(v) for k, v in policies.items()})
 
@@ -285,7 +282,6 @@ def _solve_game(
         next_states: Poss[M[PlayerName, SolvedGameNode[Pr, X, U, U, RP, RJ, SR], Pr]]
         next_states = ps.flatten(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
-
         usages: Dict[D, Poss[M[PlayerName, FrozenSet[SR]], Pr]]
         usages = {D(0): usage_current}
         Π = 1
@@ -345,8 +341,6 @@ def _solve_game(
         )
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
-
-
 
 
 def add_incremental_cost_single(

@@ -65,7 +65,7 @@ class SolverParams:
 class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     states: JointState
     moves: PlayerOptions
-    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName,JointState], Pr]]
+    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
 
     #  {a:x, b:y}
     #
@@ -197,6 +197,7 @@ def states_mentioned(game_node: GameNode) -> FSet[JointState]:
 class AccessibilityInfo(Generic[X]):
     state2times: Dict[JointState, Set[D]]
     time2states: Dict[D, Set[JointState]]
+
 
 @dataclass
 class GameGraph(Generic[Pr, X, U, Y, RP, RJ, SR]):

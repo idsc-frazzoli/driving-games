@@ -69,6 +69,7 @@ def get_security_policy(
     ret = ps.flatten(ret)
     return ret
 
+
 def what_if_player_chooses(
     ps: PossibilityStructure[Pr],
     player_name: PlayerName,

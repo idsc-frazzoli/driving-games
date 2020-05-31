@@ -231,6 +231,7 @@ def check_outcome(a: Outcome):
     for player_name, v in a.items():
         check_isinstance(v, Combined)
 
+
 #
 # def check_set_outcomes(a: SetOfOutcomes, **kwargs):
 #     if not GameConstants.checks:
