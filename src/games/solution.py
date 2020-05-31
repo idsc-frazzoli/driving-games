@@ -196,7 +196,7 @@ def solve_game2(
             if player_name in s0.va.mixed_actions:
                 policy_for_this_state = policies[player_name][player_state]
                 other_states = frozendict({k: v for k, v in state.items() if k != player_name})
-                iset = ps.unit(other_states)  # frozenset({other_states})
+                iset = ps.unit(other_states)
                 policy_for_this_state[iset] = s0.va.mixed_actions[player_name]
 
     policies2 = frozendict({k: fr(v) for k, v in policies.items()})
@@ -237,7 +237,7 @@ def _solve_game(
         inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
         # if we choose these actions, then these are the game nodes
         # we could go in. Note that each player can go in a different joint state.
-        next_nodes: Poss[Dict[PlayerName, JointState]] = gn.outcomes[pure_actions]
+        next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.outcomes[pure_actions]
 
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:
@@ -245,8 +245,6 @@ def _solve_game(
             return frozendict(valmap(lambda _: _solve_game(sc, _).states, a))
 
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
-
-        # next_outcomes_solutions: Poss[SetOfOutcomes]
 
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         for player_name in pure_actions:

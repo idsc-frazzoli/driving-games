@@ -25,7 +25,6 @@ from .game_def import (
     Pr,
     RJ,
     RP,
-    SetOfOutcomes,
     SR,
     U,
     UncertainCombined,
