@@ -3,7 +3,7 @@ from typing import Mapping, Optional, Tuple
 
 from nose.tools import assert_equal
 
-from driving_games import Collision, CollisionPreference, get_asym, IMPACT_FRONT, PlayerName, VehicleCosts
+from driving_games import Collision, CollisionPreference, get_asym, IMPACT_FRONT, VehicleCosts
 from games import Combined, get_outcome_set_preferences_for_players
 from preferences import (
     ComparisonOutcome,

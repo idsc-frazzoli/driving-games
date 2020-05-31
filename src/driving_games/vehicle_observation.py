@@ -3,7 +3,6 @@ from functools import lru_cache
 from typing import FrozenSet, Mapping, Optional, Union
 
 from games import Observations, PlayerName
-from possibilities import One
 from .structures import Lights, SE2_disc, VehicleState
 
 __all__ = ["NotSeen", "Seen", "VehicleObservation", "VehicleDirectObservations"]
@@ -28,7 +27,7 @@ class VehicleObservation:
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 
 
-class VehicleDirectObservations(Observations[One, VehicleState, VehicleObservation]):
+class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
     possible_states: Mapping[PlayerName, FrozenSet[VehicleState]]
     my_possible_states: FrozenSet[VehicleState]
 

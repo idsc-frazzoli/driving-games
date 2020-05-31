@@ -37,7 +37,7 @@ __all__ = []
 
 
 @dataclass
-class PointStats(Generic[Pr, X, U, Y, RP, RJ]):
+class PointStats(Generic[X, U, Y, RP, RJ]):
     happy: FrozenSet[PlayerName]
     unhappy: FrozenSet[PlayerName]
     outcome: Mapping[PlayerName, UncertainCombined]
@@ -51,8 +51,8 @@ class PointStats(Generic[Pr, X, U, Y, RP, RJ]):
 
 
 @dataclass
-class EquilibriaAnalysis(Generic[Pr, X, U, Y, RP, RJ]):
-    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]]
+class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
+    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U]]]
     nondom_nash_equilibria: Mapping[JointMixedActions, Mapping[PlayerName, UncertainCombined]]
     nash_equilibria: Mapping[JointMixedActions, Mapping[PlayerName, UncertainCombined]]
     ps: Dict[JointMixedActions, PointStats]
@@ -71,8 +71,8 @@ class EquilibriaAnalysis(Generic[Pr, X, U, Y, RP, RJ]):
 
 def analyze_equilibria(
     *,
-    ps: PossibilityStructure[Pr],
-    gn: GameNode[Pr, X, U, Y, RP, RJ, SR],
+    ps: PossibilityStructure,
+    gn: GameNode[X, U, Y, RP, RJ, SR],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
 ) -> EquilibriaAnalysis:
@@ -80,7 +80,7 @@ def analyze_equilibria(
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
 
-    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U, Pr]]] = valmap(ps.mix, gn.moves)
+    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
     # logger.info(player_mixed_strategies=player_mixed_strategies)
     # now we do the product of the mixed strategies
     # let's order them
@@ -97,9 +97,9 @@ def analyze_equilibria(
         def f(y: JointPureActions) -> JointPureActions:
             return y
 
-        dist: Poss[JointPureActions, Pr] = ps.build_multiple(a=choice, f=f)
+        dist: Poss[JointPureActions] = ps.build_multiple(a=choice, f=f)
 
-        mixed_outcome: Poss[Mapping[PlayerName, UncertainCombined], Pr]
+        mixed_outcome: Poss[Mapping[PlayerName, UncertainCombined]]
         mixed_outcome = ps.build(dist, solved.__getitem__)
         res: Dict[PlayerName, UncertainCombined] = {}
         for player_name in active_players:  # all of them, not only the active ones
@@ -122,7 +122,7 @@ def analyze_equilibria(
 
 
 def analyze(
-    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
+    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U]]],
     results: Mapping[JointMixedActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
 ):
@@ -197,13 +197,13 @@ def analyze(
 
 
 def variations(
-    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U, Pr]]],
-    x0: Mapping[PlayerName, Poss[U, Pr]],
+    player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U]]],
+    x0: Mapping[PlayerName, Poss[U]],
     player_name: PlayerName,
-) -> Mapping[U, Mapping[PlayerName, Poss[U, Pr]]]:
+) -> Mapping[U, Mapping[PlayerName, Poss[U]]]:
     # check_joint_pure_actions(x0)
-    all_mixed_actions: Set[Poss[U, Pr]] = set(player_mixed_strategies[player_name])
-    current_action: Poss[U, Pr] = x0[player_name]
+    all_mixed_actions: Set[Poss[U]] = set(player_mixed_strategies[player_name])
+    current_action: Poss[U] = x0[player_name]
     assert current_action in all_mixed_actions, (current_action, all_mixed_actions)
     all_mixed_actions.remove(current_action)
 

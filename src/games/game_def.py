@@ -15,7 +15,7 @@ from typing import (
 
 from frozendict import frozendict
 
-from possibilities import check_poss, Poss, PossibilityStructure
+from possibilities import Poss, PossibilityStructure
 from preferences import Preference
 from zuper_commons.types import check_isinstance, ZValueError
 from . import GameConstants
@@ -52,7 +52,7 @@ Pr = TypeVar("Pr", bound=Number)  # how to express probabilities
 
 PlayerOptions = Mapping[PlayerName, FrozenSet[U]]
 JointPureActions = Mapping[PlayerName, U]
-JointMixedActions = Mapping[PlayerName, Poss[U, Pr]]
+JointMixedActions = Mapping[PlayerName, Poss[U]]
 
 Y = TypeVar("Y")
 RP = TypeVar("RP")
@@ -68,7 +68,7 @@ SR = TypeVar("SR")
 #     joint: Mapping[PlayerName, RJ]
 
 
-# SetOfOutcomes = Poss[Outcome[RP, RJ], Pr]
+# SetOfOutcomes = Poss[Outcome[RP, RJ]]
 
 
 @dataclass(frozen=True, order=True, unsafe_hash=True)
@@ -79,19 +79,19 @@ class Combined(Generic[RJ, RP]):
     joint: Optional[RJ] = None
 
 
-UncertainCombined = Poss[Combined[RP, RJ], Pr]
+UncertainCombined = Poss[Combined[RP, RJ]]
 
 Outcome = Mapping[PlayerName, Combined[RP, RJ]]
-SetOfOutcomes = Poss[Outcome, Pr]
+SetOfOutcomes = Poss[Outcome]
 
 
-class Dynamics(Generic[Pr, X, U, SR], ABC):
+class Dynamics(Generic[X, U, SR], ABC):
     @abstractmethod
     def all_actions(self) -> FrozenSet[U]:
         """ Returns all actions possible (not all are available at each state). """
 
     @abstractmethod
-    def successors(self, x: X, dt: D) -> Mapping[U, Poss[X, Pr]]:
+    def successors(self, x: X, dt: D) -> Mapping[U, Poss[X]]:
         """ For each state, returns a dictionary U -> Possible Xs """
 
     @abstractmethod
@@ -100,13 +100,13 @@ class Dynamics(Generic[Pr, X, U, SR], ABC):
             the set of spatio-temporal cells occupied by the agent. """
 
 
-class Observations(Generic[Pr, X, Y], ABC):
+class Observations(Generic[X, Y], ABC):
     @abstractmethod
     def all_observations(self) -> FrozenSet[Y]:
         """ Returns all possible observations. """
 
     @abstractmethod
-    def get_observations(self, me: X, others: JointState) -> Poss[Y, Pr]:
+    def get_observations(self, me: X, others: JointState) -> Poss[Y]:
         """ For each state, get all possible observations """
 
 
@@ -136,19 +136,19 @@ P = TypeVar("P")
 
 
 @dataclass
-class GamePlayer(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
     # Initial states
-    initial: Poss[X, Pr]
+    initial: Poss[X]
     # The dynamics
-    dynamics: Dynamics[Pr, X, U, SR]
+    dynamics: Dynamics[X, U, SR]
     # The observations
-    observations: Observations[Pr, X, Y]
+    observations: Observations[X, Y]
     # The reward
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
     # The preferences
     preferences: Preference[Combined[RJ, RP]]
     # How to aggregate preferences for sets
-    set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P, Pr]]]
+    set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P]]]
 
 
 @dataclass
@@ -162,7 +162,7 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
         """ The joint reward for the agents. Only available for a final state. """
 
 
-class GameVisualization(Generic[Pr, X, U, Y, RP, RJ], ABC):
+class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
     @abstractmethod
     def plot_arena(self, pylab, ax):
         """ Context manager """
@@ -179,26 +179,26 @@ class GameVisualization(Generic[Pr, X, U, Y, RP, RJ], ABC):
 
 
 @dataclass
-class Game(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class Game(Generic[X, U, Y, RP, RJ, SR]):
     """ The players """
 
-    ps: PossibilityStructure[Pr]
+    ps: PossibilityStructure
 
-    players: Mapping[PlayerName, GamePlayer[Pr, X, U, Y, RP, RJ, SR]]
+    players: Mapping[PlayerName, GamePlayer[X, U, Y, RP, RJ, SR]]
     """ The joint reward structure """
     joint_reward: JointRewardStructure[X, U, RJ]
 
-    game_visualization: GameVisualization[Pr, X, U, Y, RP, RJ]
+    game_visualization: GameVisualization[X, U, Y, RP, RJ]
 
 
-class AgentBelief(Generic[Pr, X, U], ABC):
+class AgentBelief(Generic[X, U], ABC):
     """
         This agent's policy is a function of its own state
         and the product of the beliefs about the state of the other agents.
     """
 
     @abstractmethod
-    def get_commands(self, state_self: X, state_others: Poss[JointState, Pr]) -> Poss[U, Pr]:
+    def get_commands(self, state_self: X, state_others: Poss[JointState]) -> Poss[U]:
         ...
 
 

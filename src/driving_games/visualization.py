@@ -7,12 +7,10 @@ from decorator import contextmanager
 from matplotlib import patches
 
 from games import GameVisualization, PlayerName
-from possibilities import One
-from .rectangle import Rectangle
 from .collisions import Collision
 from .collisions_check import get_resources_used
 from .personal_reward import SE2_from_VehicleState
-from .rectangle import get_rectangle_countour
+from .rectangle import get_rectangle_countour, Rectangle
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
 from .vehicle_observation import VehicleObservation
 
@@ -20,7 +18,7 @@ __all__ = ["DrivingGameVisualization"]
 
 
 class DrivingGameVisualization(
-    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
+    GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
 ):
     """ Visualization for the driving games"""
 
