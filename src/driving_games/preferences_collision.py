@@ -23,7 +23,9 @@ class CollisionPreference(Preference[Optional[Collision]]):
     def get_type(self) -> Type[Optional[Collision]]:
         return Optional[Collision]
 
-    def compare(self, a: Optional[Collision], b: Optional[Collision]) -> ComparisonOutcome:
+    def compare(
+        self, a: Optional[Collision], b: Optional[Collision]
+    ) -> ComparisonOutcome:
         if a is None and b is None:
             return INDIFFERENT
         if a is None and b is not None:

@@ -11,7 +11,6 @@ from .game_def import (
     JointPureActions,
     JointState,
     PlayerName,
-    Pr,
     RJ,
     RP,
     SR,
@@ -24,7 +23,7 @@ __all__ = []
 
 
 @dataclass
-class SimulationStep(Generic[Pr, X, U, Y, RP, RJ]):
+class SimulationStep(Generic[X, U, Y, RP, RJ]):
     states: JointState
     pure_actions: JointPureActions
     incremental_costs: Mapping[PlayerName, RP]
@@ -35,7 +34,7 @@ class SimulationStep(Generic[Pr, X, U, Y, RP, RJ]):
 
 
 @dataclass
-class Simulation(Generic[Pr, X, U, Y, RP, RJ]):
+class Simulation(Generic[X, U, Y, RP, RJ]):
     states: Mapping[D, JointState]
     actions: Mapping[D, JointPureActions]
     costs: Mapping[D, Mapping[PlayerName, RP]]
@@ -46,12 +45,12 @@ N = TypeVar("N")
 
 
 def simulate1(
-    game: Game[Pr, X, U, Y, RP, RJ, SR],
-    policies: Mapping[PlayerName, AgentBelief[Pr, X, U]],
+    game: Game[X, U, Y, RP, RJ, SR],
+    policies: Mapping[PlayerName, AgentBelief[X, U]],
     initial_states: JointState,
     dt: D,
     seed: int,
-) -> Simulation[Pr, X, U, Y, RP, RJ]:
+) -> Simulation[X, U, Y, RP, RJ]:
     S_states: Dict[D, JointState] = {}
     S_actions: Dict[D, JointState] = {}
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}
@@ -97,7 +96,9 @@ def simulate1(
             p_action = policy.get_commands(state_self, belief_state_others)
 
             action = sampler.sample(p_action)
-            incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
+            incremental_costs[player_name] = prs.personal_reward_incremental(
+                state_self, action, dt
+            )
 
             dynamics = game.players[player_name].dynamics
             state_player = s1[player_name]

@@ -1,9 +1,10 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Optional, Tuple
+from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
 
 from frozendict import frozendict
+from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
 from possibilities import Poss
@@ -15,7 +16,6 @@ from .game_def import (
     JointPureActions,
     JointState,
     PlayerName,
-    Pr,
     RJ,
     RP,
     SR,
@@ -23,39 +23,85 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import GameFactorization, GameGraph, GameNode
+from .structures_solution import (
+    AccessibilityInfo,
+    GameFactorization,
+    GameGraph,
+    GameNode,
+)
 from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = []
 
 
 @dataclass
-class IterationContext(Generic[Pr, X, U, Y, RP, RJ, SR]):
-    game: Game[Pr, X, U, Y, RP, RJ, SR]
+class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
+    game: Game[X, U, Y, RP, RJ, SR]
     dt: D
-    cache: Dict[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+    cache: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]
     depth: int
     gf: Optional[GameFactorization[X]]
 
 
 def create_game_graph(
-    game: Game[Pr, X, U, Y, RP, RJ, SR],
+    game: Game[X, U, Y, RP, RJ, SR],
     dt: D,
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
-) -> GameGraph[Pr, X, U, Y, RP, RJ, SR]:
-    state2node: Dict[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]] = {}
+) -> GameGraph[X, U, Y, RP, RJ, SR]:
+    state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
         create_game_graph_(ic, js)
 
-    return GameGraph(initials, state2node)
+    # create networkx graph
+    G = get_networkx_graph(state2node)
+    ti = get_timestep_info(G)
+    # time2nstates = valmap(len, ti.time2states)
+    # logger.info('States accessible at each time', time2nstates=time2nstates)
+    sizes = {}
+    for t, states in ti.time2states.items():
+        res = defaultdict(lambda: 0)
+        for js in states:
+            res[len(js)] += 1
+        sizes[t] = dict(sorted(res.items()))
+    logger.info("Number of states by time", sizes=sizes)
+
+    return GameGraph(initials, state2node, ti)
+
+
+def get_timestep_info(G: DiGraph) -> AccessibilityInfo[X]:
+    ts = list(topological_sort(G))
+    # logger.info(ts=ts)
+    state2times: Dict[JointState, Set[D]] = defaultdict(set)
+    time2states: Dict[D, Set[JointState]] = defaultdict(set)
+    for n1 in ts:
+        if n1 not in state2times:
+            state2times[n1].add(D(0))
+            time2states[D(0)].add(n1)
+        for n2 in G.successors(n1):
+            for t1 in state2times[n1]:
+                t2 = t1 + D(1)
+                state2times[n2].add(t2)
+                time2states[t2].add(n2)
+    return AccessibilityInfo(state2times, time2states)
+
+
+def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]):
+    G = DiGraph()
+    G.add_nodes_from(state2node)
+    for js, gn in state2node.items():
+        for p in gn.outcomes.values():
+            for d in p.support():
+                for _, js2 in d.items():
+                    G.add_edge(js, js2)
+    return G
 
 
 def get_moves(
-    ic: IterationContext[Pr, X, U, Y, RP, RJ, SR], js: JointState
-) -> Mapping[PlayerName, Mapping[U, Poss[X, Pr]]]:
+    ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState
+) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
     """ Returns the possible moves. """
     res = {}
     state: X
@@ -64,7 +110,11 @@ def get_moves(
     for player_name, state in js.items():
         player = ic.game.players[player_name]
         # is it a final state?
-        is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
+        is_final = (
+            player.personal_reward_structure.is_personal_final_state(state)
+            if state
+            else True
+        )
 
         if state is None or is_final:
             succ = {None: ps.lift_one(None)}
@@ -74,13 +124,15 @@ def get_moves(
     return res
 
 
-def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr, X, U, Y, RP, RJ, SR]:
+def create_game_graph_(
+    ic: IterationContext, states: JointState
+) -> GameNode[X, U, Y, RP, RJ, SR]:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
 
     moves_to_state_everybody = get_moves(ic, states)
-    pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]] = {}
+    pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     ps = ic.game.ps
     ic2 = replace(ic, depth=ic.depth + 1)
 
@@ -111,7 +163,9 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr,
         for move in its_moves:
             if move is None:
                 continue
-            pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
+            pri = ic.game.players[
+                k
+            ].personal_reward_structure.personal_reward_incremental
             inc = pri(states[k], move, ic.dt)
             incremental[k][move] = inc
 
@@ -123,17 +177,17 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr,
         if not pure_action:
             continue
 
-        def f(item: Tuple[PlayerName, U]) -> Tuple[PlayerName, Poss[X, Pr]]:
+        def f(item: Tuple[PlayerName, U]) -> Tuple[PlayerName, Poss[X]]:
             pn, choice = item
             return pn, moves_to_state_remaining[pn][choice]
 
-        selected: Dict[PlayerName, Poss[X, Pr]]
+        selected: Dict[PlayerName, Poss[X]]
         selected = itemmap(f, pure_action)
 
         def f(a: Mapping[PlayerName, U]) -> JointState:
             return fkeyfilter(not_exiting, a)
 
-        outcomes: Poss[JointState, Pr] = ps.build_multiple(selected, f)
+        outcomes: Poss[JointState] = ps.build_multiple(selected, f)
 
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
             if ic.gf is not None:
@@ -141,11 +195,15 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr,
                 js_continuing = fkeyfilter(not_exiting, js0)
                 if js_continuing not in ic.gf.ipartitions:
                     msg = "Cannot find the state in the factorization info"
-                    raise ZValueError(msg, js0=js_continuing, known=set(ic.gf.ipartitions))
+                    raise ZValueError(
+                        msg, js0=js_continuing, known=set(ic.gf.ipartitions)
+                    )
                 partitions = ic.gf.ipartitions[js_continuing]
                 re = {}
                 for players_in_partition in partitions:
-                    this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
+                    this_partition_state = fkeyfilter(
+                        lambda pn: pn in players_in_partition, js_continuing
+                    )
                     for pname in players_in_partition:
                         re[pname] = this_partition_state
                 return frozendict(re)
@@ -153,7 +211,7 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[Pr,
                 x = {k_: js0 for k_ in states}
                 return fkeyfilter(not_exiting, x)
 
-        poutcomes: Poss[Mapping[PlayerName, JointState], Pr] = ps.build(outcomes, r)
+        poutcomes: Poss[Mapping[PlayerName, JointState]] = ps.build(outcomes, r)
         pure_outcomes[pure_action] = poutcomes
 
         for p in poutcomes.support():

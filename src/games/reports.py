@@ -8,11 +8,15 @@ from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
 from . import logger
-from .game_def import Game, JointState, Pr, RJ, RP, U, X, Y, SR
+from .game_def import Game, JointState, RJ, RP, U, X, Y, SR
 from .reports_player import report_player
 from .structures_solution import GamePreprocessed
 
-__all__ = ["create_report_preprocessed", "report_game_visualization", "report_game_joint_final"]
+__all__ = [
+    "create_report_preprocessed",
+    "report_game_visualization",
+    "report_game_joint_final",
+]
 
 
 def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Report:
@@ -57,7 +61,7 @@ def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
 
 
 def visualize_states(
-    game_pre: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR],
+    game_pre: GamePreprocessed[X, U, Y, RP, RJ, SR],
     r: Report,
     name: str,
     nodes: List[JointState],
@@ -119,9 +123,7 @@ def report_game(game_pre: GamePreprocessed) -> Report:
 
         return "grey"
 
-    caption = (
-        "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
-    )
+    caption = "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
 
     node_size = 3
     node_color = [color_node(_) for _ in G.nodes]

@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import FrozenSet, Type
 
-from possibilities import One, Poss
+from possibilities import Poss
 from zuper_typing import debug_print
 from .preferences_base import (
     ComparisonOutcome,
@@ -16,13 +16,13 @@ from .preferences_base import (
 __all__ = ["SetPreference1", "compare_sets"]
 
 
-class SetPreference1(Preference[Poss[P, One]]):
+class SetPreference1(Preference[Poss[P]]):
     p0: Preference[P]
 
     def __init__(self, p0: Preference[P]):
         self.p0 = p0
 
-    def get_type(self) -> Type[Poss[P, One]]:
+    def get_type(self) -> Type[Poss[P]]:
         return Poss  # [self.p0.get_type()]
 
     def __repr__(self) -> str:
@@ -30,7 +30,7 @@ class SetPreference1(Preference[Poss[P, One]]):
         return "SetPreference1: " + debug_print(d)
 
     # @lru_cache(None)
-    def compare(self, A: Poss[P, One], B: Poss[P, One]) -> ComparisonOutcome:
+    def compare(self, A: Poss[P], B: Poss[P]) -> ComparisonOutcome:
         # check_poss(A)
         # check_poss(B)
         # if len(A) == 1 and len(B) == 1:
@@ -52,7 +52,9 @@ class CompareCache:
     cache = {}
 
 
-def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+def compare_sets_cached(
+    A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]
+) -> ComparisonOutcome:
     sa = repr(A)
     sb = repr(B)
     key = sa, sb
@@ -63,7 +65,9 @@ def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -
 
 
 @lru_cache(None)
-def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+def compare_sets(
+    A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]
+) -> ComparisonOutcome:
     if A is B or (A == B):
         return INDIFFERENT
 

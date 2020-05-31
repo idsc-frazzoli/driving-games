@@ -22,7 +22,6 @@ from .game_def import (
     JointState,
     PlayerName,
     PlayerOptions,
-    Pr,
     RJ,
     RP,
     SR,
@@ -62,10 +61,18 @@ class SolverParams:
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     states: JointState
     moves: PlayerOptions
-    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
+    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
+
+    #  {a:x, b:y}
+    #
+    #   a:{a:x}  b:{b: y}
+    #   a:{a:x}
+
+    #  {a:x, b:y, c: z}
+    #  a: {a:x}   b: {b:y, c:z}   c: {b:y, c:z}
 
     is_final: Mapping[PlayerName, RP]
     incremental: Mapping[PlayerName, Mapping[U, RP]]
@@ -118,14 +125,18 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
                     raise ZValueError(msg, action=action, GameNode=self)
                 if action not in self.moves[player_name]:
                     msg = f"The action is not available to the player."
-                    raise ZValueError(msg, player_name=player_name, action=action, GameNode=self)
+                    raise ZValueError(
+                        msg, player_name=player_name, action=action, GameNode=self
+                    )
         # check that if a player is not final then it has at least 1 move
         all_players = set(self.states)
         final_players = set(self.is_final) | set(self.joint_final_rewards)
         continuing_players = all_players - final_players
         for player_name in continuing_players:
             if not player_name in self.moves:
-                msg = f"Player {player_name!r} is continuing but does not have any move."
+                msg = (
+                    f"Player {player_name!r} is continuing but does not have any move."
+                )
                 raise ZValueError(msg, GameNode=self)
 
         # check that we have in outcomes all combinations of actions
@@ -135,7 +146,10 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
         if all_combinations != set(self.outcomes):
             msg = "There is a mismatch between the actions and the outcomes."
             raise ZValueError(
-                msg, all_combinations=all_combinations, pure_actions=set(self.outcomes), GameNode=self
+                msg,
+                all_combinations=all_combinations,
+                pure_actions=set(self.outcomes),
+                GameNode=self,
             )
 
         # check that for each action we have a cost
@@ -156,7 +170,7 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
     def check_players_in_outcome(self) -> None:
         """ We want to make sure that each player transitions in a game in which he is present. """
         jpa: JointPureActions
-        consequences: Poss[Mapping[PlayerName, JointState], Pr]
+        consequences: Poss[Mapping[PlayerName, JointState]]
         for jpa, consequences in self.outcomes.items():
             for new_games in consequences.support():
                 for player_name, next_state in new_games.items():
@@ -176,7 +190,7 @@ class GameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
 
 def states_mentioned(game_node: GameNode) -> FSet[JointState]:
-    # outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState], Pr]]
+    # outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
     res = set()
     for _, out in game_node.outcomes.items():
         for player_to_js in out.support():
@@ -186,9 +200,16 @@ def states_mentioned(game_node: GameNode) -> FSet[JointState]:
 
 
 @dataclass
-class GameGraph(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class AccessibilityInfo(Generic[X]):
+    state2times: Dict[JointState, Set[D]]
+    time2states: Dict[D, Set[JointState]]
+
+
+@dataclass
+class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
     initials: AbstractSet[JointState]
-    state2node: Mapping[JointState, GameNode[Pr, X, U, Y, RP, RJ, SR]]
+    state2node: Mapping[JointState, GameNode[X, U, Y, RP, RJ, SR]]
+    ti: AccessibilityInfo[X]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -207,11 +228,11 @@ class GameGraph(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
 
 @dataclass
-class GamePlayerPreprocessed(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ, SR]):
     player_graph: MultiDiGraph
-    # alone_tree: Mapping[X, GameNode[Pr, X, U, Y, RP, RJ, SR]]
-    game_graph: GameGraph[Pr, X, U, Y, RP, RJ, SR]
-    gs: "GameSolution[Pr, X, U, Y, RP, RJ, SR]"
+    # alone_tree: Mapping[X, GameNode[X, U, Y, RP, RJ, SR]]
+    game_graph: GameGraph[X, U, Y, RP, RJ, SR]
+    gs: "GameSolution[X, U, Y, RP, RJ, SR]"
 
 
 @dataclass
@@ -221,16 +242,16 @@ class GameFactorization(Generic[X]):
 
 
 @dataclass
-class GamePreprocessed(Generic[Pr, X, U, Y, RP, RJ, SR]):
-    game: Game[Pr, X, U, Y, RP, RJ, SR]
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]]
+class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
+    game: Game[X, U, Y, RP, RJ, SR]
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
     game_graph: MultiDiGraph
     solver_params: SolverParams
     game_factorization: GameFactorization[X]
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class ValueAndActions2(Generic[Pr, U, RP, RJ]):
+class ValueAndActions2(Generic[U, RP, RJ]):
     mixed_actions: JointMixedActions
     game_value: Mapping[PlayerName, UncertainCombined]
 
@@ -247,24 +268,24 @@ class ValueAndActions2(Generic[Pr, U, RP, RJ]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class UsedResources(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
     # Used resources at each time.
     # D = 0 means now. +1 means next step, etc.
-    used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]], Pr]]
+    used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]]]]
 
 
 M = Mapping
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     states: JointState
-    solved: M[JointPureActions, Poss[M[PlayerName, JointState], Pr]]
-    # solved: "Mapping[JointPureActions, Poss[SolvedGameNode[Pr, X, U, Y, RP, RJ, SR], Pr]]"
+    solved: M[JointPureActions, Poss[M[PlayerName, JointState]]]
+    # solved: "Mapping[JointPureActions, Poss[SolvedGameNode[X, U, Y, RP, RJ, SR]]]"
 
-    va: ValueAndActions2[Pr, U, RP, RJ]
+    va: ValueAndActions2[U, RP, RJ]
 
-    ur: UsedResources[Pr, X, U, Y, RP, RJ, SR]
+    ur: UsedResources[X, U, Y, RP, RJ, SR]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -285,21 +306,21 @@ class SolvedGameNode(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
 
 @dataclass
-class SolvingContext(Generic[Pr, X, U, Y, RP, RJ, SR]):
-    game: Game[Pr, X, U, Y, RP, RJ, SR]
-    # gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]
+class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
+    game: Game[X, U, Y, RP, RJ, SR]
+    # gp: GamePreprocessed[X, U, Y, RP, RJ, SR]
     outcome_set_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
-    cache: Dict[JointState, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]
+    cache: Dict[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]
     processing: Set[JointState]
-    gg: GameGraph[Pr, X, U, Y, RP, RJ, SR]
+    gg: GameGraph[X, U, Y, RP, RJ, SR]
     solver_params: SolverParams
 
 
 @dataclass
-class GameSolution(Generic[Pr, X, U, Y, RP, RJ, SR]):
+class GameSolution(Generic[X, U, Y, RP, RJ, SR]):
     initials: AbstractSet[JointState]
     states_to_solution: Dict[JointState, SolvedGameNode]
-    policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]]
+    policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState], Poss[U]]]]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -315,14 +336,14 @@ class GameSolution(Generic[Pr, X, U, Y, RP, RJ, SR]):
 
 
 @dataclass
-class SolutionsPlayer(Generic[Pr, X, U, Y, RP, RJ, SR]):
-    alone_solutions: Mapping[X, GameSolution[Pr, X, U, Y, RP, RJ, SR]]
+class SolutionsPlayer(Generic[X, U, Y, RP, RJ, SR]):
+    alone_solutions: Mapping[X, GameSolution[X, U, Y, RP, RJ, SR]]
 
 
 @dataclass
-class Solutions(Generic[Pr, X, U, Y, RP, RJ, SR]):
-    solutions_players: Mapping[PlayerName, SolutionsPlayer[Pr, X, U, Y, RP, RJ, SR]]
-    game_solution: GameSolution[Pr, X, U, Y, RP, RJ, SR]
-    game_tree: GameNode[Pr, X, U, Y, RP, RJ, SR]
+class Solutions(Generic[X, U, Y, RP, RJ, SR]):
+    solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
+    game_solution: GameSolution[X, U, Y, RP, RJ, SR]
+    game_tree: GameNode[X, U, Y, RP, RJ, SR]
 
     sims: Mapping[str, Simulation]

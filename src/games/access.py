@@ -4,7 +4,16 @@ from collections import defaultdict
 from decimal import Decimal as D
 from functools import reduce
 from itertools import product
-from typing import AbstractSet, Collection, Dict, FrozenSet as FSet, List, Mapping, Set, Tuple
+from typing import (
+    AbstractSet,
+    Collection,
+    Dict,
+    FrozenSet as FSet,
+    List,
+    Mapping,
+    Set,
+    Tuple,
+)
 
 import numpy as np
 from frozendict import frozendict
@@ -22,7 +31,6 @@ from .game_def import (
     JointState,
     PersonalRewardStructure,
     PlayerName,
-    Pr,
     RJ,
     RP,
     SR,
@@ -49,8 +57,8 @@ from .utils import fkeyfilter, iterate_dict_combinations
 
 
 def preprocess_game(
-    game: Game[Pr, X, U, Y, RP, RJ, SR], solver_params: SolverParams,
-) -> GamePreprocessed[Pr, X, U, Y, RP, RJ, SR]:
+    game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     game_factorization: GameFactorization[X]
 
     game_graph = get_game_graph(game, dt=solver_params.dt)
@@ -77,11 +85,11 @@ def preprocess_game(
 
 
 def get_game_factorization(
-    game: Game[Pr, X, U, Y, RP, RJ, SR],
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]],
+    game: Game[X, U, Y, RP, RJ, SR],
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
 ) -> GameFactorization[X]:
     ps = game.ps
-    known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]]
+    known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
     js: JointState
 
@@ -124,11 +132,13 @@ def get_game_factorization(
             resources_used = itemmap(get_ur, ljs)
             deps = find_dependencies(ps, resources_used)
 
-            if special:
-                logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
+            # if special:
+            #     logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
             for players_subsets, independent in deps.items():
                 if special:
-                    logger.info(" - ", players_subsets=players_subsets, independent=independent)
+                    logger.info(
+                        " - ", players_subsets=players_subsets, independent=independent
+                    )
                 jsf_subset = fkeyfilter(players_subsets.__contains__, jsf)
                 partitions[independent].add(jsf_subset)
                 ipartitions[jsf_subset] = independent
@@ -146,7 +156,8 @@ def get_game_factorization(
 
 
 def find_dependencies(
-    ps: PossibilityStructure[Pr], resources_used: Mapping[PlayerName, UsedResources[Pr, X, U, Y, RP, RJ, SR]]
+    ps: PossibilityStructure,
+    resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
 ) -> Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]:
     """
         Returns the dependency structure from the use of shared resources.
@@ -167,12 +178,12 @@ def find_dependencies(
         def getused(items) -> Tuple[PlayerName, FSet[SR]]:
             ur: UsedResources
             player_name, ur = items
-            used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]], Pr]] = ur.used
+            used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]]]] = ur.used
             if i not in used:
                 res = frozenset()
             else:
-                at_i: Poss[Mapping[PlayerName, FSet[SR]], Pr] = ur.used[i]
-                at_i_player: Poss[FSet[SR], Pr]
+                at_i: Poss[Mapping[PlayerName, FSet[SR]]] = ur.used[i]
+                at_i_player: Poss[FSet[SR]]
                 at_i_player = ps.build(at_i, lambda _: _[player_name])
                 support_sets = flatten_sets(at_i_player.support())
                 res = support_sets
@@ -206,35 +217,39 @@ def flatten_sets(c: Collection[AbstractSet[X]]) -> FSet[X]:
 
 
 def collapse_states(
-    gp: GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]
-) -> Mapping[JointState, SolvedGameNode[Pr, X, U, Y, RP, RJ, SR]]:
+    gp: GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]
+) -> Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]:
     return gp.gs.states_to_solution
 
 
 def preprocess_player(
-    individual_game: Game[Pr, X, U, Y, RP, RJ, SR], solver_params: SolverParams,
-) -> GamePlayerPreprocessed[Pr, X, U, Y, RP, RJ, SR]:
+    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     l = list(individual_game.players)
     assert len(l) == 1
     player_name = l[0]
     player = individual_game.players[player_name]
     graph = get_player_graph(player, solver_params.dt)
 
-    game_graph: GameGraph[Pr, X, U, Y, RP, RJ, SR]
-    initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
+    game_graph: GameGraph[X, U, Y, RP, RJ, SR]
+    initials = frozenset(
+        map(lambda x: frozendict({player_name: x}), player.initial.support())
+    )
 
     game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
 
-    gs: GameSolution[Pr, X, U, Y, RP, RJ, SR]
-    gs = solve_game2(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
+    gs: GameSolution[X, U, Y, RP, RJ, SR]
+    gs = solve_game2(
+        game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials
+    )
 
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
 
 def get_accessible_states(
-    initial: Poss[X, Pr],
+    initial: Poss[X],
     personal_reward_structure: PersonalRewardStructure[X, U, RP],
-    dynamics: Dynamics[Pr, X, U, SR],
+    dynamics: Dynamics[X, U, SR],
     dt: D,
 ) -> MultiDiGraph:
     check_poss(initial, object)
@@ -277,7 +292,7 @@ def get_accessible_states(
     return G
 
 
-def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
+def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     players = game.players
     assert len(players) == 2
     p1, p2 = list(players)
@@ -330,19 +345,32 @@ def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         for (u1, s1s), (u2, s2s) in product(succ1.items(), succ2.items()):
             check_poss(s1s, object)
             check_poss(s2s, object)
-            for (s1, w1), (s2, w2) in product(s1s.it(), s2s.it()):
+            for s1, s2 in product(s1s.support(), s2s.support()):
                 # check_isinstance(s1, VehicleState)
                 # check_isinstance(s2, VehicleState)
                 if (s1, s2) == (None, None):
                     continue
                 S2 = frozendict({p1: s1, p2: s2})
                 if S2 not in G.nodes:
-                    is_final1 = P1.personal_reward_structure.is_personal_final_state(s1) if s1 else True
-                    is_final2 = P2.personal_reward_structure.is_personal_final_state(s2) if s2 else True
+                    is_final1 = (
+                        P1.personal_reward_structure.is_personal_final_state(s1)
+                        if s1
+                        else True
+                    )
+                    is_final2 = (
+                        P2.personal_reward_structure.is_personal_final_state(s2)
+                        if s2
+                        else True
+                    )
 
                     in_game = "AB" if (s1 and s2) else ("A" if s1 else "B")
                     if s1 and s2:
-                        is_joint_final = len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2})) > 0
+                        is_joint_final = (
+                            len(
+                                game.joint_reward.is_joint_final_state({p1: s1, p2: s2})
+                            )
+                            > 0
+                        )
                     else:
                         is_joint_final = False
                     G.add_node(
@@ -358,7 +386,9 @@ def get_game_graph(game: Game[Pr, X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                         if S2 not in stack:
                             stack.append(S2)
                 G.add_edge(S, S2, action=frozendict({p1: u1, p2: u2}))
-                G.nodes[S2]["generation"] = min(G.nodes[S2]["generation"], generation + 1)
+                G.nodes[S2]["generation"] = min(
+                    G.nodes[S2]["generation"], generation + 1
+                )
     return G
 
 
@@ -421,5 +451,7 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
         G.nodes[n]["x"] = g * 200
 
 
-def get_player_graph(player: GamePlayer[Pr, X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
-    return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)
+def get_player_graph(player: GamePlayer[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
+    return get_accessible_states(
+        player.initial, player.personal_reward_structure, player.dynamics, dt=dt
+    )

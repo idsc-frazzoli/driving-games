@@ -5,7 +5,7 @@ from reprep import MIME_GIF, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
 from . import logger
-from .game_def import JointState, Pr, RJ, RP, U, X, Y, SR
+from .game_def import JointState, RJ, RP, U, X, Y, SR
 from .simulate import Simulation
 from .structures_solution import GamePreprocessed, Solutions
 
@@ -17,7 +17,9 @@ __all__ = ["report_solutions"]
 #     return s
 
 
-def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], s: Solutions[Pr, X, U, Y, RP, RJ, SR]):
+def report_solutions(
+    gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, U, Y, RP, RJ, SR]
+):
     r = Report()
 
     sims = dict(s.sims)
@@ -45,7 +47,9 @@ def report_solutions(gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], s: Solutions
     js: JointState
     for i, js in enumerate(s.game_solution.initials):
         st = remove_escapes(debug_print(js))
-        st += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[js].va.game_value))
+        st += ":\n" + remove_escapes(
+            debug_print(s.game_solution.states_to_solution[js].va.game_value)
+        )
         r.text(f"joint_st{i}", st)
 
     return r
@@ -72,7 +76,7 @@ def write_states(r: Report, k: str, sim: Simulation):
 
 #
 # def report_animation(
-#     gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR], sim: Simulation[Pr, X, U, Y, RP, RJ]
+#     gp: GamePreprocessed[X, U, Y, RP, RJ, SR], sim: Simulation[X, U, Y, RP, RJ]
 # ) -> Report:
 #     r = Report()
 #     f = r.figure()
@@ -130,8 +134,8 @@ def get_next_state(gp, s0, actions, dt2):
 
 
 def create_log_animation(
-    gp: GamePreprocessed[Pr, X, U, Y, RP, RJ, SR],
-    sim: Simulation[Pr, X, U, Y, RP, RJ],
+    gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
+    sim: Simulation[X, U, Y, RP, RJ],
     fn: str,
     upsample_log: Optional[int],
 ):

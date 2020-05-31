@@ -4,7 +4,7 @@ from frozendict import frozendict
 
 from possibilities import Poss, PossibilityStructure
 from zuper_commons.types import ZException, ZNotImplementedError
-from .game_def import AgentBelief, JointState, Pr, U, X
+from .game_def import AgentBelief, JointState, U, X
 
 __all__ = ["DoesNotKnowPolicy", "AgentFromPolicy"]
 
@@ -13,21 +13,26 @@ class DoesNotKnowPolicy(ZException):
     pass
 
 
-class AgentFromPolicy(AgentBelief[Pr, X, U]):
-    policy: Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]
-    ps: PossibilityStructure[Pr]
+class AgentFromPolicy(AgentBelief[X, U]):
+    policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]]
+    ps: PossibilityStructure
 
     def __init__(
-        self, ps: PossibilityStructure[Pr], policy: Mapping[X, Mapping[Poss[JointState, Pr], Poss[U, Pr]]]
+        self,
+        ps: PossibilityStructure,
+        policy: Mapping[X, Mapping[Poss[JointState], Poss[U]]],
     ):
         self.policy = policy
         self.ps = ps
 
-    def get_commands(self, state_self: X, state_others: Poss[JointState, Pr]) -> Poss[U, Pr]:
+    def get_commands(self, state_self: X, state_others: Poss[JointState]) -> Poss[U]:
         if state_self not in self.policy:
             msg = "I do not know the policy for this state"
             raise DoesNotKnowPolicy(
-                msg, state_self=state_self, state_others=state_others, states_self_known=set(self.policy),
+                msg,
+                state_self=state_self,
+                state_others=state_others,
+                states_self_known=set(self.policy),
             )
 
         lookup = self.policy[state_self]
@@ -43,4 +48,6 @@ class AgentFromPolicy(AgentBelief[Pr, X, U]):
             if when_nobody_there in lookup:
                 return lookup[when_nobody_there]
 
-            raise ZNotImplementedError(state_self=state_self, state_others=state_others, lookup=lookup)
+            raise ZNotImplementedError(
+                state_self=state_self, state_others=state_others, lookup=lookup
+            )

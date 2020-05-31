@@ -10,7 +10,12 @@ from games.utils import fs
 from geometry import SE2, SE2_from_xytheta, xytheta_from_SE2
 from zuper_commons.types import ZNotImplementedError
 from .collisions import Collision, IMPACT_FRONT, IMPACT_SIDES, ProjectedCar
-from .rectangle import Coordinates, get_rectangle_points_around, make_rectangle, Rectangle
+from .rectangle import (
+    Coordinates,
+    get_rectangle_points_around,
+    make_rectangle,
+    Rectangle,
+)
 from .structures import SE2_disc, VehicleGeometry, VehicleState
 
 __all__ = ["collision_check"]
@@ -19,7 +24,8 @@ __all__ = ["collision_check"]
 # XXX: Note that this only works for the simplest cases.
 #      For example it does not work for head-to-back collision.
 def collision_check(
-    poses: Mapping[PlayerName, VehicleState], geometries: Mapping[PlayerName, VehicleGeometry]
+    poses: Mapping[PlayerName, VehicleState],
+    geometries: Mapping[PlayerName, VehicleGeometry],
 ) -> Mapping[PlayerName, Collision]:
     dt = D(0.5)
     n = 2
@@ -81,7 +87,9 @@ def collision_check(
 
 
 def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
-    return any(b.rectangle.contains(_) for _ in (a.front_right, a.front_center, a.front_left))
+    return any(
+        b.rectangle.contains(_) for _ in (a.front_right, a.front_center, a.front_left)
+    )
 
 
 def sample_x(x: D, v: D, dt: D, n: int) -> List[D]:
@@ -121,7 +129,12 @@ def rectangle_from_pose(ref: SE2_disc, x: D, vg: VehicleGeometry) -> ProjectedCa
     front_center = (qd @ front_center_b)[:2]
     front_right = (qd @ front_right_b)[:2]
 
-    return ProjectedCar(rectangle, front_left=front_left, front_center=front_center, front_right=front_right)
+    return ProjectedCar(
+        rectangle,
+        front_left=front_left,
+        front_center=front_center,
+        front_right=front_right,
+    )
 
 
 @dataclass
@@ -148,7 +161,9 @@ def get_vehicle_points(vs: VehicleState, vg: VehicleGeometry) -> FrozenSet[Coord
     return fs(points)
 
 
-def get_resources_used(vs: VehicleState, vg: VehicleGeometry, ds: D) -> FrozenSet[Rectangle]:
+def get_resources_used(
+    vs: VehicleState, vg: VehicleGeometry, ds: D
+) -> FrozenSet[Rectangle]:
     """ Gets the rectangles that contain the vehicle. """
     points = get_vehicle_points(vs, vg)
 
@@ -156,7 +171,9 @@ def get_resources_used(vs: VehicleState, vg: VehicleGeometry, ds: D) -> FrozenSe
     return rectangles
 
 
-def rectangles_from_points(points: Iterable[Coordinates], ds: D) -> FrozenSet[Rectangle]:
+def rectangles_from_points(
+    points: Iterable[Coordinates], ds: D
+) -> FrozenSet[Rectangle]:
     """ Gets the rectangles containing all these coordinates. """
     return frozenset(rectangle_from_point(_, ds) for _ in points)
 

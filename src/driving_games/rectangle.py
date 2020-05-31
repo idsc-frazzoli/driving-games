@@ -48,7 +48,13 @@ def get_rectangle_points_around(r: Rectangle) -> List[Coordinates]:
 def get_rectangle_countour(r: Rectangle) -> List[Tuple[float, float]]:
     bl = list(map(float, r.bottom_left))
     tr = list(map(float, r.top_right))
-    return [(bl[0], bl[1]), (tr[0], bl[1]), (tr[0], tr[1]), (bl[0], tr[1]), (bl[0], bl[1])]
+    return [
+        (bl[0], bl[1]),
+        (tr[0], bl[1]),
+        (tr[0], tr[1]),
+        (bl[0], tr[1]),
+        (bl[0], bl[1]),
+    ]
 
 
 def make_rectangle(center: Coordinates, sides: Tuple[D, D]) -> Rectangle:
