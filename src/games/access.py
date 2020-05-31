@@ -329,7 +329,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         for (u1, s1s), (u2, s2s) in product(succ1.items(), succ2.items()):
             check_poss(s1s, object)
             check_poss(s2s, object)
-            for (s1, w1), (s2, w2) in product(s1s.it(), s2s.it()):
+            for s1, s2 in product(s1s.support(), s2s.support()):
                 # check_isinstance(s1, VehicleState)
                 # check_isinstance(s2, VehicleState)
                 if (s1, s2) == (None, None):

@@ -58,10 +58,10 @@ class ProbPoss(Poss[A]):
 
 
 class ProbabilityFraction(PossibilityStructure):
-    def lift_one(self, a: A) -> Poss[A, Fraction]:
+    def lift_one(self, a: A) -> ProbPoss[A]:
         return self.lift_many([a])
 
-    def lift_many(self, a: Collection[A]) -> Poss[A, Fraction]:
+    def lift_many(self, a: Collection[A]) -> ProbPoss[A]:
         elements = list(a)
         n = len(elements)
         w = Fraction(1, n)
