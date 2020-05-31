@@ -20,7 +20,6 @@ from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from toolz import valfilter
 
-from contracts import check_isinstance
 from .base import PossibilityStructure, Sampler
 from .poss import Poss
 
@@ -43,10 +42,6 @@ class ProbPoss(Poss[A]):
         self._range = frozenset(self.p.values())
         # check_isinstance(self.p, frozendict)
 
-    def check_contains(self, T: type, **kwargs):
-        for _ in self.p:
-            check_isinstance(_, T, poss=self, **kwargs)
-
     def it(self) -> Iterator[Tuple[A, Fraction]]:
         for _ in self.p.items():
             yield _
@@ -68,7 +63,7 @@ class ProbPoss(Poss[A]):
 
 
 class ProbabilityFraction(PossibilityStructure):
-    def lift_one(self, a: A) -> ProbPoss[A]:
+    def unit(self, a: A) -> ProbPoss[A]:
         return self.lift_many([a])
 
     def lift_many(self, a: Collection[A]) -> ProbPoss[A]:
@@ -78,7 +73,7 @@ class ProbabilityFraction(PossibilityStructure):
         x = {_: w for _ in elements}
         return ProbPoss(frozendict(x))
 
-    def flatten(self, a: ProbPoss[ProbPoss[A]]) -> ProbPoss[A]:
+    def join(self, a: ProbPoss[ProbPoss[A]]) -> ProbPoss[A]:
         res = defaultdict(Fraction)
         for dist, weight in a.it():
             for a, wa in dist.it():

@@ -91,7 +91,7 @@ def simulate1(
 
             # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
-            belief_state_others = ps.lift_one(state_others)
+            belief_state_others = ps.unit(state_others)
 
             p_action = policy.get_commands(state_self, belief_state_others)
 

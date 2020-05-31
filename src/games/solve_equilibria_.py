@@ -62,7 +62,7 @@ def solve_equilibria(
 
         game_value = dict(ea.nondom_nash_equilibria[eq])
         for player_final, final_value in gn.is_final.items():
-            game_value[player_final] = ps.lift_one(Combined(final_value, None))
+            game_value[player_final] = ps.unit(Combined(final_value, None))
         if set(game_value) != set(gn.states):
             raise ZValueError("incomplete", game_value=game_value, gn=gn)
         return ValueAndActions2(game_value=frozendict(game_value), mixed_actions=eq)
@@ -81,7 +81,7 @@ def solve_equilibria(
                 res = set()
                 for _ in ea.nondom_nash_equilibria:
                     res.add(_[player_name])
-                strategy = ps.flatten(ps.lift_many(res))
+                strategy = ps.join(ps.lift_many(res))
                 # check_poss(strategy)
                 profile[player_name] = strategy
 
@@ -97,10 +97,10 @@ def solve_equilibria(
                 def f(jpa: JointPureActions) -> UncertainCombined:
                     return solved[jpa][player_name]
 
-                game_value1[player_name] = ps.flatten(ps.build(dist, f))
+                game_value1[player_name] = ps.join(ps.build(dist, f))
 
             # logger.info(dist=dist)
-            # game_value1 = ps.flatten(ps.build(dist, solved.__getitem__))
+            # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
 
             return ValueAndActions2(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
@@ -120,7 +120,7 @@ def solve_equilibria(
                 def f(jpa: JointPureActions) -> UncertainCombined:
                     return solved[jpa][player_name]
 
-                game_value[player_name] = ps.flatten(ps.build(dist, f))
+                game_value[player_name] = ps.join(ps.build(dist, f))
 
             # game_value: Mapping[PlayerName, UncertainCombined]
             game_value_ = fd(game_value)

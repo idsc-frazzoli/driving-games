@@ -112,7 +112,7 @@ def analyze_equilibria(
                     )
                 return _[player_name]
 
-            x = ps.flatten(ps.build(mixed_outcome, g))
+            x = ps.join(ps.build(mixed_outcome, g))
             res[player_name] = x
 
         results[choice] = frozendict(res)

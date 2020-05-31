@@ -28,7 +28,7 @@ class PossibilityStructure(ABC):
     """
 
     @abstractmethod
-    def lift_one(self, a: A) -> Poss[A]:
+    def unit(self, a: A) -> Poss[A]:
         """ Constructs a distribution from one element. """
 
     @abstractmethod
@@ -36,7 +36,7 @@ class PossibilityStructure(ABC):
         """ Constructs a distribution from a set of elements element. """
 
     @abstractmethod
-    def flatten(self, a: Poss[Poss[A]]) -> Poss[A]:
+    def join(self, a: Poss[Poss[A]]) -> Poss[A]:
         """ The flattening operations for a monad. """
 
     @abstractmethod

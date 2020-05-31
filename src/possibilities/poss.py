@@ -10,10 +10,6 @@ A = TypeVar("A")
 
 class Poss(Generic[A], ABC):
     @abstractmethod
-    def check_contains(self, T: type, **kwargs):
-        pass
-
-    @abstractmethod
     def support(self) -> FrozenSet[A]:
         pass
 

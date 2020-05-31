@@ -66,7 +66,7 @@ def get_security_policy(
 
     plausible = remove_dominated(action2outcomes, preference)
     ret = ps.lift_many(plausible)
-    ret = ps.flatten(ret)
+    ret = ps.join(ret)
     return ret
 
 
@@ -102,7 +102,7 @@ def what_if_player_chooses(
     values: List[UncertainCombined]
     values = list(w.values())
     # XXX not sure it is so simple
-    return ps.flatten(ps.lift_many(values))
+    return ps.join(ps.lift_many(values))
 
 
 def _what_if_player_chooses_get_mixed(
@@ -129,7 +129,7 @@ def _what_if_player_chooses_get_mixed(
         # TODO: for probabilities, there is something more complicated than just "build"
         # ...
         # logger.info(mixed_outcome=mixed_outcome)
-        results[choice] = ps.flatten(mixed_outcome)
+        results[choice] = ps.join(mixed_outcome)
     return results
 
 

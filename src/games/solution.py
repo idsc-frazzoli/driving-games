@@ -196,7 +196,7 @@ def solve_game2(
             if player_name in s0.va.mixed_actions:
                 policy_for_this_state = policies[player_name][player_state]
                 other_states = frozendict({k: v for k, v in state.items() if k != player_name})
-                iset = ps.lift_one(other_states)  # frozenset({other_states})
+                iset = ps.unit(other_states)  # frozenset({other_states})
                 policy_for_this_state[iset] = s0.va.mixed_actions[player_name]
 
     policies2 = frozendict({k: fr(v) for k, v in policies.items()})
@@ -259,7 +259,7 @@ def _solve_game(
 
             stn = solved_to_node[pure_actions]
             # logger.info(stn=stn)
-            player_dist: UncertainCombined = ps.flatten(ps.build(stn, v))
+            player_dist: UncertainCombined = ps.join(ps.build(stn, v))
 
             def f(_: Combined) -> Combined:
                 return add_incremental_cost_single(
@@ -284,18 +284,18 @@ def _solve_game(
         va = solve_equilibria(sc, gn, solved)
 
     ur: UsedResources[X, U, Y, RP, RJ, SR]
-    usage_current = ps.lift_one(gn.resources)
+    usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
     if va.mixed_actions:  # not a final state
         next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
-        next_states = ps.flatten(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
+        next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
         usages: Dict[D, Poss[M[PlayerName, FrozenSet[SR]]]]
         usages = {D(0): usage_current}
         Π = 1
 
         for i in map(D, range(10)):  # XXX: use the range that's needed
-            default = ps.lift_one(frozendict())
+            default = ps.unit(frozendict())
 
             def get_data(x: M[PlayerName, JointState]) -> Poss[Mapping[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
@@ -322,7 +322,7 @@ def _solve_game(
                 return res
 
             at_d = ps.build(next_states, get_data)
-            f = ps.flatten(at_d)
+            f = ps.join(at_d)
             if f.support() != {frozendict()}:
                 usages[i + 1] = f
 
@@ -374,7 +374,7 @@ def solve_final_joint(
 
     for player_name, joint in gn.joint_final_rewards.items():
         personal = sc.game.players[player_name].personal_reward_structure.personal_reward_identity()
-        game_value[player_name] = sc.game.ps.lift_one(Combined(personal=personal, joint=joint))
+        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint))
 
     game_value_ = frozendict(game_value)
     actions = frozendict()
@@ -386,7 +386,7 @@ def solve_final_personal_both(
 ) -> ValueAndActions2[U, RP, RJ]:
     game_value: Dict[PlayerName, UncertainCombined] = {}
     for player_name, personal in gn.is_final.items():
-        game_value[player_name] = sc.game.ps.lift_one(Combined(personal=personal, joint=None))
+        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions2(game_value=game_value_, mixed_actions=actions)

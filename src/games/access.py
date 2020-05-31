@@ -324,12 +324,12 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         n1, n2 = S[p1], S[p2]
 
         if n1 is None or G.nodes[S]["is_final1"]:
-            succ1 = {None: ps.lift_one(None)}
+            succ1 = {None: ps.unit(None)}
         else:
             succ1 = P1.dynamics.successors(n1, dt)
 
         if n2 is None or G.nodes[S]["is_final2"]:
-            succ2 = {None: ps.lift_one(None)}
+            succ2 = {None: ps.unit(None)}
         else:
             succ2 = P2.dynamics.successors(n2, dt)
 

@@ -86,9 +86,9 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
     p1_x = VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
-    p1_initial = ps.lift_one(p1_x)
+    p1_initial = ps.unit(p1_x)
     p2_x = VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
-    p2_initial = ps.lift_one(p2_x)
+    p2_initial = ps.unit(p2_x)
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
         max_wait=max_wait,

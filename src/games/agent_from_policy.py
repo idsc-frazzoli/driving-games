@@ -39,7 +39,7 @@ class AgentFromPolicy(AgentBelief[X, U]):
         else:
             # SetPoss(_p=f❨f{}❩):
 
-            when_nobody_there = self.ps.lift_one(frozendict())
+            when_nobody_there = self.ps.unit(frozendict())
             if when_nobody_there in lookup:
                 return lookup[when_nobody_there]
 

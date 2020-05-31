@@ -62,7 +62,7 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
             continue
         state_self = node.states[player_name]
         state_others: JointState = fd({k: v for k, v in node.states.items() if k != player_name})
-        istate = roc.game.ps.lift_one(state_others)
+        istate = roc.game.ps.unit(state_others)
         options = roc.controllers[player_name].get_commands(state_self, istate)
         action_fixed[player_name] = options
 
@@ -94,7 +94,7 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
         for active_pure_action in iterate_dict_combinations(new_moves):
 
             active_mixed: Dict[PlayerName, Poss[U]]
-            active_mixed = valmap(ps.lift_one, active_pure_action)
+            active_mixed = valmap(ps.unit, active_pure_action)
             active_mixed.update(action_fixed)
 
             # find out which actions are compatible
@@ -106,7 +106,7 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
                 nodes2: Poss[JointState] = node.outcomes[a]
                 return nodes2
 
-            m: Poss[JointState] = ps.flatten(ps.build_multiple(active_mixed, f))
+            m: Poss[JointState] = ps.join(ps.build_multiple(active_mixed, f))
 
             res[active_pure_action] = m
 

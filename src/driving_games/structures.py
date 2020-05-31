@@ -130,7 +130,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = ps.lift_one(x2)
+                possible[u] = ps.unit(x2)
 
         return frozendict(possible)
 

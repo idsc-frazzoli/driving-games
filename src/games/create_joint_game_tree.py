@@ -113,7 +113,7 @@ def get_moves(
         is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
 
         if state is None or is_final:
-            succ = {None: ps.lift_one(None)}
+            succ = {None: ps.unit(None)}
         else:
             succ = player.dynamics.successors(state, dt)
         res[player_name] = succ
