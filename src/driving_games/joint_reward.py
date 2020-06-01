@@ -9,7 +9,9 @@ __all__ = ["VehicleJointReward"]
 
 
 class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
-    def __init__(self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry]):
+    def __init__(
+        self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry],
+    ):
         self.collision_threshold = collision_threshold
         self.geometries = geometries
 

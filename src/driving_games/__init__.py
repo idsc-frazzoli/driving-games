@@ -17,10 +17,3 @@ from .vehicle_observation import *
 from .personal_reward import *
 from .zoo import *
 from .collisions import *
-
-# # Give each symbol this module name
-# for a in list(globals()):
-#     v = globals()[a]
-#     if hasattr(v, "__module__") and v.__module__.startswith(__name__):
-#         logger.info(f"{a} {v.__module__} -> {__name__}")
-#         setattr(v, "__module__", __name__)

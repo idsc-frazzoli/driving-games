@@ -7,12 +7,10 @@ from decorator import contextmanager
 from matplotlib import patches
 
 from games import GameVisualization, PlayerName
-from possibilities import One
-from .rectangle import Rectangle
 from .collisions import Collision
 from .collisions_check import get_resources_used
 from .personal_reward import SE2_from_VehicleState
-from .rectangle import get_rectangle_countour
+from .rectangle import get_rectangle_countour, Rectangle
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
 from .vehicle_observation import VehicleObservation
 
@@ -20,7 +18,7 @@ __all__ = ["DrivingGameVisualization"]
 
 
 class DrivingGameVisualization(
-    GameVisualization[One, VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
+    GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
 ):
     """ Visualization for the driving games"""
 
@@ -100,14 +98,18 @@ class DrivingGameVisualization(
 
             self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
 
-        plot_car(self.pylab, player_name, q, velocity=velocity, light_colors=colors[light], vg=vg)
+        plot_car(
+            self.pylab, player_name, q, velocity=velocity, light_colors=colors[light], vg=vg,
+        )
 
     def hint_graph_node_pos(self, state: VehicleState) -> Tuple[float, float]:
         w = -state.wait * D(0.2)
         return float(state.x), float(state.v + w)
 
 
-def plot_car(pylab, player_name: PlayerName, q: np.array, velocity, light_colors, vg: VehicleGeometry):
+def plot_car(
+    pylab, player_name: PlayerName, q: np.array, velocity, light_colors, vg: VehicleGeometry,
+):
     L = float(vg.length)
     W = float(vg.width)
     car_color = vg.color
@@ -143,7 +145,9 @@ def plot_car(pylab, player_name: PlayerName, q: np.array, velocity, light_colors
 
     x4, y4 = get_transformed_xy(q, ((0, 0),))
     # pylab.plot(x4, y4, "k*", zorder=15)
-    pylab.text(x4, y4, player_name, zorder=15, horizontalalignment="center", verticalalignment="center")
+    pylab.text(
+        x4, y4, player_name, zorder=15, horizontalalignment="center", verticalalignment="center",
+    )
 
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:

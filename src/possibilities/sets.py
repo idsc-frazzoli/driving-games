@@ -1,62 +1,37 @@
 import itertools
 from dataclasses import dataclass
-from typing import Callable, cast, Collection, FrozenSet, Iterator, Mapping, NewType, Set, Tuple, TypeVar
+from typing import Callable, Collection, FrozenSet, Mapping, Set, TypeVar
 
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 
-from zuper_commons.types import check_isinstance, ZValueError
-from .base import PossibilityStructure, Sampler
+from zuper_commons.types import ZValueError
+from .base import PossibilityMonad, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
 
-__all__ = ["ProbabilitySet", "One"]
+__all__ = ["ProbabilitySet"]
 
 A = TypeVar("A")
 B = TypeVar("B")
 K = TypeVar("K")
 
-One = NewType("One", str)
-
-one = cast(One, ())
-
 
 @dataclass(unsafe_hash=True)
-class SetPoss(Poss[A, One]):
+class SetPoss(Poss[A]):
     _p: FrozenSet[A]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._r = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self._r is None:
             self._r = f"Set({self._p.__repr__()})"
         return self._r
 
-    def check_contains(self, T: type, **kwargs):
-        for _ in self.support():
-            check_isinstance(_, T, poss=self, **kwargs)
-
-    def it(self) -> Iterator[Tuple[A, One]]:
-        for _ in self._p:
-            yield _, one
-
     def support(self) -> FrozenSet[A]:
         """ Returns the support of the distribution """
         return self._p
-
-    # def get(self, a: A) -> One:
-    #     if a not in self._p:
-    #         raise ZValueError(a=a)
-    #     return one
-
-    # def __eq__(self, other):
-    #     if self._support != other._support:
-    #         return False
-    #     if self._range != other._range:
-    #         return False
-    #     # return True ##### XXXXX
-    #     return self.p == other.p
 
 
 # class Cache:
@@ -71,8 +46,8 @@ def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
     # return Cache.cache[f]
 
 
-class ProbabilitySet(PossibilityStructure[One]):
-    def lift_one(self, a: A) -> SetPoss[A]:
+class ProbabilitySet(PossibilityMonad):
+    def unit(self, a: A) -> SetPoss[A]:
         return self.lift_many([a])
 
     def lift_many(self, a: Collection[A]) -> SetPoss[A]:
@@ -99,29 +74,20 @@ class ProbabilitySet(PossibilityStructure[One]):
 
         return make_setposs(frozenset(res))
 
-    def flatten(self, a: SetPoss[SetPoss[A]]) -> SetPoss[A]:
+    def join(self, a: SetPoss[SetPoss[A]]) -> SetPoss[A]:
         supports = [_.support() for _ in a.support()]
         s = set(itertools.chain.from_iterable(supports))
         return self.lift_many(s)
 
-    def get_sampler(self, seed: int) -> "SetSampler[One]":
+    def get_sampler(self, seed: int) -> "SetSampler":
         return SetSampler(seed)
 
     def mix(self, a: Collection[A]) -> FrozenSet[SetPoss[A]]:
         poss = non_empty_sets(frozenset(a))
         return frozenset(map(self.lift_many, poss))
 
-    # def multiply(self, a: Iterable[One]) -> One:
-    #     a = set(a)
-    #     assert a == {one}, (a, one)
-    #     return one
 
-    # def fold(self, a: Iterable[Tuple[A, One]]) -> SetPoss[A]:
-    #     res = set(x for x, _ in a)
-    #     return self.lift_many(res)
-
-
-class SetSampler(Sampler[One]):
+class SetSampler(Sampler):
     def __init__(self, seed: int):
         self.rs = RandomState(seed)
 

@@ -38,6 +38,7 @@ jobs:
           name: Make docs
           command: |
             make docs
+            
       - run:
           name: Notebooks
           command: |

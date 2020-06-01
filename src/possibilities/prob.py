@@ -4,14 +4,23 @@ from dataclasses import dataclass
 from fractions import Fraction
 from functools import reduce
 from itertools import permutations
-from typing import AbstractSet, Callable, Collection, Dict, FrozenSet, Iterator, Mapping, Tuple, TypeVar
+from typing import (
+    AbstractSet,
+    Callable,
+    Collection,
+    Dict,
+    FrozenSet,
+    Iterator,
+    Mapping,
+    Tuple,
+    TypeVar,
+)
 
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from toolz import valfilter
 
-from contracts import check_isinstance
-from .base import PossibilityStructure, Sampler, Φ
+from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
 __all__ = ["ProbabilityFraction"]
@@ -22,22 +31,18 @@ K = TypeVar("K")
 
 
 @dataclass(unsafe_hash=True)
-class ProbPoss(Poss[A, Fraction]):
+class ProbPoss(Poss[A]):
     p: Mapping[A, Fraction]
     __print_order__ = ["p"]
     _support: FrozenSet[A] = None
     _range: FrozenSet[Fraction] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self._support = frozenset(self.p)
         self._range = frozenset(self.p.values())
         # check_isinstance(self.p, frozendict)
 
-    def check_contains(self, T: type, **kwargs):
-        for _ in self.p:
-            check_isinstance(_, T, poss=self, **kwargs)
-
-    def it(self) -> Iterator[Tuple[A, Φ]]:
+    def it(self) -> Iterator[Tuple[A, Fraction]]:
         for _ in self.p.items():
             yield _
 
@@ -45,10 +50,10 @@ class ProbPoss(Poss[A, Fraction]):
         """ Returns the support of the distribution """
         return self._support
 
-    def get(self, a: A) -> Φ:
+    def get(self, a: A) -> Fraction:
         return self.p[a]
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if self._support != other._support:
             return False
         if self._range != other._range:
@@ -57,18 +62,18 @@ class ProbPoss(Poss[A, Fraction]):
         return self.p == other.p
 
 
-class ProbabilityFraction(PossibilityStructure[Fraction]):
-    def lift_one(self, a: A) -> Poss[A, Fraction]:
+class ProbabilityFraction(PossibilityMonad):
+    def unit(self, a: A) -> ProbPoss[A]:
         return self.lift_many([a])
 
-    def lift_many(self, a: Collection[A]) -> Poss[A, Fraction]:
+    def lift_many(self, a: Collection[A]) -> ProbPoss[A]:
         elements = list(a)
         n = len(elements)
         w = Fraction(1, n)
         x = {_: w for _ in elements}
         return ProbPoss(frozendict(x))
 
-    def flatten(self, a: ProbPoss[ProbPoss[A]]) -> ProbPoss[A]:
+    def join(self, a: ProbPoss[ProbPoss[A]]) -> ProbPoss[A]:
         res = defaultdict(Fraction)
         for dist, weight in a.it():
             for a, wa in dist.it():
@@ -95,7 +100,7 @@ class ProbabilityFraction(PossibilityStructure[Fraction]):
 
         return ProbPoss(frozendict(res))
 
-    def get_sampler(self, seed: int) -> "ProbSampler[Fraction]":
+    def get_sampler(self, seed: int) -> "ProbSampler":
         return ProbSampler(seed)
 
     def mix(self, a: Collection[A]) -> FrozenSet[ProbPoss[A]]:
@@ -148,7 +153,9 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     return res
 
 
-class ProbSampler(Sampler[Fraction]):
+class ProbSampler(Sampler):
+    rs: RandomState
+
     def __init__(self, seed: int):
         self.rs = RandomState(seed)
 

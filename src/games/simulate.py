@@ -11,7 +11,6 @@ from .game_def import (
     JointPureActions,
     JointState,
     PlayerName,
-    Pr,
     RJ,
     RP,
     SR,
@@ -24,18 +23,18 @@ __all__ = []
 
 
 @dataclass
-class SimulationStep(Generic[Pr, X, U, Y, RP, RJ]):
+class SimulationStep(Generic[X, U, Y, RP, RJ]):
     states: JointState
     pure_actions: JointPureActions
     incremental_costs: Mapping[PlayerName, RP]
     joint_cost: Optional[RJ]
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         check_joint_pure_actions(self.pure_actions)
 
 
 @dataclass
-class Simulation(Generic[Pr, X, U, Y, RP, RJ]):
+class Simulation(Generic[X, U, Y, RP, RJ]):
     states: Mapping[D, JointState]
     actions: Mapping[D, JointPureActions]
     costs: Mapping[D, Mapping[PlayerName, RP]]
@@ -46,12 +45,12 @@ N = TypeVar("N")
 
 
 def simulate1(
-    game: Game[Pr, X, U, Y, RP, RJ, SR],
-    policies: Mapping[PlayerName, AgentBelief[Pr, X, U]],
+    game: Game[X, U, Y, RP, RJ, SR],
+    policies: Mapping[PlayerName, AgentBelief[X, U]],
     initial_states: JointState,
     dt: D,
     seed: int,
-) -> Simulation[Pr, X, U, Y, RP, RJ]:
+) -> Simulation[X, U, Y, RP, RJ]:
     S_states: Dict[D, JointState] = {}
     S_actions: Dict[D, JointState] = {}
     S_costs: Dict[D, Mapping[PlayerName, RP]] = {}
@@ -92,7 +91,7 @@ def simulate1(
 
             # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
-            belief_state_others = ps.lift_one(state_others)
+            belief_state_others = ps.unit(state_others)
 
             p_action = policy.get_commands(state_self, belief_state_others)
 
