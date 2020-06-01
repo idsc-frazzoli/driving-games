@@ -3,13 +3,11 @@ import numpy as np
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure
-from handcrafted_games.handcrafted_structures import (
-    BirdState, BirdCosts, BirdActions)
+from handcrafted_games.handcrafted_structures import BirdState, BirdCosts, BirdActions
 from preferences import SmallerPreferred
 
 
-class BirdPersonalRewardStructureCustom(
-        PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
+class BirdPersonalRewardStructureCustom(PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
     max_stages: int
 
     def __init__(self, max_stages: int):
@@ -21,7 +19,7 @@ class BirdPersonalRewardStructureCustom(
         return BirdCosts(0)
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
-        return BirdCosts(r1.cost+r2.cost)
+        return BirdCosts(r1.cost + r2.cost)
 
     def personal_final_reward(self, x: BirdState) -> BirdCosts:
         check_isinstance(x, BirdState)
@@ -43,15 +41,17 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     col_player: PlayerName
     mat_payoffs: Sequence[np.ndarray]
 
-    def __init__(self,
-                 max_stages: int,
-                 leaves_payoffs: Sequence[np.ndarray],
-                 row_player: PlayerName,
-                 col_player: PlayerName):
+    def __init__(
+        self,
+        max_stages: int,
+        leaves_payoffs: Sequence[np.ndarray],
+        row_player: PlayerName,
+        col_player: PlayerName,
+    ):
         self.row_player = row_player
         self.col_player = col_player
         self.max_stages = max_stages
-        assert len(leaves_payoffs) == 4,leaves_payoffs
+        assert len(leaves_payoffs) == 4, leaves_payoffs
         self.mat_payoffs = leaves_payoffs
 
     # @lru_cache(None)
@@ -94,8 +94,8 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         else:
             subgame = 3
 
-        z1_dec = x1.z-round(x1.z)
-        z2_dec = x2.z-round(x2.z)
+        z1_dec = x1.z - round(x1.z)
+        z2_dec = x2.z - round(x2.z)
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 
         return subgame, row, col
