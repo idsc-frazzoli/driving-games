@@ -7,8 +7,9 @@ from frozendict import frozendict
 from zuper_commons.types import ZValueError
 
 from driving_games.structures import InvalidAction
-from games import Dynamics, PlayerName, Observations
-from possibilities import One, Poss, ProbabilitySet
+from games import Dynamics, PlayerName, Observations, X
+from games.game_def import SR
+from possibilities import Poss, ProbabilitySet
 
 Go = NewType("Go", str)
 UP = Go("up")
@@ -39,7 +40,7 @@ class BirdState(object):
     stage: int = 0
 
 
-class FlyingDynamics(Dynamics[One, BirdState, BirdActions]):
+class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
     """Pulling UP increases x, DOWN decreases"""
 
     @lru_cache(None)
@@ -50,7 +51,7 @@ class FlyingDynamics(Dynamics[One, BirdState, BirdActions]):
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState, One]]:
+    def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         ps = ProbabilitySet()
         possible = {}
@@ -60,7 +61,7 @@ class FlyingDynamics(Dynamics[One, BirdState, BirdActions]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = ps.lift_one(x2)
+                possible[u] = ps.unit(x2)
 
         return frozendict(possible)
 
@@ -70,11 +71,15 @@ class FlyingDynamics(Dynamics[One, BirdState, BirdActions]):
         # allow arbitrary payoff matrices
         altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
         if u.go == UP:
-            return replace(x, z=x.z + altitude_incr, stage=x.stage + 1)
+            return replace(x, z=x.z+altitude_incr, stage=x.stage+1)
         if u.go == DOWN:
-            return replace(x, z=x.z - altitude_incr, stage=x.stage + 1)
+            return replace(x, z=x.z-altitude_incr, stage=x.stage+1)
         else:
             raise ZValueError(x=x, u=u)
+
+    def get_shared_resources(self, x: X) -> FrozenSet[SR]:
+        return None
+        #raise NotImplementedError("For the toy example the concept of shared resources is not needed")
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -82,14 +87,14 @@ class BirdObservation:
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 
 
-class BirdDirectObservations(Observations[One, BirdState, BirdObservation]):
+class BirdDirectObservations(Observations[BirdState, BirdObservation]):
     possible_states: Mapping[PlayerName, FrozenSet[BirdState]]
     my_possible_states: FrozenSet[BirdState]
 
     def __init__(
-        self,
-        my_possible_states: FrozenSet[BirdState],
-        possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
+            self,
+            my_possible_states: FrozenSet[BirdState],
+            possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
@@ -110,7 +115,7 @@ class BirdDirectObservations(Observations[One, BirdState, BirdObservation]):
 
     @lru_cache(None)
     def get_observations(
-        self, me: BirdState, others: Mapping[PlayerName, BirdState]
+            self, me: BirdState, others: Mapping[PlayerName, BirdState]
     ) -> FrozenSet[BirdObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
@@ -122,4 +127,4 @@ class BirdDirectObservations(Observations[One, BirdState, BirdObservation]):
 
 @dataclass(frozen=True)
 class BirdCosts:
-    cost: int
+    cost: Union[float, int]

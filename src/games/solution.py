@@ -172,6 +172,14 @@ def solve_game2(
     gg: GameGraph[X, U, Y, RP, RJ, SR],
     jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
+    """
+    Solve game for individual player? # todo
+    :param game:
+    :param solver_params:
+    :param gg:
+    :param jss:
+    :return:
+    """
     outcome_set_preferences = get_outcome_set_preferences_for_players(game)
     states_to_solution: Dict[JointState, SolvedGameNode] = {}
     sc = SolvingContext(
@@ -353,11 +361,11 @@ def add_incremental_cost_single(
     *,
     player_name: PlayerName,
     cur: Combined[RP, RJ],
-    incremental_for_player: M[PlayerName, RP],
+    incremental_for_player: M[PlayerName, Poss[RP]],
 ) -> Combined[RP, RJ]:
     inc = incremental_for_player[player_name]
     reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-
+    # fixme this should use
     personal = reduce(inc, cur.personal)
 
     joint = cur.joint

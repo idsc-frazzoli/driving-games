@@ -230,7 +230,7 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
     res = GameNode(
-        moves=(movesets_for_remaining),
+        moves=movesets_for_remaining,
         states=frozendict(states),
         outcomes=frozendict(pure_outcomes),
         incremental=fvalmap(frozendict, incremental),

@@ -88,7 +88,7 @@ class VehicleState:
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
     accel: D
-    light: Lights = "none"
+    light: Lights = NO_LIGHTS
 
 
 class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):

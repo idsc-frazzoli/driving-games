@@ -121,7 +121,6 @@ def _what_if_player_chooses_get_mixed(
 
         def get_for_me(x: JointPureActions) -> UncertainCombined:
             r = pure_outcomes[x][player_name]
-
             return r
 
         mixed_outcome: Poss[UncertainCombined] = ps.build(dist, get_for_me)

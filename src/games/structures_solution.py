@@ -99,7 +99,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     is_final: Mapping[PlayerName, RP]
     """ Final cost for the players that terminate here."""
 
-    incremental: Mapping[PlayerName, Mapping[U, RP]]
+    incremental: Mapping[PlayerName, Mapping[U, Poss[RP]]]
     """ Incremental cost according to action taken. """
 
     joint_final_rewards: Mapping[PlayerName, RJ]
