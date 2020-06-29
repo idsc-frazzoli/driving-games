@@ -1,20 +1,25 @@
 from dataclasses import dataclass
 
-from numpy.linalg import lstsq, LinAlgError
-import warnings
+from numpy.linalg import lstsq, LinAlgError, qr
 from itertools import chain, combinations
-
+from nash import logger
 import numpy as np
 
-__all__ = ["support_enumeration"]
+__all__ = ["compute_ne"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
 class Equilibrium:
     s1: np.ndarray
     s2: np.ndarray
-    p1_payoff: float  # fixme
-    p2_payoff: float  # fixme
+    p1_payoff: float
+    p2_payoff: float
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            raise NotImplementedError
+        return (self.p1_payoff == other.p1_payoff and self.p2_payoff == other.p2_payoff and
+                np.array_equal(self.s1, other.s1) and np.array_equal(self.s2, other.s2))
 
 
 def powerset(n: int):
@@ -23,23 +28,20 @@ def powerset(n: int):
     Based on recipe from python itertools documentation:
     https://docs.python.org/2/library/itertools.html#recipes
     """
-    return chain.from_iterable(combinations(range(n), r) for r in range(n + 1))
+    return chain.from_iterable(combinations(range(n), r) for r in range(n+1))
 
 
-def potential_support_pairs(A, B, non_degenerate=False):
+def potential_support_pairs(n_p1_strat: int, n_p2_strat: int, non_degenerate=False):
     """
     A generator for the potential support pairs
     Returns
     -------
         A generator of all potential support pairs
     """
-    p1_num_strategies, p2_num_strategies = A.shape
-    for support1 in (s for s in powerset(p1_num_strategies) if len(s) > 0):
-        for support2 in (
-            s
-            for s in powerset(p2_num_strategies)
-            if (len(s) > 0 and not non_degenerate) or len(s) == len(support1)
-        ):
+    for support1 in (s for s in powerset(n_p1_strat) if len(s) > 0):
+        for support2 in (s for s in powerset(n_p2_strat)
+                         if (len(s) > 0 and not non_degenerate) or len(s) == len(support1)
+                         ):
             yield support1, support2
 
 
@@ -52,15 +54,16 @@ def solve_supports(A, B, non_degenerate=False):
         potential support. Return False if they are not valid (not a
         probability vector OR not fully on the given support).
     """
-    for pair in potential_support_pairs(A, B, non_degenerate=non_degenerate):
-        s1, s2 = np.zeros(np.shape(A)[0]), np.zeros(np.shape(A)[1])
+    n_rows, n_cols = A.shape
+    for pair in potential_support_pairs(n_rows, n_cols, non_degenerate=non_degenerate):
+        s1, s2 = np.zeros(n_rows), np.zeros(n_cols)
 
-        if s1.size == 1 and s2.size == 1:
-            # if both strategies are singleton no need to solve the linear system
+        # if both strategies are singleton no need to solve the linear system
+        if len(pair[0]) == 1 and len(pair[1]) == 1:
             sub_s1 = np.array([[1]])
             sub_s2 = np.array([[1]])
+        # extract submatrices and solve linear program
         else:
-            # extract submatrices and solve linear program
             sub_A = A[np.ix_(pair[0], pair[1])]
             sub_B = B[np.ix_(pair[0], pair[1])]
             sub_s1, sub_s2 = solve_linsystem(sub_A, sub_B)
@@ -73,15 +76,27 @@ def solve_supports(A, B, non_degenerate=False):
 
 def _try_lstsq(A, b):
     try:
-        x, residuals, _, _ = lstsq(A, b, rcond=None)
-        # todo analysis of residuals to check if it is a valid solution?
-        return x
-    except LinAlgError as e:
-        e.args += "Not sure what happened"
-        raise e
+        sol, res, rnk, s = np.linalg.lstsq(A, b, rcond=None)
+        if rnk == A.shape[1]:
+            return sol  # nothing more to do if A is full-rank
+        Q, R = qr(A.T)
+        Z = Q[:, rnk:].conj()
+        C = np.linalg.solve(Z[rnk:], -sol[rnk:])
+        return sol+Z.dot(C)
+    except LinAlgError:
+        logger.warn("error in trying to solve the least square")
+    return sol
+
+    # try:
+    #     x, residuals, _, _ = lstsq(A, b,rcond=None)
+    #     # todo check residuals to find out if the solution is acceptable
+    #     return x
+    # except LinAlgError as e:
+    #     logger.error("Least square computation did not converge")
+    #     raise e
 
 
-def solve_linsystem(A: np.ndarray, B: np.ndarray) -> (np.ndarray, np.ndarray):
+def solve_linsystem(A: np.ndarray, B: np.ndarray):
     """
     Let the two strategy vectors be s1 and s2.
     We first solve
@@ -89,9 +104,9 @@ def solve_linsystem(A: np.ndarray, B: np.ndarray) -> (np.ndarray, np.ndarray):
     then
         s1*B = c2 && sum(s1)=1
     """
-    nrow, ncol = A.shape
-    zeros_like_s1, zeros_like_s2 = np.zeros([nrow, 1]), np.zeros([1, ncol])
-    ones_like_s1, ones_like_s2 = np.ones([nrow, 1]), np.ones([1, ncol])
+    n_rows, n_cols = A.shape
+    zeros_like_s1, zeros_like_s2 = np.zeros([n_rows, 1]), np.zeros([1, n_cols])
+    ones_like_s1, ones_like_s2 = np.ones([n_rows, 1]), np.ones([1, n_cols])
 
     # solve system 1
     A_lineq1 = np.concatenate([-ones_like_s1, A], axis=1)
@@ -113,29 +128,26 @@ def solve_linsystem(A: np.ndarray, B: np.ndarray) -> (np.ndarray, np.ndarray):
     return s1, s2
 
 
-def is_ne(A: np.ndarray, B: np.ndarray, s1: np.ndarray, s2: np.ndarray, tol: float) -> bool:
+def is_ne(A, B, s1, s2, tol) -> bool:
     """
     Test if a given strategy pair is a pair of best responses
     """
-    if (
-        np.any(np.logical_or(s1 < 0, 1 < s1))
-        or np.any(np.logical_or(s2 < 0, 1 < s2))
-        or not np.isclose(sum(s1), 1)
-        or not np.isclose(sum(s2), 1)
-    ):
+    if np.any(np.logical_or(s1 < 0, 1 < s1)) or \
+            np.any(np.logical_or(s2 < 0, 1 < s2)) or \
+            not np.isclose(sum(s1), 1) or \
+            not np.isclose(sum(s2), 1):
         return False
     # Payoff against opponents strategies:
     row_payoffs = np.dot(A, s2)
     column_payoffs = np.dot(s1, B)
-
     # Payoffs for current candidate strategy
     p1_payoff = np.dot(s1, row_payoffs)
     p2_payoff = np.dot(column_payoffs, s2)
     # must be a best response
-    return p1_payoff <= np.min(row_payoffs) + tol and p2_payoff <= np.min(column_payoffs) + tol
+    return p1_payoff <= np.min(row_payoffs) and p2_payoff <= np.min(column_payoffs)
 
 
-def support_enumeration(A: np.ndarray, B: np.ndarray, non_degenerate: bool = False, tol: float = 10 ** -16):
+def compute_ne(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=10**-16):
     """
     Obtain the Nash equilibria using support enumeration.
     Algorithm implemented here is Algorithm 3.4 of [Nisan2007]_
@@ -148,19 +160,13 @@ def support_enumeration(A: np.ndarray, B: np.ndarray, non_degenerate: bool = Fal
         equilibria: A generator.
     """
     count = 0
-    for s1, s2 in solve_supports(A, B, non_degenerate=non_degenerate,):
+    for s1, s2 in solve_supports(A, B, non_degenerate=non_degenerate):
         if is_ne(A, B, s1, s2, tol=tol):
             count += 1
             payoff1 = float(np.dot(np.dot(s1, A), s2))
             payoff2 = float(np.dot(np.dot(s1, B), s2))
             yield Equilibrium(s1, s2, payoff1, payoff2)
-    if count % 2 == 0:
-        # fixme check why this warning
-        warning = """
-An even number of ({}) equilibria was returned. This
-indicates that the game is degenerate. Consider using another algorithm
-to investigate.
-                  """.format(
-            count
-        )
-        warnings.warn(warning, RuntimeWarning)
+    if count%2 == 0:
+        logger.warn(""" An even number of ({}) equilibria was returned. This 
+        indicates that the game is degenerate. Consider using another algorithm to investigate.""".format(
+            count))

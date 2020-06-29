@@ -1,8 +1,8 @@
-from typing import Any, FrozenSet, Mapping, Sequence, List, Tuple
+from typing import Any, FrozenSet, Mapping, Sequence,  Tuple
 import numpy as np
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
-from games import JointRewardStructure, PlayerName, PersonalRewardStructure, RP
+from games import JointRewardStructure, PlayerName, PersonalRewardStructure
 from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
 from preferences import SmallerPreferred
 

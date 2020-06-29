@@ -6,7 +6,7 @@ from toy_games.toy_rewards import (
     BirdPreferences,
     BirdJointReward,
 )
-from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations
+from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
 from possibilities import ProbabilitySet, PossibilityMonad
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
@@ -72,7 +72,7 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
         ps=ps,
         players=frozendict({P1: p1, P2: p2}),
         joint_reward=birds_joint_reward,
-        game_visualization=None
+        game_visualization=BirdsVisualization()
     )
     gs = GameSpec("Handcrafted game to study edge cases", handcrafted_game)
     return gs

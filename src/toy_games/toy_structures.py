@@ -1,13 +1,14 @@
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from functools import lru_cache
-from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional
+from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple
 from decimal import Decimal as D
 
 from frozendict import frozendict
 from zuper_commons.types import ZValueError
 
 from driving_games.structures import InvalidAction
-from games import Dynamics, PlayerName, Observations, X
+from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
 from possibilities import Poss, ProbabilitySet
 
@@ -79,7 +80,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
 
     def get_shared_resources(self, x: X) -> FrozenSet[SR]:
         return None
-        #raise NotImplementedError("For the toy example the concept of shared resources is not needed")
+        # raise NotImplementedError("For the toy example the concept of shared resources is not needed")
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -128,3 +129,17 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 @dataclass(frozen=True)
 class BirdCosts:
     cost: Union[float, int]
+
+
+class BirdsVisualization(
+    GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]):
+
+    def hint_graph_node_pos(self, state: X) -> Tuple[float, float]:
+        pass
+
+    def plot_player(self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0):
+        pass
+
+    @contextmanager
+    def plot_arena(self, pylab, ax):
+        yield
