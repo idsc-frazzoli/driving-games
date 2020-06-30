@@ -11,7 +11,7 @@ from preferences import (
     SmallerPreferredTol,
 )
 from zuper_typing import debug_print
-from .collisions import Collision
+from driving_games.collisions import Collision
 
 __all__ = ["CollisionPreference"]
 

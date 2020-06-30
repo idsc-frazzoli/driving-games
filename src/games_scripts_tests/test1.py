@@ -45,6 +45,16 @@ def test_run4() -> None:
     solvers = {k: solvers_zoo[k] for k in do_solvers}
     res = without_compmake(games, solvers)
 
+def test_run5() -> None:
+    do_games = ["lf_v0"]
+    do_solvers = [
+        "solver-1-security-fact",
+    ]
+
+    games = {k: games_zoo[k] for k in do_games}
+    solvers = {k: solvers_zoo[k] for k in do_solvers}
+    res = without_compmake(games, solvers)
+
 
 if __name__ == "__main__":
     # test_run2()
