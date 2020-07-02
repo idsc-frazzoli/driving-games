@@ -12,7 +12,8 @@ from typing import (
     List,
     Mapping,
     Set,
-    Tuple, Optional,
+    Tuple,
+    Optional,
 )
 
 import numpy as np

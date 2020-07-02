@@ -72,9 +72,9 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
         # allow arbitrary payoff matrices
         altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
         if u.go == UP:
-            return replace(x, z=x.z+altitude_incr, stage=x.stage+1)
+            return replace(x, z=x.z + altitude_incr, stage=x.stage + 1)
         if u.go == DOWN:
-            return replace(x, z=x.z-altitude_incr, stage=x.stage+1)
+            return replace(x, z=x.z - altitude_incr, stage=x.stage + 1)
         else:
             raise ZValueError(x=x, u=u)
 
@@ -93,9 +93,9 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
     my_possible_states: FrozenSet[BirdState]
 
     def __init__(
-            self,
-            my_possible_states: FrozenSet[BirdState],
-            possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
+        self,
+        my_possible_states: FrozenSet[BirdState],
+        possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
@@ -116,7 +116,7 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 
     @lru_cache(None)
     def get_observations(
-            self, me: BirdState, others: Mapping[PlayerName, BirdState]
+        self, me: BirdState, others: Mapping[PlayerName, BirdState]
     ) -> FrozenSet[BirdObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
@@ -132,8 +132,8 @@ class BirdCosts:
 
 
 class BirdsVisualization(
-    GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]):
-
+    GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]
+):
     def hint_graph_node_pos(self, state: X) -> Tuple[float, float]:
         pass
 

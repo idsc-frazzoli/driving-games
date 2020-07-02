@@ -29,10 +29,10 @@ class VehiclePreferencesCollTime(Preference[Combined[Collision, VehicleCosts]]):
 
     def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
-        return "VehiclePreferencesCollTime: "+debug_print(d)
+        return "VehiclePreferencesCollTime: " + debug_print(d)
 
     def compare(
-            self, a: Combined[Collision, VehicleCosts], b: Combined[Collision, VehicleCosts]
+        self, a: Combined[Collision, VehicleCosts], b: Combined[Collision, VehicleCosts]
     ) -> ComparisonOutcome:
         # check_isinstance(a, Combined)
         # check_isinstance(b, Combined)

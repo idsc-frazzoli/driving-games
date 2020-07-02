@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Mapping, Sequence,  Tuple
+from typing import Any, FrozenSet, Mapping, Sequence, Tuple
 import numpy as np
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
@@ -22,7 +22,7 @@ class BirdPersonalRewardStructureCustom(PersonalRewardStructure[BirdState, BirdA
         return BirdCosts(0)
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
-        return BirdCosts(r1.cost+r2.cost)
+        return BirdCosts(r1.cost + r2.cost)
 
     def personal_final_reward(self, x: BirdState) -> BirdCosts:
         check_isinstance(x, BirdState)
@@ -45,11 +45,11 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     mat_payoffs: Sequence[np.ndarray]
 
     def __init__(
-            self,
-            max_stages: int,
-            leaves_payoffs: Sequence[np.ndarray],
-            row_player: PlayerName,
-            col_player: PlayerName,
+        self,
+        max_stages: int,
+        leaves_payoffs: Sequence[np.ndarray],
+        row_player: PlayerName,
+        col_player: PlayerName,
     ):
         self.row_player = row_player
         self.col_player = col_player
@@ -78,12 +78,24 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         res = {}
         x1, x2 = xs[self.row_player], xs[self.col_player]
         subgame, row, col = self.get_payoff_matrix_idx(x1, x2)
-        payoff1, payoff2 = self.mat_payoffs[subgame][row, col]
+        payoff1, payoff2 = self.mat_payoffs[subgame][:, row, col]
         res.update({self.row_player: payoff1, self.col_player: payoff2})
         return res
 
     @staticmethod
     def get_payoff_matrix_idx(x1: BirdState, x2: BirdState) -> Tuple[int, int, int]:
+        """
+        Trick to build encapsulate payoff matrices into the dynamic game
+        joint state (x1,x2):
+        (<0,<0) -> G1
+        (<0,>0) -> G2
+        (>0,<0) -> G3
+        (>0,>0) -> G4
+        To figure out the indices we then look at the decimals...
+        :param x1:
+        :param x2:
+        :return:
+        """
         subgame: int
         row: int
         col: int
@@ -98,8 +110,8 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         else:
             subgame = 3
 
-        z1_dec = x1.z-round(x1.z)
-        z2_dec = x2.z-round(x2.z)
+        z1_dec = x1.z - round(x1.z)
+        z2_dec = x2.z - round(x2.z)
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 
         return subgame, row, col
