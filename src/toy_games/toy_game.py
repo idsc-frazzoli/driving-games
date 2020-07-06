@@ -7,7 +7,7 @@ from toy_games.toy_rewards import (
     BirdJointReward,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import ProbabilitySet, PossibilityMonad
+from possibilities import PossibilitySet, PossibilityMonad
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
 import numpy as np
@@ -17,7 +17,7 @@ __all__ = ["get_toy_game_spec"]
 
 
 def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> GameSpec:
-    ps: PossibilityMonad = ProbabilitySet()
+    ps: PossibilityMonad = PossibilitySet()
     P1, P2 = PlayerName("1"), PlayerName("2")
     dt = D(1)  # not relevant for this example
 

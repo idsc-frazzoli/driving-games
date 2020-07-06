@@ -7,7 +7,7 @@ from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
 from frozendict import frozendict
 
 from games import Dynamics
-from possibilities import Poss, ProbabilitySet
+from possibilities import Poss, PossibilitySet
 from zuper_commons.types import ZException, ZValueError
 from .rectangle import Rectangle
 
@@ -154,7 +154,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         if x.wait >= self.max_wait:
             assert x.v == 0, x
             accels.remove(D(0))
-        ps = ProbabilitySet()
+        ps = PossibilitySet()
 
         possible = {}
         for light, accel in itertools.product(self.lights_commands, self.available_accels):

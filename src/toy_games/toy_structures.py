@@ -10,7 +10,7 @@ from zuper_commons.types import ZValueError
 from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
-from possibilities import Poss, ProbabilitySet
+from possibilities import Poss, PossibilitySet
 
 Go = NewType("Go", str)
 UP = Go("up")
@@ -54,7 +54,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
     @lru_cache(None)
     def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
-        ps = ProbabilitySet()
+        ps = PossibilitySet()
         possible = {}
         for u in self.all_actions():
             try:
