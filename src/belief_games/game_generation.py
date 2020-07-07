@@ -28,7 +28,7 @@ from driving_games.structures import (
     VehicleGeometry,
     VehicleState,
 )
-from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation
+from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation, TwoVehicleSeenObservation
 from driving_games.visualization import DrivingGameVisualization
 
 DrivingGame = Game[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
