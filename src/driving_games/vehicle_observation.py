@@ -62,3 +62,6 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
         for k, v in others.items():
             others[k] = Seen(ref=v.ref, x=v.x, v=v.v, light=None)
         return frozenset({VehicleObservation(others)})
+
+    def do_we_see_us(self ):
+        pass

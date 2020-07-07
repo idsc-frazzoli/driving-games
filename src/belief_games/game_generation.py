@@ -183,8 +183,10 @@ def get_leader_follower_game(params: TwoVehicleSimpleParams) -> DrivingGame:
     # P2 = PlayerName("p2")
     # P2 = PlayerName("⬅")
     # P1 = PlayerName("⬆")
-    P2 = PlayerName("W←")
-    P1 = PlayerName("N↑")
+    # P2 = PlayerName("W←")
+    # P1 = PlayerName("N↑")
+    P2 = PlayerName("Alone")
+    P1 = PlayerName("Caring")
     mass = D(1000)
     length = D(4.5)
     width = D(1.8)
@@ -251,10 +253,10 @@ def get_leader_follower_game(params: TwoVehicleSimpleParams) -> DrivingGame:
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
-    alone_players = [P1]
+    caring_players = [P1]
     joint_reward: IndividualJointReward[VehicleState, VehicleActions, Collision]
 
-    joint_reward = IndividualJointReward(collision_threshold=params.collision_threshold, geometries=geometries, alone_players=alone_players)
+    joint_reward = IndividualJointReward(collision_threshold=params.collision_threshold, geometries=geometries, caring_players=caring_players)
     game_visualization: GameVisualization[
         VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
     ]
@@ -271,7 +273,7 @@ def get_leader_follower_game(params: TwoVehicleSimpleParams) -> DrivingGame:
 
 
 
-def get_alone_game(params: TwoVehicleSimpleParams,alone_players: List[PlayerName]) -> DrivingGame:
+def get_alone_game(params: TwoVehicleSimpleParams) -> DrivingGame:
     ps: PossibilityMonad = ProbabilitySet()
     L = params.side + params.road + params.side
     start = params.side + params.road_lane_offset
@@ -319,8 +321,8 @@ def get_alone_game(params: TwoVehicleSimpleParams,alone_players: List[PlayerName
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
         max_speed=max_speed,
-        max_wait=max_wait,
-        available_accels=available_accels,
+        max_wait=D(1000),
+        available_accels=frozenset({D(-0.1),D(0),D(0.1)}),
         max_path=max_path,
         ref=p2_ref,
         lights_commands=params.light_actions,
@@ -360,9 +362,9 @@ def get_alone_game(params: TwoVehicleSimpleParams,alone_players: List[PlayerName
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
-    joint_reward: IndividualJointReward[VehicleState, VehicleActions, Collision]
+    joint_reward: VehicleJointReward[VehicleState, VehicleActions, Collision]
 
-    joint_reward = IndividualJointReward(collision_threshold=params.collision_threshold, geometries=geometries, alone_players=alone_players)
+    joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold, geometries=geometries)
 
     game_visualization: GameVisualization[
         VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision

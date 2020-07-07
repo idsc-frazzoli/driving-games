@@ -58,7 +58,7 @@ def get_asym_lf() -> GameSpec:
     desc = """
     TESTTT.
     """
-    return GameSpec(desc, get_leader_follower_game(p_asym_minv0))
+    return GameSpec(desc, get_leader_follower_game(p_sym))
 
 
 driving_games_zoo: Dict[str, GameSpec] = {}
