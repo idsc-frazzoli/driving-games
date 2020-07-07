@@ -19,6 +19,14 @@ def test1():
     solver_name = solver_spec.desc
     game_preprocessed = preprocess_game(game1, solver_spec.solver_params)
     solutions = solve1(game_preprocessed)
+    for state, solution in solutions.game_solution.states_to_solution.items():
+        # filter out only the first level subgame
+        if all([p.stage == 1 for p in state.values()]):
+            game_idx, _, _ = game.joint_reward.get_payoff_matrix_idx(state[p1_name], state[p2_name])
+            print("Game solution of game:", _gamemat2str(leaves_payoffs[game_idx]))
+            print("Joint state:\n", state)
+            print("Values and actions:\n", solution.solved)
+            print("Game values:\n", solution.va.game_value)
     d = "ml_out/tests/"
     dg = join(d, game_name)
     ds = join(dg, solver_name)
