@@ -60,7 +60,7 @@ def _run_toy_game(leaves_payoffs: Sequence[np.ndarray], solver_spec: SolverSpec)
 
 games = (game1, game2)
 strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
-solvers = (solvers_zoo["solver-1-"+strategy+"-naive"] for strategy in strategies)
+solvers = (solvers_zoo["solver-1-" + strategy + "-naive"] for strategy in strategies)
 toy_tests = list(product(games, solvers))
 
 
@@ -71,11 +71,12 @@ def test_toy_games(toygame: ToyGame, solver_spec: SolverSpec):
 
     for i, G in enumerate(toygame.subgames):
         logger.info(
-            "Game G{} equilibria: ".format(i+1),
+            "Game G{} equilibria: ".format(i + 1),
             list(nash.Game(-G[:, :, 0], -G[:, :, 1]).vertex_enumeration()),
         )
     _run_toy_game(toygame.subgames, solver_spec)
     logger.info("Compleated toy game test")
+
 
 # if __name__ == "__main__":
 #     test_toy_games(game1, solvers.__next__())

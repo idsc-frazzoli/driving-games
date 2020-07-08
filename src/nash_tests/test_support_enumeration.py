@@ -16,6 +16,7 @@ def test_matching_pennies():
     assert_equal(len(eq_), 1)
     assert_equal(eq_gt, eq_[0])
 
+
 # todo this test needs to be fixed
 # def test_matching_pennies_2():
 #     A = np.array([[7, -1], [-1, 1]])
@@ -47,8 +48,8 @@ y: [ 0 1 0 ]        J1: 3/2     z: [3/8 0   1/4 3/8 0 ]        J2: 0
     A = np.array([[0, 0, 6, 0, 0], [0, 0, 3, 2, 1], [4, 3, 0, 0, 1]])
     B = np.array([[3, 0, 2, 1, 0], [0, 2, 0, 0, 4], [4, 0, 2, 4, 4]])
     for i, eq in enumerate(compute_ne(A, B)):
-        print("My solver: NE ({}): ".format(i+1), eq)
+        print("My solver: NE ({}): ".format(i + 1), eq)
     for i, eq in enumerate(nashpy_sup_enum(-A, -B, tol=0)):
-        print("Nashpy supp enum: NE ({}): ".format(i+1), eq)
+        print("Nashpy supp enum: NE ({}): ".format(i + 1), eq)
     for i, eq in enumerate(vertex_enumeration(-A, -B)):
-        print("Nashpy vertex enum: NE ({}): ".format(i+1), eq)
+        print("Nashpy vertex enum: NE ({}): ".format(i + 1), eq)
