@@ -1,12 +1,12 @@
 from frozendict import frozendict
 
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
-from toy_games.toy_rewards import (
+from toy_games_AZ.toy_reward import (
     BirdPersonalRewardStructureCustom,
     BirdPreferences,
     BirdJointReward,
 )
-from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
+from toy_games_AZ.toy_structure import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
 from possibilities import PossibilitySet, PossibilityMonad
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
