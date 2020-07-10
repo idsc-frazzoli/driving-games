@@ -78,5 +78,5 @@ def test_toy_games(toygame: ToyGame, solver_spec: SolverSpec):
     logger.info("Compleated toy game test")
 
 
-# if __name__ == "__main__":
-#     test_toy_games(game1, solvers.__next__())
+if __name__ == "__main__":
+    test_toy_games(game1, solvers.__next__())

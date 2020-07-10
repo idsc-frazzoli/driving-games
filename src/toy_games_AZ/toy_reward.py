@@ -3,7 +3,7 @@ import numpy as np
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure
-from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
+from toy_games_AZ.toy_structure import BirdState, BirdCosts, BirdActions
 from preferences import SmallerPreferred
 
 

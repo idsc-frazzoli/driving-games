@@ -7,7 +7,7 @@ from toy_games_AZ.toy_reward import (
     BirdJointReward,
 )
 from toy_games_AZ.toy_structure import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import PossibilitySet, PossibilityMonad
+from possibilities import PossibilityMonad, PossibilitySet
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
 import numpy as np
