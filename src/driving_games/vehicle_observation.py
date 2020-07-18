@@ -81,6 +81,10 @@ class TwoVehicleSeenObservation():
         self.p2_ref = p2_ref
 
     def do_we_see_us(self, first_progress: D, second_progress: D) -> bool:
+
+        # This function determines if the two cars can see each other. If a straight line between the two cars
+        # contains only road, they can see each other, else they can't.
+
         a1, a2 = self.p1_ref[0], self.p1_ref[1] + first_progress
         b1, b2 = self.p2_ref[0] - second_progress, self.p2_ref[1]
         side_left = self.side

@@ -10,7 +10,7 @@ logger = ZLogger(__name__)
 from .game_generation import *
 from driving_games.structures import *
 from driving_games.visualization import *
-from .preferences_collision import *
+from driving_games.preferences_collision import *
 from driving_games.preferences_coll_time import *
 from driving_games.joint_reward import *
 from driving_games.vehicle_observation import *

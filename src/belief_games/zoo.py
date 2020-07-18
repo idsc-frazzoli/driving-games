@@ -3,7 +3,7 @@ from decimal import Decimal as D
 from typing import Dict
 
 from games import GameSpec, PlayerName
-from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams, get_alone_game, get_leader_follower_game
+from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams, get_master_slave_game
 from driving_games.structures import NO_LIGHTS
 
 road = D(6)
@@ -54,12 +54,6 @@ def get_asym_minv0() -> GameSpec:
     """
     return GameSpec(desc, get_two_vehicle_game(p_asym_minv0))
 
-def get_asym_lf() -> GameSpec:
-    desc = """
-    TESTTT.
-    """
-    return GameSpec(desc, get_leader_follower_game(p_sym))
-
 
 driving_games_zoo: Dict[str, GameSpec] = {}
 
@@ -67,4 +61,3 @@ driving_games_zoo["sym_v1"] = get_sym()
 driving_games_zoo["asym_v1"] = get_asym()
 driving_games_zoo["asym_v0"] = get_asym_minv0()
 
-driving_games_zoo["lf_v0"] = get_asym_lf()

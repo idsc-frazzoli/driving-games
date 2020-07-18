@@ -2,7 +2,7 @@ from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict
 
-from belief_games import get_leader_follower_game, get_alone_game
+from belief_games import get_master_slave_game
 from games import GameSpec
 from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams
 from .structures import NO_LIGHTS
@@ -56,19 +56,6 @@ def get_asym_minv0() -> GameSpec:
     return GameSpec(desc, get_two_vehicle_game(p_asym_minv0))
 
 
-def get_asym_lf() -> GameSpec:
-    desc = """
-    Asymmetric "Leader Follower" game where one player does not think the other is there.
-    """
-    return GameSpec(desc, get_leader_follower_game(p_asym_minv0))
-
-
-def get_alone() -> GameSpec:
-    desc = """
-    Alone Game (only one player)
-    """
-    return GameSpec(desc, get_alone_game(p_asym_minv0))
-
 
 driving_games_zoo: Dict[str, GameSpec] = {}
 
@@ -76,5 +63,5 @@ driving_games_zoo["sym_v1"] = get_sym()
 driving_games_zoo["asym_v1"] = get_asym()
 driving_games_zoo["asym_v0"] = get_asym_minv0()
 
-driving_games_zoo["lf_v0"] = get_asym_lf()
-driving_games_zoo["alone"] = get_alone()
+# driving_games_zoo["lf_v0"] = get_asym_lf()
+# driving_games_zoo["alone"] = get_alone()
