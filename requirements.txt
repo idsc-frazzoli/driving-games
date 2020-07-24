@@ -7,11 +7,11 @@ numpy==1.18.1
 typing_extensions==3.7.4.1
 toolz==0.10.0
 
-PyGeometry
+PyGeometry-z6
 zuper-commons-z6>=6.0.27
-compmake>=6.0.3,<7
+compmake-z6>=6.0.3,<7
 quickapp>=6,<7
-reprep>=6.0.3,<7
+reprep-z6>=6.0.3,<7
 networkx
 zuper-typing-z6>=6.0.65
 
