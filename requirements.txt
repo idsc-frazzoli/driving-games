@@ -10,7 +10,7 @@ toolz==0.10.0
 PyGeometry-z6
 zuper-commons-z6>=6.0.27
 compmake-z6>=6.0.3,<7
-quickapp>=6,<7
+quickapp-z6>=6,<7
 reprep-z6>=6.0.3,<7
 networkx
 zuper-typing-z6>=6.0.65
