@@ -12,6 +12,7 @@ from games import (
     JointRewardStructure,
     PlayerName,
 )
+from games.game_def import MonadicPreferenceBuilder
 from possibilities import PossibilityMonad, PossibilitySet
 from preferences import SetPreference1
 from .collisions import Collision
@@ -55,8 +56,16 @@ class TwoVehicleSimpleParams:
     shared_resources_ds: D
 
 
-def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
-    ps: PossibilityMonad = PossibilitySet()
+@dataclass
+class TwoVehicleUncertaintyParams:
+    ps: PossibilityMonad
+    mpref_builder: MonadicPreferenceBuilder
+
+
+def get_two_vehicle_game(
+    params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+) -> DrivingGame:
+    ps: PossibilityMonad = uncertainty_params.ps
     L = params.side + params.road + params.side
     start = params.side + params.road_lane_offset
     max_path = L - 1
@@ -125,14 +134,13 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
 
     p1_preferences = VehiclePreferencesCollTime()
     p2_preferences = VehiclePreferencesCollTime()
-    set_preference_aggregator = SetPreference1
     p1 = GamePlayer(
         initial=p1_initial,
         dynamics=p1_dynamics,
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=uncertainty_params.mpref_builder,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -140,7 +148,7 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=uncertainty_params.mpref_builder,
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}

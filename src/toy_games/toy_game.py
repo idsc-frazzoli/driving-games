@@ -57,7 +57,7 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=set_preference_aggregator,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -65,7 +65,7 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=set_preference_aggregator,
     )
 
     handcrafted_game = Game(

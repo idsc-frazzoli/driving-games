@@ -3,7 +3,9 @@ from decimal import Decimal as D
 from typing import Dict
 
 from games import GameSpec
-from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams
+from possibilities import PossibilitySet
+from preferences import SetPreference1
+from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from .structures import NO_LIGHTS
 
 road = D(6)
@@ -22,6 +24,7 @@ p0 = TwoVehicleSimpleParams(
     second_progress=D(0),
     shared_resources_ds=D(1.5),
 )
+u0 = TwoVehicleUncertaintyParams(ps=PossibilitySet(), mpref_builder=SetPreference1)
 
 p_sym = p0
 
@@ -30,7 +33,7 @@ def get_sym() -> GameSpec:
     desc = """
     Super symmetric case. Min v = 1.
     """
-    return GameSpec(desc, get_two_vehicle_game(p_sym))
+    return GameSpec(desc, get_two_vehicle_game(p_sym, u0))
 
 
 p_asym = replace(p0, road_lane_offset=D(4))  # to the right
@@ -41,7 +44,7 @@ def get_asym() -> GameSpec:
     Slightly asymmetric case. West is advantaged.  
     Min v = 1.
     """
-    return GameSpec(desc, get_two_vehicle_game(p_asym))
+    return GameSpec(desc, get_two_vehicle_game(p_asym, u0))
 
 
 p_asym_minv0 = replace(p_asym, min_speed=D(0))
@@ -52,7 +55,7 @@ def get_asym_minv0() -> GameSpec:
     Slightly asymmetric case. West is advantaged.  
     Min v = 0.
     """
-    return GameSpec(desc, get_two_vehicle_game(p_asym_minv0))
+    return GameSpec(desc, get_two_vehicle_game(p_asym_minv0, u0))
 
 
 driving_games_zoo: Dict[str, GameSpec] = {}

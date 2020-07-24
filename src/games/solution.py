@@ -159,7 +159,7 @@ def get_outcome_set_preferences_for_players(
     for player_name, player in game.players.items():
         pref0: Preference[Combined[RJ, RP]] = player.preferences
         set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P]]]
-        set_preference_aggregator = player.set_preference_aggregator
+        set_preference_aggregator = player.monadic_preference_builder
         pref2: Preference[UncertainCombined] = set_preference_aggregator(pref0)
         preferences[player_name] = pref2
     return preferences
