@@ -10,7 +10,7 @@ from zuper_commons.types import ZValueError
 from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
-from possibilities import Poss, PossibilitySet
+from possibilities import Poss, PossibilitySet, PossibilityMonad
 
 Go = NewType("Go", str)
 UP = Go("up")
@@ -44,6 +44,9 @@ class BirdState(object):
 class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
     """Pulling UP increases x, DOWN decreases"""
 
+    def __init__(self, poss_monad: PossibilityMonad):
+        self.ps = poss_monad
+
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[BirdActions]:
         res = set()
@@ -54,7 +57,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
     @lru_cache(None)
     def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
-        ps = PossibilitySet()
+        # todo expand to allow other possibility monads
         possible = {}
         for u in self.all_actions():
             try:
@@ -62,7 +65,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = ps.unit(x2)
+                possible[u] = self.ps.unit(x2)
 
         return frozendict(possible)
 

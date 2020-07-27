@@ -158,6 +158,7 @@ def get_outcome_set_preferences_for_players(
     preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
     for player_name, player in game.players.items():
         pref0: Preference[Combined[RJ, RP]] = player.preferences
+        # todo modify for supporting probability monad
         set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P]]]
         set_preference_aggregator = player.monadic_preference_builder
         pref2: Preference[UncertainCombined] = set_preference_aggregator(pref0)
@@ -180,6 +181,7 @@ def solve_game2(
     :param jss:
     :return:
     """
+    # todo modify for supporting probability monad
     outcome_set_preferences = get_outcome_set_preferences_for_players(game)
     states_to_solution: Dict[JointState, SolvedGameNode] = {}
     sc = SolvingContext(
@@ -220,6 +222,12 @@ def fr(d):
 def _solve_game(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
+    """
+    # todo
+    :param sc:
+    :param js:
+    :return:
+    """
     check_joint_state(js)
     if not js:
         raise ZValueError(js=js)
@@ -279,7 +287,6 @@ def _solve_game(
 
     va: ValueAndActions2[U, RP, RJ]
     if gn.joint_final_rewards:  # final costs:
-
         # FIXME: when n > 2, it might be that only part of the crew ends
         va = solve_final_joint(sc, gn)
     elif set(gn.states) == set(gn.is_final):
@@ -365,7 +372,7 @@ def add_incremental_cost_single(
 ) -> Combined[RP, RJ]:
     inc = incremental_for_player[player_name]
     reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-    # fixme this should use
+    # fixme this should use??
     personal = reduce(inc, cur.personal)
 
     joint = cur.joint

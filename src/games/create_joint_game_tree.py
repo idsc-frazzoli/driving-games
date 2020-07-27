@@ -189,6 +189,7 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         def f(item: Tuple[PlayerName, U]) -> Tuple[PlayerName, Poss[X]]:
             pn, choice = item
+            # fixme ps.lift_many(moves_to_state_remaining[pn][choice])?
             return pn, moves_to_state_remaining[pn][choice]
 
         selected: Dict[PlayerName, Poss[X]]
