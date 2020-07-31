@@ -7,7 +7,7 @@ from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
 from frozendict import frozendict
 
 from games import Dynamics
-from possibilities import Poss, ProbabilitySet
+from possibilities import Poss, PossibilitySet
 from zuper_commons.types import ZException, ZValueError
 from .rectangle import Rectangle
 
@@ -88,7 +88,7 @@ class VehicleState:
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
     accel: D
-    light: Lights = "none"
+    light: Lights = NO_LIGHTS
 
 
 class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
@@ -148,13 +148,13 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     @lru_cache(None)
     def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
-        # only allow accellerations that make the speed non-negative
+        # only allow accelerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ * dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever
         if x.wait >= self.max_wait:
             assert x.v == 0, x
             accels.remove(D(0))
-        ps = ProbabilitySet()
+        ps = PossibilitySet()
 
         possible = {}
         for light, accel in itertools.product(self.lights_commands, self.available_accels):

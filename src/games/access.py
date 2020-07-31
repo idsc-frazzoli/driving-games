@@ -13,6 +13,7 @@ from typing import (
     Mapping,
     Set,
     Tuple,
+    Optional,
 )
 
 import numpy as np
@@ -59,7 +60,13 @@ from .utils import fkeyfilter, iterate_dict_combinations
 def preprocess_game(
     game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
-    game_factorization: GameFactorization[X]
+    """
+    # todo
+    :param game:
+    :param solver_params:
+    :return:
+    """
+    game_factorization: Optional[GameFactorization[X]] = None
 
     game_graph = get_game_graph(game, dt=solver_params.dt)
     compute_graph_layout(game_graph, iterations=1)
@@ -70,8 +77,8 @@ def preprocess_game(
         ),
         individual_games,
     )
-
-    game_factorization = get_game_factorization(game, players_pre)
+    if solver_params.use_factorization:
+        game_factorization = get_game_factorization(game, players_pre)
 
     gp = GamePreprocessed(
         game=game,
@@ -222,6 +229,12 @@ def collapse_states(
 def preprocess_player(
     individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
+    """
+    # todo
+    :param individual_game:
+    :param solver_params:
+    :return:
+    """
     l = list(individual_game.players)
     assert len(l) == 1
     player_name = l[0]
@@ -339,8 +352,6 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             check_poss(s1s, object)
             check_poss(s2s, object)
             for s1, s2 in product(s1s.support(), s2s.support()):
-                # check_isinstance(s1, VehicleState)
-                # check_isinstance(s2, VehicleState)
                 if (s1, s2) == (None, None):
                     continue
                 S2 = frozendict({p1: s1, p2: s2})
@@ -362,7 +373,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                         generation=generation + 1,
                         in_game=in_game,
                     )
-                    if not (is_joint_final):
+                    if not is_joint_final:
                         if S2 not in stack:
                             stack.append(S2)
                 G.add_edge(S, S2, action=frozendict({p1: u1, p2: u2}))

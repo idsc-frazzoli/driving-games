@@ -24,7 +24,7 @@ def test_run2() -> None:
     res = without_compmake(games, solvers)
 
 
-def run3() -> None:
+def test_run3() -> None:
     do_games = ["asym_v0"]
     do_solvers = [
         "solver-1-security-naive",
@@ -58,4 +58,4 @@ def test_run5() -> None:
 
 if __name__ == "__main__":
     # test_run2()
-    run3()
+    test_run3()

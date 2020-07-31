@@ -12,10 +12,12 @@ test_objects
 test-results/
 errors
 evaluator.log
-.coverage.dorothy.98795.443718
 trace-cover
 out
-out
-.coverage.dorothy.18145.743791
+out-docker
+.coverage.dorothy.*
+.coverage.thinkpad-p51s.*
 .compmake_history.txt
 *graphml
+.idea
+venv
