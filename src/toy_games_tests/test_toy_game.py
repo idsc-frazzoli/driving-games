@@ -4,13 +4,14 @@ from typing import Sequence, List
 import numpy as np
 from parameterized import parameterized, param
 
-from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
+
 from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
 from games_scripts import solvers_zoo
 from games_scripts.solvers import SolverSpec
 from toy_games_tests import logger
 from toy_games.toy_game import get_toy_game_spec
 import nashpy as nash
+from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
 
 from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGame
 
@@ -80,11 +81,11 @@ def test_toy_games(
             list(nash.Game(-G[:, :, 0], -G[:, :, 1]).vertex_enumeration()),
         )
     _run_toy_game(toygame.subgames, solver_spec, uncertainty_params)
-    logger.info("Compleated toy game test")
+    logger.info("Completed toy game test")
 
 
-def test_prob_debug():
+def test_single_debug():
     game = game1
     solver_spec = solvers_zoo["solver-1-mix-naive"]
-    uncertainty_params = uncertainty_prob
+    uncertainty_params = uncertainty_sets
     _run_toy_game(game.subgames, solver_spec, uncertainty_params)

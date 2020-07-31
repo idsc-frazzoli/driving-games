@@ -62,7 +62,7 @@ def solving_hidden_agent_game():
             res = get_individual_games(game_seen)
             alone_player = list(res.keys())[0]
             game1 = res[alone_player] #Alone game
-            game2 = get_master_slave_game(p0, True) # This game is the same as the two_vehicle_game, but in the
+            game2 = get_master_slave_game(p0, True) # principal-subordinate This game is the same as the two_vehicle_game, but in the
             # preferences, "Ignore_second" is set to True.
             game3 = get_master_slave_game(p0, False) # Same as above. The parameter in the function call determines
             # if car 1 or car 2 is the master
