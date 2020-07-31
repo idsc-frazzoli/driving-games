@@ -7,7 +7,7 @@ from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
 from frozendict import frozendict
 
 from games import Dynamics
-from possibilities import Poss, PossibilitySet
+from possibilities import Poss, PossibilitySet, PossibilityMonad
 from zuper_commons.types import ZException, ZValueError
 from .rectangle import Rectangle
 
@@ -127,6 +127,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         lights_commands: FrozenSet[Lights],
         shared_resources_ds: D,
         vg: VehicleGeometry,
+        poss_monad: PossibilityMonad,
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -137,6 +138,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         self.lights_commands = lights_commands
         self.shared_resources_ds = shared_resources_ds
         self.vg = vg
+        self.ps = poss_monad
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
@@ -154,7 +156,6 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         if x.wait >= self.max_wait:
             assert x.v == 0, x
             accels.remove(D(0))
-        ps = PossibilitySet()
 
         possible = {}
         for light, accel in itertools.product(self.lights_commands, self.available_accels):
@@ -164,7 +165,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = ps.unit(x2)
+                possible[u] = self.ps.unit(x2)
 
         return frozendict(possible)
 

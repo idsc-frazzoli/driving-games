@@ -142,6 +142,7 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
 
 
 P = TypeVar("P")
+MonadicPreferenceBuilder = NewType("MonadicPreferenceBuilder", Callable[[Preference[P]], Preference[Poss[P]]])
 
 
 @dataclass
@@ -163,8 +164,8 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
     preferences: Preference[Combined[RJ, RP]]
     """ Its preferences about the combined joint/personal rewards. """
 
-    set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P]]]
-    """ How to aggregate preferences for sets. """
+    monadic_preference_builder: MonadicPreferenceBuilder
+    """ How to evaluate preferences over monadic outcomes. """
 
 
 @dataclass

@@ -81,6 +81,7 @@ class ProbabilityFraction(PossibilityMonad):
         return ProbPoss(frozendict(res))
 
     def build(self, a: ProbPoss[A], f: Callable[[A], B]) -> ProbPoss[B]:
+        # fixme is there a specific reason not to follow the bind signature?
         res = defaultdict(Fraction)
         for x, weight in a.it():
             y = f(x)
@@ -89,7 +90,7 @@ class ProbabilityFraction(PossibilityMonad):
 
     def build_multiple(self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]) -> ProbPoss[B]:
         sources = list(a)
-        supports = [_.support() for _ in sources]
+        supports = [a[_].support() for _ in sources]
         res: Dict[Mapping[K, A], Fraction] = defaultdict(Fraction)
         for _ in itertools.product(*tuple(supports)):
             elements = frozendict(zip(sources, _))
@@ -97,7 +98,6 @@ class ProbabilityFraction(PossibilityMonad):
             weight = reduce(Fraction.__mul__, probs)
             r = f(elements)
             res[r] += weight
-
         return ProbPoss(frozendict(res))
 
     def get_sampler(self, seed: int) -> "ProbSampler":

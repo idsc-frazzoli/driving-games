@@ -4,6 +4,7 @@ from typing import Sequence, List
 import numpy as np
 from parameterized import parameterized, param
 
+from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
 from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
 from games_scripts import solvers_zoo
 from games_scripts.solvers import SolverSpec
@@ -31,7 +32,11 @@ def _gamemat2str(mat: np.ndarray) -> str:
     return str_game
 
 
-def _run_toy_game(leaves_payoffs: Sequence[np.ndarray], solver_spec: SolverSpec):
+def _run_toy_game(
+    leaves_payoffs: Sequence[np.ndarray],
+    solver_spec: SolverSpec,
+    uncertainty_params: TwoVehicleUncertaintyParams,
+):
     max_stages = 2
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
 
@@ -40,7 +45,7 @@ def _run_toy_game(leaves_payoffs: Sequence[np.ndarray], solver_spec: SolverSpec)
         logger.info("Subgame {}: {}".format(i, _gamemat2str(subgame)))
 
     solver_params = solver_spec.solver_params
-    game_spec = get_toy_game_spec(max_stages, leaves_payoffs)
+    game_spec = get_toy_game_spec(max_stages, leaves_payoffs, uncertainty_params)
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
     solutions = solve1(game_preprocessed)
@@ -61,22 +66,25 @@ def _run_toy_game(leaves_payoffs: Sequence[np.ndarray], solver_spec: SolverSpec)
 games = (game1, game2)
 strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
 solvers = (solvers_zoo["solver-1-" + strategy + "-naive"] for strategy in strategies)
-toy_tests = list(product(games, solvers))
+uncertainties = [uncertainty_sets, uncertainty_prob]
+toy_tests = list(product(games, solvers, uncertainties))
 
 
 @parameterized(toy_tests)
-def test_toy_games(toygame: ToyGame, solver_spec: SolverSpec):
-    # np.set_printoptions(formatter={'float': "\t{: 0.0f}\t".format})
-    max_stages = 2
-
+def test_toy_games(
+    toygame: ToyGame, solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams
+):
     for i, G in enumerate(toygame.subgames):
         logger.info(
             "Game G{} equilibria: ".format(i + 1),
             list(nash.Game(-G[:, :, 0], -G[:, :, 1]).vertex_enumeration()),
         )
-    _run_toy_game(toygame.subgames, solver_spec)
+    _run_toy_game(toygame.subgames, solver_spec, uncertainty_params)
     logger.info("Compleated toy game test")
 
 
-# if __name__ == "__main__":
-#     test_toy_games(game1, solvers.__next__())
+def test_prob_debug():
+    game = game1
+    solver_spec = solvers_zoo["solver-1-mix-naive"]
+    uncertainty_params = uncertainty_prob
+    _run_toy_game(game.subgames, solver_spec, uncertainty_params)
