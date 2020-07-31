@@ -100,6 +100,7 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         min_speed=min_speed,
         vg=g1,
         shared_resources_ds=params.shared_resources_ds,
+        poss_monad=ps
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -111,6 +112,7 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         lights_commands=params.light_actions,
         vg=g2,
         shared_resources_ds=params.shared_resources_ds,
+        poss_monad=ps
     )
     p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
@@ -133,7 +135,7 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        #set_preference_aggregator=set_preference_aggregator,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -141,7 +143,7 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        #set_preference_aggregator=set_preference_aggregator,
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
