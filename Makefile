@@ -8,8 +8,8 @@ xunit_output=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 
 tag=driving_games
 
-test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests,possibilities_tests
-cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,possibilities
+test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests,possibilities_tests,toy_games_tests,nash_tests
+cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,possibilities,toy_games,nash
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-html-dir=$(coverage_dir) --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -62,12 +62,15 @@ build-no-cache:
 
 run:
 	mkdir -p out-docker
-	docker run -it -v $(PWD)/out-docker:/out $(tag) \
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/out-docker:/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
 run-with-mounted-src:
 	mkdir -p out-docker
-	docker run -it -v $(PWD)/src:/driving_games/src:ro -v $(PWD)/out-docker:/out $(tag) \
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/src:/driving_games/src:ro \
+		-v $(PWD)/out-docker:/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
 black:
@@ -80,4 +83,5 @@ docs:
 	sphinx-build src $(out)/docs
 
 
-include Makefile.version
+include makefiles/Makefile.version
+include makefiles/Makefile.az

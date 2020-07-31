@@ -15,9 +15,10 @@ reprep-z6>=6.0.3,<7
 networkx
 zuper-typing-z6>=6.0.65
 
+seaborn
+nashpy
+
 # testing and coverage 
-
-
 codecov==2.0.16
 
 nose==1.3.7
@@ -28,6 +29,7 @@ nose_xunitmp==0.4.1
 pipdeptree==0.13.2
 pre-commit==2.1.1
 rednose==1.3.0
+parameterized==0.7.4
 
 coverage==5.0.3
 jupyter

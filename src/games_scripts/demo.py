@@ -16,7 +16,7 @@ from zuper_commons.types import ZValueError
 from .solvers import solvers_zoo, SolverSpec
 from .zoo import games_zoo
 
-__all__ = ["dg_demo", "DGDemo"]
+__all__ = ["dg_demo", "DGDemo", "without_compmake"]
 
 
 class DGDemo(QuickApp):

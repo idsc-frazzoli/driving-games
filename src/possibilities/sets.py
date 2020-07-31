@@ -10,7 +10,7 @@ from .base import PossibilityMonad, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
 
-__all__ = ["ProbabilitySet"]
+__all__ = ["PossibilitySet"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -46,7 +46,7 @@ def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
     # return Cache.cache[f]
 
 
-class ProbabilitySet(PossibilityMonad):
+class PossibilitySet(PossibilityMonad):
     def unit(self, a: A) -> SetPoss[A]:
         return self.lift_many([a])
 

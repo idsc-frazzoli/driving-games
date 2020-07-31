@@ -38,11 +38,9 @@ class VehiclePreferencesCollTime(Preference[Combined[Collision, VehicleCosts]]):
         # check_isinstance(b, Combined)
         if self.ignore_second:
             if a.joint is None and b.joint is None:
-
                 return self.time.compare(a.personal.duration, b.personal.duration)
             else:
                 return self.collision.compare(a.joint, b.joint)
-
         else:
             ct_a = (a.joint, a.personal.duration)
             ct_b = (b.joint, b.personal.duration)

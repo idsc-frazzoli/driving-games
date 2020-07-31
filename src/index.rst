@@ -10,6 +10,7 @@ Welcome to Driving Games's documentation!
    games/index
    driving_games/index
    games_scripts/index
+   toy_games/index
 
 
 

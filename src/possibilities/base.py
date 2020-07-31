@@ -24,7 +24,6 @@ class Sampler(ABC):
 class PossibilityMonad(ABC):
     """
         The interface for a generic uncertainty monad.
-
     """
 
     @abstractmethod

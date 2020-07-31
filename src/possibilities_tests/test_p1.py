@@ -1,6 +1,6 @@
 from nose.tools import assert_equal
 
-from possibilities import PossibilityMonad, ProbabilityFraction, ProbabilitySet
+from possibilities import PossibilityMonad, ProbabilityFraction, PossibilitySet
 from zuper_commons.types import ZValueError
 from . import logger
 
@@ -26,7 +26,7 @@ def check_possibilities(ps: PossibilityMonad):
 
 
 def test_set():
-    ps = ProbabilitySet()
+    ps = PossibilitySet()
     check_possibilities(ps)
 
 
@@ -37,7 +37,7 @@ def test_fraction():
 
 def test_set_mix():
     a = [0, 1]
-    ps = ProbabilitySet()
+    ps = PossibilitySet()
     r = ps.mix(a)
     logger.info(r=r)
     assert_equal(r, {ps.lift_many({0}), ps.lift_many({1}), ps.lift_many({0, 1})})
