@@ -7,23 +7,7 @@ import numpy as np
 
 __all__ = ["compute_ne"]
 
-
-@dataclass(frozen=True, unsafe_hash=True)
-class Equilibrium:
-    s1: np.ndarray
-    s2: np.ndarray
-    p1_payoff: float
-    p2_payoff: float
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            raise NotImplementedError
-        return (
-            self.p1_payoff == other.p1_payoff
-            and self.p2_payoff == other.p2_payoff
-            and np.array_equal(self.s1, other.s1)
-            and np.array_equal(self.s2, other.s2)
-        )
+from nash.structures import Equilibrium
 
 
 def powerset(n: int):
@@ -132,7 +116,7 @@ def solve_linsystem(A: np.ndarray, B: np.ndarray):
     return s1, s2
 
 
-def is_ne(A, B, s1, s2, tol) -> bool:
+def is_ne(A, B, s1, s2, tol=np.finfo(float).eps) -> bool:
     """
     Test if a given strategy pair is a pair of best responses
     """
@@ -150,10 +134,10 @@ def is_ne(A, B, s1, s2, tol) -> bool:
     p1_payoff = np.dot(s1, row_payoffs)
     p2_payoff = np.dot(column_payoffs, s2)
     # must be a best response
-    return p1_payoff <= np.min(row_payoffs) and p2_payoff <= np.min(column_payoffs)
+    return p1_payoff <= np.min(row_payoffs)+tol and p2_payoff <= np.min(column_payoffs)+tol
 
 
-def compute_ne(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=10 ** -16):
+def compute_ne(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=np.finfo(float).eps):
     """
     Obtain the Nash equilibria using support enumeration.
     Algorithm implemented here is Algorithm 3.4 of [Nisan2007]_

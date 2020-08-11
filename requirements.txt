@@ -3,7 +3,7 @@
 
 frozendict==1.2
 pytz==2019.3
-numpy==1.18.1
+numpy==1.19.1
 typing_extensions==3.7.4.1
 toolz==0.10.0
 
