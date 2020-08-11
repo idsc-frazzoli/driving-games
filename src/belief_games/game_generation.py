@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from decimal import Decimal as D
+from decimal import Decimal as D, Decimal
 from typing import cast, Dict, FrozenSet, FrozenSet as ASet, List
 
 from frozendict import frozendict
 
 from belief_games.preferences_coll_time import VehiclePreferencesCollTimeML
+from driving_games import TwoVehicleUncertaintyParams
 from games import (
     Game,
     GamePlayer,
@@ -165,35 +166,32 @@ class TwoVehicleSimpleParams:
 #     return game
 
 
-def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> DrivingGame:
-    ps: PossibilityMonad = PossibilitySet()
-    L = params.side + params.road + params.side
-    start = params.side + params.road_lane_offset
+def get_master_slave_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams,
+                          level0player: int) -> DrivingGame:
+    ps: PossibilityMonad = uncertainty_params.poss_monad
+    L = vehicles_params.side + vehicles_params.road + vehicles_params.side
+    start = vehicles_params.side + vehicles_params.road_lane_offset
     max_path = L - 1
     # p1_ref = SE2_from_xytheta([start, 0, np.pi / 2])
     p1_ref = (D(start), D(0), D(+90))
     # p2_ref = SE2_from_xytheta([L, start, -np.pi])
     p2_ref = (D(L), D(start), D(-180))
-    max_speed = params.max_speed
-    min_speed = params.min_speed
-    max_wait = params.max_wait
-    dt = params.dt
-    available_accels = params.available_accels
+    max_speed = vehicles_params.max_speed
+    min_speed = vehicles_params.min_speed
+    max_wait = vehicles_params.max_wait
+    dt = vehicles_params.dt
+    available_accels = vehicles_params.available_accels
 
-    # P1 = PlayerName("👩‍🦰")  # "👩🏿")
-    # P2 = PlayerName("👳🏾‍")
-    # P1 = PlayerName("p1")
-    # P2 = PlayerName("p2")
-    # P2 = PlayerName("⬅")
-    # P1 = PlayerName("⬆")
-    # P2 = PlayerName("W←")
-    # P1 = PlayerName("N↑")
-    if master:
-        P1 = PlayerName("master")
-        P2 = PlayerName("slave")
+    if level0player == 1:
+        P2 = PlayerName("level-1")
+        P1 = PlayerName("level-0")
+    elif level0player == 2:
+        P2 = PlayerName("level-0")
+        P1 = PlayerName("level-1")
     else:
-        P1 = PlayerName("slave")
-        P2 = PlayerName("master")
+        P2 = PlayerName("?")
+        P1 = PlayerName("?")
+
 
     mass = D(1000)
     length = D(4.5)
@@ -202,9 +200,13 @@ def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> Drivi
     g1 = VehicleGeometry(mass=mass, width=width, length=length, color=(1, 0, 0))
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
-    p1_x = VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
+    p1_x = VehicleState(
+        ref=p1_ref, x=D(vehicles_params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
+    )
     p1_initial = ps.unit(p1_x)
-    p2_x = VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
+    p2_x = VehicleState(
+        ref=p2_ref, x=D(vehicles_params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
+    )
     p2_initial = ps.unit(p2_x)
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
@@ -212,10 +214,11 @@ def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> Drivi
         available_accels=available_accels,
         max_path=max_path,
         ref=p1_ref,
-        lights_commands=params.light_actions,
+        lights_commands=vehicles_params.light_actions,
         min_speed=min_speed,
         vg=g1,
-        shared_resources_ds=params.shared_resources_ds,
+        shared_resources_ds=vehicles_params.shared_resources_ds,
+        poss_monad=ps
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -224,10 +227,19 @@ def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> Drivi
         available_accels=available_accels,
         max_path=max_path,
         ref=p2_ref,
-        lights_commands=params.light_actions,
+        lights_commands=vehicles_params.light_actions,
         vg=g2,
-        shared_resources_ds=params.shared_resources_ds,
+        shared_resources_ds=vehicles_params.shared_resources_ds,
+        poss_monad=ps
     )
+
+    if level0player == 1:
+        p1_dynamics.available_accels = frozenset({D(+1)})
+    elif level0player == 2:
+        p2_dynamics.available_accels = frozenset({D(+1)})
+    else:
+        print("error in choosing level-0 agent!")
+
     p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
 
@@ -240,21 +252,15 @@ def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> Drivi
     p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
     p2_observations = VehicleDirectObservations(p2_possible_states, {P1: p1_possible_states})
 
-    if master:
-        p1_preferences = VehiclePreferencesCollTimeML()
-        p2_preferences = VehiclePreferencesCollTime()
-    else:
-        p1_preferences = VehiclePreferencesCollTime()
-        p2_preferences = VehiclePreferencesCollTimeML()
-
-    set_preference_aggregator = SetPreference1
+    p1_preferences = VehiclePreferencesCollTime()
+    p2_preferences = VehiclePreferencesCollTime()
     p1 = GamePlayer(
         initial=p1_initial,
         dynamics=p1_dynamics,
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=uncertainty_params.mpref_builder,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -262,19 +268,21 @@ def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> Drivi
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=uncertainty_params.mpref_builder,
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
-    caring_players = [P1]
-    joint_reward: IndividualJointReward[VehicleState, VehicleActions, Collision]
+    joint_reward: JointRewardStructure[VehicleState, VehicleActions, Collision]
 
-    joint_reward = IndividualJointReward(collision_threshold=params.collision_threshold, geometries=geometries, caring_players=caring_players)
+    joint_reward = VehicleJointReward(
+        collision_threshold=vehicles_params.collision_threshold, geometries=geometries
+    )
+
     game_visualization: GameVisualization[
         VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
     ]
     game_visualization = DrivingGameVisualization(
-        params, L, geometries=geometries, ds=params.shared_resources_ds
+        vehicles_params, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
     )
     game: DrivingGame
 
@@ -282,4 +290,3 @@ def get_master_slave_game(params: TwoVehicleSimpleParams, master: bool) -> Drivi
         players=frozendict(players), ps=ps, joint_reward=joint_reward, game_visualization=game_visualization,
     )
     return game
-

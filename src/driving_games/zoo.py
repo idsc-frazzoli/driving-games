@@ -2,7 +2,6 @@ from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict
 
-from belief_games import get_master_slave_game
 from games import GameSpec
 from possibilities import PossibilitySet, ProbabilityFraction
 from preferences import SetPreference1

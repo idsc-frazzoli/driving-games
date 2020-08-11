@@ -3,7 +3,8 @@ from os.path import join
 
 from belief_games import get_master_slave_game
 from belief_games.solving_algorithm_1 import solving_hidden_agent_game
-from driving_games import NO_LIGHTS, get_two_vehicle_game, TwoVehicleSimpleParams, PlayerName
+from driving_games import NO_LIGHTS, get_two_vehicle_game, TwoVehicleSimpleParams, PlayerName, \
+    TwoVehicleUncertaintyParams, PossibilitySet, SetPreference1, ProbPrefExpectedValue, ProbabilityFraction
 from games import preprocess_game, solve1, SolverParams, STRATEGY_SECURITY, STRATEGY_MIX, report_solutions, \
     create_report_preprocessed
 from games_scripts.solvers import SolverSpec
@@ -31,8 +32,12 @@ def test2():
         second_progress=D(0),
         shared_resources_ds=D(1.5),
     )
+    uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
+    uncertainty_prob = TwoVehicleUncertaintyParams(
+        poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue)
     d = "ml_out/tests/"
-    game1 = get_master_slave_game(p0, True)
+    game2 = get_two_vehicle_game(p0,uncertainty_sets)
+    game1 = get_master_slave_game(p0,uncertainty_sets,2)
     game_name = "test_ml"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc
