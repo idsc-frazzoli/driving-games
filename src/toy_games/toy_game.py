@@ -2,6 +2,7 @@ from frozendict import frozendict
 
 from driving_games import TwoVehicleUncertaintyParams
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
+from nash import BiMatGame
 from toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
     BirdPreferences,
@@ -18,7 +19,7 @@ __all__ = ["get_toy_game_spec"]
 
 
 def get_toy_game_spec(
-    max_stages: int, leaves_payoffs: Sequence[np.ndarray], uncertainty_params: TwoVehicleUncertaintyParams
+    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: TwoVehicleUncertaintyParams
 ) -> GameSpec:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
@@ -51,7 +52,7 @@ def get_toy_game_spec(
     p2_preferences = BirdPreferences()
     mpref_builder = uncertainty_params.mpref_builder
     birds_joint_reward = BirdJointReward(
-        max_stages=max_stages, leaves_payoffs=leaves_payoffs, row_player=P1, col_player=P2
+        max_stages=max_stages, subgames=subgames, row_player=P1, col_player=P2
     )
 
     p1 = GamePlayer(

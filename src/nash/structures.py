@@ -1,5 +1,9 @@
 from dataclasses import dataclass
+from typing import NewType, Tuple, Optional
+
 import numpy as np
+
+__all__ = ["Equilibrium", "BiMatGame", "PlayerType", "MAXIMIZER", "MINIMIZER"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -18,3 +22,28 @@ class Equilibrium:
                 and np.array_equal(self.s1, other.s1)
                 and np.array_equal(self.s2, other.s2)
         )
+
+
+PlayerType = NewType("PlayerType", str)
+MAXIMIZER = PlayerType("max")
+MINIMIZER = PlayerType("min")
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class BiMatGame:
+    A: np.ndarray
+    B: np.ndarray
+    equilibria: Optional[Tuple[Equilibrium, ...]] = None
+    p1_type: PlayerType = MINIMIZER
+    p2_type: PlayerType = MINIMIZER
+    desc: str = ""
+
+
+def print_bimatgame(game: BiMatGame) -> str:
+    rows, cols = game.A.shape
+    str_game = ""
+    for r in range(rows):
+        str_game += "\n\t"
+        for c in range(cols):
+            str_game += "{},{}\t\t".format(game.A[r, c], game.B[r, c])
+    return str_game

@@ -1,13 +1,12 @@
-from dataclasses import dataclass
 
 from numpy.linalg import lstsq, LinAlgError, qr
 from itertools import chain, combinations
 from nash import logger
 import numpy as np
 
-__all__ = ["compute_ne"]
+__all__ = ["ne_support_enum"]
 
-from nash.structures import Equilibrium
+from nash import Equilibrium
 
 
 def powerset(n: int):
@@ -137,7 +136,7 @@ def is_ne(A, B, s1, s2, tol=np.finfo(float).eps) -> bool:
     return p1_payoff <= np.min(row_payoffs)+tol and p2_payoff <= np.min(column_payoffs)+tol
 
 
-def compute_ne(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=np.finfo(float).eps):
+def ne_support_enum(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=np.finfo(float).eps):
     """
     Obtain the Nash equilibria using support enumeration.
     Algorithm implemented here is Algorithm 3.4 of [Nisan2007]_

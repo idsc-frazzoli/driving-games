@@ -1,26 +1,8 @@
-from typing import Iterable, Tuple, NewType
-
 import numpy as np
-from dataclasses import dataclass
 
-from nash.structures import Equilibrium
+from nash.structures import Equilibrium, BiMatGame, MAXIMIZER, MINIMIZER
 
-__all__ = ["BiMatGame", "matching_pennies", "matching_pennies_2"]
-
-PlayerType = NewType("PlayerType", str)
-MAXIMIZER = PlayerType("max")
-MINIMIZER = PlayerType("min")
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class BiMatGame:
-    desc: str
-    p1_type: PlayerType
-    p2_type: PlayerType
-    A: np.ndarray
-    B: np.ndarray
-    equilibria: Tuple[Equilibrium, ...]
-
+__all__ = ["matching_pennies", "matching_pennies_2", "degenerate_1"]
 
 matching_pennies = BiMatGame(
     desc="Standard matching pennies game, players are maximizers",
