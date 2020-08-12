@@ -1,11 +1,14 @@
-from typing import Any, FrozenSet, Mapping, Sequence, Tuple
+from typing import Any, FrozenSet, Mapping, Sequence, Tuple, Type
 import numpy as np
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
-from games import JointRewardStructure, PlayerName, PersonalRewardStructure
+
+from zuper_typing import debug_print
+
+from games import JointRewardStructure, PlayerName, PersonalRewardStructure, Combined
 from nash import BiMatGame
 from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
-from preferences import SmallerPreferred
+from preferences import SmallerPreferred, Preference, ComparisonOutcome
 
 
 class BirdPersonalRewardStructureCustom(PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
@@ -35,7 +38,18 @@ class BirdPersonalRewardStructureCustom(PersonalRewardStructure[BirdState, BirdA
 
 
 class BirdPreferences(SmallerPreferred):
-    ...
+    def get_type(self) -> Type[Combined[D, D]]:
+        return Combined[BirdCosts, BirdCosts]
+
+    def __repr__(self) -> str:
+        d = {"P": self.get_type()}
+        return "VehiclePreferencesCollTime: "+debug_print(d)
+
+    def compare(self, a: Combined[BirdCosts, BirdCosts],
+                b: Combined[BirdCosts, BirdCosts]) -> ComparisonOutcome:
+        a_ = a.personal+a.joint
+        b_ = b.personal+b.joint
+        return super().compare(D(a_.cost), D(b_.cost))
 
 
 class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
@@ -66,21 +80,21 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
                     res.add(player)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, Any]:
+    def joint_reward(self, xs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
         """
         Each payoff matrix correspond to a specific game
         [-1,-1] -> leaves_payoffs[0]
         [-1,1] -> leaves_payoffs[1]
         [1,-1] -> leaves_payoffs[2]
         [1,1] -> leaves_payoffs[3]
-        :param leaves_payoffs:
+        :param xs:
         :return:
         """
         res = {}
         x1, x2 = xs[self.row_player], xs[self.col_player]
         subgame, row, col = self.get_payoff_matrix_idx(x1, x2)
         payoff1, payoff2 = self.mat_payoffs[subgame][:, row, col]
-        res.update({self.row_player: payoff1, self.col_player: payoff2})
+        res.update({self.row_player: BirdCosts(payoff1), self.col_player: BirdCosts(payoff2)})
         return res
 
     @staticmethod

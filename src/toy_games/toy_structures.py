@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from fractions import Fraction
 from functools import lru_cache
 from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple
 from decimal import Decimal as D
@@ -75,9 +76,9 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
         # allow arbitrary payoff matrices
         altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
         if u.go == UP:
-            return replace(x, z=x.z + altitude_incr, stage=x.stage + 1)
+            return replace(x, z=x.z+altitude_incr, stage=x.stage+1)
         if u.go == DOWN:
-            return replace(x, z=x.z - altitude_incr, stage=x.stage + 1)
+            return replace(x, z=x.z-altitude_incr, stage=x.stage+1)
         else:
             raise ZValueError(x=x, u=u)
 
@@ -96,9 +97,9 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
     my_possible_states: FrozenSet[BirdState]
 
     def __init__(
-        self,
-        my_possible_states: FrozenSet[BirdState],
-        possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
+            self,
+            my_possible_states: FrozenSet[BirdState],
+            possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
@@ -119,7 +120,7 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 
     @lru_cache(None)
     def get_observations(
-        self, me: BirdState, others: Mapping[PlayerName, BirdState]
+            self, me: BirdState, others: Mapping[PlayerName, BirdState]
     ) -> FrozenSet[BirdObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
@@ -132,6 +133,22 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 @dataclass(frozen=True)
 class BirdCosts:
     cost: Union[float, int]
+
+    def __mul__(self, other: Union[float, int, Fraction]):
+        # weighting costs, e.g. according to a probability
+        return BirdCosts(self.cost*float(other))
+
+    def __add__(self, other: "BirdCosts"):
+        if type(other) == BirdCosts:
+            return replace(self, cost=self.cost+other.cost)
+        else:
+            if other is None:
+                return self
+            else:
+                raise NotImplementedError
+
+    __rmul__ = __mul__
+    __radd__ = __add__
 
 
 class BirdsVisualization(
