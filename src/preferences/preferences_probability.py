@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from fractions import Fraction
 from typing import Type
 from decimal import Decimal as D
 from zuper_typing import debug_print
@@ -21,7 +22,7 @@ class ProbPreference(Preference[ProbPoss[P]]):
 
     def __repr__(self) -> str:
         d = {"T": self.get_type(), "p0": self.p0}
-        return "ProbPreference: " + debug_print(d)
+        return "ProbPreference: "+debug_print(d)
 
     @abstractmethod
     def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
@@ -31,13 +32,19 @@ class ProbPreference(Preference[ProbPoss[P]]):
 class ProbPrefExpectedValue(ProbPreference):
     # todo can be more elegant and return Xpercentile with x=.5
     def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
-        expected_A: P
-        expected_B: P
-        for a, prob in A.it():
-            expected_A += a * prob
-        for b, prob in B.it():
-            expected_B += b * prob
+        expected_A = self._expected(A)
+        expected_B = self._expected(B)
         return self.p0.compare(expected_A, expected_B)
+
+    @staticmethod
+    def _expected(A: ProbPoss[P]) -> ProbPoss[P]:
+        expected_A = None
+        for a, prob in A.it():
+            if expected_A is None:
+                expected_A = a*prob
+            else:
+                expected_A += a.personal*prob
+            return ProbPoss({expected_A: Fraction(1)})
 
 
 class ProbPrefXPercentile(ProbPreference):

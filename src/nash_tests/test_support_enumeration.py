@@ -1,55 +1,34 @@
-from unittest import skip
-
-import numpy as np
 from nashpy import support_enumeration as nashpy_sup_enum, vertex_enumeration
 from nose.tools import assert_equal
+from parameterized import parameterized
 
-from nash import compute_ne
-from nash.support_enumeration import Equilibrium
+from nash.famous_games_zoo import matching_pennies, matching_pennies_2, BiMatGame, MINIMIZER, degenerate_1
+from nash_tests import logger
+from nash import ne_support_enum
 
-
-def test_matching_pennies():
-    A = np.array([[1, -1], [-1, 1]])
-    B = np.array([[-1, 1], [1, -1]])
-    eq_gt = Equilibrium(s1=np.array([0.5, 0.5]), s2=np.array([0.5, 0.5]), p1_payoff=0, p2_payoff=0)
-    eq_ = list(compute_ne(A, B))
-    assert_equal(len(eq_), 1)
-    assert_equal(eq_gt, eq_[0])
+games_to_test = [(matching_pennies,), (matching_pennies_2,), ]
 
 
-# todo this test needs to be fixed
-# def test_matching_pennies_2():
-#     A = np.array([[7, -1], [-1, 1]])
-#     B = np.array([[-1, 1], [1, -1]])
-#     eq_gt = Equilibrium(s1=np.array([.2, .8]), s2=np.array([.5, .5]), p1_payoff=7*.2-.8, p2_payoff=0)
-#     eq_ = list(compute_ne(A, B))
-#     assert_equal(len(eq_), 1)
-#     assert_equal(eq_gt, eq_[0])
+@parameterized(games_to_test)
+def test_bimatrix_games(game: BiMatGame) -> None:
+    _A = game.A if game.p1_type == MINIMIZER else -game.A
+    _B = game.B if game.p2_type == MINIMIZER else -game.B
+    _eq = list(ne_support_enum(_A, _B))
+    _equilibria = tuple(_eq)
+    assert_equal(len(game.equilibria), len(_equilibria), msg="Different number of NE found")
+    logger.info("found {}".format(len(_equilibria)))
+    assert_equal(game.equilibria, _equilibria)
 
 
-def test_compare_nashpy():
+def test_single_game(game: BiMatGame = degenerate_1) -> None:
     """
-    The game defined by
-        [0, 0, 6, 0, 0]         [3, 0, 2, 1, 0]
-    A = [0, 0, 3, 2, 1],    B = [0, 2, 0, 0, 4]
-        [4, 3, 0, 0, 1]         [4, 0, 2, 4, 4]
-    is supposed to have 8 NE:
-y: [ 1 0 0 ]        J1: 0       z: [ 0  1   0   0   0 ]        J2: 0
-y: [ 1 0 0 ]        J1: 0       z: [ 0  0   0   0   1 ]        J2: 0
-y: [ 2/3 1/3 0 ]    J1: 0       z: [ 0  1   0   0   0 ]        J2: 2/3
-y: [ 1/3 1/2 1/6 ]  J1: 4/3     z: [ 0  4/9 2/9 1/3 0 ]        J2: 1
-y: [ 0 1/2 1/2 ]    J1: 3/2     z: [ 0  1/2 1/2 0   0 ]        J2: 1
-y: [ 0 1 0 ]        J1: 12/7    z: [3/7 0   4/7 0   0 ]        J2: 0
-y: [ 0 1 0 ]        J1: 0       z: [1   0   0   0   0 ]        J2: 0
-y: [ 0 1 0 ]        J1: 3/2     z: [3/8 0   1/4 3/8 0 ]        J2: 0
-
-    :return:
     """
-    A = np.array([[0, 0, 6, 0, 0], [0, 0, 3, 2, 1], [4, 3, 0, 0, 1]])
-    B = np.array([[3, 0, 2, 1, 0], [0, 2, 0, 0, 4], [4, 0, 2, 4, 4]])
-    for i, eq in enumerate(compute_ne(A, B)):
-        print("My solver: NE ({}): ".format(i + 1), eq)
-    for i, eq in enumerate(nashpy_sup_enum(-A, -B, tol=0)):
-        print("Nashpy supp enum: NE ({}): ".format(i + 1), eq)
-    for i, eq in enumerate(vertex_enumeration(-A, -B)):
-        print("Nashpy vertex enum: NE ({}): ".format(i + 1), eq)
+    _A = game.A if game.p1_type == MINIMIZER else -game.A
+    _B = game.B if game.p2_type == MINIMIZER else -game.B
+    logger.info(expected=game.equilibria)
+    for i, eq in enumerate(ne_support_enum(_A, _B)):
+        logger.info("My solver: NE ({}): ".format(i+1), eq)
+    for i, eq in enumerate(nashpy_sup_enum(-_A, -_B, tol=0)):
+        logger.info("Nashpy supp enum: NE ({}): ".format(i+1), eq)
+    for i, eq in enumerate(vertex_enumeration(-_A, -_B)):
+        logger.info("Nashpy vertex enum: NE ({}): ".format(i+1), eq)

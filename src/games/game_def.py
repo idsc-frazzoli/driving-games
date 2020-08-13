@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal as D
+from fractions import Fraction
 from typing import (
     Callable,
     FrozenSet,
@@ -9,7 +10,7 @@ from typing import (
     NewType,
     Optional,
     Tuple,
-    TypeVar,
+    TypeVar, Union,
 )
 
 from frozendict import frozendict
@@ -82,6 +83,26 @@ class Combined(Generic[RJ, RP]):
 
     joint: Optional[RJ] = None
     """ The joint final cost. Can be none if we finished without colliding."""
+
+    # todo define monoidal structure
+    def __mul__(self, weight: Union[float, int, Fraction]):
+        # fixme make it a generic element of ring like structure
+        # weighting costs, e.g. according to a probability
+        return replace(self, personal=self.personal*weight)
+
+    def __add__(self, other: "Combined[RP,RJ]"):
+        if type(other) == type(self):
+            if other.joint is None:
+                return replace(self, personal=self.personal+other.personal, joint=self.joint)
+            elif self.joint is None:
+                return replace(self, personal=self.personal+other.personal, joint=other.joint)
+            else:
+                return replace(self, personal=self.personal+other.personal, joint=self.joint+other.joint)
+        else:
+            raise NotImplementedError
+
+    __rmul__ = __mul__
+    __radd__ = __add__
 
 
 UncertainCombined = Poss[Combined[RP, RJ]]
@@ -194,7 +215,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
     @abstractmethod
     def plot_player(
-        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
+            self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
     ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass

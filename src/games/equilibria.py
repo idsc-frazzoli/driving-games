@@ -74,10 +74,10 @@ def analyze_equilibria(
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
 ) -> EquilibriaAnalysis:
-    # Now we want to find all "mixed" strategies
+    # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
-    # todo here some fixes are required
+    # fixme for probabilities this is restrictive... double check mix method
     player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
     # logger.info(player_mixed_strategies=player_mixed_strategies)
     # now we do the product of the mixed strategies
@@ -127,12 +127,12 @@ def analyze(
     # logger.info(combos=combos)
     comb: JointPureActions
     ps: Dict[JointPureActions, PointStats] = {}
-    x0: JointMixedActions
-    x1: JointMixedActions
+    a0: JointMixedActions
+    a1: JointMixedActions
     player_names = set(player_mixed_strategies)
     nash_equilibria = {}
     action_to_change: FrozenSet[U]
-    for x0 in results:
+    for a0 in results:
         happy_players = set()
         unhappy_players = set()
         alternatives = {}
@@ -141,14 +141,14 @@ def analyze(
             pref = preferences[player_name]
             is_happy: bool = True
             variations_: Mapping[U, JointMixedActions]
-            variations_ = variations(player_mixed_strategies, x0, player_name)
+            variations_ = variations(player_mixed_strategies, a0, player_name)
             alternatives_player = {}
             # logger.info('looking for variations', variations_=variations_)
-            for action_to_change, x1 in variations_.items():
-                # zassert(x1 in results, x1=x1, results=set(results))
+            for action_to_change, a1 in variations_.items():
+                # zassert(x1 in results, a1=a1, results=set(results))
                 o0: UncertainCombined
                 o1: UncertainCombined
-                o1, o0 = results[x1][player_name], results[x0][player_name]
+                o1, o0 = results[a1][player_name], results[a0][player_name]
                 res = pref.compare(o1, o0)
                 assert res in COMP_OUTCOMES, (res, pref)
                 # logger.info(o1=o1, o0=o0, res=res)
@@ -163,13 +163,13 @@ def analyze(
         stats = PointStats(
             happy=frozenset(happy_players),
             unhappy=frozenset(unhappy_players),
-            outcome=results[x0],
+            outcome=results[a0],
             alternatives=frozendict(alternatives),
         )
-        ps[x0] = stats
+        ps[a0] = stats
 
         if not unhappy_players:
-            nash_equilibria[x0] = stats.outcome
+            nash_equilibria[a0] = stats.outcome
     # logger.info(ps=ps)
 
     # we need something to compare set of outcomes
