@@ -134,9 +134,9 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 class BirdCosts:
     cost: Union[float, int]
 
-    def __mul__(self, other: Union[float, int, Fraction]):
+    def __mul__(self, weight: Union[float, int, Fraction]):
         # weighting costs, e.g. according to a probability
-        return BirdCosts(self.cost*float(other))
+        return replace(self.cost*float(weight))
 
     def __add__(self, other: "BirdCosts"):
         if type(other) == BirdCosts:
