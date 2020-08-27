@@ -1,5 +1,4 @@
 from abc import abstractmethod
-from fractions import Fraction
 from typing import Type
 from decimal import Decimal as D
 from zuper_typing import debug_print
@@ -37,14 +36,14 @@ class ProbPrefExpectedValue(ProbPreference):
         return self.p0.compare(expected_A, expected_B)
 
     @staticmethod
-    def _expected(A: ProbPoss[P]) -> ProbPoss[P]:
+    def _expected(A: ProbPoss[P]) -> P:
         expected_A = None
         for a, prob in A.it():
             if expected_A is None:
                 expected_A = a*prob
             else:
                 expected_A += a.personal*prob
-            return ProbPoss({expected_A: Fraction(1)})
+            return expected_A
 
 
 class ProbPrefXPercentile(ProbPreference):
