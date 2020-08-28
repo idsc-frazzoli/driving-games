@@ -9,6 +9,7 @@ from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, Play
 from games_scripts import solvers_zoo
 from games_scripts.solvers import SolverSpec
 from nash.structures import print_bimatgame, BiMatGame
+from toy_games.toy_rewards import BirdJointReward
 from toy_games_tests import logger
 from toy_games.toy_game import get_toy_game_spec
 import nashpy as nash
@@ -43,7 +44,7 @@ def _run_toy_game(
     for state, solution in solutions.game_solution.states_to_solution.items():
         # filter out only the first level subgame
         if all([p.stage == 1 for p in state.values()]):
-            game_idx, _, _ = game.joint_reward.get_payoff_matrix_idx(state[p1_name], state[p2_name])
+            game_idx, _, _ = BirdJointReward.get_payoff_matrix_idx(state[p1_name], state[p2_name])
             #print("Game solution of game:", gamemat2str(leaves_payoffs[game_idx]))
             print("Joint state:\n", state)
             print("Values and actions:\n", solution.solved)

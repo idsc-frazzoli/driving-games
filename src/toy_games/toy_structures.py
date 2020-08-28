@@ -134,11 +134,15 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 class BirdCosts:
     cost: Union[float, int]
 
-    def __mul__(self, other: Union[float, int, Fraction]):
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Union[float, int, Fraction]) -> "BirdCosts":
         # weighting costs, e.g. according to a probability
-        return BirdCosts(self.cost*float(other))
+        return replace(self, cost=self.cost*float(weight))
 
-    def __add__(self, other: "BirdCosts"):
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "BirdCosts") -> "BirdCosts":
         if type(other) == BirdCosts:
             return replace(self, cost=self.cost+other.cost)
         else:
@@ -147,7 +151,6 @@ class BirdCosts:
             else:
                 raise NotImplementedError
 
-    __rmul__ = __mul__
     __radd__ = __add__
 
 
