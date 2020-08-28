@@ -132,12 +132,12 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 
 @dataclass(frozen=True)
 class BirdCosts:
-    cost: Union[float, int]
+    cost: D
 
     # support weight multiplication for expected value
-    def __mul__(self, weight: Union[float, int, Fraction]) -> "BirdCosts":
+    def __mul__(self, weight: Fraction) -> "BirdCosts":
         # weighting costs, e.g. according to a probability
-        return replace(self, cost=self.cost * float(weight))
+        return replace(self, cost=self.cost * D(float(weight)))
 
     __rmul__ = __mul__
 

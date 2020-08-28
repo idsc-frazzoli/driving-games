@@ -28,11 +28,12 @@ class SmallerPreferred(Preference[D]):
         """ """
         if a == b:
             return INDIFFERENT
-        if a < b:
+        elif a < b:
             return FIRST_PREFERRED
-        if b < a:
+        elif b < a:
             return SECOND_PREFERRED
-        assert False, (a, b)
+        else:
+            assert False, (a, b)
 
     def __repr__(self) -> str:
         return "SmallerPreferred"
