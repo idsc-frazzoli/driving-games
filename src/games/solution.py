@@ -35,6 +35,7 @@ from .game_def import (
     UncertainCombined,
     X,
     Y,
+    MonadicPreferenceBuilder,
 )
 from .simulate import simulate1, Simulation
 from .solution_ghost import get_ghost_tree
@@ -50,10 +51,10 @@ from .structures_solution import (
     SolverParams,
     SolvingContext,
     UsedResources,
-    ValueAndActions2,
+    ValueAndActions,
 )
 
-__all__ = ["solve1", "get_outcome_set_preferences_for_players"]
+__all__ = ["solve1", "get_outcome_preferences_for_players"]
 
 
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
@@ -152,16 +153,15 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     # logger.info(game_tree=game_tree)
 
 
-def get_outcome_set_preferences_for_players(
+def get_outcome_preferences_for_players(
     game: Game[X, U, Y, RP, RJ, SR],
 ) -> M[PlayerName, Preference[UncertainCombined]]:
     preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
     for player_name, player in game.players.items():
         pref0: Preference[Combined[RJ, RP]] = player.preferences
-        # todo modify for supporting probability monad
-        set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P]]]
-        set_preference_aggregator = player.monadic_preference_builder
-        pref2: Preference[UncertainCombined] = set_preference_aggregator(pref0)
+        monadic_pref_builder: MonadicPreferenceBuilder
+        monadic_pref_builder = player.monadic_preference_builder
+        pref2: Preference[UncertainCombined] = monadic_pref_builder(pref0)
         preferences[player_name] = pref2
     return preferences
 
@@ -181,12 +181,11 @@ def solve_game2(
     :param jss:
     :return:
     """
-    # todo modify for supporting probability monad
-    outcome_set_preferences = get_outcome_set_preferences_for_players(game)
+    outcome_preferences = get_outcome_preferences_for_players(game)
     states_to_solution: Dict[JointState, SolvedGameNode] = {}
     sc = SolvingContext(
         game=game,
-        outcome_set_preferences=outcome_set_preferences,
+        outcome_preferences=outcome_preferences,
         gg=gg,
         cache=states_to_solution,
         processing=set(),
@@ -285,7 +284,7 @@ def _solve_game(
         # logger.info(players_dist=players_dist)
         solved[pure_actions] = frozendict(players_dist)
 
-    va: ValueAndActions2[U, RP, RJ]
+    va: ValueAndActions[U, RP, RJ]
     if gn.joint_final_rewards:  # final costs:
         # FIXME: when n > 2, it might be that only part of the crew ends
         va = solve_final_joint(sc, gn)
@@ -372,7 +371,6 @@ def add_incremental_cost_single(
 ) -> Combined[RP, RJ]:
     inc = incremental_for_player[player_name]
     reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-    # fixme this should use??
     personal = reduce(inc, cur.personal)
 
     joint = cur.joint
@@ -381,7 +379,7 @@ def add_incremental_cost_single(
 
 def solve_final_joint(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
-) -> ValueAndActions2[U, RP, RJ]:
+) -> ValueAndActions[U, RP, RJ]:
     game_value: Dict[PlayerName, UncertainCombined] = {}
 
     for player_name, joint in gn.joint_final_rewards.items():
@@ -390,15 +388,15 @@ def solve_final_joint(
 
     game_value_ = frozendict(game_value)
     actions = frozendict()
-    return ValueAndActions2(game_value=game_value_, mixed_actions=actions)
+    return ValueAndActions(game_value=game_value_, mixed_actions=actions)
 
 
 def solve_final_personal_both(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
-) -> ValueAndActions2[U, RP, RJ]:
+) -> ValueAndActions[U, RP, RJ]:
     game_value: Dict[PlayerName, UncertainCombined] = {}
     for player_name, personal in gn.is_final.items():
         game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
     game_value_ = frozendict(game_value)
     actions = frozendict()
-    return ValueAndActions2(game_value=game_value_, mixed_actions=actions)
+    return ValueAndActions(game_value=game_value_, mixed_actions=actions)

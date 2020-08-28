@@ -116,6 +116,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         "incremental",
         "joint_final_rewards",
     ]  # only print
+
     # these attributes
 
     def __post_init__(self) -> None:
@@ -308,7 +309,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class ValueAndActions2(Generic[U, RP, RJ]):
+class ValueAndActions(Generic[U, RP, RJ]):
     """ The solution for a game node. """
 
     mixed_actions: JointMixedActions
@@ -348,7 +349,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     solved: M[JointPureActions, Poss[M[PlayerName, JointState]]]
     """ For each joint action, this is the outcome (where each player goes). """
 
-    va: ValueAndActions2[U, RP, RJ]
+    va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
 
     ur: UsedResources[X, U, Y, RP, RJ, SR]
@@ -358,7 +359,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         if not GameConstants.checks:
             return
 
-        check_isinstance(self.va, ValueAndActions2, SolvedGameNode=self)
+        check_isinstance(self.va, ValueAndActions, SolvedGameNode=self)
         check_isinstance(self.solved, frozendict, SolvedGameNode=self)
         for jpa, then in self.solved.items():
             check_joint_pure_actions(jpa)
@@ -379,7 +380,7 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
     game: Game[X, U, Y, RP, RJ, SR]
     """ The original game. """
 
-    outcome_set_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
+    outcome_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
     """ The preferences of each player"""
 
     cache: Dict[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]
@@ -432,5 +433,4 @@ class Solutions(Generic[X, U, Y, RP, RJ, SR]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
     game_tree: GameNode[X, U, Y, RP, RJ, SR]
-
     sims: Mapping[str, Simulation]

@@ -1,4 +1,3 @@
-
 from numpy.linalg import lstsq, LinAlgError, qr
 from itertools import chain, combinations
 from nash import logger
@@ -133,7 +132,7 @@ def is_ne(A, B, s1, s2, tol=np.finfo(float).eps) -> bool:
     p1_payoff = np.dot(s1, row_payoffs)
     p2_payoff = np.dot(column_payoffs, s2)
     # must be a best response
-    return p1_payoff <= np.min(row_payoffs)+tol and p2_payoff <= np.min(column_payoffs)+tol
+    return p1_payoff <= np.min(row_payoffs) + tol and p2_payoff <= np.min(column_payoffs) + tol
 
 
 def ne_support_enum(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=np.finfo(float).eps):

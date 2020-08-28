@@ -76,9 +76,9 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
         # allow arbitrary payoff matrices
         altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
         if u.go == UP:
-            return replace(x, z=x.z+altitude_incr, stage=x.stage+1)
+            return replace(x, z=x.z + altitude_incr, stage=x.stage + 1)
         if u.go == DOWN:
-            return replace(x, z=x.z-altitude_incr, stage=x.stage+1)
+            return replace(x, z=x.z - altitude_incr, stage=x.stage + 1)
         else:
             raise ZValueError(x=x, u=u)
 
@@ -97,9 +97,9 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
     my_possible_states: FrozenSet[BirdState]
 
     def __init__(
-            self,
-            my_possible_states: FrozenSet[BirdState],
-            possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
+        self,
+        my_possible_states: FrozenSet[BirdState],
+        possible_states: Mapping[PlayerName, FrozenSet[BirdState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
@@ -120,7 +120,7 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 
     @lru_cache(None)
     def get_observations(
-            self, me: BirdState, others: Mapping[PlayerName, BirdState]
+        self, me: BirdState, others: Mapping[PlayerName, BirdState]
     ) -> FrozenSet[BirdObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
@@ -137,14 +137,14 @@ class BirdCosts:
     # support weight multiplication for expected value
     def __mul__(self, weight: Union[float, int, Fraction]) -> "BirdCosts":
         # weighting costs, e.g. according to a probability
-        return replace(self, cost=self.cost*float(weight))
+        return replace(self, cost=self.cost * float(weight))
 
     __rmul__ = __mul__
 
     # Monoid to support sum
     def __add__(self, other: "BirdCosts") -> "BirdCosts":
         if type(other) == BirdCosts:
-            return replace(self, cost=self.cost+other.cost)
+            return replace(self, cost=self.cost + other.cost)
         else:
             if other is None:
                 return self
