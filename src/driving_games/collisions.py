@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal as D
+from fractions import Fraction
 from typing import NewType
 
 from .rectangle import Coordinates, Rectangle
@@ -25,6 +26,15 @@ class Collision:
     # How much energy was received / transmitted
     energy_received: D
     energy_transmitted: D
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "Collision":
+        # weighting costs, e.g. according to a probability
+        return replace(self,
+                       energy_received=self.energy_received*D(float(weight)),
+                       energy_transmitted=self.energy_transmitted*D(float(weight)))
+
+    __rmul__ = __mul__
 
 
 @dataclass(frozen=True)

@@ -55,6 +55,7 @@ def solve_equilibria(
     ea = analyze_equilibria(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences)
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
+
         eq = list(ea.nondom_nash_equilibria)[0]
         check_joint_mixed_actions2(eq)
 
@@ -65,14 +66,12 @@ def solve_equilibria(
             raise ZValueError("incomplete", game_value=game_value, gn=gn)
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
     else:
-        # multiple nondominated, but same outcome
-
         # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
 
         strategy = sc.solver_params.strategy_multiple_nash
         if strategy == STRATEGY_MIX:
-            # XXX: Not really sure this makes sense when there are probabilities
+            # fixme: Not really sure this makes sense when there are probabilities
             profile: Dict[PlayerName, Poss[U]] = {}
             for player_name in players_active:
                 # find all the mixed strategies he would play at equilibria
