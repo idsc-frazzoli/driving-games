@@ -21,7 +21,7 @@ class ProbPreference(Preference[ProbPoss[P]]):
 
     def __repr__(self) -> str:
         d = {"T": self.get_type(), "p0": self.p0}
-        return "ProbPreference: "+debug_print(d)
+        return "ProbPreference: " + debug_print(d)
 
     @abstractmethod
     def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
@@ -40,9 +40,9 @@ class ProbPrefExpectedValue(ProbPreference):
         expected_A = None
         for a, prob in A.it():
             if expected_A is None:
-                expected_A = a*prob
+                expected_A = a * prob
             else:
-                expected_A += a.personal*prob
+                expected_A += a.personal * prob
             return expected_A
 
 

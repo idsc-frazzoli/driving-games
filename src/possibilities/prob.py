@@ -81,7 +81,6 @@ class ProbabilityFraction(PossibilityMonad):
         return ProbPoss(frozendict(res))
 
     def build(self, a: ProbPoss[A], f: Callable[[A], B]) -> ProbPoss[B]:
-        # fixme is there a specific reason not to follow the bind signature?
         res = defaultdict(Fraction)
         for x, weight in a.it():
             y = f(x)

@@ -6,7 +6,10 @@ from nash.famous_games_zoo import matching_pennies, matching_pennies_2, BiMatGam
 from nash_tests import logger
 from nash import ne_support_enum
 
-games_to_test = [(matching_pennies,), (matching_pennies_2,), ]
+games_to_test = [
+    (matching_pennies,),
+    (matching_pennies_2,),
+]
 
 
 @parameterized(games_to_test)
@@ -27,8 +30,8 @@ def test_single_game(game: BiMatGame = degenerate_1) -> None:
     _B = game.B if game.p2_type == MINIMIZER else -game.B
     logger.info(expected=game.equilibria)
     for i, eq in enumerate(ne_support_enum(_A, _B)):
-        logger.info("My solver: NE ({}): ".format(i+1), eq)
+        logger.info("My solver: NE ({}): ".format(i + 1), eq)
     for i, eq in enumerate(nashpy_sup_enum(-_A, -_B, tol=0)):
-        logger.info("Nashpy supp enum: NE ({}): ".format(i+1), eq)
+        logger.info("Nashpy supp enum: NE ({}): ".format(i + 1), eq)
     for i, eq in enumerate(vertex_enumeration(-_A, -_B)):
-        logger.info("Nashpy vertex enum: NE ({}): ".format(i+1), eq)
+        logger.info("Nashpy vertex enum: NE ({}): ".format(i + 1), eq)

@@ -1,5 +1,6 @@
 from typing import Any, FrozenSet, Mapping, Sequence, Tuple, Type
 import numpy as np
+from frozendict import frozendict
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
 
@@ -18,19 +19,19 @@ class BirdPersonalRewardStructureCustom(PersonalRewardStructure[BirdState, BirdA
         self.max_stages = max_stages
 
     def personal_reward_identity(self) -> BirdCosts:
-        return BirdCosts(0)
+        return BirdCosts(D(0))
 
     def personal_reward_incremental(self, x: BirdState, u: BirdActions, dt: D) -> BirdCosts:
         check_isinstance(x, BirdState)
         check_isinstance(u, BirdActions)
-        return BirdCosts(0)
+        return BirdCosts(D(0))
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
-        return BirdCosts(r1.cost+r2.cost)
+        return r1 + r2
 
     def personal_final_reward(self, x: BirdState) -> BirdCosts:
         check_isinstance(x, BirdState)
-        return BirdCosts(0)
+        return BirdCosts(D(0))
 
     def is_personal_final_state(self, x: BirdState) -> bool:
         check_isinstance(x, BirdState)
@@ -43,12 +44,13 @@ class BirdPreferences(SmallerPreferred):
 
     def __repr__(self) -> str:
         d = {"P": self.get_type()}
-        return "VehiclePreferencesCollTime: "+debug_print(d)
+        return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(self, a: Combined[BirdCosts, BirdCosts],
-                b: Combined[BirdCosts, BirdCosts]) -> ComparisonOutcome:
-        a_ = a.personal+a.joint
-        b_ = b.personal+b.joint
+    def compare(
+        self, a: Combined[BirdCosts, BirdCosts], b: Combined[BirdCosts, BirdCosts]
+    ) -> ComparisonOutcome:
+        a_ = a.personal + a.joint
+        b_ = b.personal + b.joint
         return super().compare(D(a_.cost), D(b_.cost))
 
 
@@ -60,11 +62,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     mat_payoffs: Sequence[np.ndarray]
 
     def __init__(
-            self,
-            max_stages: int,
-            subgames: Sequence[BiMatGame],
-            row_player: PlayerName,
-            col_player: PlayerName,
+        self, max_stages: int, subgames: Sequence[BiMatGame], row_player: PlayerName, col_player: PlayerName,
     ):
         self.row_player = row_player
         self.col_player = col_player
@@ -93,9 +91,11 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         res = {}
         x1, x2 = xs[self.row_player], xs[self.col_player]
         subgame, row, col = self.get_payoff_matrix_idx(x1, x2)
-        payoff1, payoff2 = self.mat_payoffs[subgame][:, row, col]
-        res.update({self.row_player: BirdCosts(payoff1), self.col_player: BirdCosts(payoff2)})
-        return res
+        payoff1, payoff2 = self.mat_payoffs[subgame][row, col, :]
+        res.update(
+            {self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))}
+        )
+        return frozendict(res)
 
     @staticmethod
     def get_payoff_matrix_idx(x1: BirdState, x2: BirdState) -> Tuple[int, int, int]:
@@ -125,8 +125,8 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         else:
             subgame = 3
 
-        z1_dec = x1.z-round(x1.z)
-        z2_dec = x2.z-round(x2.z)
+        z1_dec = x1.z - round(x1.z)
+        z2_dec = x2.z - round(x2.z)
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 
         return subgame, row, col

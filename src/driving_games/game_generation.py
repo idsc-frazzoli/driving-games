@@ -62,12 +62,12 @@ class TwoVehicleUncertaintyParams:
 
 
 def get_two_vehicle_game(
-        vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
 ) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
-    L = vehicles_params.side+vehicles_params.road+vehicles_params.side
-    start = vehicles_params.side+vehicles_params.road_lane_offset
-    max_path = L-1
+    L = vehicles_params.side + vehicles_params.road + vehicles_params.side
+    start = vehicles_params.side + vehicles_params.road_lane_offset
+    max_path = L - 1
     # p1_ref = SE2_from_xytheta([start, 0, np.pi / 2])
     p1_ref = (D(start), D(0), D(+90))
     # p2_ref = SE2_from_xytheta([L, start, -np.pi])
@@ -111,7 +111,7 @@ def get_two_vehicle_game(
         min_speed=min_speed,
         vg=g1,
         shared_resources_ds=vehicles_params.shared_resources_ds,
-        poss_monad=ps
+        poss_monad=ps,
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -123,7 +123,7 @@ def get_two_vehicle_game(
         lights_commands=vehicles_params.light_actions,
         vg=g2,
         shared_resources_ds=vehicles_params.shared_resources_ds,
-        poss_monad=ps
+        poss_monad=ps,
     )
     p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)

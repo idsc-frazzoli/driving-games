@@ -309,6 +309,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
 
     G = MultiDiGraph()
     stack: List[JointState] = []
+    # root of the tree
     for n1, n2 in product(P1.initial.support(), P2.initial.support()):
         S = frozendict({p1: n1, p2: n2})
         G.add_node(
@@ -321,8 +322,8 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             in_game="AB",
         )
         stack.append(S)
-
     logger.info(stack=stack)
+    # all the rest of the tree
     i = 0
     S: JointState
     ps = game.ps
@@ -330,7 +331,6 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         if i % 1000 == 0:
             logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))
         i += 1
-        # S = stack.pop(0)
         S = stack.pop()
         assert S in G.nodes
 

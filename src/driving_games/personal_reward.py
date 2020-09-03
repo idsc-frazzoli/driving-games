@@ -22,7 +22,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
         return VehicleCosts(dt)
 
     def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
-        return VehicleCosts(r1.duration + r2.duration)
+        return r1+r2
 
     def personal_reward_identity(self) -> VehicleCosts:
         return VehicleCosts(D(0))
@@ -33,7 +33,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
 
         with localcontext() as ctx:
             ctx.prec = 2
-            remaining = (self.max_path - x.x) / x.v
+            remaining = (self.max_path-x.x)/x.v
 
             return VehicleCosts(remaining)
 
@@ -41,7 +41,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
         check_isinstance(x, VehicleState)
         # return x.x > self.max_path
 
-        return x.x + x.v > self.max_path
+        return x.x+x.v > self.max_path
 
 
 def SE2_from_VehicleState(s: VehicleState):

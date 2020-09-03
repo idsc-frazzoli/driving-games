@@ -28,7 +28,7 @@ from .structures_solution import (
     STRATEGY_BAIL,
     STRATEGY_MIX,
     STRATEGY_SECURITY,
-    ValueAndActions2,
+    ValueAndActions,
 )
 from .utils import fd
 
@@ -37,7 +37,7 @@ def solve_equilibria(
     sc: SolvingContext[X, U, Y, RP, RJ, SR],
     gn: GameNode[X, U, Y, RP, RJ, SR],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
-) -> ValueAndActions2[U, RP, RJ]:
+) -> ValueAndActions[U, RP, RJ]:
     ps = sc.game.ps
     for pure_action in solved:
         check_joint_pure_actions(pure_action)
@@ -49,12 +49,13 @@ def solve_equilibria(
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
     preferences: Dict[PlayerName, Preference[UncertainCombined]]
-    preferences = {k: sc.outcome_set_preferences[k] for k in players_active}
+    preferences = {k: sc.outcome_preferences[k] for k in players_active}
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
     ea = analyze_equilibria(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences)
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
+
         eq = list(ea.nondom_nash_equilibria)[0]
         check_joint_mixed_actions2(eq)
 
@@ -63,16 +64,14 @@ def solve_equilibria(
             game_value[player_final] = ps.unit(Combined(final_value, None))
         if set(game_value) != set(gn.states):
             raise ZValueError("incomplete", game_value=game_value, gn=gn)
-        return ValueAndActions2(game_value=frozendict(game_value), mixed_actions=eq)
+        return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
     else:
-        # multiple nondominated, but same outcome
-
         # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
 
         strategy = sc.solver_params.strategy_multiple_nash
         if strategy == STRATEGY_MIX:
-            # XXX: Not really sure this makes sense when there are probabilities
+            # fixme: Not really sure this makes sense when there are probabilities
             profile: Dict[PlayerName, Poss[U]] = {}
             for player_name in players_active:
                 # find all the mixed strategies he would play at equilibria
@@ -100,11 +99,11 @@ def solve_equilibria(
             # logger.info(dist=dist)
             # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
 
-            return ValueAndActions2(game_value=fd(game_value1), mixed_actions=frozendict(profile))
+            return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
             security_policies: JointMixedActions
-            security_policies = get_security_policies(ps, solved, sc.outcome_set_preferences, ea)
+            security_policies = get_security_policies(ps, solved, sc.outcome_preferences, ea)
             check_joint_mixed_actions2(security_policies)
             dist: Poss[JointPureActions]
             dist = get_mixed2(ps, security_policies)
@@ -122,7 +121,7 @@ def solve_equilibria(
 
             # game_value: Mapping[PlayerName, UncertainCombined]
             game_value_ = fd(game_value)
-            return ValueAndActions2(game_value=game_value_, mixed_actions=security_policies)
+            return ValueAndActions(game_value=game_value_, mixed_actions=security_policies)
         elif strategy == STRATEGY_BAIL:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
