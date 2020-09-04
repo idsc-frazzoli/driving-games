@@ -14,7 +14,7 @@ from toy_games_tests import logger
 from toy_games.toy_game import get_toy_game_spec
 import nashpy as nash
 
-from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGame
+from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGame, game3, game4
 
 """
 Two stages game. After the first stage we could be in 4 possible stages. 
@@ -26,7 +26,7 @@ with 4 arbitrary payoff matrices for the second stage:
 def _run_toy_game(
     subgames: Sequence[BiMatGame], solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams,
 ):
-    max_stages = 2
+    max_stages = 1
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
 
     logger.info("Starting a 2 stage toy game with the following subgames:")
@@ -72,7 +72,7 @@ def test_toy_games(
 
 
 def test_prob_debug():
-    game = game2
+    game = game4
     solver_spec = solvers_zoo["solver-1-mix-naive"]
     uncertainty_params = uncertainty_prob
     _run_toy_game(game.subgames, solver_spec, uncertainty_params)

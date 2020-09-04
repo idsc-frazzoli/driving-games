@@ -67,7 +67,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         self.row_player = row_player
         self.col_player = col_player
         self.max_stages = max_stages
-        assert len(subgames) == 4, subgames
+        assert len(subgames) == 4 or 1, subgames
         self.mat_payoffs = [np.stack([g.A, g.B], axis=-1) for g in subgames]
 
     def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
@@ -111,22 +111,30 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         :param x2:
         :return:
         """
+
         subgame: int
         row: int
         col: int
-
         thresh = 0
-        if x1.z < thresh and x2.z < thresh:
-            subgame = 0
-        elif x1.z < thresh < x2.z:
-            subgame = 1
-        elif x1.z > thresh > x2.z:
-            subgame = 2
-        else:
-            subgame = 3
 
-        z1_dec = x1.z - round(x1.z)
-        z2_dec = x2.z - round(x2.z)
+
+        # Uncomment/Comment the following lines to switch from 1 stage to 2 stages.
+
+        # if x1.z < thresh and x2.z < thresh:
+        #     subgame = 0
+        # elif x1.z < thresh < x2.z:
+        #     subgame = 1
+        # elif x1.z > thresh > x2.z:
+        #     subgame = 2
+        # else:
+        #     subgame = 3
+        subgame = 0
+
+        # z1_dec = x1.z - round(x1.z)
+        # z2_dec = x2.z - round(x2.z)
+        z1_dec = x1.z
+        z2_dec = x2.z
+
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 
         return subgame, row, col
