@@ -9,6 +9,7 @@ from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, Play
 from games_scripts import solvers_zoo
 from games_scripts.solvers import SolverSpec
 from nash.structures import print_bimatgame, BiMatGame
+from toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
 from toy_games.toy_rewards import BirdJointReward
 from toy_games_tests import logger
 from toy_games.toy_game import get_toy_game_spec
@@ -34,7 +35,8 @@ def _run_toy_game(
         logger.info("Subgame {}: {}".format(i, print_bimatgame(bimatgame)))
 
     solver_params = solver_spec.solver_params
-    game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
+    #game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
+    game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
     solutions = solve1(game_preprocessed)

@@ -96,9 +96,9 @@ class ProbabilityFraction(PossibilityMonad):
             probs = [a[source].get(elements[source]) for source in sources]
             weight = reduce(Fraction.__mul__, probs)
             r = f(elements)
-            for v in r:
-                res[v] += weight
-            #res[r] += weight
+            # for v in r:
+            #     res[v] += weight
+            res[r] += weight
         return ProbPoss(frozendict(res))
 
     def get_sampler(self, seed: int) -> "ProbSampler":

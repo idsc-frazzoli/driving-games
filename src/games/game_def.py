@@ -11,7 +11,7 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    Union,
+    Union, List,
 )
 
 from frozendict import frozendict
@@ -313,3 +313,8 @@ def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
         for _ in v.support():
             if isinstance(_, Poss):
                 raise ZValueError(_=_, **kwargs)
+
+
+@dataclass
+class BayesianGamePlayer(GamePlayer):
+    types: Mapping[PlayerName, List]

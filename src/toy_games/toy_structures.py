@@ -42,6 +42,12 @@ class BirdState(object):
     stage: int = 0
 
 
+@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
+class BayesianBirdState(BirdState):
+    # type
+    t: str = '0'
+
+
 class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
     """Pulling UP increases x, DOWN decreases"""
 
