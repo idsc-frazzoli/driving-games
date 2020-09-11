@@ -42,8 +42,8 @@ class ProbPrefExpectedValue(ProbPreference):
             if expected_A is None:
                 expected_A = a * prob
             else:
-                expected_A += a.personal * prob
-            return expected_A
+                expected_A += a * prob
+        return expected_A
 
 
 class ProbPrefXPercentile(ProbPreference):
