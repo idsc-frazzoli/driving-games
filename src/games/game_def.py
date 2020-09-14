@@ -317,4 +317,4 @@ def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
 
 @dataclass
 class BayesianGamePlayer(GamePlayer):
-    types: Mapping[PlayerName, List]
+    types: List
