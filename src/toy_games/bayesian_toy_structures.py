@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from fractions import Fraction
 from functools import lru_cache
-from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple
+from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple, List
 from decimal import Decimal as D
 
 from frozendict import frozendict
@@ -51,8 +51,9 @@ class BayesianBirdState(BirdState):
 class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR]):
     """Pulling UP increases x, DOWN decreases"""
 
-    def __init__(self, poss_monad: PossibilityMonad):
+    def __init__(self, poss_monad: PossibilityMonad, types: List):
         self.ps = poss_monad
+        self.types = types
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[BayesianBirdActions]:
@@ -65,11 +66,11 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
     def successors(self, x: BayesianBirdState, dt: D) -> Mapping[BayesianBirdActions, Poss[BayesianBirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # todo expand to allow other possibility monads
-        types_hardcoded = ('aggressive', 'cautious')
+
         if x.t == '0':
-            x_wt = self.typeselect(x,types_hardcoded)
+            x_wt = self.typeselect(x, self.types)
         else:
-            x_wt = x
+            x_wt = [x]
 
         possible = {}
         for x in x_wt:
@@ -79,7 +80,7 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
                 except InvalidAction:
                     pass
                 else:
-                    possible[(u,x.t)] = self.ps.unit(x2)
+                    possible[(u, x.t)] = self.ps.unit(x2)
         return frozendict(possible)
 
     @lru_cache(None)
@@ -98,9 +99,9 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         return None
         # raise NotImplementedError("For the toy example the concept of shared resources is not needed")
 
-    def typeselect(self, x, types_hardcoded):
+    def typeselect(self, x, types):
         res = []
-        for _ in types_hardcoded:
+        for _ in types:
             res.append(replace(x, t=_))
         return res
 
@@ -170,7 +171,6 @@ class BirdCosts:
                 raise NotImplementedError
 
     __radd__ = __add__
-
 
 # class BirdsVisualization(
 #     GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]

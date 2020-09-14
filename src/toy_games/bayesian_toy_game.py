@@ -35,13 +35,13 @@ def get_bayesian_toy_game_spec(
     p1_initial = ps.unit(p1_x)
     p2_initial = ps.unit(p2_x)
 
-    # dynamics
-    p1_dynamics = BayesianFlyingDynamics(poss_monad=ps)
-    p2_dynamics = BayesianFlyingDynamics(poss_monad=ps)
-
     #types
-    p1_types = {P1: ['cautious', 'aggressive']}
-    p2_types = {P2: ['cautious', 'aggressive']}
+    p1_types = ['cautious', 'aggressive']
+    p2_types = ['cautious', 'aggressive']
+
+    # dynamics
+    p1_dynamics = BayesianFlyingDynamics(poss_monad=ps, types=p1_types)
+    p2_dynamics = BayesianFlyingDynamics(poss_monad=ps, types=p2_types)
 
     # personal reward structure
     p1_personal_reward_structure = BayesianBirdPersonalRewardStructureCustom(max_stages=max_stages)
