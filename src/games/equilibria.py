@@ -172,7 +172,7 @@ def analyze(
             nash_equilibria[a0] = stats.outcome
     # logger.info(ps=ps)
 
-    # we need something to compare set of outcomes
+    # compare product of monadic outcomes
     pref: Preference[Mapping[PlayerName, UncertainCombined]] = StrictProductPreferenceDict(preferences)
 
     # logger.info(nash_equilibria=nash_equilibria, preferences=preferences, pref=pref)
