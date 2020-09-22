@@ -28,7 +28,7 @@ def test_game(game_str: str, solver_str: str) -> None:
 
 
 def test_run4_prob_tmp() -> None:
-    do_games = ["sym_v1_prob"]
+    do_games = ["asym_v0_prob"]
     do_solvers = [
         # "solver-1-security-fact",
         "solver-1-security-naive"

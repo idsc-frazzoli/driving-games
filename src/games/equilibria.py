@@ -16,7 +16,7 @@ from preferences import (
 from zuper_commons.types import ZValueError
 from . import GameConstants
 from .game_def import (
-    check_joint_mixed_actions2,
+    check_joint_mixed_actions,
     JointMixedActions,
     JointPureActions,
     PlayerName,
@@ -60,11 +60,11 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
             return
 
         for _ in self.ps:
-            check_joint_mixed_actions2(_)
+            check_joint_mixed_actions(_)
         for _ in self.nondom_nash_equilibria:
-            check_joint_mixed_actions2(_)
+            check_joint_mixed_actions(_)
         for _ in self.nash_equilibria:
-            check_joint_mixed_actions2(_)
+            check_joint_mixed_actions(_)
 
 
 def analyze_equilibria(
@@ -77,7 +77,7 @@ def analyze_equilibria(
     # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
-    # fixme for probabilities this is restrictive... double check mix method
+    # todo for probabilities this is restrictive...(mix returns a finite set)
     player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
     # logger.info(player_mixed_strategies=player_mixed_strategies)
     # now we do the product of the mixed strategies

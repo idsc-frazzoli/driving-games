@@ -1,14 +1,14 @@
-from typing import Dict, Mapping
+from typing import Dict, Mapping, MutableMapping
 
 from frozendict import frozendict
 
-from games.solution_security import get_mixed2, get_security_policies
+from games.solution_security import get_mixed_joint_actions, get_security_policies
 from possibilities import Poss
 from preferences import Preference
 from zuper_commons.types import ZNotImplementedError, ZValueError
 from .equilibria import analyze_equilibria, EquilibriaAnalysis
 from .game_def import (
-    check_joint_mixed_actions2,
+    check_joint_mixed_actions,
     check_joint_pure_actions,
     Combined,
     JointMixedActions,
@@ -57,7 +57,7 @@ def solve_equilibria(
     if len(ea.nondom_nash_equilibria) == 1:
 
         eq = list(ea.nondom_nash_equilibria)[0]
-        check_joint_mixed_actions2(eq)
+        check_joint_mixed_actions(eq)
 
         game_value = dict(ea.nondom_nash_equilibria[eq])
         for player_final, final_value in gn.is_final.items():
@@ -87,7 +87,7 @@ def solve_equilibria(
 
             dist: Poss[JointPureActions] = ps.build_multiple(a=profile, f=f)
 
-            game_value1: Mapping[PlayerName, UncertainCombined]
+            game_value1: MutableMapping[PlayerName, UncertainCombined]
             game_value1 = {}
             for player_name in gn.states:
 
@@ -102,11 +102,12 @@ def solve_equilibria(
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
+            # fixme: Not really sure this makes sense when there are probabilities
             security_policies: JointMixedActions
             security_policies = get_security_policies(ps, solved, sc.outcome_preferences, ea)
-            check_joint_mixed_actions2(security_policies)
+            check_joint_mixed_actions(security_policies)
             dist: Poss[JointPureActions]
-            dist = get_mixed2(ps, security_policies)
+            dist = get_mixed_joint_actions(ps, security_policies)
             # logger.info(dist=dist)
             for _ in dist.support():
                 check_joint_pure_actions(_)
