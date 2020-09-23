@@ -1,10 +1,11 @@
 from fractions import Fraction
 from typing import Dict
 
+from nose.tools import eq_
 from zuper_commons.types import ZValueError
 
-from games import JointPureActions, PlayerName
-from possibilities import Poss
+from games import PlayerName
+from games.utils import valmap
 from possibilities.prob import enumerate_prob_assignments, ProbabilityFraction, ProbPoss, A
 from . import logger
 from .test_sets import check_possibilities
@@ -40,31 +41,33 @@ def test_prob1():
 
 
 def test_build_multiple1():
-    distribution = ProbPoss({1: Fraction(1, 2), 2: Fraction(1, 2)})
+    dist = ProbPoss({1: Fraction(1, 2), 2: Fraction(1, 2)})
+    result = ProbPoss({frozenset({1})   : Fraction(1, 2),
+                       frozenset({4})   : Fraction(1, 2)})
     P1 = PlayerName("1")
     a: Dict[PlayerName, ProbPoss[A]]
-    a = {P1: distribution}
+    a = {P1: dist}
 
     def f(x):
-        x_squared = {key: pow(value, 2.0) for key, value in x.items()}
-        return list(x_squared.values())
+        return frozenset(valmap(lambda x: x**2, x).values())
 
-    b = ProbabilityFraction()
-    dist = b.build_multiple(a, f)
-    print(dist)
+    ps = ProbabilityFraction()
+    dist = ps.build_multiple(a, f)
+    eq_(dist, result)
 
 
 def test_build_multiple2():
-    distribution1 = ProbPoss({1: Fraction(1, 2), 2: Fraction(1, 2)})
-    distribution2 = ProbPoss({1: Fraction(1, 3), 2: Fraction(2, 3)})
-
+    dist1 = ProbPoss({1: Fraction(1, 2), 2: Fraction(1, 2)})
+    dist2 = ProbPoss({1: Fraction(1, 3), 2: Fraction(2, 3)})
+    result = ProbPoss({frozenset({1})   : Fraction(1, 6),
+                       frozenset({1, 4}): Fraction(1, 2),
+                       frozenset({4})   : Fraction(1, 3)})
     a: Dict[PlayerName, ProbPoss[A]]
-    a = {"1": distribution1, "2": distribution2}
+    a = {"1": dist1, "2": dist2}
 
     def f(x):
-        x_squared = {key: pow(value, 2.0) for key, value in x.items()}
-        return list(x_squared.values())
+        return frozenset(valmap(lambda x: x**2, x).values())
 
     b = ProbabilityFraction()
     dist = b.build_multiple(a, f)
-    print(dist)
+    eq_(dist, result)
