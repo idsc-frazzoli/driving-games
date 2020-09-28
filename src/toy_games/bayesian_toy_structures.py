@@ -80,7 +80,8 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
                 except InvalidAction:
                     pass
                 else:
-                    possible[(u, x.t)] = self.ps.unit(x2)
+                    # possible[(u, x.t)] = self.ps.unit(x2)
+                    possible[u] = self.ps.unit(x2)
         return frozendict(possible)
 
     @lru_cache(None)

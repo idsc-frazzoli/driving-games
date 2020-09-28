@@ -83,6 +83,10 @@ class PossibilitySet(PossibilityMonad):
         return SetSampler(seed)
 
     def mix(self, a: Collection[A]) -> FrozenSet[SetPoss[A]]:
+        # res = []
+        # for _ in a:
+        #     res.append(frozenset({_}))
+        # poss = frozenset(res)
         poss = non_empty_sets(frozenset(a))
         return frozenset(map(self.lift_many, poss))
 

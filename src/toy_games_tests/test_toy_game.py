@@ -27,7 +27,7 @@ with 4 arbitrary payoff matrices for the second stage:
 def _run_toy_game(
     subgames: Sequence[BiMatGame], solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams,
 ):
-    max_stages = 1
+    max_stages = 2
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
 
     logger.info("Starting a 2 stage toy game with the following subgames:")
@@ -35,8 +35,8 @@ def _run_toy_game(
         logger.info("Subgame {}: {}".format(i, print_bimatgame(bimatgame)))
 
     solver_params = solver_spec.solver_params
-    #game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
-    game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
+    game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
+    #game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
     solutions = solve1(game_preprocessed)
@@ -74,7 +74,7 @@ def test_toy_games(
 
 
 def test_prob_debug():
-    game = game6
+    game = game1
     solver_spec = solvers_zoo["solver-1-mix-naive"]
     uncertainty_params = uncertainty_sets
     #uncertainty_params = uncertainty_prob

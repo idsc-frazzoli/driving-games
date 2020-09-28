@@ -23,7 +23,8 @@ class BayesianBirdPersonalRewardStructureCustom(PersonalRewardStructure[Bayesian
 
     def personal_reward_incremental(self, x: BayesianBirdState, u: BirdActions, dt: D) -> BirdCosts:
         check_isinstance(x, BayesianBirdState)
-        check_isinstance(u, tuple)
+        # check_isinstance(u, tuple)
+        check_isinstance(u, BayesianBirdActions)
         return BirdCosts(D(0))
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:

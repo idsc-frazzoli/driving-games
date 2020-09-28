@@ -67,6 +67,19 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
             check_joint_mixed_actions2(_)
 
 
+def analyze_pbe(
+    *,
+    ps: PossibilityMonad,
+    gn: GameNode[X, U, Y, RP, RJ, SR],
+    solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
+    preferences: Mapping[PlayerName, Preference[UncertainCombined]],
+) -> EquilibriaAnalysis:
+
+    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
+
+    return None
+
+
 def analyze_equilibria(
     *,
     ps: PossibilityMonad,

@@ -1,17 +1,11 @@
 from decimal import Decimal as D
 from os.path import join
 
-from belief_games import get_master_slave_game
-from belief_games.solving_algorithm_1 import solving_hidden_agent_game
-from driving_games import NO_LIGHTS, get_two_vehicle_game, TwoVehicleSimpleParams, PlayerName, \
-    TwoVehicleUncertaintyParams, PossibilitySet, SetPreference1, ProbPrefExpectedValue, ProbabilityFraction
-from games import preprocess_game, solve1, SolverParams, STRATEGY_SECURITY, STRATEGY_MIX, report_solutions, \
-    create_report_preprocessed
+from bayesian_driving_games.game_generation import get_bayesian_driving_game
+from belief_games import TwoVehicleSimpleParams, NO_LIGHTS, TwoVehicleUncertaintyParams, PossibilitySet, SetPreference1, \
+    ProbPrefExpectedValue, ProbabilityFraction, get_two_vehicle_game
+from games import STRATEGY_MIX, SolverParams, preprocess_game, solve1, report_solutions, create_report_preprocessed
 from games_scripts.solvers import SolverSpec
-
-
-def test1():
-    solving_hidden_agent_game()
 
 
 def test2():
@@ -36,7 +30,7 @@ def test2():
     uncertainty_prob = TwoVehicleUncertaintyParams(
         poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue)
     d = "ml_out/tests/"
-    game2 = get_two_vehicle_game(p0,uncertainty_sets)
+    game2 = get_bayesian_driving_game(p0,uncertainty_sets)
     # game1 = get_master_slave_game(p0,uncertainty_sets,2)
     game_name = "test_ml"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
