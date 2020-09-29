@@ -11,8 +11,8 @@ from toy_games.toy_rewards import (
     BirdPreferences,
     BirdJointReward,
 )
-from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization, \
-    BayesianBirdState
+from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
+from toy_games.bayesian_toy_structures import BayesianBirdState
 from possibilities import PossibilitySet, PossibilityMonad
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D

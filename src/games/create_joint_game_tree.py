@@ -230,6 +230,10 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
         dynamics = ic.game.players[player_name].dynamics
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
+    belief = {}
+    for player_name in ic.game.players:
+        belief[player_name] = 1.0
+
     res = GameNode(
         moves=movesets_for_remaining,
         states=frozendict(states),
@@ -238,6 +242,7 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
         resources=frozendict(resources),
+        belief=frozendict(belief)
     )
     ic.cache[states] = res
     return res

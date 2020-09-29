@@ -29,6 +29,7 @@ from .game_def import (
     UncertainCombined,
     X,
     Y,
+    PlayerBelief
 )
 from .simulate import Simulation
 
@@ -107,6 +108,9 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
     resources: Mapping[PlayerName, FSet[SR]]
     """ Resources used by each player """
+
+    belief: Mapping[PlayerName, PlayerBelief]
+    """ Belief of each player at this game node """
 
     __print_order__ = [
         "states",

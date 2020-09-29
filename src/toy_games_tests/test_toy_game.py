@@ -35,8 +35,8 @@ def _run_toy_game(
         logger.info("Subgame {}: {}".format(i, print_bimatgame(bimatgame)))
 
     solver_params = solver_spec.solver_params
-    game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
-    #game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
+    #game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
+    game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
     solutions = solve1(game_preprocessed)
@@ -74,7 +74,7 @@ def test_toy_games(
 
 
 def test_prob_debug():
-    game = game1
+    game = game2
     solver_spec = solvers_zoo["solver-1-mix-naive"]
     uncertainty_params = uncertainty_sets
     #uncertainty_params = uncertainty_prob

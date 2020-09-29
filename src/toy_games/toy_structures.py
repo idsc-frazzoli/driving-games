@@ -42,10 +42,20 @@ class BirdState(object):
     stage: int = 0
 
 
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class BayesianBirdState(BirdState):
-    # type
-    t: str = '0'
+# @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
+# class BayesianBirdState(BirdState):
+#     # type
+#     player_type: str = '0'
+#
+#     def compare_physical_states(self, s2) -> bool:
+#         if self.z != s2.z:
+#             return False
+#         elif self.stage != s2.stage:
+#             return False
+#         elif self.player_type == s2.player_type:
+#             return False
+#         else:
+#             return True
 
 
 class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):

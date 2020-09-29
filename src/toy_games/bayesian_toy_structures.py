@@ -45,7 +45,17 @@ class BirdState(object):
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BayesianBirdState(BirdState):
     # type
-    t: str = '0'
+    player_type: str = '0'
+
+    def compare_physical_states(self, s2) -> bool:
+        if self.z != s2.z:
+            return False
+        elif self.stage != s2.stage:
+            return False
+        elif self.player_type == s2.player_type:
+            return False
+        else:
+            return True
 
 
 class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR]):
@@ -67,21 +77,24 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         """ For each state, returns a dictionary U -> Possible Xs """
         # todo expand to allow other possibility monads
 
-        if x.t == '0':
-            x_wt = self.typeselect(x, self.types)
-        else:
-            x_wt = [x]
+        if x.player_type=='0':
+            possible = {}
+            u = BayesianBirdActions(go=None)
+            for _ in self.types:
+                x2 = BayesianBirdState(z=x.z, stage=x.stage, player_type=_)
+                possible[x2.player_type] = self.ps.unit(x2)
+            return frozendict(possible)
+
 
         possible = {}
-        for x in x_wt:
-            for u in self.all_actions():
-                try:
-                    x2 = self.successor(x, u)
-                except InvalidAction:
-                    pass
-                else:
-                    # possible[(u, x.t)] = self.ps.unit(x2)
-                    possible[u] = self.ps.unit(x2)
+        for u in self.all_actions():
+            try:
+                x2 = self.successor(x, u)
+            except InvalidAction:
+                pass
+            else:
+                possible[u] = self.ps.unit(x2)
+
         return frozendict(possible)
 
     @lru_cache(None)
@@ -99,12 +112,6 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
     def get_shared_resources(self, x: X) -> FrozenSet[SR]:
         return None
         # raise NotImplementedError("For the toy example the concept of shared resources is not needed")
-
-    def typeselect(self, x, types):
-        res = []
-        for _ in types:
-            res.append(replace(x, t=_))
-        return res
 
 
 # @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)

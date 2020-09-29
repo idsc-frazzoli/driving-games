@@ -9,7 +9,8 @@ from zuper_commons.types import check_isinstance
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure
 from nash import BiMatGame
 from toy_games.bayesian_toy_structures import BayesianBirdActions
-from toy_games.toy_structures import BirdState, BirdCosts, BirdActions, BayesianBirdState
+from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
+from toy_games.bayesian_toy_structures import BayesianBirdState
 
 
 class BayesianBirdPersonalRewardStructureCustom(PersonalRewardStructure[BayesianBirdState, BirdActions, BirdCosts]):
@@ -24,7 +25,7 @@ class BayesianBirdPersonalRewardStructureCustom(PersonalRewardStructure[Bayesian
     def personal_reward_incremental(self, x: BayesianBirdState, u: BirdActions, dt: D) -> BirdCosts:
         check_isinstance(x, BayesianBirdState)
         # check_isinstance(u, tuple)
-        check_isinstance(u, BayesianBirdActions)
+        #check_isinstance(u, BayesianBirdActions)
         return BirdCosts(D(0))
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
@@ -110,19 +111,19 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
         #
         # for combi in combinations:
 
-        if (x1.t == ('aggressive')) & (x2.t == ('aggressive')):
+        if (x1.player_type == ('aggressive')) & (x2.player_type == ('aggressive')):
             subgame = 0
             beta1 = Fraction(1,3)
             beta2 = Fraction(1,3)
-        elif (x1.t == ('aggressive')) & (x2.t == ('cautious')):
+        elif (x1.player_type == ('aggressive')) & (x2.player_type == ('cautious')):
             subgame = 1
             beta1 = Fraction(2,3)
             beta2 = Fraction(1,3)
-        elif (x1.t == ('cautious')) & (x2.t == ('aggressive')):
+        elif (x1.player_type == ('cautious')) & (x2.player_type == ('aggressive')):
             subgame = 2
             beta1 = Fraction(1,3)
             beta2 = Fraction(2,3)
-        elif (x1.t == ('cautious')) & (x2.t == ('cautious')):
+        elif (x1.player_type == ('cautious')) & (x2.player_type == ('cautious')):
             subgame = 3
             beta1 = Fraction(2,3)
             beta2 = Fraction(2,3)

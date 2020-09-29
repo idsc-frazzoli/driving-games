@@ -111,6 +111,22 @@ class BayesianVehicleState:
 
     __print_order__ = ["x", "v", "player_type"]  # only print these attributes
 
+    def compare_physical_states(self, s2) -> bool:
+        if self.ref != s2.ref:
+            return False
+        elif self.x != s2.x:
+            return False
+        elif self.v != s2.v:
+            return False
+        elif self.wait != s2.wait:
+            return False
+        elif self.light != s2.light:
+            return False
+        elif self.player_type == s2.player_type:
+            return False
+        else:
+            return True
+
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:

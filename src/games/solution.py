@@ -7,7 +7,7 @@ from typing import (
     FrozenSet,
     FrozenSet as FSet,
     Mapping,
-    Mapping as M,
+    Mapping as M, Tuple, List,
 )
 
 from frozendict import frozendict
@@ -104,28 +104,29 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
             policy = gp.players_pre[p2].gs.policies[p2]
             controllers_others[p2] = AgentFromPolicy(gp.game.ps, policy)
 
-        if player_name.startswith("N"):  # fixme why?
-            logger.info(f"looking for solution for {player_name} follower")
-
-        ghost_game_graph = get_ghost_tree(gp.game, player_name, gg, controllers_others)
-        if player_name.startswith("N"):  # fixme why?
-            logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
-            # logger.info(gg_nodes=set(ghost_game_graph.state2node))
-            # logger.info(gg=ghost_game_graph)
-
-        solution_ghost = solve_game2(
-            game=gp.game, gg=ghost_game_graph, solver_params=gp.solver_params, jss={initial_state},
-        )
-        msg = f"Stackelberg solution when {player_name} is a follower"
-        game_values = solution_ghost.states_to_solution[initial_state].va.game_value
-        logger.info(msg, game_values=game_values)
-
-        controllers = dict(controllers_others)
-        controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
-        sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0, )
-        sims[f"{player_name}-follows"] = sim_
+        # if player_name.startswith("N"):  # fixme why?
+        #     logger.info(f"looking for solution for {player_name} follower")
+        #
+        # ghost_game_graph = get_ghost_tree(gp.game, player_name, gg, controllers_others)
+        # if player_name.startswith("N"):  # fixme why?
+        #     logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
+        #     # logger.info(gg_nodes=set(ghost_game_graph.state2node))
+        #     # logger.info(gg=ghost_game_graph)
+        #
+        # solution_ghost = solve_game2(
+        #     game=gp.game, gg=ghost_game_graph, solver_params=gp.solver_params, jss={initial_state},
+        # )
+        # msg = f"Stackelberg solution when {player_name} is a follower"
+        # game_values = solution_ghost.states_to_solution[initial_state].va.game_value
+        # logger.info(msg, game_values=game_values)
+        #
+        # controllers = dict(controllers_others)
+        # controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
+        # sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0, )
+        # sims[f"{player_name}-follows"] = sim_
 
     logger.info("solving game tree")
+    game_solution2 = solve_game_pbe(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
     game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
@@ -164,6 +165,41 @@ def get_outcome_preferences_for_players(
         pref2: Preference[UncertainCombined] = monadic_pref_builder(pref0)
         preferences[player_name] = pref2
     return preferences
+
+
+def solve_game_pbe(
+        *,
+        game: Game[X, U, Y, RP, RJ, SR],
+        solver_params: SolverParams,
+        gg: GameGraph[X, U, Y, RP, RJ, SR],
+        jss: AbstractSet[JointState],
+) -> GameSolution[X, U, Y, RP, RJ, SR]:
+
+    # Step 1: find information sets: For each physical state, the two types together
+    players: list = []
+    for player_name in game.players:
+        players.append(player_name)
+
+    information_sets: Mapping[PlayerName, List[Tuple[JointState]]] = {}
+    for i in players:
+        information_sets[i]=[]
+
+    for player_name in game.players:
+        active_player = player_name
+        inactive_players = [i for i in players if i!=player_name]
+        for js in gg.state2node:
+            if not js[player_name].player_type:
+                msg = "No types in states!"
+                raise ZValueError(msg)
+
+            for js2 in gg.state2node:
+                if js[active_player]==js2[active_player]:
+                    for i in inactive_players:
+                        if js[i].compare_physical_states(js2[i]):
+                            if js[i].player_type < js2[i].player_type:
+                                information_sets[active_player].append((js, js2))
+
+    return None
 
 
 def solve_game2(

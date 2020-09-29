@@ -21,7 +21,7 @@ G3 = BiMatGame(A=np.array([[1, 3], [2, 2]]), B=np.array([[4, 1], [1, 2]]))
 G4 = BiMatGame(A=np.array([[3, 4], [3, 5]]), B=np.array([[3, 5], [2, 3]]))
 game1 = ToyGame(subgames=[G1, G2, G3, G4], desc="This game presents some corner cases")
 
-G1b = BiMatGame(A=np.array([[1, 200], [300, 400]]), B=np.array([[1, 200], [300, 400]])) #down down
+G1b = BiMatGame(A=np.array([[100, 200], [300, 400]]), B=np.array([[100, 200], [300, 400]])) #down down
 G2b = BiMatGame(A=np.array([[500, 600], [700, 800]]), B=np.array([[500, 600], [700, 800]])) #down up
 G3b = BiMatGame(A=np.array([[900, 1000], [1100, 1200]]), B=np.array([[900, 1000], [1100, 1200]])) #up down
 G4b = BiMatGame(A=np.array([[1300, 1400], [1500, 1600]]), B=np.array([[1300, 1400], [1500, 1600]])) #up up
