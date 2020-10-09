@@ -7,10 +7,12 @@ from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
 
 from frozendict import frozendict
 
+from driving_games import VehicleGeometry, VehicleActions
+from driving_games.structures import InvalidAction, VehicleCosts, Lights, LightsValue
 from games import Dynamics, PlayerName
 from possibilities import Poss, PossibilitySet, PossibilityMonad
 from zuper_commons.types import ZException, ZValueError
-from .rectangle import Rectangle
+from driving_games.rectangle import Rectangle
 
 __all__ = [
     "Lights",
@@ -25,68 +27,12 @@ __all__ = [
     "VehicleGeometry",
 ]
 
-Lights = NewType("Lights", str)
-""" The type of light commands. """
 PlayerType = NewType("PlayerType", str)
 """ The type of a player. """
 
-NO_LIGHTS = Lights("none")
-""" Lights are off. """
-LIGHTS_HEADLIGHTS = Lights("headlights")
-""" The front lights are on. """
-LIGHTS_TURN_LEFT = Lights("turn_left")
-""" Blinkers turn left """
-LIGHTS_TURN_RIGHT = Lights("turn_right")
-""" Blinkers turn right """
-LightsValue: AbstractSet[Lights] = frozenset(
-    {NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT}
-)
-""" All possible lights command value"""
 
 SE2_disc = Tuple[D, D, D]  # in degrees
 
-
-class InvalidAction(ZException):
-    pass
-
-
-@dataclass(frozen=True)
-class VehicleCosts:
-    """ The personal costs of the vehicle"""
-
-    duration: D
-    """ Duration of the episode. """
-
-    # support weight multiplication for expected value
-    def __mul__(self, weight: Fraction) -> "VehicleCosts":
-        # weighting costs, e.g. according to a probability
-        return replace(self, duration=self.duration*D(float(weight)))
-
-    __rmul__ = __mul__
-
-    # Monoid to support sum
-    def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
-        if type(other) == VehicleCosts:
-            return replace(self, duration=self.duration+other.duration)
-        else:
-            if other is None:
-                return self
-            else:
-                raise NotImplementedError
-
-    __radd__ = __add__
-
-
-@dataclass(frozen=True)
-class VehicleGeometry:
-    mass: D
-    """ Mass [kg] """
-    width: D
-    """ Car width [m] """
-    length: D
-    """ Car length [m] """
-    color: Tuple[float, float, float]
-    """ Car color """
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -126,12 +72,6 @@ class BayesianVehicleState:
             return False
         else:
             return True
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class VehicleActions:
-    accel: D
-    light: Lights = NO_LIGHTS
 
 
 class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle]):
@@ -264,18 +204,6 @@ class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle])
 
 
     def get_shared_resources(self, x: BayesianVehicleState) -> FrozenSet[Rectangle]:
-        from .collisions_check import get_resources_used
+        from driving_games.collisions_check import get_resources_used
 
         return get_resources_used(vs=x, vg=self.vg, ds=self.shared_resources_ds)
-
-    # @lru_cache(None)
-    # def assert_valid_state(self, s: VehicleState):
-    #     if s.wait and s.v:
-    #         raise ZValueError(s=s)
-    #
-    #     if not (0 <= s.x <= self.max_path):
-    #         raise ZValueError(s=s)
-    #     if not (0 <= s.v <= self.max_speed):
-    #         raise ZValueError(s=s)
-    #     if not (0 <= s.wait <= self.max_wait):
-    #         raise ZValueError(s=s)

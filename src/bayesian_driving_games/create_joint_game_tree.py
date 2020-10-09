@@ -8,6 +8,7 @@ from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
 from bayesian_driving_games.structures_solution import BayesianGameNode
+from games.create_joint_game_tree import IterationContext, get_moves
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from games import logger
@@ -33,24 +34,6 @@ from games.structures_solution import (
 from games.utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = []
-
-
-@dataclass
-class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
-    """ Iteration structure while creating the game graph. """
-
-    game: Game[X, U, Y, RP, RJ, SR]
-    dt: D
-    cache: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]
-    """ Nodes that were already computed. """
-
-    depth: int
-    """ The current depth. """
-
-    gf: Optional[GameFactorization[X]]
-    """ Optional GameFactorization that will be used in the 
-        graph creation to recognize decoupled states.
-    """
 
 
 def create_bayesian_game_graph(
@@ -117,26 +100,6 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
                     G.add_edge(js, js2)
     return G
 
-
-def get_moves(
-    ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState
-) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
-    """ Returns the possible moves. """
-    res = {}
-    state: X
-    ps = ic.game.ps
-    dt = ic.dt
-    for player_name, state in js.items():
-        player = ic.game.players[player_name]
-        # is it a final state?
-        is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
-
-        if state is None or is_final:
-            succ = {None: ps.unit(None)}
-        else:
-            succ = player.dynamics.successors(state, dt)
-        res[player_name] = succ
-    return res
 
 
 def create_bayesian_game_graph_(ic: IterationContext, states: JointState) -> BayesianGameNode:

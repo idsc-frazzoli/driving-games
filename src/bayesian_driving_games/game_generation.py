@@ -4,6 +4,8 @@ from typing import cast, Dict, FrozenSet, FrozenSet as ASet, List
 
 from frozendict import frozendict
 
+from bayesian_driving_games.structures import BayesianVehicleState, PlayerType
+from belief_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from games import (
     Game,
     GamePlayer,
@@ -14,22 +16,21 @@ from games import (
 )
 from games.game_def import MonadicPreferenceBuilder
 from possibilities import PossibilityMonad
-from .collisions import Collision
-from .joint_reward import VehicleJointReward
-from .personal_reward import VehiclePersonalRewardStructureTime
-from .preferences_coll_time import VehiclePreferencesCollTime
-from .rectangle import Rectangle
-from .structures import (
+from driving_games.collisions import Collision
+from driving_games.joint_reward import VehicleJointReward
+from driving_games.personal_reward import VehiclePersonalRewardStructureTime
+from driving_games.preferences_coll_time import VehiclePreferencesCollTime
+from driving_games.rectangle import Rectangle
+from driving_games.structures import (
     Lights,
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
     VehicleDynamics,
     VehicleGeometry,
-    BayesianVehicleState, PlayerType,
 )
-from .vehicle_observation import VehicleDirectObservations, VehicleObservation
-from .visualization import DrivingGameVisualization
+from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation
+from driving_games.visualization import DrivingGameVisualization
 
 DrivingGame = Game[BayesianVehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
 DrivingGamePlayer = GamePlayer[
@@ -37,28 +38,6 @@ DrivingGamePlayer = GamePlayer[
 ]
 
 
-@dataclass
-class TwoVehicleSimpleParams:
-    side: D
-    road: D
-    road_lane_offset: D
-    max_speed: D
-    min_speed: D
-    max_wait: D
-    available_accels: FrozenSet[D]
-    collision_threshold: float
-    light_actions: FrozenSet[Lights]
-    dt: D
-    # initial positions
-    first_progress: D
-    second_progress: D
-    shared_resources_ds: D
-
-
-@dataclass
-class TwoVehicleUncertaintyParams:
-    poss_monad: PossibilityMonad
-    mpref_builder: MonadicPreferenceBuilder
 
 
 def get_bayesian_driving_game(
