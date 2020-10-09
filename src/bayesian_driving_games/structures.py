@@ -1,57 +1,31 @@
 import itertools
 from dataclasses import dataclass, replace
 from decimal import Decimal as D, localcontext
-from fractions import Fraction
 from functools import lru_cache
-from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
+from typing import FrozenSet, Mapping, NewType
 
 from frozendict import frozendict
 
-from driving_games import VehicleGeometry, VehicleActions
-from driving_games.structures import InvalidAction, VehicleCosts, Lights, LightsValue
-from games import Dynamics, PlayerName
-from possibilities import Poss, PossibilitySet, PossibilityMonad
-from zuper_commons.types import ZException, ZValueError
+from driving_games import  VehicleActions
+from driving_games.structures import (
+    InvalidAction, LightsValue, VehicleState,
+    VehicleDynamics)
+from games import Dynamics
+from possibilities import Poss
+from zuper_commons.types import ZValueError
 from driving_games.rectangle import Rectangle
 
 __all__ = [
-    "Lights",
-    "NO_LIGHTS",
-    "LightsValue",
-    "LIGHTS_HEADLIGHTS",
-    "LIGHTS_TURN_LEFT",
-    "LIGHTS_TURN_RIGHT",
-    "VehicleCosts",
+    "PlayerType",
     "BayesianVehicleState",
-    "VehicleActions",
-    "VehicleGeometry",
+    "BayesianVehicleDynamics"
 ]
 
 PlayerType = NewType("PlayerType", str)
 """ The type of a player. """
 
-
-SE2_disc = Tuple[D, D, D]  # in degrees
-
-
-
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class BayesianVehicleState:
-    ref: SE2_disc
-    """ Reference frame from where the vehicle started """
-
-    x: D
-    """ Longitudinal position """
-
-    v: D
-    """ Longitudinal velocity """
-
-    wait: D
-    """ How long we have been at speed = 0. We want to keep track so bound this. """
-
-    light: Lights
-    """ The current lights signal. """
-
+class BayesianVehicleState(VehicleState):
     player_type: PlayerType
     """ The type of the player """
 
@@ -74,55 +48,14 @@ class BayesianVehicleState:
             return True
 
 
-class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle]):
-    max_speed: D
-    """ Maximum speed [m/s] """
-
-    min_speed: D
-    """ Minimum speed [m/s] """
-
-    max_path: D
-    """ Maximum `x` until end of episode [m] """
-
-    available_accels: FrozenSet[D]
-    """ Available accelleration values. """
-
-    max_wait: D
-    """ Maximum wait [s] -- maximum duration at v=0. """
-
-    lights_commands: FrozenSet[Lights]
-    """ Allowed light commands """
-
-    shared_resources_ds: D
-    """ Size of the spatial cells to consider as resources [m]"""
-
-    vg: VehicleGeometry
-    """ The vehicle's geometry. """
+class BayesianVehicleDynamics(VehicleDynamics, Dynamics[BayesianVehicleState, VehicleActions, Rectangle]):
 
     def __init__(
             self,
-            max_speed: D,
-            min_speed: D,
-            available_accels: FrozenSet[D],
-            max_wait: D,
-            ref: SE2_disc,
-            max_path: D,
-            lights_commands: FrozenSet[Lights],
-            shared_resources_ds: D,
-            vg: VehicleGeometry,
-            poss_monad: PossibilityMonad,
-            player_types: FrozenSet[PlayerType]
+            player_types: FrozenSet[PlayerType],
+            **kwargs
     ):
-        self.min_speed = min_speed
-        self.max_speed = max_speed
-        self.available_accels = available_accels
-        self.max_wait = max_wait
-        self.ref = ref
-        self.max_path = max_path
-        self.lights_commands = lights_commands
-        self.shared_resources_ds = shared_resources_ds
-        self.vg = vg
-        self.ps = poss_monad
+        super().__init__(**kwargs)
         self.player_types = player_types
 
     @lru_cache(None)
@@ -133,7 +66,8 @@ class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle])
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(self, x: BayesianVehicleState, dt: D) -> Mapping[VehicleActions, Poss[BayesianVehicleState]]:
+    def successors(self, x: BayesianVehicleState, dt: D) -> Mapping[
+        VehicleActions, Poss[BayesianVehicleState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accelerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _*dt+x.v >= 0]
@@ -142,9 +76,9 @@ class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle])
             assert x.v == 0, x
             accels.remove(D(0))
 
-        if x.player_type==PlayerType('0'):
+        if x.player_type == PlayerType('0'):
             possible = {}
-            u = VehicleActions(accel=None, light=None)
+            u = VehicleActions(accel=None, light=None)  #fixme accel=None does not look good
             for _ in self.player_types:
                 x2 = BayesianVehicleState(ref=x.ref, x=x.x, v=x.v, wait=x.wait, light=x.light, player_type=_)
                 possible[x2.player_type] = self.ps.unit(x2)
@@ -189,7 +123,6 @@ class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle])
         #     msg = f'Invalid action gives wait of {wait2}'
         #     raise InvalidAction(msg, x=x, u=u)
 
-
         if v2 == 0:
             wait2 = x.wait+dt
             if wait2 > self.max_wait:
@@ -197,11 +130,11 @@ class VehicleDynamics(Dynamics[BayesianVehicleState, VehicleActions, Rectangle])
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = D(0)
-        ret = BayesianVehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light, player_type=x.player_type)
+        ret = BayesianVehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light,
+                                   player_type=x.player_type)
         if ret.x < 0:
             raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
-
 
     def get_shared_resources(self, x: BayesianVehicleState) -> FrozenSet[Rectangle]:
         from driving_games.collisions_check import get_resources_used

@@ -56,10 +56,10 @@ from games.structures_solution import (
     ValueAndActions
 )
 
-__all__ = ["solve1", "get_outcome_preferences_for_players"]
+__all__ = ["solve_bayesian_game", "get_outcome_preferences_for_players"]
 
 
-def solve_bayesian(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     G = gp.game_graph
     dt = gp.solver_params.dt
     # find initial states

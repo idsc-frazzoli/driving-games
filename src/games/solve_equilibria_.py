@@ -103,6 +103,7 @@ def solve_equilibria(
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
             # fixme: Not really sure this makes sense when there are probabilities
+            # fixme for probabilities
             security_policies: JointMixedActions
             security_policies = get_security_policies(ps, solved, sc.outcome_preferences, ea)
             check_joint_mixed_actions(security_policies)

@@ -8,7 +8,7 @@ from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
 from bayesian_driving_games.structures_solution import BayesianGameNode
-from games.create_joint_game_tree import IterationContext, get_moves
+from games.create_joint_game_tree import get_moves
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from games import logger
@@ -33,18 +33,36 @@ from games.structures_solution import (
 )
 from games.utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
-__all__ = []
+__all__ = ["create_bayesian_game_graph"]
+
+
+@dataclass
+class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
+    """ Iteration structure while creating the game graph. """
+
+    game: Game[X, U, Y, RP, RJ, SR]
+    dt: D
+    cache: Dict[JointState, BayesianGameNode[X, U, Y, RP, RJ, SR]]
+    """ Nodes that were already computed. """
+
+    depth: int
+    """ The current depth. """
+
+    gf: Optional[GameFactorization[X]]
+    """ Optional GameFactorization that will be used in the 
+        graph creation to recognize decoupled states.
+    """
 
 
 def create_bayesian_game_graph(
-    game: Game[X, U, Y, RP, RJ, SR],
-    dt: D,
-    initials: AbstractSet[JointState],
-    gf: Optional[GameFactorization[X]],
+        game: Game[X, U, Y, RP, RJ, SR],
+        dt: D,
+        initials: AbstractSet[JointState],
+        gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """ Create the game graph. """
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
-    ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
+    ic = BayesianIterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
         create_bayesian_game_graph_(ic, js)
@@ -83,7 +101,7 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
             # for each time t1 at which we can be at n1
             for t1 in state2times[n1]:
                 # we can be at n2 at time t2
-                t2 = t1 + dt
+                t2 = t1+dt
                 state2times[n2].add(t2)
                 time2states[t2].add(n2)
     return AccessibilityInfo(state2times, time2states)
@@ -101,8 +119,7 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     return G
 
 
-
-def create_bayesian_game_graph_(ic: IterationContext, states: JointState) -> BayesianGameNode:
+def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState) -> BayesianGameNode:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
@@ -110,7 +127,7 @@ def create_bayesian_game_graph_(ic: IterationContext, states: JointState) -> Bay
     moves_to_state_everybody = get_moves(ic, states)
     pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth + 1)
+    ic2 = replace(ic, depth=ic.depth+1)
 
     is_final = {}
     for player_name, player_state in states.items():

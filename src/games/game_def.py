@@ -78,8 +78,6 @@ JointPureActions = Mapping[PlayerName, U]
 JointMixedActions = Mapping[PlayerName, Poss[U]]
 """ A mixed strategy for each player"""
 
-PlayerBelief = NewType("PlayerBelief", float)
-""" A belief for the player"""
 
 @dataclass(frozen=True, order=True, unsafe_hash=True)
 class Combined(Generic[RJ, RP]):
