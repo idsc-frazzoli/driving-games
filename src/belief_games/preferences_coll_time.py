@@ -53,6 +53,7 @@ class VehiclePreferencesCollTime(Preference[Combined[Collision, VehicleCosts]]):
             # logger.info(ct_a=ct_a, ct_b=ct_b, res=res)
             return res
 
+
 class VehiclePreferencesCollTimeML(Preference[Combined[Collision, VehicleCosts]]):
     def __init__(self, ignore_second=True):
         self.ignore_second = ignore_second

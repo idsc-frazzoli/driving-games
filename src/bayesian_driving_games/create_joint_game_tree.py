@@ -8,7 +8,7 @@ from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
 from bayesian_driving_games.structures_solution import BayesianGameNode
-from games.create_joint_game_tree import IterationContext, get_moves
+from games.create_joint_game_tree import get_moves
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from games import logger
@@ -33,7 +33,25 @@ from games.structures_solution import (
 )
 from games.utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
-__all__ = []
+__all__ = ["create_bayesian_game_graph"]
+
+
+@dataclass
+class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
+    """ Iteration structure while creating the game graph. """
+
+    game: Game[X, U, Y, RP, RJ, SR]
+    dt: D
+    cache: Dict[JointState, BayesianGameNode[X, U, Y, RP, RJ, SR]]
+    """ Nodes that were already computed. """
+
+    depth: int
+    """ The current depth. """
+
+    gf: Optional[GameFactorization[X]]
+    """ Optional GameFactorization that will be used in the 
+        graph creation to recognize decoupled states.
+    """
 
 
 def create_bayesian_game_graph(
@@ -44,7 +62,7 @@ def create_bayesian_game_graph(
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """ Create the game graph. """
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
-    ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
+    ic = BayesianIterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
         create_bayesian_game_graph_(ic, js)
@@ -101,8 +119,7 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     return G
 
 
-
-def create_bayesian_game_graph_(ic: IterationContext, states: JointState) -> BayesianGameNode:
+def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState) -> BayesianGameNode:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
@@ -206,7 +223,7 @@ def create_bayesian_game_graph_(ic: IterationContext, states: JointState) -> Bay
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
         resources=frozendict(resources),
-        belief=belief
+        belief=belief,
     )
     ic.cache[states] = res
     return res

@@ -1,13 +1,19 @@
 from decimal import Decimal as D, Decimal
-from os.path import join
 
 from belief_games import get_master_slave_game, get_asym, TwoVehicleSeenObservation
 from belief_games.belief_calculation import belief_calc_simple1, belief_calc_simple2
-from driving_games import NO_LIGHTS, get_two_vehicle_game, TwoVehicleSimpleParams, PlayerName, \
-    TwoVehicleUncertaintyParams, PossibilitySet, SetPreference1, frozendict, VehicleState
-from games import preprocess_game, solve1, SolverParams, STRATEGY_SECURITY, STRATEGY_MIX, report_solutions, \
-    create_report_preprocessed
-from games.get_indiv_games import get_individual_games
+from driving_games import (
+    NO_LIGHTS,
+    get_two_vehicle_game,
+    TwoVehicleSimpleParams,
+    PlayerName,
+    TwoVehicleUncertaintyParams,
+    PossibilitySet,
+    SetPreference1,
+    frozendict,
+    VehicleState,
+)
+from games import preprocess_game, solve1, SolverParams, STRATEGY_SECURITY, STRATEGY_MIX
 from games_scripts.solvers import SolverSpec
 
 
@@ -39,21 +45,57 @@ def solving_hidden_agent_game():
     # starting positons of the two cars
     start = p0.side + p0.road_lane_offset
     L = p0.side + p0.road + p0.side
-    initial_state1 = {'N↑': VehicleState(ref=(Decimal('11'), Decimal('0'), Decimal('90')), x=Decimal('0'), v=Decimal('1'), wait=Decimal('0'), light='none'), 'W←': VehicleState(ref=(Decimal('22'), Decimal('11'), Decimal('-180')), x=Decimal('0'), v=Decimal('1'), wait=Decimal('0'), light='none')}
+    initial_state1 = {
+        "N↑": VehicleState(
+            ref=(Decimal("11"), Decimal("0"), Decimal("90")),
+            x=Decimal("0"),
+            v=Decimal("1"),
+            wait=Decimal("0"),
+            light="none",
+        ),
+        "W←": VehicleState(
+            ref=(Decimal("22"), Decimal("11"), Decimal("-180")),
+            x=Decimal("0"),
+            v=Decimal("1"),
+            wait=Decimal("0"),
+            light="none",
+        ),
+    }
     initial_state1 = frozendict(initial_state1)
     initial_state2 = {
-        'level-1': VehicleState(ref=(Decimal('11'), Decimal('0'), Decimal('90')), x=Decimal('0'), v=Decimal('1'),
-                                wait=Decimal('0'), light='none'),
-        'level-0': VehicleState(ref=(Decimal('22'), Decimal('11'), Decimal('-180')), x=Decimal('0'), v=Decimal('1'),
-                                wait=Decimal('0'), light='none')}
+        "level-1": VehicleState(
+            ref=(Decimal("11"), Decimal("0"), Decimal("90")),
+            x=Decimal("0"),
+            v=Decimal("1"),
+            wait=Decimal("0"),
+            light="none",
+        ),
+        "level-0": VehicleState(
+            ref=(Decimal("22"), Decimal("11"), Decimal("-180")),
+            x=Decimal("0"),
+            v=Decimal("1"),
+            wait=Decimal("0"),
+            light="none",
+        ),
+    }
     initial_state2 = frozendict(initial_state2)
     initial_state3 = {
-        'level-0': VehicleState(ref=(Decimal('11'), Decimal('0'), Decimal('90')), x=Decimal('0'), v=Decimal('1'),
-                           wait=Decimal('0'), light='none'),
-        'level-1': VehicleState(ref=(Decimal('22'), Decimal('11'), Decimal('-180')), x=Decimal('0'), v=Decimal('1'),
-                           wait=Decimal('0'), light='none')}
+        "level-0": VehicleState(
+            ref=(Decimal("11"), Decimal("0"), Decimal("90")),
+            x=Decimal("0"),
+            v=Decimal("1"),
+            wait=Decimal("0"),
+            light="none",
+        ),
+        "level-1": VehicleState(
+            ref=(Decimal("22"), Decimal("11"), Decimal("-180")),
+            x=Decimal("0"),
+            v=Decimal("1"),
+            wait=Decimal("0"),
+            light="none",
+        ),
+    }
     initial_state3 = frozendict(initial_state3)
-
 
     p1_ref = (D(start), D(0), D(+90))
     p2_ref = (D(L), D(start), D(-180))
@@ -98,7 +140,9 @@ def solving_hidden_agent_game():
 
             #
             # #######
-            a4_P1 = list(solutions4.game_solution.states_to_solution[initial_state1].va.game_value['N↑'].support())
+            a4_P1 = list(
+                solutions4.game_solution.states_to_solution[initial_state1].va.game_value["N↑"].support()
+            )
             res = 0
             n = 0
             for i in range(len(a4_P1)):
@@ -107,7 +151,9 @@ def solving_hidden_agent_game():
                     n = n + 1
             game_value4_P1 = res / n
 
-            a4_P2 = list(solutions4.game_solution.states_to_solution[initial_state1].va.game_value['W←'].support())
+            a4_P2 = list(
+                solutions4.game_solution.states_to_solution[initial_state1].va.game_value["W←"].support()
+            )
             res = 0
             n = 0
             for i in range(len(a4_P2)):
@@ -116,7 +162,9 @@ def solving_hidden_agent_game():
                     n = n + 1
             game_value4_P2 = res / n
 
-            a3_P1 = list(solutions3.game_solution.states_to_solution[initial_state3].va.game_value['level-0'].support())
+            a3_P1 = list(
+                solutions3.game_solution.states_to_solution[initial_state3].va.game_value["level-0"].support()
+            )
             res = 0
             n = 0
             for i in range(len(a3_P1)):
@@ -125,7 +173,9 @@ def solving_hidden_agent_game():
                     n = n + 1
             game_value3_P1 = res / n
 
-            a3_P2 = list(solutions3.game_solution.states_to_solution[initial_state3].va.game_value['level-1'].support())
+            a3_P2 = list(
+                solutions3.game_solution.states_to_solution[initial_state3].va.game_value["level-1"].support()
+            )
             res = 0
             n = 0
             for i in range(len(a3_P2)):
@@ -134,7 +184,9 @@ def solving_hidden_agent_game():
                     n = n + 1
             game_value3_P2 = res / n
 
-            a2_P1 = list(solutions2.game_solution.states_to_solution[initial_state2].va.game_value['level-1'].support())
+            a2_P1 = list(
+                solutions2.game_solution.states_to_solution[initial_state2].va.game_value["level-1"].support()
+            )
             res = 0
             n = 0
             for i in range(len(a2_P1)):
@@ -143,7 +195,9 @@ def solving_hidden_agent_game():
                     n = n + 1
             game_value2_P1 = res / n
 
-            a2_P2 = list(solutions2.game_solution.states_to_solution[initial_state2].va.game_value['level-0'].support())
+            a2_P2 = list(
+                solutions2.game_solution.states_to_solution[initial_state2].va.game_value["level-0"].support()
+            )
             res = 0
             n = 0
             for i in range(len(a2_P2)):
@@ -171,7 +225,7 @@ def solving_hidden_agent_game():
             #         r4 = r4.append(list(solutions4.game_solution.states_to_solution[joint_state].va.game_value["Caring"].support())[0].personal.duration)
             #     else:
             #         pass
-                ######
+            ######
 
             # calculate the probabilities of playing each game.
             probab1 = belief_calc_simple1(p0)
@@ -187,32 +241,32 @@ def solving_hidden_agent_game():
             l1 = min(expected_game_value2_P1, expected_game_value3_P1, expected_game_value4_P1)
             l2 = min(expected_game_value2_P2, expected_game_value3_P2, expected_game_value4_P2)
 
-            if l1==expected_game_value4_P1:
+            if l1 == expected_game_value4_P1:
                 s = solutions4.sims["joint-0"].states[1]
-                p0.first_progress = s['N↑'].x
+                p0.first_progress = s["N↑"].x
                 print("P1 Game 4")
-            elif l1==expected_game_value3_P1:
+            elif l1 == expected_game_value3_P1:
                 s = solutions3.sims["joint-0"].states[1]
-                p0.first_progress = s['level-0'].x
+                p0.first_progress = s["level-0"].x
                 print("P1 Game 3")
-            elif l1==expected_game_value2_P1:
+            elif l1 == expected_game_value2_P1:
                 s = solutions2.sims["joint-0"].states[1]
-                p0.first_progress = s['level-1'].x
+                p0.first_progress = s["level-1"].x
                 print("P1 Game 2")
             else:
                 print("Something went really wrong!")
 
-            if l2==expected_game_value4_P2:
+            if l2 == expected_game_value4_P2:
                 s = solutions4.sims["joint-0"].states[1]
-                p0.second_progress = s['W←'].x
+                p0.second_progress = s["W←"].x
                 print("P2 Game 4")
-            elif l2==expected_game_value3_P2:
+            elif l2 == expected_game_value3_P2:
                 s = solutions3.sims["joint-0"].states[1]
-                p0.second_progress = s['level-1'].x
+                p0.second_progress = s["level-1"].x
                 print("P2 Game 3")
-            elif l2==expected_game_value2_P2:
+            elif l2 == expected_game_value2_P2:
                 s = solutions2.sims["joint-0"].states[1]
-                p0.second_progress = s['level-0'].x
+                p0.second_progress = s["level-0"].x
                 print("P2 Game 2")
             else:
                 print("Something went really wrong 2!")
@@ -268,9 +322,6 @@ def solving_hidden_agent_game():
             #     r1.append(s['level-0'])
             #     r2.append(s['level-1'])
 
-
-
-
             # Weigh each game's value with its probability
             # weighted_r11 = probab1["Game_Alone"] * r1
             # weighted_r12 = probab1["Game_MS"] * r2
@@ -310,7 +361,6 @@ def solving_hidden_agent_game():
 
             # Use the new positions to determine whether they see each other now.
             seen = obs.do_we_see_us(p0.first_progress, p0.second_progress)
-
 
     print("end!!")
 

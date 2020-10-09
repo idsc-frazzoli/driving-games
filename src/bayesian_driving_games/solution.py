@@ -8,7 +8,9 @@ from typing import (
     FrozenSet,
     FrozenSet as FSet,
     Mapping,
-    Mapping as M, Tuple, List,
+    Mapping as M,
+    Tuple,
+    List,
 )
 
 from frozendict import frozendict
@@ -53,13 +55,13 @@ from games.structures_solution import (
     SolverParams,
     SolvingContext,
     UsedResources,
-    ValueAndActions
+    ValueAndActions,
 )
 
-__all__ = ["solve1", "get_outcome_preferences_for_players"]
+__all__ = ["solve_bayesian_game", "get_outcome_preferences_for_players"]
 
 
-def solve_bayesian(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     G = gp.game_graph
     dt = gp.solver_params.dt
     # find initial states
@@ -129,7 +131,14 @@ def solve_bayesian(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U,
 
     logger.info("solving game tree")
     initial_strategy, info_sets = proposed_strategy(game=gp.game, gg=gg)
-    game_solution = solve_game_bayesian2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials, first_strategy=initial_strategy, info_sets=info_sets)
+    game_solution = solve_game_bayesian2(
+        game=gp.game,
+        gg=gg,
+        solver_params=gp.solver_params,
+        jss=initials,
+        first_strategy=initial_strategy,
+        info_sets=info_sets,
+    )
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
@@ -157,7 +166,7 @@ def solve_bayesian(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U,
 
 
 def get_outcome_preferences_for_players(
-        game: Game[X, U, Y, RP, RJ, SR],
+    game: Game[X, U, Y, RP, RJ, SR],
 ) -> M[PlayerName, Preference[UncertainCombined]]:
     preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
     for player_name, player in game.players.items():
@@ -170,9 +179,7 @@ def get_outcome_preferences_for_players(
 
 
 def proposed_strategy(
-        *,
-        game: Game[X, U, Y, RP, RJ, SR],
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
+    *, game: Game[X, U, Y, RP, RJ, SR], gg: GameGraph[X, U, Y, RP, RJ, SR],
 ) -> Tuple[Mapping[BayesianGameNode, JointPureActions], Mapping[PlayerName, List[Tuple[JointState]]]]:
 
     # Step 1: find information sets: For each physical state, the two types together
@@ -186,7 +193,7 @@ def proposed_strategy(
 
     for player_name in game.players:
         active_player = player_name
-        inactive_players = [i for i in players if i!=player_name]
+        inactive_players = [i for i in players if i != player_name]
         if len(inactive_players) != 0:
             for js in gg.state2node:
                 if not js[player_name].player_type:
@@ -195,7 +202,7 @@ def proposed_strategy(
 
                 exists = False
                 for js2 in gg.state2node:
-                    if js[active_player]==js2[active_player]: #solve problem here!
+                    if js[active_player] == js2[active_player]:  # solve problem here!
                         for i in inactive_players:
                             if js[i].compare_physical_states(js2[i]):
                                 exists = True
@@ -204,8 +211,7 @@ def proposed_strategy(
                 if exists == False:
                     info_sets[active_player].append((js,))
 
-
-    #step 2: Propose a strategy
+    # step 2: Propose a strategy
     proposed_strategy: Mapping[BayesianGameNode, JointPureActions] = {}
 
     for player_name in players:
@@ -214,7 +220,7 @@ def proposed_strategy(
             if gn.moves.values():
                 *_, move, _ = gn.moves[player_name]
                 for js in iset:
-                    #gn = gg.state2node[js]
+                    # gn = gg.state2node[js]
                     try:
                         proposed_strategy[js][player_name] = move
                     except:
@@ -227,9 +233,8 @@ def proposed_strategy(
 
 
 def get_initial_physical_states(
-        game: Game[X, U, Y, RP, RJ, SR],
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
-        ) -> List[JointState]:
+    game: Game[X, U, Y, RP, RJ, SR], gg: GameGraph[X, U, Y, RP, RJ, SR],
+) -> List[JointState]:
 
     initial = next(iter(gg.initials))
     gn = gg.state2node[initial]
@@ -237,7 +242,7 @@ def get_initial_physical_states(
     initial_physicals = []
     for move in gn.outcomes:
         helper1 = gn.outcomes[move].support()
-        helper2, = helper1
+        (helper2,) = helper1
         js_new = helper2[next(iter(game.players))]
         initial_physicals.append(js_new)
 
@@ -245,19 +250,20 @@ def get_initial_physical_states(
 
 
 def assign_beliefs(
-        game: Game[X, U, Y, RP, RJ, SR],
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
-        info_sets: Mapping[PlayerName, List[Tuple[JointState]]],
-        state: JointState,
-        sc: BayesianSolvingContext,
-        player_name: PlayerName):
+    game: Game[X, U, Y, RP, RJ, SR],
+    gg: GameGraph[X, U, Y, RP, RJ, SR],
+    info_sets: Mapping[PlayerName, List[Tuple[JointState]]],
+    state: JointState,
+    sc: BayesianSolvingContext,
+    player_name: PlayerName,
+):
 
     iset = [item for item in info_sets[player_name] if state in item]
     for js in iset[0]:
         gn = gg.state2node[js]
         for move in gn.outcomes.keys():
             helper1 = gn.outcomes[move].support()
-            helper2, = helper1
+            (helper2,) = helper1
             js_new = helper2[next(iter(game.players))]
             if move != sc.proposed_strategy[js]:
                 gg.state2node[js_new].belief[player_name] = 0.0
@@ -276,13 +282,13 @@ def assign_beliefs(
 
 
 def solve_game_bayesian2(
-        *,
-        game: Game[X, U, Y, RP, RJ, SR],
-        solver_params: SolverParams,
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
-        jss: AbstractSet[JointState],
-        first_strategy: Mapping[GameNode, JointPureActions],
-        info_sets: Mapping[PlayerName, List[Tuple[JointState]]]
+    *,
+    game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
+    gg: GameGraph[X, U, Y, RP, RJ, SR],
+    jss: AbstractSet[JointState],
+    first_strategy: Mapping[GameNode, JointPureActions],
+    info_sets: Mapping[PlayerName, List[Tuple[JointState]]],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
 
     outcome_preferences = get_outcome_preferences_for_players(game)
@@ -294,41 +300,40 @@ def solve_game_bayesian2(
         cache=states_to_solution,
         processing=set(),
         solver_params=solver_params,
-        proposed_strategy=first_strategy
+        proposed_strategy=first_strategy,
     )
 
     initial_physicals = get_initial_physical_states(game, gg)
 
     # TO DO!
-    gg.state2node[initial_physicals[0]].belief['1'] = Fraction(2, 3)
-    gg.state2node[initial_physicals[1]].belief['1'] = Fraction(1, 3)
-    gg.state2node[initial_physicals[2]].belief['1'] = Fraction(2, 3)
-    gg.state2node[initial_physicals[3]].belief['1'] = Fraction(1, 3)
+    gg.state2node[initial_physicals[0]].belief["1"] = Fraction(2, 3)
+    gg.state2node[initial_physicals[1]].belief["1"] = Fraction(1, 3)
+    gg.state2node[initial_physicals[2]].belief["1"] = Fraction(2, 3)
+    gg.state2node[initial_physicals[3]].belief["1"] = Fraction(1, 3)
 
-    gg.state2node[initial_physicals[0]].belief['2'] = Fraction(2, 3)
-    gg.state2node[initial_physicals[1]].belief['2'] = Fraction(2, 3)
-    gg.state2node[initial_physicals[2]].belief['2'] = Fraction(1, 3)
-    gg.state2node[initial_physicals[3]].belief['2'] = Fraction(1, 3)
+    gg.state2node[initial_physicals[0]].belief["2"] = Fraction(2, 3)
+    gg.state2node[initial_physicals[1]].belief["2"] = Fraction(2, 3)
+    gg.state2node[initial_physicals[2]].belief["2"] = Fraction(1, 3)
+    gg.state2node[initial_physicals[3]].belief["2"] = Fraction(1, 3)
 
     #
     for js in initial_physicals:
         for player_name in game.players:
             assign_beliefs(game, gg, info_sets, js, sc, player_name)
 
-
-    
     for js0 in jss:
         check_joint_state(js0)
         _solve_bayesian_game(sc, js0)
 
     return None
 
+
 def solve_game2(
-        *,
-        game: Game[X, U, Y, RP, RJ, SR],
-        solver_params: SolverParams,
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
-        jss: AbstractSet[JointState],
+    *,
+    game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
+    gg: GameGraph[X, U, Y, RP, RJ, SR],
+    jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
     Solve game
@@ -375,9 +380,7 @@ def fr(d):
     return frozendict({k: frozendict(v) for k, v in d.items()})
 
 
-def _solve_bayesian_game(
-        sc: BayesianSolvingContext, js: JointState,
-) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
+def _solve_bayesian_game(sc: BayesianSolvingContext, js: JointState,) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
     # Actual recursive function that solves the game nodes
     :param sc:
@@ -468,6 +471,7 @@ def _solve_bayesian_game(
             def get_data(x: M[PlayerName, JointState]) -> Poss[Mapping[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
                 for pname in va.mixed_actions:
+
                     def get_its(y: Mapping[PlayerName, FSet[SR]]) -> FSet[SR]:
                         return y.get(pname, frozenset())
 
@@ -491,7 +495,7 @@ def _solve_bayesian_game(
             at_d = ps.build(next_states, get_data)
             f = ps.join(at_d)
             if f.support() != {frozendict()}:
-                usages[i+1] = f
+                usages[i + 1] = f
 
         # logger.info(next_resources=next_resources,
         #             usages=usages)
@@ -510,7 +514,7 @@ def _solve_bayesian_game(
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n%30 == 0:
+    if n % 30 == 0:
         logger.info(
             js=js, states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache),
         )
@@ -519,7 +523,7 @@ def _solve_bayesian_game(
 
 
 def _solve_game(
-        sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
     # Actual recursive function that solves the game nodes
@@ -611,6 +615,7 @@ def _solve_game(
             def get_data(x: M[PlayerName, JointState]) -> Poss[Mapping[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
                 for pname in va.mixed_actions:
+
                     def get_its(y: Mapping[PlayerName, FSet[SR]]) -> FSet[SR]:
                         return y.get(pname, frozenset())
 
@@ -634,7 +639,7 @@ def _solve_game(
             at_d = ps.build(next_states, get_data)
             f = ps.join(at_d)
             if f.support() != {frozendict()}:
-                usages[i+1] = f
+                usages[i + 1] = f
 
         # logger.info(next_resources=next_resources,
         #             usages=usages)
@@ -653,7 +658,7 @@ def _solve_game(
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n%30 == 0:
+    if n % 30 == 0:
         logger.info(
             js=js, states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache),
         )
@@ -662,11 +667,11 @@ def _solve_game(
 
 
 def add_incremental_cost_single(
-        game: Game[X, U, Y, RP, RJ, SR],
-        *,
-        player_name: PlayerName,
-        cur: Combined[RP, RJ],
-        incremental_for_player: M[PlayerName, Poss[RP]],
+    game: Game[X, U, Y, RP, RJ, SR],
+    *,
+    player_name: PlayerName,
+    cur: Combined[RP, RJ],
+    incremental_for_player: M[PlayerName, Poss[RP]],
 ) -> Combined[RP, RJ]:
     inc = incremental_for_player[player_name]
     reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
@@ -677,7 +682,7 @@ def add_incremental_cost_single(
 
 
 def solve_final_joint(
-        sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
     """
     Solves a node which is a joint final node
@@ -695,7 +700,7 @@ def solve_final_joint(
 
 
 def solve_final_personal_both(
-        sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
     """
     Solves end game node which is final for both players (but not jointly final)
@@ -709,4 +714,3 @@ def solve_final_personal_both(
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)
-

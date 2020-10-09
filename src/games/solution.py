@@ -7,7 +7,9 @@ from typing import (
     FrozenSet,
     FrozenSet as FSet,
     Mapping,
-    Mapping as M, Tuple, List,
+    Mapping as M,
+    Tuple,
+    List,
 )
 
 from frozendict import frozendict
@@ -122,7 +124,7 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
 
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
-        sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0, )
+        sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0,)
         sims[f"{player_name}-follows"] = sim_
 
     logger.info("solving game tree")
@@ -155,7 +157,7 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
 
 
 def get_outcome_preferences_for_players(
-        game: Game[X, U, Y, RP, RJ, SR],
+    game: Game[X, U, Y, RP, RJ, SR],
 ) -> M[PlayerName, Preference[UncertainCombined]]:
     preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
     for player_name, player in game.players.items():
@@ -168,9 +170,7 @@ def get_outcome_preferences_for_players(
 
 
 def proposed_strategy(
-        *,
-        game: Game[X, U, Y, RP, RJ, SR],
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
+    *, game: Game[X, U, Y, RP, RJ, SR], gg: GameGraph[X, U, Y, RP, RJ, SR],
 ) -> Mapping[GameNode, JointPureActions]:
 
     # Step 1: find information sets: For each physical state, the two types together
@@ -184,7 +184,7 @@ def proposed_strategy(
 
     for player_name in game.players:
         active_player = player_name
-        inactive_players = [i for i in players if i!=player_name]
+        inactive_players = [i for i in players if i != player_name]
         if len(inactive_players) != 0:
             for js in gg.state2node:
                 if not js[player_name].player_type:
@@ -192,13 +192,15 @@ def proposed_strategy(
                     raise ZValueError(msg)
 
                 for js2 in gg.state2node:
-                    if js[active_player]==js2[active_player]:
+                    if js[active_player] == js2[active_player]:
                         for i in inactive_players:
-                            if js[i].compare_physical_states(js2[i]) and js[i].player_type < js2[i].player_type:
+                            if (
+                                js[i].compare_physical_states(js2[i])
+                                and js[i].player_type < js2[i].player_type
+                            ):
                                 info_sets[active_player].append((js, js2))
 
-
-    #step 2: Propose a strategy
+    # step 2: Propose a strategy
     proposed_strategy: Mapping[GameNode, JointPureActions] = {}
 
     for player_name in players:
@@ -220,11 +222,11 @@ def proposed_strategy(
 
 
 def solve_game2(
-        *,
-        game: Game[X, U, Y, RP, RJ, SR],
-        solver_params: SolverParams,
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
-        jss: AbstractSet[JointState],
+    *,
+    game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
+    gg: GameGraph[X, U, Y, RP, RJ, SR],
+    jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
     Solve game
@@ -272,7 +274,7 @@ def fr(d):
 
 
 def _solve_game(
-        sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
     # Actual recursive function that solves the game nodes
@@ -364,6 +366,7 @@ def _solve_game(
             def get_data(x: M[PlayerName, JointState]) -> Poss[Mapping[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
                 for pname in va.mixed_actions:
+
                     def get_its(y: Mapping[PlayerName, FSet[SR]]) -> FSet[SR]:
                         return y.get(pname, frozenset())
 
@@ -387,7 +390,7 @@ def _solve_game(
             at_d = ps.build(next_states, get_data)
             f = ps.join(at_d)
             if f.support() != {frozendict()}:
-                usages[i+1] = f
+                usages[i + 1] = f
 
         # logger.info(next_resources=next_resources,
         #             usages=usages)
@@ -406,7 +409,7 @@ def _solve_game(
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n%30 == 0:
+    if n % 30 == 0:
         logger.info(
             js=js, states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache),
         )
@@ -415,11 +418,11 @@ def _solve_game(
 
 
 def add_incremental_cost_single(
-        game: Game[X, U, Y, RP, RJ, SR],
-        *,
-        player_name: PlayerName,
-        cur: Combined[RP, RJ],
-        incremental_for_player: M[PlayerName, Poss[RP]],
+    game: Game[X, U, Y, RP, RJ, SR],
+    *,
+    player_name: PlayerName,
+    cur: Combined[RP, RJ],
+    incremental_for_player: M[PlayerName, Poss[RP]],
 ) -> Combined[RP, RJ]:
     inc = incremental_for_player[player_name]
     reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
@@ -430,7 +433,7 @@ def add_incremental_cost_single(
 
 
 def solve_final_joint(
-        sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
     """
     Solves a node which is a joint final node
@@ -448,7 +451,7 @@ def solve_final_joint(
 
 
 def solve_final_personal_both(
-        sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
     """
     Solves end game node which is final for both players (but not jointly final)

@@ -9,7 +9,7 @@ from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
 from .game_def import (
-    check_joint_mixed_actions2,
+    check_joint_mixed_actions,
     check_joint_pure_actions,
     JointMixedActions,
     JointPureActions,
@@ -117,7 +117,7 @@ def _what_if_player_chooses_get_mixed(
         choice: JointMixedActions = frozendict(zip(players_ordered, choices))
 
         dist: Poss[JointPureActions]
-        dist = get_mixed2(ps, choice)
+        dist = get_mixed_joint_actions(ps, choice)
 
         def get_for_me(x: JointPureActions) -> UncertainCombined:
             r = pure_outcomes[x][player_name]
@@ -131,8 +131,11 @@ def _what_if_player_chooses_get_mixed(
     return results
 
 
-def get_mixed2(ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
-    check_joint_mixed_actions2(mixed)
+def get_mixed_joint_actions(
+    ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]
+) -> Poss[JointPureActions]:
+    """ Compute the possible options when players mix over multiple actions """
+    check_joint_mixed_actions(mixed)
     for k, v in mixed.items():
         check_poss(v)
         for x in v.support():

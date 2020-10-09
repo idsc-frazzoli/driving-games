@@ -45,7 +45,7 @@ class BirdState(object):
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BayesianBirdState(BirdState):
     # type
-    player_type: str = '0'
+    player_type: str = "0"
 
     def compare_physical_states(self, s2) -> bool:
         if self.z != s2.z:
@@ -73,18 +73,19 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(self, x: BayesianBirdState, dt: D) -> Mapping[BayesianBirdActions, Poss[BayesianBirdState]]:
+    def successors(
+        self, x: BayesianBirdState, dt: D
+    ) -> Mapping[BayesianBirdActions, Poss[BayesianBirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # todo expand to allow other possibility monads
 
-        if x.player_type=='0':
+        if x.player_type == "0":
             possible = {}
             u = BayesianBirdActions(go=None)
             for _ in self.types:
                 x2 = BayesianBirdState(z=x.z, stage=x.stage, player_type=_)
                 possible[x2.player_type] = self.ps.unit(x2)
             return frozendict(possible)
-
 
         possible = {}
         for u in self.all_actions():
@@ -179,6 +180,7 @@ class BirdCosts:
                 raise NotImplementedError
 
     __radd__ = __add__
+
 
 # class BirdsVisualization(
 #     GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]

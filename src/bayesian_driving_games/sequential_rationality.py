@@ -7,8 +7,18 @@ from zuper_commons.types import ZValueError, ZNotImplementedError
 from bayesian_driving_games.structures_solution import BayesianSolvingContext, BayesianGameNode
 from games import JointPureActions, PlayerName
 from games.equilibria import EquilibriaAnalysis, analyze
-from games.game_def import UncertainCombined, U, RP, RJ, check_joint_pure_actions, X, Y, check_joint_mixed_actions2, \
-    Combined, JointMixedActions
+from games.game_def import (
+    UncertainCombined,
+    U,
+    RP,
+    RJ,
+    check_joint_pure_actions,
+    X,
+    Y,
+    check_joint_mixed_actions2,
+    Combined,
+    JointMixedActions,
+)
 from games.solution_security import get_security_policies, get_mixed2
 from games.structures_solution import ValueAndActions, STRATEGY_MIX, STRATEGY_SECURITY, STRATEGY_BAIL
 from games.utils import fd, valmap
@@ -162,5 +172,3 @@ def analyze_sequential_rational(
         # results[choice] = solved[choice]
     # logger.info(results=results)
     return analyze(player_mixed_strategies, results, preferences)
-
-

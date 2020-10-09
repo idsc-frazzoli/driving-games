@@ -58,14 +58,14 @@ class VehicleCosts:
     # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "VehicleCosts":
         # weighting costs, e.g. according to a probability
-        return replace(self, duration=self.duration*D(float(weight)))
+        return replace(self, duration=self.duration * D(float(weight)))
 
     __rmul__ = __mul__
 
     # Monoid to support sum
     def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
         if type(other) == VehicleCosts:
-            return replace(self, duration=self.duration+other.duration)
+            return replace(self, duration=self.duration + other.duration)
         else:
             if other is None:
                 return self
@@ -139,17 +139,17 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     """ The vehicle's geometry. """
 
     def __init__(
-            self,
-            max_speed: D,
-            min_speed: D,
-            available_accels: FrozenSet[D],
-            max_wait: D,
-            ref: SE2_disc,
-            max_path: D,
-            lights_commands: FrozenSet[Lights],
-            shared_resources_ds: D,
-            vg: VehicleGeometry,
-            poss_monad: PossibilityMonad,
+        self,
+        max_speed: D,
+        min_speed: D,
+        available_accels: FrozenSet[D],
+        max_wait: D,
+        ref: SE2_disc,
+        max_path: D,
+        lights_commands: FrozenSet[Lights],
+        shared_resources_ds: D,
+        vg: VehicleGeometry,
+        poss_monad: PossibilityMonad,
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -173,7 +173,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # only allow accelerations that make the speed non-negative
-        accels = [_ for _ in self.available_accels if _*dt+x.v >= 0]
+        accels = [_ for _ in self.available_accels if _ * dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever
         if x.wait >= self.max_wait:
             assert x.v == 0, x
@@ -195,8 +195,8 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     def successor(self, x: VehicleState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
             ctx.prec = 2
-            accel_effective = max(-x.v/dt, u.accel)
-            v2 = x.v+accel_effective*dt
+            accel_effective = max(-x.v / dt, u.accel)
+            v2 = x.v + accel_effective * dt
             if v2 < 0:
                 v2 = 0
                 # msg = 'Invalid action gives negative vel'
@@ -209,7 +209,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
                 msg = "Invalid action gives speed too fast"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
             assert v2 >= 0
-            x2 = x.x+(x.v+accel_effective*dt)*dt
+            x2 = x.x + (x.v + accel_effective * dt) * dt
             if x2 > self.max_path:
                 msg = "Invalid action gives out of bound"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
@@ -218,7 +218,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         #     raise InvalidAction(msg, x=x, u=u)
 
         if v2 == 0:
-            wait2 = x.wait+dt
+            wait2 = x.wait + dt
             if wait2 > self.max_wait:
                 msg = f"Invalid action gives wait of {wait2}"
                 raise InvalidAction(msg, x=x, u=u)

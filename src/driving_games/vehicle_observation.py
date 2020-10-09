@@ -65,16 +65,8 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
         return frozenset({VehicleObservation(others)})
 
 
-class TwoVehicleSeenObservation():
-
-    def __init__(
-        self,
-        road: D,
-        side: D,
-        p1_ref: tuple,
-        p2_ref: tuple
-
-    ):
+class TwoVehicleSeenObservation:
+    def __init__(self, road: D, side: D, p1_ref: tuple, p2_ref: tuple):
         self.road = road
         self.side = side
         self.p1_ref = p1_ref
@@ -96,11 +88,11 @@ class TwoVehicleSeenObservation():
         if 0 < t1_left < 1:
             res_left = a2 + t1_left * (b2 - a2)
         else:
-            res_left = (2*self.side + self.road) / 2
+            res_left = (2 * self.side + self.road) / 2
         if 0 < t1_right < 1:
             res_right = a2 + t1_right * (b2 - a2)
         else:
-            res_right = (2*self.side + self.road) / 2
+            res_right = (2 * self.side + self.road) / 2
 
         if res_left < side_left:
             return False

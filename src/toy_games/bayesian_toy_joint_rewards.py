@@ -13,7 +13,9 @@ from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
 from toy_games.bayesian_toy_structures import BayesianBirdState
 
 
-class BayesianBirdPersonalRewardStructureCustom(PersonalRewardStructure[BayesianBirdState, BirdActions, BirdCosts]):
+class BayesianBirdPersonalRewardStructureCustom(
+    PersonalRewardStructure[BayesianBirdState, BirdActions, BirdCosts]
+):
     max_stages: int
 
     def __init__(self, max_stages: int):
@@ -25,7 +27,7 @@ class BayesianBirdPersonalRewardStructureCustom(PersonalRewardStructure[Bayesian
     def personal_reward_incremental(self, x: BayesianBirdState, u: BirdActions, dt: D) -> BirdCosts:
         check_isinstance(x, BayesianBirdState)
         # check_isinstance(u, tuple)
-        #check_isinstance(u, BayesianBirdActions)
+        # check_isinstance(u, BayesianBirdActions)
         return BirdCosts(D(0))
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
@@ -48,8 +50,14 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
     mat_payoffs: Sequence[np.ndarray]
 
     def __init__(
-        self, max_stages: int, subgames: Sequence[BiMatGame], row_player: PlayerName, col_player: PlayerName,
-            t1: Mapping[PlayerName, List], t2: Mapping[PlayerName, List]):
+        self,
+        max_stages: int,
+        subgames: Sequence[BiMatGame],
+        row_player: PlayerName,
+        col_player: PlayerName,
+        t1: Mapping[PlayerName, List],
+        t2: Mapping[PlayerName, List],
+    ):
         self.row_player = row_player
         self.col_player = col_player
         self.max_stages = max_stages
@@ -86,7 +94,9 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
         return frozendict(res)
 
     @staticmethod
-    def get_b_payoff_matrix_idx(x1: BayesianBirdState, x2: BayesianBirdState) -> Tuple[int, int, int, Fraction, Fraction]:
+    def get_b_payoff_matrix_idx(
+        x1: BayesianBirdState, x2: BayesianBirdState
+    ) -> Tuple[int, int, int, Fraction, Fraction]:
         """
         Trick to build encapsulate payoff matrices into the dynamic game
         joint state (x1,x2):
@@ -111,18 +121,17 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
         #
         # for combi in combinations:
 
-        if (x1.player_type == ('aggressive')) & (x2.player_type == ('aggressive')):
+        if (x1.player_type == ("aggressive")) & (x2.player_type == ("aggressive")):
             subgame = 0
-        elif (x1.player_type == ('aggressive')) & (x2.player_type == ('cautious')):
+        elif (x1.player_type == ("aggressive")) & (x2.player_type == ("cautious")):
             subgame = 1
-        elif (x1.player_type == ('cautious')) & (x2.player_type == ('aggressive')):
+        elif (x1.player_type == ("cautious")) & (x2.player_type == ("aggressive")):
             subgame = 2
-        elif (x1.player_type == ('cautious')) & (x2.player_type == ('cautious')):
+        elif (x1.player_type == ("cautious")) & (x2.player_type == ("cautious")):
             subgame = 3
         else:
             subgame = 0
             print("Something went wrong in subgame selection in get_b_payoff_matrix_idx")
-
 
         # z1_dec = x1.z - round(x1.z)
         # z2_dec = x2.z - round(x2.z)

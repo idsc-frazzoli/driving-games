@@ -11,7 +11,7 @@ from preferences import Preference
 from zuper_commons.types import check_isinstance, ZValueError
 from . import GameConstants
 from .game_def import (
-    check_joint_mixed_actions2,
+    check_joint_mixed_actions,
     check_joint_pure_actions,
     check_joint_state,
     check_player_options,
@@ -29,7 +29,7 @@ from .game_def import (
     UncertainCombined,
     X,
     Y,
-    PlayerBelief
+    PlayerBelief,
 )
 from .simulate import Simulation
 
@@ -53,7 +53,7 @@ StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 
 STRATEGY_MIX = StrategyForMultipleNash("mix")
 """ Mix all the states in the multiple nash equilibria. """
-
+# fixme, better explanation for this
 STRATEGY_SECURITY = StrategyForMultipleNash("security")
 """ Use a securety policy. """
 
@@ -325,7 +325,7 @@ class ValueAndActions(Generic[U, RP, RJ]):
         check_isinstance(self.game_value, frozendict, ValueAndActions=self)
         for _ in self.game_value.values():
             check_poss(_, Combined, ValueAndActions=self)
-        check_joint_mixed_actions2(self.mixed_actions, ValueAndActions=self)
+        check_joint_mixed_actions(self.mixed_actions, ValueAndActions=self)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)

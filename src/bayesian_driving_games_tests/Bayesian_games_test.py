@@ -2,10 +2,25 @@ from decimal import Decimal as D
 from os.path import join
 
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
-from bayesian_driving_games.solution import solve_bayesian
-from belief_games import TwoVehicleSimpleParams, NO_LIGHTS, TwoVehicleUncertaintyParams, PossibilitySet, SetPreference1, \
-    ProbPrefExpectedValue, ProbabilityFraction, get_two_vehicle_game
-from games import STRATEGY_MIX, SolverParams, preprocess_game, solve1, report_solutions, create_report_preprocessed
+from bayesian_driving_games.solution import solve_bayesian_game
+from belief_games import (
+    TwoVehicleSimpleParams,
+    NO_LIGHTS,
+    TwoVehicleUncertaintyParams,
+    PossibilitySet,
+    SetPreference1,
+    ProbPrefExpectedValue,
+    ProbabilityFraction,
+    get_two_vehicle_game,
+)
+from games import (
+    STRATEGY_MIX,
+    SolverParams,
+    preprocess_game,
+    solve1,
+    report_solutions,
+    create_report_preprocessed,
+)
 from games_scripts.solvers import SolverSpec
 
 
@@ -29,15 +44,16 @@ def test2():
     )
     uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
     uncertainty_prob = TwoVehicleUncertaintyParams(
-        poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue)
+        poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
+    )
     d = "ml_out/tests/"
-    game2 = get_bayesian_driving_game(p0,uncertainty_sets)
+    game2 = get_bayesian_driving_game(p0, uncertainty_sets)
     # game1 = get_master_slave_game(p0,uncertainty_sets,2)
     game_name = "test_ml"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc
     game_preprocessed = preprocess_game(game2, solver_spec.solver_params)
-    solutions = solve_bayesian(game_preprocessed)
+    solutions = solve_bayesian_game(game_preprocessed)
     dg = join(d, game_name)
     ds = join(dg, solver_name)
     r_solutions = report_solutions(game_preprocessed, solutions)
