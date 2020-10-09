@@ -30,7 +30,11 @@ from driving_games.structures import (
     VehicleGeometry,
     VehicleState,
 )
-from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation, TwoVehicleSeenObservation
+from driving_games.vehicle_observation import (
+    VehicleDirectObservations,
+    VehicleObservation,
+    TwoVehicleSeenObservation,
+)
 from driving_games.visualization import DrivingGameVisualization
 
 DrivingGame = Game[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
@@ -166,8 +170,11 @@ class TwoVehicleSimpleParams:
 #     return game
 
 
-def get_master_slave_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams,
-                          level0player: int) -> DrivingGame:
+def get_master_slave_game(
+    vehicles_params: TwoVehicleSimpleParams,
+    uncertainty_params: TwoVehicleUncertaintyParams,
+    level0player: int,
+) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     L = vehicles_params.side + vehicles_params.road + vehicles_params.side
     start = vehicles_params.side + vehicles_params.road_lane_offset
@@ -191,7 +198,6 @@ def get_master_slave_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_p
     else:
         P2 = PlayerName("?")
         P1 = PlayerName("?")
-
 
     mass = D(1000)
     length = D(4.5)
@@ -218,7 +224,7 @@ def get_master_slave_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_p
         min_speed=min_speed,
         vg=g1,
         shared_resources_ds=vehicles_params.shared_resources_ds,
-        poss_monad=ps
+        poss_monad=ps,
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -230,7 +236,7 @@ def get_master_slave_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_p
         lights_commands=vehicles_params.light_actions,
         vg=g2,
         shared_resources_ds=vehicles_params.shared_resources_ds,
-        poss_monad=ps
+        poss_monad=ps,
     )
 
     if level0player == 1:

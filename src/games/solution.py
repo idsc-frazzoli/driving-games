@@ -7,7 +7,9 @@ from typing import (
     FrozenSet,
     FrozenSet as FSet,
     Mapping,
-    Mapping as M, Tuple, List,
+    Mapping as M,
+    Tuple,
+    List,
 )
 
 from frozendict import frozendict
@@ -168,9 +170,7 @@ def get_outcome_preferences_for_players(
 
 
 def proposed_strategy(
-        *,
-        game: Game[X, U, Y, RP, RJ, SR],
-        gg: GameGraph[X, U, Y, RP, RJ, SR],
+    *, game: Game[X, U, Y, RP, RJ, SR], gg: GameGraph[X, U, Y, RP, RJ, SR],
 ) -> Mapping[GameNode, JointPureActions]:
 
     # Step 1: find information sets: For each physical state, the two types together
@@ -184,7 +184,7 @@ def proposed_strategy(
 
     for player_name in game.players:
         active_player = player_name
-        inactive_players = [i for i in players if i!=player_name]
+        inactive_players = [i for i in players if i != player_name]
         if len(inactive_players) != 0:
             for js in gg.state2node:
                 if not js[player_name].player_type:
@@ -192,13 +192,15 @@ def proposed_strategy(
                     raise ZValueError(msg)
 
                 for js2 in gg.state2node:
-                    if js[active_player]==js2[active_player]:
+                    if js[active_player] == js2[active_player]:
                         for i in inactive_players:
-                            if js[i].compare_physical_states(js2[i]) and js[i].player_type < js2[i].player_type:
+                            if (
+                                js[i].compare_physical_states(js2[i])
+                                and js[i].player_type < js2[i].player_type
+                            ):
                                 info_sets[active_player].append((js, js2))
 
-
-    #step 2: Propose a strategy
+    # step 2: Propose a strategy
     proposed_strategy: Mapping[GameNode, JointPureActions] = {}
 
     for player_name in players:

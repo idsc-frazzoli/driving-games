@@ -11,7 +11,8 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    Union, List,
+    Union,
+    List,
 )
 
 from frozendict import frozendict

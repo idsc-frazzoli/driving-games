@@ -29,7 +29,7 @@ from .game_def import (
     UncertainCombined,
     X,
     Y,
-    PlayerBelief
+    PlayerBelief,
 )
 from .simulate import Simulation
 

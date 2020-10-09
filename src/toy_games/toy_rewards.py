@@ -117,7 +117,6 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         col: int
         thresh = 0
 
-
         # Uncomment/Comment the following lines to switch from 1 stage to 2 stages.
 
         # if x1.z < thresh and x2.z < thresh:

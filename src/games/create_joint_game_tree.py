@@ -237,7 +237,7 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
         incremental=fvalmap(frozendict, incremental),
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
-        resources=frozendict(resources)
+        resources=frozendict(resources),
     )
     ic.cache[states] = res
     return res

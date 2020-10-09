@@ -7,7 +7,11 @@ from games import GameSpec
 from possibilities import PossibilitySet, ProbabilityFraction
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
-from driving_games.game_generation import get_two_vehicle_game, TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
+from driving_games.game_generation import (
+    get_two_vehicle_game,
+    TwoVehicleSimpleParams,
+    TwoVehicleUncertaintyParams,
+)
 from driving_games.structures import NO_LIGHTS
 
 road = D(6)

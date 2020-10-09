@@ -55,10 +55,10 @@ class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
 
 
 def create_bayesian_game_graph(
-        game: Game[X, U, Y, RP, RJ, SR],
-        dt: D,
-        initials: AbstractSet[JointState],
-        gf: Optional[GameFactorization[X]],
+    game: Game[X, U, Y, RP, RJ, SR],
+    dt: D,
+    initials: AbstractSet[JointState],
+    gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """ Create the game graph. """
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
@@ -101,7 +101,7 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
             # for each time t1 at which we can be at n1
             for t1 in state2times[n1]:
                 # we can be at n2 at time t2
-                t2 = t1+dt
+                t2 = t1 + dt
                 state2times[n2].add(t2)
                 time2states[t2].add(n2)
     return AccessibilityInfo(state2times, time2states)
@@ -127,7 +127,7 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
     moves_to_state_everybody = get_moves(ic, states)
     pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth+1)
+    ic2 = replace(ic, depth=ic.depth + 1)
 
     is_final = {}
     for player_name, player_state in states.items():
@@ -223,7 +223,7 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
         resources=frozendict(resources),
-        belief=belief
+        belief=belief,
     )
     ic.cache[states] = res
     return res

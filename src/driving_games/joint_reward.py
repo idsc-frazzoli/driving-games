@@ -11,7 +11,7 @@ __all__ = ["VehicleJointReward"]
 
 class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
     def __init__(
-            self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry],
+        self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry],
     ):
         self.collision_threshold = collision_threshold
         self.geometries = geometries
@@ -28,8 +28,10 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
 
 class IndividualJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
     def __init__(
-            self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry],
-            caring_players: List[PlayerName]
+        self,
+        collision_threshold: float,
+        geometries: Mapping[PlayerName, VehicleGeometry],
+        caring_players: List[PlayerName],
     ):
         self.collision_threshold = collision_threshold
         self.geometries = geometries
@@ -42,9 +44,9 @@ class IndividualJointReward(JointRewardStructure[VehicleState, VehicleActions, C
         # for player in res:
         #     if player in self.caring_players:
         #         filtered_res.add(player)
-                # del res[player]
-                # col = res[player]
-                # res[player] = Collision(col.location, False, D(0), D(0))
+        # del res[player]
+        # col = res[player]
+        # res[player] = Collision(col.location, False, D(0), D(0))
         return frozenset(res)
 
     def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, Collision]:

@@ -4,7 +4,10 @@ from driving_games import TwoVehicleUncertaintyParams
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
 from games.game_def import BayesianGamePlayer
 from nash import BiMatGame
-from toy_games.bayesian_toy_joint_rewards import BayesianBirdJointReward, BayesianBirdPersonalRewardStructureCustom
+from toy_games.bayesian_toy_joint_rewards import (
+    BayesianBirdJointReward,
+    BayesianBirdPersonalRewardStructureCustom,
+)
 from toy_games.bayesian_toy_structures import BayesianFlyingDynamics
 from toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
@@ -35,9 +38,9 @@ def get_bayesian_toy_game_spec(
     p1_initial = ps.unit(p1_x)
     p2_initial = ps.unit(p2_x)
 
-    #types
-    p1_types = ['cautious', 'aggressive']
-    p2_types = ['cautious', 'aggressive']
+    # types
+    p1_types = ["cautious", "aggressive"]
+    p2_types = ["cautious", "aggressive"]
 
     # dynamics
     p1_dynamics = BayesianFlyingDynamics(poss_monad=ps, types=p1_types)
@@ -70,7 +73,7 @@ def get_bayesian_toy_game_spec(
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
         monadic_preference_builder=mpref_builder,
-        types=p1_types
+        types=p1_types,
     )
     p2 = BayesianGamePlayer(
         initial=p2_initial,
@@ -79,7 +82,7 @@ def get_bayesian_toy_game_spec(
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
         monadic_preference_builder=mpref_builder,
-        types=p2_types
+        types=p2_types,
     )
 
     handcrafted_game = Game(
