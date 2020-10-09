@@ -73,7 +73,7 @@ class SolverParams:
     """ Whether to use the factorization properties to reduce the game graph."""
 
 
-@dataclass(frozen=True, unsafe_hash=True, order=True)
+@dataclass(frozen=False, unsafe_hash=True, order=True)
 class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ The game node """
 
@@ -108,9 +108,6 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
     resources: Mapping[PlayerName, FSet[SR]]
     """ Resources used by each player """
-
-    belief: Mapping[PlayerName, PlayerBelief]
-    """ Belief of each player at this game node """
 
     __print_order__ = [
         "states",

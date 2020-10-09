@@ -4,6 +4,7 @@ from typing import Sequence
 import numpy as np
 from parameterized import parameterized
 
+from bayesian_driving_games.solution import solve_bayesian
 from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
 from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
 from games_scripts import solvers_zoo
@@ -54,6 +55,37 @@ def _run_toy_game(
     logger.info(solutions)
 
 
+def _run_toy_game_bayesian(
+    subgames: Sequence[BiMatGame], solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams,
+):
+    max_stages = 2
+    p1_name, p2_name = PlayerName("1"), PlayerName("2")
+
+    logger.info("Starting a 2 stage toy game with the following subgames:")
+    for i, bimatgame in enumerate(subgames):
+        logger.info("Subgame {}: {}".format(i, print_bimatgame(bimatgame)))
+
+    solver_params = solver_spec.solver_params
+    #game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
+    game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
+    game = game_spec.game
+    game_preprocessed = preprocess_game(game, solver_params)
+    solutions = solve_bayesian(game_preprocessed)
+    for state, solution in solutions.game_solution.states_to_solution.items():
+        # filter out only the first level subgame
+        if all([p.stage == 1 for p in state.values()]):
+            game_idx, _, _ = BirdJointReward.get_payoff_matrix_idx(state[p1_name], state[p2_name])
+            # print("Game solution of game:", gamemat2str(leaves_payoffs[game_idx]))
+            logger.info("Joint state:\n", state)
+            logger.info("Values and actions:\n", solution.solved)
+            logger.info("Game values:\n", solution.va.game_value)
+
+    # todo check solutions with what we expect
+    # todo create report/visualisation
+    logger.info(solutions)
+
+
+
 games = (game1, game2)
 strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
 solvers = (solvers_zoo["solver-1-" + strategy + "-naive"] for strategy in strategies)
@@ -79,3 +111,10 @@ def test_prob_debug():
     uncertainty_params = uncertainty_sets
     #uncertainty_params = uncertainty_prob
     _run_toy_game(game.subgames, solver_spec, uncertainty_params)
+
+def test_bayesian_debug():
+    game = game2
+    solver_spec = solvers_zoo["solver-1-mix-naive"]
+    uncertainty_params = uncertainty_sets
+    #uncertainty_params = uncertainty_prob
+    _run_toy_game_bayesian(game.subgames, solver_spec, uncertainty_params)

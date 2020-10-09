@@ -2,6 +2,7 @@ from decimal import Decimal as D
 from os.path import join
 
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
+from bayesian_driving_games.solution import solve_bayesian
 from belief_games import TwoVehicleSimpleParams, NO_LIGHTS, TwoVehicleUncertaintyParams, PossibilitySet, SetPreference1, \
     ProbPrefExpectedValue, ProbabilityFraction, get_two_vehicle_game
 from games import STRATEGY_MIX, SolverParams, preprocess_game, solve1, report_solutions, create_report_preprocessed
@@ -36,7 +37,7 @@ def test2():
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc
     game_preprocessed = preprocess_game(game2, solver_spec.solver_params)
-    solutions = solve1(game_preprocessed)
+    solutions = solve_bayesian(game_preprocessed)
     dg = join(d, game_name)
     ds = join(dg, solver_name)
     r_solutions = report_solutions(game_preprocessed, solutions)

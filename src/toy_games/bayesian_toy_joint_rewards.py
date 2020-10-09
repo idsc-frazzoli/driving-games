@@ -78,10 +78,10 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
         """
         res = {}
         x1, x2 = xs[self.row_player], xs[self.col_player]
-        subgame, row, col, beta1, beta2 = self.get_b_payoff_matrix_idx(x1, x2)
+        subgame, row, col = self.get_b_payoff_matrix_idx(x1, x2)
         payoff1, payoff2 = self.mat_payoffs[subgame][row, col, :]
         res.update(
-            {self.row_player: BirdCosts(D(payoff1.item()))*beta1, self.col_player: BirdCosts(D(payoff2.item()))*beta2}
+            {self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))}
         )
         return frozendict(res)
 
@@ -113,24 +113,14 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
 
         if (x1.player_type == ('aggressive')) & (x2.player_type == ('aggressive')):
             subgame = 0
-            beta1 = Fraction(1,3)
-            beta2 = Fraction(1,3)
         elif (x1.player_type == ('aggressive')) & (x2.player_type == ('cautious')):
             subgame = 1
-            beta1 = Fraction(2,3)
-            beta2 = Fraction(1,3)
         elif (x1.player_type == ('cautious')) & (x2.player_type == ('aggressive')):
             subgame = 2
-            beta1 = Fraction(1,3)
-            beta2 = Fraction(2,3)
         elif (x1.player_type == ('cautious')) & (x2.player_type == ('cautious')):
             subgame = 3
-            beta1 = Fraction(2,3)
-            beta2 = Fraction(2,3)
         else:
             subgame = 0
-            beta1 = 1
-            beta2 = 1
             print("Something went wrong in subgame selection in get_b_payoff_matrix_idx")
 
 
@@ -142,4 +132,4 @@ class BayesianBirdJointReward(JointRewardStructure[BayesianBirdState, BirdAction
 
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 
-        return subgame, row, col, beta1, beta2
+        return subgame, row, col

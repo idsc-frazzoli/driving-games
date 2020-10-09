@@ -7,10 +7,11 @@ from frozendict import frozendict
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
+from bayesian_driving_games.structures_solution import BayesianGameNode
 from possibilities import Poss
 from zuper_commons.types import ZValueError
-from . import logger
-from .game_def import (
+from games import logger
+from games.game_def import (
     check_joint_state,
     Game,
     JointPureActions,
@@ -23,13 +24,13 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import (
+from games.structures_solution import (
     AccessibilityInfo,
     GameFactorization,
     GameGraph,
     GameNode,
 )
-from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
+from games.utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = []
 
@@ -52,7 +53,7 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """
 
 
-def create_game_graph(
+def create_bayesian_game_graph(
     game: Game[X, U, Y, RP, RJ, SR],
     dt: D,
     initials: AbstractSet[JointState],
@@ -63,7 +64,7 @@ def create_game_graph(
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
-        create_game_graph_(ic, js)
+        create_bayesian_game_graph_(ic, js)
 
     # create networkx graph
     G = get_networkx_graph(state2node)
@@ -138,7 +139,7 @@ def get_moves(
     return res
 
 
-def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
+def create_bayesian_game_graph_(ic: IterationContext, states: JointState) -> BayesianGameNode:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
@@ -223,21 +224,26 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for p in poutcomes.support():
             for _, js_ in p.items():
-                create_game_graph_(ic2, js_)
+                create_bayesian_game_graph_(ic2, js_)
 
     resources = {}
     for player_name, player_state in states.items():
         dynamics = ic.game.players[player_name].dynamics
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
-    res = GameNode(
+    belief = {}
+    for player_name in ic.game.players:
+        belief[player_name] = 1.0
+
+    res = BayesianGameNode(
         moves=movesets_for_remaining,
         states=frozendict(states),
         outcomes=frozendict(pure_outcomes),
         incremental=fvalmap(frozendict, incremental),
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
-        resources=frozendict(resources)
+        resources=frozendict(resources),
+        belief=belief
     )
     ic.cache[states] = res
     return res
