@@ -30,9 +30,11 @@ class Collision:
     # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "Collision":
         # weighting costs, e.g. according to a probability
-        return replace(self,
-                       energy_received=self.energy_received*D(float(weight)),
-                       energy_transmitted=self.energy_transmitted*D(float(weight)))
+        return replace(
+            self,
+            energy_received=self.energy_received * D(float(weight)),
+            energy_transmitted=self.energy_transmitted * D(float(weight)),
+        )
 
     __rmul__ = __mul__
 

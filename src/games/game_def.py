@@ -95,11 +95,11 @@ class Combined(Generic[RJ, RP]):
     def __add__(self, other: "Combined[RP,RJ]"):
         if type(other) == type(self):
             if other.joint is None:
-                return replace(self, personal=self.personal+other.personal, joint=self.joint)
+                return replace(self, personal=self.personal + other.personal, joint=self.joint)
             elif self.joint is None:
-                return replace(self, personal=self.personal+other.personal, joint=other.joint)
+                return replace(self, personal=self.personal + other.personal, joint=other.joint)
             else:
-                return replace(self, personal=self.personal+other.personal, joint=self.joint+other.joint)
+                return replace(self, personal=self.personal + other.personal, joint=self.joint + other.joint)
         else:
             raise NotImplementedError
 
@@ -109,9 +109,9 @@ class Combined(Generic[RJ, RP]):
     def __mul__(self, weight: W):
         # weighting costs, e.g. according to a probability
         if self.joint is not None:
-            return replace(self, personal=self.personal*weight, joint=self.joint*weight)
+            return replace(self, personal=self.personal * weight, joint=self.joint * weight)
         else:
-            return replace(self, personal=self.personal*weight)
+            return replace(self, personal=self.personal * weight)
 
     __rmul__ = __mul__
 
@@ -227,7 +227,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
     @abstractmethod
     def plot_player(
-            self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
+        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
     ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
@@ -303,7 +303,7 @@ def check_joint_pure_actions(a: JointPureActions, **kwargs):
             raise ZValueError(msg, k=k, v=v, **kwargs)
 
 
-def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
+def check_joint_mixed_actions(a: JointMixedActions, **kwargs):
     """ Checks consistency of a JointMixedActions variable."""
     if not GameConstants.checks:
         return
