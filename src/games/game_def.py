@@ -316,6 +316,4 @@ def check_joint_mixed_actions(a: JointMixedActions, **kwargs):
                 raise ZValueError(_=_, **kwargs)
 
 
-@dataclass
-class BayesianGamePlayer(GamePlayer):
-    types: List
+

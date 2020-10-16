@@ -16,7 +16,7 @@ from toy_games_tests import logger
 from toy_games.toy_game import get_toy_game_spec
 import nashpy as nash
 
-from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGame, game3, game4, game5, game6
+from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGame, game3, game4, game5, game6, game7
 
 """
 Two stages game. After the first stage we could be in 4 possible stages. 
@@ -113,7 +113,7 @@ def test_prob_debug():
 
 
 def test_bayesian_debug():
-    game = game2
+    game = game7
     solver_spec = solvers_zoo["solver-1-mix-naive"]
     uncertainty_params = uncertainty_sets
     # uncertainty_params = uncertainty_prob

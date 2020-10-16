@@ -51,3 +51,15 @@ G2f = BiMatGame(A=np.array([[-1, -1], [-1, -1]]), B=np.array([[-1, -1], [-1, -1]
 G3f = BiMatGame(A=np.array([[-1, -1], [-1, -1]]), B=np.array([[-1, -1], [-1, -1]]))  # up down
 G4f = BiMatGame(A=np.array([[-1, -2], [-2, -6]]), B=np.array([[-1, -2], [-2, -6]]))  # up up
 game6 = ToyGame(subgames=[G1f, G2f, G3f, G4f], desc="Bayesian Game that should favour 6,6 instead of 9,9")
+
+
+G1g = BiMatGame(A=np.array([[-20, -15], [-10, -5]]), B=np.array([[0, -1], [-5, 0]]))  # down down
+G2g = BiMatGame(A=np.array([[-15, -12], [-10, -5]]), B=np.array([[-1, -2], [0, -3]]))  # down up
+G3g = BiMatGame(A=np.array([[-10, -10], [0, 0]]), B=np.array([[-5, 0], [-10, -5]]))  # up down
+G4g = BiMatGame(A=np.array([[-10, -5], [0, 0]]), B=np.array([[0, -1], [-2, 0]]))  # up up
+
+G5g = BiMatGame(A=np.array([[0, 0], [-5, -5]]), B=np.array([[-10, 5], [-5, 0]]))  # down down
+G6g = BiMatGame(A=np.array([[0, 0], [-10, -5]]), B=np.array([[-1, -2], [0, -3]]))  # down up
+G7g = BiMatGame(A=np.array([[-5, -10], [-15, -15]]), B=np.array([[-3, 0], [-2, -1]]))  # up down
+G8g = BiMatGame(A=np.array([[-10, -5], [-15, -20]]), B=np.array([[0, -1], [-5, 0]]))  # up up
+game7 = ToyGame(subgames=[G1g, G2g, G3g, G4g, G5g, G6g, G7g, G8g], desc="A dominated Bayesian Game")

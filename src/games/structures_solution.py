@@ -29,7 +29,6 @@ from .game_def import (
     UncertainCombined,
     X,
     Y,
-    PlayerBelief,
 )
 from .simulate import Simulation
 
@@ -369,7 +368,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         players = list(self.states)
 
         for p in players:
-            if p not in self.va.game_value:
+            if (p not in self.va.game_value) and (p not in str(list(self.va.game_value.keys()))):
                 msg = f"There is no player {p!r} appearing in the game value"
                 raise ZValueError(msg, SolvedGameNode=self)
 

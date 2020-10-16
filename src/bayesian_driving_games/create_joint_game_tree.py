@@ -7,6 +7,8 @@ from frozendict import frozendict
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
+from possibilities.sets import SetPoss
+
 from bayesian_driving_games.structures_solution import BayesianGameNode
 from games.create_joint_game_tree import get_moves
 from possibilities import Poss
@@ -42,7 +44,7 @@ class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
 
     game: Game[X, U, Y, RP, RJ, SR]
     dt: D
-    cache: Dict[JointState, BayesianGameNode[X, U, Y, RP, RJ, SR]]
+    cache: Dict[JointState, BayesianGameNode]
     """ Nodes that were already computed. """
 
     depth: int
@@ -61,7 +63,7 @@ def create_bayesian_game_graph(
     gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """ Create the game graph. """
-    state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
+    state2node: Dict[JointState, BayesianGameNode] = {}
     ic = BayesianIterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
@@ -211,9 +213,15 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
         dynamics = ic.game.players[player_name].dynamics
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
-    belief = {}
-    for player_name in ic.game.players:
-        belief[player_name] = 1.0
+    initial_node_belief = {}
+    belief: Poss[JointState]
+
+    for player_name, player in ic.game.players.items():
+        b = {}
+        for t in player.types_of_other:
+            b[t] = player.prior.p[t]
+            belief = SetPoss(b)
+            initial_node_belief[player_name] = belief
 
     res = BayesianGameNode(
         moves=movesets_for_remaining,
@@ -223,7 +231,7 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
         resources=frozendict(resources),
-        belief=belief,
+        game_node_belief=initial_node_belief,
     )
     ic.cache[states] = res
     return res

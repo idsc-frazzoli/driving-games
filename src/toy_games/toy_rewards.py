@@ -119,20 +119,20 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
 
         # Uncomment/Comment the following lines to switch from 1 stage to 2 stages.
 
-        # if x1.z < thresh and x2.z < thresh:
-        #     subgame = 0
-        # elif x1.z < thresh < x2.z:
-        #     subgame = 1
-        # elif x1.z > thresh > x2.z:
-        #     subgame = 2
-        # else:
-        #     subgame = 3
-        subgame = 0
+        if x1.z < thresh and x2.z < thresh:
+            subgame = 0
+        elif x1.z < thresh < x2.z:
+            subgame = 1
+        elif x1.z > thresh > x2.z:
+            subgame = 2
+        else:
+            subgame = 3
+        # subgame = 0
 
-        # z1_dec = x1.z - round(x1.z)
-        # z2_dec = x2.z - round(x2.z)
-        z1_dec = x1.z
-        z2_dec = x2.z
+        z1_dec = x1.z - round(x1.z)
+        z2_dec = x2.z - round(x2.z)
+        # z1_dec = x1.z
+        # z2_dec = x2.z
 
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 

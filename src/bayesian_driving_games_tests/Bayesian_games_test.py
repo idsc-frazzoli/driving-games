@@ -1,6 +1,8 @@
 from decimal import Decimal as D
 from os.path import join
 
+from frozendict import frozendict
+
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
 from bayesian_driving_games.solution import solve_bayesian_game
 from belief_games import (
@@ -22,6 +24,7 @@ from games import (
     create_report_preprocessed,
 )
 from games_scripts.solvers import SolverSpec
+from possibilities.sets import SetPoss
 
 
 def test2():
@@ -62,3 +65,10 @@ def test2():
     r_solutions.to_html(join(ds, "r_solutions.html"))
     r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
     print("end!")
+
+
+def test_poss():
+    a = {'1': 1.0}
+    b = frozendict(a)
+    belief = SetPoss(b)
+    print(belief)
