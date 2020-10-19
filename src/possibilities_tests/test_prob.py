@@ -42,14 +42,13 @@ def test_prob1():
 
 def test_build_multiple1():
     dist = ProbPoss({1: Fraction(1, 2), 2: Fraction(1, 2)})
-    result = ProbPoss({frozenset({1})   : Fraction(1, 2),
-                       frozenset({4})   : Fraction(1, 2)})
+    result = ProbPoss({frozenset({1}): Fraction(1, 2), frozenset({4}): Fraction(1, 2)})
     P1 = PlayerName("1")
     a: Dict[PlayerName, ProbPoss[A]]
     a = {P1: dist}
 
     def f(x):
-        return frozenset(valmap(lambda x: x**2, x).values())
+        return frozenset(valmap(lambda x: x ** 2, x).values())
 
     ps = ProbabilityFraction()
     dist = ps.build_multiple(a, f)
@@ -59,14 +58,14 @@ def test_build_multiple1():
 def test_build_multiple2():
     dist1 = ProbPoss({1: Fraction(1, 2), 2: Fraction(1, 2)})
     dist2 = ProbPoss({1: Fraction(1, 3), 2: Fraction(2, 3)})
-    result = ProbPoss({frozenset({1})   : Fraction(1, 6),
-                       frozenset({1, 4}): Fraction(1, 2),
-                       frozenset({4})   : Fraction(1, 3)})
+    result = ProbPoss(
+        {frozenset({1}): Fraction(1, 6), frozenset({1, 4}): Fraction(1, 2), frozenset({4}): Fraction(1, 3)}
+    )
     a: Dict[PlayerName, ProbPoss[A]]
     a = {"1": dist1, "2": dist2}
 
     def f(x):
-        return frozenset(valmap(lambda x: x**2, x).values())
+        return frozenset(valmap(lambda x: x ** 2, x).values())
 
     b = ProbabilityFraction()
     dist = b.build_multiple(a, f)

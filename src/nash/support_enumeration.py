@@ -5,7 +5,7 @@ import numpy as np
 
 __all__ = ["ne_support_enum"]
 
-from nash import Equilibrium
+from nash import Equilibrium, PlayerType, MINIMIZER, MAXIMIZER
 
 
 def powerset(n: int):
@@ -135,7 +135,14 @@ def is_ne(A, B, s1, s2, tol=np.finfo(float).eps) -> bool:
     return p1_payoff <= np.min(row_payoffs) + tol and p2_payoff <= np.min(column_payoffs) + tol
 
 
-def ne_support_enum(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=np.finfo(float).eps):
+def ne_support_enum(
+    A: np.ndarray,
+    B: np.ndarray,
+    p1_type: PlayerType = MINIMIZER,
+    p2_type: PlayerType = MINIMIZER,
+    non_degenerate=False,
+    tol=np.finfo(float).eps,
+):
     """
     Obtain the Nash equilibria using support enumeration.
     Algorithm implemented here is Algorithm 3.4 of [Nisan2007]_
@@ -147,12 +154,16 @@ def ne_support_enum(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=np.f
     -------
         equilibria: A generator.
     """
+    A = A if p1_type == MINIMIZER else -A
+    B = B if p2_type == MINIMIZER else -B
     count = 0
     for s1, s2 in solve_supports(A, B, non_degenerate=non_degenerate):
         if is_ne(A, B, s1, s2, tol=tol):
             count += 1
             payoff1 = float(np.dot(np.dot(s1, A), s2))
             payoff2 = float(np.dot(np.dot(s1, B), s2))
+            payoff1 = -payoff1 if p1_type == MAXIMIZER else payoff1
+            payoff2 = -payoff2 if p2_type == MAXIMIZER else payoff2
             yield Equilibrium(s1, s2, payoff1, payoff2)
     if count % 2 == 0:
         logger.warn(
