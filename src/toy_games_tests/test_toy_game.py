@@ -6,8 +6,8 @@ from parameterized import parameterized
 
 from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
 from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
-from games_scripts import solvers_zoo
-from games_scripts.solvers import SolverSpec
+from games_zoo import solvers_zoo
+from games_zoo.solvers import SolverSpec
 from nash.structures import print_bimatgame, BiMatGame
 from toy_games.toy_rewards import BirdJointReward
 from toy_games_tests import logger

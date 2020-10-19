@@ -21,8 +21,8 @@ class Equilibrium:
         return (
             isclose(self.p1_payoff, other.p1_payoff)
             and isclose(self.p2_payoff, other.p2_payoff)
-            and all(np.isclose(self.s1, other.s1))
-            and all(np.isclose(self.s2, other.s2))
+            and np.allclose(self.s1, other.s1)
+            and np.allclose(self.s2, other.s2)
         )
 
 

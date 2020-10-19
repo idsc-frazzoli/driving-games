@@ -2,10 +2,10 @@ from itertools import product
 
 from parameterized import parameterized
 
-from games_scripts import games_zoo, solvers_zoo
-from games_scripts.demo import without_compmake
+from games_zoo import games_zoo, solvers_zoo
+from games_zoo.demo import without_compmake
 
-from games_scripts_tests import logger
+from games_zoo_tests import logger
 
 
 do_games = [

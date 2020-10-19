@@ -48,7 +48,7 @@ def test_build_multiple1():
     a = {P1: dist}
 
     def f(x):
-        return frozenset(valmap(lambda x: x ** 2, x).values())
+        return frozenset(valmap(lambda x: x**2, x).values())
 
     ps = ProbabilityFraction()
     dist = ps.build_multiple(a, f)
@@ -62,10 +62,10 @@ def test_build_multiple2():
         {frozenset({1}): Fraction(1, 6), frozenset({1, 4}): Fraction(1, 2), frozenset({4}): Fraction(1, 3)}
     )
     a: Dict[PlayerName, ProbPoss[A]]
-    a = {"1": dist1, "2": dist2}
+    a = {PlayerName("1"): dist1, PlayerName("2"): dist2}
 
     def f(x):
-        return frozenset(valmap(lambda x: x ** 2, x).values())
+        return frozenset(valmap(lambda x: x**2, x).values())
 
     b = ProbabilityFraction()
     dist = b.build_multiple(a, f)
