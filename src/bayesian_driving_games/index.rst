@@ -37,7 +37,7 @@ solving algorithm:
 - solve_game_bayesian2 consists of a loop with three steps:
     1.) solve the game given the current beliefs
     2.) compare resulting strategy to old strategy
-    3.) if strategies in 2.) different: Assign new beliefs according to new strategy
+    3.) if strategies in 2.) different: Assign new beliefs according to new strategy (TODO)
 
 1.) - uses _solve_bayesian_game(sc: SolvingContext, js0: JointState), a recursive
       function with output SolvedGameNode[X, U, Y, RP, RJ, SR].
