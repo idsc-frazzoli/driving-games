@@ -7,8 +7,8 @@ from parameterized import parameterized
 from bayesian_driving_games.solution import solve_bayesian_game
 from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
 from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
-from games_scripts import solvers_zoo
-from games_scripts.solvers import SolverSpec
+from games_zoo import solvers_zoo
+from games_zoo.solvers import SolverSpec
 from nash.structures import print_bimatgame, BiMatGame
 from toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
 from toy_games.toy_rewards import BirdJointReward

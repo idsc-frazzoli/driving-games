@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from functools import reduce
 from itertools import permutations
+from math import isclose
 from typing import (
     AbstractSet,
     Callable,
@@ -23,7 +24,7 @@ from toolz import valfilter
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbabilityFraction"]
+__all__ = ["ProbPoss", "ProbabilityFraction", "ProbSampler"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -53,7 +54,7 @@ class ProbPoss(Poss[A]):
     def get(self, a: A) -> Fraction:
         return self.p[a]
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "ProbPoss") -> bool:
         if self._support != other._support:
             return False
         if self._range != other._range:
@@ -152,6 +153,12 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
             # a = permute(c, _)
             res.add(_)
     return res
+
+
+def check_prob_poss(prob_poss: ProbPoss):
+    # probabilities sum up to one
+    cumulative_dist = sum(prob_poss.p.values())
+    assert isclose(cumulative_dist, 1)  # probably also exact equality
 
 
 class ProbSampler(Sampler):

@@ -54,7 +54,7 @@ STRATEGY_MIX = StrategyForMultipleNash("mix")
 """ Mix all the states in the multiple nash equilibria. """
 # fixme, better explanation for this
 STRATEGY_SECURITY = StrategyForMultipleNash("security")
-""" Use a securety policy. """
+""" Use a security policy. """
 
 STRATEGY_BAIL = StrategyForMultipleNash("bail")
 """ Throw an error. """

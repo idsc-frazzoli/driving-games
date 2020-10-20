@@ -18,7 +18,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    # 'sphinx_autodoc_typehints',
+    "sphinx_autodoc_typehints",
     "sphinx_autodoc_annotation",
 ]
 
@@ -30,6 +30,9 @@ html_static_path = []
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
+
+# for type hints
+napoleon_use_param = True
 
 # -- Options for HTML output -------------------------------------------------
 
