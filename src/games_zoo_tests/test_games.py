@@ -31,7 +31,7 @@ def test_run4_prob_tmp() -> None:
     do_games = ["asym_v0_prob"]
     do_solvers = [
         # "solver-1-security-fact",
-        "solver-1-security-naive"
+        "solver-1-mix-naive"
     ]
     games = {k: games_zoo[k] for k in do_games}
     solvers = {k: solvers_zoo[k] for k in do_solvers}

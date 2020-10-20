@@ -20,7 +20,7 @@ def get_version(filename):
 install_requires = [
     'scipy',
     'seaborn',
-    'PyGeometry',
+    'PyGeometry-z6',
     'zuper-commons-z6>=6.0.19',
     'quickapp-z6>=6,<7',
     'compmake-z6>=6.0.8,<7',

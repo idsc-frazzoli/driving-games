@@ -78,7 +78,7 @@ class ProbabilityFraction(PossibilityMonad):
         res = defaultdict(Fraction)
         for dist, weight in a.it():
             for a, wa in dist.it():
-                res[a] += weight*wa
+                res[a] += weight * wa
         return ProbPoss(frozendict(res))
 
     def build(self, a: ProbPoss[A], f: Callable[[A], B]) -> ProbPoss[B]:
@@ -124,7 +124,7 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     elif n == 2:
         cases = {(one, zero), (half, half)}
     elif n == 3:
-        cases = [(one, zero, zero), (third, third, third), (third, 2*third, zero)]
+        cases = [(one, zero, zero), (third, third, third), (third, 2 * third, zero)]
     elif n == 4:
         cases = [
             (one, zero, zero, zero),
@@ -136,11 +136,11 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
         f = Fraction(1, 5)
         cases = [
             (f, f, f, f, f),
-            (2*f, f, f, f, zero),
-            (2*f, 2*f, f, zero, zero),
-            (3*f, f, f, zero, zero),
-            (3*f, 2*f, zero, zero, zero),
-            (4*f, f, zero, zero, zero),
+            (2 * f, f, f, f, zero),
+            (2 * f, 2 * f, f, zero, zero),
+            (3 * f, f, f, zero, zero),
+            (3 * f, 2 * f, zero, zero, zero),
+            (4 * f, f, zero, zero, zero),
             (one, zero, zero, zero, zero),
         ]
     else:

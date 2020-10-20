@@ -3,12 +3,12 @@ frozendict==1.2
 pytz==2019.3 # this might not be needed?!
 numpy==1.19.1
 typing_extensions==3.7.4.1
-toolz==0.10.0
+toolz==0.11.1
 
-PyGeometry-z6
-zuper-commons-z6>=6.0.32
+PyGeometry-z6>=2.0
+zuper-commons-z6>=6.1.5
 compmake-z6>=6.0.8,<7
-quickapp-z6>=6,<7
+quickapp-z6>=6.0.5,<7
 reprep-z6>=6.0.3,<7
 networkx>=2.4
 zuper-typing-z6>=6.1.0

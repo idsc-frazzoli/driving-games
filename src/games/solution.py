@@ -58,6 +58,12 @@ __all__ = ["solve1", "get_outcome_preferences_for_players"]
 
 
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+    """
+    Documentation todo
+
+    :param gp:
+    :return:
+    """
     G = gp.game_graph
     dt = gp.solver_params.dt
     # find initial states
@@ -156,6 +162,11 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
 def get_outcome_preferences_for_players(
     game: Game[X, U, Y, RP, RJ, SR],
 ) -> M[PlayerName, Preference[UncertainCombined]]:
+    """
+
+    :param game:
+    :return:
+    """
     preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
     for player_name, player in game.players.items():
         pref0: Preference[Combined[RJ, RP]] = player.preferences
@@ -175,6 +186,7 @@ def solve_game2(
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
     Solve game
+
     :param game:
     :param solver_params:
     :param gg:

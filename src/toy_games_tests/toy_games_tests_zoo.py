@@ -25,4 +25,7 @@ G1b = BiMatGame(A=np.array([[2, 4], [6, 8]]), B=np.array([[0, 1], [6, 5]]))
 G2b = BiMatGame(A=np.array([[6, 4], [8, 6]]), B=np.array([[3, 4], [7, 9]]))
 G3b = BiMatGame(A=np.array([[4, 8], [8, 4]]), B=np.array([[5, 3], [7, 3]]))
 G4b = BiMatGame(A=np.array([[4, 10], [4, 8]]), B=np.array([[3, 3], [5, 3]]))
-game2 = ToyGame(subgames=[G1b, G2b, G3b, G4b], desc="This game shall have a unique clear solution")
+game2 = ToyGame(
+    subgames=[G1b, G2b, G3b, G4b],
+    desc="This game has a unique advantageous solution (NE).\n" "It is obtained by the outcome (2,0) in G1b.",
+)
