@@ -3,6 +3,7 @@ from frozendict import frozendict
 from bayesian_driving_games.structures import BayesianGamePlayer, PlayerType
 from driving_games import TwoVehicleUncertaintyParams, ProbPrefExpectedValue
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
+from games.utils import fs
 from nash import BiMatGame
 from toy_games.bayesian_toy_joint_rewards import (
     BayesianBirdJointReward,
@@ -16,7 +17,7 @@ from toy_games.toy_rewards import (
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
 from toy_games.bayesian_toy_structures import BayesianBirdState
 from possibilities import PossibilitySet, PossibilityMonad, ProbabilityFraction
-from typing import FrozenSet as ASet, cast, Sequence
+from typing import FrozenSet as FSet, cast, Sequence
 from decimal import Decimal as D
 import numpy as np
 from preferences import SetPreference1
@@ -25,7 +26,7 @@ __all__ = ["get_bayesian_toy_game_spec"]
 
 
 def get_bayesian_toy_game_spec(
-    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: TwoVehicleUncertaintyParams
+        max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: TwoVehicleUncertaintyParams
 ) -> GameSpec:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
@@ -38,8 +39,8 @@ def get_bayesian_toy_game_spec(
     p2_initial = ps.unit(p2_x)
 
     # types
-    p2_types = [PlayerType("neutral")]
-    p1_types = [PlayerType("cautious"), PlayerType("aggressive")]
+    p2_types = fs({PlayerType("neutral")})
+    p1_types = fs({PlayerType("cautious"), PlayerType("aggressive")})
 
     # priors
     ps2 = ProbabilityFraction()
@@ -56,9 +57,9 @@ def get_bayesian_toy_game_spec(
 
     # observations
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
-    p1_possible_states = cast(ASet[BirdState], frozenset(g1.nodes))
+    p1_possible_states = cast(FSet[BirdState], frozenset(g1.nodes))
     g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
-    p2_possible_states = cast(ASet[BirdState], frozenset(g2.nodes))
+    p2_possible_states = cast(FSet[BirdState], frozenset(g2.nodes))
     p1_observations = BirdDirectObservations(p1_possible_states, {P2: p2_possible_states})
     p2_observations = BirdDirectObservations(p2_possible_states, {P1: p1_possible_states})
 
@@ -67,7 +68,8 @@ def get_bayesian_toy_game_spec(
     p2_preferences = BirdPreferences()
     mpref_builder = uncertainty_params.mpref_builder
     birds_joint_reward = BayesianBirdJointReward(
-        max_stages=max_stages, subgames=subgames, row_player=P1, col_player=P2, p1_types=p1_types, p2_types=p2_types
+        max_stages=max_stages, subgames=subgames, row_player=P1, col_player=P2, p1_types=p1_types,
+        p2_types=p2_types
     )
 
     p1 = BayesianGamePlayer(

@@ -8,15 +8,12 @@ from decimal import Decimal as D
 from frozendict import frozendict
 from zuper_commons.types import ZValueError
 
+from bayesian_driving_games import PlayerType
 from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
 from possibilities import Poss, PossibilitySet, PossibilityMonad
-
-Go = NewType("Go", str)
-UP = Go("up")
-DOWN = Go("down")
-GoValue: AbstractSet[Go] = frozenset({UP, DOWN})
+from toy_games.toy_structures import BirdState, GoValue, UP, DOWN, Go, BirdActions
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -30,22 +27,9 @@ class Seen:
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class BayesianBirdActions:
-    go: Go
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class BirdState(object):
-    # flying altitude
-    z: D = 0
-    # augment the state with the stage number for stage-dependent costs
-    stage: int = 0
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BayesianBirdState(BirdState):
     # type
-    player_type: str = "0"
+    player_type: PlayerType = "0"
 
     def compare_physical_states(self, s2) -> bool:
         if self.z != s2.z:
@@ -58,7 +42,7 @@ class BayesianBirdState(BirdState):
             return True
 
 
-class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR]):
+class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BirdActions, SR]):
     """Pulling UP increases x, DOWN decreases"""
 
     def __init__(self, poss_monad: PossibilityMonad, types: List):
@@ -66,22 +50,22 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         self.types = types
 
     @lru_cache(None)
-    def all_actions(self) -> FrozenSet[BayesianBirdActions]:
+    def all_actions(self) -> FrozenSet[BirdActions]:
         res = set()
         for go in GoValue:
-            res.add(BayesianBirdActions(go))
+            res.add(BirdActions(go))
         return frozenset(res)
 
     @lru_cache(None)
     def successors(
         self, x: BayesianBirdState, dt: D
-    ) -> Mapping[BayesianBirdActions, Poss[BayesianBirdState]]:
+    ) -> Mapping[BirdActions, Poss[BayesianBirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # todo expand to allow other possibility monads
 
         if x.player_type == "0":
             possible = {}
-            u = BayesianBirdActions(go=None)
+            u = BirdActions(go=None)
             for _ in self.types:
                 x2 = BayesianBirdState(z=x.z, stage=x.stage, player_type=_)
                 possible[x2.player_type] = self.ps.unit(x2)
@@ -99,7 +83,7 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         return frozendict(possible)
 
     @lru_cache(None)
-    def successor(self, x: BayesianBirdState, u: BayesianBirdActions) -> BayesianBirdState:
+    def successor(self, x: BayesianBirdState, u: BirdActions) -> BayesianBirdState:
         # trick to get unique NOT path dependent final states and
         # allow arbitrary payoff matrices
         altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
@@ -156,41 +140,3 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
 #         for k, v in others.items():
 #             others[k] = Seen(z=v.z)
 #         return frozenset({BirdObservation(others)})
-
-
-@dataclass(frozen=True)
-class BirdCosts:
-    cost: D
-
-    # support weight multiplication for expected value
-    def __mul__(self, weight: Fraction) -> "BirdCosts":
-        # weighting costs, e.g. according to a probability
-        return replace(self, cost=self.cost * D(float(weight)))
-
-    __rmul__ = __mul__
-
-    # Monoid to support sum
-    def __add__(self, other: "BirdCosts") -> "BirdCosts":
-        if type(other) == BirdCosts:
-            return replace(self, cost=self.cost + other.cost)
-        else:
-            if other is None:
-                return self
-            else:
-                raise NotImplementedError
-
-    __radd__ = __add__
-
-
-# class BirdsVisualization(
-#     GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]
-# ):
-#     def hint_graph_node_pos(self, state: X) -> Tuple[float, float]:
-#         pass
-#
-#     def plot_player(self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0):
-#         pass
-#
-#     @contextmanager
-#     def plot_arena(self, pylab, ax):
-#         yield

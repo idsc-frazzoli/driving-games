@@ -1,13 +1,9 @@
 import itertools
 from collections import defaultdict
-from decimal import Decimal as D
 from fractions import Fraction
 from typing import (
     AbstractSet,
-    Callable,
     Dict,
-    FrozenSet,
-    FrozenSet as FSet,
     Mapping,
     Mapping as M,
     Tuple,
@@ -18,17 +14,17 @@ from frozendict import frozendict
 from networkx import simple_cycles
 from toolz import valmap
 
-from bayesian_driving_games import PlayerType
+from bayesian_driving_games import PlayerType, BayesianGame, logger
 from bayesian_driving_games.sequential_rationality import solve_sequential_rationality
-from bayesian_driving_games.structures_solution import BayesianSolvingContext, BayesianGameNode, InformationSet
+from bayesian_driving_games.structures_solution import (
+    BayesianSolvingContext, BayesianGameNode,
+    InformationSet)
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
 from games.solution import add_incremental_cost_single, solve_final_joint, solve_final_personal_both, fr, \
     get_outcome_preferences_for_players
 from possibilities import Poss
 from possibilities.sets import SetPoss
-from preferences import Preference
 from zuper_commons.types import ZValueError
-from games import logger, solve1
 from games.agent_from_policy import AgentFromPolicy
 from games.game_def import (
     check_joint_state,
@@ -36,7 +32,6 @@ from games.game_def import (
     Game,
     JointPureActions,
     JointState,
-    P,
     PlayerName,
     RJ,
     RP,
@@ -44,12 +39,9 @@ from games.game_def import (
     U,
     UncertainCombined,
     X,
-    Y,
-    MonadicPreferenceBuilder,
+    Y
 )
 from games.simulate import simulate1, Simulation
-from games.solution_ghost import get_ghost_tree
-from games.solve_equilibria_ import solve_equilibria
 from games.structures_solution import (
     GameGraph,
     GameNode,
@@ -64,7 +56,7 @@ from games.structures_solution import (
     ValueAndActions,
 )
 
-__all__ = ["solve_bayesian_game", "get_outcome_preferences_for_players"]
+__all__ = ["solve_bayesian_game"]
 
 
 def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
@@ -170,20 +162,9 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
     # logger.info(game_tree=game_tree)
 
 
-def get_outcome_preferences_for_players(
-    game: Game[X, U, Y, RP, RJ, SR],
-) -> M[PlayerName, Preference[UncertainCombined]]:
-    preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
-    for player_name, player in game.players.items():
-        pref0: Preference[Combined[RJ, RP]] = player.preferences
-        monadic_pref_builder: MonadicPreferenceBuilder
-        monadic_pref_builder = player.monadic_preference_builder
-        pref2: Preference[UncertainCombined] = monadic_pref_builder(pref0)
-        preferences[player_name] = pref2
-    return preferences
-
 
 ### Pro Memoria ###
+
 def proposed_strategy(
     *, game: Game[X, U, Y, RP, RJ, SR], gg: GameGraph[X, U, Y, RP, RJ, SR],
 ) -> Tuple[Mapping[BayesianGameNode, JointPureActions], Mapping[PlayerName, List[Tuple[JointState]]]]:
@@ -261,7 +242,7 @@ def get_initial_physical_states(
 
 # TODO
 def assign_beliefs(
-    sc: SolvingContext,
+    sc: BayesianSolvingContext,
     solution: GameSolution,
     js: JointState
 ):
@@ -312,7 +293,7 @@ def assign_beliefs(
 
 def solve_game_bayesian2(
     *,
-    game: Game[X, U, Y, RP, RJ, SR],
+    game: BayesianGame[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
     gg: GameGraph[X, U, Y, RP, RJ, SR],
     jss: AbstractSet[JointState],
@@ -357,7 +338,9 @@ def solve_game_bayesian2(
         policies2 = frozendict({k: fr(v) for k, v in policies.items()})
 
         solution_new = GameSolution(
-            initials=frozenset(jss), policies=policies2, states_to_solution=frozendict(states_to_solution),
+            initials=frozenset(jss),
+            policies=policies2,
+            states_to_solution=frozendict(states_to_solution),
         )
         #2.) compare strategies
         try:
@@ -430,9 +413,6 @@ def solve_game_bayesian2(
 #         initials=frozenset(jss), policies=policies2, states_to_solution=frozendict(states_to_solution),
 #     )
 
-
-def fr(d):
-    return frozendict({k: frozendict(v) for k, v in d.items()})
 
 
 def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
@@ -721,20 +701,6 @@ def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[
 #     return ret
 
 
-def add_incremental_cost_single(
-    game: Game[X, U, Y, RP, RJ, SR],
-    *,
-    player_name: PlayerName,
-    cur: Combined[RP, RJ],
-    incremental_for_player: M[PlayerName, Poss[RP]],
-) -> Combined[RP, RJ]:
-    inc = incremental_for_player[player_name]
-    reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-    personal = reduce(inc, cur.personal)
-
-    joint = cur.joint
-    return Combined(personal=personal, joint=joint)
-
 
 def solve_final_joint_bayesian(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
@@ -754,18 +720,3 @@ def solve_final_joint_bayesian(
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)
 
 
-def solve_final_personal_both(
-    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
-) -> ValueAndActions[U, RP, RJ]:
-    """
-    Solves end game node which is final for both players (but not jointly final)
-    :param sc:
-    :param gn:
-    :return:
-    """
-    game_value: Dict[PlayerName, UncertainCombined] = {}
-    for player_name, personal in gn.is_final.items():
-        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
-    game_value_ = frozendict(game_value)
-    actions = frozendict()
-    return ValueAndActions(game_value=game_value_, mixed_actions=actions)

@@ -57,12 +57,6 @@ def get_bayesian_driving_game(
     dt = vehicles_params.dt
     available_accels = vehicles_params.available_accels
 
-    # P1 = PlayerName("👩‍🦰")  # "👩🏿")
-    # P2 = PlayerName("👳🏾‍")
-    # P1 = PlayerName("p1")
-    # P2 = PlayerName("p2")
-    # P2 = PlayerName("⬅")
-    # P1 = PlayerName("⬆")
     P2 = PlayerName("W←")
     P1 = PlayerName("N↑")
     mass = D(1000)
@@ -73,12 +67,10 @@ def get_bayesian_driving_game(
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
 
-    p1_types: FrozenSet[PlayerType]
-    p2_types: FrozenSet[PlayerType]
     p1_t = [PlayerType("aggressive"), PlayerType("cautious")]
     p2_t = [PlayerType("aggressive"), PlayerType("cautious")]
-    p1_types = frozenset(p1_t)
-    p2_types = frozenset(p2_t)
+    p1_types: FrozenSet[PlayerType] = frozenset(p1_t)
+    p2_types: FrozenSet[PlayerType] = frozenset(p2_t)
 
     p1_x = BayesianVehicleState(
         ref=p1_ref,

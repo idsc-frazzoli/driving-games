@@ -1,28 +1,20 @@
-from itertools import product
 from typing import Sequence
 
-from parameterized import parameterized
-
-from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
-from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
+from bayesian_driving_games.solution import solve_bayesian_game
+from bayesian_driving_games.zoo import uncertainty_sets
+from driving_games import TwoVehicleUncertaintyParams
+from games import preprocess_game, PlayerName
 from games_zoo import solvers_zoo
 from games_zoo.solvers import SolverSpec
-from nash.structures import print_bimatgame, BiMatGame
+from nash import BiMatGame
+from nash.structures import print_bimatgame
 from toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
 from toy_games.toy_rewards import BirdJointReward
 from toy_games_tests import logger
-import nashpy as nash
-
-from toy_games_tests.toy_games_tests_zoo import toy_games_zoo, game2, ToyGame, game3, game4, game5, game6, game7
-
-"""
-Two stages game. After the first stage we could be in 4 possible stages. 
-The second stage consists of 4 different games with possible  
-with 4 arbitrary payoff matrices for the second stage:
-"""
+from toy_games_tests.toy_games_tests_zoo import game7
 
 
-def _run_toy_game(
+def _run_toy_game_bayesian(
     subgames: Sequence[BiMatGame], solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams,
 ):
     max_stages = 2
@@ -37,7 +29,7 @@ def _run_toy_game(
     game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
-    solutions = solve1(game_preprocessed)
+    solutions = solve_bayesian_game(game_preprocessed)
     for state, solution in solutions.game_solution.states_to_solution.items():
         # filter out only the first level subgame
         if all([p.stage == 1 for p in state.values()]):
@@ -52,31 +44,10 @@ def _run_toy_game(
     logger.info(solutions)
 
 
-games = (toy_games_zoo[1], game2)
-strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
-solvers = (solvers_zoo["solver-1-" + strategy + "-naive"] for strategy in strategies)
-uncertainties = [uncertainty_sets, uncertainty_prob]
-toy_tests = list(product(games, solvers, uncertainties))
 
-
-@parameterized(toy_tests)
-def test_toy_games(
-    toygame: ToyGame, solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams
-):
-    for i, G in enumerate(toygame.subgames):
-        logger.info(
-            "Game G{} equilibria: ".format(i + 1), list(nash.Game(-G.A, -G.B).vertex_enumeration()),
-        )
-    _run_toy_game(toygame.subgames, solver_spec, uncertainty_params)
-    logger.info("Completed toy game test")
-
-
-def test_prob_debug():
-    game = game2
+def test_bayesian_debug():
+    game = game7
     solver_spec = solvers_zoo["solver-1-mix-naive"]
     uncertainty_params = uncertainty_sets
     # uncertainty_params = uncertainty_prob
-    _run_toy_game(game.subgames, solver_spec, uncertainty_params)
-
-
-
+    _run_toy_game_bayesian(game.subgames, solver_spec, uncertainty_params)

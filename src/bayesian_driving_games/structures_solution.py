@@ -1,9 +1,9 @@
-from typing import Mapping, Generic, Set
+from typing import Mapping, Set
 from dataclasses import dataclass
 
-from bayesian_driving_games import PlayerType
-from games import GameNode, PlayerName, SolvingContext
-from games.game_def import JointPureActions, JointState
+from bayesian_driving_games import PlayerType, BayesianGame
+from games import GameNode, PlayerName, SolvingContext, JointState
+from games.game_def import JointPureActions
 from possibilities import Poss
 
 
@@ -14,11 +14,11 @@ class BayesianGameNode(GameNode):
 
 
 InformationSet = Set[JointState]
-
-
-PlayerBelief = Poss[InformationSet]
+#
+# PlayerBelief = Poss[InformationSet]
 
 
 @dataclass
 class BayesianSolvingContext(SolvingContext):
+    game: BayesianGame
     proposed_strategy: Mapping[GameNode, JointPureActions]
