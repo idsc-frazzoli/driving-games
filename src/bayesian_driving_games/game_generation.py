@@ -4,7 +4,9 @@ from typing import cast, Dict, FrozenSet, FrozenSet as ASet, List
 
 from frozendict import frozendict
 
-from bayesian_driving_games.structures import BayesianVehicleState, PlayerType
+from bayesian_driving_games.Bayesian_driving_rewards import BayesianVehicleJointReward, \
+    BayesianVehiclePersonalRewardStructureTime, BayesianVehiclePersonalRewardStructureSimple
+from bayesian_driving_games.structures import BayesianVehicleState, PlayerType, BayesianGamePlayer
 from belief_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from games import (
     Game,
@@ -15,7 +17,7 @@ from games import (
     PlayerName,
 )
 from games.game_def import MonadicPreferenceBuilder
-from possibilities import PossibilityMonad
+from possibilities import PossibilityMonad, ProbabilityFraction
 from driving_games.collisions import Collision
 from driving_games.joint_reward import VehicleJointReward
 from driving_games.personal_reward import VehiclePersonalRewardStructureTime
@@ -27,7 +29,7 @@ from driving_games.structures import (
     VehicleActions,
     VehicleCosts,
     VehicleDynamics,
-    VehicleGeometry,
+    VehicleGeometry, VehicleState,
 )
 from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation
 from driving_games.visualization import DrivingGameVisualization
@@ -63,41 +65,49 @@ def get_bayesian_driving_game(
     # P2 = PlayerName("p2")
     # P2 = PlayerName("⬅")
     # P1 = PlayerName("⬆")
-    P2 = PlayerName("W←")
-    P1 = PlayerName("N↑")
+    P2 = PlayerName("W")
+    P1 = PlayerName("N")
     mass = D(1000)
     length = D(4.5)
     width = D(1.8)
 
+    # geometries
     g1 = VehicleGeometry(mass=mass, width=width, length=length, color=(1, 0, 0))
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
 
-    p1_types: FrozenSet[PlayerType]
-    p2_types: FrozenSet[PlayerType]
-    p1_t = [PlayerType("aggressive"), PlayerType("cautious")]
-    p2_t = [PlayerType("aggressive"), PlayerType("cautious")]
-    p1_types = frozenset(p1_t)
-    p2_types = frozenset(p2_t)
 
-    p1_x = BayesianVehicleState(
+    # types
+    p1_types = [PlayerType("cautious"), PlayerType("aggressive")]
+    p2_types = [PlayerType("neutral")]
+
+    # priors
+    ps2 = ProbabilityFraction()
+    # p1_prior = ps2.lift_many(p2_types)
+    # p2_prior = ps2.lift_many(p1_types)
+    p1_prior = ps2.twenty_eighty(p2_types)
+    p2_prior = ps2.twenty_eighty(p1_types)
+
+
+    # State
+    p1_x = VehicleState(
         ref=p1_ref,
         x=D(vehicles_params.first_progress),
         wait=D(0),
-        v=min_speed,
+        v=D(0),
         light=NO_LIGHTS,
-        player_type=PlayerType("0"),
     )
     p1_initial = ps.unit(p1_x)
-    p2_x = BayesianVehicleState(
+    p2_x = VehicleState(
         ref=p2_ref,
         x=D(vehicles_params.second_progress),
         wait=D(0),
-        v=min_speed,
+        v=D(0),
         light=NO_LIGHTS,
-        player_type=PlayerType("0"),
     )
     p2_initial = ps.unit(p2_x)
+
+    # Dynamics
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
         max_wait=max_wait,
@@ -109,7 +119,6 @@ def get_bayesian_driving_game(
         vg=g1,
         shared_resources_ds=vehicles_params.shared_resources_ds,
         poss_monad=ps,
-        player_types=p1_types,
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -122,10 +131,9 @@ def get_bayesian_driving_game(
         vg=g2,
         shared_resources_ds=vehicles_params.shared_resources_ds,
         poss_monad=ps,
-        player_types=p2_types,
     )
-    p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
-    p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
+    p1_personal_reward_structure = BayesianVehiclePersonalRewardStructureTime(max_path, p1_types, p2_types)
+    p2_personal_reward_structure = BayesianVehiclePersonalRewardStructureSimple(max_path, p1_types, p2_types)
 
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
     p1_possible_states = cast(ASet[BayesianVehicleState], frozenset(g1.nodes))
@@ -138,28 +146,35 @@ def get_bayesian_driving_game(
 
     p1_preferences = VehiclePreferencesCollTime()
     p2_preferences = VehiclePreferencesCollTime()
-    p1 = GamePlayer(
+    p1 = BayesianGamePlayer(
         initial=p1_initial,
         dynamics=p1_dynamics,
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
         monadic_preference_builder=uncertainty_params.mpref_builder,
+        types_of_other=p2_types,
+        types_of_myself=p1_types,
+        prior=p1_prior
     )
-    p2 = GamePlayer(
+    p2 = BayesianGamePlayer(
         initial=p2_initial,
         dynamics=p2_dynamics,
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
         monadic_preference_builder=uncertainty_params.mpref_builder,
+        types_of_other=p1_types,
+        types_of_myself=p2_types,
+        prior=p2_prior
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
-    joint_reward: JointRewardStructure[BayesianVehicleState, VehicleActions, Collision]
+    joint_reward: BayesianVehicleJointReward
 
-    joint_reward = VehicleJointReward(
-        collision_threshold=vehicles_params.collision_threshold, geometries=geometries
+    joint_reward = BayesianVehicleJointReward(
+        collision_threshold=vehicles_params.collision_threshold, geometries=geometries, p1_types=p1_types,
+        p2_types=p2_types
     )
 
     game_visualization: GameVisualization[

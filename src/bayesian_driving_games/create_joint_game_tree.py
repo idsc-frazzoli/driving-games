@@ -1,3 +1,4 @@
+import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
@@ -153,14 +154,20 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
     movesets_for_remaining = fvalmap(frozenset, moves_to_state_remaining)
 
     # Compute the incremental costs for the moves
+    _ = next(iter(ic.game.players))
+    type_combinations = list(itertools.product(ic.game.players[_].types_of_myself, ic.game.players[_].types_of_other))
     incremental = defaultdict(dict)
     for k, its_moves in moves_to_state_remaining.items():
         for move in its_moves:
-            if move is None:
-                continue
-            pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
-            inc = pri(states[k], move, ic.dt)
-            incremental[k][move] = inc
+            for tc in type_combinations:
+                if move is None:
+                    continue
+                pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
+                inc = pri(states[k], move, ic.dt)
+                try:
+                    incremental[k,tc][move] = inc[tc]
+                except:
+                    incremental[k,tc[::-1]][move] = inc[tc[::-1]]
 
     for joint_pure_action in iterate_dict_combinations(moves_to_state_remaining):
 

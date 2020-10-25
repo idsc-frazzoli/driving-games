@@ -1,10 +1,10 @@
 import itertools
-from typing import Mapping, Dict, FrozenSet, Set, Tuple
+from typing import Mapping, Dict, FrozenSet, Set, Tuple, List
 
 from frozendict import frozendict
 from zuper_commons.types import ZValueError, ZNotImplementedError
 
-from bayesian_driving_games import PlayerType
+from bayesian_driving_games.structures import PlayerType
 from bayesian_driving_games.structures_solution import BayesianSolvingContext, BayesianGameNode
 from games import JointPureActions, PlayerName
 from games.equilibria import EquilibriaAnalysis, analyze
@@ -32,6 +32,8 @@ def weight_outcome(mixed_outcome, weight, ps, t1, t2):
     a = list(mixed_outcome.support())[0]
     for k,v in a.items():
         if (t2,t1) in k:
+            x[k] = list(v.support())[0] * weight
+        elif (t1,t2) in k:
             x[k] = list(v.support())[0] * weight
     return x
 
@@ -62,7 +64,7 @@ def analyze_sequential_rational(
             type_players.append(PlayerName(helper))
 
     players_strategies = {}
-    for player_name in game.players:
+    for player_name in player_mixed_strategies.keys():
         for t in type_players:
             if player_name in t:
                 players_strategies[t] = player_mixed_strategies[player_name]
@@ -72,7 +74,7 @@ def analyze_sequential_rational(
     all_players = set(gn.states)
     active_players = set(gn.moves)
 
-    player_mixed_strategies_new = dict(zip(type_players, players_strategies))
+    player_mixed_strategies_new = dict(zip(players_ordered, players_strategies))
 
     _ = next(iter(game.players))
     type_combinations = list(itertools.product(game.players[_].types_of_myself, game.players[_].types_of_other))
@@ -87,45 +89,62 @@ def analyze_sequential_rational(
         def f(y: JointPureActions) -> JointPureActions:
             return y
 
-        p1 = list(game.players.keys())[0]
-        p2 = list(game.players.keys())[1]
-        res: Dict[PlayerName, UncertainCombined] = {}
-        for t1 in game.players[p1].types_of_other:
-            for t2 in game.players[p2].types_of_other:
-                belief1 = gn.game_node_belief[p1].support()[t1]
-                belief2 = gn.game_node_belief[p2].support()[t2]
-                belief = belief1 * belief2
+        p1 = list(player_mixed_strategies)[0]
+        p2 = list(player_mixed_strategies)[-1]
+        if p1 == p2:
+            res: Dict[PlayerName, UncertainCombined] = {}
+            for t1 in game.players[p1].types_of_other:
+                for t2 in game.players[p2].types_of_myself:
+                    belief = gn.game_node_belief[p1].support()[t1]
+                    key1 = "{},{}".format(p1, t2)
+                    move1 = choice[key1]
+                    a = frozendict(zip([p1], [move1]))
+                    dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
+                    mixed_outcome: Poss[Mapping[PlayerName, UncertainCombined]]
+                    mixed_outcome = ps.build(dist, solved.__getitem__)
+                    w_outcome = weight_outcome(mixed_outcome, belief, ps, t1, t2)
+                    for player_name in w_outcome.keys():
+                        try:
+                            res[player_name[0]] = res[player_name[0]] + w_outcome[player_name]
+                        except:
+                            res[player_name[0]] = w_outcome[player_name]
+            for k, v in res.items():
+                res[k] = ps.lift_many([v])
 
-                key1 = "{},{}".format(p1, t2)
-                key2 = "{},{}".format(p2, t1)
+            results[choice] = frozendict(res)
 
-                move1 = choice[key1]
-                move2 = choice[key2]
+        else:
+            res: Dict[PlayerName, UncertainCombined] = {}
+            for t1 in game.players[p1].types_of_other:
+                for t2 in game.players[p2].types_of_other:
+                    belief1 = gn.game_node_belief[p1].support()[t1]
+                    belief2 = gn.game_node_belief[p2].support()[t2]
+                    belief = belief1 * belief2
 
-                a = frozendict(zip([p1,p2], [move1,move2]))
-                dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
+                    key1 = "{},{}".format(p1, t2)
+                    key2 = "{},{}".format(p2, t1)
 
-                mixed_outcome: Poss[Mapping[PlayerName, UncertainCombined]]
-                mixed_outcome = ps.build(dist, solved.__getitem__)
+                    move1 = choice[key1]
+                    move2 = choice[key2]
 
-                w_outcome = weight_outcome(mixed_outcome, belief, ps, t1, t2)
+                    a = frozendict(zip([p1,p2], [move1,move2]))
+                    dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
 
-                for player_name in w_outcome.keys():
-                    try:
-                        res[player_name[0]] = res[player_name[0]] + w_outcome[player_name]
-                    except:
-                        res[player_name[0]] = w_outcome[player_name]
+                    mixed_outcome: Poss[Mapping[PlayerName, UncertainCombined]]
+                    mixed_outcome = ps.build(dist, solved.__getitem__)
 
-        for k,v in res.items():
-            res[k] = ps.lift_many([v])
+                    w_outcome = weight_outcome(mixed_outcome, belief, ps, t1, t2)
 
-        results[choice] = frozendict(res)
+                    for player_name in w_outcome.keys():
+                        try:
+                            res[player_name[0]] = res[player_name[0]] + w_outcome[player_name]
+                        except:
+                            res[player_name[0]] = w_outcome[player_name]
 
-        # preferences_new: Mapping[PlayerName, Preference[UncertainCombined]] = {}
-        # for player_name in type_players:
-        #     for p_name in preferences.keys():
-        #         if p_name in player_name:
-        #             preferences_new[player_name] = preferences[p_name]
+            for k,v in res.items():
+                res[k] = ps.lift_many([v])
+
+            results[choice] = frozendict(res)
 
     # logger.info(results=results)
     return analyze(player_mixed_strategies_new, results, preferences)
@@ -151,7 +170,10 @@ def solve_sequential_rationality(
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
     ea = analyze_sequential_rational(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, game=sc.game)
-    players_with_types = list(list(ea.nondom_nash_equilibria.keys())[0].keys())
+    try:
+        players_with_types = list(list(ea.nondom_nash_equilibria.keys())[0].keys())
+    except:
+        print('y')
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
 
@@ -161,34 +183,49 @@ def solve_sequential_rationality(
         def f(y: JointPureActions) -> JointPureActions:
             return y
 
-        p1 = list(sc.game.players.keys())[0]
-        p2 = list(sc.game.players.keys())[1]
-        game_value = {}
-        for t1 in sc.game.players[p1].types_of_other:
-            for t2 in sc.game.players[p2].types_of_other:
+        p1 = list(players_active)[0]
+        p2 = list(players_active)[-1]
+        if p1 == p2:
+            game_value = {}
+            for t1 in sc.game.players[p1].types_of_myself:
+                for t2 in sc.game.players[p1].types_of_other:
+                    key1 = "{},{}".format(p1, t1)
+                    move1 = eq[key1]
+                    a = frozendict(zip([p1], [move1]))
+                    dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
 
-                key1 = "{},{}".format(p1, t2)
-                key2 = "{},{}".format(p2, t1)
+                    outcome: Poss[Mapping[PlayerName, UncertainCombined]]
+                    outcome = ps.build(dist, solved.__getitem__)
 
-                move1 = eq[key1]
-                move2 = eq[key2]
-
-                a = frozendict(zip([p1, p2], [move1, move2]))
-                dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
-
-                outcome: Poss[Mapping[PlayerName, UncertainCombined]]
-                outcome = ps.build(dist, solved.__getitem__)
-
-                for player_name in sc.game.players:
-                    key = (player_name, (t2,t1))
                     x = list(outcome.support())[0]
-                    game_value[key] = x[key]
+                    for key in x.keys():
+                        game_value[key] = x[key]
+
+        else:
+            game_value = {}
+            for t1 in sc.game.players[p1].types_of_other:
+                for t2 in sc.game.players[p2].types_of_other:
+
+                    key1 = "{},{}".format(p1, t2)
+                    key2 = "{},{}".format(p2, t1)
+
+                    move1 = eq[key1]
+                    move2 = eq[key2]
+
+                    a = frozendict(zip([p1, p2], [move1, move2]))
+                    dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
+
+                    outcome: Poss[Mapping[PlayerName, UncertainCombined]]
+                    outcome = ps.build(dist, solved.__getitem__)
+
+                    x = list(outcome.support())[0]
+                    for key in x.keys():
+                        game_value[key] = x[key]
 
         # game_value = dict(ea.nondom_nash_equilibria[eq])
         for player_final, final_value in gn.is_final.items():
-            game_value[player_final] = ps.unit(Combined(final_value, None))
-        #if set(game_value) != set(gn.states):
-            #raise ZValueError("incomplete", game_value=game_value, gn=gn)
+            for tc, fv in final_value.items():
+                    game_value[player_final,tc] = ps.unit(Combined(fv, None))
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
     else:
         # multiple non-dominated nash equilibria
@@ -210,20 +247,72 @@ def solve_sequential_rationality(
             def f(y: JointPureActions) -> JointPureActions:
                 return frozendict(y)
 
-            dist: Poss[JointPureActions] = ps.build_multiple(a=profile, f=f)
+            #dist: Poss[JointPureActions] = ps.build_multiple(a=profile, f=f)
 
-            game_value1: Mapping[PlayerName, UncertainCombined]
-            game_value1 = {}
-            for player_name in gn.states:
+            p1 = list(players_active)[0]
+            p2 = list(players_active)[-1]
+            if p1 == p2:
+                game_value1: Mapping[PlayerName, UncertainCombined]
+                game_value1 = {}
 
-                def f(jpa: JointPureActions) -> UncertainCombined:
-                    return solved[jpa][player_name]
+                for t1 in sc.game.players[p1].types_of_myself:
+                    for t2 in sc.game.players[p1].types_of_other:
+                        outcome: List[Poss[Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]]] = []
+                        for eq in list(ea.nondom_nash_equilibria):
+                            key1 = "{},{}".format(p1, t1)
+                            move1 = eq[key1]
+                            a = frozendict(zip([p1], [move1]))
+                            dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
 
-                game_value1[player_name] = ps.join(ps.build(dist, f))
+                            outcome.append(ps.build(dist, solved.__getitem__))
+
+                        gv = ps.join(ps.lift_many(outcome))
+
+                        x = list(gv.support())[0]
+                        for key in x.keys():
+                            game_value1[key] = x[key]
+            else:
+
+                game_value1: Mapping[PlayerName, UncertainCombined]
+                game_value1 = {}
+
+                for t1 in sc.game.players[p1].types_of_other:
+                    for t2 in sc.game.players[p2].types_of_other:
+                        outcome: List[Poss[Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]]] = []
+                        for eq in list(ea.nondom_nash_equilibria):
+
+                            key1 = "{},{}".format(p1, t2)
+                            key2 = "{},{}".format(p2, t1)
+
+                            move1 = eq[key1]
+                            move2 = eq[key2]
+
+                            a = frozendict(zip([p1, p2], [move1, move2]))
+                            dist: Poss[JointPureActions] = ps.build_multiple(a=a, f=f)
+
+                            outcome.append(ps.build(dist, solved.__getitem__))
+
+                        gv = ps.join(ps.lift_many(outcome))
+
+                        x = list(gv.support())[0]
+                        for key in x.keys():
+                            game_value1[key] = x[key]
+
+            # _ = next(iter(sc.game.players))
+            # type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
+            #
+            # for player_name in gn.states:
+            #     for tc in type_combinations:
+            #         def f(jpa: JointPureActions) -> UncertainCombined:
+            #             return solved[jpa][player_name,tc]
+            #
+            #     game_value1[player_name] = ps.join(ps.build(dist, f))
 
             # logger.info(dist=dist)
             # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
-
+            for player_final, final_value in gn.is_final.items():
+                for tc, fv in final_value.items():
+                    game_value1[player_final, tc] = ps.unit(Combined(fv, None))
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:

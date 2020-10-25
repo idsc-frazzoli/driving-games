@@ -4,7 +4,6 @@ from os.path import join
 from frozendict import frozendict
 
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
-from bayesian_driving_games.solution import solve_bayesian_game
 from belief_games import (
     TwoVehicleSimpleParams,
     NO_LIGHTS,
@@ -25,17 +24,19 @@ from games import (
 )
 from games_scripts.solvers import SolverSpec
 from possibilities.sets import SetPoss
+from bayesian_driving_games.solution import solve_bayesian_game
+from bayesian_driving_games.preprocess import bayesian_preprocess_game
 
 
 def test2():
-    road = D(6)
-    side = D(8)
+    road = D(5)
+    side = D(4)
     p0 = TwoVehicleSimpleParams(
-        side=D(8),
+        side=D(6),
         road=road,
         road_lane_offset=road / 2,  # center
         max_speed=D(5),
-        min_speed=D(1),
+        min_speed=D(0.1),
         max_wait=D(1),
         available_accels=frozenset({D(-2), D(-1), D(0), D(+1)}),
         collision_threshold=3.0,
@@ -49,13 +50,13 @@ def test2():
     uncertainty_prob = TwoVehicleUncertaintyParams(
         poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
     )
-    d = "ml_out/tests/"
+    d = "ml_out/tests2/"
     game2 = get_bayesian_driving_game(p0, uncertainty_sets)
     # game1 = get_master_slave_game(p0,uncertainty_sets,2)
-    game_name = "test_ml"
+    game_name = "a-95,c-5, dt4dtc4c1 (viceversa)"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc
-    game_preprocessed = preprocess_game(game2, solver_spec.solver_params)
+    game_preprocessed = bayesian_preprocess_game(game2, solver_spec.solver_params)
     solutions = solve_bayesian_game(game_preprocessed)
     dg = join(d, game_name)
     ds = join(dg, solver_name)
@@ -64,7 +65,8 @@ def test2():
 
     r_solutions.to_html(join(ds, "r_solutions.html"))
     r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
-    print("end!")
+    print(solutions.game_solution.policies)
+    print(solutions.game_solution.states_to_solution)
 
 
 def test_poss():
@@ -72,3 +74,4 @@ def test_poss():
     b = frozendict(a)
     belief = SetPoss(b)
     print(belief)
+

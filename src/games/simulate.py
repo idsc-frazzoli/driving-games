@@ -45,11 +45,11 @@ N = TypeVar("N")
 
 
 def simulate1(
-    game: Game[X, U, Y, RP, RJ, SR],
-    policies: Mapping[PlayerName, AgentBelief[X, U]],
-    initial_states: JointState,
-    dt: D,
-    seed: int,
+        game: Game[X, U, Y, RP, RJ, SR],
+        policies: Mapping[PlayerName, AgentBelief[X, U]],
+        initial_states: JointState,
+        dt: D,
+        seed: int,
 ) -> Simulation[X, U, Y, RP, RJ]:
     S_states: Dict[D, JointState] = {}
     S_actions: Dict[D, JointState] = {}
@@ -87,7 +87,13 @@ def simulate1(
                 incremental_costs[player_name] = prs.personal_final_reward(state_self)
                 continue
 
-            policy = policies[player_name]
+            try:
+                policy = policies[player_name]
+            except:
+                try:
+                    policy = policies[player_name,'aggressive']
+                except:
+                    policy = policies[player_name,'neutral']
 
             # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})

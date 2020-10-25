@@ -160,8 +160,9 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         continuing_players = all_players - final_players
         for player_name in continuing_players:
             if not player_name in self.moves:
-                msg = f"Player {player_name!r} is continuing but does not have any move."
-                raise ZValueError(msg, GameNode=self)
+                pass
+                # msg = f"Player {player_name!r} is continuing but does not have any move."
+                # raise ZValueError(msg, GameNode=self)
 
         # check that we have in outcomes all combinations of actions
         all_combinations = set(iterate_dict_combinations(self.moves))
@@ -174,17 +175,17 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
             )
 
         # check that for each action we have a cost
-        for player_name, player_moves in self.moves.items():
-            moves_with_cost = set(self.incremental[player_name])
-            if player_moves != moves_with_cost:
-                msg = "Invalid match between moves and costs."
-                raise ZValueError(
-                    msg,
-                    player_name=player_name,
-                    player_moves=player_moves,
-                    moves_with_cost=moves_with_cost,
-                    GameNode=self,
-                )
+        # for player_name, player_moves in self.moves.items():
+        #     moves_with_cost = set(self.incremental[player_name])
+        #     if player_moves != moves_with_cost:
+        #         msg = "Invalid match between moves and costs."
+        #         raise ZValueError(
+        #             msg,
+        #             player_name=player_name,
+        #             player_moves=player_moves,
+        #             moves_with_cost=moves_with_cost,
+        #             GameNode=self,
+        #         )
 
         self.check_players_in_outcome()
 

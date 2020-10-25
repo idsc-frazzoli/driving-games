@@ -1,7 +1,7 @@
 from typing import Mapping, Generic, Set
 from dataclasses import dataclass
 
-from bayesian_driving_games import PlayerType
+from bayesian_driving_games.structures import PlayerType
 from games import GameNode, PlayerName, SolvingContext
 from games.game_def import JointPureActions, JointState
 from possibilities import Poss
