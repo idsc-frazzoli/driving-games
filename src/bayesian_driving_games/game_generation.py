@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, Dict, FrozenSet, FrozenSet as ASet, List
+from typing import cast, Dict, FrozenSet, FrozenSet as ASet
 
 from frozendict import frozendict
 
 from bayesian_driving_games.Bayesian_driving_rewards import BayesianVehicleJointReward, \
     BayesianVehiclePersonalRewardStructureTime, BayesianVehiclePersonalRewardStructureSimple
 from bayesian_driving_games.structures import BayesianVehicleState, PlayerType, BayesianGamePlayer
-from belief_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
+from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from games import (
     Game,
     GamePlayer,
@@ -16,11 +16,8 @@ from games import (
     JointRewardStructure,
     PlayerName,
 )
-from games.game_def import MonadicPreferenceBuilder
 from possibilities import PossibilityMonad, ProbabilityFraction
 from driving_games.collisions import Collision
-from driving_games.joint_reward import VehicleJointReward
-from driving_games.personal_reward import VehiclePersonalRewardStructureTime
 from driving_games.preferences_coll_time import VehiclePreferencesCollTime
 from driving_games.rectangle import Rectangle
 from driving_games.structures import (
@@ -45,6 +42,12 @@ DrivingGamePlayer = GamePlayer[
 def get_bayesian_driving_game(
     vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
 ) -> DrivingGame:
+    """
+
+    :param vehicles_params: Vehicle parameters of the game
+    :param uncertainty_params: uncertainty monad used
+    :return: Returns a Bayesian DrivingGame, which includes types.
+    """
     ps: PossibilityMonad = uncertainty_params.poss_monad
     L = vehicles_params.side + vehicles_params.road + vehicles_params.side
     start = vehicles_params.side + vehicles_params.road_lane_offset
@@ -59,12 +62,6 @@ def get_bayesian_driving_game(
     dt = vehicles_params.dt
     available_accels = vehicles_params.available_accels
 
-    # P1 = PlayerName("👩‍🦰")  # "👩🏿")
-    # P2 = PlayerName("👳🏾‍")
-    # P1 = PlayerName("p1")
-    # P2 = PlayerName("p2")
-    # P2 = PlayerName("⬅")
-    # P1 = PlayerName("⬆")
     P2 = PlayerName("W")
     P1 = PlayerName("N")
     mass = D(1000)
@@ -76,7 +73,6 @@ def get_bayesian_driving_game(
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
 
-
     # types
     p1_types = [PlayerType("cautious"), PlayerType("aggressive")]
     p2_types = [PlayerType("neutral")]
@@ -87,7 +83,6 @@ def get_bayesian_driving_game(
     # p2_prior = ps2.lift_many(p1_types)
     p1_prior = ps2.twenty_eighty(p2_types)
     p2_prior = ps2.twenty_eighty(p1_types)
-
 
     # State
     p1_x = VehicleState(

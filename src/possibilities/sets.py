@@ -87,7 +87,7 @@ class PossibilitySet(PossibilityMonad):
         for _ in a:
             res.append(frozenset({_}))
         poss = frozenset(res)
-        #poss = non_empty_sets(frozenset(a))
+        # poss = non_empty_sets(frozenset(a))
         return frozenset(map(self.lift_many, poss))
 
 

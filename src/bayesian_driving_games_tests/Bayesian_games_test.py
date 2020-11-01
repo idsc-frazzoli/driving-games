@@ -4,7 +4,7 @@ from os.path import join
 from frozendict import frozendict
 
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
-from belief_games import (
+from driving_games import (
     TwoVehicleSimpleParams,
     NO_LIGHTS,
     TwoVehicleUncertaintyParams,
@@ -32,7 +32,7 @@ def test2():
     road = D(5)
     side = D(4)
     p0 = TwoVehicleSimpleParams(
-        side=D(6),
+        side=D(7),
         road=road,
         road_lane_offset=road / 2,  # center
         max_speed=D(5),
@@ -50,10 +50,10 @@ def test2():
     uncertainty_prob = TwoVehicleUncertaintyParams(
         poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
     )
-    d = "ml_out/tests2/"
+    d = "ml_out/tests_final/"
     game2 = get_bayesian_driving_game(p0, uncertainty_sets)
     # game1 = get_master_slave_game(p0,uncertainty_sets,2)
-    game_name = "a-95,c-5, dt4dtc4c1 (viceversa)"
+    game_name = "50-50,test1 : aggressive"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc
     game_preprocessed = bayesian_preprocess_game(game2, solver_spec.solver_params)
@@ -65,8 +65,8 @@ def test2():
 
     r_solutions.to_html(join(ds, "r_solutions.html"))
     r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
-    print(solutions.game_solution.policies)
-    print(solutions.game_solution.states_to_solution)
+    # print(solutions.game_solution.policies)
+    # print(solutions.game_solution.states_to_solution)
 
 
 def test_poss():

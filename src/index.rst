@@ -12,7 +12,6 @@ Welcome to Driving Games's documentation!
    games_scripts/index
    toy_games/index
    bayesian_driving_games/index
-   belif_games/index
 
 
 

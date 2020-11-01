@@ -1,11 +1,11 @@
 import itertools
-from typing import Mapping, Dict, FrozenSet, Set, Tuple, List
+from typing import Mapping, Dict, FrozenSet, Tuple, List
 
 from frozendict import frozendict
 from zuper_commons.types import ZValueError, ZNotImplementedError
 
 from bayesian_driving_games.structures import PlayerType
-from bayesian_driving_games.structures_solution import BayesianSolvingContext, BayesianGameNode
+from bayesian_driving_games.structures_solution import BayesianGameNode
 from games import JointPureActions, PlayerName
 from games.equilibria import EquilibriaAnalysis, analyze
 from games.game_def import (
@@ -20,14 +20,22 @@ from games.game_def import (
     JointMixedActions, check_joint_mixed_actions, Game, SR
 )
 from games.solution_security import get_security_policies
-from games.structures_solution import ValueAndActions, STRATEGY_MIX, STRATEGY_SECURITY, STRATEGY_BAIL
+from games.structures_solution import ValueAndActions, STRATEGY_MIX, STRATEGY_SECURITY, STRATEGY_BAIL, SolvingContext
 from games.utils import fd, valmap
 from possibilities import Poss, PossibilityMonad
-from possibilities.sets import SetPoss
 from preferences import Preference
 
 
 def weight_outcome(mixed_outcome, weight, ps, t1, t2):
+    """
+    This function takes a belief to weigh the mixed_outcome of an action profile to make it an expected value outcome.
+    :param mixed_outcome:
+    :param weight: A weight (in this case a belief)
+    :param ps: The prability monad used in the game
+    :param t1: A type
+    :param t2: A type
+    :return: The weighted outcome
+    """
     x = {}
     a = list(mixed_outcome.support())[0]
     for k,v in a.items():
@@ -46,14 +54,23 @@ def analyze_sequential_rational(
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
     game: Game[X, U, Y, RP, RJ, SR]
 ) -> EquilibriaAnalysis:
+    """
+    For each node that is not final, this function is used. It selects an action for each type of each player and
+    combines them to an action profile. This action profile and the beliefs are then used to figure out the expected
+    value of the action profile. The results of every possible action combination (note an action for each player in
+    each type) are given to the analyze function, that determines the Nash equilibrium.
+    :param ps: Probability monad of the game
+    :param gn: A Bayesian game node
+    :param solved: For each action profile possible at the current state, the expected rewards for each type combination
+    :param preferences:
+    :param game:
+    :return: all nash equilibria and the set of dominated Nash equilibria
+    """
     # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
     # fixme for probabilities this is restrictive... double check mix method
     player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
-    # logger.info(player_mixed_strategies=player_mixed_strategies)
-    # now we do the product of the mixed strategies
-    # let's order them
 
     # TODO: Not very elegant and prone to errors!
     type_players = []
@@ -82,15 +99,14 @@ def analyze_sequential_rational(
     results: Dict[JointMixedActions, Mapping[PlayerName, UncertainCombined]] = {}
     for choices in itertools.product(*tuple(players_strategies)):
         choice: JointMixedActions = frozendict(zip(players_ordered, choices))
-        # choice: Mapping[Set[PlayerType], JointMixedActions] = {}
-        # for t in type_combinations:
-        #     choice[t] = frozendict(zip(players_ordered, choices))
             
         def f(y: JointPureActions) -> JointPureActions:
             return y
 
+        #TODO: Has to be changed in order for >2 players to work.
         p1 = list(player_mixed_strategies)[0]
         p2 = list(player_mixed_strategies)[-1]
+        # Get the expected values here
         if p1 == p2:
             res: Dict[PlayerName, UncertainCombined] = {}
             for t1 in game.players[p1].types_of_other:
@@ -146,15 +162,22 @@ def analyze_sequential_rational(
 
             results[choice] = frozendict(res)
 
-    # logger.info(results=results)
     return analyze(player_mixed_strategies_new, results, preferences)
 
 
 def solve_sequential_rationality(
-    sc: BayesianSolvingContext,
+    sc: SolvingContext,
     gn: BayesianGameNode,
     solved: Dict[JointPureActions, Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]],
 ) -> ValueAndActions[U, RP, RJ]:
+    """
+    Uses the analyze_sequential_rational function and then selects if there are multiple equilibria. Selects for each
+    player in each type a action.
+    :param sc: Game parameters etc.
+    :param gn: The current Bayesian game node.
+    :param solved: For each action profile, the expected results.
+    :return: a value and action of the current game node
+    """
     ps = sc.game.ps
     for pure_action in solved:
         check_joint_pure_actions(pure_action)
@@ -162,8 +185,7 @@ def solve_sequential_rationality(
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "
         raise ZValueError(msg, gn=gn)
-    # logger.info(gn=gn, solved=solved)
-    # logger.info(possibilities=list(solved))
+
     players_active = set(gn.moves)
     preferences: Dict[PlayerName, Preference[UncertainCombined]]
     preferences = {k: sc.outcome_preferences[k] for k in players_active}
@@ -173,8 +195,8 @@ def solve_sequential_rationality(
     try:
         players_with_types = list(list(ea.nondom_nash_equilibria.keys())[0].keys())
     except:
-        print('y')
-    # logger.info(ea=ea)
+        print('could not find a pure strategy Nash equuilibrium')
+
     if len(ea.nondom_nash_equilibria) == 1:
 
         eq = list(ea.nondom_nash_equilibria)[0]
@@ -222,13 +244,11 @@ def solve_sequential_rationality(
                     for key in x.keys():
                         game_value[key] = x[key]
 
-        # game_value = dict(ea.nondom_nash_equilibria[eq])
         for player_final, final_value in gn.is_final.items():
             for tc, fv in final_value.items():
                     game_value[player_final,tc] = ps.unit(Combined(fv, None))
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
     else:
-        # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
 
         strategy = sc.solver_params.strategy_multiple_nash
@@ -241,17 +261,14 @@ def solve_sequential_rationality(
                 for _ in ea.nondom_nash_equilibria:
                     res.add(_[player_name])
                 strategy = ps.join(ps.lift_many(res))
-                # check_poss(strategy)
                 profile[player_name] = strategy
 
             def f(y: JointPureActions) -> JointPureActions:
                 return frozendict(y)
 
-            #dist: Poss[JointPureActions] = ps.build_multiple(a=profile, f=f)
-
             p1 = list(players_active)[0]
             p2 = list(players_active)[-1]
-            if p1 == p2:
+            if p1 == p2:#this loop has to be here because of the preprocessing.
                 game_value1: Mapping[PlayerName, UncertainCombined]
                 game_value1 = {}
 
@@ -298,23 +315,12 @@ def solve_sequential_rationality(
                         for key in x.keys():
                             game_value1[key] = x[key]
 
-            # _ = next(iter(sc.game.players))
-            # type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
-            #
-            # for player_name in gn.states:
-            #     for tc in type_combinations:
-            #         def f(jpa: JointPureActions) -> UncertainCombined:
-            #             return solved[jpa][player_name,tc]
-            #
-            #     game_value1[player_name] = ps.join(ps.build(dist, f))
-
-            # logger.info(dist=dist)
-            # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
             for player_final, final_value in gn.is_final.items():
                 for tc, fv in final_value.items():
                     game_value1[player_final, tc] = ps.unit(Combined(fv, None))
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
+        #TODO: Not yet updated to Bayesian Games!
         elif strategy == STRATEGY_SECURITY:
             security_policies: JointMixedActions
             security_policies = get_security_policies(ps, solved, sc.outcome_preferences, ea)

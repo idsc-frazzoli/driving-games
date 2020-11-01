@@ -1,4 +1,5 @@
 from collections import defaultdict
+import pprint
 from decimal import Decimal as D
 from typing import (
     AbstractSet,
@@ -128,7 +129,6 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
         sims[f"{player_name}-follows"] = sim_
 
     logger.info("solving game tree")
-    initial_strategy = proposed_strategy(game=gp.game, gg=gg)
     game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
@@ -167,58 +167,6 @@ def get_outcome_preferences_for_players(
         pref2: Preference[UncertainCombined] = monadic_pref_builder(pref0)
         preferences[player_name] = pref2
     return preferences
-
-
-def proposed_strategy(
-    *, game: Game[X, U, Y, RP, RJ, SR], gg: GameGraph[X, U, Y, RP, RJ, SR],
-) -> Mapping[GameNode, JointPureActions]:
-
-    # Step 1: find information sets: For each physical state, the two types together
-    players: list = []
-    for player_name in game.players:
-        players.append(player_name)
-
-    info_sets: Mapping[PlayerName, List[Tuple[JointState]]] = {}
-    for i in players:
-        info_sets[i] = []
-
-    for player_name in game.players:
-        active_player = player_name
-        inactive_players = [i for i in players if i != player_name]
-        if len(inactive_players) != 0:
-            for js in gg.state2node:
-                if not js[player_name].player_type:
-                    msg = "No types in states!"
-                    raise ZValueError(msg)
-
-                for js2 in gg.state2node:
-                    if js[active_player] == js2[active_player]:
-                        for i in inactive_players:
-                            if (
-                                js[i].compare_physical_states(js2[i])
-                                and js[i].player_type < js2[i].player_type
-                            ):
-                                info_sets[active_player].append((js, js2))
-
-    # step 2: Propose a strategy
-    proposed_strategy: Mapping[GameNode, JointPureActions] = {}
-
-    for player_name in players:
-        for iset in info_sets[player_name]:
-            gn = gg.state2node[iset[0]]
-            if gn.moves.values():
-                *_, move, _ = gn.moves[player_name]
-                for js in iset:
-                    gn = gg.state2node[js]
-                    try:
-                        proposed_strategy[gn][player_name] = move
-                    except:
-                        proposed_strategy[gn] = {player_name: move}
-
-    for _, v in proposed_strategy.items():
-        proposed_strategy[_] = frozendict(v)
-
-    return proposed_strategy
 
 
 def solve_game2(

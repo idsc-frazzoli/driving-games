@@ -80,9 +80,9 @@ class ProbabilityFraction(PossibilityMonad):
         x = {}
         for _ in elements:
             if _ == 'cautious':
-                x[_] = Fraction(19, 20)
+                x[_] = Fraction(1, 1000)
             elif _ == 'aggressive':
-                x[_] = Fraction(1, 20)
+                x[_] = Fraction(999, 1000)
             elif _ == 'neutral':
                 x[_] = w
             else:

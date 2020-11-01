@@ -91,7 +91,7 @@ def simulate1(
                 policy = policies[player_name]
             except:
                 try:
-                    policy = policies[player_name,'aggressive']
+                    policy = policies[player_name,'cautious']
                 except:
                     policy = policies[player_name,'neutral']
 

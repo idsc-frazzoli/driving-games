@@ -5,7 +5,6 @@ from frozendict import frozendict
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
 from games import Game, X, U, Y, RP, RJ, SolverParams, GamePreprocessed
 from games.access import get_game_graph, compute_graph_layout, get_game_factorization, get_player_graph
-from games.create_joint_game_tree import create_game_graph
 from games.game_def import SR
 from games.get_indiv_games import get_individual_games
 from games.utils import valmap
@@ -17,10 +16,10 @@ def bayesian_preprocess_player(
     individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    # todo
+    Only thing that changed to a normal driving game are the functions create_bayesian_game_graph and solve_game_bayesian2
     :param individual_game:
     :param solver_params:
-    :return:
+    :return: Preprocess for each player
     """
     l = list(individual_game.players)
     assert len(l) == 1
@@ -43,7 +42,7 @@ def bayesian_preprocess_game(
     game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    # todo
+    Same as in Driving Games, except that it uses bayesian_preprocess_player.
     :param game:
     :param solver_params:
     :return:

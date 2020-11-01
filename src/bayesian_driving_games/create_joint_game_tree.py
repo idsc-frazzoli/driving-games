@@ -2,16 +2,15 @@ import itertools
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
+from typing import AbstractSet, Dict, Generic, Mapping, Optional, Tuple
 
 from frozendict import frozendict
-from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
 from possibilities.sets import SetPoss
 
 from bayesian_driving_games.structures_solution import BayesianGameNode
-from games.create_joint_game_tree import get_moves
+from games.create_joint_game_tree import get_moves, get_networkx_graph, get_timestep_info
 from possibilities import Poss
 from zuper_commons.types import ZValueError
 from games import logger
@@ -63,6 +62,14 @@ def create_bayesian_game_graph(
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
+    """
+
+    :param game: Game parameters
+    :param dt: Timesteps
+    :param initials: Initial states of the players
+    :param gf: Game factorization parameter
+    :return: Returns the game graph of the bayesian game, consisting of BayesianGameNodes including Beliefs.
+    """
     """ Create the game graph. """
     state2node: Dict[JointState, BayesianGameNode] = {}
     ic = BayesianIterationContext(game, dt, state2node, depth=0, gf=gf)
@@ -86,43 +93,13 @@ def create_bayesian_game_graph(
     return GameGraph(initials, state2node, ti)
 
 
-def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
-    """ Computes which states are reachable at what time. """
-    state2times: Dict[JointState, Set[D]] = defaultdict(set)
-    time2states: Dict[D, Set[JointState]] = defaultdict(set)
-
-    # traverse in topological sort
-    ts = list(topological_sort(G))
-    for n1 in ts:
-        # if first time
-        if n1 not in state2times:
-            # it is at time 0
-            state2times[n1].add(D(0))
-            time2states[D(0)].add(n1)
-        # for all its successors
-        for n2 in G.successors(n1):
-            # for each time t1 at which we can be at n1
-            for t1 in state2times[n1]:
-                # we can be at n2 at time t2
-                t2 = t1 + dt
-                state2times[n2].add(t2)
-                time2states[t2].add(n2)
-    return AccessibilityInfo(state2times, time2states)
-
-
-def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]):
-    """ Returns a NetworkX DiGraph that summarizes the relation of the nodes. """
-    G = DiGraph()
-    G.add_nodes_from(state2node)
-    for js, gn in state2node.items():
-        for p in gn.outcomes.values():
-            for d in p.support():
-                for _, js2 in d.items():
-                    G.add_edge(js, js2)
-    return G
-
-
 def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState) -> BayesianGameNode:
+    """
+
+    :param ic: BayesianIterationContxt (Game parameters, etc.)
+    :param states: joint state
+    :return: A Bayesian game node for the joint state, including a belief
+    """
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
