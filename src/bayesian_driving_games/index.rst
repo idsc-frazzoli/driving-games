@@ -9,10 +9,10 @@ Bayesian driving-games package
 Structures
 ----------
 
-.. automodule:: driving-games.src.bayesian_games.structures
+.. automodule:: bayesian_driving_games.structures
    :members:
 
-.. automodule:: driving-games.src.bayesian_games.structures_solution
+.. automodule:: bayesian_driving_games.structures_solution
    :members:
 
 bayesian_games.structures:
@@ -25,7 +25,7 @@ Includes class BayesianGameNode
 Game generation
 ---------------
 
-.. automodule:: driving-games.src.bayesian_games.create_joint_game_tree
+.. automodule:: bayesian_games.create_joint_game_tree
    :members:
 
 
