@@ -40,7 +40,9 @@ class PossibilityMonad(ABC):
 
     @abstractmethod
     def build(self, a: Poss[A], f: Callable[[A], B]) -> Poss[B]:
-        """ Computes the push-forward of a distribution. """
+        """ Computes the push-forward of a distribution.
+        Equivalent to the 'bind' method of monads, with the only difference that the lifting operation
+        happens inside build and not f. Indeed 'bind' would require f:Callable[[A], Poss[B]]."""
 
     @abstractmethod
     def build_multiple(self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]) -> Poss[B]:

@@ -72,12 +72,13 @@ def solve_equilibria(
         strategy = sc.solver_params.strategy_multiple_nash
         if strategy == STRATEGY_MIX:
             # fixme: Not really sure this makes sense when there are probabilities
+
             profile: Dict[PlayerName, Poss[U]] = {}
             for player_name in players_active:
                 # find all the mixed strategies he would play at equilibria
                 res = set()
-                for _ in ea.nondom_nash_equilibria:
-                    res.add(_[player_name])
+                for joint_mixed_actions in ea.nondom_nash_equilibria:
+                    res.add(joint_mixed_actions[player_name])
                 strategy = ps.join(ps.lift_many(res))
                 # check_poss(strategy)
                 profile[player_name] = strategy
@@ -99,7 +100,7 @@ def solve_equilibria(
             # logger.info(dist=dist)
             # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
 
-            return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))
+            return ValueAndActions(game_value=fd(game_value1), mixed_actions=fd(profile))
         # Anything can happen
         elif strategy == STRATEGY_SECURITY:
             # fixme: Not really sure this makes sense when there are probabilities
@@ -110,8 +111,8 @@ def solve_equilibria(
             dist: Poss[JointPureActions]
             dist = get_mixed_joint_actions(ps, security_policies)
             # logger.info(dist=dist)
-            for _ in dist.support():
-                check_joint_pure_actions(_)
+            for joint_mixed_actions in dist.support():
+                check_joint_pure_actions(joint_mixed_actions)
             # logger.info(dist=dist)
             game_value = {}
             for player_name in gn.states:

@@ -61,9 +61,8 @@ def test_build_multiple2():
     result = ProbPoss(
         {frozenset({1}): Fraction(1, 6), frozenset({1, 4}): Fraction(1, 2), frozenset({4}): Fraction(1, 3)}
     )
-    P1, P2 = PlayerName("1"), PlayerName("2")
     a: Dict[PlayerName, ProbPoss[A]]
-    a = {P1: dist1, P2: dist2}
+    a = {PlayerName("1"): dist1, PlayerName("2"): dist2}
 
     def f(x):
         return frozenset(valmap(lambda x: x ** 2, x).values())

@@ -46,6 +46,15 @@ def get_security_policy(
     preference: Preference[UncertainCombined],
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ],
 ) -> Poss[U]:
+    """
+
+    :param ps:
+    :param solved:
+    :param player_name:
+    :param preference:
+    :param ea:
+    :return:
+    """
     player_choices = ea.player_mixed_strategies[player_name]
     others_choices = frozendict(keyfilter(lambda _: _ != player_name, ea.player_mixed_strategies))
 
@@ -79,12 +88,17 @@ def what_if_player_chooses(
     preference: Preference[UncertainCombined],
 ) -> UncertainCombined:
     """
-        Assume the player chooses u, and the others choose any other mixed policy.
-        What is the worst case?
+    Assume the player chooses u, and the others choose any other mixed policy.
+    What is the worst case?
 
-        :param ps: Possibility monad.
-        :param player_name: Player name.
-
+    :param ps: Possibility Monad.
+    :param player_name:
+    :param ea:
+    :param solved:
+    :param player_action:
+    :param others_choices:
+    :param preference:
+    :return:
     """
     assert player_name not in others_choices
     # I have decided to do player_action
@@ -134,7 +148,13 @@ def _what_if_player_chooses_get_mixed(
 def get_mixed_joint_actions(
     ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]
 ) -> Poss[JointPureActions]:
-    """ Compute the possible options when players mix over multiple actions """
+    """
+    Compute the possible options when players mix over multiple actions
+
+    :param ps:
+    :param mixed:
+    :return:
+    """
     check_joint_mixed_actions(mixed)
     for k, v in mixed.items():
         check_poss(v)
