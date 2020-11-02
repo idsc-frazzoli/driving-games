@@ -10,7 +10,7 @@ from games_zoo_tests import logger
 
 do_games = [
     "sym_v1_sets",
-    "sym_v1_sets",
+    "asym_v1_sets",
     "asym_v0_sets",
 ]  # "sym_v1_prob","asym_v0_prob","sym_v1_prob" # fixme include prob tests once they are working
 do_solvers = ["solver-1-mix-naive", "solver-1-security-naive", "solver-1-security-fact"]

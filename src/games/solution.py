@@ -398,7 +398,6 @@ def solve_final_joint(
     game_value: Dict[PlayerName, UncertainCombined] = {}
 
     for player_name, joint in gn.joint_final_rewards.items():
-        # fixme no personal reward if it is joint final?
         personal = sc.game.players[player_name].personal_reward_structure.personal_reward_identity()
         game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint))
 
