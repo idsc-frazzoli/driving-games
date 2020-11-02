@@ -62,7 +62,11 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     mat_payoffs: Sequence[np.ndarray]
 
     def __init__(
-        self, max_stages: int, subgames: Sequence[BiMatGame], row_player: PlayerName, col_player: PlayerName,
+        self,
+        max_stages: int,
+        subgames: Sequence[BiMatGame],
+        row_player: PlayerName,
+        col_player: PlayerName,
     ):
         self.row_player = row_player
         self.col_player = col_player

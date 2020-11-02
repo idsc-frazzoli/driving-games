@@ -70,8 +70,7 @@ def test2():
 
 
 def test_poss():
-    a = {'1': 1.0}
+    a = {"1": 1.0}
     b = frozendict(a)
     belief = SetPoss(b)
     print(belief)
-

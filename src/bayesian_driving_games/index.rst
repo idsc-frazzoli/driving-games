@@ -1,8 +1,8 @@
 
-Bayesian driving-games package
+Bayesian Driving Games package
 =========================================
 
-.. automodule:: driving-games.src.bayesian_driving_games
+.. automodule:: bayesian_driving_games
    :members:
    :undoc-members:
 
@@ -25,27 +25,27 @@ Includes class BayesianGameNode
 Game generation
 ---------------
 
-.. automodule:: bayesian_games.create_joint_game_tree
+.. automodule:: bayesian_driving_games.create_joint_game_tree
    :members:
 
 
 Game rewards
 ---------------
 
-.. automodule:: bayesian_games.Bayesian_driving_rewards
+.. automodule:: bayesian_driving_games.bayesian_driving_rewards
    :members:
 
 
 Game solution
 ---------------
 
-.. automodule:: bayesian_games.solution
+.. automodule:: bayesian_driving_games.solution
    :members:
 
-.. automodule:: bayesian_games.sequential_rationality
+.. automodule:: bayesian_driving_games.sequential_rationality
    :members:
 
-.. automodule:: bayesian_games.preprocess
+.. automodule:: bayesian_driving_games.preprocess
    :members:
 
 

@@ -22,8 +22,7 @@ def test_bimatrix_games(game: BiMatGame) -> None:
 
 
 def test_single_game(game: BiMatGame = degenerate_1) -> None:
-    """
-    """
+    """"""
     logger.info(expected=game.equilibria)
     for i, eq in enumerate(ne_support_enum(game.A, game.B, p1_type=game.p1_type, p2_type=game.p2_type)):
         logger.info("My solver: NE ({}): ".format(i + 1), eq)

@@ -58,7 +58,8 @@ from .utils import fkeyfilter, iterate_dict_combinations
 
 
 def preprocess_game(
-    game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+    game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # todo
@@ -161,18 +162,19 @@ def get_game_factorization(
 
 
 def find_dependencies(
-    ps: PossibilityMonad, resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
+    ps: PossibilityMonad,
+    resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
 ) -> Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]:
     """
-        Returns the dependency structure from the use of shared resources.
-        Returns the partitions of players that are independent.
+    Returns the dependency structure from the use of shared resources.
+    Returns the partitions of players that are independent.
 
-        Example: for 3 players '{a,b,c}' this could return  `{{a}, {b,c}}`.
-        That means that `a` is independent
-        of b and c. A return of  `{{a}, {b}, {c}}` means that all three are independent.
+    Example: for 3 players '{a,b,c}' this could return  `{{a}, {b,c}}`.
+    That means that `a` is independent
+    of b and c. A return of  `{{a}, {b}, {c}}` means that all three are independent.
 
-        For n players, it returns all combinations of subsets.
-     """
+    For n players, it returns all combinations of subsets.
+    """
     interaction_graph = Graph()
     interaction_graph.add_nodes_from(resources_used)
     max_instants = max(max(_.used) if _.used else 0 for _ in resources_used.values())
@@ -227,7 +229,8 @@ def collapse_states(
 
 
 def preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+    individual_game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # todo

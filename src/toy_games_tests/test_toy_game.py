@@ -26,7 +26,9 @@ with 4 arbitrary payoff matrices for the second stage:
 
 
 def _run_toy_game(
-    subgames: Sequence[BiMatGame], solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams,
+    subgames: Sequence[BiMatGame],
+    solver_spec: SolverSpec,
+    uncertainty_params: TwoVehicleUncertaintyParams,
 ):
     max_stages = 2
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
@@ -56,7 +58,9 @@ def _run_toy_game(
 
 
 def _run_toy_game_bayesian(
-    subgames: Sequence[BiMatGame], solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams,
+    subgames: Sequence[BiMatGame],
+    solver_spec: SolverSpec,
+    uncertainty_params: TwoVehicleUncertaintyParams,
 ):
     max_stages = 2
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
@@ -98,7 +102,8 @@ def test_toy_games(
 ):
     for i, G in enumerate(toygame.subgames):
         logger.info(
-            "Game G{} equilibria: ".format(i + 1), list(nash.Game(-G.A, -G.B).vertex_enumeration()),
+            "Game G{} equilibria: ".format(i + 1),
+            list(nash.Game(-G.A, -G.B).vertex_enumeration()),
         )
     _run_toy_game(toygame.subgames, solver_spec, uncertainty_params)
     logger.info("Completed toy game test")

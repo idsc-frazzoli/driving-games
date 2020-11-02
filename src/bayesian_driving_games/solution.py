@@ -109,8 +109,8 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
                 if p2 == player_name:
                     continue
                 x_p2 = initial_state[p2]
-                policy = gp.players_pre[p2].gs.policies[p2+','+t]
-                controllers_others[p2+','+t] = AgentFromPolicy(gp.game.ps, policy)
+                policy = gp.players_pre[p2].gs.policies[p2 + "," + t]
+                controllers_others[p2 + "," + t] = AgentFromPolicy(gp.game.ps, policy)
 
     logger.info("solving game tree")
     game_solution = solve_game_bayesian2(
@@ -122,7 +122,7 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         for typ in gp.game.players[player_name].types_of_myself:
-            policy = game_solution.policies[player_name+','+typ]
+            policy = game_solution.policies[player_name + "," + typ]
             controllers0[player_name, typ] = AgentFromPolicy(gp.game.ps, policy)
 
     logger.info(
@@ -141,28 +141,27 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
         )
         res[seed] = {}
         if len(sim_joint.joint_costs.items()) > 0:
-            print ('crash')
+            print("crash")
         else:
-            for _,v in sim_joint.costs.items():
+            for _, v in sim_joint.costs.items():
                 for player_name, value in v.items():
                     for tc, cost in value.items():
                         try:
-                            res[seed][player_name,tc] = res[seed][player_name,tc]+cost
+                            res[seed][player_name, tc] = res[seed][player_name, tc] + cost
                         except:
-                            res[seed][player_name,tc] = cost
+                            res[seed][player_name, tc] = cost
 
         sims[f"joint-{seed}"] = sim_joint
 
     return Solutions(
-        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players, sims=sims,
+        game_solution=game_solution,
+        game_tree=game_tree,
+        solutions_players=solutions_players,
+        sims=sims,
     )
 
 
-def assign_beliefs(
-    sc: SolvingContext,
-    solution: GameSolution,
-    js: JointState
-):
+def assign_beliefs(sc: SolvingContext, solution: GameSolution, js: JointState):
     """
     This function takes the strategy from the solution object and updates all the beliefs in the game tree according
     to the formula described in my (Michael's) thesis. What is to do yet: The off the path beliefs are at the moment not
@@ -177,22 +176,26 @@ def assign_beliefs(
     sgn = solution.states_to_solution[js]
 
     _ = next(iter(sc.game.players))
-    type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
+    type_combinations = list(
+        itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other)
+    )
     actions_proposed = {}
     for _ in sgn.solved.keys():
         for types in type_combinations:
-            actions_proposed[_,types] = Fraction(0,1)
+            actions_proposed[_, types] = Fraction(0, 1)
 
-    for k1,v1 in sgn.va.mixed_actions.items():
-        for k2,v2 in sgn.va.mixed_actions.items():
-            if (k1[0]!=k2[0]) and (k1[0]<k2[0]): #TODO: Not safe!
+    for k1, v1 in sgn.va.mixed_actions.items():
+        for k2, v2 in sgn.va.mixed_actions.items():
+            if (k1[0] != k2[0]) and (k1[0] < k2[0]):  # TODO: Not safe!
                 a = frozendict(zip([k1[0], k2[0]], [list(v1.support())[0], list(v2.support())[0]]))
                 # dist: Poss[JointPureActions] = game.ps.build_multiple(a=a, f=f)
-                types = (k1[2:],k2[2:])
-                actions_proposed[a,types] = Fraction(1,1) #TODO: Mixed strategies need a probability of actions function
+                types = (k1[2:], k2[2:])
+                actions_proposed[a, types] = Fraction(
+                    1, 1
+                )  # TODO: Mixed strategies need a probability of actions function
 
     gn1: BayesianGameNode = sc.gg.state2node[sgn.states]
-    for k,v in sgn.solved.items():
+    for k, v in sgn.solved.items():
         for p in set(k):
             prior = gn1.game_node_belief[p].support()
             bel = {}
@@ -201,7 +204,7 @@ def assign_beliefs(
             for t in sc.game.players[p].types_of_other:
                 for k2, v2 in actions_proposed.items():
                     if (t in k2[1]) and (k == k2[0]):
-                        bel[t] = prior[t]*v2
+                        bel[t] = prior[t] * v2
 
             if sum(bel.values()) != 0:
                 factor = Fraction(1, 1) / sum(bel.values())
@@ -248,7 +251,7 @@ def solve_game_bayesian2(
 
     x = True
     while x:
-        #1.) solve
+        # 1.) solve
         for js0 in jss:
             check_joint_state(js0)
             _solve_bayesian_game(sc, js0)
@@ -259,7 +262,7 @@ def solve_game_bayesian2(
         for state, s0 in states_to_solution.items():
             for player_name, player_state in state.items():
                 for t1 in game.players[player_name].types_of_myself:
-                    key = player_name+","+t1
+                    key = player_name + "," + t1
                     if key in s0.va.mixed_actions:
                         policy_for_this_state = policies[key][player_state]
                         other_states = frozendict({k: v for k, v in state.items() if k != player_name})
@@ -269,9 +272,11 @@ def solve_game_bayesian2(
         policies2 = frozendict({k: fr(v) for k, v in policies.items()})
 
         solution_new = GameSolution(
-            initials=frozenset(jss), policies=policies2, states_to_solution=frozendict(states_to_solution),
+            initials=frozenset(jss),
+            policies=policies2,
+            states_to_solution=frozendict(states_to_solution),
         )
-        #2.) compare strategies
+        # 2.) compare strategies
         try:
             solution
         except:
@@ -283,7 +288,7 @@ def solve_game_bayesian2(
         else:
             solution = solution_new
 
-        #3.) assign beliefs
+        # 3.) assign beliefs
         for js0 in jss:
             check_joint_state(js0)
             assign_beliefs(sc, solution, js0)
@@ -313,7 +318,7 @@ def add_bayesian_incremental_cost_single(
     :return: Returns a updated cost
     """
     try:
-        inc = incremental_for_player[player_name,tc]
+        inc = incremental_for_player[player_name, tc]
     except:
         inc = incremental_for_player[player_name, tc[::-1]]
     reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
@@ -323,7 +328,10 @@ def add_bayesian_incremental_cost_single(
     return Combined(personal=personal, joint=joint)
 
 
-def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
+def _solve_bayesian_game(
+    sc: SolvingContext,
+    js: JointState,
+) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
     This function is the solving step of the algorithm. It solves the tree backwards for the best strategies and the
     expected game values. Takes the beliefs into account.
@@ -350,16 +358,24 @@ def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[
     solved_to_node = {}
 
     _ = next(iter(sc.game.players))
-    type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
+    type_combinations = list(
+        itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other)
+    )
 
     for pure_actions in gn.outcomes:
         # Incremental costs incurred if choosing this action
 
         inc: Dict[PlayerName, RP]
         try:
-            inc = {(p,tc): gn.incremental[p,tc][u] for p, u in pure_actions.items() for tc in type_combinations}
+            inc = {
+                (p, tc): gn.incremental[p, tc][u] for p, u in pure_actions.items() for tc in type_combinations
+            }
         except:
-            inc = {(p, tc[::-1]): gn.incremental[p, tc[::-1]][u] for p, u in pure_actions.items() for tc in type_combinations}
+            inc = {
+                (p, tc[::-1]): gn.incremental[p, tc[::-1]][u]
+                for p, u in pure_actions.items()
+                for tc in type_combinations
+            }
         # if we choose these actions, then these are the game nodes
         # we could go in. Note that each player can go in a different joint state.
         next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.outcomes[pure_actions]
@@ -377,10 +393,12 @@ def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[
 
                 def v(m: M[PlayerName, JointState]) -> UncertainCombined:
                     gn2: SolvedGameNode[X, U, U, RP, RJ, SR] = sc.cache[m[player_name]]
-                    if (not player_name in gn2.va.game_value) and (not player_name in str(list(gn2.va.game_value.keys()))):
+                    if (not player_name in gn2.va.game_value) and (
+                        not player_name in str(list(gn2.va.game_value.keys()))
+                    ):
                         raise ZValueError(player_name=player_name, gn2=gn2, stn=stn)
                     try:
-                        return gn2.va.game_value[(player_name,tc)]
+                        return gn2.va.game_value[(player_name, tc)]
                     except:
                         return gn2.va.game_value[(player_name, tc[::-1])]
 
@@ -390,11 +408,15 @@ def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[
 
                 def f(_: Combined) -> Combined:
                     return add_bayesian_incremental_cost_single(
-                        game=sc.game, player_name=player_name, tc=tc, incremental_for_player=inc, cur=_,
+                        game=sc.game,
+                        player_name=player_name,
+                        tc=tc,
+                        incremental_for_player=inc,
+                        cur=_,
                     )
 
                 # logger.info(player_dist=player_dist)
-                players_dist[(player_name,tc)] = ps.build(player_dist, f)
+                players_dist[(player_name, tc)] = ps.build(player_dist, f)
 
         # logger.info(players_dist=players_dist)
         solved[pure_actions] = frozendict(players_dist)
@@ -409,11 +431,10 @@ def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[
     else:
         va = solve_sequential_rationality(sc, gn, solved)
 
-
     ur: UsedResources[X, U, Y, RP, RJ, SR]
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
-    #TODO: Used resources in Bayesian framework...
+    # TODO: Used resources in Bayesian framework...
     # if va.mixed_actions:  # not a final state
     #     next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
     #     next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
@@ -473,7 +494,11 @@ def _solve_bayesian_game(sc: SolvingContext, js: JointState,) -> SolvedGameNode[
     n = len(sc.cache)
     if n % 30 == 0:
         logger.info(
-            js=js, states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache),
+            js=js,
+            states=gn.states,
+            value=va.game_value,
+            processing=len(sc.processing),
+            solved=len(sc.cache),
         )
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
@@ -525,7 +550,7 @@ def solve_final_personal_both_bayesian(
     game_value: Dict[Tuple[PlayerName, Tuple[PlayerType]], UncertainCombined] = {}
     for player_name, p in gn.is_final.items():
         for tc, personal in p.items():
-            game_value[player_name,tc] = sc.game.ps.unit(Combined(personal=personal, joint=None))
+            game_value[player_name, tc] = sc.game.ps.unit(Combined(personal=personal, joint=None))
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)

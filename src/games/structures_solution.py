@@ -171,7 +171,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         if all_combinations != set(self.outcomes):
             msg = "There is a mismatch between the actions and the outcomes."
             raise ZValueError(
-                msg, all_combinations=all_combinations, pure_actions=set(self.outcomes), GameNode=self,
+                msg,
+                all_combinations=all_combinations,
+                pure_actions=set(self.outcomes),
+                GameNode=self,
             )
 
         # check that for each action we have a cost

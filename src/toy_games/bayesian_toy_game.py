@@ -67,7 +67,12 @@ def get_bayesian_toy_game_spec(
     p2_preferences = BirdPreferences()
     mpref_builder = uncertainty_params.mpref_builder
     birds_joint_reward = BayesianBirdJointReward(
-        max_stages=max_stages, subgames=subgames, row_player=P1, col_player=P2, p1_types=p1_types, p2_types=p2_types
+        max_stages=max_stages,
+        subgames=subgames,
+        row_player=P1,
+        col_player=P2,
+        p1_types=p1_types,
+        p2_types=p2_types,
     )
 
     p1 = BayesianGamePlayer(
@@ -79,7 +84,7 @@ def get_bayesian_toy_game_spec(
         monadic_preference_builder=mpref_builder,
         types_of_other=p2_types,
         types_of_myself=p1_types,
-        prior=p1_prior
+        prior=p1_prior,
     )
     p2 = BayesianGamePlayer(
         initial=p2_initial,
@@ -90,7 +95,7 @@ def get_bayesian_toy_game_spec(
         monadic_preference_builder=mpref_builder,
         types_of_other=p1_types,
         types_of_myself=p2_types,
-        prior=p2_prior
+        prior=p2_prior,
     )
 
     handcrafted_game = Game(

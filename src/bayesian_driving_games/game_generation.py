@@ -4,8 +4,11 @@ from typing import cast, Dict, FrozenSet, FrozenSet as ASet
 
 from frozendict import frozendict
 
-from bayesian_driving_games.Bayesian_driving_rewards import BayesianVehicleJointReward, \
-    BayesianVehiclePersonalRewardStructureTime, BayesianVehiclePersonalRewardStructureSimple
+from bayesian_driving_games.bayesian_driving_rewards import (
+    BayesianVehicleJointReward,
+    BayesianVehiclePersonalRewardStructureTime,
+    BayesianVehiclePersonalRewardStructureSimple,
+)
 from bayesian_driving_games.structures import BayesianVehicleState, PlayerType, BayesianGamePlayer
 from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from games import (
@@ -26,7 +29,8 @@ from driving_games.structures import (
     VehicleActions,
     VehicleCosts,
     VehicleDynamics,
-    VehicleGeometry, VehicleState,
+    VehicleGeometry,
+    VehicleState,
 )
 from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation
 from driving_games.visualization import DrivingGameVisualization
@@ -150,7 +154,7 @@ def get_bayesian_driving_game(
         monadic_preference_builder=uncertainty_params.mpref_builder,
         types_of_other=p2_types,
         types_of_myself=p1_types,
-        prior=p1_prior
+        prior=p1_prior,
     )
     p2 = BayesianGamePlayer(
         initial=p2_initial,
@@ -161,15 +165,17 @@ def get_bayesian_driving_game(
         monadic_preference_builder=uncertainty_params.mpref_builder,
         types_of_other=p1_types,
         types_of_myself=p2_types,
-        prior=p2_prior
+        prior=p2_prior,
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
     joint_reward: BayesianVehicleJointReward
 
     joint_reward = BayesianVehicleJointReward(
-        collision_threshold=vehicles_params.collision_threshold, geometries=geometries, p1_types=p1_types,
-        p2_types=p2_types
+        collision_threshold=vehicles_params.collision_threshold,
+        geometries=geometries,
+        p1_types=p1_types,
+        p2_types=p2_types,
     )
 
     game_visualization: GameVisualization[
@@ -181,6 +187,9 @@ def get_bayesian_driving_game(
     game: DrivingGame
 
     game = Game(
-        players=frozendict(players), ps=ps, joint_reward=joint_reward, game_visualization=game_visualization,
+        players=frozendict(players),
+        ps=ps,
+        joint_reward=joint_reward,
+        game_visualization=game_visualization,
     )
     return game

@@ -106,7 +106,12 @@ def analyze_equilibria(
                 if player_name not in _:
                     msg = f"Cannot get value for {player_name!r}."
                     raise ZValueError(
-                        msg, player_name=player_name, _=_, mixed_outcome=mixed_outcome, solved=solved, gn=gn,
+                        msg,
+                        player_name=player_name,
+                        _=_,
+                        mixed_outcome=mixed_outcome,
+                        solved=solved,
+                        gn=gn,
                     )
                 return _[player_name]
 

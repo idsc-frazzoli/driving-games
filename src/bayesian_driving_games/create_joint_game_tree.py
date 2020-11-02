@@ -132,7 +132,9 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
 
     # Compute the incremental costs for the moves
     _ = next(iter(ic.game.players))
-    type_combinations = list(itertools.product(ic.game.players[_].types_of_myself, ic.game.players[_].types_of_other))
+    type_combinations = list(
+        itertools.product(ic.game.players[_].types_of_myself, ic.game.players[_].types_of_other)
+    )
     incremental = defaultdict(dict)
     for k, its_moves in moves_to_state_remaining.items():
         for move in its_moves:
@@ -142,9 +144,9 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
                 pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
                 inc = pri(states[k], move, ic.dt)
                 try:
-                    incremental[k,tc][move] = inc[tc]
+                    incremental[k, tc][move] = inc[tc]
                 except:
-                    incremental[k,tc[::-1]][move] = inc[tc[::-1]]
+                    incremental[k, tc[::-1]][move] = inc[tc[::-1]]
 
     for joint_pure_action in iterate_dict_combinations(moves_to_state_remaining):
 

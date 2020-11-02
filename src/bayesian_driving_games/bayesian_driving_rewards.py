@@ -5,14 +5,30 @@ from decimal import Decimal as D, localcontext
 from zuper_commons.types import ZNotImplementedError, check_isinstance
 
 from bayesian_driving_games.structures import PlayerType
-from driving_games import VehicleState, VehicleActions, Collision, VehicleGeometry, frozendict, IMPACT_FRONT, \
-    IMPACT_SIDES, VehicleCosts
-from driving_games.collisions_check import sample_x, rectangle_from_pose, a_caused_collision_with_b, collision_check
+from driving_games import (
+    VehicleState,
+    VehicleActions,
+    Collision,
+    VehicleGeometry,
+    frozendict,
+    IMPACT_FRONT,
+    IMPACT_SIDES,
+    VehicleCosts,
+)
+from driving_games.collisions_check import (
+    sample_x,
+    rectangle_from_pose,
+    a_caused_collision_with_b,
+    collision_check,
+)
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure
 
 
 def bayesian_collision_check(
-    poses: Mapping[PlayerName, VehicleState], geometries: Mapping[PlayerName, VehicleGeometry], p1_types, p2_types
+    poses: Mapping[PlayerName, VehicleState],
+    geometries: Mapping[PlayerName, VehicleGeometry],
+    p1_types,
+    p2_types,
 ) -> Mapping[Tuple[PlayerType], Mapping[PlayerName, Collision]]:
     """
 
@@ -83,8 +99,8 @@ def bayesian_collision_check(
         # c5 = Collision(i2, True, energy_received_2, energy_given_2)
         # c3 = Collision(i2, p2_active, D(0), D(0))
         # c4 = Collision(i1, False, D(0), D(0))
-        res1 = {p1: c1, p2: c2} #cautious
-        res2 = {p1: c1, p2: c2} #aggressive
+        res1 = {p1: c1, p2: c2}  # cautious
+        res2 = {p1: c1, p2: c2}  # aggressive
         res[type_combinations[0]] = res1
         res[type_combinations[1]] = res2
         return res
@@ -96,9 +112,9 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActio
     """
     Standard joint reward, but with a collision cost for each player in each type combination.
     """
+
     def __init__(
-        self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry], p1_types,
-            p2_types
+        self, collision_threshold: float, geometries: Mapping[PlayerName, VehicleGeometry], p1_types, p2_types
     ):
         self.collision_threshold = collision_threshold
         self.geometries = geometries
@@ -110,12 +126,16 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActio
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[Tuple[PlayerType], Mapping[PlayerName, Collision]]:
+    def joint_reward(
+        self, xs: Mapping[PlayerName, VehicleState]
+    ) -> Mapping[Tuple[PlayerType], Mapping[PlayerName, Collision]]:
         res = bayesian_collision_check(xs, self.geometries, self.p1_types, self.p2_types)
         return res
 
 
-class BayesianVehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]):
+class BayesianVehiclePersonalRewardStructureTime(
+    PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
+):
     max_path: D
 
     def __init__(self, max_path: D, p1_types: List[PlayerType], p2_types: List[PlayerType]):
@@ -123,8 +143,9 @@ class BayesianVehiclePersonalRewardStructureTime(PersonalRewardStructure[Vehicle
         self.p1_types = p1_types
         self.p2_types = p2_types
 
-    def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D
-                                    ) -> Mapping[Tuple[PlayerType, PlayerType], VehicleCosts]:
+    def personal_reward_incremental(
+        self, x: VehicleState, u: VehicleActions, dt: D
+    ) -> Mapping[Tuple[PlayerType, PlayerType], VehicleCosts]:
         """
 
         :param x: The state of the player
@@ -132,12 +153,12 @@ class BayesianVehiclePersonalRewardStructureTime(PersonalRewardStructure[Vehicle
         :param dt: Timestep
         :return: For each type combination a Cost (VehicleCosts is defined as "duration", but can be anything really.
         """
-        tc = list(itertools.product(self.p1_types,self.p2_types))
+        tc = list(itertools.product(self.p1_types, self.p2_types))
         check_isinstance(x, VehicleState)
         check_isinstance(u, VehicleActions)
         res = {}
-        res[tc[0]] = VehicleCosts(abs(u.accel)) #cautious, neutral
-        res[tc[1]] = VehicleCosts((dt+D(0.1))*(dt+D(0.1))) #aggressive, neutral
+        res[tc[0]] = VehicleCosts(abs(u.accel))  # cautious, neutral
+        res[tc[1]] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))  # aggressive, neutral
         return res
 
     def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
@@ -171,15 +192,15 @@ class BayesianVehiclePersonalRewardStructureTime(PersonalRewardStructure[Vehicle
         return x.x + x.v > self.max_path
 
 
-
-
-
-class BayesianVehiclePersonalRewardStructureSimple(PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]):
+class BayesianVehiclePersonalRewardStructureSimple(
+    PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
+):
 
     """
     This is a second reward structure very similar to the one above, so that different reward structures for different
     players can be chosen.
     """
+
     max_path: D
 
     def __init__(self, max_path: D, p1_types: List[PlayerType], p2_types: List[PlayerType]):
@@ -187,14 +208,15 @@ class BayesianVehiclePersonalRewardStructureSimple(PersonalRewardStructure[Vehic
         self.p1_types = p1_types
         self.p2_types = p2_types
 
-    def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D
-                                    ) -> Mapping[Tuple[PlayerType, PlayerType], VehicleCosts]:
-        tc = list(itertools.product(self.p1_types,self.p2_types))
+    def personal_reward_incremental(
+        self, x: VehicleState, u: VehicleActions, dt: D
+    ) -> Mapping[Tuple[PlayerType, PlayerType], VehicleCosts]:
+        tc = list(itertools.product(self.p1_types, self.p2_types))
         check_isinstance(x, VehicleState)
         check_isinstance(u, VehicleActions)
         res = {}
-        res[tc[0]] = VehicleCosts((dt+D(0.1))*(dt+D(0.1)))#cautious
-        res[tc[1]] = VehicleCosts(dt)#aggressive
+        res[tc[0]] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))  # cautious
+        res[tc[1]] = VehicleCosts(dt)  # aggressive
         return res
 
     def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
@@ -221,4 +243,3 @@ class BayesianVehiclePersonalRewardStructureSimple(PersonalRewardStructure[Vehic
         # return x.x > self.max_path
 
         return x.x + x.v > self.max_path
-

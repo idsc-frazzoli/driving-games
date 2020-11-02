@@ -123,7 +123,10 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
             # logger.info(gg=ghost_game_graph)
 
         solution_ghost = solve_game2(
-            game=gp.game, gg=ghost_game_graph, solver_params=gp.solver_params, jss={initial_state},
+            game=gp.game,
+            gg=ghost_game_graph,
+            solver_params=gp.solver_params,
+            jss={initial_state},
         )
         msg = f"Stackelberg solution when {player_name} is a follower"
         game_values = solution_ghost.states_to_solution[initial_state].va.game_value
@@ -131,7 +134,13 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
 
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
-        sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0,)
+        sim_ = simulate1(
+            gp.game,
+            policies=controllers,
+            initial_states=initial_state,
+            dt=dt,
+            seed=0,
+        )
         sims[f"{player_name}-follows"] = sim_
 
     logger.info("solving game tree")
@@ -157,7 +166,10 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
         sims[f"joint-{seed}"] = sim_joint
 
     return Solutions(
-        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players, sims=sims,
+        game_solution=game_solution,
+        game_tree=game_tree,
+        solutions_players=solutions_players,
+        sims=sims,
     )
     # logger.info(game_tree=game_tree)
 
@@ -225,7 +237,9 @@ def solve_game2(
     policies2 = frozendict({k: fr(v) for k, v in policies.items()})
 
     return GameSolution(
-        initials=frozenset(jss), policies=policies2, states_to_solution=frozendict(states_to_solution),
+        initials=frozenset(jss),
+        policies=policies2,
+        states_to_solution=frozendict(states_to_solution),
     )
 
 
@@ -234,7 +248,8 @@ def fr(d):
 
 
 def _solve_game(
-    sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
+    sc: SolvingContext[X, U, Y, RP, RJ, SR],
+    js: JointState,
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
     # Actual recursive function that solves the game nodes
@@ -290,7 +305,10 @@ def _solve_game(
 
             def f(_: Combined) -> Combined:
                 return add_incremental_cost_single(
-                    game=sc.game, player_name=player_name, incremental_for_player=inc, cur=_,
+                    game=sc.game,
+                    player_name=player_name,
+                    incremental_for_player=inc,
+                    cur=_,
                 )
 
             # logger.info(player_dist=player_dist)
@@ -371,7 +389,11 @@ def _solve_game(
     n = len(sc.cache)
     if n % 30 == 0:
         logger.info(
-            js=js, states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache),
+            js=js,
+            states=gn.states,
+            value=va.game_value,
+            processing=len(sc.processing),
+            solved=len(sc.cache),
         )
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret

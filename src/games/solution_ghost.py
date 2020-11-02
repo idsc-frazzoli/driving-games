@@ -47,7 +47,10 @@ class ROContext:
     dreamer: PlayerName
 
 
-def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> GameNode[X, U, Y, RP, RJ, SR]:
+def replace_others(
+    roc: ROContext,
+    node: GameNode[X, U, Y, RP, RJ, SR],
+) -> GameNode[X, U, Y, RP, RJ, SR]:
     ps = roc.game.ps
 
     # what would the fixed ones do?
@@ -101,7 +104,10 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
             def f(a: JointPureActions) -> Poss[JointState]:
                 if a not in node.outcomes:
                     raise ZValueError(
-                        a=a, node=node, active_pure_action=active_pure_action, av=set(node.outcomes),
+                        a=a,
+                        node=node,
+                        active_pure_action=active_pure_action,
+                        av=set(node.outcomes),
                     )
                 nodes2: Poss[JointState] = node.outcomes[a]
                 return nodes2
@@ -123,7 +129,10 @@ def replace_others(roc: ROContext, node: GameNode[X, U, Y, RP, RJ, SR],) -> Game
             resources=node.resources,
         )
     except ZValueError as e:
-        raise ZValueError("cannot translate", node=node,) from e
+        raise ZValueError(
+            "cannot translate",
+            node=node,
+        ) from e
     # if any(_.x == 0 for _ in node.states.values()):
     #     logger.info(original=node, translated=ret)
     return ret

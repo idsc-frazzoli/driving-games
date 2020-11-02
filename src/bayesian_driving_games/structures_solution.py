@@ -10,4 +10,3 @@ from possibilities import Poss
 class BayesianGameNode(GameNode):
     game_node_belief: Mapping[PlayerName, Poss[PlayerType]]
     """ Belief of each player at this game node """
-

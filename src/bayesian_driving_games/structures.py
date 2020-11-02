@@ -31,7 +31,7 @@ NO_TYPE = PlayerType("no type")
 @dataclass
 class BayesianGamePlayer(GamePlayer):
     types_of_other: List[PlayerType]
-    """The types of the other player""" # TODO: Extend to more than two players - Mapping[PlayerName, List[PlayerType]]
+    """The types of the other player"""  # TODO: Extend to more than two players - Mapping[PlayerName, List[PlayerType]]
 
     types_of_myself: List[PlayerType]
     """The types of myself"""
@@ -46,4 +46,3 @@ class BayesianVehicleState(VehicleState):
     """ The type of the player """
 
     __print_order__ = ["x", "v", "player_type"]  # only print these attributes
-

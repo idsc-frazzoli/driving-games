@@ -13,7 +13,8 @@ from games.structures_solution import GameFactorization, GamePlayerPreprocessed,
 
 
 def bayesian_preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+    individual_game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     Only thing that changed to a normal driving game are the functions create_bayesian_game_graph and solve_game_bayesian2
@@ -39,7 +40,8 @@ def bayesian_preprocess_player(
 
 
 def bayesian_preprocess_game(
-    game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+    game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     Same as in Driving Games, except that it uses bayesian_preprocess_player.
@@ -70,4 +72,3 @@ def bayesian_preprocess_game(
     )
 
     return gp
-

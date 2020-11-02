@@ -14,6 +14,7 @@ from toy_games.bayesian_toy_structures import BayesianBirdActions
 from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
 from toy_games.bayesian_toy_structures import BayesianBirdState
 
+
 class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     max_stages: int
     leaves_payoffs: Mapping[BirdState, Mapping[PlayerName, BirdCosts]]
@@ -22,8 +23,13 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
     mat_payoffs: Sequence[np.ndarray]
 
     def __init__(
-        self, max_stages: int, subgames: Sequence[BiMatGame], row_player: PlayerName, col_player: PlayerName, p1_types,
-            p2_types
+        self,
+        max_stages: int,
+        subgames: Sequence[BiMatGame],
+        row_player: PlayerName,
+        col_player: PlayerName,
+        p1_types,
+        p2_types,
     ):
         self.row_player = row_player
         self.col_player = col_player
@@ -41,7 +47,9 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
                     res.add(player)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, BirdState]) -> Mapping[Set[PlayerType], Mapping[PlayerName, BirdCosts]]:
+    def joint_reward(
+        self, xs: Mapping[PlayerName, BirdState]
+    ) -> Mapping[Set[PlayerType], Mapping[PlayerName, BirdCosts]]:
         """
         Each payoff matrix correspond to a specific game
         [-1,-1] -> leaves_payoffs[0]
@@ -65,14 +73,13 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         res2.update(
             {self.row_player: BirdCosts(D(payoff11.item())), self.col_player: BirdCosts(D(payoff12.item()))}
         )
-        res[type_combinations[0]]=res1
-        res[type_combinations[1]]=res2
+        res[type_combinations[0]] = res1
+        res[type_combinations[1]] = res2
 
         return frozendict(res)
 
     @staticmethod
-    def get_payoff_matrix_idx(x1: BirdState, x2: BirdState) \
-            -> Tuple[int, int, int, int]:
+    def get_payoff_matrix_idx(x1: BirdState, x2: BirdState) -> Tuple[int, int, int, int]:
         """
         Trick to build encapsulate payoff matrices into the dynamic game
         joint state (x1,x2):
@@ -116,5 +123,3 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
 
         return subgame1, subgame2, row, col
-
-
