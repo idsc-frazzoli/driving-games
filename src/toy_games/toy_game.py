@@ -2,28 +2,25 @@ from frozendict import frozendict
 
 from driving_games import TwoVehicleUncertaintyParams
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
-from nash import BiMatGame
 from toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
     BirdPreferences,
     BirdJointReward,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import PossibilitySet, PossibilityMonad
+from possibilities import PossibilityMonad
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
-import numpy as np
-from preferences import SetPreference1
+from toy_games_tests.toy_games_tests_zoo import ToyGameMat
 
 __all__ = ["get_toy_game_spec"]
 
 
-def get_toy_game_spec(
-    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: TwoVehicleUncertaintyParams
-) -> GameSpec:
+def get_toy_game_spec(toy_game_mat: ToyGameMat, uncertainty_params: TwoVehicleUncertaintyParams) -> GameSpec:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
     dt = D(1)  # not relevant for this example
+    max_stages = toy_game_mat.get_max_stages()
 
     # state
     p1_x = BirdState()
@@ -52,7 +49,7 @@ def get_toy_game_spec(
     p2_preferences = BirdPreferences()
     mpref_builder = uncertainty_params.mpref_builder
     birds_joint_reward = BirdJointReward(
-        max_stages=max_stages, subgames=subgames, row_player=P1, col_player=P2
+        max_stages=max_stages, subgames=toy_game_mat.subgames, row_player=P1, col_player=P2
     )
 
     p1 = GamePlayer(

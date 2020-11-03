@@ -9,7 +9,7 @@ from zuper_typing import debug_print
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure, Combined
 from nash import BiMatGame
 from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
-from preferences import SmallerPreferred, Preference, ComparisonOutcome
+from preferences import SmallerPreferred, ComparisonOutcome
 
 
 class BirdPersonalRewardStructureCustom(PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
@@ -62,12 +62,15 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     mat_payoffs: Sequence[np.ndarray]
 
     def __init__(
-        self, max_stages: int, subgames: Sequence[BiMatGame], row_player: PlayerName, col_player: PlayerName,
+        self,
+        max_stages: int,
+        subgames: Sequence[BiMatGame],
+        row_player: PlayerName,
+        col_player: PlayerName,
     ):
         self.row_player = row_player
         self.col_player = col_player
         self.max_stages = max_stages
-        assert len(subgames) == 4, subgames
         self.mat_payoffs = [np.stack([g.A, g.B], axis=-1) for g in subgames]
 
     def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
@@ -90,7 +93,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         """
         res = {}
         x1, x2 = xs[self.row_player], xs[self.col_player]
-        subgame, row, col = self.get_payoff_matrix_idx(x1, x2)
+        subgame, row, col = self.get_payoff_matrix_idx(self.max_stages, x1, x2)
         payoff1, payoff2 = self.mat_payoffs[subgame][row, col, :]
         res.update(
             {self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))}
@@ -98,15 +101,18 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         return frozendict(res)
 
     @staticmethod
-    def get_payoff_matrix_idx(x1: BirdState, x2: BirdState) -> Tuple[int, int, int]:
+    def get_payoff_matrix_idx(max_stages: int, x1: BirdState, x2: BirdState) -> Tuple[int, int, int]:
         """
-        Trick to build encapsulate payoff matrices into the dynamic game
-        joint state (x1,x2):
-        (<0,<0) -> G1
-        (<0,>0) -> G2
-        (>0,<0) -> G3
-        (>0,>0) -> G4
-        To figure out the indices we then look at the decimals...
+        Trick to embed payoff bi-matrices into the dynamic game.
+        Each unique terminal state gets 2 values assigned.
+        E.g. For a two stage game, after 1 stage, given the joint state (x1,x2):
+        (<0,<0) -> players end up in G1
+        (<0,>0) -> players end up in G2
+        (>0,<0) -> players end up in G3
+        (>0,>0) -> players end up in G4
+        To figure out the indices of G* we then look at the decimals figures of the state.
+
+        :param max_stages:
         :param x1:
         :param x2:
         :return:
@@ -125,8 +131,15 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         else:
             subgame = 3
 
-        z1_dec = x1.z - round(x1.z)
-        z2_dec = x2.z - round(x2.z)
-        row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
+        if max_stages == 1:
+            row = 0 if subgame in {0, 1} else 1
+            col = 0 if subgame in {0, 2} else 1
+            subgame = 0
+        elif max_stages == 2:
+            z1_dec = x1.z - round(x1.z)
+            z2_dec = x2.z - round(x2.z)
+            row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
+        else:
+            raise ValueError(max_stages)
 
         return subgame, row, col

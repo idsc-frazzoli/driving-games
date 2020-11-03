@@ -82,6 +82,13 @@ coverage-report:
 docs:
 	sphinx-build src $(out)/docs
 
+docs-docker: build
+	mkdir -p out-docker/docs
+	docker run -it --rm --user $$(id -u)\
+		-v ${PWD}/src:/driving_games/src:ro \
+		-v ${PWD}/out-docker/docs:/driving-games/$(out)/docs $(tag) \
+		sphinx-build src /driving-games/$(out)/docs
+
 
 include makefiles/Makefile.version
 

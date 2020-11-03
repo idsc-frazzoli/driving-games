@@ -131,8 +131,8 @@ class Dynamics(Generic[X, U, SR], ABC):
 
     @abstractmethod
     def get_shared_resources(self, x: X) -> FrozenSet[SR]:
-        """ Returns the "shared resources" for each state. For example,
-            the set of spatio-temporal cells occupied by the agent. """
+        """Returns the "shared resources" for each state. For example,
+        the set of spatio-temporal cells occupied by the agent."""
 
 
 class Observations(Generic[X, Y], ABC):
@@ -202,8 +202,8 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     """
-        The joint reward structure. This describes when the game ends
-        due to "collisions".
+    The joint reward structure. This describes when the game ends
+    due to "collisions".
     """
 
     @abstractmethod
@@ -225,7 +225,11 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
     @abstractmethod
     def plot_player(
-        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
+        self,
+        player_name: PlayerName,
+        state: X,
+        commands: Optional[U],
+        opacity: float = 1.0,
     ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
@@ -254,8 +258,8 @@ class Game(Generic[X, U, Y, RP, RJ, SR]):
 
 class AgentBelief(Generic[X, U], ABC):
     """
-        This agent's policy is a function of its own state
-        and the product of the beliefs about the state of the other agents.
+    This agent's policy is a function of its own state
+    and the product of the beliefs about the state of the other agents.
     """
 
     @abstractmethod

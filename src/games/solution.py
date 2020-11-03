@@ -120,7 +120,10 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
             # logger.info(gg=ghost_game_graph)
 
         solution_ghost = solve_game2(
-            game=gp.game, gg=ghost_game_graph, solver_params=gp.solver_params, jss={initial_state},
+            game=gp.game,
+            gg=ghost_game_graph,
+            solver_params=gp.solver_params,
+            jss={initial_state},
         )
         msg = f"Stackelberg solution when {player_name} is a follower"
         game_values = solution_ghost.states_to_solution[initial_state].va.game_value
@@ -128,7 +131,13 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
 
         controllers = dict(controllers_others)
         controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
-        sim_ = simulate1(gp.game, policies=controllers, initial_states=initial_state, dt=dt, seed=0,)
+        sim_ = simulate1(
+            gp.game,
+            policies=controllers,
+            initial_states=initial_state,
+            dt=dt,
+            seed=0,
+        )
         sims[f"{player_name}-follows"] = sim_
 
     logger.info("solving game tree")
@@ -154,7 +163,10 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
         sims[f"joint-{seed}"] = sim_joint
 
     return Solutions(
-        game_solution=game_solution, game_tree=game_tree, solutions_players=solutions_players, sims=sims,
+        game_solution=game_solution,
+        game_tree=game_tree,
+        solutions_players=solutions_players,
+        sims=sims,
     )
     # logger.info(game_tree=game_tree)
 
@@ -185,7 +197,7 @@ def solve_game2(
     jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
-    Solve game
+    Computes the solution of the game rooted in `jss` and extract the policy for each player, for each game node
 
     :param game:
     :param solver_params:
@@ -206,23 +218,25 @@ def solve_game2(
     for js0 in jss:
         check_joint_state(js0)
         _solve_game(sc, js0)
-
+    # Instead of X it should be something like InfoSet or GameNode?!
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState], Poss[U]]]]
     ps = game.ps
     policies = defaultdict(lambda: defaultdict(dict))
-    for state, s0 in states_to_solution.items():
+    for state, solved_gnode in states_to_solution.items():
         for player_name, player_state in state.items():
 
-            if player_name in s0.va.mixed_actions:
+            if player_name in solved_gnode.va.mixed_actions:
                 policy_for_this_state = policies[player_name][player_state]
                 other_states = frozendict({k: v for k, v in state.items() if k != player_name})
                 iset = ps.unit(other_states)
-                policy_for_this_state[iset] = s0.va.mixed_actions[player_name]
+                policy_for_this_state[iset] = solved_gnode.va.mixed_actions[player_name]
 
     policies2 = frozendict({k: fr(v) for k, v in policies.items()})
 
     return GameSolution(
-        initials=frozenset(jss), policies=policies2, states_to_solution=frozendict(states_to_solution),
+        initials=frozenset(jss),
+        policies=policies2,
+        states_to_solution=frozendict(states_to_solution),
     )
 
 
@@ -231,13 +245,15 @@ def fr(d):
 
 
 def _solve_game(
-    sc: SolvingContext[X, U, Y, RP, RJ, SR], js: JointState,
+    sc: SolvingContext[X, U, Y, RP, RJ, SR],
+    js: JointState,
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
-    # Actual recursive function that solves the game nodes
-    :param sc:
-    :param js:
-    :return:
+    Actual recursive function that solves the game nodes with backward induction
+
+    :param sc: the solving context that is modified in place
+    :param js: the current joint state
+    :return: a solved game node
     """
     check_joint_state(js)
     if not js:
@@ -275,7 +291,7 @@ def _solve_game(
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         for player_name in pure_actions:
 
-            def v(m: M[PlayerName, JointState]) -> UncertainCombined:
+            def v(m: Mapping[PlayerName, JointState]) -> UncertainCombined:
                 gn2: SolvedGameNode[X, U, U, RP, RJ, SR] = sc.cache[m[player_name]]
                 if not player_name in gn2.va.game_value:
                     raise ZValueError(player_name=player_name, gn2=gn2, stn=stn)
@@ -287,7 +303,10 @@ def _solve_game(
 
             def f(_: Combined) -> Combined:
                 return add_incremental_cost_single(
-                    game=sc.game, player_name=player_name, incremental_for_player=inc, cur=_,
+                    game=sc.game,
+                    player_name=player_name,
+                    incremental_for_player=inc,
+                    cur=_,
                 )
 
             # logger.info(player_dist=player_dist)
@@ -309,7 +328,7 @@ def _solve_game(
     ur: UsedResources[X, U, Y, RP, RJ, SR]
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
-    if va.mixed_actions:  # not a final state
+    if va.mixed_actions:
         next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
         next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
@@ -354,10 +373,8 @@ def _solve_game(
 
         ur = UsedResources(frozendict(usages))
     else:
-
         usages_ = frozendict({D(0): usage_current})
         ur = UsedResources(usages_)
-
     try:
         ret = SolvedGameNode(states=js, solved=frozendict(solved_to_node), va=va, ur=ur)
     except Exception as e:
@@ -368,7 +385,11 @@ def _solve_game(
     n = len(sc.cache)
     if n % 30 == 0:
         logger.info(
-            js=js, states=gn.states, value=va.game_value, processing=len(sc.processing), solved=len(sc.cache),
+            js=js,
+            states=gn.states,
+            value=va.game_value,
+            processing=len(sc.processing),
+            solved=len(sc.cache),
         )
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret

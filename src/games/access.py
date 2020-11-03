@@ -58,10 +58,14 @@ from .utils import fkeyfilter, iterate_dict_combinations
 
 
 def preprocess_game(
-    game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+    game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    # todo
+    1. Preprocesses the game computing the general game graph (MultiDiGraph used for visualisation)
+    2. Computes the solutions for the single players
+    3. If factorization is selected, computes the corresponding game factorization
+
     :param game:
     :param solver_params:
     :return:
@@ -161,18 +165,19 @@ def get_game_factorization(
 
 
 def find_dependencies(
-    ps: PossibilityMonad, resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
+    ps: PossibilityMonad,
+    resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
 ) -> Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]:
     """
-        Returns the dependency structure from the use of shared resources.
-        Returns the partitions of players that are independent.
+    Returns the dependency structure from the use of shared resources.
+    Returns the partitions of players that are independent.
 
-        Example: for 3 players '{a,b,c}' this could return  `{{a}, {b,c}}`.
-        That means that `a` is independent
-        of b and c. A return of  `{{a}, {b}, {c}}` means that all three are independent.
+    Example: for 3 players '{a,b,c}' this could return  `{{a}, {b,c}}`.
+    That means that `a` is independent
+    of b and c. A return of  `{{a}, {b}, {c}}` means that all three are independent.
 
-        For n players, it returns all combinations of subsets.
-     """
+    For n players, it returns all combinations of subsets.
+    """
     interaction_graph = Graph()
     interaction_graph.add_nodes_from(resources_used)
     max_instants = max(max(_.used) if _.used else 0 for _ in resources_used.values())
@@ -227,7 +232,8 @@ def collapse_states(
 
 
 def preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams,
+    individual_game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # todo
@@ -238,7 +244,7 @@ def preprocess_player(
     l = list(individual_game.players)
     assert len(l) == 1
     player_name = l[0]
-    player = individual_game.players[player_name]
+    player: GamePlayer = individual_game.players[player_name]
     graph = get_player_graph(player, solver_params.dt)
 
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
@@ -258,6 +264,15 @@ def get_accessible_states(
     dynamics: Dynamics[X, U, SR],
     dt: D,
 ) -> MultiDiGraph:
+    """
+    Computes the states accessible for a player subject to their dynamics and their personal cost function.
+
+    :param initial:
+    :param personal_reward_structure:
+    :param dynamics:
+    :param dt:
+    :return:
+    """
     check_poss(initial, object)
     G = MultiDiGraph()
 
@@ -265,14 +280,12 @@ def get_accessible_states(
         i_final = personal_reward_structure.is_personal_final_state(node)
         if i_final:
             raise ZException(i_final=i_final)
-
         G.add_node(node, is_final=False)
+
     stack = list(initial.support())
-    # logger.info(stack=stack)
     i: int = 0
     expanded = set()
     while stack:
-        # print(i, len(stack), len(G.nodes))
         i += 1
         s1 = stack.pop(0)
         assert s1 in G.nodes

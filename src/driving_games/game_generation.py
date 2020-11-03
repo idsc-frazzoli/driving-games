@@ -172,6 +172,9 @@ def get_two_vehicle_game(
     game: DrivingGame
 
     game = Game(
-        players=frozendict(players), ps=ps, joint_reward=joint_reward, game_visualization=game_visualization,
+        players=frozendict(players),
+        ps=ps,
+        joint_reward=joint_reward,
+        game_visualization=game_visualization,
     )
     return game

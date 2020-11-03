@@ -39,8 +39,8 @@ COMP_OUTCOMES = (INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED)
 
 class Preference(Generic[P], ABC):
     """
-        The abstract interfaces for a preference relation.
-        A preference relation is reflexive. No other property is assumed.
+    The abstract interfaces for a preference relation.
+    A preference relation is reflexive. No other property is assumed.
     """
 
     @abstractmethod
@@ -60,4 +60,4 @@ class Preference(Generic[P], ABC):
         - :any:`FIRST_PREFERRED`: We prefer the first option.
         - :any:`SECOND_PREFERRED`:  We prefer the second option.
 
-    """
+        """

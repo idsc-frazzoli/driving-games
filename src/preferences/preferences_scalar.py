@@ -15,9 +15,9 @@ __all__ = ["SmallerPreferred", "SmallerPreferredTol"]
 
 class SmallerPreferred(Preference[D]):
     """
-        The usual total order on the scalars.
+    The usual total order on the scalars.
 
-        It is equivalent to `SmallerPreferredTol(0)`.
+    It is equivalent to `SmallerPreferredTol(0)`.
 
     """
 
