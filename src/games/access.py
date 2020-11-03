@@ -62,7 +62,10 @@ def preprocess_game(
     solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    # todo
+    1. Preprocesses the game computing the general game graph (MultiDiGraph used for visualisation)
+    2. Computes the solutions for the single players
+    3. If factorization is selected, computes the corresponding game factorization
+
     :param game:
     :param solver_params:
     :return:
@@ -241,7 +244,7 @@ def preprocess_player(
     l = list(individual_game.players)
     assert len(l) == 1
     player_name = l[0]
-    player = individual_game.players[player_name]
+    player: GamePlayer = individual_game.players[player_name]
     graph = get_player_graph(player, solver_params.dt)
 
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
@@ -261,6 +264,15 @@ def get_accessible_states(
     dynamics: Dynamics[X, U, SR],
     dt: D,
 ) -> MultiDiGraph:
+    """
+    Computes the states accessible for a player subject to their dynamics and their personal cost function.
+
+    :param initial:
+    :param personal_reward_structure:
+    :param dynamics:
+    :param dt:
+    :return:
+    """
     check_poss(initial, object)
     G = MultiDiGraph()
 
@@ -268,14 +280,12 @@ def get_accessible_states(
         i_final = personal_reward_structure.is_personal_final_state(node)
         if i_final:
             raise ZException(i_final=i_final)
-
         G.add_node(node, is_final=False)
+
     stack = list(initial.support())
-    # logger.info(stack=stack)
     i: int = 0
     expanded = set()
     while stack:
-        # print(i, len(stack), len(G.nodes))
         i += 1
         s1 = stack.pop(0)
         assert s1 in G.nodes

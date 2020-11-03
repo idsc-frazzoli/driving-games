@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from fractions import Fraction
 from functools import lru_cache
-from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple
+from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple, List
 from decimal import Decimal as D
 
 from frozendict import frozendict
@@ -11,6 +11,7 @@ from zuper_commons.types import ZValueError
 from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
+from nash import BiMatGame
 from possibilities import Poss, PossibilitySet, PossibilityMonad
 
 Go = NewType("Go", str)
@@ -73,7 +74,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
 
     @lru_cache(None)
     def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState]]:
-        """ For each state, returns a dictionary U -> Possible Xs """
+        """ For each state, returns the possible outcomes given certain actions """
         # todo expand to allow other possibility monads
         possible = {}
         for u in self.all_actions():
@@ -150,15 +151,25 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 class BirdCosts:
     cost: D
 
-    # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "BirdCosts":
+        """
+        Support weight multiplication for expected value
+
+        :param weight:
+        :return:
+        """
         # weighting costs, e.g. according to a probability
         return replace(self, cost=self.cost * D(float(weight)))
 
     __rmul__ = __mul__
 
-    # Monoid to support sum
     def __add__(self, other: "BirdCosts") -> "BirdCosts":
+        """
+        Monoid to support sum
+
+        :param other:
+        :return:
+        """
         if type(other) == BirdCosts:
             return replace(self, cost=self.cost + other.cost)
         else:
@@ -182,3 +193,15 @@ class BirdsVisualization(
     @contextmanager
     def plot_arena(self, pylab, ax):
         yield
+
+
+@dataclass
+class ToyGameMat:
+    subgames: List[BiMatGame]
+    desc: str
+
+    def __post_init__(self):
+        assert len(self.subgames) in {1, 4}, len(self.subgames)
+
+    def get_max_stages(self) -> int:
+        return 1 if len(self.subgames) == 1 else 2
