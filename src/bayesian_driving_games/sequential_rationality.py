@@ -38,6 +38,7 @@ from preferences import Preference
 def weight_outcome(mixed_outcome, weight, ps, t1, t2):
     """
     This function takes a belief to weigh the mixed_outcome of an action profile to make it an expected value outcome.
+
     :param mixed_outcome:
     :param weight: A weight (in this case a belief)
     :param ps: The prability monad used in the game
@@ -68,6 +69,7 @@ def analyze_sequential_rational(
     combines them to an action profile. This action profile and the beliefs are then used to figure out the expected
     value of the action profile. The results of every possible action combination (note an action for each player in
     each type) are given to the analyze function, that determines the Nash equilibrium.
+
     :param ps: Probability monad of the game
     :param gn: A Bayesian game node
     :param solved: For each action profile possible at the current state, the expected rewards for each type combination
@@ -184,6 +186,7 @@ def solve_sequential_rationality(
     """
     Uses the analyze_sequential_rational function and then selects if there are multiple equilibria. Selects for each
     player in each type a action.
+
     :param sc: Game parameters etc.
     :param gn: The current Bayesian game node.
     :param solved: For each action profile, the expected results.

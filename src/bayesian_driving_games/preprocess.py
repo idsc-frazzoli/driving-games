@@ -17,7 +17,9 @@ def bayesian_preprocess_player(
     solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    Only thing that changed to a normal driving game are the functions create_bayesian_game_graph and solve_game_bayesian2
+    Only thing that changed to a normal driving game are that it uses the functions create_bayesian_game_graph and
+    solve_game_bayesian2 instead of the deterministic ones.
+
     :param individual_game:
     :param solver_params:
     :return: Preprocess for each player
@@ -45,6 +47,7 @@ def bayesian_preprocess_game(
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     Same as in Driving Games, except that it uses bayesian_preprocess_player.
+
     :param game:
     :param solver_params:
     :return:

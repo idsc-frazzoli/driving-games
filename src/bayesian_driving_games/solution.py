@@ -62,6 +62,7 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
     """
     This is the main solving function. However the actual solving algorithm is in solve_game_bayesian2 that is called here.
     This function simulates the results and returns all the solutions.
+
     :param gp:
     :return: Solution object with strategy, value of the game, etc.
     """
@@ -167,6 +168,7 @@ def assign_beliefs(sc: SolvingContext, solution: GameSolution, js: JointState):
     to the formula described in my (Michael's) thesis. What is to do yet: The off the path beliefs are at the moment not
     precise enough. At the moment, they do not change to the previous iteration, but actually they can be anything in [0,1].
     This is a recursive function working the tree downwards.
+
     :param sc: game parameters etc.
     :param solution: Mainly used for the solution strategy.
     :param js: current joint state in order to find the corresponding game node.
@@ -231,6 +233,7 @@ def solve_game_bayesian2(
     This is the main solving algorithm as described in my (Michael's) thesis. It consists of a solving step and a belief
     update step. It is an endless loop with the terminal condition that the strategy does not change anymore
     (this is the PBE together with the beliefs).
+
     :param game:
     :param solver_params:
     :param gg: Game graph with bayesian game nodes.
@@ -310,6 +313,7 @@ def add_bayesian_incremental_cost_single(
 ) -> Combined[RP, RJ]:
     """
     For every type combination and every player, it updates the cost with the incremental cost.
+
     :param game:
     :param player_name:
     :param tc: a type cobination
@@ -335,6 +339,7 @@ def _solve_bayesian_game(
     """
     This function is the solving step of the algorithm. It solves the tree backwards for the best strategies and the
     expected game values. Takes the beliefs into account.
+
     :param sc:
     :param js:
     :return:
@@ -543,6 +548,7 @@ def solve_final_personal_both_bayesian(
     """
     Solves end game node which is final for both players (but not jointly final). Game value for each type in each type
     combination.
+
     :param sc:
     :param gn:
     :return:
