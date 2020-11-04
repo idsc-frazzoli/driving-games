@@ -30,7 +30,6 @@ from games.game_def import (
     Game,
     JointPureActions,
     JointState,
-    P,
     PlayerName,
     RJ,
     RP,
@@ -298,9 +297,6 @@ def solve_game_bayesian2(
 
     return None
 
-
-def fr(d):
-    return frozendict({k: frozendict(v) for k, v in d.items()})
 
 
 def add_bayesian_incremental_cost_single(

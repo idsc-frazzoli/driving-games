@@ -12,13 +12,10 @@ from driving_games import (
     SetPreference1,
     ProbPrefExpectedValue,
     ProbabilityFraction,
-    get_two_vehicle_game,
 )
 from games import (
     STRATEGY_MIX,
     SolverParams,
-    preprocess_game,
-    solve1,
     report_solutions,
     create_report_preprocessed,
 )

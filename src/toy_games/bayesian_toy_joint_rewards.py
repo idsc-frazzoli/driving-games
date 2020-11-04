@@ -3,11 +3,11 @@ from fractions import Fraction
 from itertools import product
 from typing import Any, FrozenSet, Mapping, Sequence, Tuple, Type, List, Set
 import numpy as np
+from bayesian_driving_games.structures import PlayerType
 from frozendict import frozendict
 from decimal import Decimal as D
 from zuper_commons.types import check_isinstance
 
-from bayesian_driving_games import PlayerType
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure
 from nash import BiMatGame
 from toy_games.bayesian_toy_structures import BayesianBirdActions
@@ -100,7 +100,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         thresh = 0
 
         # Uncomment/Comment the following lines to switch from 1 stage to 2 stages.
-
+        # fixme
         if x1.z < thresh and x2.z < thresh:
             subgame1 = 0
             subgame2 = 4

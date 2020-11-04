@@ -9,7 +9,9 @@ from bayesian_driving_games.bayesian_driving_rewards import (
     BayesianVehiclePersonalRewardStructureTime,
     BayesianVehiclePersonalRewardStructureSimple,
 )
-from bayesian_driving_games.structures import BayesianVehicleState, PlayerType, BayesianGamePlayer
+from bayesian_driving_games.structures import (
+    BayesianVehicleState,
+    BayesianGamePlayer, CAUTIOUS, AGGRESSIVE, NEUTRAL)
 from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from games import (
     Game,
@@ -44,7 +46,7 @@ DrivingGamePlayer = GamePlayer[
 
 
 def get_bayesian_driving_game(
-    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+        vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
 ) -> DrivingGame:
     """
 
@@ -78,8 +80,8 @@ def get_bayesian_driving_game(
     geometries = {P1: g1, P2: g2}
 
     # types
-    p1_types = [PlayerType("cautious"), PlayerType("aggressive")]
-    p2_types = [PlayerType("neutral")]
+    p1_types = [CAUTIOUS, AGGRESSIVE]
+    p2_types = [NEUTRAL]
 
     # priors
     ps2 = ProbabilityFraction()

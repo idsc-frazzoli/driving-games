@@ -15,8 +15,7 @@ from toy_games_tests import logger
 from toy_games.toy_game import get_toy_game_spec
 import nashpy as nash
 
-from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGameMat, single_game
-
+from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGameMat, single_game, game7
 
 
 def _run_toy_game(

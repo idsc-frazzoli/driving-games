@@ -1,25 +1,20 @@
 from frozendict import frozendict
 
-from bayesian_driving_games.structures import BayesianGamePlayer, PlayerType
-from driving_games import TwoVehicleUncertaintyParams, ProbPrefExpectedValue
-from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
+from bayesian_driving_games.structures import BayesianGamePlayer,  NEUTRAL, CAUTIOUS, AGGRESSIVE
+from driving_games import TwoVehicleUncertaintyParams
+from games import GameSpec, Game, PlayerName, get_accessible_states
 from nash import BiMatGame
 from toy_games.bayesian_toy_joint_rewards import (
     BayesianBirdJointReward,
 )
-from toy_games.bayesian_toy_structures import BayesianFlyingDynamics
 from toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
     BirdPreferences,
-    BirdJointReward,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from toy_games.bayesian_toy_structures import BayesianBirdState
-from possibilities import PossibilitySet, PossibilityMonad, ProbabilityFraction
+from possibilities import  PossibilityMonad, ProbabilityFraction
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
-import numpy as np
-from preferences import SetPreference1
 
 __all__ = ["get_bayesian_toy_game_spec"]
 
@@ -38,8 +33,8 @@ def get_bayesian_toy_game_spec(
     p2_initial = ps.unit(p2_x)
 
     # types
-    p2_types = [PlayerType("neutral")]
-    p1_types = [PlayerType("cautious"), PlayerType("aggressive")]
+    p2_types = [NEUTRAL]
+    p1_types = [CAUTIOUS, AGGRESSIVE]
 
     # priors
     ps2 = ProbabilityFraction()
@@ -98,7 +93,7 @@ def get_bayesian_toy_game_spec(
         prior=p2_prior,
     )
 
-    handcrafted_game = Game(
+    handcrafted_game = Game( # fixme needs to become a BayesianGame
         ps=ps,
         players=frozendict({P1: p1, P2: p2}),
         joint_reward=birds_joint_reward,

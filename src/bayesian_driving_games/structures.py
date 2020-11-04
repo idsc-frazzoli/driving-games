@@ -1,43 +1,46 @@
-import itertools
-from dataclasses import dataclass, replace
-from decimal import Decimal as D, localcontext
-from functools import lru_cache
-from typing import FrozenSet, Mapping, NewType, List
+from dataclasses import dataclass
 
-from frozendict import frozendict
+from typing import NewType, List, Mapping
 
-from driving_games import VehicleActions
-from driving_games.structures import InvalidAction, LightsValue, VehicleState, VehicleDynamics
-from games import Dynamics, GamePlayer
+from driving_games.structures import VehicleState
+from games import GamePlayer, Game, PlayerName
 from possibilities import Poss
-from zuper_commons.types import ZValueError
-from driving_games.rectangle import Rectangle
 
-__all__ = ["PlayerType", "BayesianVehicleState"]
+__all__ = ["PlayerType", "AGGRESSIVE", "CAUTIOUS", "NEUTRAL", "BayesianGamePlayer", "BayesianVehicleState", ]
 
 PlayerType = NewType("PlayerType", str)
 """ The type of a player. """
 
-IN_A_RUSH = PlayerType("in a rush")
-""" rushed player type optimizes for time. """
+AGGRESSIVE = PlayerType("aggressive")
+""" aggressive player type optimizes for time. """
 
-RELAXED = PlayerType("relaxed")
-""" relaxed player optimizes for comfort """
+CAUTIOUS = PlayerType("cautious")
+""" cautious player optimizes for comfort """
 
-NO_TYPE = PlayerType("no type")
-""" No types assigned """
+NEUTRAL = PlayerType("neutral")
+"""Neutral player type"""
 
 
 @dataclass
 class BayesianGamePlayer(GamePlayer):
+    # todo: Extend to more than two players - Mapping[PlayerName, List[PlayerType]]
     types_of_other: List[PlayerType]
-    """The types of the other player"""  # TODO: Extend to more than two players - Mapping[PlayerName, List[PlayerType]]
+    """The types of the other player"""
 
     types_of_myself: List[PlayerType]
     """The types of myself"""
 
     prior: Poss[PlayerType]
     """ The prior over the other player's types"""
+
+
+# fixme az I suspect here we need Bayesian Game
+@dataclass
+class BayesianGame(Game):
+    """ Definition of the game """
+
+    players: Mapping[PlayerName, BayesianGamePlayer]
+    """ The players in this game. """
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)

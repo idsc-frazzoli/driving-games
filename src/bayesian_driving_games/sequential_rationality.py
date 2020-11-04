@@ -70,12 +70,12 @@ def analyze_sequential_rational(
     value of the action profile. The results of every possible action combination (note an action for each player in
     each type) are given to the analyze function, that determines the Nash equilibrium.
 
-    :param ps: Probability monad of the game
+    :param ps: Possibility monad of the game
     :param gn: A Bayesian game node
     :param solved: For each action profile possible at the current state, the expected rewards for each type combination
     :param preferences:
     :param game:
-    :return: all nash equilibria and the set of dominated Nash equilibria
+    :return: all Nash Equilibria and the set of dominated Nash Equilibria
     """
     # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
