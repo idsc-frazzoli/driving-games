@@ -64,6 +64,7 @@ STRATEGY_BAIL = StrategyForMultipleNash("bail")
 class SolverParams:
     """ Parameters for the solver"""
 
+    # todo add parameters to deal with which solutions we want
     dt: D
     """ The delta-t when discretizing. """
     strategy_multiple_nash: StrategyForMultipleNash

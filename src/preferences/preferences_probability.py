@@ -43,7 +43,7 @@ class ProbPrefExpectedValue(ProbPreference):
                 expected_A = a * prob
             else:
                 expected_A += a * prob
-            return expected_A
+        return expected_A
 
 
 class ProbPrefXPercentile(ProbPreference):
