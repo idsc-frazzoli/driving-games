@@ -5,9 +5,7 @@ from typing import (
     AbstractSet,
     Callable,
     Dict,
-    FrozenSet,
     FrozenSet as FSet,
-    Mapping,
     Mapping as M,
     Tuple,
     List,
@@ -42,6 +40,7 @@ from .game_def import (
 )
 from .simulate import simulate1, Simulation
 from .solution_ghost import get_ghost_tree
+from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
 from .solve_equilibria_ import solve_equilibria
 from .structures_solution import (
     GameGraph,
@@ -57,7 +56,7 @@ from .structures_solution import (
     ValueAndActions,
 )
 
-__all__ = ["solve1", "get_outcome_preferences_for_players"]
+__all__ = ["solve1"]
 
 
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
@@ -103,6 +102,42 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
 
+    sims = solve_stackelberg(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+
+    logger.info("solving game tree")
+    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
+    controllers0 = {}
+    for player_name, pp in gp.players_pre.items():
+        policy = game_solution.policies[player_name]
+        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy)
+
+    logger.info(
+        f"Value of joint solution",
+        game_value=game_solution.states_to_solution[initial_state].va.game_value,
+        # policy=solution_ghost.policies,
+    )
+    for seed in range(5):
+        sim_joint = simulate1(
+            gp.game,
+            policies=controllers0,
+            initial_states=game_tree.states,
+            dt=gp.solver_params.dt,
+            seed=seed,
+        )
+        sims[f"joint-{seed}"] = sim_joint
+
+    return Solutions(
+        game_solution=game_solution,
+        game_tree=game_tree,
+        solutions_players=solutions_players,
+        sims=sims,
+    )
+    # logger.info(game_tree=game_tree)
+
+
+def solve_stackelberg(
+    gp: GamePreprocessed, gg: GameGraph, initial_state: JointState, sims: Dict[str, Simulation]
+) -> Dict[str, Simulation]:
     for player_name, pp in gp.players_pre.items():
         # use other solutions
         controllers_others = {}
@@ -138,58 +173,11 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
             gp.game,
             policies=controllers,
             initial_states=initial_state,
-            dt=dt,
+            dt=gp.solver_params.dt,
             seed=0,
         )
         sims[f"{player_name}-follows"] = sim_
-
-    logger.info("solving game tree")
-    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
-    controllers0 = {}
-    for player_name, pp in gp.players_pre.items():
-        policy = game_solution.policies[player_name]
-        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy)
-
-    logger.info(
-        f"Value of joint solution",
-        game_value=game_solution.states_to_solution[initial_state].va.game_value,
-        # policy=solution_ghost.policies,
-    )
-    for seed in range(5):
-        sim_joint = simulate1(
-            gp.game,
-            policies=controllers0,
-            initial_states=game_tree.states,
-            dt=gp.solver_params.dt,
-            seed=seed,
-        )
-        sims[f"joint-{seed}"] = sim_joint
-
-    return Solutions(
-        game_solution=game_solution,
-        game_tree=game_tree,
-        solutions_players=solutions_players,
-        sims=sims,
-    )
-    # logger.info(game_tree=game_tree)
-
-
-def get_outcome_preferences_for_players(
-    game: Game[X, U, Y, RP, RJ, SR],
-) -> M[PlayerName, Preference[UncertainCombined]]:
-    """
-
-    :param game:
-    :return:
-    """
-    preferences: Dict[PlayerName, Preference[UncertainCombined]] = {}
-    for player_name, player in game.players.items():
-        pref0: Preference[Combined[RJ, RP]] = player.preferences
-        monadic_pref_builder: MonadicPreferenceBuilder
-        monadic_pref_builder = player.monadic_preference_builder
-        pref2: Preference[UncertainCombined] = monadic_pref_builder(pref0)
-        preferences[player_name] = pref2
-    return preferences
+    return sims
 
 
 def solve_game2(
@@ -243,10 +231,6 @@ def solve_game2(
     )
 
 
-def fr(d):
-    return frozendict({k: frozendict(v) for k, v in d.items()})
-
-
 def _solve_game(
     sc: SolvingContext[X, U, Y, RP, RJ, SR],
     js: JointState,
@@ -282,7 +266,7 @@ def _solve_game(
         inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
         # if we choose these actions, then these are the game nodes
         # we could go in. Note that each player can go in a different joint state.
-        next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.outcomes[pure_actions]
+        next_nodes: Poss[M[PlayerName, JointState]] = gn.outcomes[pure_actions]
 
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:
@@ -294,7 +278,7 @@ def _solve_game(
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         for player_name in pure_actions:
 
-            def v(m: Mapping[PlayerName, JointState]) -> UncertainCombined:
+            def v(m: M[PlayerName, JointState]) -> UncertainCombined:
                 gn2: SolvedGameNode[X, U, U, RP, RJ, SR] = sc.cache[m[player_name]]
                 if not player_name in gn2.va.game_value:
                     raise ZValueError(player_name=player_name, gn2=gn2, stn=stn)
@@ -335,18 +319,18 @@ def _solve_game(
         next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
         next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
-        usages: Dict[D, Poss[M[PlayerName, FrozenSet[SR]]]]
+        usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
         usages = {D(0): usage_current}
-        Π = 1
+        # Π = 1
 
         for i in map(D, range(10)):  # XXX: use the range that's needed
             default = ps.unit(frozendict())
 
-            def get_data(x: M[PlayerName, JointState]) -> Poss[Mapping[PlayerName, FSet[SR]]]:
+            def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
                 for pname in va.mixed_actions:
 
-                    def get_its(y: Mapping[PlayerName, FSet[SR]]) -> FSet[SR]:
+                    def get_its(y: M[PlayerName, FSet[SR]]) -> FSet[SR]:
                         return y.get(pname, frozenset())
 
                     st = x[player_name]
@@ -355,14 +339,14 @@ def _solve_game(
                     used_at_i_by_player: Poss[FSet[SR]] = ps.build(ui, get_its)
                     used_by_players[pname] = used_at_i_by_player
 
-                def remove_empty(_: Mapping[PlayerName, FSet[SR]]) -> Mapping[PlayerName, FSet[SR]]:
+                def remove_empty(_: M[PlayerName, FSet[SR]]) -> M[PlayerName, FSet[SR]]:
                     notempty = {}
                     for k, sr_used in _.items():
                         if sr_used:
                             notempty[k] = sr_used
                     return frozendict(notempty)
 
-                res: Poss[Mapping[PlayerName, FSet[SR]]]
+                res: Poss[M[PlayerName, FSet[SR]]]
                 res = ps.build_multiple(used_by_players, remove_empty)
                 return res
 
@@ -396,21 +380,6 @@ def _solve_game(
         )
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
-
-
-def add_incremental_cost_single(
-    game: Game[X, U, Y, RP, RJ, SR],
-    *,
-    player_name: PlayerName,
-    cur: Combined[RP, RJ],
-    incremental_for_player: M[PlayerName, Poss[RP]],
-) -> Combined[RP, RJ]:
-    inc = incremental_for_player[player_name]
-    reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-    personal = reduce(inc, cur.personal)
-
-    joint = cur.joint
-    return Combined(personal=personal, joint=joint)
 
 
 def solve_final_joint(

@@ -27,6 +27,19 @@ class Collision:
     energy_received: D
     energy_transmitted: D
 
+    # Monoid for sum of Combined outcome
+    def __add__(self, other: "Collision") -> "Collision":
+        if type(other) == type(self):
+            return replace(
+                self,
+                energy_received=self.energy_received + other.energy_received,
+                energy_transmitted=self.energy_transmitted + other.energy_transmitted,
+            )
+        else:
+            raise NotImplementedError
+
+    __radd__ = __add__
+
     # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "Collision":
         # weighting costs, e.g. according to a probability

@@ -25,9 +25,9 @@ def _run_toy_game(
 ):
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
 
-    logger.info("Starting a 2 stage toy game with the following subgames:")
+    logger.info(f"Starting a {toy_game_mat.get_max_stages()} stage toy game with the following subgame(s):")
     for i, bimatgame in enumerate(toy_game_mat.subgames):
-        logger.info("Subgame {}: {}".format(i, print_bimatgame(bimatgame)))
+        logger.info(f"Subgame {i}: {print_bimatgame(bimatgame)}")
 
     solver_params = solver_spec.solver_params
     # game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
@@ -35,20 +35,20 @@ def _run_toy_game(
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
     solutions = solve1(game_preprocessed)
-    for state, solution in solutions.game_solution.states_to_solution.items():
-        # filter out only the first level subgame
-        if all([p.stage == 1 for p in state.values()]):
-            game_idx, _, _ = BirdJointReward.get_payoff_matrix_idx(
-                toy_game_mat.get_max_stages(), state[p1_name], state[p2_name]
-            )
-            # print("Game solution of game:", gamemat2str(leaves_payoffs[game_idx]))
-            logger.info("Joint state:\n", state)
-            logger.info("Values and actions:\n", solution.solved)
-            logger.info("Game values:\n", solution.va.game_value)
+    # for state, solution in solutions.game_solution.states_to_solution.items():
+    #     # filter out only the first level subgame
+    #     if all([p.stage == 1 for p in state.values()]):
+    #         game_idx, _, _ = BirdJointReward.get_payoff_matrix_idx(
+    #             toy_game_mat.get_max_stages(), state[p1_name], state[p2_name]
+    #         )
+    #         # print("Game solution of game:", gamemat2str(leaves_payoffs[game_idx]))
+    #         logger.info("Joint state:\n", state)
+    #         logger.info("Values and actions:\n", solution.solved)
+    #         logger.info("Game values:\n", solution.va.game_value)
 
     # todo check solutions with what we expect
     # todo create report/visualisation
-    logger.info(solutions)
+    # logger.info(solutions)
 
 
 def _run_toy_game_bayesian(
