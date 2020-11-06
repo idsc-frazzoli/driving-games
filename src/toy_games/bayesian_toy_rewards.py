@@ -15,6 +15,39 @@ from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
 from toy_games.bayesian_toy_structures import BayesianBirdState
 
 
+class BayesianBirdPersonalReward(PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
+    max_stages: int
+
+    def __init__(self, max_stages: int, p1_types: List[PlayerType], p2_types: List[PlayerType]):
+        self.max_stages = max_stages
+        self.p1_types = p1_types
+        self.p2_types = p2_types
+
+    def personal_reward_identity(self) -> BirdCosts:
+        return BirdCosts(D(0))
+
+    def personal_reward_incremental(self, x: BirdState, u: BirdActions, dt: D) -> Mapping[Tuple[PlayerType,
+                                                                                                PlayerType], BirdCosts]:
+        check_isinstance(x, BirdState)
+        check_isinstance(u, BirdActions)
+        tc = list(itertools.product(self.p1_types, self.p2_types))
+        res = {tc[0]: BirdCosts(D(0)), tc[1]: BirdCosts(D(0))}
+        return res
+
+    def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
+        return r1 + r2
+
+    def personal_final_reward(self, x: BirdState) -> Mapping[Tuple[PlayerType, PlayerType], BirdCosts]:
+        check_isinstance(x, BirdState)
+        tc = list(itertools.product(self.p1_types, self.p2_types))
+        res = {tc[0]: BirdCosts(D(0)), tc[1]: BirdCosts(D(0))}
+        return res
+
+    def is_personal_final_state(self, x: BirdState) -> bool:
+        check_isinstance(x, BirdState)
+        return x.stage == self.max_stages
+
+
 class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
     max_stages: int
     leaves_payoffs: Mapping[BirdState, Mapping[PlayerName, BirdCosts]]
@@ -34,7 +67,6 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         self.row_player = row_player
         self.col_player = col_player
         self.max_stages = max_stages
-        assert len(subgames) == 8 or 4 or 1, subgames
         self.mat_payoffs = [np.stack([g.A, g.B], axis=-1) for g in subgames]
         self.p1_types = p1_types
         self.p2_types = p2_types
@@ -64,7 +96,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         res2 = {}
         res = {}
         x1, x2 = xs[self.row_player], xs[self.col_player]
-        subgame1, subgame2, row, col = self.get_payoff_matrix_idx(x1, x2)
+        subgame1, subgame2, row, col = self.get_payoff_matrix_idx(self.max_stages, x1, x2)
         payoff11, payoff12 = self.mat_payoffs[subgame1][row, col, :]
         payoff21, payoff22 = self.mat_payoffs[subgame2][row, col, :]
         res1.update(
@@ -79,7 +111,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         return frozendict(res)
 
     @staticmethod
-    def get_payoff_matrix_idx(x1: BirdState, x2: BirdState) -> Tuple[int, int, int, int]:
+    def get_payoff_matrix_idx(max_stages: int, x1: BirdState, x2: BirdState) -> Tuple[int, int, int, int]:
         """
         Trick to build encapsulate payoff matrices into the dynamic game
         joint state (x1,x2):
@@ -101,6 +133,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
 
         # Uncomment/Comment the following lines to switch from 1 stage to 2 stages.
         # fixme
+
         if x1.z < thresh and x2.z < thresh:
             subgame1 = 0
             subgame2 = 4
@@ -113,13 +146,20 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         else:
             subgame1 = 3
             subgame2 = 7
-        # subgame = 0
 
-        z1_dec = x1.z - round(x1.z)
-        z2_dec = x2.z - round(x2.z)
-        # z1_dec = x1.z
-        # z2_dec = x2.z
-
-        row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
+        if max_stages == 1:
+            row = 0 if subgame1 in {0, 1} else 1
+            col = 0 if subgame1 in {0, 2} else 1
+            subgame1 = 0
+            subgame2 = 1
+        elif max_stages == 2:
+            z1_dec = x1.z - round(x1.z)
+            z2_dec = x2.z - round(x2.z)
+            row, col = map(lambda x: 0 if x < 0 else 1, [z1_dec, z2_dec])
+        else:
+            raise ValueError(max_stages)
 
         return subgame1, subgame2, row, col
+
+
+

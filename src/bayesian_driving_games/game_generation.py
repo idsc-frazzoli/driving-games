@@ -85,10 +85,10 @@ def get_bayesian_driving_game(
 
     # priors
     ps2 = ProbabilityFraction()
-    # p1_prior = ps2.lift_many(p2_types)
-    # p2_prior = ps2.lift_many(p1_types)
-    p1_prior = ps2.twenty_eighty(p2_types)
-    p2_prior = ps2.twenty_eighty(p1_types)
+    p1_prior = ps2.lift_many(p2_types)
+    p2_prior = ps2.lift_many(p1_types)
+    # p1_prior = ps2.twenty_eighty(p2_types)
+    # p2_prior = ps2.twenty_eighty(p1_types)
 
     # State
     p1_x = VehicleState(

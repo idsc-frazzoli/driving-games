@@ -19,7 +19,7 @@ from games import (
     report_solutions,
     create_report_preprocessed,
 )
-from games_scripts.solvers import SolverSpec
+from games_zoo.solvers import SolverSpec
 from possibilities.sets import SetPoss
 from bayesian_driving_games.solution import solve_bayesian_game
 from bayesian_driving_games.preprocess import bayesian_preprocess_game
@@ -48,8 +48,7 @@ def test2():
         poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
     )
     d = "ml_out/tests_final/"
-    game2 = get_bayesian_driving_game(p0, uncertainty_sets)
-    # game1 = get_master_slave_game(p0,uncertainty_sets,2)
+    game2 = get_bayesian_driving_game(p0, uncertainty_prob)
     game_name = "50-50,test1 : aggressive"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc

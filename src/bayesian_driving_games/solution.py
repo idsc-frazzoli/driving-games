@@ -139,17 +139,6 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
             dt=gp.solver_params.dt,
             seed=seed,
         )
-        res[seed] = {}
-        if len(sim_joint.joint_costs.items()) > 0:
-            print("crash")
-        else:
-            for _, v in sim_joint.costs.items():
-                for player_name, value in v.items():
-                    for tc, cost in value.items():
-                        try:
-                            res[seed][player_name, tc] = res[seed][player_name, tc] + cost
-                        except:
-                            res[seed][player_name, tc] = cost
 
         sims[f"joint-{seed}"] = sim_joint
 

@@ -12,6 +12,7 @@ from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
 from possibilities import Poss, PossibilitySet, PossibilityMonad
+from toy_games import ToyGameMat
 
 Go = NewType("Go", str)
 UP = Go("up")
@@ -114,3 +115,11 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         return None
         # raise NotImplementedError("For the toy example the concept of shared resources is not needed")
 
+
+class BayesianToyGameMat(ToyGameMat):
+
+    def __post_init__(self):
+        assert len(self.subgames) in {2, 8}, len(self.subgames)
+
+    def get_max_stages(self) -> int:
+        return 1 if len(self.subgames) == 2 else 2
