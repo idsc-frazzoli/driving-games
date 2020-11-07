@@ -1,89 +1,14 @@
 from itertools import product
-from typing import Sequence
-
 from parameterized import parameterized
-
-from bayesian_driving_games.preprocess import bayesian_preprocess_game
-from bayesian_driving_games.solution import solve_bayesian_game
 from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
-from games import STRATEGY_MIX, STRATEGY_SECURITY, preprocess_game, solve1, PlayerName
+from games import STRATEGY_MIX, STRATEGY_SECURITY
 from games_zoo import solvers_zoo
 from games_zoo.solvers import SolverSpec
-from nash.structures import print_bimatgame, BiMatGame
-from toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
-from toy_games.bayesian_toy_rewards import BayesianBirdJointReward
-from toy_games.toy_rewards import BirdJointReward
+from toy_games import ToyGameMat
 from toy_games_tests import logger
-from toy_games.toy_game import get_toy_game_spec
 import nashpy as nash
-
-from toy_games_tests.toy_games_tests_zoo import game1, game2, ToyGameMat, single_game, game7
-
-
-def _run_toy_game(
-    toy_game_mat: ToyGameMat,
-    solver_spec: SolverSpec,
-    uncertainty_params: TwoVehicleUncertaintyParams,
-):
-    p1_name, p2_name = PlayerName("1"), PlayerName("2")
-
-    logger.info(f"Starting a {toy_game_mat.get_max_stages()} stage toy game with the following subgame(s):")
-    for i, bimatgame in enumerate(toy_game_mat.subgames):
-        logger.info(f"Subgame {i}: {print_bimatgame(bimatgame)}")
-
-    solver_params = solver_spec.solver_params
-    # game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
-    game_spec = get_toy_game_spec(toy_game_mat, uncertainty_params)
-    game = game_spec.game
-    game_preprocessed = preprocess_game(game, solver_params)
-    solutions = solve1(game_preprocessed)
-    # for state, solution in solutions.game_solution.states_to_solution.items():
-    #     # filter out only the first level subgame
-    #     if all([p.stage == 1 for p in state.values()]):
-    #         game_idx, _, _ = BirdJointReward.get_payoff_matrix_idx(
-    #             toy_game_mat.get_max_stages(), state[p1_name], state[p2_name]
-    #         )
-    #         # print("Game solution of game:", gamemat2str(leaves_payoffs[game_idx]))
-    #         logger.info("Joint state:\n", state)
-    #         logger.info("Values and actions:\n", solution.solved)
-    #         logger.info("Game values:\n", solution.va.game_value)
-
-    # todo check solutions with what we expect
-    # todo create report/visualisation
-    # logger.info(solutions)
-
-
-def _run_toy_game_bayesian(
-    subgames: Sequence[BiMatGame],
-    solver_spec: SolverSpec,
-    uncertainty_params: TwoVehicleUncertaintyParams,
-):
-    max_stages = 2
-    p1_name, p2_name = PlayerName("1"), PlayerName("2")
-
-    logger.info("Starting a 2 stage toy game with the following subgames:")
-    for i, bimatgame in enumerate(subgames):
-        logger.info("Subgame {}: {}".format(i, print_bimatgame(bimatgame)))
-
-    solver_params = solver_spec.solver_params
-    # game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
-    game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
-    game = game_spec.game
-    game_preprocessed = bayesian_preprocess_game(game, solver_params)
-    solutions = solve_bayesian_game(game_preprocessed)
-    for state, solution in solutions.game_solution.states_to_solution.items():
-        # filter out only the first level subgame
-        if all([p.stage == 1 for p in state.values()]):
-            game_idx1, game_idx2, _, _ = BayesianBirdJointReward.get_payoff_matrix_idx(max_stages, state[p1_name],
-                                                                              state[p2_name])
-            ##print("Game solution of game:", gamemat2str(leaves_payoffs[game_idx]))
-            logger.info("Joint state:\n", state)
-            logger.info("Values and actions:\n", solution.solved)
-            logger.info("Game values:\n", solution.va.game_value)
-
-    # todo create report/visualisation
-    #logger.info(solutions)
-
+from toy_games_tests.run_toy_games import _run_toy_game, _run_toy_game_bayesian
+from toy_games_tests.toy_games_tests_zoo import *
 
 games = (game1, game2)
 strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
@@ -96,6 +21,7 @@ toy_tests = list(product(games, solvers, uncertainties))
 def test_toy_games(
     toygame: ToyGameMat, solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams
 ):
+    """Test Toy Game:"""
     for i, G in enumerate(toygame.subgames):
         logger.info(
             "Game G{} equilibria: ".format(i + 1),

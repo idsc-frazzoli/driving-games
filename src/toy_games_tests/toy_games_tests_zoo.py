@@ -5,6 +5,8 @@ from toy_games.bayesian_toy_structures import BayesianToyGameMat
 
 from toy_games.toy_structures import ToyGameMat
 
+__all__ = ["game1", "game2", "game21", "game3", "game4", "game5", "game6", "game7"]
+
 G1 = BiMatGame(A=np.array([[1, 1], [3, 5]]), B=np.array([[0, 2], [2, 5]]))
 G2 = BiMatGame(A=np.array([[1, 4], [2, 2]]), B=np.array([[0, 1], [3, 1]]))
 G3 = BiMatGame(A=np.array([[1, 3], [2, 2]]), B=np.array([[4, 1], [1, 2]]))
@@ -19,22 +21,15 @@ game2 = ToyGameMat(
     subgames=[G1b, G2b, G3b, G4b],
     desc="This game has a unique advantageous solution (NE).\n" "It is obtained by the outcome (2,0) in G1b.",
 )
-
-#G1b = BiMatGame(A=np.array([[100, 200], [300, 400]]), B=np.array([[100, 200], [300, 400]]))  # down down
-#G2b = BiMatGame(A=np.array([[500, 600], [700, 800]]), B=np.array([[500, 600], [700, 800]]))  # down up
-#G3b = BiMatGame(A=np.array([[900, 1000], [1100, 1200]]), B=np.array([[900, 1000], [1100, 1200]]))  # up down
-#G4b = BiMatGame(A=np.array([[1300, 1400], [1500, 1600]]), B=np.array([[1300, 1400], [1500, 1600]]))  # up up
-#game2 = ToyGame(
-#    subgames=[G1b, G2b, G3b, G4b],
-#    desc="This game should have a unique clear solution, but what do the weights do?",
-#)
+game21 = ToyGameMat(subgames=[G1b], desc="Single stage game")
 
 G1c = BiMatGame(A=np.array([[1, 2], [3, 4]]), B=np.array([[1, 2], [3, 4]]))  # down down
 G2c = BiMatGame(A=np.array([[1, 2], [3, 4]]), B=np.array([[1, 2], [3, 4]]))  # down up
 G3c = BiMatGame(A=np.array([[1, 2], [3, 4]]), B=np.array([[1, 2], [3, 4]]))  # up down
 G4c = BiMatGame(A=np.array([[1, 2], [3, 4]]), B=np.array([[1, 2], [3, 4]]))  # up up
-game3 = ToyGameMat(subgames=[G1c, G2c, G3c, G4c], desc="Every subgame has a different clear unique equilibrium")
-
+game3 = ToyGameMat(
+    subgames=[G1c, G2c, G3c, G4c], desc="Every subgame has a different clear unique equilibrium"
+)
 
 G1d = BiMatGame(A=np.array([[1, 2], [3, 4]]), B=np.array([[1, 2], [3, 4]]))  # down down
 game4 = ToyGameMat(subgames=[G1d], desc="one-stage game")
@@ -51,7 +46,6 @@ G3f = BiMatGame(A=np.array([[-1, -1], [-1, -1]]), B=np.array([[-1, -1], [-1, -1]
 G4f = BiMatGame(A=np.array([[-1, -2], [-2, -6]]), B=np.array([[-1, -2], [-2, -6]]))  # up up
 game6 = ToyGameMat(subgames=[G1f, G2f, G3f, G4f], desc="Bayesian Game that should favour 6,6 instead of 9,9")
 
-
 G1g = BiMatGame(A=np.array([[-20, -15], [-10, -5]]), B=np.array([[0, -1], [-5, 0]]))  # down down
 G2g = BiMatGame(A=np.array([[-15, -12], [-10, -5]]), B=np.array([[-1, -2], [0, -3]]))  # down up
 G3g = BiMatGame(A=np.array([[-10, -10], [0, 0]]), B=np.array([[-5, 0], [-10, -5]]))  # up down
@@ -61,6 +55,6 @@ G5g = BiMatGame(A=np.array([[0, 0], [-5, -5]]), B=np.array([[-10, -5], [-5, 0]])
 G6g = BiMatGame(A=np.array([[0, 0], [-10, -5]]), B=np.array([[-1, -2], [0, -3]]))  # down up
 G7g = BiMatGame(A=np.array([[-5, -10], [-15, -15]]), B=np.array([[-5, 0], [-2, -1]]))  # up down
 G8g = BiMatGame(A=np.array([[-10, -5], [-15, -20]]), B=np.array([[0, -1], [-5, 0]]))  # up up
-game7 = BayesianToyGameMat(subgames=[G1g, G2g, G3g, G4g, G5g, G6g, G7g, G8g], desc="A dominated Bayesian Game")
-
-single_game = ToyGameMat(subgames=[G1b], desc="Single stage game")
+game7 = BayesianToyGameMat(
+    subgames=[G1g, G2g, G3g, G4g, G5g, G6g, G7g, G8g], desc="A dominated Bayesian Game"
+)

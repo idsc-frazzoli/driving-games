@@ -6,7 +6,14 @@ from driving_games.structures import VehicleState
 from games import GamePlayer, Game, PlayerName
 from possibilities import Poss
 
-__all__ = ["PlayerType", "AGGRESSIVE", "CAUTIOUS", "NEUTRAL", "BayesianGamePlayer", "BayesianVehicleState", ]
+__all__ = [
+    "PlayerType",
+    "AGGRESSIVE",
+    "CAUTIOUS",
+    "NEUTRAL",
+    "BayesianGamePlayer",
+    "BayesianVehicleState",
+]
 
 PlayerType = NewType("PlayerType", str)
 """ The type of a player. """

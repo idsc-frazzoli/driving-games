@@ -140,6 +140,7 @@ class BayesianVehiclePersonalRewardStructureTime(
     Very similar to the normal Driving Games personal reward, but each type combination gives a different payoff.
     These are coded in the functions personal_reward_incremental and personal_final_reward. All other functions can stay the same as in the driving games.
     """
+
     max_path: D
 
     def __init__(self, max_path: D, p1_types: List[PlayerType], p2_types: List[PlayerType]):

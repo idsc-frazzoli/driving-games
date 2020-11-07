@@ -12,9 +12,10 @@ from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
 from nash import BiMatGame
-from possibilities import Poss, PossibilitySet, PossibilityMonad
+from possibilities import Poss, PossibilityMonad
 
 Go = NewType("Go", str)
+"""Bird action"""
 UP = Go("up")
 DOWN = Go("down")
 GoValue: AbstractSet[Go] = frozenset({UP, DOWN})
@@ -43,24 +44,8 @@ class BirdState(object):
     stage: int = 0
 
 
-# @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-# class BayesianBirdState(BirdState):
-#     # type
-#     player_type: str = '0'
-#
-#     def compare_physical_states(self, s2) -> bool:
-#         if self.z != s2.z:
-#             return False
-#         elif self.stage != s2.stage:
-#             return False
-#         elif self.player_type == s2.player_type:
-#             return False
-#         else:
-#             return True
-
-
 class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
-    """Pulling UP increases x, DOWN decreases"""
+    """Pulling UP increases z, DOWN decreases"""
 
     def __init__(self, poss_monad: PossibilityMonad):
         self.ps = poss_monad

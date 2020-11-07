@@ -46,7 +46,7 @@ class BirdState(object):
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BayesianBirdState(BirdState):
     # type
-    player_type: str = "0"
+    player_type: str = "0"  # todo convert it to PlayerType
 
     def compare_physical_states(self, s2) -> bool:
         if self.z != s2.z:
@@ -117,7 +117,6 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
 
 
 class BayesianToyGameMat(ToyGameMat):
-
     def __post_init__(self):
         assert len(self.subgames) in {2, 8}, len(self.subgames)
 

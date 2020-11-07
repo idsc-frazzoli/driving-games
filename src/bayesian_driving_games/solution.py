@@ -287,7 +287,6 @@ def solve_game_bayesian2(
     return None
 
 
-
 def add_bayesian_incremental_cost_single(
     game: Game[X, U, Y, RP, RJ, SR],
     *,

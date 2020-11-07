@@ -48,9 +48,11 @@ def weight_outcome(mixed_outcome, weight, ps, t1, t2):
     """
     x = {}
     a = 1
-    try: mixed_outcome.p
-    except: a = 0
-    if a==1: # probabilty monad
+    try:
+        mixed_outcome.p
+    except:
+        a = 0
+    if a == 1:  # probabilty monad
         for k, v in mixed_outcome.p.items():
             for k1, v1 in k.items():
                 if (t2, t1) in k1:
@@ -276,7 +278,7 @@ def solve_sequential_rationality(
 
                     x = list(outcome.support())[0]
                     for key in x.keys():
-                        if (t1,t2) in key or (t2,t1) in key:
+                        if (t1, t2) in key or (t2, t1) in key:
                             game_value[key] = x[key]
 
         for player_final, final_value in gn.is_final.items():

@@ -11,7 +11,11 @@ from bayesian_driving_games.bayesian_driving_rewards import (
 )
 from bayesian_driving_games.structures import (
     BayesianVehicleState,
-    BayesianGamePlayer, CAUTIOUS, AGGRESSIVE, NEUTRAL)
+    BayesianGamePlayer,
+    CAUTIOUS,
+    AGGRESSIVE,
+    NEUTRAL,
+)
 from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
 from games import (
     Game,
@@ -46,7 +50,7 @@ DrivingGamePlayer = GamePlayer[
 
 
 def get_bayesian_driving_game(
-        vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
 ) -> DrivingGame:
     """
 

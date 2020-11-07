@@ -5,14 +5,14 @@ from driving_games import TwoVehicleUncertaintyParams
 from games import GameSpec, Game, PlayerName, get_accessible_states
 from nash import BiMatGame
 from toy_games.bayesian_toy_rewards import (
-    BayesianBirdJointReward, BayesianBirdPersonalReward,
+    BayesianBirdJointReward,
+    BayesianBirdPersonalReward,
 )
 from toy_games.toy_rewards import (
-    BirdPersonalRewardStructureCustom,
     BirdPreferences,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import  PossibilityMonad, ProbabilityFraction
+from possibilities import PossibilityMonad, ProbabilityFraction
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
 
@@ -46,10 +46,12 @@ def get_bayesian_toy_game_spec(
     p2_dynamics = FlyingDynamics(poss_monad=ps)
 
     # personal reward structure
-    p1_personal_reward_structure = BayesianBirdPersonalReward(max_stages=max_stages, p1_types=p1_types,
-                                                              p2_types=p2_types)
-    p2_personal_reward_structure = BayesianBirdPersonalReward(max_stages=max_stages, p1_types=p1_types,
-                                                              p2_types=p2_types)
+    p1_personal_reward_structure = BayesianBirdPersonalReward(
+        max_stages=max_stages, p1_types=p1_types, p2_types=p2_types
+    )
+    p2_personal_reward_structure = BayesianBirdPersonalReward(
+        max_stages=max_stages, p1_types=p1_types, p2_types=p2_types
+    )
 
     # observations
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
@@ -95,7 +97,7 @@ def get_bayesian_toy_game_spec(
         prior=p2_prior,
     )
 
-    handcrafted_game = BayesianGame( # fixme needs to become a BayesianGame
+    handcrafted_game = BayesianGame(
         ps=ps,
         players=frozendict({P1: p1, P2: p2}),
         joint_reward=birds_joint_reward,

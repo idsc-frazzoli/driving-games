@@ -83,11 +83,8 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
 
     def joint_reward(self, xs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
         """
-        Each payoff matrix correspond to a specific game
-        [-1,-1] -> leaves_payoffs[0]
-        [-1,1] -> leaves_payoffs[1]
-        [1,-1] -> leaves_payoffs[2]
-        [1,1] -> leaves_payoffs[3]
+        Each payoff matrix correspond to a specific subgame
+
         :param xs:
         :return:
         """

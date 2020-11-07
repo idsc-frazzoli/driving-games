@@ -26,8 +26,9 @@ class BayesianBirdPersonalReward(PersonalRewardStructure[BirdState, BirdActions,
     def personal_reward_identity(self) -> BirdCosts:
         return BirdCosts(D(0))
 
-    def personal_reward_incremental(self, x: BirdState, u: BirdActions, dt: D) -> Mapping[Tuple[PlayerType,
-                                                                                                PlayerType], BirdCosts]:
+    def personal_reward_incremental(
+        self, x: BirdState, u: BirdActions, dt: D
+    ) -> Mapping[Tuple[PlayerType, PlayerType], BirdCosts]:
         check_isinstance(x, BirdState)
         check_isinstance(u, BirdActions)
         tc = list(itertools.product(self.p1_types, self.p2_types))
@@ -120,6 +121,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         (>0,<0) -> G3
         (>0,>0) -> G4
         To figure out the indices we then look at the decimals...
+
         :param x1:
         :param x2:
         :return:
@@ -130,9 +132,6 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         row: int
         col: int
         thresh = 0
-
-        # Uncomment/Comment the following lines to switch from 1 stage to 2 stages.
-        # fixme
 
         if x1.z < thresh and x2.z < thresh:
             subgame1 = 0
@@ -160,6 +159,3 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
             raise ValueError(max_stages)
 
         return subgame1, subgame2, row, col
-
-
-

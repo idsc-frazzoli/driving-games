@@ -9,7 +9,7 @@ from toy_games.toy_rewards import (
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
 from possibilities import PossibilityMonad
-from typing import FrozenSet as ASet, cast, Sequence
+from typing import FrozenSet as ASet, cast
 from decimal import Decimal as D
 from toy_games_tests.toy_games_tests_zoo import ToyGameMat
 
