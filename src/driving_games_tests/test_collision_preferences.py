@@ -10,7 +10,8 @@ from driving_games import (
     IMPACT_FRONT,
     VehicleCosts,
 )
-from games import Combined, get_outcome_preferences_for_players
+from games import Combined
+from games.solution_utils import get_outcome_preferences_for_players
 from preferences import (
     ComparisonOutcome,
     FIRST_PREFERRED,

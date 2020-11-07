@@ -1,4 +1,4 @@
-preferences package
+Preferences package
 =========================================
 
 .. inheritance-diagram:: preferences.SmallerPreferred

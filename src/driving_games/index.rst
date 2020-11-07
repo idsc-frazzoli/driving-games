@@ -1,5 +1,5 @@
 
-driving-games package
+Driving Games package
 =========================================
 
 .. automodule:: driving_games

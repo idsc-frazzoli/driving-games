@@ -12,7 +12,6 @@ quickapp-z6>=6.0.5,<7
 reprep-z6>=6.0.3,<7
 networkx>=2.4
 zuper-typing-z6>=6.1.0
-
 seaborn
 nashpy
 

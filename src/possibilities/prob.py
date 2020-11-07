@@ -74,6 +74,22 @@ class ProbabilityFraction(PossibilityMonad):
         x = {_: w for _ in elements}
         return ProbPoss(frozendict(x))
 
+    def twenty_eighty(self, a: Collection[A]) -> ProbPoss[A]:
+        elements = list(a)
+        n = len(elements)
+        w = Fraction(1, n)
+        x = {}
+        for _ in elements:
+            if _ == "cautious":
+                x[_] = Fraction(1, 1000)
+            elif _ == "aggressive":
+                x[_] = Fraction(999, 1000)
+            elif _ == "neutral":
+                x[_] = w
+            else:
+                x[_] = w
+        return ProbPoss(frozendict(x))
+
     def join(self, a: ProbPoss[ProbPoss[A]]) -> ProbPoss[A]:
         res = defaultdict(Fraction)
         for dist, weight in a.it():
@@ -97,6 +113,8 @@ class ProbabilityFraction(PossibilityMonad):
             probs = [a[source].get(elements[source]) for source in sources]
             weight = reduce(Fraction.__mul__, probs)
             r = f(elements)
+            # for v in r:
+            #     res[v] += weight
             res[r] += weight
         return ProbPoss(frozendict(res))
 

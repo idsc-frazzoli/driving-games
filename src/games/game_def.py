@@ -12,6 +12,7 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    List,
 )
 
 from frozendict import frozendict

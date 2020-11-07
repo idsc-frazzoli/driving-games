@@ -81,9 +81,9 @@ def collision_check(
 
         c1 = Collision(i1, p1_active, energy_received_1, energy_given_1)
         c2 = Collision(i2, p2_active, energy_received_2, energy_given_2)
-        return frozendict({p1: c1, p2: c2})
+        return {p1: c1, p2: c2}
 
-    return frozendict({})
+    return {}
 
 
 def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):

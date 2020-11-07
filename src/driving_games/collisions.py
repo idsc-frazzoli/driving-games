@@ -51,6 +51,15 @@ class Collision:
 
     __rmul__ = __mul__
 
+    def __add__(self, other: "Collision") -> "Collision":
+        return replace(
+            self,
+            energy_received=self.energy_received + other.energy_received,
+            energy_transmitted=self.energy_transmitted + other.energy_transmitted,
+            location=self.location,
+            active=self.active,
+        )
+
 
 @dataclass(frozen=True)
 class ProjectedCar:

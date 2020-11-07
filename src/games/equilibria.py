@@ -143,7 +143,10 @@ def analyze(
         alternatives = {}
         for player_name in player_names:
             pref: Preference[UncertainCombined]
-            pref = preferences[player_name]
+            try:
+                pref = preferences[player_name]
+            except:
+                pref = preferences[player_name[0]]
             is_happy: bool = True
             variations_: Mapping[U, JointMixedActions]
             variations_ = variations(player_mixed_strategies, a0, player_name)
@@ -153,7 +156,10 @@ def analyze(
                 # zassert(x1 in results, a1=a1, results=set(results))
                 o0: UncertainCombined
                 o1: UncertainCombined
-                o1, o0 = results[a1][player_name], results[a0][player_name]
+                try:
+                    o1, o0 = results[a1][player_name], results[a0][player_name]
+                except:
+                    o1, o0 = results[a1][player_name[0]], results[a0][player_name[0]]
                 res = pref.compare(o1, o0)
                 assert res in COMP_OUTCOMES, (res, pref)
                 # logger.info(o1=o1, o0=o0, res=res)

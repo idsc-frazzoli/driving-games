@@ -11,6 +11,7 @@ Welcome to Driving Games's documentation!
    driving_games/index
    games_zoo/index
    toy_games/index
+   bayesian_driving_games/index
 
 
 

@@ -73,7 +73,7 @@ class SolverParams:
     """ Whether to use the factorization properties to reduce the game graph."""
 
 
-@dataclass(frozen=True, unsafe_hash=True, order=True)
+@dataclass(frozen=False, unsafe_hash=True, order=True)
 class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ The game node """
 
@@ -161,8 +161,9 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         continuing_players = all_players - final_players
         for player_name in continuing_players:
             if not player_name in self.moves:
-                msg = f"Player {player_name!r} is continuing but does not have any move."
-                raise ZValueError(msg, GameNode=self)
+                pass
+                # msg = f"Player {player_name!r} is continuing but does not have any move."
+                # raise ZValueError(msg, GameNode=self)
 
         # check that we have in outcomes all combinations of actions
         all_combinations = set(iterate_dict_combinations(self.moves))
@@ -178,17 +179,17 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
             )
 
         # check that for each action we have a cost
-        for player_name, player_moves in self.moves.items():
-            moves_with_cost = set(self.incremental[player_name])
-            if player_moves != moves_with_cost:
-                msg = "Invalid match between moves and costs."
-                raise ZValueError(
-                    msg,
-                    player_name=player_name,
-                    player_moves=player_moves,
-                    moves_with_cost=moves_with_cost,
-                    GameNode=self,
-                )
+        # for player_name, player_moves in self.moves.items():
+        #     moves_with_cost = set(self.incremental[player_name])
+        #     if player_moves != moves_with_cost:
+        #         msg = "Invalid match between moves and costs."
+        #         raise ZValueError(
+        #             msg,
+        #             player_name=player_name,
+        #             player_moves=player_moves,
+        #             moves_with_cost=moves_with_cost,
+        #             GameNode=self,
+        #         )
 
         self.check_players_in_outcome()
 
@@ -372,7 +373,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         players = list(self.states)
 
         for p in players:
-            if p not in self.va.game_value:
+            if (p not in self.va.game_value) and (p not in str(list(self.va.game_value.keys()))):
                 msg = f"There is no player {p!r} appearing in the game value"
                 raise ZValueError(msg, SolvedGameNode=self)
 

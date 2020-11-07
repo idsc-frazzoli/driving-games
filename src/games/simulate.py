@@ -87,7 +87,13 @@ def simulate1(
                 incremental_costs[player_name] = prs.personal_final_reward(state_self)
                 continue
 
-            policy = policies[player_name]
+            try:
+                policy = policies[player_name]
+            except:
+                try:
+                    policy = policies[player_name, "cautious"]
+                except:
+                    policy = policies[player_name, "neutral"]
 
             # belief_state_others = {k: frozenset({v}) for k, v in s1.items() if k != player_name}
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
