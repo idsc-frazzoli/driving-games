@@ -1,6 +1,7 @@
 from collections import defaultdict
 import pprint
 from decimal import Decimal as D
+from time import perf_counter
 from typing import (
     AbstractSet,
     Callable,
@@ -58,6 +59,7 @@ from .structures_solution import (
 
 __all__ = ["solve1"]
 
+TOC = perf_counter()
 
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
@@ -101,9 +103,9 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
-
+    # solve stackelberg equilibria
     sims = solve_stackelberg(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
-
+    # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
     game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
     controllers0 = {}
@@ -371,13 +373,16 @@ def _solve_game(
 
     n = len(sc.cache)
     if n % 30 == 0:
+        global TOC
         logger.info(
             js=js,
             states=gn.states,
             value=va.game_value,
             processing=len(sc.processing),
             solved=len(sc.cache),
+            delta_time=perf_counter() - TOC,
         )
+        TOC = perf_counter()
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
 

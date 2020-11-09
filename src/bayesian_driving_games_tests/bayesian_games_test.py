@@ -1,15 +1,10 @@
 from decimal import Decimal as D
 from os.path import join
-
-from frozendict import frozendict
-
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
 from driving_games import (
     TwoVehicleSimpleParams,
     NO_LIGHTS,
     TwoVehicleUncertaintyParams,
-    PossibilitySet,
-    SetPreference1,
     ProbPrefExpectedValue,
     ProbabilityFraction,
 )
@@ -20,12 +15,12 @@ from games import (
     create_report_preprocessed,
 )
 from games_zoo.solvers import SolverSpec
-from possibilities.sets import SetPoss
 from bayesian_driving_games.solution import solve_bayesian_game
 from bayesian_driving_games.preprocess import bayesian_preprocess_game
 
 
 def test2():
+    # todo readjust
     road = D(5)
     side = D(4)
     p0 = TwoVehicleSimpleParams(
@@ -43,11 +38,11 @@ def test2():
         second_progress=D(0),
         shared_resources_ds=D(1.5),
     )
-    uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
+    #uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
     uncertainty_prob = TwoVehicleUncertaintyParams(
         poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
     )
-    d = "ml_out/tests_final/"
+    d = "out/bayesian_dg/"
     game2 = get_bayesian_driving_game(p0, uncertainty_prob)
     game_name = "50-50,test1 : aggressive"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
@@ -64,9 +59,3 @@ def test2():
     # print(solutions.game_solution.policies)
     # print(solutions.game_solution.states_to_solution)
 
-
-def test_poss():
-    a = {"1": 1.0}
-    b = frozendict(a)
-    belief = SetPoss(b)
-    print(belief)
