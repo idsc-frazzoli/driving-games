@@ -61,6 +61,7 @@ __all__ = ["solve1"]
 
 TOC = perf_counter()
 
+
 def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo

@@ -38,7 +38,7 @@ def test2():
         second_progress=D(0),
         shared_resources_ds=D(1.5),
     )
-    #uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
+    # uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
     uncertainty_prob = TwoVehicleUncertaintyParams(
         poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
     )
@@ -58,4 +58,3 @@ def test2():
     r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
     # print(solutions.game_solution.policies)
     # print(solutions.game_solution.states_to_solution)
-

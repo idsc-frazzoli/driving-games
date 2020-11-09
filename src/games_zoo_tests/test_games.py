@@ -30,11 +30,7 @@ def test_games_sets(game_str: str, solver_str: str) -> None:
     res = without_compmake(game, solver)
 
 
-do_games_prob = [
-    "sym_v1_prob",
-    "asym_v0_prob",
-    "sym_v1_prob"
-]
+do_games_prob = ["sym_v1_prob", "asym_v0_prob", "sym_v1_prob"]
 do_solvers_prob = [
     "solver-1-mix-naive",
     "solver-1-security-naive",

@@ -19,6 +19,7 @@ __all__ = ["DrivingGameVisualization"]
 
 AVAILABLE_CARS = [image.imread(f) for f in glob.glob("../../pics/car*.png")]
 
+
 class DrivingGameVisualization(
     GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
 ):

@@ -37,7 +37,9 @@ def test_available_cars():
         v=D(0),
         light=NO_LIGHTS,
     )
-    dg_vis = DrivingGameVisualization(p_asym, L, geometries=geometries, ds=vehicles_params.shared_resources_ds)
+    dg_vis = DrivingGameVisualization(
+        p_asym, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
+    )
     fig, ax = plt.subplots()
     fig.set_tight_layout(True)
     ax.set_aspect(1)
@@ -46,9 +48,5 @@ def test_available_cars():
     vehicle_states: Mapping[PlayerName, VehicleState] = {P1: p1_x, P2: p2_x}
     with dg_vis.plot_arena(plt, ax):
         for player_name in [P2, P1]:
-            dg_vis.plot_player(
-                player_name,
-                vehicle_states[player_name],
-                commands=None
-            )
+            dg_vis.plot_player(player_name, vehicle_states[player_name], commands=None)
     fig.show()
