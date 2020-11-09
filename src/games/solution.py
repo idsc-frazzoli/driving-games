@@ -105,7 +105,7 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
     # solve stackelberg equilibria
-    sims = solve_stackelberg(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+    # sims = solve_stackelberg(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
     game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
