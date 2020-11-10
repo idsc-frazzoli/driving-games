@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-
 from typing import NewType, List, Mapping
 
-from driving_games.structures import VehicleState
-from games import GamePlayer, Game, PlayerName
 from possibilities import Poss
+
+from driving_games.structures import VehicleState
+from games import GamePlayer, Game, PlayerName, GameSpec
 
 __all__ = [
     "PlayerType",
@@ -13,6 +13,7 @@ __all__ = [
     "NEUTRAL",
     "BayesianGamePlayer",
     "BayesianVehicleState",
+    "BayesianGame",
 ]
 
 PlayerType = NewType("PlayerType", str)
@@ -48,6 +49,11 @@ class BayesianGame(Game):
 
     players: Mapping[PlayerName, BayesianGamePlayer]
     """ The players in this game. """
+
+
+@dataclass
+class BayesianGameSpec(GameSpec):
+    game: BayesianGame
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)

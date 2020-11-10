@@ -1,5 +1,5 @@
 
-toy_games package
+Toy games package
 =========================================
 
 The `toy_games` package provides simple examples that can be understand and solved with back-of-the-envelop calculations.

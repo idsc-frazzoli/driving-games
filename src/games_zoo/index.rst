@@ -1,5 +1,5 @@
 
-games_zoo package
+Games zoo package
 =========================================
 
 .. automodule:: games_zoo
