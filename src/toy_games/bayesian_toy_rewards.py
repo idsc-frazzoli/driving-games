@@ -10,12 +10,11 @@ from zuper_commons.types import check_isinstance
 
 from games import JointRewardStructure, PlayerName, PersonalRewardStructure
 from nash import BiMatGame
-from toy_games.bayesian_toy_structures import BayesianBirdActions
 from toy_games.toy_structures import BirdState, BirdCosts, BirdActions
 from toy_games.bayesian_toy_structures import BayesianBirdState
 
 
-class BayesianBirdPersonalReward(PersonalRewardStructure[BirdState, BirdActions, BirdCosts]):
+class BayesianBirdPersonalReward(PersonalRewardStructure[BayesianBirdState, BirdActions, BirdCosts]):
     max_stages: int
 
     def __init__(self, max_stages: int, p1_types: List[PlayerType], p2_types: List[PlayerType]):
@@ -29,6 +28,7 @@ class BayesianBirdPersonalReward(PersonalRewardStructure[BirdState, BirdActions,
     def personal_reward_incremental(
         self, x: BirdState, u: BirdActions, dt: D
     ) -> Mapping[Tuple[PlayerType, PlayerType], BirdCosts]:
+        # todo BirdState -> BayesianBirdState
         check_isinstance(x, BirdState)
         check_isinstance(u, BirdActions)
         tc = list(itertools.product(self.p1_types, self.p2_types))
@@ -39,17 +39,20 @@ class BayesianBirdPersonalReward(PersonalRewardStructure[BirdState, BirdActions,
         return r1 + r2
 
     def personal_final_reward(self, x: BirdState) -> Mapping[Tuple[PlayerType, PlayerType], BirdCosts]:
+        # todo BirdState -> BayesianBirdState
         check_isinstance(x, BirdState)
         tc = list(itertools.product(self.p1_types, self.p2_types))
         res = {tc[0]: BirdCosts(D(0)), tc[1]: BirdCosts(D(0))}
         return res
 
     def is_personal_final_state(self, x: BirdState) -> bool:
+        # todo BirdState -> BayesianBirdState
         check_isinstance(x, BirdState)
         return x.stage == self.max_stages
 
 
 class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
+    # todo BirdState -> BayesianBirdState ?
     max_stages: int
     leaves_payoffs: Mapping[BirdState, Mapping[PlayerName, BirdCosts]]
     row_player: PlayerName
@@ -73,6 +76,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         self.p2_types = p2_types
 
     def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
+        # todo BirdState -> BayesianBirdState
         res = set()
         if len(xs.items()) > 1:
             for player, x in xs.items():
@@ -83,6 +87,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
     def joint_reward(
         self, xs: Mapping[PlayerName, BirdState]
     ) -> Mapping[Set[PlayerType], Mapping[PlayerName, BirdCosts]]:
+        # todo BirdState -> BayesianBirdState
         """
         Each payoff matrix correspond to a specific game
         [-1,-1] -> leaves_payoffs[0]

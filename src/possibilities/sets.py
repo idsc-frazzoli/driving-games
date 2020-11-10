@@ -34,10 +34,6 @@ class SetPoss(Poss[A]):
         return self._p
 
 
-# class Cache:
-#     cache = {}
-
-
 def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
     return SetPoss(f)
     # if f not in Cache.cache:
@@ -83,11 +79,7 @@ class PossibilitySet(PossibilityMonad):
         return SetSampler(seed)
 
     def mix(self, a: Collection[A]) -> FrozenSet[SetPoss[A]]:
-        res = []
-        for _ in a:
-            res.append(frozenset({_}))
-        poss = frozenset(res)
-        # poss = non_empty_sets(frozenset(a))
+        poss = non_empty_sets(frozenset(a))
         return frozenset(map(self.lift_many, poss))
 
 

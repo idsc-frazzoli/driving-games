@@ -18,7 +18,7 @@ Go = NewType("Go", str)
 """Bird action"""
 UP = Go("up")
 DOWN = Go("down")
-GoValue: AbstractSet[Go] = frozenset({UP, DOWN})
+GoValues: AbstractSet[Go] = frozenset({UP, DOWN})
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -53,7 +53,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[BirdActions]:
         res = set()
-        for go in GoValue:
+        for go in GoValues:
             res.add(BirdActions(go))
         return frozenset(res)
 

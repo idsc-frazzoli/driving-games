@@ -1,7 +1,7 @@
 from fractions import Fraction
 from typing import Dict
 
-from nose.tools import eq_
+from nose.tools import eq_, assert_equal
 from zuper_commons.types import ZValueError
 
 from games import PlayerName
@@ -23,7 +23,7 @@ def test_prob_mix():
     pmonad = ProbabilityFraction()
     r = pmonad.mix(S)
     logger.info(r=r)
-    # assert_equal(r, {pmonad.lift_many({0}), pmonad.lift_many({1}), pmonad.lift_many({0, 1})})
+    assert_equal(r, {pmonad.lift_many({a}), pmonad.lift_many({b}), pmonad.lift_many({a,b})})
 
 
 def test_prob_mix4():

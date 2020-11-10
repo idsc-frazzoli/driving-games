@@ -103,5 +103,4 @@ def get_bayesian_toy_game_spec(
         joint_reward=birds_joint_reward,
         game_visualization=BirdsVisualization(),
     )
-    gs = GameSpec("Handcrafted game to study edge cases", handcrafted_game)
-    return gs
+    return GameSpec("Bayesian handcrafted game", handcrafted_game)

@@ -1,38 +1,17 @@
-from contextlib import contextmanager
 from dataclasses import dataclass, replace
-from fractions import Fraction
 from functools import lru_cache
-from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple, List
+from typing import FrozenSet, Mapping, List
 from decimal import Decimal as D
 
+from bayesian_driving_games.structures import PlayerType, NEUTRAL
 from frozendict import frozendict
 from zuper_commons.types import ZValueError
 
 from driving_games.structures import InvalidAction
-from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
+from games import Dynamics, X
 from games.game_def import SR
-from possibilities import Poss, PossibilitySet, PossibilityMonad
-from toy_games import ToyGameMat
-
-Go = NewType("Go", str)
-UP = Go("up")
-DOWN = Go("down")
-GoValue: AbstractSet[Go] = frozenset({UP, DOWN})
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class NotSeen:
-    pass
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class Seen:
-    z: Optional[D]
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class BayesianBirdActions:
-    go: Go
+from possibilities import Poss, PossibilityMonad
+from toy_games import ToyGameMat, BirdActions, UP, DOWN, GoValues
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -46,7 +25,7 @@ class BirdState(object):
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class BayesianBirdState(BirdState):
     # type
-    player_type: str = "0"  # todo convert it to PlayerType
+    player_type: PlayerType = NEUTRAL
 
     def compare_physical_states(self, s2) -> bool:
         if self.z != s2.z:
@@ -59,7 +38,7 @@ class BayesianBirdState(BirdState):
             return True
 
 
-class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR]):
+class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BirdActions, SR]):
     """Pulling UP increases x, DOWN decreases"""
 
     def __init__(self, poss_monad: PossibilityMonad, types: List):
@@ -67,22 +46,22 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         self.types = types
 
     @lru_cache(None)
-    def all_actions(self) -> FrozenSet[BayesianBirdActions]:
+    def all_actions(self) -> FrozenSet[BirdActions]:
         res = set()
-        for go in GoValue:
-            res.add(BayesianBirdActions(go))
+        for go in GoValues:
+            res.add(BirdActions(go))
         return frozenset(res)
 
     @lru_cache(None)
     def successors(
-        self, x: BayesianBirdState, dt: D
-    ) -> Mapping[BayesianBirdActions, Poss[BayesianBirdState]]:
+            self, x: BayesianBirdState, dt: D
+    ) -> Mapping[BirdActions, Poss[BayesianBirdState]]:
         """ For each state, returns a dictionary U -> Possible Xs """
         # todo expand to allow other possibility monads
 
         if x.player_type == "0":
             possible = {}
-            u = BayesianBirdActions(go=None)
+            u = BirdActions(go=None)
             for _ in self.types:
                 x2 = BayesianBirdState(z=x.z, stage=x.stage, player_type=_)
                 possible[x2.player_type] = self.ps.unit(x2)
@@ -100,7 +79,7 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BayesianBirdActions, SR
         return frozendict(possible)
 
     @lru_cache(None)
-    def successor(self, x: BayesianBirdState, u: BayesianBirdActions) -> BayesianBirdState:
+    def successor(self, x: BayesianBirdState, u: BirdActions) -> BayesianBirdState:
         # trick to get unique NOT path dependent final states and
         # allow arbitrary payoff matrices
         altitude_incr: D = D(1) if x.stage == 0 else D(0.25)
