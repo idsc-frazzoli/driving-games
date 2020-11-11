@@ -1,7 +1,8 @@
 from contextlib import contextmanager
 from dataclasses import dataclass, replace
+from fractions import Fraction
 from functools import lru_cache
-from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple
+from typing import NewType, AbstractSet, FrozenSet, Mapping, Union, Optional, Tuple, List
 from decimal import Decimal as D
 
 from frozendict import frozendict
@@ -10,12 +11,14 @@ from zuper_commons.types import ZValueError
 from driving_games.structures import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
-from possibilities import Poss, PossibilitySet
+from nash import BiMatGame
+from possibilities import Poss, PossibilityMonad
 
 Go = NewType("Go", str)
+"""Bird action"""
 UP = Go("up")
 DOWN = Go("down")
-GoValue: AbstractSet[Go] = frozenset({UP, DOWN})
+GoValues: AbstractSet[Go] = frozenset({UP, DOWN})
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -42,19 +45,22 @@ class BirdState(object):
 
 
 class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
-    """Pulling UP increases x, DOWN decreases"""
+    """Pulling UP increases z, DOWN decreases"""
+
+    def __init__(self, poss_monad: PossibilityMonad):
+        self.ps = poss_monad
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[BirdActions]:
         res = set()
-        for go in GoValue:
+        for go in GoValues:
             res.add(BirdActions(go))
         return frozenset(res)
 
     @lru_cache(None)
     def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState]]:
-        """ For each state, returns a dictionary U -> Possible Xs """
-        ps = PossibilitySet()
+        """ For each state, returns the possible outcomes given certain actions """
+        # todo expand to allow other possibility monads
         possible = {}
         for u in self.all_actions():
             try:
@@ -62,7 +68,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = ps.unit(x2)
+                possible[u] = self.ps.unit(x2)
 
         return frozendict(possible)
 
@@ -128,7 +134,36 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 
 @dataclass(frozen=True)
 class BirdCosts:
-    cost: Union[float, int]
+    cost: D
+
+    def __mul__(self, weight: Fraction) -> "BirdCosts":
+        """
+        Support weight multiplication for expected value
+
+        :param weight:
+        :return:
+        """
+        # weighting costs, e.g. according to a probability
+        return replace(self, cost=self.cost * D(float(weight)))
+
+    __rmul__ = __mul__
+
+    def __add__(self, other: "BirdCosts") -> "BirdCosts":
+        """
+        Monoid to support sum
+
+        :param other:
+        :return:
+        """
+        if type(other) == BirdCosts:
+            return replace(self, cost=self.cost + other.cost)
+        else:
+            if other is None:
+                return self
+            else:
+                raise NotImplementedError
+
+    __radd__ = __add__
 
 
 class BirdsVisualization(
@@ -143,3 +178,15 @@ class BirdsVisualization(
     @contextmanager
     def plot_arena(self, pylab, ax):
         yield
+
+
+@dataclass
+class ToyGameMat:
+    subgames: List[BiMatGame]
+    desc: str
+
+    def __post_init__(self):
+        assert len(self.subgames) in {1, 4}, len(self.subgames)
+
+    def get_max_stages(self) -> int:
+        return 1 if len(self.subgames) == 1 else 2

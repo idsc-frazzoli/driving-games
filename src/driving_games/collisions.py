@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal as D
+from fractions import Fraction
 from typing import NewType
 
 from .rectangle import Coordinates, Rectangle
@@ -25,6 +26,39 @@ class Collision:
     # How much energy was received / transmitted
     energy_received: D
     energy_transmitted: D
+
+    # Monoid for sum of Combined outcome
+    def __add__(self, other: "Collision") -> "Collision":
+        if type(other) == type(self):
+            return replace(
+                self,
+                energy_received=self.energy_received + other.energy_received,
+                energy_transmitted=self.energy_transmitted + other.energy_transmitted,
+            )
+        else:
+            raise NotImplementedError
+
+    __radd__ = __add__
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "Collision":
+        # weighting costs, e.g. according to a probability
+        return replace(
+            self,
+            energy_received=self.energy_received * D(float(weight)),
+            energy_transmitted=self.energy_transmitted * D(float(weight)),
+        )
+
+    __rmul__ = __mul__
+
+    def __add__(self, other: "Collision") -> "Collision":
+        return replace(
+            self,
+            energy_received=self.energy_received + other.energy_received,
+            energy_transmitted=self.energy_transmitted + other.energy_transmitted,
+            location=self.location,
+            active=self.active,
+        )
 
 
 @dataclass(frozen=True)

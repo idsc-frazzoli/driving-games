@@ -22,7 +22,7 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
         return VehicleCosts(dt)
 
     def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
-        return VehicleCosts(r1.duration + r2.duration)
+        return r1 + r2
 
     def personal_reward_identity(self) -> VehicleCosts:
         return VehicleCosts(D(0))

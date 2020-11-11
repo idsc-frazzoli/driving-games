@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-
 from games import Game
 
 __all__ = ["GameSpec"]

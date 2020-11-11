@@ -1,5 +1,6 @@
 from frozendict import frozendict
 
+from driving_games import TwoVehicleUncertaintyParams
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
 from toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
@@ -7,19 +8,19 @@ from toy_games.toy_rewards import (
     BirdJointReward,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import PossibilitySet, PossibilityMonad
-from typing import FrozenSet as ASet, cast, Sequence
+from possibilities import PossibilityMonad
+from typing import FrozenSet as ASet, cast
 from decimal import Decimal as D
-import numpy as np
-from preferences import SetPreference1
+from toy_games_tests.toy_games_tests_zoo import ToyGameMat
 
 __all__ = ["get_toy_game_spec"]
 
 
-def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> GameSpec:
-    ps: PossibilityMonad = PossibilitySet()
+def get_toy_game_spec(toy_game_mat: ToyGameMat, uncertainty_params: TwoVehicleUncertaintyParams) -> GameSpec:
+    ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
     dt = D(1)  # not relevant for this example
+    max_stages = toy_game_mat.get_max_stages()
 
     # state
     p1_x = BirdState()
@@ -28,8 +29,8 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
     p2_initial = ps.unit(p2_x)
 
     # dynamics
-    p1_dynamics = FlyingDynamics()
-    p2_dynamics = FlyingDynamics()
+    p1_dynamics = FlyingDynamics(poss_monad=ps)
+    p2_dynamics = FlyingDynamics(poss_monad=ps)
 
     # personal reward structure
     p1_personal_reward_structure = BirdPersonalRewardStructureCustom(max_stages=max_stages)
@@ -46,9 +47,9 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
     # preferences
     p1_preferences = BirdPreferences()
     p2_preferences = BirdPreferences()
-    set_preference_aggregator = SetPreference1
+    mpref_builder = uncertainty_params.mpref_builder
     birds_joint_reward = BirdJointReward(
-        max_stages=max_stages, leaves_payoffs=leaves_payoffs, row_player=P1, col_player=P2
+        max_stages=max_stages, subgames=toy_game_mat.subgames, row_player=P1, col_player=P2
     )
 
     p1 = GamePlayer(
@@ -57,7 +58,7 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=mpref_builder,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -65,7 +66,7 @@ def get_toy_game_spec(max_stages: int, leaves_payoffs: Sequence[np.ndarray]) -> 
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=mpref_builder,
     )
 
     handcrafted_game = Game(

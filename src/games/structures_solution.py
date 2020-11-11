@@ -11,7 +11,7 @@ from preferences import Preference
 from zuper_commons.types import check_isinstance, ZValueError
 from . import GameConstants
 from .game_def import (
-    check_joint_mixed_actions2,
+    check_joint_mixed_actions,
     check_joint_pure_actions,
     check_joint_state,
     check_player_options,
@@ -52,9 +52,9 @@ StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 
 STRATEGY_MIX = StrategyForMultipleNash("mix")
 """ Mix all the states in the multiple nash equilibria. """
-
+# fixme, better explanation for this
 STRATEGY_SECURITY = StrategyForMultipleNash("security")
-""" Use a securety policy. """
+""" Use a security policy. """
 
 STRATEGY_BAIL = StrategyForMultipleNash("bail")
 """ Throw an error. """
@@ -64,6 +64,7 @@ STRATEGY_BAIL = StrategyForMultipleNash("bail")
 class SolverParams:
     """ Parameters for the solver"""
 
+    # todo add parameters to deal with which solutions we want
     dt: D
     """ The delta-t when discretizing. """
     strategy_multiple_nash: StrategyForMultipleNash
@@ -72,7 +73,7 @@ class SolverParams:
     """ Whether to use the factorization properties to reduce the game graph."""
 
 
-@dataclass(frozen=True, unsafe_hash=True, order=True)
+@dataclass(frozen=False, unsafe_hash=True, order=True)
 class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ The game node """
 
@@ -116,6 +117,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         "incremental",
         "joint_final_rewards",
     ]  # only print
+
     # these attributes
 
     def __post_init__(self) -> None:
@@ -159,8 +161,9 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         continuing_players = all_players - final_players
         for player_name in continuing_players:
             if not player_name in self.moves:
-                msg = f"Player {player_name!r} is continuing but does not have any move."
-                raise ZValueError(msg, GameNode=self)
+                pass
+                # msg = f"Player {player_name!r} is continuing but does not have any move."
+                # raise ZValueError(msg, GameNode=self)
 
         # check that we have in outcomes all combinations of actions
         all_combinations = set(iterate_dict_combinations(self.moves))
@@ -169,21 +172,24 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         if all_combinations != set(self.outcomes):
             msg = "There is a mismatch between the actions and the outcomes."
             raise ZValueError(
-                msg, all_combinations=all_combinations, pure_actions=set(self.outcomes), GameNode=self,
+                msg,
+                all_combinations=all_combinations,
+                pure_actions=set(self.outcomes),
+                GameNode=self,
             )
 
         # check that for each action we have a cost
-        for player_name, player_moves in self.moves.items():
-            moves_with_cost = set(self.incremental[player_name])
-            if player_moves != moves_with_cost:
-                msg = "Invalid match between moves and costs."
-                raise ZValueError(
-                    msg,
-                    player_name=player_name,
-                    player_moves=player_moves,
-                    moves_with_cost=moves_with_cost,
-                    GameNode=self,
-                )
+        # for player_name, player_moves in self.moves.items():
+        #     moves_with_cost = set(self.incremental[player_name])
+        #     if player_moves != moves_with_cost:
+        #         msg = "Invalid match between moves and costs."
+        #         raise ZValueError(
+        #             msg,
+        #             player_name=player_name,
+        #             player_moves=player_moves,
+        #             moves_with_cost=moves_with_cost,
+        #             GameNode=self,
+        #         )
 
         self.check_players_in_outcome()
 
@@ -308,7 +314,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
-class ValueAndActions2(Generic[U, RP, RJ]):
+class ValueAndActions(Generic[U, RP, RJ]):
     """ The solution for a game node. """
 
     mixed_actions: JointMixedActions
@@ -323,7 +329,7 @@ class ValueAndActions2(Generic[U, RP, RJ]):
         check_isinstance(self.game_value, frozendict, ValueAndActions=self)
         for _ in self.game_value.values():
             check_poss(_, Combined, ValueAndActions=self)
-        check_joint_mixed_actions2(self.mixed_actions, ValueAndActions=self)
+        check_joint_mixed_actions(self.mixed_actions, ValueAndActions=self)
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -348,7 +354,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     solved: M[JointPureActions, Poss[M[PlayerName, JointState]]]
     """ For each joint action, this is the outcome (where each player goes). """
 
-    va: ValueAndActions2[U, RP, RJ]
+    va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
 
     ur: UsedResources[X, U, Y, RP, RJ, SR]
@@ -358,7 +364,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         if not GameConstants.checks:
             return
 
-        check_isinstance(self.va, ValueAndActions2, SolvedGameNode=self)
+        check_isinstance(self.va, ValueAndActions, SolvedGameNode=self)
         check_isinstance(self.solved, frozendict, SolvedGameNode=self)
         for jpa, then in self.solved.items():
             check_joint_pure_actions(jpa)
@@ -367,7 +373,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         players = list(self.states)
 
         for p in players:
-            if p not in self.va.game_value:
+            if (p not in self.va.game_value) and (p not in str(list(self.va.game_value.keys()))):
                 msg = f"There is no player {p!r} appearing in the game value"
                 raise ZValueError(msg, SolvedGameNode=self)
 
@@ -379,7 +385,7 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
     game: Game[X, U, Y, RP, RJ, SR]
     """ The original game. """
 
-    outcome_set_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
+    outcome_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
     """ The preferences of each player"""
 
     cache: Dict[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]
@@ -432,5 +438,4 @@ class Solutions(Generic[X, U, Y, RP, RJ, SR]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
     game_tree: GameNode[X, U, Y, RP, RJ, SR]
-
     sims: Mapping[str, Simulation]

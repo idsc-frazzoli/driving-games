@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 from functools import reduce
 from itertools import permutations
+from math import isclose
 from typing import (
     AbstractSet,
     Callable,
@@ -23,7 +24,7 @@ from toolz import valfilter
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbabilityFraction"]
+__all__ = ["ProbPoss", "ProbabilityFraction", "ProbSampler"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -53,7 +54,7 @@ class ProbPoss(Poss[A]):
     def get(self, a: A) -> Fraction:
         return self.p[a]
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "ProbPoss") -> bool:
         if self._support != other._support:
             return False
         if self._range != other._range:
@@ -89,15 +90,16 @@ class ProbabilityFraction(PossibilityMonad):
 
     def build_multiple(self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]) -> ProbPoss[B]:
         sources = list(a)
-        supports = [_.support() for _ in sources]
+        supports = [a[_].support() for _ in sources]
         res: Dict[Mapping[K, A], Fraction] = defaultdict(Fraction)
         for _ in itertools.product(*tuple(supports)):
             elements = frozendict(zip(sources, _))
             probs = [a[source].get(elements[source]) for source in sources]
             weight = reduce(Fraction.__mul__, probs)
             r = f(elements)
+            # for v in r:
+            #     res[v] += weight
             res[r] += weight
-
         return ProbPoss(frozendict(res))
 
     def get_sampler(self, seed: int) -> "ProbSampler":
@@ -151,6 +153,12 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
             # a = permute(c, _)
             res.add(_)
     return res
+
+
+def check_prob_poss(prob_poss: ProbPoss):
+    # probabilities sum up to one
+    cumulative_dist = sum(prob_poss.p.values())
+    assert isclose(cumulative_dist, 1)  # probably also exact equality
 
 
 class ProbSampler(Sampler):

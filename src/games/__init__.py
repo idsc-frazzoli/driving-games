@@ -8,7 +8,7 @@ logger = ZLogger(__name__)
 class GameConstants:
     """ Global constants for the program. """
 
-    checks: ClassVar[bool] = True
+    checks: ClassVar[bool] = False
     """ 
         If true activates extensive checks and assertions. 
         Slows down the solving a lot. 

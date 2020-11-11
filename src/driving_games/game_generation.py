@@ -12,8 +12,8 @@ from games import (
     JointRewardStructure,
     PlayerName,
 )
-from possibilities import PossibilityMonad, PossibilitySet
-from preferences import SetPreference1
+from games.game_def import MonadicPreferenceBuilder
+from possibilities import PossibilityMonad
 from .collisions import Collision
 from .joint_reward import VehicleJointReward
 from .personal_reward import VehiclePersonalRewardStructureTime
@@ -55,20 +55,28 @@ class TwoVehicleSimpleParams:
     shared_resources_ds: D
 
 
-def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
-    ps: PossibilityMonad = PossibilitySet()
-    L = params.side + params.road + params.side
-    start = params.side + params.road_lane_offset
+@dataclass
+class TwoVehicleUncertaintyParams:
+    poss_monad: PossibilityMonad
+    mpref_builder: MonadicPreferenceBuilder
+
+
+def get_two_vehicle_game(
+    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+) -> DrivingGame:
+    ps: PossibilityMonad = uncertainty_params.poss_monad
+    L = vehicles_params.side + vehicles_params.road + vehicles_params.side
+    start = vehicles_params.side + vehicles_params.road_lane_offset
     max_path = L - 1
     # p1_ref = SE2_from_xytheta([start, 0, np.pi / 2])
     p1_ref = (D(start), D(0), D(+90))
     # p2_ref = SE2_from_xytheta([L, start, -np.pi])
     p2_ref = (D(L), D(start), D(-180))
-    max_speed = params.max_speed
-    min_speed = params.min_speed
-    max_wait = params.max_wait
-    dt = params.dt
-    available_accels = params.available_accels
+    max_speed = vehicles_params.max_speed
+    min_speed = vehicles_params.min_speed
+    max_wait = vehicles_params.max_wait
+    dt = vehicles_params.dt
+    available_accels = vehicles_params.available_accels
 
     # P1 = PlayerName("👩‍🦰")  # "👩🏿")
     # P2 = PlayerName("👳🏾‍")
@@ -85,9 +93,13 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
     g1 = VehicleGeometry(mass=mass, width=width, length=length, color=(1, 0, 0))
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
-    p1_x = VehicleState(ref=p1_ref, x=D(params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
+    p1_x = VehicleState(
+        ref=p1_ref, x=D(vehicles_params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
+    )
     p1_initial = ps.unit(p1_x)
-    p2_x = VehicleState(ref=p2_ref, x=D(params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
+    p2_x = VehicleState(
+        ref=p2_ref, x=D(vehicles_params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
+    )
     p2_initial = ps.unit(p2_x)
     p1_dynamics = VehicleDynamics(
         max_speed=max_speed,
@@ -95,10 +107,11 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         available_accels=available_accels,
         max_path=max_path,
         ref=p1_ref,
-        lights_commands=params.light_actions,
+        lights_commands=vehicles_params.light_actions,
         min_speed=min_speed,
         vg=g1,
-        shared_resources_ds=params.shared_resources_ds,
+        shared_resources_ds=vehicles_params.shared_resources_ds,
+        poss_monad=ps,
     )
     p2_dynamics = VehicleDynamics(
         min_speed=min_speed,
@@ -107,9 +120,10 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         available_accels=available_accels,
         max_path=max_path,
         ref=p2_ref,
-        lights_commands=params.light_actions,
+        lights_commands=vehicles_params.light_actions,
         vg=g2,
-        shared_resources_ds=params.shared_resources_ds,
+        shared_resources_ds=vehicles_params.shared_resources_ds,
+        poss_monad=ps,
     )
     p1_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
     p2_personal_reward_structure = VehiclePersonalRewardStructureTime(max_path)
@@ -125,14 +139,13 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
 
     p1_preferences = VehiclePreferencesCollTime()
     p2_preferences = VehiclePreferencesCollTime()
-    set_preference_aggregator = SetPreference1
     p1 = GamePlayer(
         initial=p1_initial,
         dynamics=p1_dynamics,
         observations=p1_observations,
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=uncertainty_params.mpref_builder,
     )
     p2 = GamePlayer(
         initial=p2_initial,
@@ -140,23 +153,28 @@ def get_two_vehicle_game(params: TwoVehicleSimpleParams,) -> DrivingGame:
         observations=p2_observations,
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
-        set_preference_aggregator=set_preference_aggregator,
+        monadic_preference_builder=uncertainty_params.mpref_builder,
     )
     players: Dict[PlayerName, DrivingGamePlayer]
     players = {P1: p1, P2: p2}
     joint_reward: JointRewardStructure[VehicleState, VehicleActions, Collision]
 
-    joint_reward = VehicleJointReward(collision_threshold=params.collision_threshold, geometries=geometries)
+    joint_reward = VehicleJointReward(
+        collision_threshold=vehicles_params.collision_threshold, geometries=geometries
+    )
 
     game_visualization: GameVisualization[
         VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
     ]
     game_visualization = DrivingGameVisualization(
-        params, L, geometries=geometries, ds=params.shared_resources_ds
+        vehicles_params, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
     )
     game: DrivingGame
 
     game = Game(
-        players=frozendict(players), ps=ps, joint_reward=joint_reward, game_visualization=game_visualization,
+        players=frozendict(players),
+        ps=ps,
+        joint_reward=joint_reward,
+        game_visualization=game_visualization,
     )
     return game

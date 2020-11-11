@@ -23,12 +23,12 @@ class Sampler(ABC):
 
 class PossibilityMonad(ABC):
     """
-        The interface for a generic uncertainty monad.
+    The interface for a generic uncertainty monad.
     """
 
     @abstractmethod
     def unit(self, a: A) -> Poss[A]:
-        """ Constructs a distribution from one element. """
+        """ Constructs a distribution from one element. The return in Haskell. """
 
     @abstractmethod
     def lift_many(self, a: Collection[A]) -> Poss[A]:
@@ -40,7 +40,9 @@ class PossibilityMonad(ABC):
 
     @abstractmethod
     def build(self, a: Poss[A], f: Callable[[A], B]) -> Poss[B]:
-        """ Computes the push-forward of a distribution. """
+        """Computes the push-forward of a distribution.
+        Equivalent to the 'bind' method of monads, with the only difference that the lifting operation
+        happens inside build and not f. Indeed 'bind' would require f:Callable[[A], Poss[B]]."""
 
     @abstractmethod
     def build_multiple(self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]) -> Poss[B]:

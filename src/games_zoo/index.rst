@@ -1,7 +1,7 @@
 
-games_scripts package
+Games zoo package
 =========================================
 
-.. automodule:: games_scripts
+.. automodule:: games_zoo
    :members:
    :undoc-members:

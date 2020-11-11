@@ -1,5 +1,5 @@
 
-possibilities package
+Possibilities package
 =========================================
 
 Basic structures
