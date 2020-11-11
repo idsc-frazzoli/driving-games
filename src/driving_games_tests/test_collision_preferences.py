@@ -10,8 +10,7 @@ from driving_games import (
     IMPACT_FRONT,
     VehicleCosts,
 )
-from games import Combined
-from games.solution_utils import get_outcome_preferences_for_players
+from games import Combined, get_outcome_set_preferences_for_players
 from preferences import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -68,7 +67,7 @@ def test2() -> None:
         p2: game.ps.unit(Combined(VehicleCosts(D(4)), None)),
     }
 
-    preferences = get_outcome_preferences_for_players(game)
+    preferences = get_outcome_set_preferences_for_players(game)
 
     # preferences_ = tuple(preferences.values())
     eq_pref = StrictProductPreferenceDict(preferences)

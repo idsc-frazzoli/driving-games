@@ -8,8 +8,8 @@ xunit_output=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 
 tag=driving_games
 
-test_packages=driving_games_tests,preferences_tests,games_tests,games_zoo_tests,possibilities_tests,toy_games_tests,nash_tests,bayesian_driving_games_tests
-cover_packages=$(test_packages),driving_games,preferences,games,games_zoo,possibilities,toy_games,nash,bayesian_driving_games
+test_packages=driving_games_tests,preferences_tests,games_tests,games_scripts_tests,possibilities_tests,toy_games_tests,nash_tests
+cover_packages=$(test_packages),driving_games,preferences,games,games_scripts,possibilities,toy_games,nash
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-html-dir=$(coverage_dir) --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -82,12 +82,6 @@ coverage-report:
 docs:
 	sphinx-build src $(out)/docs
 
-docs-docker: build
-	mkdir -p out-docker/docs
-	docker run -it --rm --user $$(id -u)\
-		-v ${PWD}/src:/driving_games/src:ro \
-		-v ${PWD}/out-docker/docs:/driving-games/$(out)/docs $(tag) \
-		sphinx-build src /driving-games/$(out)/docs
-
 
 include makefiles/Makefile.version
+include makefiles/Makefile.az

@@ -15,9 +15,9 @@ __all__ = ["SmallerPreferred", "SmallerPreferredTol"]
 
 class SmallerPreferred(Preference[D]):
     """
-    The usual total order on the scalars.
+        The usual total order on the scalars.
 
-    It is equivalent to `SmallerPreferredTol(0)`.
+        It is equivalent to `SmallerPreferredTol(0)`.
 
     """
 
@@ -28,12 +28,11 @@ class SmallerPreferred(Preference[D]):
         """ """
         if a == b:
             return INDIFFERENT
-        elif a < b:
+        if a < b:
             return FIRST_PREFERRED
-        elif b < a:
+        if b < a:
             return SECOND_PREFERRED
-        else:
-            assert False, (a, b)
+        assert False, (a, b)
 
     def __repr__(self) -> str:
         return "SmallerPreferred"

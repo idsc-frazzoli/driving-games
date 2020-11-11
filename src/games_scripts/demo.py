@@ -23,7 +23,7 @@ class DGDemo(QuickApp):
     """ Main function """
 
     def define_options(self, params: DecentParams):
-        params.add_string("games", default="asym_v1_sets")
+        params.add_string("games", default="asym_v1")
         params.add_string("solvers", default="solver-1-security-fact")
 
     def define_jobs_context(self, context: QuickAppContext):

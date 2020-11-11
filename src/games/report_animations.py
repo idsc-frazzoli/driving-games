@@ -144,13 +144,16 @@ def create_log_animation(
 
     interval0 = 400
     if upsample_log:
+
         interval = interval0 / upsample_log
         use_states = upsample(gp, sim.states, sim.actions, n=upsample_log)
+
     else:
         interval = interval0
         use_states = sim.states
 
     viz = gp.game.game_visualization
+
     frames = list(use_states)
 
     def update(t: D):

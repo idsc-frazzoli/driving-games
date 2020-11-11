@@ -9,9 +9,8 @@ Welcome to Driving Games's documentation!
    possibilities/index
    games/index
    driving_games/index
-   games_zoo/index
+   games_scripts/index
    toy_games/index
-   bayesian_driving_games/index
 
 
 

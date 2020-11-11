@@ -1,11 +1,29 @@
+from dataclasses import dataclass
+
 from numpy.linalg import lstsq, LinAlgError, qr
 from itertools import chain, combinations
 from nash import logger
 import numpy as np
 
-__all__ = ["ne_support_enum"]
+__all__ = ["compute_ne"]
 
-from nash import Equilibrium, PlayerType, MINIMIZER, MAXIMIZER
+
+@dataclass(frozen=True, unsafe_hash=True)
+class Equilibrium:
+    s1: np.ndarray
+    s2: np.ndarray
+    p1_payoff: float
+    p2_payoff: float
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            raise NotImplementedError
+        return (
+            self.p1_payoff == other.p1_payoff
+            and self.p2_payoff == other.p2_payoff
+            and np.array_equal(self.s1, other.s1)
+            and np.array_equal(self.s2, other.s2)
+        )
 
 
 def powerset(n: int):
@@ -114,7 +132,7 @@ def solve_linsystem(A: np.ndarray, B: np.ndarray):
     return s1, s2
 
 
-def is_ne(A, B, s1, s2, tol=np.finfo(float).eps) -> bool:
+def is_ne(A, B, s1, s2, tol) -> bool:
     """
     Test if a given strategy pair is a pair of best responses
     """
@@ -132,17 +150,10 @@ def is_ne(A, B, s1, s2, tol=np.finfo(float).eps) -> bool:
     p1_payoff = np.dot(s1, row_payoffs)
     p2_payoff = np.dot(column_payoffs, s2)
     # must be a best response
-    return p1_payoff <= np.min(row_payoffs) + tol and p2_payoff <= np.min(column_payoffs) + tol
+    return p1_payoff <= np.min(row_payoffs) and p2_payoff <= np.min(column_payoffs)
 
 
-def ne_support_enum(
-    A: np.ndarray,
-    B: np.ndarray,
-    p1_type: PlayerType = MINIMIZER,
-    p2_type: PlayerType = MINIMIZER,
-    non_degenerate=False,
-    tol=np.finfo(float).eps,
-):
+def compute_ne(A: np.ndarray, B: np.ndarray, non_degenerate=False, tol=10 ** -16):
     """
     Obtain the Nash equilibria using support enumeration.
     Algorithm implemented here is Algorithm 3.4 of [Nisan2007]_
@@ -154,16 +165,12 @@ def ne_support_enum(
     -------
         equilibria: A generator.
     """
-    A = A if p1_type == MINIMIZER else -A
-    B = B if p2_type == MINIMIZER else -B
     count = 0
     for s1, s2 in solve_supports(A, B, non_degenerate=non_degenerate):
         if is_ne(A, B, s1, s2, tol=tol):
             count += 1
             payoff1 = float(np.dot(np.dot(s1, A), s2))
             payoff2 = float(np.dot(np.dot(s1, B), s2))
-            payoff1 = -payoff1 if p1_type == MAXIMIZER else payoff1
-            payoff2 = -payoff2 if p2_type == MAXIMIZER else payoff2
             yield Equilibrium(s1, s2, payoff1, payoff2)
     if count % 2 == 0:
         logger.warn(

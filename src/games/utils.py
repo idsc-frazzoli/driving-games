@@ -14,8 +14,8 @@ __all__ = ["iterate_dict_combinations", "fkeyfilter", "valmap", "fvalmap", "fd",
 
 def iterate_dict_combinations(a: Mapping[K, Collection[V]]) -> Iterator[Mapping[K, V]]:
     """
-    Iterates all possible combination. The input is a dictionary where each "player"
-    has a collection of "options".
+        Iterates all possible combination. The input is a dictionary where each "player"
+        has a collection of "options".
 
     """
     ks = list(a)

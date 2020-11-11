@@ -24,8 +24,7 @@ __all__ = ["collision_check"]
 # XXX: Note that this only works for the simplest cases.
 #      For example it does not work for head-to-back collision.
 def collision_check(
-    poses: Mapping[PlayerName, VehicleState],
-    geometries: Mapping[PlayerName, VehicleGeometry],
+    poses: Mapping[PlayerName, VehicleState], geometries: Mapping[PlayerName, VehicleGeometry],
 ) -> Mapping[PlayerName, Collision]:
     dt = D(0.5)
     n = 2
@@ -81,9 +80,9 @@ def collision_check(
 
         c1 = Collision(i1, p1_active, energy_received_1, energy_given_1)
         c2 = Collision(i2, p2_active, energy_received_2, energy_given_2)
-        return {p1: c1, p2: c2}
+        return frozendict({p1: c1, p2: c2})
 
-    return {}
+    return frozendict({})
 
 
 def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
@@ -91,11 +90,11 @@ def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
 
 
 def sample_x(x: D, v: D, dt: D, n: int) -> List[D]:
-    """Samples n points in each direction at distance dt
+    """ Samples n points in each direction at distance dt
 
-    For n = 2 and dt = 0.5 it will be
+        For n = 2 and dt = 0.5 it will be
 
-        -1, -0.5, 0, +0.5, +1
+            -1, -0.5, 0, +0.5, +1
 
     """
     return [x + v * dt * i for i in range(-n, +n + 1)]
@@ -127,12 +126,7 @@ def rectangle_from_pose(ref: SE2_disc, x: D, vg: VehicleGeometry) -> ProjectedCa
     front_center = (qd @ front_center_b)[:2]
     front_right = (qd @ front_right_b)[:2]
 
-    return ProjectedCar(
-        rectangle,
-        front_left=front_left,
-        front_center=front_center,
-        front_right=front_right,
-    )
+    return ProjectedCar(rectangle, front_left=front_left, front_center=front_center, front_right=front_right,)
 
 
 @dataclass

@@ -34,6 +34,10 @@ class SetPoss(Poss[A]):
         return self._p
 
 
+# class Cache:
+#     cache = {}
+
+
 def make_setposs(f: FrozenSet[A]) -> SetPoss[A]:
     return SetPoss(f)
     # if f not in Cache.cache:

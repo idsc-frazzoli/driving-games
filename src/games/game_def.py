@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from decimal import Decimal as D
-from fractions import Fraction
 from typing import (
     Callable,
     FrozenSet,
@@ -11,8 +10,6 @@ from typing import (
     Optional,
     Tuple,
     TypeVar,
-    Union,
-    List,
 )
 
 from frozendict import frozendict
@@ -29,8 +26,6 @@ __all__ = [
     "U",
     "RP",
     "RJ",
-    "SR",
-    "W",
     "Observations",
     "JointState",
     "JointPureActions",
@@ -39,8 +34,6 @@ __all__ = [
     "PersonalRewardStructure",
     "PlayerName",
     "Combined",
-    "UncertainCombined",
-    "MonadicPreferenceBuilder",
     "Game",
     "GamePlayer",
     "GameVisualization",
@@ -67,9 +60,6 @@ RJ = TypeVar("RJ")
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
 
-W = TypeVar("W", int, float, Fraction, D)
-""" Generic variable for the weight of rewards. """
-
 JointState = Mapping[PlayerName, X]
 """ A joint state: the state for each player. """
 
@@ -93,30 +83,6 @@ class Combined(Generic[RJ, RP]):
     joint: Optional[RJ] = None
     """ The joint final cost. Can be none if we finished without colliding."""
 
-    # Monoid for sum of Combined outcome
-    def __add__(self, other: "Combined[RP,RJ]"):
-        if type(other) == type(self):
-            if other.joint is None:
-                return replace(self, personal=self.personal + other.personal, joint=self.joint)
-            elif self.joint is None:
-                return replace(self, personal=self.personal + other.personal, joint=other.joint)
-            else:
-                return replace(self, personal=self.personal + other.personal, joint=self.joint + other.joint)
-        else:
-            raise NotImplementedError
-
-    __radd__ = __add__
-
-    # Weight multiplication (e.g. used to compute expected value)
-    def __mul__(self, weight: W):
-        # weighting costs, e.g. according to a probability
-        if self.joint is not None:
-            return replace(self, personal=self.personal * weight, joint=self.joint * weight)
-        else:
-            return replace(self, personal=self.personal * weight)
-
-    __rmul__ = __mul__
-
 
 UncertainCombined = Poss[Combined[RP, RJ]]
 """ A distribution of combined costs """
@@ -135,8 +101,8 @@ class Dynamics(Generic[X, U, SR], ABC):
 
     @abstractmethod
     def get_shared_resources(self, x: X) -> FrozenSet[SR]:
-        """Returns the "shared resources" for each state. For example,
-        the set of spatio-temporal cells occupied by the agent."""
+        """ Returns the "shared resources" for each state. For example,
+            the set of spatio-temporal cells occupied by the agent. """
 
 
 class Observations(Generic[X, Y], ABC):
@@ -176,8 +142,6 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
 
 
 P = TypeVar("P")
-# fixme not sure why typechecker does not like this new type
-MonadicPreferenceBuilder = NewType("MonadicPreferenceBuilder", Callable[[Preference[P]], Preference[Poss[P]]])
 
 
 @dataclass
@@ -199,15 +163,15 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
     preferences: Preference[Combined[RJ, RP]]
     """ Its preferences about the combined joint/personal rewards. """
 
-    monadic_preference_builder: MonadicPreferenceBuilder
-    """ How to evaluate preferences over monadic outcomes. """
+    set_preference_aggregator: Callable[[Preference[P]], Preference[Poss[P]]]
+    """ How to aggregate preferences for sets. """
 
 
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     """
-    The joint reward structure. This describes when the game ends
-    due to "collisions".
+        The joint reward structure. This describes when the game ends
+        due to "collisions".
     """
 
     @abstractmethod
@@ -229,11 +193,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
     @abstractmethod
     def plot_player(
-        self,
-        player_name: PlayerName,
-        state: X,
-        commands: Optional[U],
-        opacity: float = 1.0,
+        self, player_name: PlayerName, state: X, commands: Optional[U], opacity: float = 1.0,
     ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
         pass
@@ -262,8 +222,8 @@ class Game(Generic[X, U, Y, RP, RJ, SR]):
 
 class AgentBelief(Generic[X, U], ABC):
     """
-    This agent's policy is a function of its own state
-    and the product of the beliefs about the state of the other agents.
+        This agent's policy is a function of its own state
+        and the product of the beliefs about the state of the other agents.
     """
 
     @abstractmethod
@@ -309,7 +269,7 @@ def check_joint_pure_actions(a: JointPureActions, **kwargs):
             raise ZValueError(msg, k=k, v=v, **kwargs)
 
 
-def check_joint_mixed_actions(a: JointMixedActions, **kwargs):
+def check_joint_mixed_actions2(a: JointMixedActions, **kwargs):
     """ Checks consistency of a JointMixedActions variable."""
     if not GameConstants.checks:
         return

@@ -1,14 +1,13 @@
 import itertools
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from decimal import Decimal as D, localcontext
-from fractions import Fraction
 from functools import lru_cache
 from typing import AbstractSet, FrozenSet, Mapping, NewType, Tuple
 
 from frozendict import frozendict
 
 from games import Dynamics
-from possibilities import Poss, PossibilitySet, PossibilityMonad
+from possibilities import Poss, PossibilitySet
 from zuper_commons.types import ZException, ZValueError
 from .rectangle import Rectangle
 
@@ -20,8 +19,6 @@ __all__ = [
     "LIGHTS_TURN_LEFT",
     "LIGHTS_TURN_RIGHT",
     "VehicleCosts",
-    "VehicleState",
-    "VehicleActions",
     "VehicleGeometry",
 ]
 
@@ -54,25 +51,6 @@ class VehicleCosts:
 
     duration: D
     """ Duration of the episode. """
-
-    # support weight multiplication for expected value
-    def __mul__(self, weight: Fraction) -> "VehicleCosts":
-        # weighting costs, e.g. according to a probability
-        return replace(self, duration=self.duration * D(float(weight)))
-
-    __rmul__ = __mul__
-
-    # Monoid to support sum
-    def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
-        if type(other) == VehicleCosts:
-            return replace(self, duration=self.duration + other.duration)
-        else:
-            if other is None:
-                return self
-            else:
-                raise NotImplementedError
-
-    __radd__ = __add__
 
 
 @dataclass(frozen=True)
@@ -149,7 +127,6 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         lights_commands: FrozenSet[Lights],
         shared_resources_ds: D,
         vg: VehicleGeometry,
-        poss_monad: PossibilityMonad,
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -160,7 +137,6 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         self.lights_commands = lights_commands
         self.shared_resources_ds = shared_resources_ds
         self.vg = vg
-        self.ps = poss_monad
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
@@ -178,6 +154,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         if x.wait >= self.max_wait:
             assert x.v == 0, x
             accels.remove(D(0))
+        ps = PossibilitySet()
 
         possible = {}
         for light, accel in itertools.product(self.lights_commands, self.available_accels):
@@ -187,7 +164,7 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
             except InvalidAction:
                 pass
             else:
-                possible[u] = self.ps.unit(x2)
+                possible[u] = ps.unit(x2)
 
         return frozendict(possible)
 

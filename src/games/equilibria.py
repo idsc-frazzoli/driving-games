@@ -16,7 +16,7 @@ from preferences import (
 from zuper_commons.types import ZValueError
 from . import GameConstants
 from .game_def import (
-    check_joint_mixed_actions,
+    check_joint_mixed_actions2,
     JointMixedActions,
     JointPureActions,
     PlayerName,
@@ -60,11 +60,11 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
             return
 
         for _ in self.ps:
-            check_joint_mixed_actions(_)
+            check_joint_mixed_actions2(_)
         for _ in self.nondom_nash_equilibria:
-            check_joint_mixed_actions(_)
+            check_joint_mixed_actions2(_)
         for _ in self.nash_equilibria:
-            check_joint_mixed_actions(_)
+            check_joint_mixed_actions2(_)
 
 
 def analyze_equilibria(
@@ -77,7 +77,7 @@ def analyze_equilibria(
     # Now we want to find all mixed strategies
     # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
     # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
-    # todo for probabilities this is restrictive...(mix returns a finite set)
+
     player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
     # logger.info(player_mixed_strategies=player_mixed_strategies)
     # now we do the product of the mixed strategies
@@ -106,12 +106,7 @@ def analyze_equilibria(
                 if player_name not in _:
                     msg = f"Cannot get value for {player_name!r}."
                     raise ZValueError(
-                        msg,
-                        player_name=player_name,
-                        _=_,
-                        mixed_outcome=mixed_outcome,
-                        solved=solved,
-                        gn=gn,
+                        msg, player_name=player_name, _=_, mixed_outcome=mixed_outcome, solved=solved, gn=gn,
                     )
                 return _[player_name]
 
@@ -132,34 +127,28 @@ def analyze(
     # logger.info(combos=combos)
     comb: JointPureActions
     ps: Dict[JointPureActions, PointStats] = {}
-    a0: JointMixedActions
-    a1: JointMixedActions
+    x0: JointMixedActions
+    x1: JointMixedActions
     player_names = set(player_mixed_strategies)
     nash_equilibria = {}
     action_to_change: FrozenSet[U]
-    for a0 in results:
+    for x0 in results:
         happy_players = set()
         unhappy_players = set()
         alternatives = {}
         for player_name in player_names:
             pref: Preference[UncertainCombined]
-            try:
-                pref = preferences[player_name]
-            except:
-                pref = preferences[player_name[0]]
+            pref = preferences[player_name]
             is_happy: bool = True
             variations_: Mapping[U, JointMixedActions]
-            variations_ = variations(player_mixed_strategies, a0, player_name)
+            variations_ = variations(player_mixed_strategies, x0, player_name)
             alternatives_player = {}
             # logger.info('looking for variations', variations_=variations_)
-            for action_to_change, a1 in variations_.items():
-                # zassert(x1 in results, a1=a1, results=set(results))
+            for action_to_change, x1 in variations_.items():
+                # zassert(x1 in results, x1=x1, results=set(results))
                 o0: UncertainCombined
                 o1: UncertainCombined
-                try:
-                    o1, o0 = results[a1][player_name], results[a0][player_name]
-                except:
-                    o1, o0 = results[a1][player_name[0]], results[a0][player_name[0]]
+                o1, o0 = results[x1][player_name], results[x0][player_name]
                 res = pref.compare(o1, o0)
                 assert res in COMP_OUTCOMES, (res, pref)
                 # logger.info(o1=o1, o0=o0, res=res)
@@ -174,16 +163,16 @@ def analyze(
         stats = PointStats(
             happy=frozenset(happy_players),
             unhappy=frozenset(unhappy_players),
-            outcome=results[a0],
+            outcome=results[x0],
             alternatives=frozendict(alternatives),
         )
-        ps[a0] = stats
+        ps[x0] = stats
 
         if not unhappy_players:
-            nash_equilibria[a0] = stats.outcome
+            nash_equilibria[x0] = stats.outcome
     # logger.info(ps=ps)
 
-    # compare product of monadic outcomes
+    # we need something to compare set of outcomes
     pref: Preference[Mapping[PlayerName, UncertainCombined]] = StrictProductPreferenceDict(preferences)
 
     # logger.info(nash_equilibria=nash_equilibria, preferences=preferences, pref=pref)
