@@ -19,16 +19,12 @@ from games.game_def import (
     Combined,
     JointMixedActions,
     check_joint_mixed_actions,
-    Game,
-    SR,
 )
-from games.solution_security import get_security_policies
 from games.structures_solution import (
     ValueAndActions,
     STRATEGY_MIX,
     STRATEGY_SECURITY,
     STRATEGY_BAIL,
-    SolvingContext,
 )
 from games.utils import fd, valmap
 from possibilities import Poss, PossibilityMonad
@@ -83,7 +79,7 @@ def analyze_sequential_rational(
     gn: BayesianGameNode,
     solved: Dict[JointPureActions, Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
-    game: BayesianGame[X, U, Y, RP, RJ, SR],
+    game: BayesianGame,
 ) -> EquilibriaAnalysis:
     """
     For each node that is not final, this function is used. It selects an action for each type of each player and
@@ -127,7 +123,7 @@ def analyze_sequential_rational(
 
     _ = next(iter(game.players))
     type_combinations = list(
-        itertools.product(game.players[_].types_of_myself, game.players[_].types_of_other)
+        itertools.product(game.players[_].types_of_myself, game.players[_].types_of_others)
     )
 
     results: Dict[JointMixedActions, Mapping[PlayerName, UncertainCombined]] = {}
@@ -143,7 +139,7 @@ def analyze_sequential_rational(
         # Get the expected values here
         if p1 == p2:
             res: Dict[PlayerName, UncertainCombined] = {}
-            for t1 in game.players[p1].types_of_other:
+            for t1 in game.players[p1].types_of_others:
                 for t2 in game.players[p2].types_of_myself:
                     belief = gn.game_node_belief[p1].support()[t1]
                     key1 = "{},{}".format(p1, t2)
@@ -165,8 +161,8 @@ def analyze_sequential_rational(
 
         else:
             res: Dict[PlayerName, UncertainCombined] = {}
-            for t1 in game.players[p1].types_of_other:
-                for t2 in game.players[p2].types_of_other:
+            for t1 in game.players[p1].types_of_others:
+                for t2 in game.players[p2].types_of_others:
                     belief1 = gn.game_node_belief[p1].support()[t1]
                     belief2 = gn.game_node_belief[p2].support()[t2]
                     belief = belief1 * belief2
@@ -247,7 +243,7 @@ def solve_sequential_rationality(
         if p1 == p2:
             game_value = {}
             for t1 in sc.game.players[p1].types_of_myself:
-                for t2 in sc.game.players[p1].types_of_other:
+                for t2 in sc.game.players[p1].types_of_others:
                     key1 = "{},{}".format(p1, t1)
                     move1 = eq[key1]
                     a = frozendict(zip([p1], [move1]))
@@ -262,8 +258,8 @@ def solve_sequential_rationality(
 
         else:
             game_value = {}
-            for t1 in sc.game.players[p1].types_of_other:
-                for t2 in sc.game.players[p2].types_of_other:
+            for t1 in sc.game.players[p1].types_of_others:
+                for t2 in sc.game.players[p2].types_of_others:
 
                     key1 = "{},{}".format(p1, t2)
                     key2 = "{},{}".format(p2, t1)
@@ -311,7 +307,7 @@ def solve_sequential_rationality(
                 game_value1 = {}
 
                 for t1 in sc.game.players[p1].types_of_myself:
-                    for t2 in sc.game.players[p1].types_of_other:
+                    for t2 in sc.game.players[p1].types_of_others:
                         outcome: List[Poss[Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]]] = []
                         for eq in list(ea.nondom_nash_equilibria):
                             key1 = "{},{}".format(p1, t1)
@@ -331,8 +327,8 @@ def solve_sequential_rationality(
                 game_value1: Mapping[PlayerName, UncertainCombined]
                 game_value1 = {}
 
-                for t1 in sc.game.players[p1].types_of_other:
-                    for t2 in sc.game.players[p2].types_of_other:
+                for t1 in sc.game.players[p1].types_of_others:
+                    for t2 in sc.game.players[p2].types_of_others:
                         outcome: List[Poss[Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]]] = []
                         for eq in list(ea.nondom_nash_equilibria):
 

@@ -7,37 +7,43 @@ from games import (
     SolvingContext,
     PlayerName,
     GamePreprocessed,
-    X,
-    U,
-    Y,
-    RP,
-    RJ,
-    SR,
     GamePlayerPreprocessed,
+    JointState,
 )
+from games.structures_solution import GameGraph
 
 from possibilities import Poss
 
-__all__ = ["BayesianGameNode", "BayesianSolvingContext", "BayesGamePreprocessed"]
+__all__ = ["BayesianGameNode", "BayesianGameGraph", "BayesianSolvingContext", "BayesianGamePreprocessed"]
 
 
 @dataclass
 class BayesianGameNode(GameNode):
-    game_node_belief: Mapping[PlayerName, Poss[PlayerType]]
-    """ Belief of each player at this game node """
+    game_node_belief: Mapping[PlayerName, Mapping[PlayerName, Poss[PlayerType]]]
+    """ Belief of each player at this game node over the possible types of the other players"""
+
+
+@dataclass
+class BayesianGamePreprocessed(GamePreprocessed):
+    """ A pre-processed Bayesian game. """
+
+    game: BayesianGame
+    """ The original game. """
+
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed]
+    """ The pre-processed data for each player"""
+
+
+@dataclass
+class BayesianGameGraph(GameGraph):
+    """ The bayesian game graph."""
+
+    state2node: Mapping[JointState, BayesianGameNode]
 
 
 @dataclass
 class BayesianSolvingContext(SolvingContext):
+    """ The bayesian solving context. """
+
     game: BayesianGame
-
-
-@dataclass
-class BayesGamePreprocessed(GamePreprocessed):
-    """ A pre-processed Bayesian game. """
-
-    game: BayesianGame[X, U, Y, RP, RJ, SR, T]
-    """ The original game. """
-
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
-    """ The pre-processed data for each player"""
+    gg: BayesianGameGraph

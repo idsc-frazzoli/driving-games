@@ -14,9 +14,14 @@ from frozendict import frozendict
 from networkx import simple_cycles
 from toolz import valmap
 
-from bayesian_driving_games.structures import PlayerType
+from bayesian_driving_games.structures import PlayerType, BayesianGame
 from bayesian_driving_games.sequential_rationality import solve_sequential_rationality
-from bayesian_driving_games.structures_solution import BayesianGameNode, BayesianSolvingContext
+from bayesian_driving_games.structures_solution import (
+    BayesianGameNode,
+    BayesianSolvingContext,
+    BayesianGamePreprocessed,
+    BayesianGameGraph,
+)
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
 from games.solution import fr, get_outcome_preferences_for_players
 from possibilities import Poss
@@ -41,7 +46,6 @@ from games.game_def import (
 )
 from games.simulate import simulate1, Simulation
 from games.structures_solution import (
-    GameGraph,
     GameNode,
     GameSolution,
     Solutions,
@@ -56,7 +60,7 @@ from games.structures_solution import (
 __all__ = ["solve_bayesian_game", "get_outcome_preferences_for_players"]
 
 
-def solve_bayesian_game(gp: BayesGamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     This is the main solving function. However the actual solving algorithm is in solve_game_bayesian2 that is called here.
     This function simulates the results and returns all the solutions.
@@ -86,7 +90,7 @@ def solve_bayesian_game(gp: BayesGamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solut
     # We will fill this with some simulations of different policies
     sims: Dict[str, Simulation] = {}
 
-    logger.info("creating game tree")
+    logger.info("creating bayesian game tree")
 
     # Use game factorization only if the option is set
     if gp.game_factorization and gp.solver_params.use_factorization:
@@ -111,7 +115,7 @@ def solve_bayesian_game(gp: BayesGamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solut
                 policy = gp.players_pre[p2].gs.policies[p2 + "," + t]
                 controllers_others[p2 + "," + t] = AgentFromPolicy(gp.game.ps, policy)
 
-    logger.info("solving game tree")
+    logger.info("solving bayesian game tree")
     game_solution = solve_game_bayesian2(
         game=gp.game,
         gg=gg,
@@ -166,7 +170,7 @@ def assign_beliefs(sc: BayesianSolvingContext, solution: GameSolution, js: Joint
 
     _ = next(iter(sc.game.players))
     type_combinations = list(
-        itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other)
+        itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_others)
     )
     actions_proposed = {}
     for _ in sgn.solved.keys():
@@ -190,7 +194,7 @@ def assign_beliefs(sc: BayesianSolvingContext, solution: GameSolution, js: Joint
             bel = {}
             js2 = list(v.support())[0][p]
 
-            for t in sc.game.players[p].types_of_other:
+            for t in sc.game.players[p].types_of_others:
                 for k2, v2 in actions_proposed.items():
                     if (t in k2[1]) and (k == k2[0]):
                         bel[t] = prior[t] * v2
@@ -205,15 +209,14 @@ def assign_beliefs(sc: BayesianSolvingContext, solution: GameSolution, js: Joint
                 sc.gg.state2node[js2].game_node_belief[p] = gn1.game_node_belief[p]
 
         assign_beliefs(sc, solution, js2)
-
     return
 
 
 def solve_game_bayesian2(
     *,
-    game: Game[X, U, Y, RP, RJ, SR],
+    game: BayesianGame,
     solver_params: SolverParams,
-    gg: GameGraph[X, U, Y, RP, RJ, SR],
+    gg: BayesianGameGraph,
     jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
@@ -230,7 +233,7 @@ def solve_game_bayesian2(
 
     outcome_preferences = get_outcome_preferences_for_players(game)
     states_to_solution: Dict[JointState, SolvedGameNode] = {}
-    sc = SolvingContext(
+    sc = BayesianSolvingContext(
         game=game,
         outcome_preferences=outcome_preferences,
         gg=gg,

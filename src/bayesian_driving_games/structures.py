@@ -1,5 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import NewType, List, Mapping, TypeVar
+
+from toolz import valmap
 
 from games import GameSpec
 from possibilities import Poss
@@ -35,20 +37,24 @@ NEUTRAL = PlayerType("neutral")
 
 @dataclass
 class BayesianGamePlayer(GamePlayer):
-    # todo: Extend to more than two players - Mapping[PlayerName, List[PlayerType]]
-    types_of_other: List[PlayerType]
-    """The types of the other player"""
-
-    types_of_myself: List[PlayerType]
+    types_of_myself: Poss[PlayerType]
     """The types of myself"""
 
-    prior: Poss[PlayerType]
+    prior: Mapping[PlayerName, Poss[PlayerType]]
     """ The prior over the other player's types"""
+
+    types_of_others: Mapping[PlayerName, List[PlayerType]] = field(init=False)
+    """The types of the other player"""
+
+    def __post_init__(
+        self,
+    ):
+        self.types_of_others = {k: poss.support for k, poss in self.prior.items()}
 
 
 @dataclass
 class BayesianGame(Game):
-    """ Definition of the game """
+    """ Definition of the Bayesian sgame """
 
     players: Mapping[PlayerName, BayesianGamePlayer]
     """ The players in this game. """

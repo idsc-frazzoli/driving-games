@@ -1,60 +1,48 @@
-import itertools
-from collections import defaultdict
-from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Optional, Tuple
-
-from frozendict import frozendict
-from toolz import itemmap
-
+from typing import AbstractSet, Mapping, Optional, MutableMapping
 from bayesian_driving_games.structures import BayesianGame, PlayerType
-from possibilities.sets import SetPoss
 
-from bayesian_driving_games.structures_solution import BayesianGameNode
-from games.create_joint_game_tree import get_moves, get_networkx_graph, get_timestep_info
+
+from bayesian_driving_games.structures_solution import BayesianGameNode, BayesianGameGraph
+from games.create_joint_game_tree import create_game_graph
 from possibilities import Poss
-from zuper_commons.types import ZValueError
-from games import logger
 from games.game_def import (
-    check_joint_state,
-    Game,
-    JointPureActions,
     JointState,
     PlayerName,
-    RJ,
-    RP,
-    SR,
-    U,
     X,
-    Y,
 )
 from games.structures_solution import (
-    AccessibilityInfo,
     GameFactorization,
     GameGraph,
-    GameNode,
 )
-from games.utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = ["create_bayesian_game_graph"]
 
 
-@dataclass
-class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
-    """ Iteration structure while creating the game graph. """
-
-    game: BayesianGame
-    dt: D
-    cache: Dict[JointState, BayesianGameNode]
-    """ Nodes that were already computed. """
-
-    depth: int
-    """ The current depth. """
-
-    gf: Optional[GameFactorization[X]]
-    """ Optional GameFactorization that will be used in the 
-        graph creation to recognize decoupled states.
+def _initialize_bayesian_game_graph(game: BayesianGame, game_graph: GameGraph) -> BayesianGameGraph:
+    """Substitute standard `GameNode` with `BayesianGameNode`.
+    Copy plus adding the game belief for players at that node.
+    Very inefficient at the moment.
     """
+    state2bnode: MutableMapping[JointState, BayesianGameNode] = dict()
+    for js, gnode in game_graph.state2node.items():
+        game_node_belief: MutableMapping[PlayerName, Mapping[PlayerName, Poss[PlayerType]]] = dict()
+        for player in js:
+            game_node_belief[player] = game.players[player].prior
+
+        state2bnode[js] = BayesianGameNode(
+            states=gnode.states,
+            moves=gnode.moves,
+            outcomes=gnode.outcomes,
+            is_final=gnode.is_final,
+            incremental=gnode.incremental,
+            joint_final_rewards=gnode.joint_final_rewards,
+            resources=gnode.resources,
+            # fixme the game belif needs to be frozen?
+            game_node_belief=game_node_belief,
+        )
+
+    return BayesianGameGraph(initials=game_graph.initials, state2node=state2bnode, ti=game_graph.ti)
 
 
 def create_bayesian_game_graph(
@@ -62,7 +50,7 @@ def create_bayesian_game_graph(
     dt: D,
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
-) -> GameGraph[X, U, Y, RP, RJ, SR]:
+) -> BayesianGameGraph:
     """Create the game graph.
 
     :param game: Game parameters
@@ -71,155 +59,6 @@ def create_bayesian_game_graph(
     :param gf: Game factorization (optional)
     :return: Returns the game graph of the bayesian game, consisting of BayesianGameNodes including Beliefs.
     """
-
-    state2node: Dict[JointState, BayesianGameNode] = {}
-    ic = BayesianIterationContext(game, dt, state2node, depth=0, gf=gf)
-    logger.info("creating game tree")
-    for js in initials:
-        _create_bayesian_game_graph(ic, js)
-
-    # create networkx graph
-    G = get_networkx_graph(state2node)
-    ti = get_timestep_info(G, dt)
-
-    # visualize number of states by time
-    sizes = {}
-    for t, states in ti.time2states.items():
-        res = defaultdict(lambda: 0)
-        for js in states:
-            res[len(js)] += 1
-        sizes[t] = dict(sorted(res.items()))
-    logger.info("Number of states by time", sizes=sizes)
-
-    return GameGraph(initials, state2node, ti)
-
-
-def _create_bayesian_game_graph(ic: BayesianIterationContext, states: JointState) -> BayesianGameNode:
-    """
-
-    :param ic: BayesianIterationContxt (Game parameters, etc.)
-    :param states: joint state
-    :return: A Bayesian game node for the joint state, including a belief
-    """
-    check_joint_state(states)
-    if states in ic.cache:
-        return ic.cache[states]
-
-    moves_to_state_everybody = get_moves(ic, states)
-    pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
-    ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth + 1)
-
-    is_final = {}
-    for player_name, player_state in states.items():
-        _ = ic.game.players[player_name]
-        if _.personal_reward_structure.is_personal_final_state(player_state):
-            f = _.personal_reward_structure.personal_final_reward(player_state)
-            is_final[player_name] = f
-
-    who_exits = frozenset(ic.game.joint_reward.is_joint_final_state(states))
-    joint_final = who_exits
-    if joint_final:
-        joint_final_rewards = ic.game.joint_reward.joint_reward(states)
-    else:
-        joint_final_rewards = {}
-
-    players_exiting = set(who_exits) | set(is_final)
-
-    # Consider only the moves of who remains
-    not_exiting = lambda pn: pn not in players_exiting
-    moves_to_state_remaining = fkeyfilter(not_exiting, moves_to_state_everybody)
-    movesets_for_remaining = fvalmap(frozenset, moves_to_state_remaining)
-
-    # Compute the incremental costs for the moves
-    _ = next(iter(ic.game.players))
-    type_combinations = list(
-        itertools.product(ic.game.players[_].types_of_myself, ic.game.players[_].types_of_other)
-    )
-    incremental = defaultdict(dict)
-    for k, its_moves in moves_to_state_remaining.items():
-        for move in its_moves:
-            for tc in type_combinations:
-                if move is None:
-                    continue
-                pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
-                inc = pri(states[k], move, ic.dt)
-                try:
-                    incremental[k, tc][move] = inc[tc]
-                except:
-                    incremental[k, tc[::-1]][move] = inc[tc[::-1]]
-
-    for joint_pure_action in iterate_dict_combinations(moves_to_state_remaining):
-
-        pure_action: JointPureActions
-        pure_action = fkeyfilter(lambda action: action is not None, joint_pure_action)
-
-        if not pure_action:
-            continue
-
-        def f(item: Tuple[PlayerName, U]) -> Tuple[PlayerName, Poss[X]]:
-            pn, choice = item
-            # fixme ps.lift_many(moves_to_state_remaining[pn][choice])?
-            return pn, moves_to_state_remaining[pn][choice]
-
-        selected: Dict[PlayerName, Poss[X]]
-        selected = itemmap(f, pure_action)
-
-        def f(a: Mapping[PlayerName, U]) -> JointState:
-            return fkeyfilter(not_exiting, a)
-
-        outcomes: Poss[JointState] = ps.build_multiple(selected, f)
-
-        def r(js0: JointState) -> Mapping[PlayerName, JointState]:
-            if ic.gf is not None:
-                # using game factorization
-                js_continuing = fkeyfilter(not_exiting, js0)
-                if js_continuing not in ic.gf.ipartitions:
-                    msg = "Cannot find the state in the factorization info"
-                    raise ZValueError(msg, js0=js_continuing, known=set(ic.gf.ipartitions))
-                partitions = ic.gf.ipartitions[js_continuing]
-                re = {}
-                for players_in_partition in partitions:
-                    this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
-                    for pname in players_in_partition:
-                        re[pname] = this_partition_state
-                return frozendict(re)
-            else:
-                x = {k_: js0 for k_ in states}
-                return fkeyfilter(not_exiting, x)
-
-        poutcomes: Poss[Mapping[PlayerName, JointState]] = ps.build(outcomes, r)
-        pure_outcomes[pure_action] = poutcomes
-
-        for p in poutcomes.support():
-            for _, js_ in p.items():
-                _create_bayesian_game_graph(ic2, js_)
-
-    resources = {}
-    for player_name, player_state in states.items():
-        dynamics = ic.game.players[player_name].dynamics
-        resources[player_name] = dynamics.get_shared_resources(player_state)
-
-    initial_node_belief = {}  # todo typing
-    belief: Poss[JointState]  # todo are we sure...?! not over types?
-
-    for player_name, player in ic.game.players.items():
-        b = {}
-        for t in player.types_of_other:
-            b[t] = player.prior.p[t]
-            belief = SetPoss(b)
-            # todo az here it looks something is off
-            initial_node_belief[player_name] = belief
-
-    res = BayesianGameNode(
-        moves=movesets_for_remaining,
-        states=frozendict(states),
-        outcomes=frozendict(pure_outcomes),
-        incremental=fvalmap(frozendict, incremental),
-        joint_final_rewards=frozendict(joint_final_rewards),
-        is_final=frozendict(is_final),
-        resources=frozendict(resources),
-        game_node_belief=initial_node_belief,
-    )
-    ic.cache[states] = res
-    return res
+    game_graph = create_game_graph(game=game, dt=dt, initials=initials, gf=gf)
+    bayesian_game_graph = _initialize_bayesian_game_graph(game, game_graph)
+    return bayesian_game_graph

@@ -36,6 +36,7 @@ __all__ = [
     "GameNode",
     "GamePreprocessed",
     "GamePlayerPreprocessed",
+    "GameGraph",
     "SolvedGameNode",
     "SolverParams",
     "SolvingContext",
