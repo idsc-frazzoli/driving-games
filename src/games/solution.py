@@ -104,8 +104,8 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
-    # solve stackelberg equilibria
-    # sims = solve_stackelberg(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+    # solve sequential games equilibria
+    sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
     game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
@@ -138,9 +138,17 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     # logger.info(game_tree=game_tree)
 
 
-def solve_stackelberg(
+def solve_sequential_games(
     gp: GamePreprocessed, gg: GameGraph, initial_state: JointState, sims: Dict[str, Simulation]
 ) -> Dict[str, Simulation]:
+    """#todo
+
+    :param gp:
+    :param gg:
+    :param initial_state:
+    :param sims:
+    :return:
+    """
     for player_name, pp in gp.players_pre.items():
         # use other solutions
         controllers_others = {}
@@ -151,22 +159,15 @@ def solve_stackelberg(
             policy = gp.players_pre[p2].gs.policies[p2]
             controllers_others[p2] = AgentFromPolicy(gp.game.ps, policy)
 
-        if player_name.startswith("N"):  # fixme why?
-            logger.info(f"looking for solution for {player_name} follower")
-
         ghost_game_graph = get_ghost_tree(gp.game, player_name, gg, controllers_others)
-        if player_name.startswith("N"):  # fixme why?
-            logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
-            # logger.info(gg_nodes=set(ghost_game_graph.state2node))
-            # logger.info(gg=ghost_game_graph)
-
+        logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
         solution_ghost = solve_game2(
             game=gp.game,
             gg=ghost_game_graph,
             solver_params=gp.solver_params,
             jss={initial_state},
         )
-        msg = f"Stackelberg solution when {player_name} is a follower"
+        msg = f"Sequential solution when {player_name} plays last"
         game_values = solution_ghost.states_to_solution[initial_state].va.game_value
         logger.info(msg, game_values=game_values)
 

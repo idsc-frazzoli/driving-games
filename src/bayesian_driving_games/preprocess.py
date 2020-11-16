@@ -3,6 +3,7 @@ from typing import Optional
 from frozendict import frozendict
 
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
+from bayesian_driving_games.structures import BayesianGame, T
 from games import Game, X, U, Y, RP, RJ, SolverParams, GamePreprocessed
 from games.access import get_game_graph, compute_graph_layout, get_game_factorization, get_player_graph
 from games.game_def import SR
@@ -13,12 +14,12 @@ from games.structures_solution import GameFactorization, GamePlayerPreprocessed,
 
 
 def bayesian_preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR],
+    individual_game: BayesianGame[X, U, Y, RP, RJ, SR, T],
     solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    Only thing that changed to a normal driving game are that it uses the functions create_bayesian_game_graph and
-    solve_game_bayesian2 instead of the deterministic ones.
+    Same logic as in a driving game, it uses the functions `create_bayesian_game_graph` and
+    `solve_game_bayesian2` instead of the deterministic ones.
 
     :param individual_game:
     :param solver_params:
@@ -44,7 +45,7 @@ def bayesian_preprocess_player(
 def bayesian_preprocess_game(
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
-) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
+) -> BayesGamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     Same as in Driving Games, except that it uses bayesian_preprocess_player.
 

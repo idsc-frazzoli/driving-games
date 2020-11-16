@@ -137,8 +137,8 @@ class BayesianVehiclePersonalRewardStructureTime(
     PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
 ):
     """
-    Very similar to the normal Driving Games personal reward, but each type combination gives a different payoff.
-    These are coded in the functions personal_reward_incremental and personal_final_reward. All other functions can stay the same as in the driving games.
+    Similar to the normal Driving Games personal reward, but each type combination gives a different payoff.
+    These are coded in the functions `personal_reward_incremental` and `personal_final_reward`.
     """
 
     max_path: D
@@ -152,7 +152,7 @@ class BayesianVehiclePersonalRewardStructureTime(
         self, x: VehicleState, u: VehicleActions, dt: D
     ) -> Mapping[Tuple[PlayerType, PlayerType], VehicleCosts]:
         """
-
+        #fixme az check if these should get a bayesian vehicle state
         :param x: The state of the player
         :param u: The action of the player
         :param dt: Timestep

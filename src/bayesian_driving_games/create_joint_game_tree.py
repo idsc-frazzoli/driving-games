@@ -7,6 +7,7 @@ from typing import AbstractSet, Dict, Generic, Mapping, Optional, Tuple
 from frozendict import frozendict
 from toolz import itemmap
 
+from bayesian_driving_games.structures import BayesianGame, PlayerType
 from possibilities.sets import SetPoss
 
 from bayesian_driving_games.structures_solution import BayesianGameNode
@@ -42,7 +43,7 @@ __all__ = ["create_bayesian_game_graph"]
 class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """ Iteration structure while creating the game graph. """
 
-    game: Game[X, U, Y, RP, RJ, SR]
+    game: BayesianGame
     dt: D
     cache: Dict[JointState, BayesianGameNode]
     """ Nodes that were already computed. """
@@ -57,25 +58,25 @@ class BayesianIterationContext(Generic[X, U, Y, RP, RJ, SR]):
 
 
 def create_bayesian_game_graph(
-    game: Game[X, U, Y, RP, RJ, SR],
+    game: BayesianGame,
     dt: D,
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
-    """
+    """Create the game graph.
 
     :param game: Game parameters
-    :param dt: Timesteps
+    :param dt: timestep
     :param initials: Initial states of the players
-    :param gf: Game factorization parameter
+    :param gf: Game factorization (optional)
     :return: Returns the game graph of the bayesian game, consisting of BayesianGameNodes including Beliefs.
     """
-    """ Create the game graph. """
+
     state2node: Dict[JointState, BayesianGameNode] = {}
     ic = BayesianIterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
-        create_bayesian_game_graph_(ic, js)
+        _create_bayesian_game_graph(ic, js)
 
     # create networkx graph
     G = get_networkx_graph(state2node)
@@ -93,7 +94,7 @@ def create_bayesian_game_graph(
     return GameGraph(initials, state2node, ti)
 
 
-def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState) -> BayesianGameNode:
+def _create_bayesian_game_graph(ic: BayesianIterationContext, states: JointState) -> BayesianGameNode:
     """
 
     :param ic: BayesianIterationContxt (Game parameters, etc.)
@@ -192,21 +193,22 @@ def create_bayesian_game_graph_(ic: BayesianIterationContext, states: JointState
 
         for p in poutcomes.support():
             for _, js_ in p.items():
-                create_bayesian_game_graph_(ic2, js_)
+                _create_bayesian_game_graph(ic2, js_)
 
     resources = {}
     for player_name, player_state in states.items():
         dynamics = ic.game.players[player_name].dynamics
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
-    initial_node_belief = {}
-    belief: Poss[JointState]
+    initial_node_belief = {}  # todo typing
+    belief: Poss[JointState]  # todo are we sure...?! not over types?
 
     for player_name, player in ic.game.players.items():
         b = {}
         for t in player.types_of_other:
             b[t] = player.prior.p[t]
             belief = SetPoss(b)
+            # todo az here it looks something is off
             initial_node_belief[player_name] = belief
 
     res = BayesianGameNode(

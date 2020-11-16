@@ -16,7 +16,7 @@ from toolz import valmap
 
 from bayesian_driving_games.structures import PlayerType
 from bayesian_driving_games.sequential_rationality import solve_sequential_rationality
-from bayesian_driving_games.structures_solution import BayesianGameNode
+from bayesian_driving_games.structures_solution import BayesianGameNode, BayesianSolvingContext
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
 from games.solution import fr, get_outcome_preferences_for_players
 from possibilities import Poss
@@ -43,7 +43,6 @@ from games.simulate import simulate1, Simulation
 from games.structures_solution import (
     GameGraph,
     GameNode,
-    GamePreprocessed,
     GameSolution,
     Solutions,
     SolutionsPlayer,
@@ -57,7 +56,7 @@ from games.structures_solution import (
 __all__ = ["solve_bayesian_game", "get_outcome_preferences_for_players"]
 
 
-def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_bayesian_game(gp: BayesGamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     This is the main solving function. However the actual solving algorithm is in solve_game_bayesian2 that is called here.
     This function simulates the results and returns all the solutions.
@@ -150,7 +149,7 @@ def solve_bayesian_game(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[
     )
 
 
-def assign_beliefs(sc: SolvingContext, solution: GameSolution, js: JointState):
+def assign_beliefs(sc: BayesianSolvingContext, solution: GameSolution, js: JointState):
     """
     This function takes the strategy from the solution object and updates all the beliefs in the game tree according
     to the formula described in my (Michael's) thesis. What is to do yet: The off the path beliefs are at the moment not
@@ -183,7 +182,7 @@ def assign_beliefs(sc: SolvingContext, solution: GameSolution, js: JointState):
                 actions_proposed[a, types] = Fraction(
                     1, 1
                 )  # TODO: Mixed strategies need a probability of actions function
-
+    # todo typing not parsing
     gn1: BayesianGameNode = sc.gg.state2node[sgn.states]
     for k, v in sgn.solved.items():
         for p in set(k):

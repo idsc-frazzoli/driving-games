@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import NewType, List, Mapping
+from typing import NewType, List, Mapping, TypeVar
 
+from games import GameSpec
 from possibilities import Poss
-
 from driving_games.structures import VehicleState
-from games import GamePlayer, Game, PlayerName, GameSpec
+from games.game_def import *
 
 __all__ = [
     "PlayerType",
@@ -14,7 +14,11 @@ __all__ = [
     "BayesianGamePlayer",
     "BayesianVehicleState",
     "BayesianGame",
+    "T",
 ]
+
+T = TypeVar("T")
+""" Generic variable for the type of a player. """
 
 PlayerType = NewType("PlayerType", str)
 """ The type of a player. """
@@ -42,7 +46,6 @@ class BayesianGamePlayer(GamePlayer):
     """ The prior over the other player's types"""
 
 
-# fixme az I suspect here we need Bayesian Game
 @dataclass
 class BayesianGame(Game):
     """ Definition of the game """

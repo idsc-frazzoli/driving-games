@@ -4,8 +4,8 @@ from typing import Mapping, Dict, FrozenSet, Tuple, List
 from frozendict import frozendict
 from zuper_commons.types import ZValueError, ZNotImplementedError
 
-from bayesian_driving_games.structures import PlayerType
-from bayesian_driving_games.structures_solution import BayesianGameNode
+from bayesian_driving_games.structures import PlayerType, BayesianGame
+from bayesian_driving_games.structures_solution import BayesianGameNode, BayesianSolvingContext
 from games import JointPureActions, PlayerName
 from games.equilibria import EquilibriaAnalysis, analyze
 from games.game_def import (
@@ -46,6 +46,7 @@ def weight_outcome(mixed_outcome, weight, ps, t1, t2):
     :param t2: A type
     :return: The weighted outcome
     """
+    # todo this function does not need to exist
     x = {}
     a = 1
     try:
@@ -82,7 +83,7 @@ def analyze_sequential_rational(
     gn: BayesianGameNode,
     solved: Dict[JointPureActions, Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
-    game: Game[X, U, Y, RP, RJ, SR],
+    game: BayesianGame[X, U, Y, RP, RJ, SR],
 ) -> EquilibriaAnalysis:
     """
     For each node that is not final, this function is used. It selects an action for each type of each player and
@@ -199,13 +200,13 @@ def analyze_sequential_rational(
 
 
 def solve_sequential_rationality(
-    sc: SolvingContext,
+    sc: BayesianSolvingContext,
     gn: BayesianGameNode,
     solved: Dict[JointPureActions, Mapping[Tuple[PlayerName, PlayerType], UncertainCombined]],
 ) -> ValueAndActions[U, RP, RJ]:
     """
-    Uses the analyze_sequential_rational function and then selects if there are multiple equilibria. Selects for each
-    player in each type a action.
+    Uses the analyze_sequential_rational function and then selects if there are multiple equilibria.
+    Selects for each player in each type a action.
 
     :param sc: Game parameters etc.
     :param gn: The current Bayesian game node.
@@ -359,26 +360,8 @@ def solve_sequential_rationality(
         # Anything can happen
         # TODO: Not yet updated to Bayesian Games!
         elif strategy == STRATEGY_SECURITY:
-            security_policies: JointMixedActions
-            security_policies = get_security_policies(ps, solved, sc.outcome_preferences, ea)
-            check_joint_mixed_actions2(security_policies)
-            dist: Poss[JointPureActions]
-            dist = get_mixed2(ps, security_policies)
-            # logger.info(dist=dist)
-            for _ in dist.support():
-                check_joint_pure_actions(_)
-            # logger.info(dist=dist)
-            game_value = {}
-            for player_name in gn.states:
-
-                def f(jpa: JointPureActions) -> UncertainCombined:
-                    return solved[jpa][player_name]
-
-                game_value[player_name] = ps.join(ps.build(dist, f))
-
-            # game_value: Mapping[PlayerName, UncertainCombined]
-            game_value_ = fd(game_value)
-            return ValueAndActions(game_value=game_value_, mixed_actions=security_policies)
+            msg = "Security strategy not implemented for bayesian games"
+            raise ZNotImplementedError(msg, ea=ea)
         elif strategy == STRATEGY_BAIL:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)

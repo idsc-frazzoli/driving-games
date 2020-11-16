@@ -22,7 +22,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
 
     sims = dict(s.sims)
 
-    f = r.figure("stackelberg", cols=5)
+    f = r.figure("sequential", cols=5)
     for k, sim in list(sims.items()):
         if "follows" not in k:
             continue
