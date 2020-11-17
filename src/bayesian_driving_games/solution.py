@@ -104,16 +104,16 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
 
-    for player_name, pp in gp.players_pre.items():
-        # use other solutions
-        controllers_others = {}
-        for p2 in gp.players_pre:
-            for t in gp.game.players[p2].types_of_myself:
-                if p2 == player_name:
-                    continue
-                x_p2 = initial_state[p2]
-                policy = gp.players_pre[p2].gs.policies[p2 + "," + t]
-                controllers_others[p2 + "," + t] = AgentFromPolicy(gp.game.ps, policy)
+    # for player_name, pp in gp.players_pre.items():
+    #     # use other solutions
+    #     controllers_others = {}
+    #     for p2 in gp.players_pre:
+    #         for t in gp.game.players[p2].types_of_myself:
+    #             if p2 == player_name:
+    #                 continue
+    #             x_p2 = initial_state[p2]
+    #             policy = gp.players_pre[p2].gs.policies[p2 + "," + t]
+    #             controllers_others[p2 + "," + t] = AgentFromPolicy(gp.game.ps, policy)
 
     logger.info("solving bayesian game tree")
     game_solution = solve_game_bayesian2(
@@ -156,8 +156,9 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
 def assign_beliefs(sc: BayesianSolvingContext, solution: GameSolution, js: JointState):
     """
     This function takes the strategy from the solution object and updates all the beliefs in the game tree according
-    to the formula described in my (Michael's) thesis. What is to do yet: The off the path beliefs are at the moment not
-    precise enough. At the moment, they do not change to the previous iteration, but actually they can be anything in [0,1].
+    to the formula described in my (Michael's) thesis.
+    What is to do yet: The off the path beliefs are at the moment not precise enough.
+    At the moment, they do not change to the previous iteration, but actually they can be anything in [0,1].
     This is a recursive function working the tree downwards.
 
     :param sc: game parameters etc.
@@ -422,8 +423,8 @@ def _solve_bayesian_game(
     else:
         va = solve_sequential_rationality(sc, gn, solved)
 
-    ur: UsedResources[X, U, Y, RP, RJ, SR]
-    usage_current = ps.unit(gn.resources)
+    # ur: UsedResources[X, U, Y, RP, RJ, SR]
+    # usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
     # TODO: Used resources in Bayesian framework...
     # if va.mixed_actions:  # not a final state

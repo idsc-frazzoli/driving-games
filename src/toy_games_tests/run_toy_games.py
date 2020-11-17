@@ -2,7 +2,7 @@ from typing import Sequence
 
 from bayesian_driving_games.solution import solve_bayesian_game
 
-from bayesian_driving_games.preprocess import bayesian_preprocess_game
+from bayesian_driving_games.preprocess import preprocess_bayesian_game
 from nash.structures import print_bimatgame
 from toy_games import ToyGameMat, get_toy_game_spec
 
@@ -64,7 +64,7 @@ def _run_toy_game_bayesian(
     # game_spec = get_toy_game_spec(max_stages, subgames, uncertainty_params)
     game_spec = get_bayesian_toy_game_spec(max_stages, subgames, uncertainty_params)
     game = game_spec.game
-    game_preprocessed = bayesian_preprocess_game(game, solver_params)
+    game_preprocessed = preprocess_bayesian_game(game, solver_params)
     solutions = solve_bayesian_game(game_preprocessed)
     for state, solution in solutions.game_solution.states_to_solution.items():
         # filter out only the first level subgame

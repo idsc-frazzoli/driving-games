@@ -1,5 +1,7 @@
 from decimal import Decimal as D
 from typing import AbstractSet, Mapping, Optional, MutableMapping
+
+from bayesian_driving_games import logger
 from bayesian_driving_games.structures import BayesianGame, PlayerType
 
 
@@ -24,6 +26,7 @@ def _initialize_bayesian_game_graph(game: BayesianGame, game_graph: GameGraph) -
     Copy plus adding the game belief for players at that node.
     Very inefficient at the moment.
     """
+    logger.info("Initializing game nodes with prior belief")
     state2bnode: MutableMapping[JointState, BayesianGameNode] = dict()
     for js, gnode in game_graph.state2node.items():
         game_node_belief: MutableMapping[PlayerName, Mapping[PlayerName, Poss[PlayerType]]] = dict()
@@ -38,7 +41,7 @@ def _initialize_bayesian_game_graph(game: BayesianGame, game_graph: GameGraph) -
             incremental=gnode.incremental,
             joint_final_rewards=gnode.joint_final_rewards,
             resources=gnode.resources,
-            # fixme the game belif needs to be frozen?
+            # fixme the game belief needs to be frozen?
             game_node_belief=game_node_belief,
         )
 

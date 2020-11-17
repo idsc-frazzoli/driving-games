@@ -6,7 +6,7 @@ from frozendict import frozendict
 
 from bayesian_driving_games.bayesian_driving_rewards import (
     BayesianVehicleJointReward,
-    BayesianVehiclePersonalRewardStructureTime,
+    BayesianVehiclePersonalRewardStructureScalar,
     BayesianVehiclePersonalRewardStructureSimple,
 )
 from bayesian_driving_games.structures import (
@@ -80,14 +80,15 @@ def get_bayesian_driving_game(
     geometries = {P1: g1, P2: g2}
 
     # types
-    p1_types = [CAUTIOUS, AGGRESSIVE]
+    p1_types = {CAUTIOUS, AGGRESSIVE}
     p2_prior_weights = [Fraction(1, 2), Fraction(1, 2)]
-    p2_types = [NEUTRAL]
+    p2_types = {NEUTRAL}
+    p1_prior_weights = [Fraction(1)]
 
     # priors
     ps2 = ProbabilityFraction()
-    p2_prior = {P1: ProbPoss(dict(zip(p1_types, p2_prior_weights)))}
-    p1_prior = {P2: ps2.lift_many(p2_types)}
+    p1_prior_belief = {P2: ProbPoss(dict(zip(p2_types, p1_prior_weights)))}
+    p2_prior_belief = {P1: ProbPoss(dict(zip(p1_types, p2_prior_weights)))}
 
     # State
     p1_x = VehicleState(
@@ -132,11 +133,13 @@ def get_bayesian_driving_game(
         shared_resources_ds=vehicles_params.shared_resources_ds,
         poss_monad=ps,
     )
-    p1_personal_reward_structure = BayesianVehiclePersonalRewardStructureTime(max_path, p1_types, p2_types)
-    p2_personal_reward_structure = BayesianVehiclePersonalRewardStructureSimple(max_path, p1_types, p2_types)
+    # todo check Personal reward
+    p1_personal_reward_structure = BayesianVehiclePersonalRewardStructureScalar(max_path, p1_types)
+    p2_personal_reward_structure = BayesianVehiclePersonalRewardStructureScalar(max_path, p2_types)
 
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
     p1_possible_states = cast(ASet[BayesianVehicleState], frozenset(g1.nodes))
+    # todo check why bayesian vehicle state
     g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
     p2_possible_states = cast(ASet[BayesianVehicleState], frozenset(g2.nodes))
 
@@ -144,7 +147,7 @@ def get_bayesian_driving_game(
     p1_observations = VehicleDirectObservations(p1_possible_states, {P2: p2_possible_states})
     p2_observations = VehicleDirectObservations(p2_possible_states, {P1: p1_possible_states})
 
-    p1_preferences = VehiclePreferencesCollTime()
+    p1_preferences = VehiclePreferencesCollTime()  # fixme rename to CollScalar?
     p2_preferences = VehiclePreferencesCollTime()
     p1 = BayesianGamePlayer(
         initial=p1_initial,
@@ -154,7 +157,7 @@ def get_bayesian_driving_game(
         preferences=p1_preferences,
         monadic_preference_builder=uncertainty_params.mpref_builder,
         types_of_myself=ps2.lift_many(p1_types),
-        prior=p1_prior,
+        prior=p1_prior_belief,
     )
     p2 = BayesianGamePlayer(
         initial=p2_initial,
@@ -164,12 +167,12 @@ def get_bayesian_driving_game(
         preferences=p2_preferences,
         monadic_preference_builder=uncertainty_params.mpref_builder,
         types_of_myself=ps2.lift_many(p2_types),
-        prior=p2_prior,
+        prior=p2_prior_belief,
     )
     players: Dict[PlayerName, BayesianGamePlayer]
     players = {P1: p1, P2: p2}
     joint_reward: BayesianVehicleJointReward
-
+    # todo check Joint reward
     joint_reward = BayesianVehicleJointReward(
         collision_threshold=vehicles_params.collision_threshold,
         geometries=geometries,

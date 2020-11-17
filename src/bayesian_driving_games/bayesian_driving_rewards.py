@@ -1,10 +1,10 @@
 import itertools
-from typing import Mapping, FrozenSet, Tuple, List
+from typing import Mapping, FrozenSet, Tuple, List, Set
 from decimal import Decimal as D, localcontext
 
 from zuper_commons.types import ZNotImplementedError, check_isinstance
 
-from bayesian_driving_games.structures import PlayerType
+from bayesian_driving_games.structures import PlayerType, AGGRESSIVE, CAUTIOUS, NEUTRAL
 from driving_games import (
     VehicleState,
     VehicleActions,
@@ -133,8 +133,9 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActio
         return res
 
 
-class BayesianVehiclePersonalRewardStructureTime(
+class BayesianVehiclePersonalRewardStructureScalar(
     PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
+    # fixme PersonalRewardStructure[BayesianVehicleState, VehicleActions, VehicleCosts]
 ):
     """
     Similar to the normal Driving Games personal reward, but each type combination gives a different payoff.
@@ -143,27 +144,28 @@ class BayesianVehiclePersonalRewardStructureTime(
 
     max_path: D
 
-    def __init__(self, max_path: D, p1_types: List[PlayerType], p2_types: List[PlayerType]):
+    def __init__(self, max_path: D, p1_types: Set[PlayerType]):
         self.max_path = max_path
-        self.p1_types = p1_types
-        self.p2_types = p2_types
+        # todo only my (of the player) possible types are needed?!
+        self.p_types = p1_types
 
     def personal_reward_incremental(
         self, x: VehicleState, u: VehicleActions, dt: D
     ) -> Mapping[Tuple[PlayerType, PlayerType], VehicleCosts]:
         """
-        #fixme az check if these should get a bayesian vehicle state
+        #fixme check return argument... shouldn't it be Mapping[PlayerType, VehicleCosts]?
         :param x: The state of the player
         :param u: The action of the player
         :param dt: Timestep
         :return: For each type combination a Cost (VehicleCosts is defined as "duration", but can be anything really.
         """
-        tc = list(itertools.product(self.p1_types, self.p2_types))
         check_isinstance(x, VehicleState)
         check_isinstance(u, VehicleActions)
-        res = {}
-        res[tc[0]] = VehicleCosts(abs(u.accel))  # cautious, neutral
-        res[tc[1]] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))  # aggressive, neutral
+        res = dict.fromkeys([AGGRESSIVE, CAUTIOUS, NEUTRAL])
+        res[AGGRESSIVE] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))
+        res[CAUTIOUS] = VehicleCosts(abs(u.accel))
+        res[NEUTRAL] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))  # fixme is this a proper cost?
+        # fixme RETURN res[BayesianVehicleState].my_type?
         return res
 
     def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
@@ -207,6 +209,7 @@ class BayesianVehiclePersonalRewardStructureSimple(
     """
 
     max_path: D
+    # todo "oh my..." this shall go once the above is adjusted
 
     def __init__(self, max_path: D, p1_types: List[PlayerType], p2_types: List[PlayerType]):
         self.max_path = max_path
