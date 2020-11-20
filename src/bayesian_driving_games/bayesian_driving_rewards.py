@@ -38,7 +38,7 @@ def bayesian_collision_check(
     :param p2_types: The types of player 2
     :return: For each type combination, for each player a collision object
     """
-
+    # todo this probably is useless as collision is independent of the players' type
     type_combinations = list(itertools.product(p1_types, p2_types))
     dt = D(0.5)
     n = 2

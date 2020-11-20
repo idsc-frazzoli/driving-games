@@ -496,21 +496,6 @@ def _solve_bayesian_game(
     return ret
 
 
-def add_incremental_cost_single(
-    game: Game[X, U, Y, RP, RJ, SR],
-    *,
-    player_name: PlayerName,
-    cur: Combined[RP, RJ],
-    incremental_for_player: M[PlayerName, Poss[RP]],
-) -> Combined[RP, RJ]:
-    inc = incremental_for_player[player_name]
-    reduce = game.players[player_name].personal_reward_structure.personal_reward_reduce
-    personal = reduce(inc, cur.personal)
-
-    joint = cur.joint
-    return Combined(personal=personal, joint=joint)
-
-
 def solve_final_joint_bayesian(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
@@ -533,14 +518,17 @@ def solve_final_personal_both_bayesian(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
     """
-    Solves end game node which is final for both players (but not jointly final). Game value for each type in each type
-    combination.
+    Solves end game node which is final for both players (but not jointly final).
+    Game value for each type in each type combination.
 
     :param sc:
     :param gn:
     :return:
     """
     game_value: Dict[Tuple[PlayerName, Tuple[PlayerType]], UncertainCombined] = {}
+    # todo check if this can be done better, I suspect it should go as follows:
+    # game_value: M[PlayerName, M[M[PlayerName, PlayerType], UncertainCombined]]
+    # for every player I have an outcome for every typecombination of the others
     for player_name, p in gn.is_final.items():
         for tc, personal in p.items():
             game_value[player_name, tc] = sc.game.ps.unit(Combined(personal=personal, joint=None))
