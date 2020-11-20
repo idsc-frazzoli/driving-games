@@ -37,8 +37,8 @@ def test_prob_debug():
     _run_toy_game(game, solver_spec, uncertainty_params)
 
 
-def test_bayesian_debug():
-    game = game7
-    solver_spec = solvers_zoo["solver-1-mix-naive"]
-    uncertainty_params = uncertainty_prob
-    _run_toy_game_bayesian(game.subgames, solver_spec, uncertainty_params)
+# def test_bayesian_debug():
+#     game = game7
+#     solver_spec = solvers_zoo["solver-1-mix-naive"]
+#     uncertainty_params = uncertainty_prob
+#     _run_toy_game_bayesian(game.subgames, solver_spec, uncertainty_params)

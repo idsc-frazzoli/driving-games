@@ -1,9 +1,7 @@
 import itertools
-from fractions import Fraction
-from itertools import product
 from typing import Any, FrozenSet, Mapping, Sequence, Tuple, Type, List, Set
 import numpy as np
-from bayesian_driving_games.structures import PlayerType
+from bayesian_driving_games.structures import PlayerType, AGGRESSIVE, CAUTIOUS, NEUTRAL
 from frozendict import frozendict
 from decimal import Decimal as D
 from zuper_commons.types import check_isinstance
@@ -17,10 +15,9 @@ from toy_games.bayesian_toy_structures import BayesianBirdState
 class BayesianBirdPersonalReward(PersonalRewardStructure[BayesianBirdState, BirdActions, BirdCosts]):
     max_stages: int
 
-    def __init__(self, max_stages: int, p1_types: List[PlayerType], p2_types: List[PlayerType]):
+    def __init__(self, max_stages: int, p_types: Set[PlayerType]):
         self.max_stages = max_stages
-        self.p1_types = p1_types
-        self.p2_types = p2_types
+        self.p_types = p_types
 
     def personal_reward_identity(self) -> BirdCosts:
         return BirdCosts(D(0))
@@ -31,18 +28,22 @@ class BayesianBirdPersonalReward(PersonalRewardStructure[BayesianBirdState, Bird
         # todo BirdState -> BayesianBirdState
         check_isinstance(x, BirdState)
         check_isinstance(u, BirdActions)
-        tc = list(itertools.product(self.p1_types, self.p2_types))
-        res = {tc[0]: BirdCosts(D(0)), tc[1]: BirdCosts(D(0))}
+        res = dict.fromkeys([AGGRESSIVE, CAUTIOUS, NEUTRAL])
+        res[AGGRESSIVE] = BirdCosts(D(0))
+        res[CAUTIOUS] = BirdCosts(D(0))
+        res[NEUTRAL] = BirdCosts(D(0))
         return res
 
     def personal_reward_reduce(self, r1: BirdCosts, r2: BirdCosts) -> BirdCosts:
         return r1 + r2
 
-    def personal_final_reward(self, x: BirdState) -> Mapping[Tuple[PlayerType, PlayerType], BirdCosts]:
+    def personal_final_reward(self, x: BirdState) -> Mapping[PlayerType, BirdCosts]:
         # todo BirdState -> BayesianBirdState
         check_isinstance(x, BirdState)
-        tc = list(itertools.product(self.p1_types, self.p2_types))
-        res = {tc[0]: BirdCosts(D(0)), tc[1]: BirdCosts(D(0))}
+        possible_types = [t for t in self.p_types if t in [AGGRESSIVE, CAUTIOUS, NEUTRAL]]
+        res = dict.fromkeys(possible_types)
+        for t in possible_types:
+            res[t] = BirdCosts(D(0))
         return res
 
     def is_personal_final_state(self, x: BirdState) -> bool:
@@ -90,10 +91,10 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         # todo BirdState -> BayesianBirdState
         """
         Each payoff matrix correspond to a specific game
-        [-1,-1] -> leaves_payoffs[0]
-        [-1,1] -> leaves_payoffs[1]
-        [1,-1] -> leaves_payoffs[2]
-        [1,1] -> leaves_payoffs[3]
+        [-1, -1] -> leaves_payoffs[0]
+        [-1,  1] -> leaves_payoffs[1]
+        [1,  -1] -> leaves_payoffs[2]
+        [1,   1] -> leaves_payoffs[3]
         :param xs:
         :return:
         """

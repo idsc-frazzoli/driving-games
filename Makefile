@@ -2,6 +2,7 @@ CIRCLE_NODE_INDEX ?= 0
 CIRCLE_NODE_TOTAL ?= 1
 
 out=out
+out-docker=out-docker
 coverage_dir=$(out)/coverage
 tr=$(out)/test-results
 xunit_output=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
@@ -47,11 +48,8 @@ test-parallel-circle:
 	NODE_INDEX=$(CIRCLE_NODE_INDEX) \
 	nosetests $(coverage) $(xunitmp) src  -v  $(parallel)
 
-
 coverage-combine:
 	coverage combine
-
-
 
 build:
 	docker build -t $(tag) .
@@ -59,18 +57,17 @@ build:
 build-no-cache:
 	docker build --no-cache -t $(tag) .
 
-
 run:
-	mkdir -p out-docker
+	mkdir -p $(out-docker)
 	docker run -it --user $$(id -u) \
-		-v $(PWD)/out-docker:/out $(tag) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
 run-with-mounted-src:
-	mkdir -p out-docker
+	mkdir -p $(out-docker)
 	docker run -it --user $$(id -u) \
 		-v $(PWD)/src:/driving_games/src:ro \
-		-v $(PWD)/out-docker:/out $(tag) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
 black:
@@ -79,14 +76,16 @@ black:
 coverage-report:
 	coverage html  -d $(coverage_dir)
 
+
+###### Docs
 docs:
 	sphinx-build src $(out)/docs
 
 docs-docker: build
-	mkdir -p out-docker/docs
+	mkdir -p $(out-docker)/docs
 	docker run -it --rm --user $$(id -u)\
 		-v ${PWD}/src:/driving_games/src:ro \
-		-v ${PWD}/out-docker/docs:/driving-games/$(out)/docs $(tag) \
+		-v ${PWD}/$(out-docker)/docs:/driving-games/$(out)/docs $(tag) \
 		sphinx-build src /driving-games/$(out)/docs
 
 

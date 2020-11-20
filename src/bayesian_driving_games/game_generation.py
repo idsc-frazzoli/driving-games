@@ -174,10 +174,7 @@ def get_bayesian_driving_game(
     joint_reward: BayesianVehicleJointReward
     # todo check Joint reward
     joint_reward = BayesianVehicleJointReward(
-        collision_threshold=vehicles_params.collision_threshold,
-        geometries=geometries,
-        p1_types=p1_types,
-        p2_types=p2_types,
+        collision_threshold=vehicles_params.collision_threshold, geometries=geometries, players=players
     )
 
     game_visualization: GameVisualization[
