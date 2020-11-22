@@ -48,7 +48,7 @@ jobs:
       - run:
           name: Run tests
           command: |
-            make test-parallel-circle
+            make test
 
       - store_test_results:
           when: always
