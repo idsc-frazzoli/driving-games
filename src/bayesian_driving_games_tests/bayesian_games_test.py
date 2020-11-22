@@ -1,3 +1,4 @@
+import unittest
 from decimal import Decimal as D
 from os.path import join
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
@@ -19,7 +20,8 @@ from bayesian_driving_games.solution import solve_bayesian_game
 from bayesian_driving_games.preprocess import preprocess_bayesian_game
 
 
-"""def test2():
+@unittest.skip("Bayesian games to be refactored in the future")
+def test2():
     # todo readjust
     road = D(5)
     side = D(4)
@@ -57,4 +59,4 @@ from bayesian_driving_games.preprocess import preprocess_bayesian_game
     r_solutions.to_html(join(ds, "r_solutions.html"))
     r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
     # print(solutions.game_solution.policies)
-    # print(solutions.game_solution.states_to_solution)"""
+    # print(solutions.game_solution.states_to_solution)

@@ -55,10 +55,10 @@ def solve_equilibria(
     preferences = {k: sc.outcome_preferences[k] for k in players_active}
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
-    tic = perf_counter()
+    # tic = perf_counter()
     ea = analyze_equilibria(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences)
-    toc = perf_counter() - tic
-    logger.info(f"Time taken to analyze equilibria: {toc:.2f} [s]")
+    # toc = perf_counter() - tic
+    # logger.info(f"Time taken to analyze equilibria: {toc:.2f} [s]")
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
 

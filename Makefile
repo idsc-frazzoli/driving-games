@@ -36,6 +36,12 @@ test: clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture $(xunitmp)
 
+test-docker: clean
+	mkdir -p  $(tr)
+	docker run -it \
+		-v ${PWD}/src:/driving_games/src:ro \
+		-v $(PWD)/$(out-docker):/driving-games/$(tr) $(tag) \
+		nosetests $(extra) $(coverage)  src  -v --nologcapture $(xunitmp)
 
 test-parallel: clean
 	mkdir -p  $(tr)

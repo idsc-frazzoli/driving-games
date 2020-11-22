@@ -7,7 +7,6 @@ from frozendict import frozendict
 from bayesian_driving_games.bayesian_driving_rewards import (
     BayesianVehicleJointReward,
     BayesianVehiclePersonalRewardStructureScalar,
-    BayesianVehiclePersonalRewardStructureSimple,
 )
 from bayesian_driving_games.structures import (
     BayesianVehicleState,
