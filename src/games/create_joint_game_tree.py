@@ -63,7 +63,7 @@ def create_game_graph(
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
-        create_game_graph_(ic, js)
+        _create_game_graph(ic, js)
 
     # create networkx graph
     G = get_networkx_graph(state2node)
@@ -105,7 +105,7 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
     return AccessibilityInfo(state2times, time2states)
 
 
-def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]):
+def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]) -> DiGraph:
     """ Returns a NetworkX DiGraph that summarizes the relation of the nodes. """
     G = DiGraph()
     G.add_nodes_from(state2node)
@@ -138,7 +138,7 @@ def get_moves(
     return res
 
 
-def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
+def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]
@@ -223,7 +223,7 @@ def create_game_graph_(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for p in poutcomes.support():
             for _, js_ in p.items():
-                create_game_graph_(ic2, js_)
+                _create_game_graph(ic2, js_)
 
     resources = {}
     for player_name, player_state in states.items():

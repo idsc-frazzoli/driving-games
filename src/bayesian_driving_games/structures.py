@@ -1,10 +1,12 @@
-from dataclasses import dataclass
-from typing import NewType, List, Mapping
+from dataclasses import dataclass, field
+from typing import NewType, List, Mapping, TypeVar
 
+from toolz import valmap
+
+from games import GameSpec
 from possibilities import Poss
-
 from driving_games.structures import VehicleState
-from games import GamePlayer, Game, PlayerName, GameSpec
+from games.game_def import *
 
 __all__ = [
     "PlayerType",
@@ -14,7 +16,11 @@ __all__ = [
     "BayesianGamePlayer",
     "BayesianVehicleState",
     "BayesianGame",
+    "T",
 ]
+
+T = TypeVar("T")
+""" Generic variable for the type of a player. """
 
 PlayerType = NewType("PlayerType", str)
 """ The type of a player. """
@@ -31,21 +37,24 @@ NEUTRAL = PlayerType("neutral")
 
 @dataclass
 class BayesianGamePlayer(GamePlayer):
-    # todo: Extend to more than two players - Mapping[PlayerName, List[PlayerType]]
-    types_of_other: List[PlayerType]
-    """The types of the other player"""
-
-    types_of_myself: List[PlayerType]
+    types_of_myself: Poss[PlayerType]
     """The types of myself"""
 
-    prior: Poss[PlayerType]
+    prior: Mapping[PlayerName, Poss[PlayerType]]
     """ The prior over the other player's types"""
 
+    types_of_others: Mapping[PlayerName, List[PlayerType]] = field(init=False)
+    """The types of the other player"""
 
-# fixme az I suspect here we need Bayesian Game
+    def __post_init__(
+        self,
+    ):
+        self.types_of_others = {k: poss.support for k, poss in self.prior.items()}
+
+
 @dataclass
 class BayesianGame(Game):
-    """ Definition of the game """
+    """ Definition of the Bayesian game """
 
     players: Mapping[PlayerName, BayesianGamePlayer]
     """ The players in this game. """

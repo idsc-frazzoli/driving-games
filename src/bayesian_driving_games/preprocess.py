@@ -3,6 +3,8 @@ from typing import Optional
 from frozendict import frozendict
 
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
+from bayesian_driving_games.structures import BayesianGame, T
+from bayesian_driving_games.structures_solution import BayesianGameGraph
 from games import Game, X, U, Y, RP, RJ, SolverParams, GamePreprocessed
 from games.access import get_game_graph, compute_graph_layout, get_game_factorization, get_player_graph
 from games.game_def import SR
@@ -12,13 +14,13 @@ from bayesian_driving_games.solution import solve_game_bayesian2
 from games.structures_solution import GameFactorization, GamePlayerPreprocessed, GameGraph, GameSolution
 
 
-def bayesian_preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR],
+def preprocess_bayesian_player(
+    individual_game: BayesianGame,
     solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    Only thing that changed to a normal driving game are that it uses the functions create_bayesian_game_graph and
-    solve_game_bayesian2 instead of the deterministic ones.
+    Same logic as in a driving game, it uses the functions `create_bayesian_game_graph` and
+    `solve_game_bayesian2` instead of the deterministic ones.
 
     :param individual_game:
     :param solver_params:
@@ -30,7 +32,7 @@ def bayesian_preprocess_player(
     player = individual_game.players[player_name]
     graph = get_player_graph(player, solver_params.dt)
 
-    game_graph: GameGraph[X, U, Y, RP, RJ, SR]
+    game_graph: BayesianGameGraph
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
 
     game_graph = create_bayesian_game_graph(individual_game, solver_params.dt, initials, gf=None)
@@ -41,10 +43,11 @@ def bayesian_preprocess_player(
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
 
-def bayesian_preprocess_game(
+def preprocess_bayesian_game(
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
+    # todo BayesianGamePreprocessed
     """
     Same as in Driving Games, except that it uses bayesian_preprocess_player.
 
@@ -58,14 +61,14 @@ def bayesian_preprocess_game(
     compute_graph_layout(game_graph, iterations=1)
     individual_games = get_individual_games(game)
     players_pre = valmap(
-        lambda individual_game: bayesian_preprocess_player(
+        lambda individual_game: preprocess_bayesian_player(
             solver_params=solver_params, individual_game=individual_game
         ),
         individual_games,
     )
     if solver_params.use_factorization:
         game_factorization = get_game_factorization(game, players_pre)
-
+    # todo BayesianGamePreprocessed
     gp = GamePreprocessed(
         game=game,
         players_pre=players_pre,

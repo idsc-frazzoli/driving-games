@@ -18,7 +18,7 @@ from .rectangle import (
 )
 from .structures import SE2_disc, VehicleGeometry, VehicleState
 
-__all__ = ["collision_check"]
+__all__ = ["collision_check", "get_resources_used"]
 
 
 # XXX: Note that this only works for the simplest cases.

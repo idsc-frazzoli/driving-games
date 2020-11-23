@@ -1,3 +1,5 @@
+from fractions import Fraction
+
 from frozendict import frozendict
 
 from bayesian_driving_games.structures import BayesianGamePlayer, NEUTRAL, CAUTIOUS, AGGRESSIVE, BayesianGame
@@ -12,7 +14,7 @@ from toy_games.toy_rewards import (
     BirdPreferences,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import PossibilityMonad, ProbabilityFraction
+from possibilities import PossibilityMonad, ProbabilityFraction, ProbPoss
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
 
@@ -33,25 +35,23 @@ def get_bayesian_toy_game_spec(
     p2_initial = ps.unit(p2_x)
 
     # types
-    p2_types = [NEUTRAL]
-    p1_types = [CAUTIOUS, AGGRESSIVE]
+    p1_types = {CAUTIOUS, AGGRESSIVE}
+    p2_prior_weights = [Fraction(1, 2), Fraction(1, 2)]
+    p2_types = {NEUTRAL}
+    p1_prior_weights = [Fraction(1)]
 
     # priors
     ps2 = ProbabilityFraction()
-    p1_prior = ps2.lift_many(p2_types)
-    p2_prior = ps2.lift_many(p1_types)
+    p1_prior_belief = {P2: ProbPoss(dict(zip(p2_types, p1_prior_weights)))}
+    p2_prior_belief = {P1: ProbPoss(dict(zip(p1_types, p2_prior_weights)))}
 
     # dynamics
     p1_dynamics = FlyingDynamics(poss_monad=ps)
     p2_dynamics = FlyingDynamics(poss_monad=ps)
 
     # personal reward structure
-    p1_personal_reward_structure = BayesianBirdPersonalReward(
-        max_stages=max_stages, p1_types=p1_types, p2_types=p2_types
-    )
-    p2_personal_reward_structure = BayesianBirdPersonalReward(
-        max_stages=max_stages, p1_types=p1_types, p2_types=p2_types
-    )
+    p1_personal_reward_structure = BayesianBirdPersonalReward(max_stages=max_stages, p_types=p1_types)
+    p2_personal_reward_structure = BayesianBirdPersonalReward(max_stages=max_stages, p_types=p2_types)
 
     # observations
     g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
@@ -81,9 +81,8 @@ def get_bayesian_toy_game_spec(
         personal_reward_structure=p1_personal_reward_structure,
         preferences=p1_preferences,
         monadic_preference_builder=mpref_builder,
-        types_of_other=p2_types,
-        types_of_myself=p1_types,
-        prior=p1_prior,
+        types_of_myself=ps2.lift_many(p1_types),
+        prior=p1_prior_belief,
     )
     p2 = BayesianGamePlayer(
         initial=p2_initial,
@@ -92,9 +91,8 @@ def get_bayesian_toy_game_spec(
         personal_reward_structure=p2_personal_reward_structure,
         preferences=p2_preferences,
         monadic_preference_builder=mpref_builder,
-        types_of_other=p1_types,
-        types_of_myself=p2_types,
-        prior=p2_prior,
+        types_of_myself=ps2.lift_many(p2_types),
+        prior=p2_prior_belief,
     )
 
     handcrafted_game = BayesianGame(

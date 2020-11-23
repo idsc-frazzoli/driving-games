@@ -27,6 +27,14 @@ def get_ghost_tree(
     game_graph: GameGraph[X, U, Y, RP, RJ, SR],
     controllers: Mapping[PlayerName, AgentBelief[X, U]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
+    """
+
+    :param game:
+    :param player_name:
+    :param game_graph:
+    :param controllers:
+    :return:
+    """
     assert len(controllers) >= 1, controllers
     assert player_name not in controllers, (player_name, set(controllers))
 
@@ -113,7 +121,6 @@ def replace_others(
                 return nodes2
 
             m: Poss[JointState] = ps.join(ps.build_multiple(active_mixed, f))
-
             res[active_pure_action] = m
 
     ret: GameNode[X, U, Y, RP, RJ, SR]

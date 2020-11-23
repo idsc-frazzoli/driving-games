@@ -1,3 +1,4 @@
+import unittest
 from decimal import Decimal as D
 from os.path import join
 from bayesian_driving_games.game_generation import get_bayesian_driving_game
@@ -16,9 +17,10 @@ from games import (
 )
 from games_zoo.solvers import SolverSpec
 from bayesian_driving_games.solution import solve_bayesian_game
-from bayesian_driving_games.preprocess import bayesian_preprocess_game
+from bayesian_driving_games.preprocess import preprocess_bayesian_game
 
 
+@unittest.skip("Bayesian games to be refactored in the future")
 def test2():
     # todo readjust
     road = D(5)
@@ -47,7 +49,7 @@ def test2():
     game_name = "50-50,test1 : aggressive"
     solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
     solver_name = solver_spec.desc
-    game_preprocessed = bayesian_preprocess_game(game2, solver_spec.solver_params)
+    game_preprocessed = preprocess_bayesian_game(game2, solver_spec.solver_params)
     solutions = solve_bayesian_game(game_preprocessed)
     dg = join(d, game_name)
     ds = join(dg, solver_name)

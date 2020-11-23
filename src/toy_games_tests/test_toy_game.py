@@ -1,3 +1,4 @@
+import unittest
 from itertools import product
 from parameterized import parameterized
 from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
@@ -37,6 +38,7 @@ def test_prob_debug():
     _run_toy_game(game, solver_spec, uncertainty_params)
 
 
+@unittest.skip("Bayesian games to be refactored in the future")
 def test_bayesian_debug():
     game = game7
     solver_spec = solvers_zoo["solver-1-mix-naive"]
