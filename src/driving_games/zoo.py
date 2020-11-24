@@ -3,7 +3,7 @@ from decimal import Decimal as D
 from typing import Dict
 
 from games import GameSpec
-from possibilities import PossibilitySet, ProbabilityFraction
+from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
 from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
@@ -27,7 +27,7 @@ p0 = TwoVehicleSimpleParams(
 )
 uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = TwoVehicleUncertaintyParams(
-    poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
+    poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue
 )
 p_sym = p0
 

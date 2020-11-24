@@ -3,16 +3,12 @@ from decimal import Decimal as D
 from fractions import Fraction
 from typing import NewType
 
-from .rectangle import Coordinates, Rectangle
-
 __all__ = ["ImpactLocation", "IMPACT_BACK", "IMPACT_FRONT", "IMPACT_SIDES", "Collision"]
 
 ImpactLocation = NewType("ImpactLocation", str)
 IMPACT_FRONT = ImpactLocation("front")
 IMPACT_BACK = ImpactLocation("back")
 IMPACT_SIDES = ImpactLocation("sides")
-
-
 # IMPACT_RIGHT = ImpactLocation('right')
 
 
@@ -28,8 +24,11 @@ class Collision:
     energy_transmitted: D
 
     # Monoid for sum of Combined outcome
+    # todo support for sum with None
     def __add__(self, other: "Collision") -> "Collision":
-        if type(other) == type(self):
+        if other is None:
+            return self
+        elif type(other) == type(self):
             return replace(
                 self,
                 energy_received=self.energy_received + other.energy_received,
@@ -50,20 +49,12 @@ class Collision:
         )
 
     __rmul__ = __mul__
-
-    def __add__(self, other: "Collision") -> "Collision":
-        return replace(
-            self,
-            energy_received=self.energy_received + other.energy_received,
-            energy_transmitted=self.energy_transmitted + other.energy_transmitted,
-            location=self.location,
-            active=self.active,
-        )
-
-
-@dataclass(frozen=True)
-class ProjectedCar:
-    rectangle: Rectangle
-    front_left: Coordinates
-    front_center: Coordinates
-    front_right: Coordinates
+    # todo what was this for? how location and similar shall be propagated?
+    # def __add__(self, other: "Collision") -> "Collision":
+    #     return replace(
+    #         self,
+    #         energy_received=self.energy_received + other.energy_received,
+    #         energy_transmitted=self.energy_transmitted + other.energy_transmitted,
+    #         location=self.location,
+    #         active=self.active,
+    #     )

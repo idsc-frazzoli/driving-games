@@ -24,10 +24,10 @@ from .structures import (
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
-    VehicleDynamics,
     VehicleGeometry,
     VehicleState,
 )
+from .vehicle_dynamics import VehicleDynamics
 from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 

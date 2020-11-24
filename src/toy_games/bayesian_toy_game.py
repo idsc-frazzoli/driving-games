@@ -14,7 +14,7 @@ from toy_games.toy_rewards import (
     BirdPreferences,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import PossibilityMonad, ProbabilityFraction, ProbPoss
+from possibilities import PossibilityMonad, PossibilityDist, ProbDist
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
 
@@ -41,9 +41,9 @@ def get_bayesian_toy_game_spec(
     p1_prior_weights = [Fraction(1)]
 
     # priors
-    ps2 = ProbabilityFraction()
-    p1_prior_belief = {P2: ProbPoss(dict(zip(p2_types, p1_prior_weights)))}
-    p2_prior_belief = {P1: ProbPoss(dict(zip(p1_types, p2_prior_weights)))}
+    ps2 = PossibilityDist()
+    p1_prior_belief = {P2: ProbDist(dict(zip(p2_types, p1_prior_weights)))}
+    p2_prior_belief = {P1: ProbDist(dict(zip(p1_types, p2_prior_weights)))}
 
     # dynamics
     p1_dynamics = FlyingDynamics(poss_monad=ps)

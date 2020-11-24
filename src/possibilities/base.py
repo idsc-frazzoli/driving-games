@@ -28,7 +28,7 @@ class PossibilityMonad(ABC):
 
     @abstractmethod
     def unit(self, a: A) -> Poss[A]:
-        """ Constructs a distribution from one element. The return in Haskell. """
+        """ Constructs a distribution from one element. The `return` in Haskell. """
 
     @abstractmethod
     def lift_many(self, a: Collection[A]) -> Poss[A]:

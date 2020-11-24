@@ -99,6 +99,12 @@ def get_game_factorization(
     game: Game[X, U, Y, RP, RJ, SR],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
 ) -> GameFactorization[X]:
+    """
+
+    :param game:
+    :param players_pre:
+    :return:
+    """
     ps = game.ps
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
