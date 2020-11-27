@@ -5,6 +5,7 @@ from fractions import Fraction
 from functools import reduce
 from itertools import permutations
 from math import isclose
+from operator import add
 from typing import (
     AbstractSet,
     Callable,
@@ -72,7 +73,7 @@ def expected_value(dist: ProbDist[A]) -> A:
     """
     try:
         weighted = [a * w for a, w in dist.it()]
-        return sum(weighted, None)
+        return reduce(add, weighted)
     except TypeError as e:
         msg = (
             "\nThe current distribution does not seem to support the expected value operation."
