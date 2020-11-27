@@ -140,7 +140,7 @@ def get_game_factorization(
 
             if special:
                 logger.info(
-                    "found that the players are colliding",
+                    "Found that the players are colliding",
                     jsf=jsf,
                     players_colliding=players_colliding,
                     partition=partition,

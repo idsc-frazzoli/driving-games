@@ -3,7 +3,7 @@ from typing import Type
 from decimal import Decimal as D
 from zuper_typing import debug_print
 
-from possibilities.prob import ProbDist
+from possibilities.prob import ProbDist, expected_value
 from preferences import Preference, ComparisonOutcome
 from preferences.preferences_base import P
 
@@ -29,10 +29,9 @@ class ProbPreference(Preference[ProbDist[P]]):
 
 
 class ProbPrefExpectedValue(ProbPreference):
-    # todo can be more elegant and return Xpercentile with x=.5
     def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
-        expected_A = A.expected_value()
-        expected_B = B.expected_value()
+        expected_A = expected_value(A)
+        expected_B = expected_value(B)
         return self.p0.compare(expected_A, expected_B)
 
 

@@ -20,12 +20,12 @@ from typing import (
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from toolz import valfilter
-from zuper_commons.types import ZNotImplementedError
+from zuper_commons.types import ZTypeError
 
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbDist", "PossibilityDist", "ProbSampler"]
+__all__ = ["ProbDist", "PossibilityDist", "ProbSampler", "expected_value"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -63,21 +63,23 @@ class ProbDist(Poss[A]):
         # return True ##### XXXXX
         return self.p == other.p
 
-    def expected_value(self) -> A:
-        """
-        maybe this in the future will move to an enriched Dist that expands the current one with a bunch of operations.
-        also it could be moved to be an independent method
-        :return:
-        """
-        try:
-            expected: A = None
-            for a, w in self.it():
-                expected += a * w
-            return expected
-        except:
-            msg = "The current distribution does not seem to support the expected value operation." \
-                  f"Current distribution {self.p}"
-            raise ZNotImplementedError(msg=msg)
+
+def expected_value(dist: ProbDist[A]) -> A:
+    """
+    maybe this in the future will move to an enriched Dist that expands the current one with a bunch of operations.
+    also it could be moved to be an independent method
+    :return:
+    """
+    try:
+        weighted = [a * w for a, w in dist.it()]
+        return sum(weighted, None)
+    except TypeError as e:
+        msg = (
+            "\nThe current distribution does not seem to support the expected value operation."
+            f"\nYou are trying to:\n{e.args}"
+            f"\nCurrent distribution {dist.p}"
+        )
+        raise ZTypeError(msg=msg)
 
 
 class PossibilityDist(PossibilityMonad):

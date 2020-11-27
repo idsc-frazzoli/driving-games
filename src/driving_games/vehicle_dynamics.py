@@ -18,7 +18,7 @@ from .rectangle import get_resources_used, Rectangle
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
 
-__all__ = ["VehicleDynamics"]
+__all__ = ["VehicleDynamics", "InvalidAction"]
 
 
 class InvalidAction(ZException):

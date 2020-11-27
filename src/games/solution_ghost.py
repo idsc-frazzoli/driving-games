@@ -30,7 +30,7 @@ def get_ghost_tree(
     """
 
     :param game:
-    :param player_name:
+    :param player_name: The player that will play last
     :param game_graph:
     :param controllers:
     :return:
@@ -38,7 +38,7 @@ def get_ghost_tree(
     assert len(controllers) >= 1, controllers
     assert player_name not in controllers, (player_name, set(controllers))
 
-    roc = ROContext(game, controllers, dreamer=player_name)
+    roc = ROContext(game, controllers, follower=player_name)
     logger.info(player_name=player_name, controllers=list(controllers))
     state2node = {}
     for k, node in game_graph.state2node.items():
@@ -49,10 +49,13 @@ def get_ghost_tree(
 
 @dataclass
 class ROContext:
+    """ Replace others Context """
+
     game: Game[X, U, Y, RP, RJ, SR]
-    # cache: Dict[GameNode[X, U, Y, RP, RJ, SR], GameNode[X, U, Y, RP, RJ, SR]]
     controllers: Mapping[PlayerName, AgentBelief[X, U]]
-    dreamer: PlayerName
+    """ The controllers of the players playing ahead of the players playing last"""
+    follower: PlayerName
+    """ The player tha plays subject to the others. Note that it is not a *follower* in the Stackelberg sense."""
 
 
 def replace_others(
@@ -69,7 +72,7 @@ def replace_others(
             continue
         if player_name in node.joint_final_rewards:
             continue
-        if player_name == roc.dreamer:
+        if player_name == roc.follower:
             continue
         state_self = node.states[player_name]
         state_others: JointState = fd({k: v for k, v in node.states.items() if k != player_name})
@@ -140,6 +143,4 @@ def replace_others(
             "cannot translate",
             node=node,
         ) from e
-    # if any(_.x == 0 for _ in node.states.values()):
-    #     logger.info(original=node, translated=ret)
     return ret

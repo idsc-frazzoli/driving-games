@@ -8,7 +8,7 @@ from decimal import Decimal as D
 from frozendict import frozendict
 from zuper_commons.types import ZValueError
 
-from driving_games.structures import InvalidAction
+from driving_games.vehicle_dynamics import InvalidAction
 from games import Dynamics, PlayerName, Observations, X, GameVisualization, U
 from games.game_def import SR
 from nash import BiMatGame
@@ -155,13 +155,12 @@ class BirdCosts:
         :param other:
         :return:
         """
-        if type(other) == BirdCosts:
+        if type(other) == type(self):
             return replace(self, cost=self.cost + other.cost)
+        elif other is None:
+            return self
         else:
-            if other is None:
-                return self
-            else:
-                raise NotImplementedError
+            raise NotImplementedError
 
     __radd__ = __add__
 

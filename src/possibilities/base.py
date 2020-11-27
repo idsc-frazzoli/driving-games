@@ -3,7 +3,7 @@ from typing import Callable, Collection, FrozenSet, Mapping, TypeVar
 
 from .poss import Poss
 
-__all__ = ["PossibilityMonad"]
+__all__ = ["PossibilityMonad", "Sampler"]
 
 A = TypeVar("A")
 B = TypeVar("B")
