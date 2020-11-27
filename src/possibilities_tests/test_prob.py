@@ -1,14 +1,12 @@
-from dataclasses import dataclass
 from fractions import Fraction
 from typing import Dict
 
 from nose.tools import eq_, assert_equal
 from zuper_commons.types import ZValueError
 
-from algebra.convex_space import ConvexSpace
 from games import PlayerName
 from games.utils import valmap
-from possibilities.prob import enumerate_prob_assignments, PossibilityDist, ProbDist, A
+from possibilities.prob import enumerate_prob_assignments, PossibilityDist, ProbDist, A, expected_value
 from . import logger
 from .test_sets import check_possibilities
 
@@ -74,10 +72,7 @@ def test_build_multiple2():
     eq_(dist, result)
 
 
-def test_convexprobdist():
-    class IntSpace(ConvexSpace[int]):
-        def get_identity(self) -> int:
-            return 0
-
-        def __add__(self, other):
-            return self
+def test_expected_value():
+    dist = ProbDist({1: Fraction(1, 3), 2: Fraction(2, 3)})
+    dist_expectation = expected_value(dist)
+    logger.info(dist_expectation)

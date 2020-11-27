@@ -16,7 +16,7 @@ from bayesian_driving_games.structures import (
     NEUTRAL,
     BayesianGame,
 )
-from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
+from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams, VehicleDynamics
 from games import (
     GameVisualization,
     get_accessible_states,
@@ -29,7 +29,6 @@ from driving_games.structures import (
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
-    VehicleDynamics,
     VehicleGeometry,
     VehicleState,
 )
