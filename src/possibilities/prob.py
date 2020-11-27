@@ -5,6 +5,7 @@ from fractions import Fraction
 from functools import reduce
 from itertools import permutations
 from math import isclose
+from operator import add
 from typing import (
     AbstractSet,
     Callable,
@@ -20,11 +21,12 @@ from typing import (
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from toolz import valfilter
+from zuper_commons.types import ZTypeError
 
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbPoss", "ProbabilityFraction", "ProbSampler"]
+__all__ = ["ProbDist", "PossibilityDist", "ProbSampler", "expected_value"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -32,7 +34,7 @@ K = TypeVar("K")
 
 
 @dataclass(unsafe_hash=True)
-class ProbPoss(Poss[A]):
+class ProbDist(Poss[A]):
     p: Mapping[A, Fraction]
     __print_order__ = ["p"]
     _support: FrozenSet[A] = None
@@ -54,7 +56,7 @@ class ProbPoss(Poss[A]):
     def get(self, a: A) -> Fraction:
         return self.p[a]
 
-    def __eq__(self, other: "ProbPoss") -> bool:
+    def __eq__(self, other: "ProbDist") -> bool:
         if self._support != other._support:
             return False
         if self._range != other._range:
@@ -63,32 +65,52 @@ class ProbPoss(Poss[A]):
         return self.p == other.p
 
 
-class ProbabilityFraction(PossibilityMonad):
-    def unit(self, a: A) -> ProbPoss[A]:
+def expected_value(dist: ProbDist[A]) -> A:
+    """
+    maybe this in the future will move to an enriched Dist that expands the current one with a bunch of operations.
+    also it could be moved to be an independent method
+    :return:
+    """
+    try:
+        weighted = [a * w for a, w in dist.it()]
+        return reduce(add, weighted)
+    except TypeError as e:
+        msg = (
+            "\nThe current distribution does not seem to support the expected value operation."
+            f"\nYou are trying to:\n{e.args}"
+            f"\nCurrent distribution {dist.p}"
+        )
+        raise ZTypeError(msg=msg)
+
+
+class PossibilityDist(PossibilityMonad):
+    """Extension of the [distribution monad](https://ncatlab.org/nlab/show/distribution+monad#finite_distributions)."""
+
+    def unit(self, a: A) -> ProbDist[A]:
         return self.lift_many([a])
 
-    def lift_many(self, a: Collection[A]) -> ProbPoss[A]:
+    def lift_many(self, a: Collection[A]) -> ProbDist[A]:
         elements = list(a)
         n = len(elements)
         w = Fraction(1, n)
         x = {_: w for _ in elements}
-        return ProbPoss(frozendict(x))
+        return ProbDist(frozendict(x))
 
-    def join(self, a: ProbPoss[ProbPoss[A]]) -> ProbPoss[A]:
+    def join(self, a: ProbDist[ProbDist[A]]) -> ProbDist[A]:
         res = defaultdict(Fraction)
         for dist, weight in a.it():
             for a, wa in dist.it():
                 res[a] += weight * wa
-        return ProbPoss(frozendict(res))
+        return ProbDist(frozendict(res))
 
-    def build(self, a: ProbPoss[A], f: Callable[[A], B]) -> ProbPoss[B]:
+    def build(self, a: ProbDist[A], f: Callable[[A], B]) -> ProbDist[B]:
         res = defaultdict(Fraction)
         for x, weight in a.it():
             y = f(x)
             res[y] += weight
-        return ProbPoss(frozendict(res))
+        return ProbDist(frozendict(res))
 
-    def build_multiple(self, a: Mapping[K, ProbPoss[A]], f: Callable[[Mapping[K, A]], B]) -> ProbPoss[B]:
+    def build_multiple(self, a: Mapping[K, ProbDist[A]], f: Callable[[Mapping[K, A]], B]) -> ProbDist[B]:
         sources = list(a)
         supports = [a[_].support() for _ in sources]
         res: Dict[Mapping[K, A], Fraction] = defaultdict(Fraction)
@@ -100,18 +122,18 @@ class ProbabilityFraction(PossibilityMonad):
             # for v in r:
             #     res[v] += weight
             res[r] += weight
-        return ProbPoss(frozendict(res))
+        return ProbDist(frozendict(res))
 
     def get_sampler(self, seed: int) -> "ProbSampler":
         return ProbSampler(seed)
 
-    def mix(self, a: Collection[A]) -> FrozenSet[ProbPoss[A]]:
+    def mix(self, a: Collection[A]) -> FrozenSet[ProbDist[A]]:
         l = list(a)
         n = len(l)
         res = set()
         for c in enumerate_prob_assignments(n):
             p = frozendict(valfilter(lambda _: _ > 0, dict(zip(l, c))))
-            res.add(ProbPoss(p))
+            res.add(ProbDist(p))
         return frozenset(res)
 
 
@@ -155,7 +177,7 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     return res
 
 
-def check_prob_poss(prob_poss: ProbPoss):
+def check_prob_dist(prob_poss: ProbDist):
     # probabilities sum up to one
     cumulative_dist = sum(prob_poss.p.values())
     assert isclose(cumulative_dist, 1)  # probably also exact equality
@@ -167,7 +189,7 @@ class ProbSampler(Sampler):
     def __init__(self, seed: int):
         self.rs = RandomState(seed)
 
-    def sample(self, options: ProbPoss[A]) -> A:
+    def sample(self, options: ProbDist[A]) -> A:
         support = []
         prob = []
         for a, b in options.it():

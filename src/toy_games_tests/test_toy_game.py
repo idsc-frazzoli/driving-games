@@ -11,7 +11,7 @@ import nashpy as nash
 from toy_games_tests.run_toy_games import _run_toy_game, _run_toy_game_bayesian
 from toy_games_tests.toy_games_tests_zoo import *
 
-games = (game2, game21, game3, game4, game5)  # game1, # todo fix game1 is problematic for now
+games = (game2, game21, game3, game4, game5)  # todo fix game1 is problematic for now
 strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
 solvers = (solvers_zoo["solver-1-" + strategy + "-naive"] for strategy in strategies)
 uncertainties = [uncertainty_sets, uncertainty_prob]
@@ -32,7 +32,7 @@ def test_toy_games(
 
 
 def test_prob_debug():
-    game = game3
+    game = game2
     solver_spec = solvers_zoo["solver-1-mix-naive"]
     uncertainty_params = uncertainty_prob
     _run_toy_game(game, solver_spec, uncertainty_params)

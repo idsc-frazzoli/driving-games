@@ -7,7 +7,7 @@ from driving_games import (
     NO_LIGHTS,
     TwoVehicleUncertaintyParams,
     ProbPrefExpectedValue,
-    ProbabilityFraction,
+    PossibilityDist,
 )
 from games import (
     STRATEGY_MIX,
@@ -42,7 +42,7 @@ def test2():
     )
     # uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
     uncertainty_prob = TwoVehicleUncertaintyParams(
-        poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
+        poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue
     )
     d = "out/bayesian_dg/"
     game2 = get_bayesian_driving_game(p0, uncertainty_prob)

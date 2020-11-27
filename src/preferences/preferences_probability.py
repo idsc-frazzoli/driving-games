@@ -3,12 +3,12 @@ from typing import Type
 from decimal import Decimal as D
 from zuper_typing import debug_print
 
-from possibilities.prob import ProbPoss
+from possibilities.prob import ProbDist, expected_value
 from preferences import Preference, ComparisonOutcome
 from preferences.preferences_base import P
 
 
-class ProbPreference(Preference[ProbPoss[P]]):
+class ProbPreference(Preference[ProbDist[P]]):
     """"""
 
     p0: Preference[P]
@@ -16,34 +16,23 @@ class ProbPreference(Preference[ProbPoss[P]]):
     def __init__(self, p0: Preference[P]):
         self.p0 = p0
 
-    def get_type(self) -> Type[ProbPoss[P]]:
-        return ProbPoss
+    def get_type(self) -> Type[ProbDist[P]]:
+        return ProbDist
 
     def __repr__(self) -> str:
         d = {"T": self.get_type(), "p0": self.p0}
         return "ProbPreference: " + debug_print(d)
 
     @abstractmethod
-    def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         pass
 
 
 class ProbPrefExpectedValue(ProbPreference):
-    # todo can be more elegant and return Xpercentile with x=.5
-    def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
-        expected_A = self._expected(A)
-        expected_B = self._expected(B)
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
+        expected_A = expected_value(A)
+        expected_B = expected_value(B)
         return self.p0.compare(expected_A, expected_B)
-
-    @staticmethod
-    def _expected(A: ProbPoss[P]) -> P:
-        expected_A = None
-        for a, prob in A.it():
-            if expected_A is None:
-                expected_A = a * prob
-            else:
-                expected_A += a * prob
-        return expected_A
 
 
 class ProbPrefXPercentile(ProbPreference):
@@ -51,14 +40,14 @@ class ProbPrefXPercentile(ProbPreference):
         self.x: D = x
         raise NotImplementedError
 
-    def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         x_percentile_A = ...
         x_percentile_B = ...
         return self.p0.compare(x_percentile_A, x_percentile_B)
 
 
 class ProbPrefWorstCase(ProbPreference):
-    def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         raise NotImplementedError
         worst_A = ...
         worst_B = ...
@@ -66,6 +55,6 @@ class ProbPrefWorstCase(ProbPreference):
 
 
 class ProbPrefStochasticDominance(ProbPreference):
-    def compare(self, A: ProbPoss[P], B: ProbPoss[P]) -> ComparisonOutcome:
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         # todo
         raise NotImplementedError

@@ -9,9 +9,7 @@ from matplotlib import patches
 from matplotlib import image
 from games import GameVisualization, PlayerName
 from .collisions import Collision
-from .collisions_check import get_resources_used
-from .personal_reward import SE2_from_VehicleState
-from .rectangle import get_rectangle_countour, Rectangle
+from .rectangle import SE2_from_VehicleState, get_rectangle_countour, Rectangle, get_resources_used
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
 from .vehicle_observation import VehicleObservation
 

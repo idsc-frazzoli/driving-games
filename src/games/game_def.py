@@ -2,18 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
-from typing import (
-    Callable,
-    FrozenSet,
-    Generic,
-    Mapping,
-    NewType,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-    List,
-)
+from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar
 
 from frozendict import frozendict
 
@@ -43,6 +32,7 @@ __all__ = [
     "MonadicPreferenceBuilder",
     "Game",
     "GamePlayer",
+    "AgentBelief",
     "GameVisualization",
 ]
 
@@ -67,6 +57,7 @@ RJ = TypeVar("RJ")
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
 
+# todo make it more formal elevating it to be an arbitrary field
 W = TypeVar("W", int, float, Fraction, D)
 """ Generic variable for the weight of rewards. """
 
@@ -102,6 +93,8 @@ class Combined(Generic[RJ, RP]):
                 return replace(self, personal=self.personal + other.personal, joint=other.joint)
             else:
                 return replace(self, personal=self.personal + other.personal, joint=self.joint + other.joint)
+        elif other is None:
+            return self
         else:
             raise NotImplementedError
 

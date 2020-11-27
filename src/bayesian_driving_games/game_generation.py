@@ -16,20 +16,19 @@ from bayesian_driving_games.structures import (
     NEUTRAL,
     BayesianGame,
 )
-from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
+from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams, VehicleDynamics
 from games import (
     GameVisualization,
     get_accessible_states,
     PlayerName,
 )
-from possibilities import PossibilityMonad, ProbabilityFraction, ProbPoss
+from possibilities import PossibilityMonad, PossibilityDist, ProbDist
 from driving_games.collisions import Collision
 from driving_games.preferences_coll_time import VehiclePreferencesCollTime
 from driving_games.structures import (
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
-    VehicleDynamics,
     VehicleGeometry,
     VehicleState,
 )
@@ -85,9 +84,9 @@ def get_bayesian_driving_game(
     p1_prior_weights = [Fraction(1)]
 
     # priors
-    ps2 = ProbabilityFraction()
-    p1_prior_belief = {P2: ProbPoss(dict(zip(p2_types, p1_prior_weights)))}
-    p2_prior_belief = {P1: ProbPoss(dict(zip(p1_types, p2_prior_weights)))}
+    ps2 = PossibilityDist()
+    p1_prior_belief = {P2: ProbDist(dict(zip(p2_types, p1_prior_weights)))}
+    p2_prior_belief = {P1: ProbDist(dict(zip(p1_types, p2_prior_weights)))}
 
     # State
     p1_x = VehicleState(
