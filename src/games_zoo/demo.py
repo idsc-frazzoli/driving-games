@@ -9,7 +9,7 @@ from games import (
     report_solutions,
     solve1,
 )
-from games.zoo import GameSpec
+from games import GameSpec
 from quickapp import QuickApp, QuickAppContext
 from zuper_commons.text import expand_string
 from zuper_commons.types import ZValueError

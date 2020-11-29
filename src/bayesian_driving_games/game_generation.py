@@ -16,11 +16,12 @@ from bayesian_driving_games.structures import (
     NEUTRAL,
     BayesianGame,
 )
-from driving_games import TwoVehicleSimpleParams, TwoVehicleUncertaintyParams, VehicleDynamics
+from driving_games import TwoVehicleSimpleParams, VehicleDynamics
 from games import (
     GameVisualization,
     get_accessible_states,
     PlayerName,
+    UncertaintyParams,
 )
 from possibilities import PossibilityMonad, PossibilityDist, ProbDist
 from driving_games.collisions import Collision
@@ -35,6 +36,7 @@ from driving_games.structures import (
 from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation
 from driving_games.visualization import DrivingGameVisualization
 
+
 # DrivingGame = Game[
 #     BayesianVehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle
 # ]
@@ -44,7 +46,7 @@ from driving_games.visualization import DrivingGameVisualization
 
 
 def get_bayesian_driving_game(
-    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: UncertaintyParams
 ) -> BayesianGame:
     """
 

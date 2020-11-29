@@ -30,7 +30,9 @@ __all__ = [
     "Combined",
     "UncertainCombined",
     "MonadicPreferenceBuilder",
+    "UncertaintyParams",
     "Game",
+    "GameSpec",
     "GamePlayer",
     "AgentBelief",
     "GameVisualization",
@@ -169,8 +171,14 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
 
 
 P = TypeVar("P")
-# fixme not sure why typechecker does not like this new type
+
 MonadicPreferenceBuilder = NewType("MonadicPreferenceBuilder", Callable[[Preference[P]], Preference[Poss[P]]])
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class UncertaintyParams:
+    poss_monad: PossibilityMonad
+    mpref_builder: MonadicPreferenceBuilder
 
 
 @dataclass
@@ -251,6 +259,12 @@ class Game(Generic[X, U, Y, RP, RJ, SR]):
 
     game_visualization: GameVisualization[X, U, Y, RP, RJ]
     """ The artist to draw this game. """
+
+
+@dataclass
+class GameSpec:
+    desc: str
+    game: Game
 
 
 class AgentBelief(Generic[X, U], ABC):

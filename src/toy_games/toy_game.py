@@ -1,6 +1,6 @@
 from frozendict import frozendict
 
-from driving_games import TwoVehicleUncertaintyParams
+from driving_games import UncertaintyParams
 from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
 from toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
@@ -16,7 +16,7 @@ from toy_games_tests.toy_games_tests_zoo import ToyGameMat
 __all__ = ["get_toy_game_spec"]
 
 
-def get_toy_game_spec(toy_game_mat: ToyGameMat, uncertainty_params: TwoVehicleUncertaintyParams) -> GameSpec:
+def get_toy_game_spec(toy_game_mat: ToyGameMat, uncertainty_params: UncertaintyParams) -> GameSpec:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
     dt = D(1)  # not relevant for this example

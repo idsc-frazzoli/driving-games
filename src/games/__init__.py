@@ -25,4 +25,3 @@ from .reports import *
 from .simulate import *
 
 from .report_animations import *
-from .zoo import *

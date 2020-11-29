@@ -9,7 +9,7 @@ from preferences.preferences_base import P
 
 
 class ProbPreference(Preference[ProbDist[P]]):
-    """"""
+    """How to compare prob distributions"""
 
     p0: Preference[P]
 

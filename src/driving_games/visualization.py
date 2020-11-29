@@ -1,4 +1,4 @@
-import glob
+# import glob
 from decimal import Decimal as D
 from numbers import Number
 from typing import Any, FrozenSet, Mapping, Optional, Sequence, Tuple
@@ -6,7 +6,8 @@ from typing import Any, FrozenSet, Mapping, Optional, Sequence, Tuple
 import numpy as np
 from decorator import contextmanager
 from matplotlib import patches
-from matplotlib import image
+
+# from matplotlib import image
 from games import GameVisualization, PlayerName
 from .collisions import Collision
 from .rectangle import SE2_from_VehicleState, get_rectangle_countour, Rectangle, get_resources_used
@@ -15,7 +16,7 @@ from .vehicle_observation import VehicleObservation
 
 __all__ = ["DrivingGameVisualization"]
 
-AVAILABLE_CARS = [image.imread(f) for f in glob.glob("../../pics/car*.png")]
+# AVAILABLE_CARS = [image.imread(f) for f in glob.glob("../../pics/car*.png")]
 
 
 class DrivingGameVisualization(

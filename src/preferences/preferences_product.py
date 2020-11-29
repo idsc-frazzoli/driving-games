@@ -46,22 +46,11 @@ class StrictProductPreference(Preference[V]):
 
 
         """
-        # check_isinstance(a, dict, _self=self)
-        # check_isinstance(b, dict, _self=self)
         outcomes = []
-        # logger.info('Product', a=a, b=b)
         for i, pref in enumerate(self.prefs):
             r = pref.compare(a, b)
-            # logger.info(pref=pref, i=i,  r=r)
             outcomes.append(r)
 
-        # logger.info(outcomes=outcomes)
-        # - any incomparable -> incomparable
-        # - no incomparable:
-        #       - all indifferent: INDIFFERENT
-        #       - all first -> first
-        #       - all second -> second
-        #       - a mix of first, second, indifferent -> incomparable
         o = set(outcomes)
         if INCOMPARABLE in o:
             r = INCOMPARABLE

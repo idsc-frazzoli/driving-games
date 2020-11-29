@@ -1,8 +1,8 @@
 import unittest
 from itertools import product
 from parameterized import parameterized
-from driving_games import uncertainty_prob, uncertainty_sets, TwoVehicleUncertaintyParams
-from games import STRATEGY_MIX, STRATEGY_SECURITY
+from driving_games import uncertainty_prob, uncertainty_sets
+from games import STRATEGY_MIX, STRATEGY_SECURITY, UncertaintyParams
 from games_zoo import solvers_zoo
 from games_zoo.solvers import SolverSpec
 from toy_games import ToyGameMat
@@ -19,9 +19,7 @@ toy_tests = list(product(games, solvers, uncertainties))
 
 
 @parameterized(toy_tests)
-def test_toy_games(
-    toygame: ToyGameMat, solver_spec: SolverSpec, uncertainty_params: TwoVehicleUncertaintyParams
-):
+def test_toy_games(toygame: ToyGameMat, solver_spec: SolverSpec, uncertainty_params: UncertaintyParams):
     """Test Toy Game"""
     logger.info(f"Toygame description: {toygame.desc}")
     for i, G in enumerate(toygame.subgames):
