@@ -52,7 +52,7 @@ class VehicleCosts:
 
     # Monoid to support sum
     def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
-        if type(other) == VehicleCosts:
+        if isinstance(other, VehicleCosts):
             return replace(self, duration=self.duration + other.duration)
         elif other is None:
             return self

@@ -19,7 +19,6 @@ __all__ = [
     "RP",
     "RJ",
     "SR",
-    "W",
     "Observations",
     "JointState",
     "JointPureActions",
@@ -58,10 +57,6 @@ RJ = TypeVar("RJ")
 
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
-
-# todo make it more formal elevating it to be an arbitrary field
-W = TypeVar("W", int, float, Fraction, D)
-""" Generic variable for the weight of rewards. """
 
 JointState = Mapping[PlayerName, X]
 """ A joint state: the state for each player. """
@@ -103,7 +98,7 @@ class Combined(Generic[RJ, RP]):
     __radd__ = __add__
 
     # Weight multiplication (e.g. used to compute expected value)
-    def __mul__(self, weight: W):
+    def __mul__(self, weight: Fraction):
         # weighting costs, e.g. according to a probability
         if self.joint is not None:
             return replace(self, personal=self.personal * weight, joint=self.joint * weight)

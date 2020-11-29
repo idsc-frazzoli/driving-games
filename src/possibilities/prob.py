@@ -2,7 +2,7 @@ import itertools
 from collections import defaultdict
 from dataclasses import dataclass
 from fractions import Fraction
-from functools import reduce
+from functools import reduce, lru_cache
 from itertools import permutations
 from math import isclose
 from operator import add
@@ -23,6 +23,7 @@ from numpy.random.mtrand import RandomState
 from toolz import valfilter
 from zuper_commons.types import ZTypeError
 
+from games import GameConstants
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
@@ -61,7 +62,6 @@ class ProbDist(Poss[A]):
             return False
         if self._range != other._range:
             return False
-        # return True ##### XXXXX
         return self.p == other.p
 
 
@@ -137,6 +137,7 @@ class PossibilityDist(PossibilityMonad):
         return frozenset(res)
 
 
+@lru_cache(maxsize=128)
 def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     zero = Fraction(0)
     one = Fraction(1)
@@ -177,8 +178,10 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
     return res
 
 
-def check_prob_dist(prob_poss: ProbDist):
-    # probabilities sum up to one
+def check_prob_dist(prob_poss: ProbDist, **kwargs):
+    """ Checks consistency of a JointMixedActions variable."""
+    if not GameConstants.checks:
+        return
     cumulative_dist = sum(prob_poss.p.values())
     assert isclose(cumulative_dist, 1)  # probably also exact equality
 

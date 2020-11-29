@@ -23,5 +23,4 @@ from .solution import *
 from .reports_player import *
 from .reports import *
 from .simulate import *
-
 from .report_animations import *
