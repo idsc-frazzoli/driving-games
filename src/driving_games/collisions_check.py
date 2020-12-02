@@ -78,11 +78,3 @@ def collision_check(
 
 def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
     return any(b.rectangle.contains(_) for _ in (a.front_right, a.front_center, a.front_left))
-
-
-# @dataclass
-# class SpaceTimeCell:
-#     """ A chunk of space time """
-#
-#     space: Rectangle
-#     time: Tuple[D, D]

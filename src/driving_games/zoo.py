@@ -2,11 +2,11 @@ from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict
 
-from games import GameSpec
+from games import GameSpec, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
-from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams, TwoVehicleUncertaintyParams
+from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams
 from .structures import NO_LIGHTS
 
 road = D(6)
@@ -25,10 +25,8 @@ p0 = TwoVehicleSimpleParams(
     second_progress=D(0),
     shared_resources_ds=D(1.5),
 )
-uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
-uncertainty_prob = TwoVehicleUncertaintyParams(
-    poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue
-)
+uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
+uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 p_sym = p0
 
 

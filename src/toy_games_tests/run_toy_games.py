@@ -8,7 +8,7 @@ from toy_games import ToyGameMat, get_toy_game_spec
 
 from toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
 
-from driving_games import TwoVehicleUncertaintyParams
+from driving_games import UncertaintyParams
 from games import PlayerName, preprocess_game, solve1
 from games_zoo.solvers import SolverSpec
 from nash import BiMatGame
@@ -19,7 +19,7 @@ from toy_games_tests import logger
 def _run_toy_game(
     toy_game_mat: ToyGameMat,
     solver_spec: SolverSpec,
-    uncertainty_params: TwoVehicleUncertaintyParams,
+    uncertainty_params: UncertaintyParams,
 ):
     p1_name, p2_name = PlayerName("1"), PlayerName("2")
 
@@ -51,7 +51,7 @@ def _run_toy_game(
 def _run_toy_game_bayesian(
     subgames: Sequence[BiMatGame],
     solver_spec: SolverSpec,
-    uncertainty_params: TwoVehicleUncertaintyParams,
+    uncertainty_params: UncertaintyParams,
 ):
     max_stages = 2
     p1_name, p2_name = PlayerName("1"), PlayerName("2")

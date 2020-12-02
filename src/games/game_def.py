@@ -19,7 +19,6 @@ __all__ = [
     "RP",
     "RJ",
     "SR",
-    "W",
     "Observations",
     "JointState",
     "JointPureActions",
@@ -30,7 +29,9 @@ __all__ = [
     "Combined",
     "UncertainCombined",
     "MonadicPreferenceBuilder",
+    "UncertaintyParams",
     "Game",
+    "GameSpec",
     "GamePlayer",
     "AgentBelief",
     "GameVisualization",
@@ -57,10 +58,6 @@ RJ = TypeVar("RJ")
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
 
-# todo make it more formal elevating it to be an arbitrary field
-W = TypeVar("W", int, float, Fraction, D)
-""" Generic variable for the weight of rewards. """
-
 JointState = Mapping[PlayerName, X]
 """ A joint state: the state for each player. """
 
@@ -86,7 +83,7 @@ class Combined(Generic[RJ, RP]):
 
     # Monoid for sum of Combined outcome
     def __add__(self, other: "Combined[RP,RJ]"):
-        if type(other) == type(self):
+        if isinstance(other, Combined):
             if other.joint is None:
                 return replace(self, personal=self.personal + other.personal, joint=self.joint)
             elif self.joint is None:
@@ -101,7 +98,7 @@ class Combined(Generic[RJ, RP]):
     __radd__ = __add__
 
     # Weight multiplication (e.g. used to compute expected value)
-    def __mul__(self, weight: W):
+    def __mul__(self, weight: Fraction):
         # weighting costs, e.g. according to a probability
         if self.joint is not None:
             return replace(self, personal=self.personal * weight, joint=self.joint * weight)
@@ -169,8 +166,14 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
 
 
 P = TypeVar("P")
-# fixme not sure why typechecker does not like this new type
+
 MonadicPreferenceBuilder = NewType("MonadicPreferenceBuilder", Callable[[Preference[P]], Preference[Poss[P]]])
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class UncertaintyParams:
+    poss_monad: PossibilityMonad
+    mpref_builder: MonadicPreferenceBuilder
 
 
 @dataclass
@@ -251,6 +254,12 @@ class Game(Generic[X, U, Y, RP, RJ, SR]):
 
     game_visualization: GameVisualization[X, U, Y, RP, RJ]
     """ The artist to draw this game. """
+
+
+@dataclass
+class GameSpec:
+    desc: str
+    game: Game
 
 
 class AgentBelief(Generic[X, U], ABC):

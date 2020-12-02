@@ -40,6 +40,7 @@ SE2_disc = Tuple[D, D, D]  # in degrees
 class VehicleCosts:
     """ The personal costs of the vehicle"""
 
+    __slots__ = ["duration"]
     duration: D
     """ Duration of the episode. """
 
@@ -52,7 +53,7 @@ class VehicleCosts:
 
     # Monoid to support sum
     def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
-        if type(other) == VehicleCosts:
+        if isinstance(other, VehicleCosts):
             return replace(self, duration=self.duration + other.duration)
         elif other is None:
             return self

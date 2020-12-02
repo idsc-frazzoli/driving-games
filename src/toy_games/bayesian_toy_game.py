@@ -3,7 +3,7 @@ from fractions import Fraction
 from frozendict import frozendict
 
 from bayesian_driving_games.structures import BayesianGamePlayer, NEUTRAL, CAUTIOUS, AGGRESSIVE, BayesianGame
-from driving_games import TwoVehicleUncertaintyParams
+from driving_games import UncertaintyParams
 from games import GameSpec, Game, PlayerName, get_accessible_states
 from nash import BiMatGame
 from toy_games.bayesian_toy_rewards import (
@@ -22,7 +22,7 @@ __all__ = ["get_bayesian_toy_game_spec"]
 
 
 def get_bayesian_toy_game_spec(
-    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: TwoVehicleUncertaintyParams
+    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: UncertaintyParams
 ) -> GameSpec:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
