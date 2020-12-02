@@ -113,7 +113,7 @@ class SplineTransitionPath(Generic[X], TransitionPath[X]):
         self.s = s
 
         step: float = .1
-        N: int = (s[-1] - s[0]) // step
+        N: int = int((s[-1] - s[0]) // step)
         p_s: List[float] = list(np.linspace(s[0], s[-1], N))
         p_x = self.x.value_at_s(p_s)
         p_y = self.y.value_at_s(p_s)

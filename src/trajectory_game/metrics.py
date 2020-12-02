@@ -1,8 +1,10 @@
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 import textwrap
 
-from .sequence import Timestamp, SampledSequence, iterate_with_dt, UndefinedAtTime
+from .sequence import Timestamp, SampledSequence, iterate_with_dt
 from .rules import Rule, RuleEvaluationContext, RuleEvaluationResult
+from .world import World
+from .transitions import Trajectory
 
 
 def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp]:
@@ -66,6 +68,8 @@ def get_integrated(sequence: SampledSequence[Timestamp]) \
     return cumulative, dtot
 
 
+# TODO[SIR]: Compute only incremental metrics for each edge,
+#  cumulative and total only for each trajectory
 class SurvivalTime(Rule):
     def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
         traj = context.get_trajectory().get_sequence()
@@ -159,7 +163,7 @@ class DrivableAreaViolation(Rule):
             else:
                 return b[1] - v
 
-        values = [check_bounds(p_n, p_b) for p_n, p_b in zip(s, bounds)]
+        values = [check_bounds(p_n, p_b) for p_n, p_b in zip(n, bounds)]
 
         sequence = SampledSequence[float](interval, values)
         cumulative, dtot = get_integrated(sequence)
@@ -343,3 +347,30 @@ class SteeringComfort(Rule):
             description=description,
             cumulative=cumulative,
         )
+
+
+def evaluate_rules(trajectory: Trajectory, world: World, ego_name: str) ->\
+        Dict[str, RuleEvaluationResult]:
+
+    rules = {}
+    rules["survival_time"] = SurvivalTime()
+    rules["deviation-lateral"] = DeviationLateral()
+    rules["deviation-heading"] = DeviationHeading()
+    rules["drivable-area-violation"] = DrivableAreaViolation()
+    rules["progress"] = ProgressAlongReference()
+    rules["comfort-longitudinal"] = LongitudinalComfort()
+    rules["comfort-lateral"] = LateralComfort()
+    rules["comfort-steering"] = SteeringComfort()
+
+    context = RuleEvaluationContext(
+        world=world,
+        ego_name=ego_name,
+        trajectory=trajectory
+    )
+
+    evaluated = {}
+    for name, rule in rules.items():
+        result = RuleEvaluationResult(rule)
+        rule.evaluate(context, result)
+        evaluated[name] = result
+    return evaluated
