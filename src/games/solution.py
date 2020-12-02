@@ -213,13 +213,12 @@ def solve_game2(
     for js0 in jss:
         check_joint_state(js0)
         _solve_game(sc, js0)
-    # Instead of X it should be something like InfoSet or GameNode?!
+
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState], Poss[U]]]]
     ps = game.ps
     policies = defaultdict(lambda: defaultdict(dict))
     for state, solved_gnode in states_to_solution.items():
         for player_name, player_state in state.items():
-
             if player_name in solved_gnode.va.mixed_actions:
                 policy_for_this_state = policies[player_name][player_state]
                 other_states = frozendict({k: v for k, v in state.items() if k != player_name})
@@ -268,8 +267,8 @@ def _solve_game(
         # Incremental costs incurred if choosing this action
         inc: Dict[PlayerName, RP]
         inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
-        # if we choose these actions, then these are the game nodes
-        # we could go in. Note that each player can go in a different joint state.
+        # if we choose these actions, then these are the game nodes we could go in.
+        # Note that each player can go in a different joint state.
         next_nodes: Poss[M[PlayerName, JointState]] = gn.outcomes[pure_actions]
 
         # These are the solved nodes; for each, we find the solutions (recursive step here)
@@ -321,13 +320,14 @@ def _solve_game(
     # logger.info(va=va)
     if va.mixed_actions:
         next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
+        # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
         next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
         usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
         usages = {D(0): usage_current}
         # Π = 1
 
-        for i in map(D, range(10)):  # XXX: use the range that's needed
+        for i in map(D, range(10)):  # todo: use the range that's needed
             default = ps.unit(frozendict())
 
             def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
@@ -359,9 +359,7 @@ def _solve_game(
             if f.support() != {frozendict()}:
                 usages[i + 1] = f
 
-        # logger.info(next_resources=next_resources,
-        #             usages=usages)
-
+        # logger.info(next_resources=next_resources, usages=usages)
         ur = UsedResources(frozendict(usages))
     else:
         usages_ = frozendict({D(0): usage_current})

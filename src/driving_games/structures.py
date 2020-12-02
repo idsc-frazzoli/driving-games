@@ -40,6 +40,7 @@ SE2_disc = Tuple[D, D, D]  # in degrees
 class VehicleCosts:
     """ The personal costs of the vehicle"""
 
+    __slots__ = ["duration"]
     duration: D
     """ Duration of the episode. """
 

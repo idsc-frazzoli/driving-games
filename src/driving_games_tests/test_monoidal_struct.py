@@ -17,7 +17,7 @@ def test_decimal_fraction():
     print(d1 * D(float(f2)))
 
     tic = perf_counter()
-    cost_vector = [VehicleCosts(D(i)) for i in range(1000)]
+    cost_vector = [VehicleCosts(D(i)) for i in range(10000)]
     cost_vector_sum = reduce(add, cost_vector)
     elapsed = perf_counter() - tic
     print(f"result is {cost_vector_sum}, elapsed in {elapsed}")
@@ -40,7 +40,7 @@ def test_decimal_fraction():
             return f"DurationCost:('{self.__str__()}')"
 
     tic = perf_counter()
-    cost_vector2 = [DurationCosts(i) for i in range(1000)]
+    cost_vector2 = [DurationCosts(i) for i in range(10000)]
     cost_vector2_sum: DurationCosts = reduce(add, cost_vector2)
     elapsed = perf_counter() - tic
     print(f"result is {cost_vector2_sum}, elapsed in {elapsed}")

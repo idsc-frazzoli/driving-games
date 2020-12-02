@@ -83,7 +83,7 @@ class Combined(Generic[RJ, RP]):
 
     # Monoid for sum of Combined outcome
     def __add__(self, other: "Combined[RP,RJ]"):
-        if type(other) == type(self):
+        if isinstance(other, Combined):
             if other.joint is None:
                 return replace(self, personal=self.personal + other.personal, joint=self.joint)
             elif self.joint is None:
