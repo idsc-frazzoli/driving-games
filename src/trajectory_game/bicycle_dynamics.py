@@ -1,44 +1,13 @@
 import itertools
 import math
 from os.path import join
-from dataclasses import dataclass
-from typing import FrozenSet, Set, Tuple, Mapping
+from typing import FrozenSet, Set, Mapping, List
 import networkx as nx
-from networkx import MultiDiGraph, convert_node_labels_to_integers
-from reprep import MIME_GRAPHML, Report
+from networkx import MultiDiGraph
+from reprep import Report
 from time import perf_counter
 
-
-@dataclass
-class VehicleGeometry:
-    w: float
-    """ Car width [m] """
-    lf: float
-    """ Car length from CoG to front axle [m] """
-    lr: float
-    """ Car length from CoG to rear axle [m] """
-
-
-@dataclass(unsafe_hash=True, eq=True, order=True)
-class VehicleActions:
-    acc: float
-    """ Acceleration [m/s2] """
-    dst: float
-    """ Steering rate [rad/s] """
-
-
-@dataclass(unsafe_hash=True, eq=True, order=True)
-class VehicleState:
-    x: float  # [m]
-    """ CoG x location [m] """
-    y: float  # [m]
-    """ CoG y location [m] """
-    th: float  # [rad]
-    """ CoG heading [rad] """
-    v: float
-    """ CoG longitudinal velocity [m/s] """
-    st: float
-    """ Steering angle [rad] """
+from .structures import VehicleState, VehicleActions, VehicleGeometry
 
 
 class BicycleDynamics:
@@ -89,24 +58,31 @@ class BicycleDynamics:
             res[u] = self.successor(x, u, dt)
         return res
 
-    def successor(self, x: VehicleState, u: VehicleActions, dt: float):
+    def successor(self, x0: VehicleState, u: VehicleActions, dt: float):
         def clip(value, low, high):
             return max(low, min(high, value))
 
-        vf = clip(x.v + u.acc * dt, low=self.v_min, high=self.v_max)
-        stf = clip(x.st + u.dst * dt, low=-self.st_max, high=self.st_max)
+        vf = clip(x0.v + u.acc * dt, low=self.v_min, high=self.v_max)
+        stf = clip(x0.st + u.dst * dt, low=-self.st_max, high=self.st_max)
+        u_clip = VehicleActions(acc=(vf-x0.v)/dt, dst=(stf-x0.st)/dt)
 
-        dx = dt * (x.v + vf) /2.
-        dr = dx * math.tan(stf) / (self.vg.lf + self.vg.lr)
+        alpha = 1.
+        k1 = self.dynamics(x0, u_clip)
+        k2 = self.dynamics(x0 + k1 * (dt * alpha), u_clip)
+        ret = x0 + k1 * (dt * (1 - 0.5 / alpha)) + k2 * (dt * (0.5 / alpha))
+        return ret
+
+    def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
+
+        dx = x0.v
+        dr = dx * math.tan(x0.st) / (self.vg.lf + self.vg.lr)
         dy = dr * self.vg.lr
+        costh = math.cos(x0.th + dr/2.)
+        sinth = math.sin(x0.th + dr/2.)
 
-        costh = math.cos(x.th + dr/2.)
-        sinth = math.sin(x.th + dr/2.)
-        xf = x.x + (dx * costh - dy * sinth)
-        yf = x.y + (dx * sinth + dy * costh)
-        thf = x.th + dr
-
-        ret = VehicleState(x=xf, y=yf, th=thf, v=vf, st=stf)
+        xdot = dx * costh - dy * sinth
+        ydot = dx * sinth + dy * costh
+        ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=1.)
         return ret
 
 
@@ -153,16 +129,16 @@ def report_trajectories(G: MultiDiGraph) -> Report:
 
 def test_dynamics():
 
-    max_gen = 4
+    max_gen = 3
     dt = .3
-    steps_dst, step_dst = 3, math.pi / 4
+    steps_dst, step_dst = 3, math.pi / 6
     steps_acc, step_acc = 3, 4.
     u_acc = frozenset([_ * step_acc for _ in range(-steps_acc//2+1, steps_acc//2+1)])
     u_dst = frozenset([_ * step_dst for _ in range(-steps_dst//2+1, steps_dst//2+1)])
     vg = VehicleGeometry(w=1., lf=1., lr=1.)
     dynamics = BicycleDynamics(v_max=15., v_min=5., st_max=math.pi / 4,
                                vg=vg, u_acc=u_acc, u_dst=u_dst)
-    state_init = VehicleState(x=0., y=0., th=math.pi/2, v=10., st=0.)
+    state_init = VehicleState(x=0., y=0., th=math.pi/2, v=10., st=0., t=0.)
     stack = list([state_init])
     G = MultiDiGraph()
 
@@ -194,4 +170,3 @@ def test_dynamics():
     direc = "out/tests/"
     report = report_trajectories(G=G)
     report.to_html(join(direc, "trajectories.html"))
-
