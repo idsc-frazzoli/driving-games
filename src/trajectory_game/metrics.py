@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 import textwrap
 
 from .sequence import Timestamp, SampledSequence, iterate_with_dt, UndefinedAtTime
@@ -37,6 +37,35 @@ def accumulate(sequence: SampledSequence[float]) -> SampledSequence[float]:
     return SampledSequence[float](timestamps, values)
 
 
+def differentiate(val: List[float], t: List[float]) -> List[float]:
+    if len(val) != len(t):
+        msg = "values and times have different sizes - ({},{})," \
+              " can't differentiate".format(len(val), len(t))
+        raise ValueError(msg)
+
+    def func_diff(i: int) -> float:
+        dy = val[i + 1] - val[i]
+        dx = t[i + 1] - t[i]
+        if dx < 1e-8:
+            msg = "identical timestamps for func_diff - {}".format(t[i])
+            raise ValueError(msg)
+        return dy / dx
+
+    ret: List[float] = [0.] + [func_diff(i) for i in range(len(t) - 1)]
+    return ret
+
+
+def get_integrated(sequence: SampledSequence[Timestamp]) \
+        -> Tuple[SampledSequence[Timestamp], float]:
+    if len(sequence) <= 1:
+        cumulative = 0.
+        dtot = 0.
+    else:
+        cumulative = integrate(sequence)
+        dtot = cumulative.values[-1]
+    return cumulative, dtot
+
+
 class SurvivalTime(Rule):
     def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
         traj = context.get_trajectory().get_sequence()
@@ -62,20 +91,13 @@ class SurvivalTime(Rule):
 
 class DeviationLateral(Rule):
     def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
-
         interval = context.get_interval()
         traj_sn = context.get_curvilinear_points()
         _, n = zip(*traj_sn)
         abs_n = [abs(_) for _ in n]
         sequence = SampledSequence[float](interval, abs_n)
 
-        if len(sequence) <= 1:
-            cumulative = 0
-            dtot = 0
-        else:
-            cumulative = integrate(sequence)
-            dtot = cumulative.values[-1]
-
+        cumulative, dtot = get_integrated(sequence)
         title = "Deviation from reference path"
         description = textwrap.dedent(
             """\
@@ -100,15 +122,10 @@ class DeviationHeading(Rule):
         s, _ = zip(*traj_sn)
         path_head = context.get_world().get_heading_at_s(s)
         traj_head = [x.th for _, x in context.trajectory]
-        head = [abs(t-p) for t, p in zip(traj_head, path_head)]
+        head = [abs(t - p) for t, p in zip(traj_head, path_head)]
 
         sequence = SampledSequence[float](interval, head)
-        if len(sequence) <= 1:
-            cumulative = 0.0
-            dtot = 0.0
-        else:
-            cumulative = integrate(sequence)
-            dtot = cumulative.values[-1]
+        cumulative, dtot = get_integrated(sequence)
 
         title = "Heading Deviation"
         description = textwrap.dedent(
@@ -145,12 +162,7 @@ class DrivableAreaViolation(Rule):
         values = [check_bounds(p_n, p_b) for p_n, p_b in zip(s, bounds)]
 
         sequence = SampledSequence[float](interval, values)
-        if len(sequence) <= 1:
-            cumulative = 0
-            dtot = 0
-        else:
-            cumulative = integrate(sequence)
-            dtot = cumulative.values[-1]
+        cumulative, dtot = get_integrated(sequence)
 
         title = "Drivable area violation"
         description = textwrap.dedent(
@@ -171,14 +183,13 @@ class DrivableAreaViolation(Rule):
 
 class ProgressAlongReference(Rule):
     def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
-
         interval = context.get_interval()
         traj_sn = context.get_curvilinear_points()
         s, _ = zip(*traj_sn)
 
-        progress = [_-s[0] for _ in s]
-        total = progress[-1]
-        inc = [0] + [j-i for i, j in zip(progress[:-1], progress[1:])]
+        progress: List[float] = [_ - s[0] for _ in s]
+        total: float = progress[-1]
+        inc: List[float] = [0.] + [j - i for i, j in zip(progress[:-1], progress[1:])]
         incremental = SampledSequence[float](interval, inc)
         cumulative = SampledSequence[float](interval, progress)
 
@@ -193,6 +204,141 @@ class ProgressAlongReference(Rule):
             name=(),
             total=total,
             incremental=incremental,
+            title=title,
+            description=description,
+            cumulative=cumulative,
+        )
+
+
+class LongitudinalComfort(Rule):
+    def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
+
+        interval = context.get_interval()
+        traj = context.get_trajectory()
+
+        vel = [x.v for _, x in traj]
+        acc = differentiate(vel, interval)
+        # TODO[SIR]: Improve dacc calc -> Use initial acc
+        dacc = differentiate(acc, interval)
+
+        # Final acc, dacc is zero and not first
+        acc_val = [abs(_) for _ in acc[1:]] + [0.]
+        dacc_val = [abs(_) for _ in dacc[1:]] + [0.]
+
+        acc_seq = SampledSequence[float](interval, acc_val)
+        cumulative, dtot = get_integrated(acc_seq)
+
+        title = "Longitudinal acceleration"
+        description = textwrap.dedent(
+            """\
+            This metric computes the longitudinal acceleration the robot.
+        """
+        )
+
+        result.set_metric(
+            name=("long_acc",),
+            total=dtot,
+            incremental=acc_seq,
+            title=title,
+            description=description,
+            cumulative=cumulative,
+        )
+
+        dacc_seq = SampledSequence[float](interval, dacc_val)
+        cumulative, dtot = get_integrated(dacc_seq)
+
+        title = "Longitudinal acceleration jerk"
+        description = textwrap.dedent(
+            """\
+            This metric computes the rate of change of longitudinal acceleration the robot.
+        """
+        )
+
+        result.set_metric(
+            name=("long_jerk",),
+            total=dtot,
+            incremental=dacc_seq,
+            title=title,
+            description=description,
+            cumulative=cumulative,
+        )
+
+
+class LateralComfort(Rule):
+    def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
+
+        interval = context.get_interval()
+        traj = context.get_trajectory()
+
+        ay = [abs(x.v * x.st) for _, x in traj]
+
+        ay_seq = SampledSequence[float](interval, ay)
+        cumulative, dtot = get_integrated(ay_seq)
+
+        title = "Lateral discomfort"
+        description = textwrap.dedent(
+            """\
+            This metric computes the lateral discomfort - 
+            related to the lateral acceleration the robot.
+        """
+        )
+
+        result.set_metric(
+            name=(),
+            total=dtot,
+            incremental=ay_seq,
+            title=title,
+            description=description,
+            cumulative=cumulative,
+        )
+
+
+class SteeringComfort(Rule):
+    def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
+
+        interval = context.get_interval()
+        traj = context.get_trajectory()
+
+        st = [x.st for _, x in traj]
+        dst = differentiate(st, interval)
+
+        st_abs = [abs(_) for _ in st]
+        # Final dst is zero and not first
+
+        st_seq = SampledSequence[float](interval, st_abs)
+        cumulative, dtot = get_integrated(st_seq)
+
+        title = "Steering angle"
+        description = textwrap.dedent(
+            """\
+            This metric computes the steering angle the robot.
+        """
+        )
+
+        result.set_metric(
+            name=("steering",),
+            total=dtot,
+            incremental=st_seq,
+            title=title,
+            description=description,
+            cumulative=cumulative,
+        )
+
+        dst_val = [abs(_) for _ in dst[1:]] + [0.]
+        dst_seq = SampledSequence[float](interval, dst_val)
+        cumulative, dtot = get_integrated(dst_seq)
+
+        title = "Steering rate"
+        description = textwrap.dedent(
+            """\
+            This metric computes the rate of change of steering angle the robot.
+        """
+        )
+
+        result.set_metric(
+            name=("long_jerk",),
+            total=dtot,
+            incremental=dst_seq,
             title=title,
             description=description,
             cumulative=cumulative,
