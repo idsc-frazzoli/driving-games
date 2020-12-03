@@ -7,7 +7,7 @@ from zuper_commons.types import ZValueError, ZNotImplementedError
 from bayesian_driving_games.structures import PlayerType, BayesianGame
 from bayesian_driving_games.structures_solution import BayesianGameNode, BayesianSolvingContext
 from games import JointPureActions, PlayerName
-from games.equilibria import EquilibriaAnalysis, analyze
+from games.solve.equilibria import EquilibriaAnalysis, analyze
 from games.game_def import (
     UncertainCombined,
     U,
@@ -20,11 +20,11 @@ from games.game_def import (
     JointMixedActions,
     check_joint_mixed_actions,
 )
-from games.structures_solution import (
+from games.solve.solution_structures import (
     ValueAndActions,
-    STRATEGY_MIX,
-    STRATEGY_SECURITY,
-    STRATEGY_BAIL,
+    MIX_MNE,
+    SECURITY_MNE,
+    BAIL_MNE,
 )
 from games.utils import fd, valmap
 from possibilities import Poss, PossibilityMonad
@@ -286,7 +286,7 @@ def solve_sequential_rationality(
         outcomes = set(ea.nondom_nash_equilibria.values())
 
         strategy = sc.solver_params.strategy_multiple_nash
-        if strategy == STRATEGY_MIX:
+        if strategy == MIX_MNE:
             # fixme: Not really sure this makes sense when there are probabilities
             profile: Dict[PlayerName, Poss[U]] = {}
             for player_name in players_with_types:
@@ -355,10 +355,10 @@ def solve_sequential_rationality(
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))
         # Anything can happen
         # TODO: Not yet updated to Bayesian Games!
-        elif strategy == STRATEGY_SECURITY:
+        elif strategy == SECURITY_MNE:
             msg = "Security strategy not implemented for bayesian games"
             raise ZNotImplementedError(msg, ea=ea)
-        elif strategy == STRATEGY_BAIL:
+        elif strategy == BAIL_MNE:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
         else:

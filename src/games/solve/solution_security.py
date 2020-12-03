@@ -8,7 +8,7 @@ from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
-from .game_def import (
+from games.game_def import (
     check_joint_mixed_actions,
     check_joint_pure_actions,
     JointMixedActions,

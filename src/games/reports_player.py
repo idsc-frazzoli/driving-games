@@ -5,7 +5,7 @@ from networkx import convert_node_labels_to_integers
 from reprep import MIME_GRAPHML, Report
 
 from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y, SR
-from .structures_solution import GamePreprocessed
+from games.solve.solution_structures import GamePreprocessed
 
 logging.getLogger("matplotlib.backends.backend_pdf").setLevel(logging.CRITICAL)
 logging.getLogger("matplotlib.animation").setLevel(logging.CRITICAL)

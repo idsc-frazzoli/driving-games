@@ -10,7 +10,7 @@ from driving_games import (
     PossibilityDist,
 )
 from games import (
-    STRATEGY_MIX,
+    MIX_MNE,
     SolverParams,
     report_solutions,
     create_report_preprocessed,
@@ -45,7 +45,7 @@ def test2():
     d = "out/bayesian_dg/"
     game2 = get_bayesian_driving_game(p0, uncertainty_prob)
     game_name = "50-50,test1 : aggressive"
-    solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
+    solver_spec = SolverSpec("test", SolverParams(D(1), MIX_MNE, False))
     solver_name = solver_spec.desc
     game_preprocessed = preprocess_bayesian_game(game2, solver_spec.solver_params)
     solutions = solve_bayesian_game(game_preprocessed)

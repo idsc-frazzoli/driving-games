@@ -1,15 +1,11 @@
 from collections import defaultdict
-import pprint
 from decimal import Decimal as D
 from time import perf_counter
 from typing import (
     AbstractSet,
-    Callable,
     Dict,
     FrozenSet as FSet,
     Mapping as M,
-    Tuple,
-    List,
 )
 
 from frozendict import frozendict
@@ -17,12 +13,11 @@ from networkx import simple_cycles
 from toolz import valmap
 
 from possibilities import Poss
-from preferences import Preference
 from zuper_commons.types import ZValueError
-from . import logger
-from .agent_from_policy import AgentFromPolicy
-from .create_joint_game_tree import create_game_graph
-from .game_def import (
+from games import logger
+from games.agent_from_policy import AgentFromPolicy
+from games.create_joint_game_tree import create_game_graph
+from games.game_def import (
     check_joint_state,
     Combined,
     Game,
@@ -37,13 +32,12 @@ from .game_def import (
     UncertainCombined,
     X,
     Y,
-    MonadicPreferenceBuilder,
 )
-from .simulate import simulate1, Simulation
+from games.simulate import simulate1, Simulation
 from .solution_ghost import get_ghost_tree
 from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
 from .solve_equilibria_ import solve_equilibria
-from .structures_solution import (
+from .solution_structures import (
     GameGraph,
     GameNode,
     GamePreprocessed,

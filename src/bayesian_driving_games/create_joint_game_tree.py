@@ -13,7 +13,7 @@ from games.game_def import (
     PlayerName,
     X,
 )
-from games.structures_solution import (
+from games.solve.solution_structures import (
     GameFactorization,
     GameGraph,
 )

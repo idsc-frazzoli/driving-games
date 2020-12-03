@@ -14,8 +14,8 @@ from preferences import (
     StrictProductPreferenceDict,
 )
 from zuper_commons.types import ZValueError
-from . import GameConstants
-from .game_def import (
+from games import GameConstants
+from games.game_def import (
     check_joint_mixed_actions,
     JointMixedActions,
     JointPureActions,
@@ -28,8 +28,8 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import GameNode
-from .utils import valmap
+from .solution_structures import GameNode
+from games.utils import valmap
 
 __all__ = []
 

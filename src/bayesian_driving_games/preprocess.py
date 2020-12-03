@@ -3,7 +3,7 @@ from typing import Optional
 from frozendict import frozendict
 
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
-from bayesian_driving_games.structures import BayesianGame, T
+from bayesian_driving_games.structures import BayesianGame
 from bayesian_driving_games.structures_solution import BayesianGameGraph
 from games import Game, X, U, Y, RP, RJ, SolverParams, GamePreprocessed
 from games.access import get_game_graph, compute_graph_layout, get_game_factorization, get_player_graph
@@ -11,7 +11,7 @@ from games.game_def import SR
 from games.get_indiv_games import get_individual_games
 from games.utils import valmap
 from bayesian_driving_games.solution import solve_game_bayesian2
-from games.structures_solution import GameFactorization, GamePlayerPreprocessed, GameGraph, GameSolution
+from games.solve.solution_structures import GameFactorization, GamePlayerPreprocessed, GameSolution
 
 
 def preprocess_bayesian_player(

@@ -1,16 +1,14 @@
-from time import perf_counter
 from typing import Dict, Mapping, MutableMapping
 
 from frozendict import frozendict
 
-from games.solution_security import get_mixed_joint_actions, get_security_policies
+from games.solve.solution_security import get_mixed_joint_actions, get_security_policies
 from possibilities import Poss
 from preferences import Preference
 from zuper_commons.types import ZNotImplementedError, ZValueError
 
-from . import logger
 from .equilibria import analyze_equilibria, EquilibriaAnalysis
-from .game_def import (
+from games.game_def import (
     check_joint_mixed_actions,
     check_joint_pure_actions,
     Combined,
@@ -25,15 +23,15 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import (
+from .solution_structures import (
     GameNode,
     SolvingContext,
-    STRATEGY_BAIL,
-    STRATEGY_MIX,
-    STRATEGY_SECURITY,
+    BAIL_MNE,
+    MIX_MNE,
+    SECURITY_MNE,
     ValueAndActions,
 )
-from .utils import fd
+from games.utils import fd
 
 
 def solve_equilibria(
@@ -75,8 +73,8 @@ def solve_equilibria(
         # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
 
-        strategy = sc.solver_params.strategy_multiple_nash
-        if strategy == STRATEGY_MIX:
+        mNE_strategy = sc.solver_params.strategy_multiple_nash
+        if mNE_strategy == MIX_MNE:
             # fixme: Not really sure this makes sense when there are probabilities
 
             profile: Dict[PlayerName, Poss[U]] = {}
@@ -85,9 +83,9 @@ def solve_equilibria(
                 res = set()
                 for joint_mixed_actions in ea.nondom_nash_equilibria:
                     res.add(joint_mixed_actions[player_name])
-                strategy = ps.join(ps.lift_many(res))
-                # check_poss(strategy)
-                profile[player_name] = strategy
+                mNE_strategy = ps.join(ps.lift_many(res))
+                # check_poss(mNE_strategy)
+                profile[player_name] = mNE_strategy
 
             def f(y: JointPureActions) -> JointPureActions:
                 return frozendict(y)
@@ -108,7 +106,7 @@ def solve_equilibria(
 
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=fd(profile))
         # Anything can happen
-        elif strategy == STRATEGY_SECURITY:
+        elif mNE_strategy == SECURITY_MNE:
             # fixme: Not really sure this makes sense when there are probabilities
             # fixme for probabilities
             security_policies: JointMixedActions
@@ -131,8 +129,8 @@ def solve_equilibria(
             # game_value: Mapping[PlayerName, UncertainCombined]
             game_value_ = fd(game_value)
             return ValueAndActions(game_value=game_value_, mixed_actions=security_policies)
-        elif strategy == STRATEGY_BAIL:
+        elif mNE_strategy == BAIL_MNE:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
         else:
-            assert False, strategy
+            assert False, mNE_strategy

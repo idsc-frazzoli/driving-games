@@ -2,7 +2,7 @@ import unittest
 from itertools import product
 from parameterized import parameterized
 from driving_games import uncertainty_prob, uncertainty_sets
-from games import STRATEGY_MIX, STRATEGY_SECURITY, UncertaintyParams
+from games import MIX_MNE, SECURITY_MNE, UncertaintyParams
 from games_zoo import solvers_zoo
 from games_zoo.solvers import SolverSpec
 from toy_games import ToyGameMat
@@ -12,7 +12,7 @@ from toy_games_tests.run_toy_games import _run_toy_game, _run_toy_game_bayesian
 from toy_games_tests.toy_games_tests_zoo import *
 
 games = (game2, game21, game3, game4, game5)  # todo fix game1 is problematic for now
-strategies = [STRATEGY_MIX, STRATEGY_SECURITY]
+strategies = [MIX_MNE, SECURITY_MNE]
 solvers = (solvers_zoo["solver-1-" + strategy + "-naive"] for strategy in strategies)
 uncertainties = [uncertainty_sets, uncertainty_prob]
 toy_tests = list(product(games, solvers, uncertainties))

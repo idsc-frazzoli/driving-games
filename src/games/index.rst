@@ -38,7 +38,7 @@ create_joint_game_tree
 equilibria
 ------------------
 
-.. automodule:: games.equilibria
+.. automodule:: games.solve.equilibria
    :members:
 
 
@@ -53,21 +53,21 @@ simulate
 solution
 ------------------
 
-.. automodule:: games.solution
+.. automodule:: games.solve.solution
    :members:
 
 
 solution_ghost
 ------------------
 
-.. automodule:: games.solution_ghost
+.. automodule:: games.solve.solution_ghost
    :members:
 
 
 solution_security
 ------------------
 
-.. automodule:: games.solution_security
+.. automodule:: games.solve.solution_security
    :members:
 
 
@@ -75,5 +75,5 @@ solution_security
 structures_solutions
 ---------------------
 
-.. automodule:: games.structures_solution
+.. automodule:: games.solve.structures_solution
    :members:
