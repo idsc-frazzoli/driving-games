@@ -21,6 +21,8 @@ class VehicleActions:
     def __add__(self, other: "VehicleActions") -> "VehicleActions":
         if type(other) == type(self):
             return VehicleActions(acc=self.acc + other.acc, dst=self.dst + other.dst)
+        elif other is None:
+            return self
         else:
             raise NotImplementedError
 
@@ -56,6 +58,8 @@ class VehicleState:
                 v=self.v + other.v,
                 st=self.st + other.st,
                 t=self.t + other.t)
+        elif other is None:
+            return self
         else:
             raise NotImplementedError
 

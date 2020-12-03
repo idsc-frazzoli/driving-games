@@ -2,10 +2,12 @@ import itertools
 import math
 from typing import FrozenSet, Set, Mapping
 
+from games import Dynamics
+from driving_games import Coordinates, Rectangle, make_rectangle
 from .structures import VehicleState, VehicleActions, VehicleGeometry
 
 
-class BicycleDynamics:
+class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     v_max: float
     """ Maximum speed [m/s] """
 
@@ -79,3 +81,11 @@ class BicycleDynamics:
         ydot = dx * sinth + dy * costh
         ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=1.)
         return ret
+
+    def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:
+        # TODO[SIR]: Rectangle assumes heading is along one axis,
+        #  change this to generalise for any random heading
+        center = x.x, x.y
+        sides = self.vg.w, self.vg.lr+self.vg.lf
+        rect = make_rectangle(center=center, sides=sides)
+        return frozenset({rect})

@@ -72,7 +72,9 @@ def test_dynamics():
     vg = VehicleGeometry(w=1., lf=1., lr=1.)
     dynamics = BicycleDynamics(v_max=15., v_min=5., st_max=math.pi / 4,
                                vg=vg, u_acc=u_acc, u_dst=u_dst)
-    state_init = VehicleState(x=0., y=0., th=math.pi/2, v=10., st=0., t=0.)
+    state_init = VehicleState(x=0., y=0., th=math.pi/2,
+                              v=10., st=0., t=0.)
+    rect = dynamics.get_shared_resources(x=state_init)
     stack = list([state_init])
     G = MultiDiGraph()
 
