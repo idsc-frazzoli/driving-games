@@ -57,7 +57,8 @@ class VehicleState:
                 th=self.th + other.th,
                 v=self.v + other.v,
                 st=self.st + other.st,
-                t=self.t + other.t)
+                t=self.t + other.t,
+            )
         elif other is None:
             return self
         else:
@@ -72,6 +73,7 @@ class VehicleState:
             th=self.th * factor,
             v=self.v * factor,
             st=self.st * factor,
-            t=self.t * factor)
+            t=self.t * factor,
+        )
 
     __rmul__ = __mul__

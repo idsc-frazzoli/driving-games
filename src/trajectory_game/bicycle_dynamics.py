@@ -26,9 +26,15 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     u_dst: FrozenSet[float]
     """ Possible values of steering rate [rad/s] """
 
-    def __init__(self, v_max: float, v_min: float, st_max: float,
-                 vg: VehicleGeometry, u_acc: FrozenSet[float],
-                 u_dst: FrozenSet[float]):
+    def __init__(
+        self,
+        v_max: float,
+        v_min: float,
+        st_max: float,
+        vg: VehicleGeometry,
+        u_acc: FrozenSet[float],
+        u_dst: FrozenSet[float],
+    ):
         self.v_max = v_max
         self.v_min = v_min
         self.st_max = st_max
@@ -61,9 +67,9 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
 
         vf = clip(x0.v + u.acc * dt, low=self.v_min, high=self.v_max)
         stf = clip(x0.st + u.dst * dt, low=-self.st_max, high=self.st_max)
-        u_clip = VehicleActions(acc=(vf-x0.v)/dt, dst=(stf-x0.st)/dt)
+        u_clip = VehicleActions(acc=(vf - x0.v) / dt, dst=(stf - x0.st) / dt)
 
-        alpha = 1.
+        alpha = 1.0
         k1 = self.dynamics(x0, u_clip)
         k2 = self.dynamics(x0 + k1 * (dt * alpha), u_clip)
         ret = x0 + k1 * (dt * (1 - 0.5 / alpha)) + k2 * (dt * (0.5 / alpha))
@@ -74,18 +80,18 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         dx = x0.v
         dr = dx * math.tan(x0.st) / (self.vg.lf + self.vg.lr)
         dy = dr * self.vg.lr
-        costh = math.cos(x0.th + dr/2.)
-        sinth = math.sin(x0.th + dr/2.)
+        costh = math.cos(x0.th + dr / 2.0)
+        sinth = math.sin(x0.th + dr / 2.0)
 
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh
-        ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=1.)
+        ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=1.0)
         return ret
 
     def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:
         # TODO[SIR]: Rectangle assumes heading is along one axis,
         #  change this to generalise for any random heading
         center = x.x, x.y
-        sides = self.vg.w, self.vg.lr+self.vg.lf
+        sides = self.vg.w, self.vg.lr + self.vg.lf
         rect = make_rectangle(center=center, sides=sides)
         return frozenset({rect})

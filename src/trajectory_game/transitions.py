@@ -20,16 +20,19 @@ X = TypeVar("X")
 
 class Curve(Generic[X], metaclass=ABCMeta):
     """ Base class for 1d curves. """
+
     @abstractmethod
     def value_at_s(self, s: List[float]) -> List[X]:
         """ Calculate value of curve at requested coordinates """
+
     @abstractmethod
     def derivative_at_s(self, s: List[float]) -> List[X]:
         """ Calculate derivatives of curve at requested coordinates """
 
 
-class SplineCurve(Generic[X], Curve[X]):
+class SplineCurve(Curve[X]):
     """ Line class for linear interpolation of a curve. """
+
     s: List[X]
     """ Abscissa for interpolation of the curve. """
     z: List[X]
@@ -59,11 +62,10 @@ class SplineCurve(Generic[X], Curve[X]):
         return list(values)
 
     def derivative_at_s(self, s: List[float], order: int = 1) -> List[X]:
-        """ Calculate derivatives of curve at requested values
-            Default is first derivative, but any order (<k) can be calculated"""
+        """Calculate derivatives of curve at requested values
+        Default is first derivative, but any order (<k) can be calculated"""
         if order >= self._tck[-1]:
-            msg = "Max order for derivative is {}, requested {}"\
-                .format(self._tck[-1]-1, order)
+            msg = "Max order for derivative is {}, requested {}".format(self._tck[-1] - 1, order)
             raise ValueError(msg)
         if order <= 0:
             msg = "Derivative order needs to be positive, requested {}".format(order)
@@ -77,25 +79,29 @@ class SplineCurve(Generic[X], Curve[X]):
 
 
 class TransitionPath(Generic[X], metaclass=ABCMeta):
+    # fixme maybe rename to just Path?
     """ Base class for all 2d transitions. """
+
     @abstractmethod
     def value_at_s(self, s: List[float]) -> List[Tuple[X, X]]:
         """ Calculate [x,y] of transition at progress values """
+
     @abstractmethod
     def heading_at_s(self, s: List[float]) -> List[X]:
         """ Calculate heading of transition at progress values """
+
     @abstractmethod
-    def cartesian_to_curvilinear(self, xy: List[Tuple[X, X]]) \
-            -> List[Tuple[X, X]]:
+    def cartesian_to_curvilinear(self, xy: List[Tuple[X, X]]) -> List[Tuple[X, X]]:
         """ Converts cartesian coordinates [x,y] to curvilinear [s,n] """
+
     @abstractmethod
-    def curvilinear_to_cartesian(self, sn: List[Tuple[X, X]]) \
-            -> List[Tuple[X, X]]:
+    def curvilinear_to_cartesian(self, sn: List[Tuple[X, X]]) -> List[Tuple[X, X]]:
         """ Converts curvilinear coordinates [s,n] to cartesian [x,y] """
 
 
 class SplineTransitionPath(Generic[X], TransitionPath[X]):
     """ Transition defined by straight lines. """
+
     s: List[X]
     """ Abscissa for interpolation of the curve. """
     x: SplineCurve[X]
@@ -112,7 +118,7 @@ class SplineTransitionPath(Generic[X], TransitionPath[X]):
         self.y = SplineCurve(s=s, z=y, order=order)
         self.s = s
 
-        step: float = .1
+        step: float = 0.1
         N: int = int((s[-1] - s[0]) // step)
         p_s: List[float] = list(np.linspace(s[0], s[-1], N))
         p_x = self.x.value_at_s(p_s)
@@ -140,12 +146,11 @@ class SplineTransitionPath(Generic[X], TransitionPath[X]):
         ret = [calc_heading(x, y) for x, y in zip(dx, dy)]
         return ret
 
-    def cartesian_to_curvilinear(self, xy: List[Tuple[X, X]]) \
-            -> List[Tuple[float, X]]:
+    def cartesian_to_curvilinear(self, xy: List[Tuple[X, X]]) -> List[Tuple[float, X]]:
         ret = []
 
         def get_n(p1: Tuple[X, X], p2: Tuple[X, X]) -> X:
-            return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
+            return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
         def get_n_sign(s_p: float, xy_p: Tuple[X, X]) -> int:
             p_s = self.points.at(s_p)
@@ -156,24 +161,24 @@ class SplineTransitionPath(Generic[X], TransitionPath[X]):
             return sign
 
         for p_xy in xy:
-            best_s: float = 0.
-            best_n: float = 1000.
+            best_s: float = 0.0
+            best_n: float = 1000.0
             for s, p in self.points:
                 n = get_n(p_xy, p)
                 if n < best_n:
                     best_s = s
                     best_n = n
-            ret.append((best_s, best_n*get_n_sign(best_s, p_xy)))
+            ret.append((best_s, best_n * get_n_sign(best_s, p_xy)))
 
         return ret
 
-    def curvilinear_to_cartesian(self, sn: List[Tuple[X, X]]) \
-            -> List[Tuple[X, X]]:
+    def curvilinear_to_cartesian(self, sn: List[Tuple[X, X]]) -> List[Tuple[X, X]]:
         """ Converts curvilinear coordinates [s,n] to cartesian [x,y] """
 
 
 class Trajectory:
     """ Container for trajectory - path + velocities, steering """
+
     traj: SampledSequence[VehicleState]
 
     def __init__(self, traj: List[VehicleState]):
