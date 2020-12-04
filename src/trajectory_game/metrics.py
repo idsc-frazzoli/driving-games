@@ -77,9 +77,10 @@ class SurvivalTime(Rule):
             raise ValueError(traj)
 
         title = "Survival time"
-        description = "Length of the episode."
+        description = "Length of the episode (negative for smaller preferred)"
 
-        incremental = traj.transform_values(lambda _: 1.0, float)
+        # negative for smaller preferred
+        incremental = traj.transform_values(lambda _: -1.0, float)
         cumulative = integrate(incremental)
         total = cumulative.values[-1]
 
@@ -191,7 +192,8 @@ class ProgressAlongReference(Rule):
         traj_sn = context.get_curvilinear_points()
         s, _ = zip(*traj_sn)
 
-        progress: List[float] = [_ - s[0] for _ in s]
+        # negative for smaller preferred
+        progress: List[float] = [s[0] - _ for _ in s]
         total: float = progress[-1]
         inc: List[float] = [0.] + [j - i for i, j in zip(progress[:-1], progress[1:])]
         incremental = SampledSequence[float](interval, inc)
@@ -202,6 +204,7 @@ class ProgressAlongReference(Rule):
             """\
             This metric computes how far the robot drove
             **along the reference path**.
+            (negative for smaller preferred)
         """
         )
         result.set_metric(
@@ -340,7 +343,7 @@ class SteeringComfort(Rule):
         )
 
         result.set_metric(
-            name=("long_jerk",),
+            name=("steering_rate",),
             total=dtot,
             incremental=dst_seq,
             title=title,

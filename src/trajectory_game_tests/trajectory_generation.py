@@ -4,9 +4,9 @@ import networkx as nx
 from networkx import MultiDiGraph
 from reprep import Report
 from time import perf_counter
-from typing import List, Tuple
 
-from trajectory_game import VehicleState, VehicleGeometry, World, SplineTransitionPath, BicycleDynamics, AllTrajectories
+from trajectory_game import VehicleState, VehicleGeometry, \
+    BicycleDynamics, AllTrajectories
 
 
 def report_trajectories(G: MultiDiGraph) -> Report:
@@ -50,25 +50,16 @@ def report_trajectories(G: MultiDiGraph) -> Report:
     return r
 
 
-def create_world() -> World:
-    s: List[float] = [float(_) for _ in range(10)]
-    x: List[float] = [0. for _ in range(10)]
-    y: List[float] = s
-    ref = SplineTransitionPath[float](s=s, x=x, y=y, order=3)
-    left: List[Tuple[float, float]] = [(-5., float(_)) for _ in range(10)]
-    right: List[Tuple[float, float]] = [(5., float(_)) for _ in range(10)]
-    world = World(ref_path=ref, left_xy=left, right_xy=right)
-    return world
-
-
-def test_dynamics():
+def generate_trajectory_graph() -> MultiDiGraph:
 
     max_gen = 2
     dt = .3
     steps_dst, step_dst = 3, math.pi / 6
     steps_acc, step_acc = 3, 4.
-    u_acc = frozenset([_ * step_acc for _ in range(-steps_acc//2+1, steps_acc//2+1)])
-    u_dst = frozenset([_ * step_dst for _ in range(-steps_dst//2+1, steps_dst//2+1)])
+    u_acc = frozenset([_ * step_acc for _ in
+                       range(-steps_acc//2+1, steps_acc//2+1)])
+    u_dst = frozenset([_ * step_dst for _ in
+                       range(-steps_dst//2+1, steps_dst//2+1)])
     vg = VehicleGeometry(w=1., lf=1., lr=1.)
     dynamics = BicycleDynamics(v_max=15., v_min=5., st_max=math.pi / 4,
                                vg=vg, u_acc=u_acc, u_dst=u_dst)
@@ -103,26 +94,16 @@ def test_dynamics():
 
     toc = perf_counter() - tic
     print('Trajectory graph generation time = {} s'.format(toc))
+    direc = "out/tests/"
+    # report = report_trajectories(G=G)
+    # report.to_html(join(direc, "trajectories.html"))
+    return G
 
+
+def trajectory_graph_to_list(G: MultiDiGraph) -> AllTrajectories:
     tic = perf_counter()
     ego_name = 'Car1'
     all_traj = AllTrajectories(G=G, ego_name=ego_name)
     toc = perf_counter() - tic
     print('Trajectory list generation time = {} s'.format(toc))
-
-    tic = perf_counter()
-    world = create_world()
-    toc = perf_counter() - tic
-    print('World generation time = {} s'.format(toc))
-
-    tic = perf_counter()
-    result = all_traj.evaluate_trajectories(world=world)
-    toc = perf_counter() - tic
-    print('Metric evaluation time = {} s'.format(toc))
-
-    direc = "out/tests/"
-    # report = report_trajectories(G=G)
-    # report.to_html(join(direc, "trajectories.html"))
-
-
-
+    return all_traj
