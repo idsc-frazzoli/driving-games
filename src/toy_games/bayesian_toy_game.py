@@ -3,7 +3,7 @@ from fractions import Fraction
 from frozendict import frozendict
 
 from bayesian_driving_games.structures import BayesianGamePlayer, NEUTRAL, CAUTIOUS, AGGRESSIVE, BayesianGame
-from driving_games import TwoVehicleUncertaintyParams
+from driving_games import UncertaintyParams
 from games import GameSpec, Game, PlayerName, get_accessible_states
 from nash import BiMatGame
 from toy_games.bayesian_toy_rewards import (
@@ -14,7 +14,7 @@ from toy_games.toy_rewards import (
     BirdPreferences,
 )
 from toy_games.toy_structures import FlyingDynamics, BirdState, BirdDirectObservations, BirdsVisualization
-from possibilities import PossibilityMonad, ProbabilityFraction, ProbPoss
+from possibilities import PossibilityMonad, PossibilityDist, ProbDist
 from typing import FrozenSet as ASet, cast, Sequence
 from decimal import Decimal as D
 
@@ -22,7 +22,7 @@ __all__ = ["get_bayesian_toy_game_spec"]
 
 
 def get_bayesian_toy_game_spec(
-    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: TwoVehicleUncertaintyParams
+    max_stages: int, subgames: Sequence[BiMatGame], uncertainty_params: UncertaintyParams
 ) -> GameSpec:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     P1, P2 = PlayerName("1"), PlayerName("2")
@@ -41,9 +41,9 @@ def get_bayesian_toy_game_spec(
     p1_prior_weights = [Fraction(1)]
 
     # priors
-    ps2 = ProbabilityFraction()
-    p1_prior_belief = {P2: ProbPoss(dict(zip(p2_types, p1_prior_weights)))}
-    p2_prior_belief = {P1: ProbPoss(dict(zip(p1_types, p2_prior_weights)))}
+    ps2 = PossibilityDist()
+    p1_prior_belief = {P2: ProbDist(dict(zip(p2_types, p1_prior_weights)))}
+    p2_prior_belief = {P1: ProbDist(dict(zip(p1_types, p2_prior_weights)))}
 
     # dynamics
     p1_dynamics = FlyingDynamics(poss_monad=ps)

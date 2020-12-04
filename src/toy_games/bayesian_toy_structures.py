@@ -7,7 +7,7 @@ from bayesian_driving_games.structures import PlayerType, NEUTRAL
 from frozendict import frozendict
 from zuper_commons.types import ZValueError
 
-from driving_games.structures import InvalidAction
+from driving_games.vehicle_dynamics import InvalidAction
 from games import Dynamics, X
 from games.game_def import SR
 from possibilities import Poss, PossibilityMonad

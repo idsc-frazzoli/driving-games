@@ -41,8 +41,9 @@ def accumulate(sequence: SampledSequence[float]) -> SampledSequence[float]:
 
 def differentiate(val: List[float], t: List[float]) -> List[float]:
     if len(val) != len(t):
-        msg = "values and times have different sizes - ({},{})," \
-              " can't differentiate".format(len(val), len(t))
+        msg = "values and times have different sizes - ({},{})," " can't differentiate".format(
+            len(val), len(t)
+        )
         raise ValueError(msg)
 
     def func_diff(i: int) -> float:
@@ -53,15 +54,14 @@ def differentiate(val: List[float], t: List[float]) -> List[float]:
             raise ValueError(msg)
         return dy / dx
 
-    ret: List[float] = [0.] + [func_diff(i) for i in range(len(t) - 1)]
+    ret: List[float] = [0.0] + [func_diff(i) for i in range(len(t) - 1)]
     return ret
 
 
-def get_integrated(sequence: SampledSequence[Timestamp]) \
-        -> Tuple[SampledSequence[Timestamp], float]:
+def get_integrated(sequence: SampledSequence[Timestamp]) -> Tuple[SampledSequence[Timestamp], float]:
     if len(sequence) <= 1:
-        cumulative = 0.
-        dtot = 0.
+        cumulative = 0.0
+        dtot = 0.0
     else:
         cumulative = integrate(sequence)
         dtot = cumulative.values[-1]
@@ -158,7 +158,7 @@ class DrivableAreaViolation(Rule):
 
         def check_bounds(v: float, b: Tuple[float, float]) -> float:
             if b[0] <= v <= b[1]:
-                return 0.
+                return 0.0
             elif v < b[0]:
                 return b[0] - v
             else:
@@ -195,7 +195,7 @@ class ProgressAlongReference(Rule):
         # negative for smaller preferred
         progress: List[float] = [s[0] - _ for _ in s]
         total: float = progress[-1]
-        inc: List[float] = [0.] + [j - i for i, j in zip(progress[:-1], progress[1:])]
+        inc: List[float] = [0.0] + [j - i for i, j in zip(progress[:-1], progress[1:])]
         incremental = SampledSequence[float](interval, inc)
         cumulative = SampledSequence[float](interval, progress)
 
@@ -229,8 +229,8 @@ class LongitudinalComfort(Rule):
         dacc = differentiate(acc, interval)
 
         # Final acc, dacc is zero and not first
-        acc_val = [abs(_) for _ in acc[1:]] + [0.]
-        dacc_val = [abs(_) for _ in dacc[1:]] + [0.]
+        acc_val = [abs(_) for _ in acc[1:]] + [0.0]
+        dacc_val = [abs(_) for _ in dacc[1:]] + [0.0]
 
         acc_seq = SampledSequence[float](interval, acc_val)
         cumulative, dtot = get_integrated(acc_seq)
@@ -331,7 +331,7 @@ class SteeringComfort(Rule):
             cumulative=cumulative,
         )
 
-        dst_val = [abs(_) for _ in dst[1:]] + [0.]
+        dst_val = [abs(_) for _ in dst[1:]] + [0.0]
         dst_seq = SampledSequence[float](interval, dst_val)
         cumulative, dtot = get_integrated(dst_seq)
 
@@ -352,8 +352,7 @@ class SteeringComfort(Rule):
         )
 
 
-def evaluate_rules(trajectory: Trajectory, world: World, ego_name: str) ->\
-        Dict[str, RuleEvaluationResult]:
+def evaluate_rules(trajectory: Trajectory, world: World, ego_name: str) -> Dict[str, RuleEvaluationResult]:
 
     rules = {}
     rules["survival_time"] = SurvivalTime()
@@ -365,11 +364,7 @@ def evaluate_rules(trajectory: Trajectory, world: World, ego_name: str) ->\
     rules["comfort-lateral"] = LateralComfort()
     rules["comfort-steering"] = SteeringComfort()
 
-    context = RuleEvaluationContext(
-        world=world,
-        ego_name=ego_name,
-        trajectory=trajectory
-    )
+    context = RuleEvaluationContext(world=world, ego_name=ego_name, trajectory=trajectory)
 
     evaluated = {}
     for name, rule in rules.items():

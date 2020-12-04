@@ -5,9 +5,9 @@ from bayesian_driving_games.game_generation import get_bayesian_driving_game
 from driving_games import (
     TwoVehicleSimpleParams,
     NO_LIGHTS,
-    TwoVehicleUncertaintyParams,
+    UncertaintyParams,
     ProbPrefExpectedValue,
-    ProbabilityFraction,
+    PossibilityDist,
 )
 from games import (
     STRATEGY_MIX,
@@ -41,9 +41,7 @@ def test2():
         shared_resources_ds=D(1.5),
     )
     # uncertainty_sets = TwoVehicleUncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
-    uncertainty_prob = TwoVehicleUncertaintyParams(
-        poss_monad=ProbabilityFraction(), mpref_builder=ProbPrefExpectedValue
-    )
+    uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
     d = "out/bayesian_dg/"
     game2 = get_bayesian_driving_game(p0, uncertainty_prob)
     game_name = "50-50,test1 : aggressive"

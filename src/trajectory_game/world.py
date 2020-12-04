@@ -3,14 +3,13 @@ from typing import List, Tuple
 
 from .transitions import TransitionPath, Curve, SplineCurve
 
-__all__ = [
-    "World"
-]
+__all__ = ["World"]
 
 
 @dataclass
 class World:
     """ Object holding all info about the world """
+
     ref_path: TransitionPath[float]
     """ Reference path for planner """
     left: Curve[float]
@@ -18,9 +17,12 @@ class World:
     right: Curve[float]
     """ Right lane boundary """
 
-    def __init__(self, ref_path: TransitionPath[float],
-                 left_xy: List[Tuple[float, float]],
-                 right_xy: List[Tuple[float, float]]):
+    def __init__(
+        self,
+        ref_path: TransitionPath[float],
+        left_xy: List[Tuple[float, float]],
+        right_xy: List[Tuple[float, float]],
+    ):
         self.ref_path = ref_path
 
         def fit_curve(p: List[Tuple[float, float]]) -> Curve[float]:

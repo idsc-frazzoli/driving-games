@@ -139,6 +139,12 @@ def get_moves(
 
 
 def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
+    """
+    # todo
+    :param ic:
+    :param states:
+    :return:
+    """
     check_joint_state(states)
     if states in ic.cache:
         return ic.cache[states]

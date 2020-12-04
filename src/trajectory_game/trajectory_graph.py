@@ -33,8 +33,7 @@ class AllTrajectories:
                 self.expand_graph(G=G, node=n2, traj=traj1)
         self.expanded.add(node)
 
-    def evaluate_trajectories(self, world: World) -> \
-            Dict[Trajectory, Dict[str, RuleEvaluationResult]]:
+    def evaluate_trajectories(self, world: World) -> Dict[Trajectory, Dict[str, RuleEvaluationResult]]:
         ret = {}
         for traj in self.all_trajectories:
             result = evaluate_rules(trajectory=traj, world=world, ego_name=self.ego_name)

@@ -1,18 +1,12 @@
-
 from dataclasses import dataclass
+from numbers import Real
 from typing import Generic, TypeVar, List, Callable, Type, ClassVar, Iterator
 
-__all__ = [
-    "Timestamp",
-    "SampledSequence",
-    "IterateDT",
-    "iterate_with_dt",
-    "UndefinedAtTime"
-]
+__all__ = ["Timestamp", "SampledSequence", "IterateDT", "iterate_with_dt", "UndefinedAtTime"]
 
 X = TypeVar("X")
 Y = TypeVar("Y")
-Timestamp = float
+Timestamp = Real
 
 
 class UndefinedAtTime(Exception):
@@ -23,7 +17,7 @@ class UndefinedAtTime(Exception):
 class IterateDT(Generic[Y]):
     t0: Timestamp
     t1: Timestamp
-    dt: float
+    dt: Real
     v0: Y
     v1: Y
 
@@ -59,8 +53,8 @@ class SampledSequence(Generic[X]):
         self.values = values
 
     def at(self, t: Timestamp) -> Generic[X]:
-        """ Returns value at requested timestamp,
-            Raises UndefinedAtTime if not defined at t """
+        """Returns value at requested timestamp,
+        Raises UndefinedAtTime if not defined at t"""
         try:
             i = self.timestamps.index(t)
         except ValueError:
@@ -85,7 +79,7 @@ class SampledSequence(Generic[X]):
 
     def get_sampling_points(self) -> List[Timestamp]:
         """
-            Returns the lists of sampled timestamps
+        Returns the lists of sampled timestamps
         """
         return list(self.timestamps)
 

@@ -11,8 +11,8 @@ from games import (
     get_accessible_states,
     JointRewardStructure,
     PlayerName,
+    UncertaintyParams,
 )
-from games.game_def import MonadicPreferenceBuilder
 from possibilities import PossibilityMonad
 from .collisions import Collision
 from .joint_reward import VehicleJointReward
@@ -24,10 +24,10 @@ from .structures import (
     NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
-    VehicleDynamics,
     VehicleGeometry,
     VehicleState,
 )
+from .vehicle_dynamics import VehicleDynamics
 from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 
@@ -55,14 +55,8 @@ class TwoVehicleSimpleParams:
     shared_resources_ds: D
 
 
-@dataclass
-class TwoVehicleUncertaintyParams:
-    poss_monad: PossibilityMonad
-    mpref_builder: MonadicPreferenceBuilder
-
-
 def get_two_vehicle_game(
-    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: TwoVehicleUncertaintyParams
+    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: UncertaintyParams
 ) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     L = vehicles_params.side + vehicles_params.road + vehicles_params.side

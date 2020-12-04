@@ -6,16 +6,12 @@ from .sequence import Timestamp, SampledSequence
 from .transitions import Trajectory
 from .world import World
 
-__all__ = [
-    "RuleEvaluationContext",
-    "EvaluatedMetric",
-    "RuleEvaluationResult",
-    "Rule"
-]
+__all__ = ["RuleEvaluationContext", "EvaluatedMetric", "RuleEvaluationResult", "Rule"]
 
 
 @dataclass(frozen=True)
 class RuleEvaluationContext:
+    # fixme world + all the trajectory game players
     world: World
     """ World object. """
 
@@ -32,7 +28,7 @@ class RuleEvaluationContext:
     def __post_init__(self):
         traj_xy = self.trajectory.get_path()
         traj_sn = self.world.ref_path.cartesian_to_curvilinear(traj_xy)
-        object.__setattr__(self, '_points_sn', traj_sn)
+        object.__setattr__(self, "_points_sn", traj_sn)
 
     def get_interval(self) -> List[Timestamp]:
         return self.trajectory.get_sampling_points()
@@ -57,9 +53,14 @@ class EvaluatedMetric:
     incremental: SampledSequence
     cumulative: SampledSequence
 
-    def __init__(self, total: float, description: str, title: str,
-                 incremental: SampledSequence,
-                 cumulative: SampledSequence):
+    def __init__(
+        self,
+        total: float,
+        description: str,
+        title: str,
+        incremental: SampledSequence,
+        cumulative: SampledSequence,
+    ):
         self.total = float(total)
         self.title = title
         self.incremental = incremental
@@ -71,6 +72,7 @@ class EvaluatedMetric:
 
 
 class RuleEvaluationResult:
+    # todo this should be more similar to a Mapping[PlayerName,EvaluatedMetric]
     metrics: Dict[Tuple[str, ...], EvaluatedMetric]
     rule: "Rule"
 
@@ -88,8 +90,11 @@ class RuleEvaluationResult:
         cumulative: Optional[SampledSequence] = None,
     ):
         self.metrics[name] = EvaluatedMetric(
-            total=total, title=title, description=description,
-            incremental=incremental, cumulative=cumulative,
+            total=total,
+            title=title,
+            description=description,
+            incremental=incremental,
+            cumulative=cumulative,
         )
 
     def __repr__(self):
@@ -99,7 +104,7 @@ class RuleEvaluationResult:
 class Rule(metaclass=ABCMeta):
     @abstractmethod
     def evaluate(self, context: RuleEvaluationContext, result: RuleEvaluationResult):
-        """ Evaluates the rule in this context.
-            Must make at least one call to
-                result.set_violation()
+        """
+        Evaluates the rule in this context.
+        Must make at least one call to result.set_violation()
         """
