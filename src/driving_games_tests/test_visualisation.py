@@ -3,7 +3,7 @@ from typing import Mapping
 from reprep import Report
 
 from driving_games import p_asym, PlayerName, VehicleGeometry, VehicleState, NO_LIGHTS
-from driving_games.visualization import AVAILABLE_CARS, DrivingGameVisualization
+from driving_games.visualization import DrivingGameVisualization
 from decimal import Decimal as D
 from matplotlib import pyplot as plt
 

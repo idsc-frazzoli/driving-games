@@ -40,11 +40,6 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
     def is_personal_final_state(self, x: VehicleState) -> bool:
         check_isinstance(x, VehicleState)
         # return x.x > self.max_path
-
+        # fixme why with velocity? this implies step size of 1?
+        # why not return x.x >= self.max_path?
         return x.x + x.v > self.max_path
-
-
-def SE2_from_VehicleState(s: VehicleState):
-    p = SE2_from_xytheta([float(s.x), 0, 0])
-    ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
-    return SE2.multiply(ref, p)

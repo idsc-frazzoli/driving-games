@@ -45,8 +45,6 @@ class PointStats(Generic[X, U, Y, RP, RJ]):
         if not GameConstants.checks:
             return
 
-        # check_set_outcomes(self.outcome, PointStats=self)
-
 
 @dataclass
 class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):

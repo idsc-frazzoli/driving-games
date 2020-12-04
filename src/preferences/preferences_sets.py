@@ -17,6 +17,7 @@ __all__ = ["SetPreference1", "compare_sets"]
 
 
 class SetPreference1(Preference[Poss[P]]):
+    # fixme this should inherit from Preference[SetPoss[P]]?
     p0: Preference[P]
 
     def __init__(self, p0: Preference[P]):
@@ -45,21 +46,8 @@ class SetPreference1(Preference[Poss[P]]):
         # logger.info('SetPreference1', a_s=a_s, b_s=b_s, r=r)
         return r
 
-        # return compare_sets_cached(A.support(), B.support(), self.p0)
 
-
-class CompareCache:
-    cache = {}
-
-
-def compare_sets_cached(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
-    sa = repr(A)
-    sb = repr(B)
-    key = sa, sb
-    if key not in CompareCache.cache:
-        res = compare_sets(A, B, pref)
-        CompareCache.cache[key] = res
-    return CompareCache.cache[key]
+# todo subclass like for preference over distributions
 
 
 @lru_cache(None)

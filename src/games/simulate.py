@@ -89,7 +89,7 @@ def simulate1(
 
             try:
                 policy = policies[player_name]
-            except:
+            except:  # todo fix along with bayesian games
                 try:
                     policy = policies[player_name, "cautious"]
                 except:
