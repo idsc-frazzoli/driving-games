@@ -54,7 +54,9 @@ def solve_equilibria(
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
     # tic = perf_counter()
-    ea = analyze_equilibria(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences)
+    ea = analyze_equilibria(
+        ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, solver_params=sc.solver_params
+    )
     # toc = perf_counter() - tic
     # logger.info(f"Time taken to analyze equilibria: {toc:.2f} [s]")
     # logger.info(ea=ea)

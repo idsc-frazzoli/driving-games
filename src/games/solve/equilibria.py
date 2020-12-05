@@ -4,7 +4,7 @@ from typing import Dict, FrozenSet, Generic, Mapping, Set
 
 from frozendict import frozendict
 
-from possibilities import Poss, PossibilityMonad
+from possibilities import Poss, PossibilityMonad, PossibilitySet
 from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -13,7 +13,7 @@ from preferences import (
     remove_dominated,
     StrictProductPreferenceDict,
 )
-from zuper_commons.types import ZValueError
+from zuper_commons.types import ZValueError, ZNotImplementedError
 from games import GameConstants
 from games.game_def import (
     check_joint_mixed_actions,
@@ -27,9 +27,16 @@ from games.game_def import (
     UncertainCombined,
     X,
     Y,
+    PlayerOptions,
 )
-from .solution_structures import GameNode
-from games.utils import valmap
+from .solution_structures import (
+    GameNode,
+    SolverParams,
+    FINITE_MIX_STRATEGIES,
+    MIX_STRATEGIES,
+    PURE_STRATEGIES,
+)
+from games.utils import valmap, fvalmap
 
 __all__ = []
 
@@ -65,22 +72,49 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
             check_joint_mixed_actions(_)
 
 
+def _get_admissible_strategies(
+    ps: PossibilityMonad, moves: PlayerOptions, solver_params: SolverParams
+) -> Dict[PlayerName, FrozenSet[Poss[U]]]:
+    """
+    Now we want to find all mixed strategies
+    Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
+    Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
+    Note that pure strategies are considered singleton mixed strategies
+
+    # todo implement mixed strategies with ProbabilityMonad
+    :param ps:
+    :param moves:
+    :param solver_params:
+    :return:
+    """
+    adms_strategies = solver_params.admissible_strategies
+    is_set_monad = isinstance(ps, PossibilitySet)
+    if adms_strategies == PURE_STRATEGIES:
+
+        def _f(player_options):
+            return frozenset(map(ps.unit, player_options))
+
+        return valmap(_f, moves)
+    elif adms_strategies == FINITE_MIX_STRATEGIES or (adms_strategies == MIX_STRATEGIES and is_set_monad):
+        return valmap(ps.mix, moves)
+    elif adms_strategies == MIX_STRATEGIES:
+        raise ZNotImplementedError("Mix strategies are not implemented either than for the SetMonad")
+    else:
+        raise ZValueError("not recognized value")
+
+
 def analyze_equilibria(
     *,
     ps: PossibilityMonad,
     gn: GameNode[X, U, Y, RP, RJ, SR],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
     preferences: Mapping[PlayerName, Preference[UncertainCombined]],
+    solver_params: SolverParams,
 ) -> EquilibriaAnalysis:
-    # Now we want to find all mixed strategies
-    # Example: From sets, you could have [A, B] ->  {A}, {B}, {A,B}
-    # Example: From probs, you could have [A,B] -> {A:1}, {B:1} , {A:0.5, B:0.5}, ...
-    # todo for probabilities this is restrictive...(mix returns a finite set)
-    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]] = valmap(ps.mix, gn.moves)
-    # logger.info(player_mixed_strategies=player_mixed_strategies)
-    # now we do the product of the mixed strategies
-    # let's order them
+    player_mixed_strategies: Dict[PlayerName, FrozenSet[Poss[U]]]
+    player_mixed_strategies = _get_admissible_strategies(ps=ps, moves=gn.moves, solver_params=solver_params)
 
+    # now we do the product of the mixed strategies, let's order them
     players_ordered = list(player_mixed_strategies)  # only the active ones
     players_strategies = [player_mixed_strategies[_] for _ in players_ordered]
     all_players = set(gn.states)
@@ -193,14 +227,6 @@ def analyze(
         nash_equilibria=nash_equilibria,
         ps=ps,
     )
-
-
-#
-# def zassert(val: bool, **kwargs):
-#     if not val:  # pragma: no cover
-#         msg = "Assertion failed"
-#         raise ZAssertionError(msg, val=val, **kwargs)
-#
 
 
 def variations(

@@ -17,19 +17,19 @@ class SolverSpec:
 solvers_zoo: Dict[str, SolverSpec] = {}
 
 # The solution parameters
-admissible_strategies_options = [PURE_STRATEGIES, FINITE_MIX_STRATEGIES]
+admissible_strategies = [PURE_STRATEGIES, FINITE_MIX_STRATEGIES]
 mne_strategies = [MIX_MNE, SECURITY_MNE]
 dts = [
     D(1.0),
 ]
 fact_options = [("fact", True), ("naive", False)]
 
-options_mix = [admissible_strategies_options, mne_strategies, dts, fact_options]
+options_mix = [admissible_strategies, mne_strategies, dts, fact_options]
 
 for adm_strat, mne_strat, dt, fact in product(*options_mix):
     params = SolverParams(
         dt=dt, admissible_strategies=adm_strat, strategy_multiple_nash=mne_strat, use_factorization=fact[1]
-    )  # XXX
+    )
     desc = (
         f"Admissible strategies = {adm_strat}; Multiple NE strategy = {mne_strat}; "
         f"discretization = {dt}; factorization = {fact[1]}"

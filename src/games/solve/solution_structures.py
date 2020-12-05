@@ -127,9 +127,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         "is_final",
         "incremental",
         "joint_final_rewards",
-    ]  # only print
-
-    # these attributes
+    ]  # only print only these attributes
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -226,7 +224,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                         raise ZValueError(msg, GameNode=self)
 
 
-def states_mentioned(game_node: GameNode) -> FSet[JointState]:
+def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
     """ Returns the set of state mentioned in a GameNode"""
     res = set()
     for _, out in game_node.outcomes.items():
@@ -270,7 +268,7 @@ class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
         # Check that there are all states mentioned
         mentioned = defaultdict(set)
         for joint_state, game_node in self.state2node.items():
-            for m in states_mentioned(game_node):
+            for m in _states_mentioned(game_node):
                 mentioned[m].add(joint_state)
         missing = set(mentioned) - set(self.state2node)
         if missing:
