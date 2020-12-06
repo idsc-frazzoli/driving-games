@@ -10,7 +10,7 @@ from zuper_typing import debug_print
 from . import logger
 from .game_def import Game, JointState, RJ, RP, U, X, Y, SR
 from .reports_player import report_player
-from .structures_solution import GamePreprocessed
+from games.solve.solution_structures import GamePreprocessed
 
 __all__ = [
     "create_report_preprocessed",

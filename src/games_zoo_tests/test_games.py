@@ -15,9 +15,10 @@ do_games_sets = [
     "asym_v0_sets",
 ]
 do_solvers_sets = [
-    "solver-1-mix-naive",
-    "solver-1-security-naive",
-    "solver-1-security-fact",
+    "solver-1-pure-mix_mNE-fact",
+    "solver-1-finite_mix-mix_mNE-fact",
+    "solver-1-finite_mix-security_mNE-naive",
+    "solver-1-finite_mix-security_mNE-fact",
 ]
 games_sets = {k: games_zoo[k] for k in do_games_sets}
 solvers_sets = {k: solvers_zoo[k] for k in do_solvers_sets}
@@ -37,9 +38,9 @@ do_games_prob = [  # "sym_v1_prob",
     "asym_v1_prob"
 ]
 do_solvers_prob = [
-    "solver-1-mix-fact",
+    "solver-1-pure-mix_mNE-fact",
     # "solver-1-security-naive",
-    "solver-1-security-fact",
+    "solver-1-finite_mix-mix_mNE-fact",
 ]
 games_prob = {k: games_zoo[k] for k in do_games_prob}
 solvers_prob = {k: solvers_zoo[k] for k in do_solvers_prob}

@@ -23,7 +23,7 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import (
+from games.solve.solution_structures import (
     AccessibilityInfo,
     GameFactorization,
     GameGraph,

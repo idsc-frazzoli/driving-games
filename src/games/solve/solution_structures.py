@@ -9,8 +9,8 @@ from networkx import MultiDiGraph
 from possibilities import check_poss, Poss
 from preferences import Preference
 from zuper_commons.types import check_isinstance, ZValueError
-from . import GameConstants
-from .game_def import (
+from games import GameConstants
+from games.game_def import (
     check_joint_mixed_actions,
     check_joint_pure_actions,
     check_joint_state,
@@ -30,7 +30,8 @@ from .game_def import (
     X,
     Y,
 )
-from .simulate import Simulation
+from games.simulate import Simulation
+from games.utils import fkeyfilter, iterate_dict_combinations
 
 __all__ = [
     "GameNode",
@@ -40,24 +41,32 @@ __all__ = [
     "SolvedGameNode",
     "SolverParams",
     "SolvingContext",
-    "STRATEGY_BAIL",
-    "STRATEGY_SECURITY",
-    "STRATEGY_MIX",
     "StrategyForMultipleNash",
+    "BAIL_MNE",
+    "SECURITY_MNE",
+    "MIX_MNE",
+    "AdmissibleStrategies",
+    "PURE_STRATEGIES",
+    "FINITE_MIX_STRATEGIES",
+    "MIX_STRATEGIES",
 ]
 
-from .utils import fkeyfilter, iterate_dict_combinations
+AdmissibleStrategies = NewType("AdmissableStrategies", str)
+""" Admissable strategies for the equilibria computation. """
+PURE_STRATEGIES = AdmissibleStrategies("pure")
+""" We search only over the set of pure strategies. """
+FINITE_MIX_STRATEGIES = AdmissibleStrategies("finite_mix")
+""" We search only over a finite set of mixed strategies. """
+MIX_STRATEGIES = AdmissibleStrategies("mix")
+""" We search over the entire set of mixed strategies. """
 
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 """ How to deal with multiple nash equilibria. """
-
-STRATEGY_MIX = StrategyForMultipleNash("mix")
+MIX_MNE = StrategyForMultipleNash("mix_mNE")
 """ Mix all the states in the multiple nash equilibria. """
-# fixme, better explanation for this
-STRATEGY_SECURITY = StrategyForMultipleNash("security")
-""" Use a security policy. """
-
-STRATEGY_BAIL = StrategyForMultipleNash("bail")
+SECURITY_MNE = StrategyForMultipleNash("security_mNE")
+""" Use a security policy. """  # fixme, better explanation for this
+BAIL_MNE = StrategyForMultipleNash("bail_mNE")
 """ Throw an error. """
 
 
@@ -65,9 +74,10 @@ STRATEGY_BAIL = StrategyForMultipleNash("bail")
 class SolverParams:
     """ Parameters for the solver"""
 
-    # todo add parameters to deal with which solutions we want
     dt: D
     """ The delta-t when discretizing. """
+    admissible_strategies: AdmissibleStrategies
+    """ Allowed search space of strategies"""
     strategy_multiple_nash: StrategyForMultipleNash
     """ How to deal with multiple Nash equilibria """
     use_factorization: bool
@@ -117,9 +127,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         "is_final",
         "incremental",
         "joint_final_rewards",
-    ]  # only print
-
-    # these attributes
+    ]  # only print only these attributes
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -216,7 +224,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                         raise ZValueError(msg, GameNode=self)
 
 
-def states_mentioned(game_node: GameNode) -> FSet[JointState]:
+def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
     """ Returns the set of state mentioned in a GameNode"""
     res = set()
     for _, out in game_node.outcomes.items():
@@ -260,7 +268,7 @@ class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
         # Check that there are all states mentioned
         mentioned = defaultdict(set)
         for joint_state, game_node in self.state2node.items():
-            for m in states_mentioned(game_node):
+            for m in _states_mentioned(game_node):
                 mentioned[m].add(joint_state)
         missing = set(mentioned) - set(self.state2node)
         if missing:

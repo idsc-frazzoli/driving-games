@@ -23,7 +23,7 @@ from bayesian_driving_games.structures_solution import (
     BayesianGameGraph,
 )
 from bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
-from games.solution import fr, get_outcome_preferences_for_players
+from games.solve.solution import fr, get_outcome_preferences_for_players
 from possibilities import Poss
 from possibilities.sets import SetPoss
 from zuper_commons.types import ZValueError
@@ -45,7 +45,7 @@ from games.game_def import (
     Y,
 )
 from games.simulate import simulate1, Simulation
-from games.structures_solution import (
+from games.solve.solution_structures import (
     GameNode,
     GameSolution,
     Solutions,
@@ -53,7 +53,6 @@ from games.structures_solution import (
     SolvedGameNode,
     SolverParams,
     SolvingContext,
-    UsedResources,
     ValueAndActions,
 )
 

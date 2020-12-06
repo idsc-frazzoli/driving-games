@@ -11,7 +11,7 @@ from driving_games import (
     VehicleCosts,
 )
 from games import Combined
-from games.solution_utils import get_outcome_preferences_for_players
+from games.solve.solution_utils import get_outcome_preferences_for_players
 from preferences import (
     ComparisonOutcome,
     FIRST_PREFERRED,

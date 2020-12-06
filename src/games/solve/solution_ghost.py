@@ -3,8 +3,8 @@ from typing import Dict, Mapping
 
 from possibilities import Poss
 from zuper_commons.types import ZValueError
-from . import logger
-from .game_def import (
+from games import logger
+from games.game_def import (
     AgentBelief,
     Game,
     JointPureActions,
@@ -17,8 +17,8 @@ from .game_def import (
     X,
     Y,
 )
-from .structures_solution import GameGraph, GameNode
-from .utils import fd, iterate_dict_combinations, valmap
+from .solution_structures import GameGraph, GameNode
+from games.utils import fd, iterate_dict_combinations, valmap
 
 
 def get_ghost_tree(
