@@ -1,7 +1,7 @@
 from typing import Mapping
 from dataclasses import dataclass
 
-from bayesian_driving_games.structures import PlayerType, BayesianGame, T
+from bayesian_driving_games.structures import PlayerType, BayesianGame
 from games import (
     GameNode,
     SolvingContext,
@@ -10,7 +10,7 @@ from games import (
     GamePlayerPreprocessed,
     JointState,
 )
-from games.structures_solution import GameGraph
+from games.solve.solution_structures import GameGraph
 
 from possibilities import Poss
 

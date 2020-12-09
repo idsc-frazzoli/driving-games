@@ -40,8 +40,8 @@ from .game_def import (
     Y,
 )
 from .get_indiv_games import get_individual_games
-from .solution import solve_game2
-from .structures_solution import (
+from games.solve.solution import solve_game2
+from games.solve.solution_structures import (
     GameFactorization,
     GameGraph,
     GamePlayerPreprocessed,
