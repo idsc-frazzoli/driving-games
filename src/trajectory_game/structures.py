@@ -1,21 +1,22 @@
 from dataclasses import dataclass
+from decimal import Decimal as D
 
 
 @dataclass
 class VehicleGeometry:
-    w: float
+    w: D
     """ Car width [m] """
-    lf: float
+    lf: D
     """ Car length from CoG to front axle [m] """
-    lr: float
+    lr: D
     """ Car length from CoG to rear axle [m] """
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
-    acc: float
+    acc: D
     """ Acceleration [m/s2] """
-    dst: float
+    dst: D
     """ Steering rate [rad/s] """
 
     def __add__(self, other: "VehicleActions") -> "VehicleActions":
@@ -26,9 +27,9 @@ class VehicleActions:
         else:
             raise NotImplementedError
 
-    __add__ = __add__
+    __radd__ = __add__
 
-    def __mul__(self, factor: float) -> "VehicleActions":
+    def __mul__(self, factor: D) -> "VehicleActions":
         return VehicleActions(acc=self.acc * factor, dst=self.dst * factor)
 
     __rmul__ = __mul__
@@ -36,17 +37,17 @@ class VehicleActions:
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
 class VehicleState:
-    x: float  # [m]
+    x: D  # [m]
     """ CoG x location [m] """
-    y: float  # [m]
+    y: D  # [m]
     """ CoG y location [m] """
-    th: float  # [rad]
+    th: D  # [rad]
     """ CoG heading [rad] """
-    v: float
+    v: D
     """ CoG longitudinal velocity [m/s] """
-    st: float
+    st: D
     """ Steering angle [rad] """
-    t: float
+    t: D
     """ Time [s] """
 
     def __add__(self, other: "VehicleState") -> "VehicleState":
@@ -66,7 +67,7 @@ class VehicleState:
 
     __radd__ = __add__
 
-    def __mul__(self, factor: float) -> "VehicleState":
+    def __mul__(self, factor: D) -> "VehicleState":
         return VehicleState(
             x=self.x * factor,
             y=self.y * factor,

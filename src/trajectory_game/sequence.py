@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from numbers import Real
+from decimal import Decimal as D
 from typing import Generic, TypeVar, List, Callable, Type, ClassVar, Iterator
 
 __all__ = ["Timestamp", "SampledSequence", "IterateDT", "iterate_with_dt", "UndefinedAtTime"]
 
 X = TypeVar("X")
 Y = TypeVar("Y")
-Timestamp = Real
+Timestamp = D
 
 
 class UndefinedAtTime(Exception):
@@ -17,7 +17,7 @@ class UndefinedAtTime(Exception):
 class IterateDT(Generic[Y]):
     t0: Timestamp
     t1: Timestamp
-    dt: Real
+    dt: Timestamp
     v0: Y
     v1: Y
 
@@ -40,8 +40,8 @@ class SampledSequence(Generic[X]):
             raise ValueError(msg)
 
         for t in timestamps:
-            if not isinstance(t, (float, int)):
-                msg = "I expected a number, got %s" % type(t)
+            if not isinstance(t, Timestamp):
+                msg = "I expected a real number, got %s" % type(t)
                 raise ValueError(msg)
         for i in range(len(timestamps) - 1):
             dt = timestamps[i + 1] - timestamps[i]
@@ -107,10 +107,10 @@ def iterate_with_dt(sequence: SampledSequence[X]) -> Iterator[IterateDT[X]]:
     values = sequence.values
     for i in range(len(timestamps) - 1):
         t0 = timestamps[i]
-        assert isinstance(t0, float), type(t0)
+        assert isinstance(t0, D), type(t0)
         t1 = timestamps[i + 1]
         v0 = values[i]
         v1 = values[i + 1]
-        dt = float(t1 - t0)
+        dt = t1 - t0
         X = type(sequence).XT
         yield IterateDT[X](t0, t1, dt, v0, v1)
