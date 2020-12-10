@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Mapping, Callable, TypeVar, Generic, FrozenSet
 
-from games import PlayerName, JointPureActions, U, X, P, MonadicPreferenceBuilder
+from games import PlayerName, U, X, P, JointPureActions,  MonadicPreferenceBuilder
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 
@@ -10,7 +10,9 @@ __all__ = [
     "W",
     "ActionSetGenerator",
     "StaticGamePlayer",
-    "StaticGame"
+    "StaticGame",
+    "StaticSolvedGameNode",
+    "StaticSolvingContext",
 ]
 
 W = TypeVar("W")
@@ -55,3 +57,29 @@ class StaticGame(Generic[X, U, W, P]):
     """How to evaluate stuff over monads"""
     game_outcomes: Callable[[JointPureActions, W], JointOutcome]
     """The "game dynamics", given a pure action for each player, we have a distribution of outcomes"""
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class StaticSolvedGameNode(Generic[U, P]):
+    """ Solved node of the game"""
+
+    actions: JointPureActions
+    """ The final converged equilibrium actions """
+
+    outcomes: JointOutcome
+    """ Outcomes for each player """
+
+
+@dataclass
+class StaticSolvingContext(Generic[X, U, W, P]):
+    """ Context for the solution of the game"""
+
+    player_actions: Mapping[PlayerName, FrozenSet[U]]
+    """ All possible actions for each player"""
+
+    # TODO[SIR]: Extend to Poss
+    game_outcomes: Mapping[JointPureActions, JointOutcome]
+    """ The computed game outcomes. """
+
+    outcome_pref: Mapping[PlayerName, Preference[P]]
+    """ The preferences of each player. """

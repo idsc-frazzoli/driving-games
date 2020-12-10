@@ -5,16 +5,13 @@ from decimal import Decimal as D
 
 from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
-from preferences import Preference, SetPreference1
-from trajectory_game import TrajectoryParams, TrajectoryGenerator, Trajectory, World, VehicleGeometry, VehicleState, \
-    MetricEvaluationResult, SplinePathWithBounds, PathWithBounds, \
-    TrajectoryGamePlayer, TrajectoryGame, get_metrics_set, Metric, PlayerOutcome, compute_game_outcomes, \
-    evaluate_metrics
-from trajectory_game.preference import PosetalPreference
+from preferences import SetPreference1
+from trajectory_game import TrajectoryParams, TrajectoryGenerator, World, VehicleGeometry, VehicleState, \
+    SplinePathWithBounds, PathWithBounds, TrajectoryGamePlayer, TrajectoryGame, get_metrics_set, Metric, \
+    compute_solving_context, solve_game, evaluate_metrics, StaticSolvingContext, PosetalPreference, SolvedTrajectoryGame
 
 
 def get_trajectory_game_players() -> List[TrajectoryGamePlayer]:
-
     steps_dst, step_dst = 3, pi / 6
     steps_acc, step_acc = 3, 3.0
     u_acc = frozenset([D(_ * step_acc) for _ in range(-steps_acc // 2 + 1, steps_acc // 2 + 1)])
@@ -60,7 +57,7 @@ def create_highway_world(players: Set[PlayerName]) -> World:
     ref: Dict[PlayerName, PathWithBounds] = {}
     for player in players:
         ref[player] = path
-    world = World(ref=ref)
+    world = World(ref=ref, metrics=get_metrics_set())
     return world
 
 
@@ -78,7 +75,15 @@ def get_trajectory_game() -> TrajectoryGame:
 
 
 def test_trajectory_game():
-
     game: TrajectoryGame = get_trajectory_game()
-    outcomes = compute_game_outcomes(traj_game=game)
+    context: StaticSolvingContext = compute_solving_context(traj_game=game)
+
+    indiff_nash: SolvedTrajectoryGame
+    incomp_nash: SolvedTrajectoryGame
+    weak_nash: SolvedTrajectoryGame
+    strong_nash: SolvedTrajectoryGame
+
+    indiff_nash, incomp_nash, weak_nash, strong_nash = \
+        solve_game(context=context)
+
     a = 2

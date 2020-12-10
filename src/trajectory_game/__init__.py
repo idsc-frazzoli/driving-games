@@ -17,3 +17,5 @@ from .bicycle_dynamics import *
 from .trajectory_graph import *
 from .trajectory_generator import *
 from .trajectory_game import *
+from .game_def import *
+from .preference import *

@@ -74,7 +74,9 @@ def get_integrated(sequence: SampledSequence[Timestamp]) -> Tuple[SampledSequenc
     return cumulative, dtot
 
 
-def get_evaluated_metric(players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]) -> MetricEvaluationResult:
+def get_evaluated_metric(players: List[PlayerName],
+                         f: Callable[[PlayerName], EvaluatedMetric]) ->\
+        MetricEvaluationResult:
     mer: Dict[PlayerName, EvaluatedMetric] = {}
     for player_name in players:
         mer[player_name] = f(player_name)
@@ -441,24 +443,27 @@ class SteeringRate(Metric):
 
 
 def get_metrics_set() -> Set[Metric]:
-    metrics: Set[Metric] = {
-        SurvivalTime(),
-        DeviationLateral(),
-        DeviationHeading(),
-        DrivableAreaViolation(),
-        ProgressAlongReference(),
-        LongitudinalAcceleration(),
-        LongitudinalJerk(),
-        LateralComfort(),
-        SteeringAngle(),
-        SteeringRate(),
-    }
-    return metrics
+    if not get_metrics_set.metrics:
+        get_metrics_set.metrics = {
+            SurvivalTime(),
+            DeviationLateral(),
+            DeviationHeading(),
+            DrivableAreaViolation(),
+            ProgressAlongReference(),
+            LongitudinalAcceleration(),
+            LongitudinalJerk(),
+            LateralComfort(),
+            SteeringAngle(),
+            SteeringRate(),
+        }
+    return get_metrics_set.metrics
+
+
+get_metrics_set.metrics: Set[Metric] = set()
 
 
 def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajectoryGameOutcome:
-
-    metrics: Set[Metric] = get_metrics_set()
+    metrics: Set[Metric] = world.metrics
     context = MetricEvaluationContext(world=world, trajectories=trajectories)
 
     metric_results: Dict[Metric, MetricEvaluationResult] = {}
