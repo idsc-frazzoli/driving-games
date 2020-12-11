@@ -10,6 +10,7 @@ __all__ = ["World"]
 @dataclass
 class World:
     """ Object holding all info about the world """
+
     """ Will add more functionality when needed """
 
     ref: Mapping[PlayerName, PathWithBounds]

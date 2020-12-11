@@ -5,8 +5,14 @@ from frozendict import frozendict
 
 from games import PlayerName
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
-from .metrics_def import Metric, MetricEvaluationContext, EvaluatedMetric, \
-    MetricEvaluationResult, TrajectoryGameOutcome, PlayerOutcome
+from .metrics_def import (
+    Metric,
+    MetricEvaluationContext,
+    EvaluatedMetric,
+    MetricEvaluationResult,
+    TrajectoryGameOutcome,
+    PlayerOutcome,
+)
 from .world import World
 from .paths import Trajectory
 
@@ -18,7 +24,7 @@ def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp
     if not sequence:
         msg = "Cannot integrate empty sequence."
         raise ValueError(msg)
-    total = D('0')
+    total = D("0")
     timestamps = []
     values = []
     for _ in iterate_with_dt(sequence):
@@ -60,7 +66,7 @@ def differentiate(val: List[D], t: List[D]) -> List[D]:
             raise ValueError(msg)
         return dy / dx
 
-    ret: List[D] = [D('0')] + [func_diff(i) for i in range(len(t) - 1)]
+    ret: List[D] = [D("0")] + [func_diff(i) for i in range(len(t) - 1)]
     return ret
 
 
@@ -74,9 +80,9 @@ def get_integrated(sequence: SampledSequence[Timestamp]) -> Tuple[SampledSequenc
     return cumulative, dtot
 
 
-def get_evaluated_metric(players: List[PlayerName],
-                         f: Callable[[PlayerName], EvaluatedMetric]) ->\
-        MetricEvaluationResult:
+def get_evaluated_metric(
+    players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]
+) -> MetricEvaluationResult:
     mer: Dict[PlayerName, EvaluatedMetric] = {}
     for player_name in players:
         mer[player_name] = f(player_name)
@@ -103,7 +109,7 @@ class SurvivalTime(Metric):
                 raise ValueError(traj)
 
             # negative for smaller preferred
-            incremental = traj.transform_values(lambda _: D('-1'), D)
+            incremental = traj.transform_values(lambda _: D("-1"), D)
             cumulative = integrate(incremental)
             total = cumulative.values[-1]
 
@@ -208,7 +214,7 @@ class DrivableAreaViolation(Metric):
 
             def check_bounds(v: D, b: Tuple[D, D]) -> D:
                 if b[0] <= v <= b[1]:
-                    return D('0')
+                    return D("0")
                 elif v < b[0]:
                     return b[0] - v
                 else:
@@ -252,7 +258,7 @@ class ProgressAlongReference(Metric):
             # negative for smaller preferred
             progress: List[D] = [s[0] - _ for _ in s]
             total: D = progress[-1]
-            inc: List[D] = [D('0')] + [j - i for i, j in zip(progress[:-1], progress[1:])]
+            inc: List[D] = [D("0")] + [j - i for i, j in zip(progress[:-1], progress[1:])]
             incremental = SampledSequence[D](interval, inc)
             cumulative = SampledSequence[D](interval, progress)
 
@@ -286,7 +292,7 @@ class LongitudinalAcceleration(Metric):
             vel = [x.v for _, x in trajectory]
             acc = differentiate(vel, interval)
             # Final acc, dacc is zero and not first
-            acc_val = [abs(_) for _ in acc[1:]] + [D('0')]
+            acc_val = [abs(_) for _ in acc[1:]] + [D("0")]
 
             acc_seq = SampledSequence[D](interval, acc_val)
             cumulative, dtot = get_integrated(acc_seq)
@@ -324,7 +330,7 @@ class LongitudinalJerk(Metric):
             # TODO[SIR]: Improve dacc calc -> Use initial acc
             dacc = differentiate(acc, interval)
             # Final acc, dacc is zero and not first
-            dacc_val = [abs(_) for _ in dacc[1:]] + [D('0')]
+            dacc_val = [abs(_) for _ in dacc[1:]] + [D("0")]
 
             dacc_seq = SampledSequence[D](interval, dacc_val)
             cumulative, dtot = get_integrated(dacc_seq)
@@ -424,7 +430,7 @@ class SteeringRate(Metric):
             st = [x.st for _, x in trajectory]
             dst = differentiate(st, interval)
             # Final dst is zero and not first
-            dst_val = [abs(_) for _ in dst[1:]] + [D('0')]
+            dst_val = [abs(_) for _ in dst[1:]] + [D("0")]
 
             dst_seq = SampledSequence[D](interval, dst_val)
             cumulative, dtot = get_integrated(dst_seq)

@@ -7,7 +7,7 @@ from .world import World
 from .metrics_def import MetricEvaluationResult
 from .metrics import evaluate_metrics
 
-
+# todo can be removed
 class AllTrajectories:
     ego_name: str
     all_trajectories: List[Trajectory]

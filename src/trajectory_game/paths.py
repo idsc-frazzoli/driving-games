@@ -137,7 +137,8 @@ class SplinePath(Path[X]):
         # TODO[SIR]: Any better way than casting and recasting for numpy?
         def cast_list(input: List[float]) -> List[D]:
             return [D(_) for _ in input]
-        step: D = D('0.1')
+
+        step: D = D("0.1")
         N: int = int((s[-1] - s[0]) // step)
         p_s: List[float] = list(np.linspace(float(s[0]), float(s[-1]), N))
         p_x = self.x.value_at_s(p_s)
@@ -184,8 +185,8 @@ class SplinePath(Path[X]):
             return sign
 
         for p_xy in xy:
-            best_s: D = D('0')
-            best_n: D = D('1000')
+            best_s: D = D("0")
+            best_n: D = D("1000")
             for s, p in self.points:
                 n = get_n(p_xy, p)
                 if n < best_n:
@@ -214,14 +215,13 @@ class SplinePathWithBounds(PathWithBounds[X], SplinePath[X]):
         p_ref: List[Tuple[D, D]],
         p_left: List[Tuple[D, D]],
         p_right: List[Tuple[D, D]],
-        bounds_sn: bool = False
+        bounds_sn: bool = False,
     ):
         x, y = zip(*p_ref)
         super().__init__(s, x, y, order=3)
 
         def fit_curve(p: List[Tuple[D, D]]) -> Curve[D]:
-            sn: List[Tuple[D, D]] = p if bounds_sn \
-                else self.cartesian_to_curvilinear(p)
+            sn: List[Tuple[D, D]] = p if bounds_sn else self.cartesian_to_curvilinear(p)
             p_s, n = list(zip(*sn))
             curve = SplineCurve(s=p_s, z=n, order=3)
             return curve

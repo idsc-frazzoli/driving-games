@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
+from typing import FrozenSet
 
 
 @dataclass
@@ -49,7 +50,7 @@ class VehicleState:
     """ Steering angle [rad] """
     t: D
     """ Time [s] """
-
+    # fixme do we really need this?
     def __add__(self, other: "VehicleState") -> "VehicleState":
         if type(other) == type(self):
             return VehicleState(
@@ -78,3 +79,15 @@ class VehicleState:
         )
 
     __rmul__ = __mul__
+
+
+@dataclass
+class TrajectoryParams:
+    max_gen: int
+    dt: D
+    u_acc: FrozenSet[D]
+    u_dst: FrozenSet[D]
+    v_max: D
+    v_min: D
+    st_max: D
+    vg: VehicleGeometry

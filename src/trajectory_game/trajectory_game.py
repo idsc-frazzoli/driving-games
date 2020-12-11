@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from itertools import product
 from typing import Dict, Set, FrozenSet, Mapping, Tuple
 from frozendict import frozendict
@@ -5,13 +6,26 @@ from time import perf_counter
 
 from games import PlayerName
 from possibilities import Poss
-from preferences import Preference, ComparisonOutcome, FIRST_PREFERRED, INCOMPARABLE, INDIFFERENT, SECOND_PREFERRED
+from preferences import (
+    Preference,
+    ComparisonOutcome,
+    FIRST_PREFERRED,
+    INCOMPARABLE,
+    INDIFFERENT,
+    SECOND_PREFERRED,
+)
 
 from .structures import VehicleState
 from .paths import Trajectory
 from .world import World
 from .metrics_def import PlayerOutcome, TrajectoryGameOutcome
-from .game_def import StaticGame, StaticGamePlayer, StaticSolvingContext, StaticSolvedGameNode
+from .static_game import (
+    StaticGame,
+    StaticGamePlayer,
+    StaticSolvingContext,
+    StaticSolvedGameNode,
+    ActionSetGenerator,
+)
 
 __all__ = [
     "JointTrajProfile",
@@ -25,6 +39,12 @@ __all__ = [
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
 JointTrajProfile = Mapping[PlayerName, Trajectory]
+
+
+class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
+    @abstractmethod
+    def get_actions_set(self, state: Poss[VehicleState], world: World) -> FrozenSet[Trajectory]:
+        """ Generate all possible actions for a given state and world. """
 
 
 class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, World, PlayerOutcome]):
@@ -48,8 +68,7 @@ def get_joint_traj(actions: JointTrajSet) -> JointTrajProfile:
         yield joint_traj
 
 
-def compute_solving_context(traj_game: StaticGame) -> \
-        StaticSolvingContext:
+def compute_solving_context(traj_game: StaticGame) -> StaticSolvingContext:
     """
     Preprocess the game -> Compute all possible actions and outcomes for each combination
     """
@@ -57,10 +76,9 @@ def compute_solving_context(traj_game: StaticGame) -> \
     # Generate the trajectories for each player
     all_traj: Dict[PlayerName, Poss[FrozenSet[Trajectory]]] = {}
     for player_name, game_player in traj_game.game_players.items():
+
         def get_traj_set(state: VehicleState) -> FrozenSet[Trajectory]:
-            return game_player.action_set_generator.get_action_set(state=state,
-                                                                   world=traj_game.world,
-                                                                   player=player_name)
+            return game_player.actions_generator.get_action_set(state=state, world=traj_game.world)
 
         all_traj[player_name] = traj_game.ps.build(a=game_player.state, f=get_traj_set)
 
@@ -73,7 +91,7 @@ def compute_solving_context(traj_game: StaticGame) -> \
     tic = perf_counter()
     traj_outcomes = traj_game.ps.build_multiple(a=all_traj, f=build_sets)
     toc = perf_counter() - tic
-    print('Outcomes evaluation time = {} s'.format(toc))
+    print("Outcomes evaluation time = {} s".format(toc))
 
     # return traj_outcomes for Poss[Mapping[JointTrajProfile, TrajectoryGameOutcome]]
 
@@ -85,18 +103,17 @@ def compute_solving_context(traj_game: StaticGame) -> \
         actions[player_name] = list(poss.support())[0]
 
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
-    pref: Mapping[PlayerName, Preference[PlayerOutcome]] = \
-        {name: player.preferences for name, player in traj_game.game_players.items()}
+    pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {
+        name: player.preferences for name, player in traj_game.game_players.items()
+    }
 
-    context = StaticSolvingContext(player_actions=actions, game_outcomes=outcomes,
-                                   outcome_pref=pref)
+    context = StaticSolvingContext(player_actions=actions, game_outcomes=outcomes, outcome_pref=pref)
     return context
 
 
-def solve_game(context: StaticSolvingContext) ->\
-        Tuple[SolvedTrajectoryGame, SolvedTrajectoryGame,
-              SolvedTrajectoryGame, SolvedTrajectoryGame]:
-
+def solve_game(
+    context: StaticSolvingContext,
+) -> Tuple[SolvedTrajectoryGame, SolvedTrajectoryGame, SolvedTrajectoryGame, SolvedTrajectoryGame]:
     indiff_nash: SolvedTrajectoryGame = set()
     incomp_nash: SolvedTrajectoryGame = set()
     weak_nash: SolvedTrajectoryGame = set()
@@ -104,7 +121,7 @@ def solve_game(context: StaticSolvingContext) ->\
 
     def get_action_options(joint_act: JointTrajProfile, pname: PlayerName) -> JointTrajSet:
         """Returns all possible actions for the player, with other player actions frozen
-           Current player action is not included"""
+        Current player action is not included"""
 
         def get_actions(name: PlayerName) -> FrozenSet[Trajectory]:
             if name == pname:
@@ -116,8 +133,7 @@ def solve_game(context: StaticSolvingContext) ->\
         ret: JointTrajSet = {_: get_actions(_) for _ in players}
         return ret
 
-    def get_solved_game_node(act: JointTrajProfile, out: TrajectoryGameOutcome) -> \
-            SolvedTrajectoryGameNode:
+    def get_solved_game_node(act: JointTrajProfile, out: TrajectoryGameOutcome) -> SolvedTrajectoryGameNode:
         return SolvedTrajectoryGameNode(actions=act, outcomes=TrajectoryGameOutcome)
 
     # TODO[SIR]: Remove dominated options first or just brute force through?
@@ -137,10 +153,10 @@ def solve_game(context: StaticSolvingContext) ->\
             action_alt: JointTrajSet = get_action_options(joint_act=joint_actions, pname=player)
             player_outcome: PlayerOutcome = outcome[player]
             for joint_act_alt in get_joint_traj(action_alt):
-                player_outcome_alt: PlayerOutcome = \
-                    context.game_outcomes[joint_act_alt][player]
-                comp_outcome: ComparisonOutcome = \
-                    context.outcome_pref[player].compare(player_outcome, player_outcome_alt)
+                player_outcome_alt: PlayerOutcome = context.game_outcomes[joint_act_alt][player]
+                comp_outcome: ComparisonOutcome = context.outcome_pref[player].compare(
+                    player_outcome, player_outcome_alt
+                )
                 results.add(comp_outcome)
 
                 # If second option is preferred, current point is not a nash eq.
@@ -155,8 +171,7 @@ def solve_game(context: StaticSolvingContext) ->\
         if SECOND_PREFERRED in results:
             continue
 
-        solved_node: SolvedTrajectoryGameNode = \
-            get_solved_game_node(act=joint_actions, out=outcome)
+        solved_node: SolvedTrajectoryGameNode = get_solved_game_node(act=joint_actions, out=outcome)
         if results == {FIRST_PREFERRED}:
             strong_nash.add(solved_node)
             continue
@@ -172,6 +187,6 @@ def solve_game(context: StaticSolvingContext) ->\
             weak_nash.add(solved_node)
 
     toc = perf_counter() - tic
-    print('Nash equilibrium computation time = {} s'.format(toc))
+    print("Nash equilibrium computation time = {} s".format(toc))
 
     return indiff_nash, incomp_nash, weak_nash, strong_nash

@@ -71,12 +71,12 @@ class EvaluatedMetric:
     cumulative: SampledSequence
 
     def __init__(
-            self,
-            total: D,
-            description: str,
-            title: str,
-            incremental: SampledSequence,
-            cumulative: SampledSequence,
+        self,
+        total: D,
+        description: str,
+        title: str,
+        incremental: SampledSequence,
+        cumulative: SampledSequence,
     ):
         self.total = total
         self.title = title
