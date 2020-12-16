@@ -68,7 +68,7 @@ def get_trajectory_game_players() -> M[PlayerName, TrajectoryGamePlayer]:
     return ret
 
 
-def create_highway_world(players: Set[PlayerName]) -> World:
+def get_highway_world(players: Set[PlayerName]) -> World:
     s: List[D] = [D(_) for _ in range(20)]
     x: List[D] = [D(0.0) for _ in s]
     p_ref: List[Tuple[D, D]] = list(zip(x, s))
@@ -77,7 +77,7 @@ def create_highway_world(players: Set[PlayerName]) -> World:
     path = SplinePathWithBounds(s=s, p_ref=p_ref, p_left=p_left, p_right=p_right, bounds_sn=True)
     ref: Dict[PlayerName, PathWithBounds] = {}
     for player in players:
-        ref[player] = path
+        ref[player] = path  # fixme same path for the players?
     world = World(ref=ref, metrics=get_metrics_set())
     return world
 
@@ -85,7 +85,7 @@ def create_highway_world(players: Set[PlayerName]) -> World:
 def get_trajectory_game() -> TrajectoryGame:
     players: M[PlayerName, TrajectoryGamePlayer] = get_trajectory_game_players()
     player_names: Set[PlayerName] = {_ for _ in players}
-    world: World = create_highway_world(players=player_names)
+    world: World = get_highway_world(players=player_names)
     ps = PossibilitySet()
 
     game = TrajectoryGame(world=world, game_players=players, ps=ps, game_outcomes=evaluate_metrics)

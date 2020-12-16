@@ -62,6 +62,7 @@ class StaticGame(Generic[X, U, W, P]):
 class StaticSolvedGameNode(Generic[U, P]):
     """ Solved node of the game"""
 
+    # todo this does not seem right
     actions: JointPureActions
     """ The final converged equilibrium actions """
 

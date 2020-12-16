@@ -94,6 +94,6 @@ class Metric(metaclass=ABCMeta):
         """ Evaluates the metric for all players given a context. """
 
 
-PlayerOutcome = Mapping[Metric, EvaluatedMetric]
 MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
+PlayerOutcome = Mapping[Metric, EvaluatedMetric]
 TrajectoryGameOutcome = Mapping[PlayerName, PlayerOutcome]
