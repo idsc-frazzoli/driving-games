@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet
+from decimal import Decimal
+from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional
 
 from games import (
     PlayerName,
@@ -86,8 +87,8 @@ class StaticSolverParams(SolverParams):
     """ Allowed search space of strategies"""
     strategy_multiple_nash: StrategyForMultipleNash
     """ How to deal with multiple Nash equilibria """
-    dt = 0
-    use_factorization = False
+    dt: Optional[Decimal]
+    use_factorization: Optional[bool]
 
 
 @dataclass

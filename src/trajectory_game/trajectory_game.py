@@ -5,7 +5,7 @@ from typing import Dict, Set, FrozenSet, Mapping, Tuple
 from frozendict import frozendict
 from time import perf_counter
 
-from games import PlayerName
+from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
 from possibilities import Poss
 from preferences import (
@@ -26,7 +26,7 @@ from .static_game import (
     StaticGamePlayer,
     StaticSolvingContext,
     StaticSolvedGameNode,
-    ActionSetGenerator,
+    ActionSetGenerator, StaticSolverParams,
 )
 
 __all__ = [
@@ -100,7 +100,10 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         player_actions=available_traj,
         game_outcomes=outcomes,
         outcome_pref=pref,
-        solver_params=0  # todo
+        solver_params=StaticSolverParams(
+            admissible_strategies=PURE_STRATEGIES,
+            strategy_multiple_nash=BAIL_MNE # this is not used for now
+        )
     )
     return context
 
