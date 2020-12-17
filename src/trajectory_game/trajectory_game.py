@@ -1,8 +1,6 @@
 from abc import abstractmethod
 from functools import partial
-from itertools import product
-from typing import Dict, Set, FrozenSet, Mapping, Tuple
-from frozendict import frozendict
+from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
@@ -10,11 +8,6 @@ from games.utils import iterate_dict_combinations
 from possibilities import Poss
 from preferences import (
     Preference,
-    ComparisonOutcome,
-    FIRST_PREFERRED,
-    INCOMPARABLE,
-    INDIFFERENT,
-    SECOND_PREFERRED,
 )
 
 from .structures import VehicleState
@@ -36,7 +29,6 @@ __all__ = [
     "SolvedTrajectoryGameNode",
     "SolvedTrajectoryGame",
     "compute_solving_context",
-    "solve_game",
 ]
 
 # JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]  # fixme this seems a bit confusing..
@@ -99,11 +91,10 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     context = StaticSolvingContext(
         player_actions=available_traj,
         game_outcomes=outcomes,
-        outcome_pref=pref,
+        outcome_pref=pref,  # todo I fear here it's missing the monadic preferences but it is fine for now
         solver_params=StaticSolverParams(
             admissible_strategies=PURE_STRATEGIES,
-            strategy_multiple_nash=BAIL_MNE # this is not used for now
+            strategy_multiple_nash=BAIL_MNE  # this is not used for now
         )
     )
     return context
-

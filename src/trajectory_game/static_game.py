@@ -87,8 +87,8 @@ class StaticSolverParams(SolverParams):
     """ Allowed search space of strategies"""
     strategy_multiple_nash: StrategyForMultipleNash
     """ How to deal with multiple Nash equilibria """
-    dt: Optional[Decimal]
-    use_factorization: Optional[bool]
+    dt: Optional[Decimal] = None
+    use_factorization: Optional[bool] = None
 
 
 @dataclass
