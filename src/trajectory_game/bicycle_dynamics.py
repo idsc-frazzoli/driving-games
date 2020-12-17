@@ -80,8 +80,8 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
 
         dx = x0.v
-        dr = dx * D(math.tan(x0.st)) / (self.vg.lf + self.vg.lr)
-        dy = dr * self.vg.lr
+        dr = dx * D(math.tan(x0.st)) / (2 * self.vg.l)
+        dy = dr * self.vg.l
         costh = D(math.cos(x0.th + dr / D('2')))
         sinth = D(math.sin(x0.th + dr / D('2')))
 
@@ -94,6 +94,6 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         # TODO[SIR]: Rectangle assumes heading is along one axis,
         #  change this to generalise for any random heading
         center = x.x, x.y
-        sides = self.vg.w, self.vg.lr + self.vg.lf
+        sides = self.vg.w, 2 * self.vg.l
         rect = make_rectangle(center=center, sides=sides)
         return frozenset({rect})

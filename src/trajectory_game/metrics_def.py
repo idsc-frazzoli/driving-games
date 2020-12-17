@@ -89,6 +89,14 @@ class EvaluatedMetric:
 
 
 class Metric(metaclass=ABCMeta):
+    _instances = {}
+
+    def __new__(cls, *args, **kwargs):
+        # Allow creation of only one instance of each subclass (singleton)
+        if cls._instances.get(cls, None) is None:
+            cls._instances[cls] = super(Metric, cls).__new__(cls, *args, **kwargs)
+        return Metric._instances[cls]
+
     @abstractmethod
     def evaluate(self, context: MetricEvaluationContext) -> "MetricEvaluationResult":
         """ Evaluates the metric for all players given a context. """

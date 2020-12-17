@@ -259,5 +259,8 @@ class Trajectory:
         ret = [(x.x, x.y) for _, x in self.traj]
         return ret
 
+    def at(self, t: Timestamp) -> VehicleState:
+        return self.traj.at(t)
+
     def __iter__(self):
         return self.traj.__iter__()

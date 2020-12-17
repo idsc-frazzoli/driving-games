@@ -17,15 +17,15 @@ def get_trajectory_game_players() -> List[TrajectoryGamePlayer]:
     u_acc = frozenset([D(_ * step_acc) for _ in range(-steps_acc // 2 + 1, steps_acc // 2 + 1)])
     u_dst = frozenset([D(_ * step_dst) for _ in range(-steps_dst // 2 + 1, steps_dst // 2 + 1)])
 
-    param = TrajectoryParams(max_gen=1, dt=D('0.3'),
+    param = TrajectoryParams(max_gen=1, dt=D('0.5'),
                              u_acc=u_acc, u_dst=u_dst,
                              v_max=D('20.0'), v_min=D('1.0'), st_max=D(pi / 4),
-                             vg=VehicleGeometry(w=D('1'), lf=D('1'), lr=D('1')))
+                             vg=VehicleGeometry(m=D('200'), w=D('1'), l=D('1')))
     gen = TrajectoryGenerator(params=param)
 
     p1 = PlayerName("Player1")
     p2 = PlayerName("Player2")
-    state1 = VehicleState(x=D('0'), y=D('5'), th=D(pi / 2), v=D('8'), st=D('0'), t=D('0'))
+    state1 = VehicleState(x=D('0'), y=D('2.3'), th=D(pi / 2), v=D('8'), st=D('0'), t=D('0'))
     state2 = VehicleState(x=D('0'), y=D('0'), th=D(pi / 2), v=D('10'), st=D('0'), t=D('0'))
 
     ps = PossibilitySet()
@@ -54,10 +54,13 @@ def create_highway_world(players: Set[PlayerName]) -> World:
     p_right: List[Tuple[D, D]] = [(_, D(-5.0)) for _ in s]
     path = SplinePathWithBounds(s=s, p_ref=p_ref, p_left=p_left,
                                 p_right=p_right, bounds_sn=True)
+    vg = VehicleGeometry(m=D('200'), w=D('1'), l=D('1'))
     ref: Dict[PlayerName, PathWithBounds] = {}
+    geo: Dict[PlayerName, VehicleGeometry] = {}
     for player in players:
         ref[player] = path
-    world = World(ref=ref, metrics=get_metrics_set())
+        geo[player] = vg
+    world = World(ref=ref, geo=geo)
     return world
 
 
@@ -85,5 +88,7 @@ def test_trajectory_game():
 
     indiff_nash, incomp_nash, weak_nash, strong_nash = \
         solve_game(context=context)
+    print('Weak = {}, Indiff = {}, Incomp = {}, Strong = {}'.
+          format(len(weak_nash), len(indiff_nash), len(incomp_nash), len(strong_nash)))
 
     a = 2

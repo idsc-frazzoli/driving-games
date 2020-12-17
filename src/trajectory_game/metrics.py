@@ -1,14 +1,17 @@
+import math
 from typing import Tuple, List, Dict, Mapping, Callable, Set
 from decimal import Decimal as D
 
 from frozendict import frozendict
 
 from games import PlayerName
+from .structures import VehicleGeometry, VehicleState
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
 from .metrics_def import Metric, MetricEvaluationContext, EvaluatedMetric, \
     MetricEvaluationResult, TrajectoryGameOutcome, PlayerOutcome
 from .world import World
 from .paths import Trajectory
+from .trajectory_game import JointTrajProfile
 
 # TODO[SIR]: Add __all__
 
@@ -22,9 +25,9 @@ def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp
     timestamps = []
     values = []
     for _ in iterate_with_dt(sequence):
-        v0 = D(_.v0)
+        v_avg = (D(_.v0) + D(_.v1)) / D('2')
         dt = _.dt
-        total += D(v0 * dt)
+        total += D(v_avg * dt)
 
         timestamps.append(Timestamp(_.t0))
         values.append(total)
@@ -442,28 +445,126 @@ class SteeringRate(Metric):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
+class CollisionEnergy(Metric):
+    cache: Dict[JointTrajProfile, List[D]] = {}
+    cache_joint_traj: Dict[JointTrajProfile, EvaluatedMetric] = {}
+    COLLISION_MIN_DIST = D('0.2')
+
+    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+
+        title = "Collision Energy"
+        description = "This metric computes the energy of collision between agents."
+
+        def calculate_metric(player1: PlayerName) -> EvaluatedMetric:
+
+            world: World = context.get_world()
+            geometry: Mapping[PlayerName, VehicleGeometry] = {p: world.get_geometry(p) for p in context.get_players()}
+
+            def calculate_collision(players: List[PlayerName]) -> List[D]:
+                assert len(players) == 2
+                joint_traj: JointTrajProfile = frozendict({p: context.get_trajectory(p) for p in players})
+                if joint_traj in self.cache:
+                    return self.cache[joint_traj]
+
+                def get_geo(p_name: PlayerName) -> Tuple[VehicleGeometry, D]:
+                    geo: VehicleGeometry = geometry[p_name]
+                    dist = (geo.l ** 2 + geo.w ** 2).sqrt()
+                    return geo, dist
+
+                geo1, l1 = get_geo(players[0])
+                geo2, l2 = get_geo(players[1])
+
+                # TODO[SIR]: This only checks at timesteps and doesn't interpolate, might be a problem for long steps
+                timesteps: List[Timestamp] = context.get_interval(players[0])
+                energy: List[D] = []
+                for step in timesteps:
+                    state1: VehicleState = joint_traj[players[0]].at(step)
+                    state2: VehicleState = joint_traj[players[1]].at(step)
+
+                    # Coarse collision check
+                    dx = state1.x-state2.x
+                    dy = state1.y-state2.y
+                    dist = (dx ** 2 + dy ** 2).sqrt()
+                    if dist > l1 + l2:
+                        energy.append(D('0'))
+                        continue
+
+                    # Exact collision check
+                    th_diff = D(math.atan2(dy, dx))
+
+                    def get_projection(state: VehicleState, geo: VehicleGeometry) -> D:
+                        # Get the projected distance of the corner of the car along the line joining both car CoGs
+                        th_proj = state.th - th_diff
+                        cos_proj = D(abs(math.cos(th_proj)))
+                        sin_proj = D(abs(math.sin(th_proj)))
+                        return geo.l * cos_proj + geo.w * sin_proj
+
+                    # If the sum of both projections is smaller than the distance, cars don't collide
+                    proj1 = get_projection(state1, geo1)
+                    proj2 = get_projection(state2, geo2)
+                    if proj1 + proj2 - dist < self.COLLISION_MIN_DIST:
+                        energy.append(D('0'))
+                    else:
+                        # Calculate energy based on relative velocity between both cars
+                        vel_proj = D(math.cos(state1.th - state2.th))
+                        vel_relsq = (state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj)
+                        energy_coll = D('0.5') * (geo1.m + geo2.m) * vel_relsq
+                        energy.append(energy_coll)
+
+                self.cache[joint_traj] = energy
+                return energy
+
+            joint_traj_all: JointTrajProfile = frozendict({p: context.get_trajectory(p) for p in context.get_players()})
+            if joint_traj_all in self.cache_joint_traj:
+                return self.cache_joint_traj[joint_traj_all]
+
+            collision_energy: List[D] = []
+            for player2 in context.get_players():
+                if player1 == player2: continue
+                coll_e = calculate_collision(players=[player1, player2])
+                if not collision_energy:
+                    collision_energy = coll_e
+                else:
+                    assert len(collision_energy) == len(coll_e)
+                    collision_energy = [full + val for full, val in zip(collision_energy, coll_e)]
+
+            interval = context.get_interval(player1)
+            inc = SampledSequence[D](interval, collision_energy)
+
+            cumulative, dtot = get_integrated(inc)
+
+            ret = EvaluatedMetric(
+                total=dtot,
+                incremental=inc,
+                title=title,
+                description=description,
+                cumulative=cumulative,
+            )
+            self.cache_joint_traj[joint_traj_all] = ret
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
 def get_metrics_set() -> Set[Metric]:
-    if not get_metrics_set.metrics:
-        get_metrics_set.metrics = {
-            SurvivalTime(),
-            DeviationLateral(),
-            DeviationHeading(),
-            DrivableAreaViolation(),
-            ProgressAlongReference(),
-            LongitudinalAcceleration(),
-            LongitudinalJerk(),
-            LateralComfort(),
-            SteeringAngle(),
-            SteeringRate(),
-        }
-    return get_metrics_set.metrics
-
-
-get_metrics_set.metrics: Set[Metric] = set()
+    metrics: Set[Metric] = {
+        SurvivalTime(),
+        DeviationLateral(),
+        DeviationHeading(),
+        DrivableAreaViolation(),
+        ProgressAlongReference(),
+        LongitudinalAcceleration(),
+        LongitudinalJerk(),
+        LateralComfort(),
+        SteeringAngle(),
+        SteeringRate(),
+        CollisionEnergy(),
+    }
+    return metrics
 
 
 def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajectoryGameOutcome:
-    metrics: Set[Metric] = world.metrics
+    metrics: Set[Metric] = get_metrics_set()
     context = MetricEvaluationContext(world=world, trajectories=trajectories)
 
     metric_results: Dict[Metric, MetricEvaluationResult] = {}

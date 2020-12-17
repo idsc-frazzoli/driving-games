@@ -118,7 +118,7 @@ def solve_game(context: StaticSolvingContext) ->\
 
     def get_solved_game_node(act: JointTrajProfile, out: TrajectoryGameOutcome) -> \
             SolvedTrajectoryGameNode:
-        return SolvedTrajectoryGameNode(actions=act, outcomes=TrajectoryGameOutcome)
+        return SolvedTrajectoryGameNode(actions=act, outcomes=out)
 
     # TODO[SIR]: Remove dominated options first or just brute force through?
     actions = context.player_actions
