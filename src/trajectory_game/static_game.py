@@ -47,7 +47,7 @@ class StaticGamePlayer(Generic[X, U, W, P]):
     """The player state in the world"""
     actions_generator: ActionSetGenerator
     """ Player dynamics """
-    preferences: Preference[JointOutcome]
+    preference: Preference[JointOutcome]
     """ Its preferences about the outcomes. """
     monadic_preference_builder: MonadicPreferenceBuilder
     """ How to elevate and evaluate preferences over monadic outcomes."""

@@ -65,14 +65,6 @@ class SolvedTrajectoryGameNode(StaticSolvedGameNode[Trajectory, PlayerOutcome]):
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
 
 
-# def get_joint_traj(available_traj: Mapping[PlayerName, FrozenSet[Trajectory]]) -> FrozenSet[JointPureTraj]:
-#     """Compute the cartesian product of actions for all players"""
-#     joint_traj = {}
-#     for player in available_traj:
-#         for joint_traj in (frozendict(zip(available_traj.keys(), x)) for x in product(*available_traj.values())):
-#             yield joint_traj
-
-
 def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     """
     Preprocess the game -> Compute all possible actions and outcomes for each combination
@@ -82,7 +74,7 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     # Generate the trajectories for each player (i.e. get the available actions)
     available_traj: Dict[PlayerName, FrozenSet[Trajectory]] = {}
     for player_name, game_player in sgame.game_players.items():
-        # todo in the future can be extended to properly take into account an uncertain initial state
+        # In the future can be extended to uncertain initial state
         states = game_player.state.support()
         assert len(states) == 1, states
         available_traj[player_name] = game_player.actions_generator.get_action_set(
@@ -99,17 +91,16 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     toc = perf_counter() - tic
     print(f"Outcomes evaluation time = {toc} s")
 
-    # return traj_outcomes for Poss[Mapping[JointTrajProfile, TrajectoryGameOutcome]]
-
-    # TODO[SIR]: Extend to poss. Convert poss to single value for now
-
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {
-        name: player.preferences for name, player in sgame.game_players.items()
+        name: player.preference for name, player in sgame.game_players.items()
     }
 
     context = StaticSolvingContext(
-        player_actions=available_traj, game_outcomes=outcomes, outcome_pref=pref, solver_params=0  # todo
+        player_actions=available_traj,
+        game_outcomes=outcomes,
+        outcome_pref=pref,
+        solver_params=0  # todo
     )
     return context
 
