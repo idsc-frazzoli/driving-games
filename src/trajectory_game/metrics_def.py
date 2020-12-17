@@ -14,7 +14,7 @@ __all__ = [
     "Metric",
     "PlayerOutcome",
     "MetricEvaluationResult",
-    "TrajectoryGameOutcome",
+    "TrajGameOutcome",
 ]
 
 
@@ -40,7 +40,7 @@ class MetricEvaluationContext:
             xy[player] = traj_xy
             ref_path = self.world.get_reference(player)
             sn[player] = ref_path.cartesian_to_curvilinear(traj_xy)
-
+        # todo here it seems that you do not want this object to be "frozen" type
         object.__setattr__(self, "_points_xy", xy)
         object.__setattr__(self, "_points_sn", sn)
 
@@ -96,4 +96,4 @@ class Metric(metaclass=ABCMeta):
 
 MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
 PlayerOutcome = Mapping[Metric, EvaluatedMetric]
-TrajectoryGameOutcome = Mapping[PlayerName, PlayerOutcome]
+TrajGameOutcome = Mapping[PlayerName, PlayerOutcome]

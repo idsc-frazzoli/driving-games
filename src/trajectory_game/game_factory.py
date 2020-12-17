@@ -88,5 +88,5 @@ def get_trajectory_game() -> TrajectoryGame:
     world: World = get_highway_world(players=player_names)
     ps = PossibilitySet()
 
-    game = TrajectoryGame(world=world, game_players=players, ps=ps, game_outcomes=evaluate_metrics)
+    game = TrajectoryGame(world=world, game_players=players, ps=ps, get_outcomes=evaluate_metrics)
     return game

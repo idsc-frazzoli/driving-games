@@ -2,7 +2,17 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Mapping, Callable, TypeVar, Generic, FrozenSet
 
-from games import PlayerName, U, X, P, JointPureActions, MonadicPreferenceBuilder
+from games import (
+    PlayerName,
+    U,
+    X,
+    P,
+    JointPureActions,
+    MonadicPreferenceBuilder,
+    AdmissibleStrategies,
+    StrategyForMultipleNash,
+    SolverParams,
+)
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 
@@ -54,7 +64,7 @@ class StaticGame(Generic[X, U, W, P]):
     """The players"""
     ps: PossibilityMonad
     """The game monad"""
-    game_outcomes: Callable[[JointPureActions, W], JointOutcome]
+    get_outcomes: Callable[[JointPureActions, W], JointOutcome]
     """The "game dynamics", given a pure action for each player, we have a distribution of outcomes"""
 
 
@@ -70,6 +80,16 @@ class StaticSolvedGameNode(Generic[U, P]):
     """ Outcomes for each player """
 
 
+@dataclass(frozen=True)
+class StaticSolverParams(SolverParams):
+    admissible_strategies: AdmissibleStrategies
+    """ Allowed search space of strategies"""
+    strategy_multiple_nash: StrategyForMultipleNash
+    """ How to deal with multiple Nash equilibria """
+    dt = 0
+    use_factorization = False
+
+
 @dataclass
 class StaticSolvingContext(Generic[X, U, W, P]):
     """ Context for the solution of the game"""
@@ -77,9 +97,11 @@ class StaticSolvingContext(Generic[X, U, W, P]):
     player_actions: Mapping[PlayerName, FrozenSet[U]]
     """ All possible actions for each player"""
 
-    # TODO[SIR]: Extend to Poss
-    game_outcomes: Mapping[JointPureActions, JointOutcome]
+    game_outcomes: Mapping[JointPureActions, Poss[JointOutcome]]
     """ The computed game outcomes. """
 
     outcome_pref: Mapping[PlayerName, Preference[P]]
     """ The preferences of each player. """
+
+    solver_params: StaticSolverParams
+    """Solver parameters"""

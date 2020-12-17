@@ -10,7 +10,7 @@ from .metrics_def import (
     MetricEvaluationContext,
     EvaluatedMetric,
     MetricEvaluationResult,
-    TrajectoryGameOutcome,
+    TrajGameOutcome,
     PlayerOutcome,
 )
 from .world import World
@@ -465,10 +465,11 @@ def get_metrics_set() -> Set[Metric]:
     return get_metrics_set.metrics
 
 
+# fixme this looks weird
 get_metrics_set.metrics: Set[Metric] = set()
 
 
-def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajectoryGameOutcome:
+def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajGameOutcome:
     metrics: Set[Metric] = world.metrics
     context = MetricEvaluationContext(world=world, trajectories=trajectories)
 

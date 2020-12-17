@@ -70,7 +70,7 @@ BAIL_MNE = StrategyForMultipleNash("bail_mNE")
 """ Throw an error. """
 
 
-@dataclass
+@dataclass(frozen=True)
 class SolverParams:
     """ Parameters for the solver"""
 

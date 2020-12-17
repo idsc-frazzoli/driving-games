@@ -65,7 +65,7 @@ class SplineCurve(Curve[X]):
     def value_at_s(self, s: ArrayLike) -> List[X]:
         """ Calculate value of curve at requested values """
         values = interpolate.splev(x=s, tck=self._tck, der=0, ext=2)
-        return [D(_) for _ in values]
+        return values.tolist()  # [D(_) for _ in values]
 
     def derivative_at_s(self, s: ArrayLike, order: int = 1) -> List[X]:
         """Calculate derivatives of curve at requested values
@@ -77,7 +77,7 @@ class SplineCurve(Curve[X]):
             msg = "Derivative order needs to be positive, requested {}".format(order)
             raise ValueError(msg)
         ret = interpolate.splev(x=s, tck=self._tck, der=order, ext=2)
-        return [D(_) for _ in ret]
+        return ret.tolist()  # [D(_) for _ in ret]
 
     def get_end(self) -> Timestamp:
         return D(float(self.s[-1]))
@@ -215,6 +215,7 @@ class SplinePathWithBounds(PathWithBounds[X], SplinePath[X]):
         p_ref: List[Tuple[D, D]],
         p_left: List[Tuple[D, D]],
         p_right: List[Tuple[D, D]],
+        # fixme a path with bounds can be defined only with two parameters: p_ref and p_width
         bounds_sn: bool = False,
     ):
         x, y = zip(*p_ref)

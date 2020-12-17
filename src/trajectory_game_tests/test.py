@@ -10,7 +10,7 @@ from trajectory_game.game_factory import get_trajectory_game
 
 def test_trajectory_game():
     game: TrajectoryGame = get_trajectory_game()
-    context: StaticSolvingContext = compute_solving_context(traj_game=game)
+    context: StaticSolvingContext = compute_solving_context(sgame=game)
 
     indiff_nash: SolvedTrajectoryGame
     incomp_nash: SolvedTrajectoryGame
