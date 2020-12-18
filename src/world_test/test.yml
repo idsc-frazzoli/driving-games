@@ -1,0 +1,16 @@
+# Definition of Lanes as splines
+# x: x-Coordinate
+# y: y-coordinate
+# w: width of lane
+x:
+  - [1, 3, 1]
+  - [2, 4, 6]
+  - [3, 5, 8]
+y:
+  - [22, 24, 5]
+  - [3, 10, 45]
+  - [4, 56, 13]
+w:
+  - 2
+  - 3
+  - 5
