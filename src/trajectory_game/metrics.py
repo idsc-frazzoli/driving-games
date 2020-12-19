@@ -17,7 +17,7 @@ from .metrics_def import (
 )
 from .world import World
 from .paths import Trajectory
-from .trajectory_game import JointTrajProfile
+from .trajectory_game import JointPureTraj
 
 # TODO[SIR]: Add __all__
 
@@ -452,8 +452,8 @@ class SteeringRate(Metric):
 
 
 class CollisionEnergy(Metric):
-    cache: Dict[JointTrajProfile, List[D]] = {}
-    cache_joint_traj: Dict[JointTrajProfile, EvaluatedMetric] = {}
+    cache: Dict[JointPureTraj, List[D]] = {}
+    cache_joint_traj: Dict[JointPureTraj, EvaluatedMetric] = {}
     COLLISION_MIN_DIST = D('0.2')
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
@@ -468,7 +468,7 @@ class CollisionEnergy(Metric):
 
             def calculate_collision(players: List[PlayerName]) -> List[D]:
                 assert len(players) == 2
-                joint_traj: JointTrajProfile = frozendict({p: context.get_trajectory(p) for p in players})
+                joint_traj: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in players})
                 if joint_traj in self.cache:
                     return self.cache[joint_traj]
 
@@ -520,7 +520,7 @@ class CollisionEnergy(Metric):
                 self.cache[joint_traj] = energy
                 return energy
 
-            joint_traj_all: JointTrajProfile = frozendict({p: context.get_trajectory(p) for p in context.get_players()})
+            joint_traj_all: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in context.get_players()})
             if joint_traj_all in self.cache_joint_traj:
                 return self.cache_joint_traj[joint_traj_all]
 
@@ -551,6 +551,7 @@ class CollisionEnergy(Metric):
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
+
 def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = {
         SurvivalTime(),
@@ -568,7 +569,7 @@ def get_metrics_set() -> Set[Metric]:
     return metrics
 
 
-def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajectoryGameOutcome:
+def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajGameOutcome:
     metrics: Set[Metric] = get_metrics_set()
 
     context = MetricEvaluationContext(world=world, trajectories=trajectories)

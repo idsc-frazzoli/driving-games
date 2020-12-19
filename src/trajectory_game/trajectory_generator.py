@@ -3,14 +3,14 @@ from os.path import join
 from time import perf_counter
 from typing import FrozenSet, Set, List
 
-from networkx import MultiDiGraph, topological_sort, draw_networkx_edges
+from networkx import MultiDiGraph, topological_sort, draw_networkx_nodes, draw_networkx_edges
 from reprep import Report
 
-from .structures import VehicleState
+from .structures import VehicleState, TrajectoryParams
 from .static_game import ActionSetGenerator
 from .paths import Trajectory
 from .world import World
-from .bicycle_dynamics import BicycleDynamics, TrajectoryParams
+from .bicycle_dynamics import BicycleDynamics
 
 __all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
 

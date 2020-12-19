@@ -14,3 +14,4 @@ from .trajectory_graph import *
 from .trajectory_generator import *
 from .trajectory_game import *
 from .preference import *
+from .solve import *

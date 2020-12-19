@@ -24,6 +24,7 @@ __all__ = [
     "StaticGame",
     "StaticSolvedGameNode",
     "StaticSolvingContext",
+    "StaticSolverParams"
 ]
 
 W = TypeVar("W")
@@ -99,6 +100,9 @@ class StaticSolvingContext(Generic[X, U, W, P]):
     """ All possible actions for each player"""
 
     game_outcomes: Mapping[JointPureActions, Poss[JointOutcome]]
+    # TODO: Should we switch from Poss over joint outcomes to poss over outcomes?
+    # Mapping[JointPureActions, Poss[Mapping[PlayerName, P]]] -->
+    # Mapping[JointPureActions, Mapping[PlayerName, Poss[P]]]
     """ The computed game outcomes. """
 
     outcome_pref: Mapping[PlayerName, Preference[P]]

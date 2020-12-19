@@ -18,7 +18,7 @@ __all__ = [
 ]
 
 
-@dataclass(frozen=True)
+@dataclass
 class MetricEvaluationContext:
     world: World
     """ World object. """
@@ -40,9 +40,10 @@ class MetricEvaluationContext:
             xy[player] = traj_xy
             ref_path = self.world.get_reference(player)
             sn[player] = ref_path.cartesian_to_curvilinear(traj_xy)
-        # todo here it seems that you do not want this object to be "frozen" type
-        object.__setattr__(self, "_points_xy", xy)
-        object.__setattr__(self, "_points_sn", sn)
+        self._points_xy = xy
+        self._points_sn = sn
+        # object.__setattr__(self, "_points_xy", xy)
+        # object.__setattr__(self, "_points_sn", sn)
 
     def get_interval(self, player: PlayerName) -> List[Timestamp]:
         return self.trajectories[player].get_sampling_points()

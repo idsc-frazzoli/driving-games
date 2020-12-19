@@ -74,12 +74,12 @@ BAIL_MNE = StrategyForMultipleNash("bail_mNE")
 class SolverParams:
     """ Parameters for the solver"""
 
-    dt: D
-    """ The delta-t when discretizing. """
     admissible_strategies: AdmissibleStrategies
     """ Allowed search space of strategies"""
     strategy_multiple_nash: StrategyForMultipleNash
     """ How to deal with multiple Nash equilibria """
+    dt: D
+    """ The delta-t when discretizing. """
     use_factorization: bool
     """ Whether to use the factorization properties to reduce the game graph."""
 
