@@ -5,12 +5,12 @@ from typing import FrozenSet
 
 @dataclass
 class VehicleGeometry:
+    m: D
+    """ Car Mass [kg] """
     w: D
     """ Car width [m] """
-    lf: D
-    """ Car length from CoG to front axle [m] """
-    lr: D
-    """ Car length from CoG to rear axle [m] """
+    l: D
+    """ Half length of car - dist from CoG to each axle [m] """
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
