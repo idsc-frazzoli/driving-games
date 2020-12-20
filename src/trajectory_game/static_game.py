@@ -1,8 +1,19 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet
+from decimal import Decimal
+from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional
 
-from games import PlayerName, U, X, P, JointPureActions,  MonadicPreferenceBuilder
+from games import (
+    PlayerName,
+    U,
+    X,
+    P,
+    JointPureActions,
+    MonadicPreferenceBuilder,
+    AdmissibleStrategies,
+    StrategyForMultipleNash,
+    SolverParams,
+)
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 
@@ -13,6 +24,7 @@ __all__ = [
     "StaticGame",
     "StaticSolvedGameNode",
     "StaticSolvingContext",
+    "StaticSolverParams"
 ]
 
 W = TypeVar("W")
@@ -22,40 +34,39 @@ JointOutcome = Mapping[PlayerName, P]
 
 
 class ActionSetGenerator(Generic[X, U, W], ABC):
+    """ A generic getter for the available actions"""
 
     @abstractmethod
-    def get_action_set(self, state: X, world: W, player: PlayerName) -> FrozenSet[U]:
-        """ Generate all possible actions for a given state and world. """
+    def get_action_set(self, state: X, world: W) -> FrozenSet[U]:
+        pass
 
 
 @dataclass
 class StaticGamePlayer(Generic[X, U, W, P]):
     """ Information about one player. """
 
-    name: PlayerName
-    """The player's name"""
     state: Poss[X]
     """The player state in the world"""
-    action_set_generator: ActionSetGenerator[X, U, W]
+    actions_generator: ActionSetGenerator
     """ Player dynamics """
-    preferences: Preference[P]
-    """ Its preferences about the combined joint/personal rewards. """
+    preference: Preference[JointOutcome]
+    """ Its preferences about the outcomes. """
     monadic_preference_builder: MonadicPreferenceBuilder
-    """ How to evaluate preferences over monadic outcomes. """
+    """ How to elevate and evaluate preferences over monadic outcomes."""
 
 
 @dataclass
 class StaticGame(Generic[X, U, W, P]):
-    """ A static game is a single stage game where players have a finite action set.
-    We are considering games in which the agents live in a common world. """
+    """A static game is a single stage game where players have a finite action set.
+    We are considering games in which the agents live in a common world."""
 
     world: W
     """The world where the agents live"""
     game_players: Mapping[PlayerName, StaticGamePlayer[X, U, W, P]]
     """The players"""
     ps: PossibilityMonad
-    """How to evaluate stuff over monads"""
-    game_outcomes: Callable[[JointPureActions, W], JointOutcome]
+    """The game monad"""
+    get_outcomes: Callable[[JointPureActions, W], JointOutcome]
     """The "game dynamics", given a pure action for each player, we have a distribution of outcomes"""
 
 
@@ -63,11 +74,22 @@ class StaticGame(Generic[X, U, W, P]):
 class StaticSolvedGameNode(Generic[U, P]):
     """ Solved node of the game"""
 
+    # todo this does not seem right
     actions: JointPureActions
     """ The final converged equilibrium actions """
 
     outcomes: JointOutcome
     """ Outcomes for each player """
+
+
+@dataclass(frozen=True)
+class StaticSolverParams(SolverParams):
+    admissible_strategies: AdmissibleStrategies
+    """ Allowed search space of strategies"""
+    strategy_multiple_nash: StrategyForMultipleNash
+    """ How to deal with multiple Nash equilibria """
+    dt: Optional[Decimal] = None
+    use_factorization: Optional[bool] = None
 
 
 @dataclass
@@ -77,9 +99,14 @@ class StaticSolvingContext(Generic[X, U, W, P]):
     player_actions: Mapping[PlayerName, FrozenSet[U]]
     """ All possible actions for each player"""
 
-    # TODO[SIR]: Extend to Poss
-    game_outcomes: Mapping[JointPureActions, JointOutcome]
+    game_outcomes: Mapping[JointPureActions, Poss[JointOutcome]]
+    # TODO: Should we switch from Poss over joint outcomes to poss over outcomes?
+    # Mapping[JointPureActions, Poss[Mapping[PlayerName, P]]] -->
+    # Mapping[JointPureActions, Mapping[PlayerName, Poss[P]]]
     """ The computed game outcomes. """
 
     outcome_pref: Mapping[PlayerName, Preference[P]]
     """ The preferences of each player. """
+
+    solver_params: StaticSolverParams
+    """Solver parameters"""

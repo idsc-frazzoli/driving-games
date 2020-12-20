@@ -7,11 +7,17 @@ from frozendict import frozendict
 from games import PlayerName
 from .structures import VehicleGeometry, VehicleState
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
-from .metrics_def import Metric, MetricEvaluationContext, EvaluatedMetric, \
-    MetricEvaluationResult, TrajectoryGameOutcome, PlayerOutcome
+from .metrics_def import (
+    Metric,
+    MetricEvaluationContext,
+    EvaluatedMetric,
+    MetricEvaluationResult,
+    TrajGameOutcome,
+    PlayerOutcome,
+)
 from .world import World
 from .paths import Trajectory
-from .trajectory_game import JointTrajProfile
+from .trajectory_game import JointPureTraj
 
 # TODO[SIR]: Add __all__
 
@@ -21,7 +27,7 @@ def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp
     if not sequence:
         msg = "Cannot integrate empty sequence."
         raise ValueError(msg)
-    total = D('0')
+    total = D("0")
     timestamps = []
     values = []
     for _ in iterate_with_dt(sequence):
@@ -63,7 +69,7 @@ def differentiate(val: List[D], t: List[D]) -> List[D]:
             raise ValueError(msg)
         return dy / dx
 
-    ret: List[D] = [D('0')] + [func_diff(i) for i in range(len(t) - 1)]
+    ret: List[D] = [D("0")] + [func_diff(i) for i in range(len(t) - 1)]
     return ret
 
 
@@ -77,9 +83,9 @@ def get_integrated(sequence: SampledSequence[Timestamp]) -> Tuple[SampledSequenc
     return cumulative, dtot
 
 
-def get_evaluated_metric(players: List[PlayerName],
-                         f: Callable[[PlayerName], EvaluatedMetric]) ->\
-        MetricEvaluationResult:
+def get_evaluated_metric(
+    players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]
+) -> MetricEvaluationResult:
     mer: Dict[PlayerName, EvaluatedMetric] = {}
     for player_name in players:
         mer[player_name] = f(player_name)
@@ -106,7 +112,7 @@ class SurvivalTime(Metric):
                 raise ValueError(traj)
 
             # negative for smaller preferred
-            incremental = traj.transform_values(lambda _: D('-1'), D)
+            incremental = traj.transform_values(lambda _: D("-1"), D)
             cumulative = integrate(incremental)
             total = cumulative.values[-1]
 
@@ -211,7 +217,7 @@ class DrivableAreaViolation(Metric):
 
             def check_bounds(v: D, b: Tuple[D, D]) -> D:
                 if b[0] <= v <= b[1]:
-                    return D('0')
+                    return D("0")
                 elif v < b[0]:
                     return b[0] - v
                 else:
@@ -255,7 +261,7 @@ class ProgressAlongReference(Metric):
             # negative for smaller preferred
             progress: List[D] = [s[0] - _ for _ in s]
             total: D = progress[-1]
-            inc: List[D] = [D('0')] + [j - i for i, j in zip(progress[:-1], progress[1:])]
+            inc: List[D] = [D("0")] + [j - i for i, j in zip(progress[:-1], progress[1:])]
             incremental = SampledSequence[D](interval, inc)
             cumulative = SampledSequence[D](interval, progress)
 
@@ -289,7 +295,7 @@ class LongitudinalAcceleration(Metric):
             vel = [x.v for _, x in trajectory]
             acc = differentiate(vel, interval)
             # Final acc, dacc is zero and not first
-            acc_val = [abs(_) for _ in acc[1:]] + [D('0')]
+            acc_val = [abs(_) for _ in acc[1:]] + [D("0")]
 
             acc_seq = SampledSequence[D](interval, acc_val)
             cumulative, dtot = get_integrated(acc_seq)
@@ -327,7 +333,7 @@ class LongitudinalJerk(Metric):
             # TODO[SIR]: Improve dacc calc -> Use initial acc
             dacc = differentiate(acc, interval)
             # Final acc, dacc is zero and not first
-            dacc_val = [abs(_) for _ in dacc[1:]] + [D('0')]
+            dacc_val = [abs(_) for _ in dacc[1:]] + [D("0")]
 
             dacc_seq = SampledSequence[D](interval, dacc_val)
             cumulative, dtot = get_integrated(dacc_seq)
@@ -427,7 +433,7 @@ class SteeringRate(Metric):
             st = [x.st for _, x in trajectory]
             dst = differentiate(st, interval)
             # Final dst is zero and not first
-            dst_val = [abs(_) for _ in dst[1:]] + [D('0')]
+            dst_val = [abs(_) for _ in dst[1:]] + [D("0")]
 
             dst_seq = SampledSequence[D](interval, dst_val)
             cumulative, dtot = get_integrated(dst_seq)
@@ -446,8 +452,8 @@ class SteeringRate(Metric):
 
 
 class CollisionEnergy(Metric):
-    cache: Dict[JointTrajProfile, List[D]] = {}
-    cache_joint_traj: Dict[JointTrajProfile, EvaluatedMetric] = {}
+    cache: Dict[JointPureTraj, List[D]] = {}
+    cache_joint_traj: Dict[JointPureTraj, EvaluatedMetric] = {}
     COLLISION_MIN_DIST = D('0.2')
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
@@ -462,7 +468,7 @@ class CollisionEnergy(Metric):
 
             def calculate_collision(players: List[PlayerName]) -> List[D]:
                 assert len(players) == 2
-                joint_traj: JointTrajProfile = frozendict({p: context.get_trajectory(p) for p in players})
+                joint_traj: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in players})
                 if joint_traj in self.cache:
                     return self.cache[joint_traj]
 
@@ -514,7 +520,7 @@ class CollisionEnergy(Metric):
                 self.cache[joint_traj] = energy
                 return energy
 
-            joint_traj_all: JointTrajProfile = frozendict({p: context.get_trajectory(p) for p in context.get_players()})
+            joint_traj_all: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in context.get_players()})
             if joint_traj_all in self.cache_joint_traj:
                 return self.cache_joint_traj[joint_traj_all]
 
@@ -563,8 +569,9 @@ def get_metrics_set() -> Set[Metric]:
     return metrics
 
 
-def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajectoryGameOutcome:
+def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajGameOutcome:
     metrics: Set[Metric] = get_metrics_set()
+
     context = MetricEvaluationContext(world=world, trajectories=trajectories)
 
     metric_results: Dict[Metric, MetricEvaluationResult] = {}

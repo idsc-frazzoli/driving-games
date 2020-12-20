@@ -5,7 +5,7 @@ from decimal import Decimal as D
 
 from games import Dynamics
 from driving_games import Rectangle, make_rectangle
-from .structures import VehicleState, VehicleActions, VehicleGeometry
+from .structures import VehicleState, VehicleActions, VehicleGeometry, TrajectoryParams
 
 __all__ = ["BicycleDynamics"]
 
@@ -29,10 +29,7 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     u_dst: FrozenSet[D]
     """ Possible values of steering rate [rad/s] """
 
-    def __init__(
-        self,
-        params: "TrajectoryParams"
-    ):
+    def __init__(self, params: TrajectoryParams):
         self.v_max = params.v_max
         self.v_min = params.v_min
         self.st_max = params.st_max
@@ -71,10 +68,10 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         stf = clip(x0.st + u.dst * dt, low=-self.st_max, high=self.st_max)
         u_clip = VehicleActions(acc=(vf - x0.v) / dt, dst=(stf - x0.st) / dt)
 
-        alpha = D('1')
+        alpha = D("1")
         k1 = self.dynamics(x0, u_clip)
         k2 = self.dynamics(x0 + k1 * (dt * alpha), u_clip)
-        ret = x0 + k1 * (dt * (D('0.5') / alpha)) + k2 * (dt * (D('0.5') / alpha))
+        ret = x0 + k1 * (dt * (D("0.5") / alpha)) + k2 * (dt * (D("0.5") / alpha))
         return ret
 
     def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
@@ -87,7 +84,7 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
 
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh
-        ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=D('1'))
+        ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=D("1"))
         return ret
 
     def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:

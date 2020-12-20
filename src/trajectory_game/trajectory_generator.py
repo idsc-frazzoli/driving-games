@@ -1,91 +1,32 @@
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
 from os.path import join
 from time import perf_counter
 from typing import FrozenSet, Set, List
-from decimal import Decimal as D
 
 from networkx import MultiDiGraph, topological_sort, draw_networkx_nodes, draw_networkx_edges
 from reprep import Report
 
-from games import PlayerName
-from .structures import VehicleState, VehicleGeometry
-from .game_def import ActionSetGenerator
+from .structures import VehicleState, TrajectoryParams
+from .static_game import ActionSetGenerator
 from .paths import Trajectory
 from .world import World
+from .bicycle_dynamics import BicycleDynamics
 
-__all__ = [
-    "TrajectoryParams",
-    "TrajectoryGenerator"]
-
-
-@dataclass
-class TrajectoryParams:
-    max_gen: int
-    dt: D
-    u_acc: FrozenSet[D]
-    u_dst: FrozenSet[D]
-    v_max: D
-    v_min: D
-    st_max: D
-    vg: VehicleGeometry
+__all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
 
 
-def report_trajectories(G: MultiDiGraph) -> Report:
-    r = Report(nid="trajectories")
-    caption = "Trajectories generated"
-
-    def pos_node(n: VehicleState):
-        x = G.nodes[n]["x"]
-        y = G.nodes[n]["y"]
-        return float(x), float(y)
-
-    def line_width(n: VehicleState):
-        return float(1.0 / pow(2.0, G.edges[n]["gen"]))
-
-    def node_sizes(n: VehicleState):
-        return float(1.0 / pow(2.0, G.nodes[n]["gen"]))
-
-    pos = {_: pos_node(_) for _ in G.nodes}
-    widths = [line_width(_) for _ in G.edges]
-    # node_size = [node_sizes(_) for _ in G.nodes]
-
-    with r.plot("s", caption=caption) as plt:
-        # draw_networkx_nodes(
-        #     G,
-        #     pos=pos,
-        #     nodelist=G.nodes(),
-        #     cmap=plt.cm.Blues,
-        #     node_size=node_size,
-        # )
-        draw_networkx_edges(
-            G,
-            pos=pos,
-            edgelist=G.edges(),
-            alpha=0.5,
-            arrows=False,
-            width=widths,
-        )
-        plt.xlabel("x")
-        plt.ylabel("y")
-        plt.axis("auto")
-    return r
+class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World], ABC):
+    @abstractmethod
+    def get_action_set(self, state: VehicleState, world: World) -> FrozenSet[Trajectory]:
+        pass
 
 
-class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
-    from .bicycle_dynamics import BicycleDynamics
-
-    params: TrajectoryParams
-    _bicycle_dyn: BicycleDynamics
-
+class TrajectoryGenerator1(TrajectoryGenerator):
     def __init__(self, params: TrajectoryParams):
-        from .bicycle_dynamics import BicycleDynamics
-
         self.params = params
         self._bicycle_dyn = BicycleDynamics(params=params)
 
-    def get_action_set(self, state: VehicleState, world: World,
-                       player: PlayerName) \
-            -> FrozenSet[Trajectory]:
+    def get_action_set(self, state: VehicleState, world: World) -> FrozenSet[Trajectory]:
         # report_direc = "out/tests/{}/".format(player)
         report_direc: str = ""
         G = self._get_trajectory_graph(state=state)
@@ -133,18 +74,19 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
         all_traj: Set[Trajectory] = set()
         for n1 in topological_sort(G):
             traj: List[VehicleState] = [n1]
-            TrajectoryGenerator._expand_graph(G=G, node=n1, traj=traj,
-                                              all_traj=all_traj,
-                                              expanded=expanded)
+            TrajectoryGenerator1._expand_graph(G=G, node=n1, traj=traj, all_traj=all_traj, expanded=expanded)
         toc = perf_counter() - tic
         print("Trajectory list generation time = {} s".format(toc))
         return all_traj
 
     @staticmethod
-    def _expand_graph(G: MultiDiGraph, node: VehicleState,
-                      traj: List[VehicleState],
-                      all_traj: Set[Trajectory],
-                      expanded: Set[VehicleState]):
+    def _expand_graph(
+        G: MultiDiGraph,
+        node: VehicleState,
+        traj: List[VehicleState],
+        all_traj: Set[Trajectory],
+        expanded: Set[VehicleState],
+    ):
         if node in expanded:
             return
         successors = list(G.successors(node))
@@ -153,7 +95,48 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
         else:
             for n2 in successors:
                 traj1: List[VehicleState] = traj + [n2]
-                TrajectoryGenerator._expand_graph(G=G, node=n2, traj=traj1,
-                                                  all_traj=all_traj,
-                                                  expanded=expanded)
+                TrajectoryGenerator1._expand_graph(
+                    G=G, node=n2, traj=traj1, all_traj=all_traj, expanded=expanded
+                )
         expanded.add(node)
+
+
+def report_trajectories(G: MultiDiGraph) -> Report:
+    r = Report(nid="trajectories")
+    caption = "Trajectories generated"
+
+    def pos_node(n: VehicleState):
+        x = G.nodes[n]["x"]
+        y = G.nodes[n]["y"]
+        return float(x), float(y)
+
+    def line_width(n: VehicleState):
+        return float(1.0 / pow(2.0, G.edges[n]["gen"]))
+
+    def node_sizes(n: VehicleState):
+        return float(1.0 / pow(2.0, G.nodes[n]["gen"]))
+
+    pos = {_: pos_node(_) for _ in G.nodes}
+    widths = [line_width(_) for _ in G.edges]
+    # node_size = [node_sizes(_) for _ in G.nodes]
+
+    with r.plot("s", caption=caption) as plt:
+        # draw_networkx_nodes(
+        #     G,
+        #     pos=pos,
+        #     nodelist=G.nodes(),
+        #     cmap=plt.cm.Blues,
+        #     node_size=node_size,
+        # )
+        draw_networkx_edges(
+            G,
+            pos=pos,
+            edgelist=G.edges(),
+            alpha=0.5,
+            arrows=False,
+            width=widths,
+        )
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.axis("auto")
+    return r

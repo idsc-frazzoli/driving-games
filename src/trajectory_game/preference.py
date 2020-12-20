@@ -12,16 +12,16 @@ __all__ = [
 
 class EvaluatedMetricPreference(Preference[EvaluatedMetric]):
     """Compare the total values between evaluated metrics, doesn't check for types"""
+
     pref: SmallerPreferredTol
 
     def __init__(self):
-        self.pref = SmallerPreferredTol(D('1e-6'))
+        self.pref = SmallerPreferredTol(D("1e-6"))
 
     def get_type(self) -> Type[EvaluatedMetric]:
         return EvaluatedMetric
 
-    def compare(self, a: EvaluatedMetric, b: EvaluatedMetric) ->\
-            ComparisonOutcome:
+    def compare(self, a: EvaluatedMetric, b: EvaluatedMetric) -> ComparisonOutcome:
         return self.pref.compare(a.total, b.total)
 
 
@@ -34,12 +34,12 @@ class PosetalPreference(Preference[PlayerOutcome]):
     keys: Set[Metric]
 
     def __init__(self, keys: Set[Metric]):
-        pref_dict: Dict[Metric, Preference[EvaluatedMetric]] =\
-            {p: EvaluatedMetricPreference() for p in keys}
+        pref_dict: Dict[Metric, Preference[EvaluatedMetric]] = {p: EvaluatedMetricPreference() for p in keys}
         self.pref = StrictProductPreferenceDict(prefs=pref_dict)
         self.keys = keys
 
     def get_type(self) -> Type[PlayerOutcome]:
+        # fixme az here posetalpreference?
         return PlayerOutcome
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:

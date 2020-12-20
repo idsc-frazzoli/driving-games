@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, TypeVar, Generic, ClassVar, Type
+from typing import Tuple, List, TypeVar, Generic, ClassVar, Type, Iterable, Union
 from decimal import Decimal as D
 from math import atan2
 import numpy as np
@@ -19,6 +19,7 @@ __all__ = [
 ]
 
 X = TypeVar("X")
+ArrayLike = Union[np.ndarray, Iterable]
 
 
 class Curve(Generic[X], metaclass=ABCMeta):
@@ -27,11 +28,11 @@ class Curve(Generic[X], metaclass=ABCMeta):
     XT: ClassVar[Type[X]] = object
 
     @abstractmethod
-    def value_at_s(self, s: List[D]) -> List[X]:
+    def value_at_s(self, s: ArrayLike) -> List[X]:
         """ Calculate value of curve at requested coordinates """
 
     @abstractmethod
-    def derivative_at_s(self, s: List[D]) -> List[X]:
+    def derivative_at_s(self, s: ArrayLike) -> List[X]:
         """ Calculate derivatives of curve at requested coordinates """
 
 
@@ -60,13 +61,13 @@ class SplineCurve(Curve[X]):
         self.z = z
         self._tck = interpolate.splrep(x=s, y=z, k=order)
 
-    def value_at_s(self, s: List[D]) -> List[X]:
+    def value_at_s(self, s: ArrayLike) -> List[X]:
         """ Calculate value of curve at requested values """
         s_np = np.array(s, dtype=float)
         values = interpolate.splev(x=s_np, tck=self._tck, der=0, ext=2)
         return [D(_) for _ in values]
 
-    def derivative_at_s(self, s: List[D], order: int = 1) -> List[X]:
+    def derivative_at_s(self, s: ArrayLike, order: int = 1) -> List[X]:
         """Calculate derivatives of curve at requested values
         Default is first derivative, but any order (<k) can be calculated"""
         if order >= self._tck[-1]:
@@ -91,11 +92,11 @@ class Path(Generic[X], metaclass=ABCMeta):
         """ Returns progress limits of reference """
 
     @abstractmethod
-    def value_at_s(self, s: List[D]) -> List[Tuple[X, X]]:
+    def value_at_s(self, s: ArrayLike) -> List[Tuple[X, X]]:
         """ Calculate [x,y] of transition at progress values """
 
     @abstractmethod
-    def heading_at_s(self, s: List[D]) -> List[X]:
+    def heading_at_s(self, s: ArrayLike) -> List[X]:
         """ Calculate heading of transition at progress values """
 
     @abstractmethod
@@ -111,7 +112,7 @@ class PathWithBounds(Path[X], metaclass=ABCMeta):
     """ Base class for reference paths with lane bounds """
 
     @abstractmethod
-    def get_bounds_at_s(self, s: List[D]) -> List[Tuple[D, D]]:
+    def get_bounds_at_s(self, s: ArrayLike) -> List[Tuple[D, D]]:
         """ Return left and right boundaries in curvilinear coordinates at progress """
 
 
@@ -135,11 +136,11 @@ class SplinePath(Path[X]):
         self.s = s
 
         # TODO[SIR]: Any better way than casting and recasting for numpy?
-        def cast_list(input: List[float]) -> List[D]:
-            return [D(_) for _ in input]
-        step: D = D('0.1')
-        N: int = int((s[-1] - s[0]) // step)
-        p_s: List[float] = list(np.linspace(float(s[0]), float(s[-1]), N))
+        def cast_list(inp: ArrayLike) -> List[D]:
+            return [D(_) for _ in inp]
+
+        step: float = 0.1
+        p_s: ArrayLike = np.arange(float(s[0]), float(s[-1]), step)
         p_x = self.x.value_at_s(p_s)
         p_y = self.y.value_at_s(p_s)
         p_xy = list(zip(cast_list(p_x), cast_list(p_y)))
@@ -153,13 +154,13 @@ class SplinePath(Path[X]):
     def get_s_limits(self) -> Tuple[D, D]:
         return self.s[0], self.s[-1]
 
-    def value_at_s(self, s: List[D]) -> List[Tuple[X, X]]:
+    def value_at_s(self, s: ArrayLike) -> List[Tuple[X, X]]:
         x = self.x.value_at_s(s)
         y = self.y.value_at_s(s)
         ret = list(zip(x, y))
         return ret
 
-    def heading_at_s(self, s: List[D]) -> List[X]:
+    def heading_at_s(self, s: ArrayLike) -> List[X]:
         dx = self.x.derivative_at_s(s, order=1)
         dy = self.y.derivative_at_s(s, order=1)
 
@@ -184,8 +185,8 @@ class SplinePath(Path[X]):
             return sign
 
         for p_xy in xy:
-            best_s: D = D('0')
-            best_n: D = D('1000')
+            best_s: D = D("0")
+            best_n: D = D("1000")
             for s, p in self.points:
                 n = get_n(p_xy, p)
                 if n < best_n:
@@ -208,20 +209,20 @@ class SplinePathWithBounds(PathWithBounds[X], SplinePath[X]):
     right: Curve[D]
     """ Right lane boundary """
 
+    # TODO[SIR]: Calculate s internally and don't force input
     def __init__(
         self,
         s: List[D],
         p_ref: List[Tuple[D, D]],
         p_left: List[Tuple[D, D]],
         p_right: List[Tuple[D, D]],
-        bounds_sn: bool = False
+        bounds_sn: bool = False,
     ):
         x, y = zip(*p_ref)
         super().__init__(s, x, y, order=3)
 
         def fit_curve(p: List[Tuple[D, D]]) -> Curve[D]:
-            sn: List[Tuple[D, D]] = p if bounds_sn \
-                else self.cartesian_to_curvilinear(p)
+            sn: List[Tuple[D, D]] = p if bounds_sn else self.cartesian_to_curvilinear(p)
             p_s, n = list(zip(*sn))
             curve = SplineCurve(s=p_s, z=n, order=3)
             return curve
@@ -229,7 +230,7 @@ class SplinePathWithBounds(PathWithBounds[X], SplinePath[X]):
         self.left = fit_curve(p_left)
         self.right = fit_curve(p_right)
 
-    def get_bounds_at_s(self, s: List[D]) -> List[Tuple[D, D]]:
+    def get_bounds_at_s(self, s: ArrayLike) -> List[Tuple[D, D]]:
         """ Return left and right boundaries in curvilinear coordinates at progress """
         left = self.left.value_at_s(s)
         right = self.right.value_at_s(s)
