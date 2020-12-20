@@ -31,7 +31,7 @@ def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp
     timestamps = []
     values = []
     for _ in iterate_with_dt(sequence):
-        v_avg = (D(_.v0) + D(_.v1)) / D('2')
+        v_avg = (D(_.v0) + D(_.v1)) / D("2")
         dt = _.dt
         total += D(v_avg * dt)
 
@@ -454,7 +454,7 @@ class SteeringRate(Metric):
 class CollisionEnergy(Metric):
     cache: Dict[JointPureTraj, List[D]] = {}
     cache_joint_traj: Dict[JointPureTraj, EvaluatedMetric] = {}
-    COLLISION_MIN_DIST = D('0.2')
+    COLLISION_MIN_DIST = D("0.2")
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
@@ -464,7 +464,9 @@ class CollisionEnergy(Metric):
         def calculate_metric(player1: PlayerName) -> EvaluatedMetric:
 
             world: World = context.get_world()
-            geometry: Mapping[PlayerName, VehicleGeometry] = {p: world.get_geometry(p) for p in context.get_players()}
+            geometry: Mapping[PlayerName, VehicleGeometry] = {
+                p: world.get_geometry(p) for p in context.get_players()
+            }
 
             def calculate_collision(players: List[PlayerName]) -> List[D]:
                 assert len(players) == 2
@@ -488,11 +490,11 @@ class CollisionEnergy(Metric):
                     state2: VehicleState = joint_traj[players[1]].at(step)
 
                     # Coarse collision check
-                    dx = state1.x-state2.x
-                    dy = state1.y-state2.y
+                    dx = state1.x - state2.x
+                    dy = state1.y - state2.y
                     dist = (dx ** 2 + dy ** 2).sqrt()
                     if dist > l1 + l2:
-                        energy.append(D('0'))
+                        energy.append(D("0"))
                         continue
 
                     # Exact collision check
@@ -509,24 +511,27 @@ class CollisionEnergy(Metric):
                     proj1 = get_projection(state1, geo1)
                     proj2 = get_projection(state2, geo2)
                     if proj1 + proj2 - dist < self.COLLISION_MIN_DIST:
-                        energy.append(D('0'))
+                        energy.append(D("0"))
                     else:
                         # Calculate energy based on relative velocity between both cars
                         vel_proj = D(math.cos(state1.th - state2.th))
-                        vel_relsq = (state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj)
-                        energy_coll = D('0.5') * (geo1.m + geo2.m) * vel_relsq
+                        vel_relsq = state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj
+                        energy_coll = D("0.5") * (geo1.m + geo2.m) * vel_relsq
                         energy.append(energy_coll)
 
                 self.cache[joint_traj] = energy
                 return energy
 
-            joint_traj_all: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in context.get_players()})
+            joint_traj_all: JointPureTraj = frozendict(
+                {p: context.get_trajectory(p) for p in context.get_players()}
+            )
             if joint_traj_all in self.cache_joint_traj:
                 return self.cache_joint_traj[joint_traj_all]
 
             collision_energy: List[D] = []
             for player2 in context.get_players():
-                if player1 == player2: continue
+                if player1 == player2:
+                    continue
                 coll_e = calculate_collision(players=[player1, player2])
                 if not collision_energy:
                     collision_energy = coll_e

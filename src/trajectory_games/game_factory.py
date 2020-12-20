@@ -6,7 +6,7 @@ from decimal import Decimal as D
 from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
-from trajectory_game import (
+from trajectory_games import (
     World,
     VehicleGeometry,
     VehicleState,
@@ -75,7 +75,7 @@ def get_highway_world(players: Set[PlayerName]) -> World:
     p_left: List[Tuple[D, D]] = [(_, D(5.0)) for _ in s]
     p_right: List[Tuple[D, D]] = [(_, D(-5.0)) for _ in s]
     path = SplinePathWithBounds(s=s, p_ref=p_ref, p_left=p_left, p_right=p_right, bounds_sn=True)
-    vg = VehicleGeometry(m=D('200'), w=D('1'), l=D('1'))
+    vg = VehicleGeometry(m=D("200"), w=D("1"), l=D("1"))
     ref: Dict[PlayerName, PathWithBounds] = {}
     geo: Dict[PlayerName, VehicleGeometry] = {}
     # TODO[SIR]: Extend to different paths for each player

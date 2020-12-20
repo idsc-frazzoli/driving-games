@@ -24,7 +24,7 @@ __all__ = [
     "StaticGame",
     "StaticSolvedGameNode",
     "StaticSolvingContext",
-    "StaticSolverParams"
+    "StaticSolverParams",
 ]
 
 W = TypeVar("W")

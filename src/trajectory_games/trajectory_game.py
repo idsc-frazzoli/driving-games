@@ -94,8 +94,7 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         game_outcomes=outcomes,
         outcome_pref=pref,  # todo I fear here it's missing the monadic preferences but it is fine for now
         solver_params=StaticSolverParams(
-            admissible_strategies=PURE_STRATEGIES,
-            strategy_multiple_nash=BAIL_MNE  # this is not used for now
-        )
+            admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE  # this is not used for now
+        ),
     )
     return context

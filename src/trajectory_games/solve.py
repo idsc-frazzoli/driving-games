@@ -24,7 +24,7 @@ def solve_game(
 
     def get_action_options(joint_act: JointPureTraj, pname: PlayerName) -> JointTrajSet:
         """Returns all possible actions for the player, with other player actions frozen
-           Current player action is not included"""
+        Current player action is not included"""
 
         def get_actions(name: PlayerName) -> FrozenSet[Trajectory]:
             if name == pname:

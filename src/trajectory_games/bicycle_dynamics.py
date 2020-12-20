@@ -79,8 +79,8 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         dx = x0.v
         dr = dx * D(math.tan(x0.st)) / (2 * self.vg.l)
         dy = dr * self.vg.l
-        costh = D(math.cos(x0.th + dr / D('2')))
-        sinth = D(math.sin(x0.th + dr / D('2')))
+        costh = D(math.cos(x0.th + dr / D("2")))
+        sinth = D(math.sin(x0.th + dr / D("2")))
 
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh
