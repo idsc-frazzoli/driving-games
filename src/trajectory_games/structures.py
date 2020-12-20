@@ -1,5 +1,13 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
+from typing import FrozenSet
+
+__all__ = [
+    "VehicleGeometry",
+    "VehicleActions",
+    "VehicleState",
+    "TrajectoryParams",
+]
 
 
 @dataclass
@@ -78,3 +86,15 @@ class VehicleState:
         )
 
     __rmul__ = __mul__
+
+
+@dataclass
+class TrajectoryParams:
+    max_gen: int
+    dt: D
+    u_acc: FrozenSet[D]
+    u_dst: FrozenSet[D]
+    v_max: D
+    v_min: D
+    st_max: D
+    vg: VehicleGeometry

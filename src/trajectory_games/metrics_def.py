@@ -14,11 +14,11 @@ __all__ = [
     "Metric",
     "PlayerOutcome",
     "MetricEvaluationResult",
-    "TrajectoryGameOutcome",
+    "TrajGameOutcome",
 ]
 
 
-@dataclass(frozen=True)
+@dataclass
 class MetricEvaluationContext:
     world: World
     """ World object. """
@@ -40,9 +40,10 @@ class MetricEvaluationContext:
             xy[player] = traj_xy
             ref_path = self.world.get_reference(player)
             sn[player] = ref_path.cartesian_to_curvilinear(traj_xy)
-
-        object.__setattr__(self, "_points_xy", xy)
-        object.__setattr__(self, "_points_sn", sn)
+        self._points_xy = xy
+        self._points_sn = sn
+        # object.__setattr__(self, "_points_xy", xy)
+        # object.__setattr__(self, "_points_sn", sn)
 
     def get_interval(self, player: PlayerName) -> List[Timestamp]:
         return self.trajectories[player].get_sampling_points()
@@ -71,12 +72,12 @@ class EvaluatedMetric:
     cumulative: SampledSequence
 
     def __init__(
-            self,
-            total: D,
-            description: str,
-            title: str,
-            incremental: SampledSequence,
-            cumulative: SampledSequence,
+        self,
+        total: D,
+        description: str,
+        title: str,
+        incremental: SampledSequence,
+        cumulative: SampledSequence,
     ):
         self.total = total
         self.title = title
@@ -102,6 +103,6 @@ class Metric(metaclass=ABCMeta):
         """ Evaluates the metric for all players given a context. """
 
 
-PlayerOutcome = Mapping[Metric, EvaluatedMetric]
 MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
-TrajectoryGameOutcome = Mapping[PlayerName, PlayerOutcome]
+PlayerOutcome = Mapping[Metric, EvaluatedMetric]
+TrajGameOutcome = Mapping[PlayerName, PlayerOutcome]
