@@ -1,22 +1,24 @@
 from dataclasses import dataclass
-from typing import FrozenSet, Union, Dict, List, Sequence, Any, Tuple
+from typing import NewType, Union, Dict, List, Sequence, Tuple
 from numbers import Number
 from matplotlib import pyplot as plt
 from decimal import Decimal as D
 import yaml
 import numpy as np
 from scipy import interpolate
-from contextlib import contextmanager
 
 
 __all__ = ["load_world", "Lane", "World"]
 
+Coordinate = NewType('Coordinate', float)
+LaneWidth = NewType('LaneWidth', float)
+
 
 @dataclass(frozen=True)
 class Lane:
-    ctr_p_x: Sequence[Number]
-    ctr_p_y: Sequence[Number]
-    w: Number
+    ctr_p_x: Sequence[Coordinate]
+    ctr_p_y: Sequence[Coordinate]
+    w: LaneWidth
     order: int
 
     @property
@@ -59,25 +61,27 @@ class World:
     name: str
     lanes: Tuple[Lane]
     background: Union[np.ndarray, Image]
-    scale: float
+    scale: float # [pixel/meter]
 
     def plot_world(self):
-        # todo[Chris] Add Cars and boundaries
+        # todo[Chris] Add Cars
         fig, ax = plt.subplots()
-        # fig.tight_layout()
+        fig.tight_layout()
         ax.set_title(self.name)
         ax.imshow(self.background)
         s = np.linspace(0, 1, 1000)
         for lane in self.lanes:
             middle_line = [_ * self.scale for _ in lane.get_position(s)]
-            ax.plot(middle_line[0], middle_line[1])
+
             dx, dy = lane.get_derivative(s, deriv_order=1)
-            #normal = np.column_stack([-dy, dx])
-            #normal_unit = normal / np.linalg.norm(normal, axis=1)[:, np.newaxis]
-            #left_bound = middle_line - lane.w * normal_unit
-            #right_bound = middle_line + lane.w * normal_unit
-            #ax.plot(left_bound[:, 0], left_bound[:, 1], '-.r', linewidth=1.0, label='Left bound')
-            #ax.plot(right_bound[:, 0], right_bound[:, 1], '--r', linewidth=1.0, label='Right bound')
+            normal = np.column_stack([-dy, dx])
+            normal_unit = normal / np.linalg.norm(normal, axis=1)[:, np.newaxis]
+            left_bound = np.column_stack(middle_line) - lane.w * self.scale * normal_unit
+            right_bound = np.column_stack(middle_line) + lane.w * self.scale * normal_unit
+
+            ax.plot(middle_line[0], middle_line[1],':b', linewidth=1.0, label='Middle Line')
+            ax.plot(left_bound[:, 0], left_bound[:, 1], '-.r', linewidth=1.0, label='Left bound')
+            ax.plot(right_bound[:, 0], right_bound[:, 1], '--r', linewidth=1.0, label='Right bound')
 
         fig.show()
         plt.close(fig=fig)
