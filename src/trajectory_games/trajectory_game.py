@@ -3,6 +3,8 @@ from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
 
+from networkx import MultiDiGraph
+
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
 from possibilities import Poss
@@ -10,7 +12,7 @@ from preferences import (
     Preference,
 )
 
-from .structures import VehicleState
+from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .world import World
 from .metrics_def import PlayerOutcome, TrajGameOutcome
@@ -43,11 +45,11 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
         """ Generate all possible actions for a given state and world. """
 
 
-class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, World, PlayerOutcome]):
+class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, World, PlayerOutcome, VehicleGeometry]):
     pass
 
 
-class TrajectoryGame(StaticGame[VehicleState, Trajectory, World, PlayerOutcome]):
+class TrajectoryGame(StaticGame[VehicleState, Trajectory, World, PlayerOutcome, VehicleGeometry]):
     pass
 
 
@@ -70,8 +72,9 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         # In the future can be extended to uncertain initial state
         states = game_player.state.support()
         assert len(states) == 1, states
+        game_player.graph = MultiDiGraph()
         available_traj[player_name] = game_player.actions_generator.get_action_set(
-            state=next(iter(states)), world=sgame.world
+            state=next(iter(states)), world=sgame.world, graph=game_player.graph
         )
 
     # Compute the distribution of outcomes for each joint action

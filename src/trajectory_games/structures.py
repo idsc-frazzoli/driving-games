@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet
+from typing import FrozenSet, Tuple
 
 __all__ = [
     "VehicleGeometry",
@@ -18,6 +18,8 @@ class VehicleGeometry:
     """ Car width [m] """
     l: D
     """ Half length of car - dist from CoG to each axle [m] """
+    colour: Tuple[float, float, float]
+    """ Car colour """
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -86,6 +88,9 @@ class VehicleState:
         )
 
     __rmul__ = __mul__
+
+    def __repr__(self) -> str:
+        return str({k: round(float(v), 2) for k, v in self.__dict__.items()})
 
 
 @dataclass

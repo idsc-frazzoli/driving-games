@@ -1,3 +1,4 @@
+import math
 from abc import ABCMeta, abstractmethod
 from typing import Tuple, List, TypeVar, Generic, ClassVar, Type, Iterable, Union
 from decimal import Decimal as D
@@ -198,7 +199,15 @@ class SplinePath(Path[X]):
 
     def curvilinear_to_cartesian(self, sn: List[Tuple[D, X]]) -> List[Tuple[X, X]]:
         """ Converts curvilinear coordinates [s,n] to cartesian [x,y] """
-        pass
+        s, n = zip(*sn)
+        heading = self.heading_at_s(s)
+        ref_points = self.value_at_s(s)
+        ret: List[X, X] = []
+        for head, (x_s, y_s), p_n in zip(heading, ref_points, n):
+            x = x_s - p_n * D(math.sin(head))
+            y = y_s + p_n * D(math.cos(head))
+            ret.append((x, y))
+        return ret
 
 
 class SplinePathWithBounds(PathWithBounds[X], SplinePath[X]):
@@ -265,3 +274,6 @@ class Trajectory:
 
     def __iter__(self):
         return self.traj.__iter__()
+
+    def __repr__(self) -> str:
+        return str({f"t={round(float(k), 2)}s": v for k, v in self.traj})

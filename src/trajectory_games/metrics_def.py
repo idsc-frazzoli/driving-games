@@ -86,7 +86,7 @@ class EvaluatedMetric:
         self.description = description
 
     def __repr__(self):
-        return f"EvaluatedMetric({self.title}, {self.total})"
+        return f"{self.title} = {self.total}"
 
 
 class Metric(metaclass=ABCMeta):
