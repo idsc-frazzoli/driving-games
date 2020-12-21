@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import NewType, Union, Dict, List, Sequence, Tuple
+from typing import NewType, Union, Dict, List, Sequence, Tuple, FrozenSet
 from numbers import Number
 from matplotlib import pyplot as plt
 from decimal import Decimal as D
@@ -10,16 +10,22 @@ from scipy import interpolate
 
 __all__ = ["load_world", "Lane", "World"]
 
-Coordinate = NewType('Coordinate', float)
-LaneWidth = NewType('LaneWidth', float)
-
+# Coordinate = NewType('Coordinate', float)
+# LaneWidth = NewType('LaneWidth', float)
+# LaneID = NewType('LaneID', Union[int,str])
+# SplineSpec = NewType('SplineSpec', Dict[str, Union[List[Coordinate], LaneWidth]])
+Coordinate = Union[float, int]
+LaneWidth = Union[float, int]
+LaneID = Union[int, str]
+SplineSpec = Dict[str, Union[List[Coordinate], LaneWidth]]
 
 @dataclass(frozen=True)
 class Lane:
-    ctr_p_x: Sequence[Coordinate]
-    ctr_p_y: Sequence[Coordinate]
-    w: LaneWidth
-    order: int
+    id: LaneID  # identifier of lane
+    ctr_p_x: Sequence[Coordinate]  # x-coordinate of control-points
+    ctr_p_y: Sequence[Coordinate]  # y-coordinate of control-points
+    w: LaneWidth  # [m]
+    spl_order: int  # order of spline
 
     @property
     def control_points(self) -> List[Sequence[Number]]:
@@ -33,9 +39,10 @@ class Lane:
     def tck(self):
         ctr_p = self.control_points
         if ctr_p[0][0] == ctr_p[0][-1] and ctr_p[1][0] == ctr_p[1][-1]:
-            tck, _ = interpolate.splprep(ctr_p, k=self.order, per=True)
+            tck, *u = interpolate.splprep(ctr_p, k=self.spl_order, per=True)  #fixme why warning without *
+
         else:
-            tck, _ = interpolate.splprep(ctr_p, k=self.order)
+            tck, *u = interpolate.splprep(ctr_p, k=self.spl_order)
         return tck
 
     @property
@@ -93,19 +100,10 @@ def load_world(
         scale: float,  # [pixels/meter]
         control_points_path: str  # path of spline definition file
 ) -> World:
+
     background = plt.imread(background_path)
-    parsed_yaml_file: Dict[List[Sequence[Number], Number]]
-    # open and parse the YAML file
-    with open(control_points_path) as yml_file:
-        parsed_yaml_file = yaml.load(yml_file, Loader=yaml.FullLoader)
-    lanes = []
-    # Check if all lanes are fully specified in YAML file
-    assert len(set(map(len, parsed_yaml_file.values()))) == 1, \
-        "Missing specification for one or more lanes in YAML file!"
-    for (x, y, w, order) in zip(*parsed_yaml_file.values()):
-        x = tuple(x)  # make control points immutable
-        y = tuple(y)
-        lanes.append(Lane(ctr_p_x=x, ctr_p_y=y, w=w, order=order))
+
+    lanes = get_lanes(control_points_path=control_points_path)
 
     return World(
         name=name,
@@ -113,3 +111,25 @@ def load_world(
         background=background,
         scale=scale
     )
+
+def get_lanes(control_points_path: str) -> List[Lane]:
+    parsed_yaml_file: Dict[LaneID, SplineSpec]
+    # open and parse the YAML file
+    with open(control_points_path) as yml_file:
+        parsed_yaml_file = yaml.load(yml_file, Loader=yaml.FullLoader)
+    lanes = []
+
+
+    ctr_x: List[Coordinate]
+    ctr_y: List[Coordinate]
+    w: LaneWidth
+    for id in parsed_yaml_file:
+        ctr_x = parsed_yaml_file[id]['x']
+        ctr_y = parsed_yaml_file[id]['y']
+        w = parsed_yaml_file[id]['w']
+        order = parsed_yaml_file[id]['order']
+        # Check if all lanes are fully specified in YAML file
+        msg = f"Lane {id} is not fully specified!"
+        assert len(ctr_x) == len(ctr_y) and len(list([w])) == 1 and type(order) == int, msg
+        lanes.append(Lane(id=id, ctr_p_x=ctr_x, ctr_p_y=ctr_y, w=w, spl_order=order))
+    return lanes
