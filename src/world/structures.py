@@ -10,10 +10,6 @@ from scipy import interpolate
 
 __all__ = ["load_world", "Lane", "World"]
 
-# Coordinate = NewType('Coordinate', float)
-# LaneWidth = NewType('LaneWidth', float)
-# LaneID = NewType('LaneID', Union[int,str])
-# SplineSpec = NewType('SplineSpec', Dict[str, Union[List[Coordinate], LaneWidth]])
 Coordinate = Union[float, int]
 LaneWidth = Union[float, int]
 LaneID = Union[int, str]
@@ -21,7 +17,7 @@ SplineSpec = Dict[str, Union[List[Coordinate], LaneWidth]]
 
 @dataclass(frozen=True)
 class Lane:
-    id: LaneID  # identifier of lane
+    lane_id: LaneID  # identifier of lane
     ctr_p_x: Sequence[Coordinate]  # x-coordinate of control-points
     ctr_p_y: Sequence[Coordinate]  # y-coordinate of control-points
     w: LaneWidth  # [m]
@@ -117,19 +113,33 @@ def get_lanes(control_points_path: str) -> List[Lane]:
     # open and parse the YAML file
     with open(control_points_path) as yml_file:
         parsed_yaml_file = yaml.load(yml_file, Loader=yaml.FullLoader)
-    lanes = []
 
-
+    lanes :List[Lane] = []
+    _id: LaneID
     ctr_x: List[Coordinate]
     ctr_y: List[Coordinate]
     w: LaneWidth
-    for id in parsed_yaml_file:
-        ctr_x = parsed_yaml_file[id]['x']
-        ctr_y = parsed_yaml_file[id]['y']
-        w = parsed_yaml_file[id]['w']
-        order = parsed_yaml_file[id]['order']
+    spl_order: int
+    for _id in parsed_yaml_file:
+        ctr_x = parsed_yaml_file[_id]['x']
+        ctr_y = parsed_yaml_file[_id]['y']
+        w = parsed_yaml_file[_id]['w']
+        spl_order = parsed_yaml_file[_id]['order']
         # Check if all lanes are fully specified in YAML file
-        msg = f"Lane {id} is not fully specified!"
-        assert len(ctr_x) == len(ctr_y) and len(list([w])) == 1 and type(order) == int, msg
-        lanes.append(Lane(id=id, ctr_p_x=ctr_x, ctr_p_y=ctr_y, w=w, spl_order=order))
+        check_spl_params(_id=_id, ctr_x=ctr_x, ctr_y=ctr_y, w=w, spl_order=spl_order)
+        lanes.append(Lane(lane_id=_id, ctr_p_x=ctr_x, ctr_p_y=ctr_y, w=w, spl_order=spl_order))
     return lanes
+
+
+def check_spl_params(
+        _id: LaneID, ctr_x: List[Coordinate],
+        ctr_y: List[Coordinate],
+        w: LaneWidth,
+        spl_order: int
+) -> None:
+    msg = f"Lane {_id} is not fully specified! Control point sequences do not have the same length"
+    assert len(ctr_x) == len(ctr_y), msg
+    msg = f"Lane {_id} is not fully specified! Lane width has to be a single integer or float"
+    assert type(w) == int or type(w) == float, msg
+    msg = f"Lane {_id} is not fully specified! Spline order has to be a single integer"
+    assert type(spl_order) == int, msg
