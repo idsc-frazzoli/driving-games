@@ -6,6 +6,7 @@ module_path = os.path.dirname(__file__)
 
 
 def test_plot_world():
+    d = "out/test/"
     name = "Test World"
     png_fname = "test.png"
     yaml_fname = "test.yml"
@@ -20,5 +21,5 @@ def test_plot_world():
         # scale=scale,
         ref_lane_px=ref_lane_px
     )
-    world.plot_world(save_png=False)
+    world.plot_world(save_png_path=d)
 

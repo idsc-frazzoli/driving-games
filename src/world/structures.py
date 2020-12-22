@@ -6,6 +6,7 @@ from decimal import Decimal as D
 import yaml
 import numpy as np
 from scipy import interpolate
+import os
 
 
 __all__ = ["load_world", "Lane", "World"]
@@ -69,7 +70,7 @@ class World:
     background: Union[np.ndarray, Image]  # Bitmap of background
     scale: float  # [pixel/meter]
 
-    def plot_world(self, save_png: bool = False):
+    def plot_world(self, save_png_path: Optional[str] = None):
         fig, ax = plt.subplots()
         ax.set_title(self.name)
         ax.imshow(self.background)
@@ -87,13 +88,13 @@ class World:
             ax.plot(left_bound[:, 0], left_bound[:, 1], '--r', linewidth=1.0, label='Left bound')
             ax.plot(right_bound[:, 0], right_bound[:, 1], '--r', linewidth=1.0, label='Right bound')
 
-        if save_png:
+        if save_png_path:
             ax.set_axis_off()
-            fig.savefig(self.name, dpi=fig.dpi, bbox_inches='tight')
+            mkdir_p(save_png_path)
+            fig.savefig(save_png_path + self.name, dpi=fig.dpi, bbox_inches='tight')
 
         fig.tight_layout()
         fig.show()
-
         plt.close(fig=fig)
 
 
@@ -155,3 +156,18 @@ def check_spl_params(
     assert type(w) == int or type(w) == float, msg
     msg = f"Lane {_id} is not fully specified! Spline order has to be a single integer"
     assert type(spl_order) == int, msg
+
+def mkdir_p(mypath):
+    '''Creates a directory. equivalent to using mkdir -p on the command line'''
+
+    from errno import EEXIST
+    from os import makedirs, path
+
+    try:
+        makedirs(mypath)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == EEXIST and path.isdir(mypath):
+            pass
+        else:
+            raise
+
