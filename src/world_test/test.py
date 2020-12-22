@@ -10,13 +10,15 @@ def test_plot_world():
     png_fname = "test.png"
     yaml_fname = "test.yml"
     png_path = os.path.join(module_path, png_fname)
-    scale = 20
+    scale = 100/6  # [pixel/meter] Scale of background
+    ref_lane_px = 100  # pixel width of reference lane (first lane in YAML-file)
     lane_path = os.path.join(module_path, yaml_fname)
     world = load_world(
         name=name,
         background_path=png_path,
         control_points_path=lane_path,
-        scale=scale
+        # scale=scale,
+        ref_lane_px=ref_lane_px
     )
-    world.plot_world()
+    world.plot_world(save_png=False)
 
