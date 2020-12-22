@@ -1,0 +1,18 @@
+# Definition of Lanes as splines
+# Each spline has an ID (Union[str, int])
+# First lane can be used as reference lane to define the scale of the background
+# x: control point x-coordinate [m]
+# y: control point y-coordinate [m]
+# w: width of lane [m]
+# order: order of spline
+1:
+    x: [50, 130]
+    y: [16.5, 16.5]
+    w: 6
+    order: 1
+
+2:
+    x: [50, 130]
+    y: [52.5, 52.5]
+    w: 6
+    order: 1
