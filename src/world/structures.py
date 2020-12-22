@@ -1,12 +1,14 @@
+import yaml
+import numpy as np
+import os
 from dataclasses import dataclass
 from typing import Union, Dict, List, Sequence, Tuple, Optional
 from numbers import Number
 from matplotlib import pyplot as plt
 from decimal import Decimal as D
-import yaml
-import numpy as np
 from scipy import interpolate
-import os
+from errno import EEXIST
+
 
 
 __all__ = ["load_world", "Lane", "World"]
@@ -91,7 +93,7 @@ class World:
         if save_png_path:
             ax.set_axis_off()
             mkdir_p(save_png_path)
-            fig.savefig(save_png_path + self.name, dpi=fig.dpi, bbox_inches='tight')
+            fig.savefig(save_png_path + self.name, bbox_inches='tight')
 
         fig.tight_layout()
         fig.show()
@@ -157,17 +159,14 @@ def check_spl_params(
     msg = f"Lane {_id} is not fully specified! Spline order has to be a single integer"
     assert type(spl_order) == int, msg
 
-def mkdir_p(mypath):
-    '''Creates a directory. equivalent to using mkdir -p on the command line'''
 
-    from errno import EEXIST
-    from os import makedirs, path
+def mkdir_p(mypath):
+    """Creates a directory. equivalent to using mkdir -p on the command line"""
 
     try:
-        makedirs(mypath)
-    except OSError as exc:  # Python >2.5
-        if exc.errno == EEXIST and path.isdir(mypath):
+        os.makedirs(mypath)
+    except OSError as exc:
+        if exc.errno == EEXIST and os.path.isdir(mypath):
             pass
         else:
             raise
-

@@ -27,8 +27,8 @@ def highway_10_lanes() -> World:
 def intersection() -> World:
     # todo change png and yml file
     name = "Intersection"
-    png_fname = "highway-10-lanes.png"
-    yaml_fname = "highway-10-lanes.yml"
+    png_fname = "intersection.png"
+    yaml_fname = "intersection.yml"
     pixels_of_lane = 100  # pixel length of reference lane (first lane in yml file)
     png_path = os.path.join(creation_folder_path, png_fname)
     lane_path = os.path.join(creation_folder_path, yaml_fname)
