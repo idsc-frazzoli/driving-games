@@ -5,7 +5,7 @@ from world.structures import World
 from world_zoo.zoo import world_zoo
 
 world_names = {
-    #"10 Lane Highway",
+    "10 Lane Highway",
     "Intersection"
 }
 worlds = [(world_zoo[name],) for name in world_names]
