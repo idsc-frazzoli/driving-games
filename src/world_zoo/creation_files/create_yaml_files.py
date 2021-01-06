@@ -9,10 +9,12 @@ LaneID = Union[int, str]
 Order = int
 SplineSpec = Dict[str, Union[List[Coordinate], LaneWidth, Order]]
 
+
 def copy2clip(txt: str) -> int:
     """Copies string to clipboard (xclip has to be installed)"""
-    cmd='echo '+txt.strip()+' | xclip -i'
+    cmd = 'echo '+txt.strip()+' | xclip -i'
     return subprocess.check_call(cmd, shell=True)
+
 
 def rot_m(theta: float, radians: bool = False) -> np.array:
     """Returns rotation matrix (for a left hand coordinate system)"""
@@ -20,6 +22,7 @@ def rot_m(theta: float, radians: bool = False) -> np.array:
         theta = np.radians(theta)
     c, s = np.cos(-theta), np.sin(-theta)
     return np.array(((c, -s), (s, c)))
+
 
 def ctr_p_dict_intersection() -> SplineSpec:
     """Creates the spline specifications for the intersection (YAML format)"""
@@ -35,12 +38,10 @@ def ctr_p_dict_intersection() -> SplineSpec:
     x_straight4 = [45.6, 45.6]
     y_straight4 = [0, 84]
 
-
-
     half_length = 150  # control points number for left and right turn will be double of this value
 
-    x1_right = [round(float(_),2) for _ in np.linspace(84, 42.6, half_length)]
-    x2_right = [45.6]*half_length
+    x1_right = [round(float(_), 2) for _ in np.linspace(84, 42.6, half_length)]
+    x2_right = [45.6] * half_length
     x_right1 = x1_right + x2_right
 
     y1_right = [38.4] * half_length
@@ -49,8 +50,8 @@ def ctr_p_dict_intersection() -> SplineSpec:
 
     cord_right1_np = np.array([x_right1, y_right1])
 
-    x1_left = [round(float(_),2) for _ in np.linspace(84, 45.6, half_length)]
-    x2_left = [38.4]*half_length
+    x1_left = [round(float(_), 2) for _ in np.linspace(84, 45.6, half_length)]
+    x2_left = [38.4] * half_length
     x_left1 = x1_left + x2_left
 
     y1_left = [38.4] * half_length
@@ -59,13 +60,13 @@ def ctr_p_dict_intersection() -> SplineSpec:
 
     cord_left1_np = np.array([x_left1, y_left1])
 
-    trans = np.array([[-42],[-42]])
+    trans = np.array([[-42], [-42]])
 
     theta = 90
     cord_right2_np = np.matmul(rot_m(theta), (cord_right1_np + trans)) - trans
 
-    x_right2 = [round(float(_),2) for _ in cord_right2_np[0]]
-    y_right2 = [round(float(_),2) for _ in cord_right2_np[1]]
+    x_right2 = [round(float(_), 2) for _ in cord_right2_np[0]]
+    y_right2 = [round(float(_), 2) for _ in cord_right2_np[1]]
 
     cord_left2_np = np.matmul(rot_m(theta), (cord_left1_np + trans)) - trans
 
