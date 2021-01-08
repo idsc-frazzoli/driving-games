@@ -1,6 +1,10 @@
+from typing import Mapping
+
 from reprep import Report
+from zuper_commons.text import remove_escapes
 
 from .static_game import StaticGame
+from .trajectory_game import SolvedTrajectoryGame
 
 
 def report_game_visualization(game: StaticGame) -> Report:
@@ -14,4 +18,48 @@ def report_game_visualization(game: StaticGame) -> Report:
                     viz.plot_player(player_name=player_name, state=state)
                 viz.plot_actions(player=player)
 
+    return r
+
+
+def report_nash_eq(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
+    # for k, node_set in nash_eq.items():
+    #     print(f"\n{k} -")
+    #     if not bool(node_set):
+    #         print("\t No equilibria")
+    #         continue
+    #     for node in node_set:
+    #         for player, action in node.actions.items():
+    #             print(f"\t{player}: action={action},\n"
+    #                   f"\t\toutcome={list(node.outcomes[player].values())}")
+    #         print("\n")
+
+    r = Report("states")
+    for k, node_set in nash_eq.items():
+        texts = []
+        if not bool(node_set):
+            texts.append("\t No equilibria")
+            text = "\n".join(texts)
+            r.text(f"{k} -", remove_escapes(text))
+            continue
+        for node in node_set:
+            for player, action in node.actions.items():
+                texts.append(f"\t{player}: action={action},\n"
+                             f"\t\toutcome={list(node.outcomes[player].values())}")
+            texts.append("\n")
+        text = "\n".join(texts)
+        r.text(f"{k} -", remove_escapes(text))
+
+    # for k, node_set in nash_eq.items():
+    #     # print(f"\n{k} -")
+    #     if not bool(node_set):
+    #         # print("\t No equilibria")
+    #         continue
+    #     texts = list(map(debug_print, node_set))
+    #     text = "\n".join(texts)
+    #     r.text(f"{k}-", remove_escapes(text))
+        # for node in node_set:
+        #     for player, action in node.actions.items():
+        #         print(f"\t{player}: action={action},\n"
+        #               f"\t\toutcome={list(node.outcomes[player].values())}")
+        #     print("\n")
     return r

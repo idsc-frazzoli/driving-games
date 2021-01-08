@@ -2,8 +2,8 @@ from abc import abstractmethod
 from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
-
 from networkx import MultiDiGraph
+from multiprocessing import Pool
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
@@ -60,11 +60,17 @@ class SolvedTrajectoryGameNode(StaticSolvedGameNode[Trajectory, PlayerOutcome]):
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
 
 
+def compute_outcomes(iterable, sgame: StaticGame):
+    key, joint_traj_in = iterable
+    get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
+    ps = sgame.ps
+    return key, ps.build(ps.unit(joint_traj_in), f=get_outcomes)
+
+
 def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     """
     Preprocess the game -> Compute all possible actions and outcomes for each combination
     """
-    ps = sgame.ps
 
     # Generate the trajectories for each player (i.e. get the available actions)
     available_traj: Dict[PlayerName, FrozenSet[Trajectory]] = {}
@@ -78,14 +84,33 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         )
 
     # Compute the distribution of outcomes for each joint action
-    tic = perf_counter()
     outcomes: Dict[JointPureTraj, Poss[TrajGameOutcome]] = {}
-    get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
-    for joint_traj in set(iterate_dict_combinations(available_traj)):
-        outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
+    joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
 
-    toc = perf_counter() - tic
-    print(f"Outcomes evaluation time = {toc} s")
+    def outcome_callback(outcomes_list):
+        for key, value in outcomes_list:
+            outcomes[joint_traj_dict[key]] = value
+
+    get_outcomes = partial(compute_outcomes, sgame=sgame)
+    tic = perf_counter()
+    pool = Pool()
+    # TODO[SIR]: Metric cache is not shared between threads now
+    pool_res = pool.map_async(func=get_outcomes, callback=outcome_callback,
+                              iterable=joint_traj_dict.items())
+    pool_res.get()
+    print(f"Outcomes Eval Time = {perf_counter() - tic}s")
+    pool.close()
+    pool.join()
+
+    # tic = perf_counter()
+    # outcomes = {}
+    # get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
+    # ps = sgame.ps
+    # for joint_traj in set(iterate_dict_combinations(available_traj)):
+    #     outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
+    #
+    # toc = perf_counter() - tic
+    # print(f"Outcomes evaluation time = {toc} s")
 
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {

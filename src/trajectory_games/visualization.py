@@ -58,7 +58,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Worl
             y_max = max(y_max, np.max(poly_points[:, 1]))
             # colour = self.world.get_geometry(player).colour
             path_patches[player] = patches.Polygon(poly_points, linewidth=0, edgecolor="r",
-                                                   facecolor="grey")
+                                                   facecolor="lightgray")
             paths[player] = path
 
         points = ((x_min, y_min), (x_max, y_min), (x_max, y_max),
@@ -122,7 +122,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Worl
             pos=pos,
             nodelist=G.nodes(),
             node_size=node_size,
-            node_color='k',
+            node_color='grey',
+            alpha=0.5,
         )
         edges = draw_networkx_edges(
             G,

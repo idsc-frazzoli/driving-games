@@ -25,7 +25,7 @@ from trajectory_games import (
 
 
 def get_trajectory_game_players() -> Mapping[PlayerName, TrajectoryGamePlayer]:
-    steps_dst, step_dst = 3, pi / 6
+    steps_dst, step_dst = 3, pi / 8.0
     steps_acc, step_acc = 3, 3.0
     u_acc = frozenset([D(_ * step_acc) for _ in range(-steps_acc // 2 + 1, steps_acc // 2 + 1)])
     u_dst = frozenset([D(_ * step_dst) for _ in range(-steps_dst // 2 + 1, steps_dst // 2 + 1)])
@@ -45,7 +45,7 @@ def get_trajectory_game_players() -> Mapping[PlayerName, TrajectoryGamePlayer]:
 
     p1 = PlayerName("P1")
     p2 = PlayerName("P2")
-    state1 = VehicleState(x=D("0"), y=D("8"), th=D(pi / 2), v=D("8"), st=D("0"), t=D("0"))
+    state1 = VehicleState(x=D("0"), y=D("5"), th=D(pi / 2), v=D("8"), st=D("0"), t=D("0"))
     state2 = VehicleState(x=D("0"), y=D("0"), th=D(pi / 2), v=D("10"), st=D("0"), t=D("0"))
 
     ps = PossibilitySet()
