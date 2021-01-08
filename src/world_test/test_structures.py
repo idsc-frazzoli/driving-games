@@ -8,8 +8,8 @@ module_path = os.path.dirname(__file__)
 def test_plot_world():
     d = "out/test/"
     name = "Test World"
-    png_fname = "test.png"
-    yaml_fname = "test.yml"
+    png_fname = "test_structures.png"
+    yaml_fname = "test_structures.yml"
     png_path = os.path.join(module_path, png_fname)
     scale = 100/6  # [pixel/meter] Scale of background
     ref_lane_px = 100  # pixel width of reference lane (first lane in YAML-file)
