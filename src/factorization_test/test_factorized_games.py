@@ -1,30 +1,43 @@
 from decimal import Decimal as D
 from os.path import join
-from driving_games import (
-    TwoVehicleSimpleParams,
-    NO_LIGHTS,
-    TwoVehicleUncertaintyParams,
-    ProbPrefExpectedValue,
-    ProbabilityFraction,
-)
+
 from games import (
-    STRATEGY_MIX,
-    SolverParams,
+    MIX_MNE,
+    PURE_STRATEGIES,
     report_solutions,
     create_report_preprocessed,
 )
-from games_zoo.solvers import SolverSpec
+from games.access import get_game_factorization
+from games.solve.solution import solve1
+
+from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
+from factorization.solve import preprocess_game_factorization
+from factorization.game_generation import get_duckie_game
 
 
-
-def test():
+def test_factorization():
     d = "out/factorized_dg/"
-    game = # todo get_n_player_game()
     game_name = "factorized game"
-    solver_spec = SolverSpec("test", SolverParams(D(1), STRATEGY_MIX, False))
-    solver_name = solver_spec.desc
-    game_preprocessed = # todo preprocessed_game_factorized
-    solutions = # todo solve_factorized_game
+    solver_name = "Test"
+    game_spec =  get_duckie_game()  # todo generate a duckie game
+    game = game_spec.game
+    use_factorization = True
+    get_factorization = get_game_factorization  # factorization algo used
+    dt = D(1)  # delta-t of discretization
+    admissible_strategies = PURE_STRATEGIES
+    strategy_multiple_nash = MIX_MNE
+
+    solve_params = FactorizationSolverParams(
+            admissible_strategies=admissible_strategies,
+            strategy_multiple_nash=strategy_multiple_nash,
+            dt=dt,
+            use_factorization=use_factorization,
+            get_factorization=get_factorization)
+    solver_spec = FactorizationSolverSpec("test", solve_params)
+
+    game_preprocessed = preprocess_game_factorization(game, solver_spec.solver_params)
+    solutions = solve1(game_preprocessed)
+
     dg = join(d, game_name)
     ds = join(dg, solver_name)
     r_solutions = report_solutions(game_preprocessed, solutions)
