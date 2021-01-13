@@ -12,14 +12,14 @@ from games.solve.solution import solve1
 
 from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
 from factorization.solve import preprocess_game_factorization
-from factorization.game_generation import get_duckie_game
+from driving_games.zoo import get_sym
 
 
 def test_factorization():
     d = "out/factorized_dg/"
     game_name = "factorized game"
     solver_name = "Test"
-    game_spec =  get_duckie_game()  # todo generate a duckie game
+    game_spec =  get_sym()  # todo generate a duckie game
     game = game_spec.game
     use_factorization = True
     get_factorization = get_game_factorization  # factorization algo used
