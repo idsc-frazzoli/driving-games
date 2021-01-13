@@ -1,11 +1,12 @@
 from decimal import Decimal as D
 
-from games import GameSpec, UncertaintyParams
+from games import UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
-from duckie_games.game_generation import get_duckie_game, DuckieVehicleParams
+from duckie_games.game_generation import get_duckie_game, DuckieVehicleParams, DuckieGameParams
 from driving_games.structures import NO_LIGHTS
+
 
 road = D(6)
 duckie_vehicle_parameters = DuckieVehicleParams(
@@ -22,11 +23,25 @@ duckie_vehicle_parameters = DuckieVehicleParams(
     first_progress=D(0),
     second_progress=D(0),
     shared_resources_ds=D(1.5),
+)
+
+duckie_game_parameters = DuckieGameParams(
     player_number=2
 )
+
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 
+
 def test_game_generation():
-    duckie_game_sets = get_duckie_game(duckie_vehicle_parameters, uncertainty_sets)
-    duckie_game_prop = get_duckie_game(duckie_vehicle_parameters, uncertainty_prob)
+    duckie_game_sets = get_duckie_game(
+        vehicles_params=duckie_vehicle_parameters,
+        game_params=duckie_game_parameters,
+        uncertainty_params=uncertainty_sets
+    )
+
+    duckie_game_prop = get_duckie_game(
+        vehicles_params=duckie_vehicle_parameters,
+        game_params=duckie_game_parameters,
+        uncertainty_params=uncertainty_prob
+    )

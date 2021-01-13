@@ -17,6 +17,10 @@ from driving_games.structures import (
 from possibilities import Poss, PossibilityMonad
 
 from driving_games.vehicle_dynamics import VehicleDynamics
+from driving_games.rectangle import Rectangle
+
+from .structures import DuckieState, DuckieActions, DuckieGeometry
+
 
 
 class DuckieDynamics(VehicleDynamics):
@@ -30,7 +34,7 @@ class DuckieDynamics(VehicleDynamics):
             max_path: D,
             lights_commands: FrozenSet[Lights],
             shared_resources_ds: D,
-            vg: VehicleGeometry,
+            vg: DuckieGeometry,
             poss_monad: PossibilityMonad,
     ):
         VehicleDynamics.__init__(
