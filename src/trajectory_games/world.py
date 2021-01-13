@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Mapping, List
 
 from games import PlayerName
 from .structures import VehicleGeometry
@@ -18,6 +18,9 @@ class World:
 
     geo: Mapping[PlayerName, VehicleGeometry]
     """ Geometry of each player """
+
+    def get_players(self) -> List[PlayerName]:
+        return list(self.geo.keys())
 
     def get_reference(self, player: PlayerName) -> PathWithBounds:
         return self.ref[player]

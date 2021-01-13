@@ -2,6 +2,8 @@ from abc import abstractmethod
 from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
+from networkx import MultiDiGraph
+from multiprocessing import Pool
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
@@ -10,7 +12,7 @@ from preferences import (
     Preference,
 )
 
-from .structures import VehicleState
+from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .world import World
 from .metrics_def import PlayerOutcome, TrajGameOutcome
@@ -43,11 +45,11 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
         """ Generate all possible actions for a given state and world. """
 
 
-class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, World, PlayerOutcome]):
+class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, World, PlayerOutcome, VehicleGeometry]):
     pass
 
 
-class TrajectoryGame(StaticGame[VehicleState, Trajectory, World, PlayerOutcome]):
+class TrajectoryGame(StaticGame[VehicleState, Trajectory, World, PlayerOutcome, VehicleGeometry]):
     pass
 
 
@@ -58,11 +60,17 @@ class SolvedTrajectoryGameNode(StaticSolvedGameNode[Trajectory, PlayerOutcome]):
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
 
 
+def compute_outcomes(iterable, sgame: StaticGame):
+    key, joint_traj_in = iterable
+    get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
+    ps = sgame.ps
+    return key, ps.build(ps.unit(joint_traj_in), f=get_outcomes)
+
+
 def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     """
     Preprocess the game -> Compute all possible actions and outcomes for each combination
     """
-    ps = sgame.ps
 
     # Generate the trajectories for each player (i.e. get the available actions)
     available_traj: Dict[PlayerName, FrozenSet[Trajectory]] = {}
@@ -70,19 +78,39 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         # In the future can be extended to uncertain initial state
         states = game_player.state.support()
         assert len(states) == 1, states
+        game_player.graph = MultiDiGraph()
         available_traj[player_name] = game_player.actions_generator.get_action_set(
-            state=next(iter(states)), world=sgame.world
+            state=next(iter(states)), world=sgame.world, graph=game_player.graph
         )
 
     # Compute the distribution of outcomes for each joint action
-    tic = perf_counter()
     outcomes: Dict[JointPureTraj, Poss[TrajGameOutcome]] = {}
-    get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
-    for joint_traj in set(iterate_dict_combinations(available_traj)):
-        outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
+    joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
 
-    toc = perf_counter() - tic
-    print(f"Outcomes evaluation time = {toc} s")
+    def outcome_callback(outcomes_list):
+        for key, value in outcomes_list:
+            outcomes[joint_traj_dict[key]] = value
+
+    get_outcomes = partial(compute_outcomes, sgame=sgame)
+    tic = perf_counter()
+    pool = Pool()
+    # TODO[SIR]: Metric cache is not shared between threads now
+    pool_res = pool.map_async(func=get_outcomes, callback=outcome_callback,
+                              iterable=joint_traj_dict.items())
+    pool_res.get()
+    print(f"Outcomes Eval Time = {perf_counter() - tic}s")
+    pool.close()
+    pool.join()
+
+    # tic = perf_counter()
+    # outcomes = {}
+    # get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
+    # ps = sgame.ps
+    # for joint_traj in set(iterate_dict_combinations(available_traj)):
+    #     outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
+    #
+    # toc = perf_counter() - tic
+    # print(f"Outcomes evaluation time = {toc} s")
 
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {

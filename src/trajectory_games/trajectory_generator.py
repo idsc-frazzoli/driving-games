@@ -17,7 +17,7 @@ __all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
 
 class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World], ABC):
     @abstractmethod
-    def get_action_set(self, state: VehicleState, world: World) -> FrozenSet[Trajectory]:
+    def get_action_set(self, state: VehicleState, world: World, **kwargs) -> FrozenSet[Trajectory]:
         pass
 
 
@@ -26,13 +26,10 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         self.params = params
         self._bicycle_dyn = BicycleDynamics(params=params)
 
-    def get_action_set(self, state: VehicleState, world: World) -> FrozenSet[Trajectory]:
-        # report_direc = "out/tests/{}/".format(player)
-        report_direc: str = ""
+    def get_action_set(self, state: VehicleState, world: World, graph: MultiDiGraph = None) -> FrozenSet[Trajectory]:
         G = self._get_trajectory_graph(state=state)
-        if bool(report_direc):
-            report = report_trajectories(G=G)
-            report.to_html(join(report_direc, "trajectories.html"))
+        if isinstance(graph, MultiDiGraph):
+            graph.__init__(G)
         trajectories = self._trajectory_graph_to_list(G=G)
         return frozenset(trajectories)
 
@@ -99,44 +96,3 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                     G=G, node=n2, traj=traj1, all_traj=all_traj, expanded=expanded
                 )
         expanded.add(node)
-
-
-def report_trajectories(G: MultiDiGraph) -> Report:
-    r = Report(nid="trajectories")
-    caption = "Trajectories generated"
-
-    def pos_node(n: VehicleState):
-        x = G.nodes[n]["x"]
-        y = G.nodes[n]["y"]
-        return float(x), float(y)
-
-    def line_width(n: VehicleState):
-        return float(1.0 / pow(2.0, G.edges[n]["gen"]))
-
-    def node_sizes(n: VehicleState):
-        return float(1.0 / pow(2.0, G.nodes[n]["gen"]))
-
-    pos = {_: pos_node(_) for _ in G.nodes}
-    widths = [line_width(_) for _ in G.edges]
-    # node_size = [node_sizes(_) for _ in G.nodes]
-
-    with r.plot("s", caption=caption) as plt:
-        # draw_networkx_nodes(
-        #     G,
-        #     pos=pos,
-        #     nodelist=G.nodes(),
-        #     cmap=plt.cm.Blues,
-        #     node_size=node_size,
-        # )
-        draw_networkx_edges(
-            G,
-            pos=pos,
-            edgelist=G.edges(),
-            alpha=0.5,
-            arrows=False,
-            width=widths,
-        )
-        plt.xlabel("x")
-        plt.ylabel("y")
-        plt.axis("auto")
-    return r
