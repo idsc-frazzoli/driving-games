@@ -23,6 +23,8 @@ class FactorizationSolverParams(SolverParams):
     get_factorization: Optional[Callable[[Game[X, U, Y, RP, RJ, SR], Player_Preprocessed], GameFactorization]]
     """ Contains the factorization algo used """
 
+
 @dataclass
 class FactorizationSolverSpec(SolverSpec):
     solver_params: FactorizationSolverParams
+    """ Contains the Factorization Solver Parameters """
