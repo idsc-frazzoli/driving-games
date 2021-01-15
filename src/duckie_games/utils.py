@@ -1,0 +1,64 @@
+from math import isclose
+from decimal import Decimal as D
+
+from typing import List
+import numpy as np
+
+import geometry as geo
+from driving_games.structures import SE2_disc
+import duckietown_world as dw
+from duckietown_world.geo.transforms import SE2Transform
+from duckietown_world.world_duckietown.lane_segment import LaneSegment
+
+
+def interpolate(lane: LaneSegment, beta: float) -> SE2Transform:
+    """ Interpolate along the centerline of a lane. Start: beta=0, End beta=1 """
+    n_ctr_points = len(lane.control_points)  # get the control points of the lane
+    dw_beta = beta * (n_ctr_points - 1)  # transform the beta to the beta used by duckietown world
+    p = lane.center_point(dw_beta)  # get the pose
+    transform = dw.SE2Transform.from_SE2(p)  # transform the pose
+    return transform
+
+
+def interpolate_n_points(lane: dw.LaneSegment, betas: List[float]) -> List[dw.SE2Transform]:
+    """ Get pose sequence as a SE2Transform along the center line of a lane, beta=0 start beta=1 end """
+    msg = f"betas = {betas} have to be in ascending order to follow a lane"
+    assert all(map(isclose, sorted(betas), betas)), msg  # check if values are ascending
+    transforms = [interpolate(lane, beta) for beta in betas]
+    return transforms
+
+
+def interpolate_along_lane(lane: LaneSegment, along_lane: float) -> SE2Transform:
+    """ Input: lane and 1D position along the lane. Output: Pose on the duckietown map """
+    dw_beta = lane.beta_from_along_lane(along_lane=along_lane)  # get the beta in in the dw representation
+    p = lane.center_point(dw_beta)  # get pose
+    transform = dw.SE2Transform.from_SE2(p)
+    return transform
+
+
+def interpolate_along_lane_n_points(
+    lane: LaneSegment,
+    positions_along_lane: List[float]
+) -> List[SE2Transform]:
+    """ Input: lane and sequence of 1D positions along the lane. Output: Pose sequence on the duckietown map """
+    msg = f"Positions={positions_along_lane} have to be in ascending order to follow a lane"
+    assert all(map(isclose, sorted(positions_along_lane), positions_along_lane)), msg
+    transforms = [interpolate_along_lane(lane, along_lane) for along_lane in positions_along_lane]
+    return transforms
+
+
+def from_SE2_disc_to_SE2Transform(q: SE2_disc) -> SE2Transform:
+    x, y, theta_deg = map(float, q)  # does not work with decimals
+    theta_rad = np.deg2rad(theta_deg)
+    q_SE2 = geo.SE2_from_translation_angle(t=[x, y], theta=theta_rad)
+    q_transformed = dw.SE2Transform.from_SE2(q_SE2)
+    return q_transformed
+
+
+def from_SE2Transform_to_SE2_disc(q: SE2Transform) -> SE2_disc:
+    q_SE2 = dw.SE2Transform.as_SE2(q)
+    t, theta_rad = geo.translation_angle_from_SE2(q_SE2)
+    x, y = t
+    theta_deg = np.rad2deg(theta_rad)
+    se2_disc = (D(x), D(y), D(theta_deg))
+    return se2_disc

@@ -1,0 +1,44 @@
+import numpy as np
+from decimal import Decimal as D
+from math import isclose
+
+import geometry as geo
+
+import duckietown_world as dw
+from duckietown_world.world_duckietown.sampling_poses import sample_good_starting_pose
+
+from driving_games.structures import SE2_disc
+from duckie_games.utils import (
+    from_SE2_disc_to_SE2Transform,
+    from_SE2Transform_to_SE2_disc,
+    interpolate,
+    interpolate_n_points,
+    interpolate_along_lane_n_points,
+    interpolate_along_lane
+)
+
+duckie_map = dw.load_map('4way')
+
+def test_transformations():
+    t_ref = [2, 4]
+    theta_rad_ref = np.pi / 3
+    theta_deg_ref = np.rad2deg(theta_rad_ref)
+
+    q_SE2_ref = geo.SE2_from_translation_angle(t_ref, theta_rad_ref)
+    q_SE2Transform_ref = dw.SE2Transform.from_SE2(q_SE2_ref)
+    x_ref, y_ref = t_ref
+    q_SE2_disc_ref = (D(x_ref), D(y_ref), D(theta_deg_ref))  # SE2_disc
+
+    q_SE2_disc = from_SE2Transform_to_SE2_disc(q_SE2Transform_ref)
+
+    q_SE2Transform = from_SE2_disc_to_SE2Transform(q_SE2_disc_ref)
+
+    assert all(map(isclose, q_SE2_disc, q_SE2_disc_ref)), f"SE2_disc {q_SE2_disc} is not equal ref {q_SE2_disc_ref}"
+
+    statement = (
+            isclose(q_SE2Transform.theta, q_SE2Transform_ref.theta) and
+            all(map(isclose, q_SE2Transform.p, q_SE2Transform_ref.p))
+    )
+    assert statement, f"SE2transform {q_SE2Transform} is not equal ref {q_SE2Transform_ref}"
+
+# todo write tests for interpolations
