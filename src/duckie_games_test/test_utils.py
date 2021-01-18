@@ -6,6 +6,7 @@ import geometry as geo
 
 import duckietown_world as dw
 from duckietown_world.world_duckietown.sampling_poses import sample_good_starting_pose
+from duckietown_world.svg_drawing.ipython_utils import ipython_draw_html
 
 from driving_games.structures import SE2_disc
 from duckie_games.utils import (
@@ -14,12 +15,15 @@ from duckie_games.utils import (
     interpolate,
     interpolate_n_points,
     interpolate_along_lane_n_points,
-    interpolate_along_lane
+    interpolate_along_lane,
+    merge_lanes,
+    get_lane_segments
 )
 
-duckie_map = dw.load_map('4way')
 
 def test_transformations():
+    """ Tests the conversion from SE2_discs to SE2Transforms and vice versa """
+
     t_ref = [2, 4]
     theta_rad_ref = np.pi / 3
     theta_deg_ref = np.rad2deg(theta_rad_ref)
@@ -42,3 +46,33 @@ def test_transformations():
     assert statement, f"SE2transform {q_SE2Transform} is not equal ref {q_SE2Transform_ref}"
 
 # todo write tests for interpolations
+
+
+def test_lane_extracting_merging():
+    """ Test lane extraction from a duckietown map and their merging"""
+
+    d = "out/"
+    duckie_map = dw.load_map('4way')
+    lane_names = ['ls051', 'ls031', 'ls040', 'ls044', 'L7', 'ls005', 'ls017']
+    lane_segments = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names)
+    merged_lane = merge_lanes(lane_segments)
+
+    sum_lane_lengths = sum([ln.get_lane_length() for ln in lane_segments])
+    merged_lane_length = merged_lane.get_lane_length()
+    msg = f"Lanes have not the same lenght: {sum_lane_lengths} is not {merged_lane_length}"
+    assert isclose(merged_lane_length, sum_lane_lengths, abs_tol=1e-5), msg
+
+    # Draw the list of segments
+    lane_segments_obj = dw.PlacedObject()
+    for lane_name, lane in zip(lane_names, lane_segments):
+        lane_segments_obj.set_object(lane_name, lane, ground_truth=dw.SE2Transform.identity())
+    name = "lane_segments"
+    outdir = d + name
+    ipython_draw_html(po=lane_segments_obj, outdir=outdir)
+
+    # Draw the merged lane
+    merged_lane_obj = dw.PlacedObject()
+    merged_lane_obj.set_object("merged_lane", merged_lane, ground_truth=dw.SE2Transform.identity())
+    name = "merged_lane"
+    outdir = d + name
+    ipython_draw_html(po=merged_lane_obj, outdir=outdir)
