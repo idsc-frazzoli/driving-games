@@ -1,6 +1,7 @@
 import numpy as np
 from decimal import Decimal as D
 from math import isclose
+from copy import deepcopy
 
 import geometry as geo
 
@@ -12,10 +13,8 @@ from driving_games.structures import SE2_disc
 from duckie_games.utils import (
     from_SE2_disc_to_SE2Transform,
     from_SE2Transform_to_SE2_disc,
-    interpolate,
     interpolate_n_points,
     interpolate_along_lane_n_points,
-    interpolate_along_lane,
     merge_lanes,
     get_lane_segments
 )
@@ -45,8 +44,6 @@ def test_transformations():
     )
     assert statement, f"SE2transform {q_SE2Transform} is not equal ref {q_SE2Transform_ref}"
 
-# todo write tests for interpolations
-
 
 def test_lane_extracting_merging():
     """ Test lane extraction from a duckietown map and their merging"""
@@ -57,6 +54,7 @@ def test_lane_extracting_merging():
     lane_segments = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names)
     merged_lane = merge_lanes(lane_segments)
 
+    # Check if both lanes have same length
     sum_lane_lengths = sum([ln.get_lane_length() for ln in lane_segments])
     merged_lane_length = merged_lane.get_lane_length()
     msg = f"Lanes have not the same lenght: {sum_lane_lengths} is not {merged_lane_length}"
@@ -76,3 +74,50 @@ def test_lane_extracting_merging():
     name = "merged_lane"
     outdir = d + name
     ipython_draw_html(po=merged_lane_obj, outdir=outdir)
+
+
+def test_interpolation():
+    """ Test for the interpolation functions"""
+
+    d = "out/"
+    duckie_map = dw.load_map('4way')
+    lane_names = ['ls051', 'ls031', 'ls040', 'ls044', 'L7', 'ls005', 'ls017']
+    lane_segments = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names)
+    merged_lane = merge_lanes(lane_segments)
+
+    nb_points = 30
+
+    start = 0
+    end = 1
+    betas = np.linspace(start, end, nb_points)
+
+    transforms_seq_0_1 = interpolate_n_points(lane=merged_lane, betas=betas)
+
+    # Draw the interpolation sequence (0 to 1)
+    duckie_map_draw = deepcopy(duckie_map)
+    duckie = dw.DB18()
+    timestamps = range(nb_points)
+    ground_truth = dw.SampledSequence[dw.SE2Transform](timestamps, transforms_seq_0_1)
+    duckie_map_draw.set_object("interpolate_0_1", duckie, ground_truth=ground_truth)
+    name = "interpolated_0_1"
+    outdir = d + name
+    ipython_draw_html(po=duckie_map_draw, outdir=outdir)
+
+    start = 0
+    end = merged_lane.get_lane_length()
+    points_along_lane = np.linspace(start, end, nb_points)
+
+    transforms_seq_0_max_length = interpolate_along_lane_n_points(
+        lane=merged_lane,
+        positions_along_lane=points_along_lane
+    )
+
+    # Draw the interpolation sequence (0 to length lane)
+    duckie_map_draw = deepcopy(duckie_map)
+    duckie = dw.DB18()
+    timestamps = range(nb_points)
+    ground_truth = dw.SampledSequence[dw.SE2Transform](timestamps, transforms_seq_0_max_length)
+    duckie_map_draw.set_object("interpolate_0_max_length", duckie, ground_truth=ground_truth)
+    name = "interpolated_0_max_length"
+    outdir = d + name
+    ipython_draw_html(po=duckie_map_draw, outdir=outdir)
