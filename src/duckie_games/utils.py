@@ -2,7 +2,7 @@ from math import isclose
 from decimal import Decimal as D
 import itertools as it
 
-from typing import List
+from typing import List, cast
 import numpy as np
 
 import geometry as geo
@@ -99,5 +99,33 @@ def merge_lanes(lanes: List[LaneSegment]) -> LaneSegment:
 def get_lane_segments(duckie_map: DuckietownMap, lane_names: List[LaneName]) -> List[LaneSegment]:
     sk = dw.get_skeleton_graph(duckie_map)  # get the skeleton graph
     map_lane_segments = sk.root2  # get the map with all the lane segments
-    lane_segments = [map_lane_segments.children[lane_name] for lane_name in lane_names]
+    lane_segments = [cast(LaneSegment,map_lane_segments.children[lane_name]) for lane_name in lane_names]
     return lane_segments
+
+
+class DuckietownMapHashable(DuckietownMap):
+
+    def __hash__(self):
+        return hash(repr(self))
+
+    #def __eq__(self, other):
+     #   return hash(self) == hash(other)
+
+    @classmethod
+    def initializor(cls, duckie_map: DuckietownMap):
+        dm_dict = duckie_map.__dict__
+        return cls(**dm_dict)
+
+
+class LaneSegmentHashable(LaneSegment):
+
+    def __hash__(self):
+        return hash(repr(self))
+
+    #def __eq__(self, other):
+     #   return hash(self) == hash(other)
+
+    @classmethod
+    def initializor(cls, lane_segment: LaneSegment):
+        ls_dict = lane_segment.__dict__
+        return cls(**ls_dict)

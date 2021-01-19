@@ -1,44 +1,33 @@
-from typing import Union, Tuple, Mapping, FrozenSet, Sequence
+from typing import Union, Tuple
 from dataclasses import dataclass
 from decimal import Decimal as D
 import numpy as np
 
 import geometry as geo
-from duckietown_world.geo.transforms import SE2Transform
-from duckietown_world.world_duckietown.lane_segment import LaneSegment
-from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
-from driving_games.structures import VehicleGeometry, VehicleState, VehicleActions, VehicleCosts, SE2_disc, Lights
-from driving_games.vehicle_observation import VehicleDirectObservations
-from driving_games.personal_reward import VehiclePersonalRewardStructureTime
-from driving_games.preferences_coll_time import VehiclePreferencesCollTime
-from driving_games.joint_reward import VehicleJointReward
-from driving_games.collisions import Collision
+from driving_games.structures import VehicleActions, VehicleCosts, SE2_disc, Lights
 
-from games.solve.solution_structures import SolverParams, GameFactorization, GamePlayerPreprocessed
-from games_zoo.solvers import SolverSpec
-from games.game_def import (
-    Game,
-    PlayerName,
-    Combined,
-    RJ,
-    RP,
-    SR,
-    U,
-    X,
-    Y
+from duckie_games.utils import (
+    interpolate_along_lane,
+    from_SE2Transform_to_SE2_disc,
+    DuckietownMapHashable,
+    LaneSegmentHashable
 )
-
-from duckie_games.utils import interpolate_along_lane, from_SE2Transform_to_SE2_disc
 
 
 @dataclass(frozen=True)
-class DuckieCost(VehicleCosts):
+class DuckieCosts(VehicleCosts):
     pass
 
 
 @dataclass(frozen=True)
-class DuckieGeometry(VehicleGeometry):
+class DuckieGeometry:
+    mass: D
+    """ Mass [kg] """
+    width: D
+    """ Duckie width [m] """
+    length: D
+    """ Duckie length [m] """
     color: Union[str, Tuple[float, float, float]]
     """ Color of Duckiebot, e.g. "red", "green", "blue" """
     height: D
@@ -47,13 +36,13 @@ class DuckieGeometry(VehicleGeometry):
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class DuckieState:
-    duckie_map: DuckietownMap
+    duckie_map: DuckietownMapHashable
     """ Duckietown world map where the duckie is playing """
 
     ref: SE2_disc
     """ Reference frame from where the vehicle started """
 
-    lane: LaneSegment
+    lane: LaneSegmentHashable
     """ Lane that the duckie follows"""
 
     x: D
@@ -102,44 +91,3 @@ class DuckieState:
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class DuckieActions(VehicleActions):
     pass
-
-
-@dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class DuckieObservation:
-    pass
-
-
-class DuckiePersonalRewardStructureTime(VehiclePersonalRewardStructureTime):
-    def __init__(self, max_path: D):
-        VehiclePersonalRewardStructureTime.__init__(self, max_path=max_path)
-
-
-class DuckieDirectObservations(VehicleDirectObservations):
-    def __init__(
-        self,
-        my_possible_states: FrozenSet[DuckieState],
-        possible_states: Mapping[PlayerName, FrozenSet[DuckieState]]
-    ):
-        VehicleDirectObservations.__init__(
-            self,
-            my_possible_states=my_possible_states,
-            possible_states=possible_states
-        )
-
-
-class DuckiePreferencesCollTime(VehiclePreferencesCollTime):
-    def __init__(self):
-        VehiclePreferencesCollTime.__init__(self)
-
-
-class DuckieJointReward(VehicleJointReward):
-    def __init__(
-            self,
-            collision_threshold: float,
-            geometries: Mapping[PlayerName, DuckieGeometry]
-    ):
-        VehicleJointReward.__init__(
-            self,
-            collision_threshold=collision_threshold,
-            geometries=geometries
-        )
