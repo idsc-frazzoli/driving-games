@@ -14,6 +14,7 @@ networkx>=2.4
 zuper-typing-z6>=6.1.0
 seaborn
 nashpy
+duckietown-world-daffy==6.2.7
 
 # extra
 jupyter
