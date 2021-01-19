@@ -77,13 +77,16 @@ class DuckieGameParams:
     max_wait: Dict[PlayerName, D]
     """ Maximal time at v=0 """
 
+    max_path: Dict[PlayerName, D]
+    """ Max path length of a player"""
+
     available_accels: Dict[PlayerName, FrozenSet[D]]
     """ Available accelerations available """
 
     light_actions: Dict[PlayerName, FrozenSet[Lights]]
     """ Available light action"""
 
-    dt: Dict[PlayerName, D]
+    dt: D
     """ Discretization timestep """
 
     lanes: Dict[PlayerName, Lane]
@@ -126,15 +129,24 @@ def get_duckie_game(
 
     duckie_players: Dict[PlayerName, DuckieGamePlayer] = {}
     shared_resources_ds = duckie_game_params.shared_resources_ds
+    dt = duckie_game_params.dt
+
+    if duckie_game_params.player_number == 2 and duckie_game_params.player_names[0] == "N↑":
+        # todo remove when duckie game parameters are adjusted (used for reference game)
+        refs = {
+            duckie_game_params.player_names[0]: (D(11), D(0), D(+90)),
+            duckie_game_params.player_names[1]: (D(22), D(11), D(-180))
+        }
+    else:
+        refs = duckie_game_params.refs
 
     for duckie_name in duckie_game_params.player_names:
 
-        max_path = D(duckie_game_params.lanes[duckie_name].get_lane_length())
+        max_path = duckie_game_params.max_path[duckie_name]
         max_speed = duckie_game_params.max_speed[duckie_name]
         min_speed = duckie_game_params.min_speed[duckie_name]
         max_wait = duckie_game_params.max_wait[duckie_name]
-        dt = duckie_game_params.dt[duckie_name]
-        ref = duckie_game_params.refs[duckie_name]
+        ref = refs[duckie_name]
         available_accels = duckie_game_params.available_accels[duckie_name]
         light_actions = duckie_game_params.light_actions[duckie_name]
         duckie_geometry = duckie_game_params.duckie_geometries[duckie_name]
@@ -198,8 +210,9 @@ def get_duckie_game(
 
     # todo: only for the old visualization
     L = D(22)
-    duckie_game_params.side = D(6)
-    duckie_game_params.road = D(8)
+    duckie_game_params.side = D(8)
+    duckie_game_params.road = D(6)
+    duckie_game_params.road_lane_offset=D(8)/2
     game_visualization = DuckieGameVisualization(
         params=duckie_game_params,
         side=L,
@@ -225,9 +238,9 @@ def check_duckie_game_params(dg_params: DuckieGameParams) -> None:
                    dg_params.max_speed,
                    dg_params.min_speed,
                    dg_params.max_wait,
+                   dg_params.max_path,
                    dg_params.available_accels,
                    dg_params.light_actions,
-                   dg_params.dt,
                    dg_params.lanes,
                    dg_params.initial_progress]
                   )
