@@ -8,6 +8,9 @@ from duckie_games.zoo import (
 
 
 def test_game_generation():
+    """
+    Testing if the game params from duckiegames.zoo can be loaded with the game_loader
+    """
     duckie_game_sets = get_duckie_game(
         duckie_game_params=two_player_reference_game_parameters,
         uncertainty_params=uncertainty_sets

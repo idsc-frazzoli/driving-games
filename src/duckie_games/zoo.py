@@ -15,6 +15,10 @@ from duckie_games.structures import DuckieGeometry
 
 __all__ = ['two_player_reference_game_parameters', 'uncertainty_sets', 'uncertainty_prob']
 
+"""
+Collection of different parameters for a Duckiegame
+"""
+
 
 duckie_map = dw.load_map('4way')
 player_nb = 2
@@ -56,7 +60,7 @@ collision_threshold = 3.0
 shared_resources_ds = D(1.5)
 
 
-# Parameters to compare solution with the original game
+# Parameters to compare solution with the game constructed in driving_games.zoo, get_sym()
 two_player_reference_game_parameters = DuckieGameParams(
     duckie_map=duckie_map,
     player_number=player_nb,

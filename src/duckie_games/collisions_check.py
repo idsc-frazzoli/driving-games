@@ -10,13 +10,12 @@ from duckie_games.structures import DuckieGeometry, DuckieState
 from duckie_games.rectangle import sample_x, rectangle_from_pose, ProjectedCar
 
 
-# todo adapt for Duckies
+# todo adapt for Duckies then refactor as a generic function
 def collision_check(
     poses: Mapping[PlayerName, DuckieState],
     geometries: Mapping[PlayerName, DuckieGeometry],
 ) -> Mapping[PlayerName, Collision]:
-    dt = D(0.5)
-    n = 2
+
     if len(poses) == 1:
         return frozendict({})
     if len(poses) > 2:
@@ -28,6 +27,8 @@ def collision_check(
     g1 = geometries[p1]
     g2 = geometries[p2]
 
+    dt = D(0.5)  # todo
+    n = 2
     x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
     x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
 

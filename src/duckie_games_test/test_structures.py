@@ -7,7 +7,14 @@ import duckietown_world as dw
 from driving_games.structures import SE2_disc, NO_LIGHTS
 
 from duckie_games.structures import DuckieState
-from duckie_games.utils import get_lane_segments, merge_lanes, interpolate_along_lane, from_SE2Transform_to_SE2_disc
+from duckie_games.utils import (
+    get_lane_segments,
+    merge_lanes,
+    interpolate_along_lane,
+    from_SE2Transform_to_SE2_disc,
+    LaneSegmentHashable,
+    DuckietownMapHashable
+)
 
 
 def test_duckie_state():
@@ -33,9 +40,9 @@ def test_duckie_state():
     for x in x_along_lane:
         ds: DuckieState
         ds = DuckieState(
-            duckie_map=duckie_map,
+            duckie_map=DuckietownMapHashable.initializor(duckie_map),
             ref=ref,
-            lane=lane,
+            lane=LaneSegmentHashable.initializor(lane),
             x=x,
             v=v,
             wait=wait,
