@@ -17,6 +17,7 @@ Collection of functions that handle the module DuckietownWorld
 """
 
 LaneName = str
+SE2value = np.array
 
 
 def interpolate(lane: LaneSegment, beta: float) -> SE2Transform:
@@ -80,6 +81,19 @@ def from_SE2Transform_to_SE2_disc(q: SE2Transform) -> SE2_disc:
     return se2_disc
 
 
+def from_SE2_disc_to_SE2(q: SE2_disc) -> SE2value:
+    *t, theta_deg = map(float, q)
+    theta_rad = np.deg2rad(theta_deg)
+    return geo.SE2_from_translation_angle(t, theta_rad)
+
+
+def from_SE2_to_SE2_disc(q: SE2value) -> SE2_disc:
+    t, theta_rad = geo.translation_angle_from_SE2(q)
+    x, y = t
+    theta_deg = np.rad2deg(theta_rad)
+    return (D(x), D(y), D(theta_deg))
+
+
 def merge_lanes(lanes: List[LaneSegment]) -> LaneSegment:
     """ Merges a list of consecutive lane segments to one single unified lane segment """
 
@@ -106,7 +120,7 @@ def get_lane_segments(duckie_map: DuckietownMap, lane_names: List[LaneName]) -> 
     """
     sk = dw.get_skeleton_graph(duckie_map)  # get the skeleton graph
     map_lane_segments = sk.root2  # get the map with all the lane segments
-    lane_segments = [cast(LaneSegment,map_lane_segments.children[lane_name]) for lane_name in lane_names]
+    lane_segments = [cast(LaneSegment, map_lane_segments.children[lane_name]) for lane_name in lane_names]
     return lane_segments
 
 
