@@ -1,19 +1,70 @@
 from dataclasses import dataclass
 from math import isclose
-from decimal import Decimal as D
+from decimal import Decimal as D, localcontext
 from itertools import product
 from typing import List, Tuple, FrozenSet, Iterable
 import numpy as np
 
+import geometry as geo
 from geometry import xytheta_from_SE2, SE2_from_xytheta, SE2
 from zuper_commons.types import ZNotImplementedError
 
 from games.utils import fs
 
 from duckie_games.structures import DuckieState, DuckieGeometry, SE2_disc
+from duckie_games.utils import from_SE2_to_SE2_disc, from_SE2_disc_to_SE2
 
 
-Coordinates = Tuple[D, D]
+#Coordinates = Tuple[D, D]
+Width = D
+Height = D
+
+class Coordinates(Tuple[D, D]):
+
+    def __init__(self, *args, **kwargs):
+        assert isinstance(self[0], D) and isinstance(self[1], D), "Inputs have to be of type Decimals"
+
+    def as_float_tuple(self) -> Tuple[float, float]:
+        """ Converts coordinates in decimals to coordinates in floats """
+        return float(self[0]), float(self[1])
+
+    @classmethod
+    def from_float_tuple(cls, floats: Tuple[float, float]) -> "Coordinates":
+        """ Converts coordinates in floats to coordinates in decimals"""
+        coords = D(floats[0]), D(floats[1])
+        return Coordinates(coords)
+
+    def __add__(self, other):
+        x = self[0] + other[0]
+        y = self[1] + other[1]
+        return Coordinates((x, y))
+
+    def __sub__(self, other):
+        x = self[0] - other[0]
+        y = self[1] - other[1]
+        return Coordinates((x, y))
+
+    def __truediv__(self, other):
+        x = self[0]
+        y = self[1]
+        if isinstance(other, D):
+            return Coordinates((x / other, y / other))
+        elif isinstance(other, float) or isinstance(other, int):
+            return Coordinates((D(x) / other, D(y) / other))
+        else:
+            raise ZNotImplementedError()
+
+    def __mul__(self, other):
+        x = self[0]
+        y = self[1]
+        if isinstance(other, D):
+            return Coordinates((x * other, y * other))
+        elif isinstance(other, float) or isinstance(other, int):
+            return Coordinates((D(x) * other, D(y) * other))
+        else:
+            raise ZNotImplementedError()
+
+    __rmul__ = __mul__
 
 
 @dataclass(frozen=True)
@@ -37,6 +88,189 @@ class Rectangle:
         bl = self.bottom_left
         tr = self.top_right
         return (bl[0] <= c[0] <= tr[0]) and (bl[1] <= c[1] <= tr[1])
+
+
+@dataclass(frozen=True)
+class RectangleWithOrientation:
+    """ Represents a rectangle having orientations """
+
+    center_pose: SE2_disc
+    width: D
+    height: D
+
+    def __post_init__(self):
+        check_for_type = [self.width, self.height, *self.center_pose]
+        assertion = all(
+            map(isinstance, check_for_type, [D] * len(check_for_type))
+        )
+        assert assertion, "Inputs have all to be of type Decimal"
+
+    @property
+    def sizes(self) -> Tuple[Width, Height]:
+        """ Returns the width and the height of a rectangle"""
+        return (
+            self.width,
+            self.height,
+        )
+
+    @property
+    def area(self) -> D:
+        """ Returns the area of the rectangle """
+        a, b = self.sizes
+        return a * b
+
+    @property
+    def closed_contour(self) -> List[Coordinates]:
+        """
+        Returns the coordinates of the closed contour of the rectangle
+        The orientation of the contour is consistent with the quadrants of the rectangle reference coordinate system
+                      Y
+                      ^
+                      |
+          (1) -> x----|----x <- (0), (4)
+                 |    |    |
+                 |    |    |
+        --------------x--------------> X
+                 |    |    |
+                 |    |    |
+          (2) -> x----|----x <-(3)
+                      |
+        """
+
+        contour_in_rect_frame = self._closed_contour_rectangle_frame  # get the rectangle contour in the rectangle frame
+        contour = [self._from_rectangle_coord_to_abs(_coord) for _coord in contour_in_rect_frame]
+        return contour
+
+    @property
+    def contour(self) -> List[Coordinates]:
+        """
+        Returns the coordinates of the contour of the rectangle.
+        The orientation of the contour is consistent with the quadrants of the rectangle reference coordinate system
+                      Y
+                      ^
+                      |
+          (1) -> x----|----x <- (0)
+                 |    |    |
+                 |    |    |
+        --------------x--------------> X
+                 |    |    |
+                 |    |    |
+          (2) -> x----|----x <-(3)
+                      |
+        """
+
+        return self.closed_contour[:-1]
+
+    def contains_point(self, point: Coordinates, prec: int = 2) -> bool:
+        """ Returns True if the point lies inside the rectangle """
+        assert isinstance(point, Coordinates), "Point has to be type Coordinates"
+        point_rect_frame = self._from_abs_coord_to_rectangle(point)
+        return self._contains_rectangle_frame(point_rect_frame, prec=prec)
+
+    @property
+    def _closed_contour_rectangle_frame(self) -> List[Coordinates]:
+        """
+        Returns the coordinates of the closed contour of the rectangle in the rectangle coordinate system
+        The orientation of the contour is consistent with the quadrants in the rectangle coordinate system
+                      Y
+                      ^
+                      |
+          (1) -> x----|----x <- (0), (4)
+                 |    |    |
+                 |    |    |
+        --------------x--------------> X
+                 |    |    |
+                 |    |    |
+          (2) -> x----|----x <-(3)
+                      |
+        """
+
+        l0, l1 = self.width, self.height
+        bl = - l0 / 2, - l1 / 2  # bottom left coordinate
+        tr = + l0 / 2, + l1 / 2  # top right coordinate
+        res = [
+            (tr[0], tr[1]),
+            (bl[0], tr[1]),
+            (bl[0], bl[1]),
+            (tr[0], bl[1]),
+            (tr[0], tr[1]),
+        ]
+        return list(map(Coordinates, res))
+
+    @property
+    def _contour_rectangle_frame(self) -> List[Coordinates]:
+        """
+        Returns the coordinates of the closed contour of the rectangle in the rectangle coordinate system
+        The orientation of the contour is consistent with the quadrants in the rectangle coordinate system
+                      Y
+                      ^
+                      |
+          (1) -> x----|----x <- (0), (4)
+                 |    |    |
+                 |    |    |
+        --------------x--------------> X
+                 |    |    |
+                 |    |    |
+          (2) -> x----|----x <-(3)
+                      |
+        """
+
+        return self._closed_contour_rectangle_frame[:-1]
+
+    @property
+    def _top_right(self) -> Coordinates:
+        """ Returns the top right corner in the rectangle coordinate system """
+        return self._closed_contour_rectangle_frame[0]
+
+    @property
+    def _bottom_left(self) -> Coordinates:
+        """ Returns the bottom left coordinates in the rectangle coordinate system """
+        return self._closed_contour_rectangle_frame[2]
+
+    def _contains_rectangle_frame(self, coord: Coordinates, prec: int = 2) -> bool:
+        """ Returns True if the coordinates (rectangle coordinate system) lie inside the rectangle """
+        with localcontext() as ctx:
+            ctx.prec = prec
+            bl = self._bottom_left * 1  # get the rounded values (multiplying by 1)
+            tr = self._top_right * 1
+            c = coord * 1
+        res = (bl[0] <= c[0] <= tr[0]) and (bl[1] <= c[1] <= tr[1])
+        return res
+
+    def _from_rectangle_coord_to_abs(self, coord: Coordinates) -> Coordinates:
+        """
+        Returns the coordinates in the absolute coordinate system
+        """
+        center_pose_SE2 = from_SE2_disc_to_SE2(self.center_pose)  # get the pose of the rectangle as SE2
+        # convert the coordinates to float tuples
+        coord_as_floats = coord.as_float_tuple()
+
+        # get the coordinates in the absolute frame
+        coord_abs_as_floats = geo.SE2.multiply(  # apply change of coordinates
+            center_pose_SE2,  # pose of the rectangle
+            (*coord_as_floats, 1)  # coordinates in homogenous representation
+        )[:-1]  # transform back to Euclidean representation
+        coord_abs = Coordinates.from_float_tuple(coord_abs_as_floats)  # transform back to coordinates
+        return coord_abs
+
+    def _from_abs_coord_to_rectangle(self, coord: Coordinates) -> Coordinates:
+        """
+        Returns the coordinates in the rectangle coordinate system
+        """
+        center_pose_SE2 = from_SE2_disc_to_SE2(self.center_pose)  # get the pose of the rectangle as SE2
+        center_pose_SE2_inv = geo.SE2.inverse(center_pose_SE2)
+        # convert the coordinates to float tuples
+        coord_as_floats = coord.as_float_tuple()
+
+        # get the coordinates in the absolute frame
+        coord_abs_as_floats = geo.SE2.multiply(  # apply change of coordinates
+            center_pose_SE2_inv,  # inverse pose of the rectangle
+            (*coord_as_floats, 1)  # coordinates in homogenous representation
+        )[:-1]  # transform back to Euclidean representation
+        coord_abs = Coordinates.from_float_tuple(coord_abs_as_floats)  # transform back to coordinates
+        return coord_abs
+
+
 
 
 def get_rectangle_points_around(r: Rectangle) -> List[Coordinates]:
@@ -93,6 +327,26 @@ class ProjectedCar:
     front_center: Coordinates
     front_right: Coordinates
 
+
+def projected_car_from_state(x: DuckieState, vg: DuckieGeometry) -> ProjectedCar:
+    length = vg.length
+    width = vg.width
+    rect = RectangleWithOrientation(
+        center_pose=x.abs_pose,
+        width=width,
+        height=length
+    )
+    rect_contour = rect.contour
+    front_left = rect_contour[1]
+    front_right = rect_contour[0]
+    front_center = front_left + (front_right - front_left) / 2
+
+    return ProjectedCar(
+        rectangle=rect,
+        front_left=front_left,
+        front_center=front_center,
+        front_right=front_right
+    )
 
 def rectangle_from_pose(ref: SE2_disc, x: D, vg: DuckieGeometry) -> ProjectedCar:
     qref = SE2_from_xytheta([float(ref[0]), float(ref[1]), np.deg2rad(float(ref[2]))])
