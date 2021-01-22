@@ -59,6 +59,9 @@ class DuckieGameParams:
     duckie_map: DuckietownMap
     """ Map where the players play """
 
+    map_name: str
+    """ The name of the map """
+
     player_number: int
     """ Number of Duckies competing with each other """
 
@@ -131,14 +134,7 @@ def get_duckie_game(
     shared_resources_ds = duckie_game_params.shared_resources_ds
     dt = duckie_game_params.dt
 
-    if duckie_game_params.player_number == 2 and duckie_game_params.player_names[0] == "N↑":
-        # todo remove when duckie game parameters are adjusted (used for reference game)
-        refs = {
-            duckie_game_params.player_names[0]: (D(11), D(0), D(+90)),
-            duckie_game_params.player_names[1]: (D(22), D(11), D(-180))
-        }
-    else:
-        refs = duckie_game_params.refs
+    refs = duckie_game_params.refs
 
     for duckie_name in duckie_game_params.player_names:
 
@@ -208,14 +204,9 @@ def get_duckie_game(
         DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision
     ]
 
-    # todo: only for the old visualization
-    L = D(22)
-    duckie_game_params.side = D(8)
-    duckie_game_params.road = D(6)
-    duckie_game_params.road_lane_offset=D(8)/2
     game_visualization = DuckieGameVisualization(
-        params=duckie_game_params,
-        side=L,
+        duckie_map=duckie_map,
+        map_name=duckie_game_params.map_name,
         geometries=duckie_game_params.duckie_geometries,
         ds=duckie_game_params.shared_resources_ds
     )
