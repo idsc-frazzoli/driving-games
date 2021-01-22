@@ -7,7 +7,13 @@ from zuper_commons.types import ZNotImplementedError
 from driving_games.collisions import Collision, IMPACT_FRONT, IMPACT_SIDES
 
 from duckie_games.structures import DuckieGeometry, DuckieState
-from duckie_games.rectangle import sample_x, rectangle_from_pose, ProjectedCar
+from duckie_games.rectangle import (
+    sample_x,
+    projected_car_from_state,
+    ProjectedCar,
+    projected_car_from_along_lane
+)
+from duckie_games.utils import get_SE2disc_from_along_lane
 
 
 # todo adapt for Duckies then refactor as a generic function
@@ -33,8 +39,9 @@ def collision_check(
     x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
 
     for x1, x2 in zip(x1s, x2s):
-        pc1 = rectangle_from_pose(s1.ref, x1, g1)
-        pc2 = rectangle_from_pose(s2.ref, x2, g2)
+
+        pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
+        pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
 
         # did p1 collide with p2?
         p1_caused = a_caused_collision_with_b(pc1, pc2)
@@ -76,4 +83,4 @@ def collision_check(
 
 
 def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
-    return any(b.rectangle.contains(_) for _ in (a.front_right, a.front_center, a.front_left))
+    return any(b.rectangle.contains_point(_) for _ in (a.front_right, a.front_center, a.front_left))

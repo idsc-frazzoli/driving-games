@@ -12,7 +12,12 @@ from zuper_commons.types import ZNotImplementedError
 from games.utils import fs
 
 from duckie_games.structures import DuckieState, DuckieGeometry, SE2_disc
-from duckie_games.utils import from_SE2_to_SE2_disc, from_SE2_disc_to_SE2
+from duckie_games.utils import (
+    from_SE2_to_SE2_disc,
+    from_SE2_disc_to_SE2,
+    Lane,
+    get_SE2disc_from_along_lane
+)
 
 
 #Coordinates = Tuple[D, D]
@@ -67,31 +72,9 @@ class Coordinates(Tuple[D, D]):
     __rmul__ = __mul__
 
 
+
 @dataclass(frozen=True)
 class Rectangle:
-    """ Represents a rectangle """
-
-    bottom_left: Coordinates
-    top_right: Coordinates
-
-    def sizes(self) -> Tuple[D, D]:
-        return (
-            self.top_right[0] - self.bottom_left[0],
-            self.top_right[1] - self.bottom_left[1],
-        )
-
-    def area(self) -> D:
-        a, b = self.sizes()
-        return a * b
-
-    def contains(self, c: Coordinates) -> bool:
-        bl = self.bottom_left
-        tr = self.top_right
-        return (bl[0] <= c[0] <= tr[0]) and (bl[1] <= c[1] <= tr[1])
-
-
-@dataclass(frozen=True)
-class RectangleWithOrientation:
     """ Represents a rectangle having orientations """
 
     center_pose: SE2_disc
@@ -162,10 +145,33 @@ class RectangleWithOrientation:
         return self.closed_contour[:-1]
 
     def contains_point(self, point: Coordinates, prec: int = 2) -> bool:
-        """ Returns True if the point lies inside the rectangle """
+        """
+        Returns True if the point lies inside the rectangle
+        prec: precisions of decimals during comparison
+        """
         assert isinstance(point, Coordinates), "Point has to be type Coordinates"
         point_rect_frame = self._from_abs_coord_to_rectangle(point)
         return self._contains_rectangle_frame(point_rect_frame, prec=prec)
+
+    def get_points_inside(self, n: int = 6) -> List[Coordinates]:
+        """
+        Returns evenly spaced points inside the rectangle
+        """
+        bl = self._bottom_left
+        tr = self._top_right
+
+        res : List[Coordinates] = []
+        for i, j in product(range(n), range(n)):
+            alpha = D(i) / D(n - 1)
+            beta = D(j) / D(n - 1)
+            x = bl[0] * alpha + (1 - alpha) * tr[0]
+            y = bl[1] * beta + (1 - beta) * tr[1]
+            coord_rect_frame = Coordinates((D(x), D(y)))
+            coords = self._from_rectangle_coord_to_abs(coord_rect_frame)
+            res.append(coords)
+        return res
+
+
 
     @property
     def _closed_contour_rectangle_frame(self) -> List[Coordinates]:
@@ -228,7 +234,10 @@ class RectangleWithOrientation:
         return self._closed_contour_rectangle_frame[2]
 
     def _contains_rectangle_frame(self, coord: Coordinates, prec: int = 2) -> bool:
-        """ Returns True if the coordinates (rectangle coordinate system) lie inside the rectangle """
+        """
+        Returns True if the coordinates (rectangle coordinate system) lie inside the rectangle
+        prec: precisions of decimals during comparison
+        """
         with localcontext() as ctx:
             ctx.prec = prec
             bl = self._bottom_left * 1  # get the rounded values (multiplying by 1)
@@ -271,44 +280,6 @@ class RectangleWithOrientation:
         return coord_abs
 
 
-
-
-def get_rectangle_points_around(r: Rectangle) -> List[Coordinates]:
-    bl = r.bottom_left
-    tr = r.top_right
-
-    n = 6
-    res = []
-    for i, j in product(range(n), range(n)):
-        alpha = D(i) / D(n - 1)
-        beta = D(j) / D(n - 1)
-        x = bl[0] * alpha + (1 - alpha) * tr[0]
-        y = bl[1] * beta + (1 - beta) * tr[1]
-        res.append((D(x), D(y)))
-    return res
-
-
-def get_rectangle_countour(r: Rectangle) -> List[Tuple[float, float]]:
-    bl = list(map(float, r.bottom_left))
-    tr = list(map(float, r.top_right))
-    return [
-        (bl[0], bl[1]),
-        (tr[0], bl[1]),
-        (tr[0], tr[1]),
-        (bl[0], tr[1]),
-        (bl[0], bl[1]),
-    ]
-
-
-def make_rectangle(center: Coordinates, sides: Tuple[D, D]) -> Rectangle:
-    """ Creates rectangle given center and sides. """
-    c0, c1 = center
-    l0, l1 = sides
-    pa = c0 - l0 / 2, c1 - l1 / 2
-    pb = c0 + l0 / 2, c1 + l1 / 2
-    return Rectangle(pa, pb)
-
-
 def sample_x(x: D, v: D, dt: D, n: int) -> List[D]:
     """Samples n points in each direction at distance dt
 
@@ -328,10 +299,31 @@ class ProjectedCar:
     front_right: Coordinates
 
 
+def projected_car_from_along_lane(lane: Lane, along_lane: D, vg: DuckieGeometry):
+    center_pose = get_SE2disc_from_along_lane(lane=lane, along_lane=along_lane)
+    length = vg.length
+    width = vg.width
+    rect = Rectangle(
+        center_pose=center_pose,
+        width=width,
+        height=length
+    )
+    rect_contour : List[Coordinates] = rect.contour
+    front_left = rect_contour[1]
+    front_right = rect_contour[0]
+    front_center = front_left + (front_right - front_left) / 2
+
+    return ProjectedCar(
+        rectangle=rect,
+        front_left=front_left,
+        front_center=front_center,
+        front_right=front_right
+    )
+
 def projected_car_from_state(x: DuckieState, vg: DuckieGeometry) -> ProjectedCar:
     length = vg.length
     width = vg.width
-    rect = RectangleWithOrientation(
+    rect = Rectangle(
         center_pose=x.abs_pose,
         width=width,
         height=length
@@ -348,39 +340,6 @@ def projected_car_from_state(x: DuckieState, vg: DuckieGeometry) -> ProjectedCar
         front_right=front_right
     )
 
-def rectangle_from_pose(ref: SE2_disc, x: D, vg: DuckieGeometry) -> ProjectedCar:
-    qref = SE2_from_xytheta([float(ref[0]), float(ref[1]), np.deg2rad(float(ref[2]))])
-    qd = SE2.multiply(qref, SE2_from_xytheta([float(x), 0, 0]))
-
-    cx, cy, _ = xytheta_from_SE2(qd)
-    angle_deg = ref[2]
-    p = D(cx), D(cy)
-    if isclose(angle_deg, 0) or isclose(angle_deg, 180) or isclose(angle_deg, -180):
-        sides = (vg.length, vg.width)
-        rectangle = make_rectangle(p, sides)
-    elif isclose(angle_deg, 90) or isclose(angle_deg, 270):
-        sides = (vg.width, vg.length)
-        rectangle = make_rectangle(p, sides)
-    else:
-        raise ZNotImplementedError(p=p, angle_deg=angle_deg, vg=vg)
-
-    L = float(vg.length)
-    W = float(vg.width)
-    front_left_b = (L / 2, W / 2, 1)
-    front_center_b = (L / 2, 0, 1)
-    front_right_b = (L / 2, -W / 2, 1)
-
-    front_left = (qd @ front_left_b)[:2]
-    front_center = (qd @ front_center_b)[:2]
-    front_right = (qd @ front_right_b)[:2]
-
-    return ProjectedCar(
-        rectangle,
-        front_left=front_left,
-        front_center=front_center,
-        front_right=front_right,
-    )
-
 
 def get_vehicle_points(vs: DuckieState, vg: DuckieGeometry) -> FrozenSet[Coordinates]:
     """ Gets a set of representative points for the vehicle"""
@@ -391,8 +350,8 @@ def get_vehicle_points(vs: DuckieState, vg: DuckieGeometry) -> FrozenSet[Coordin
 
     points = set()
     for x in xs:
-        r = rectangle_from_pose(vs.ref, x, vg).rectangle
-        rp = get_rectangle_points_around(r)
+        r = projected_car_from_along_lane(lane=vs.lane, along_lane=x, vg=vg).rectangle
+        rp = r.get_points_inside()
         points.update(rp)
 
     return fs(points)
@@ -401,24 +360,20 @@ def get_vehicle_points(vs: DuckieState, vg: DuckieGeometry) -> FrozenSet[Coordin
 def get_resources_used(vs: DuckieState, vg: DuckieGeometry, ds: D) -> FrozenSet[Rectangle]:
     """ Gets the rectangles that contain the vehicle. """
     points = get_vehicle_points(vs, vg)
-
-    rectangles = rectangles_from_points(points, ds)
+    orient = vs.abs_pose[2]  # orientation of vehicle
+    rectangles = rectangles_from_points(points, orient, ds)
     return rectangles
 
 
-def rectangles_from_points(points: Iterable[Coordinates], ds: D) -> FrozenSet[Rectangle]:
+def rectangles_from_points(points: Iterable[Coordinates], orient: D,  ds: D) -> FrozenSet[Rectangle]:
     """ Gets the rectangles containing all these coordinates. """
-    return frozenset(rectangle_from_point(_, ds) for _ in points)
+    return frozenset(rectangle_from_point(_, orient, ds) for _ in points)
 
 
-def rectangle_from_point(point: Coordinates, ds: D) -> Rectangle:
+def rectangle_from_point(point: Coordinates, orient: D, ds: D) -> Rectangle:
     """ Gets the rectangle containing this coordinate. """
-    x = int(point[0] / ds) * ds
-    y = int(point[1] / ds) * ds
-
-    bottom_left = (x, y)
-    top_right = (x + ds, y + ds)
-    return Rectangle(bottom_left=bottom_left, top_right=top_right)
+    pose = (point[0], point[1], orient)
+    return Rectangle(center_pose=pose, width=ds, height=ds)
 
 
 def SE2_from_DuckieState(s: DuckieState):
