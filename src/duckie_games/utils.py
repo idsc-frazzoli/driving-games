@@ -18,6 +18,7 @@ Collection of functions that handle the module DuckietownWorld
 
 LaneName = str
 SE2value = np.array
+Lane = LaneSegment
 
 
 def interpolate(lane: LaneSegment, beta: float) -> SE2Transform:
@@ -52,8 +53,9 @@ def interpolate_along_lane_n_points(
     lane: LaneSegment,
     positions_along_lane: List[float]
 ) -> List[SE2Transform]:
-    """ Input: lane and sequence of 1D positions along the lane. Output: Pose sequence on the duckietown map """
-
+    """
+    Input: lane and sequence of 1D positions along the lane. Output: Pose sequence on the duckietown map
+    """
     msg = f"Positions={positions_along_lane} have to be in ascending order to follow a lane"
     assert all(map(isclose, sorted(positions_along_lane), positions_along_lane)), msg
     transforms = [interpolate_along_lane(lane, along_lane) for along_lane in positions_along_lane]
@@ -61,8 +63,9 @@ def interpolate_along_lane_n_points(
 
 
 def from_SE2_disc_to_SE2Transform(q: SE2_disc) -> SE2Transform:
-    """ Converts from SE2_disc representation to the SE2 Transform wrapper from duckietown world"""
-
+    """
+    Converts from SE2_disc representation to the SE2 Transform wrapper from duckietown world
+    """
     x, y, theta_deg = map(float, q)  # does not work with decimals
     theta_rad = np.deg2rad(theta_deg)
     q_SE2 = geo.SE2_from_translation_angle(t=[x, y], theta=theta_rad)
@@ -71,8 +74,9 @@ def from_SE2_disc_to_SE2Transform(q: SE2_disc) -> SE2Transform:
 
 
 def from_SE2Transform_to_SE2_disc(q: SE2Transform) -> SE2_disc:
-    """ Converts from the SE2 Transform wrapper from duckietown world to the SE2_disc representation """
-
+    """
+    Converts from the SE2 Transform wrapper from duckietown world to the SE2_disc representation
+    """
     q_SE2 = dw.SE2Transform.as_SE2(q)
     t, theta_rad = geo.translation_angle_from_SE2(q_SE2)
     x, y = t
@@ -82,21 +86,28 @@ def from_SE2Transform_to_SE2_disc(q: SE2Transform) -> SE2_disc:
 
 
 def from_SE2_disc_to_SE2(q: SE2_disc) -> SE2value:
+    """
+    Converts from SE2_disc to the SE2 representation used in the module geometry
+    """
     *t, theta_deg = map(float, q)
     theta_rad = np.deg2rad(theta_deg)
     return geo.SE2_from_translation_angle(t, theta_rad)
 
 
 def from_SE2_to_SE2_disc(q: SE2value) -> SE2_disc:
+    """
+    Converts from the SE2 representation used in the module geometry to SE2_disc
+    """
     t, theta_rad = geo.translation_angle_from_SE2(q)
     x, y = t
     theta_deg = np.rad2deg(theta_rad)
     return (D(x), D(y), D(theta_deg))
 
 
-def merge_lanes(lanes: List[LaneSegment]) -> LaneSegment:
-    """ Merges a list of consecutive lane segments to one single unified lane segment """
-
+def merge_lanes(lanes: List[LaneSegment]) -> Lane:
+    """
+    Merges a list of consecutive lane segments to one single unified lane segment
+    """
     width = lanes[0].width
     # Make a list of all the control points, while making sure that the points that overlap are only taken once
     contr_points_lanes = list(
@@ -124,11 +135,46 @@ def get_lane_segments(duckie_map: DuckietownMap, lane_names: List[LaneName]) -> 
     return lane_segments
 
 
+def get_pose_in_ref_frame(abs_pose: SE2_disc, ref: SE2_disc) -> SE2_disc:
+    *t_abs, theta_abs_deg = map(float, abs_pose)
+    theta_abs_rad = np.deg2rad(theta_abs_deg)
+    q_abs = geo.SE2_from_translation_angle(t_abs, theta_abs_rad)
+
+    # Get SE2 representation of the ref pose
+    *t_ref, theta_ref_deg = map(float, ref)
+    theta_ref_rad = np.deg2rad(theta_ref_deg)
+    q_ref = geo.SE2_from_translation_angle(t_ref, theta_ref_rad)
+
+    # Get the the pose of the duckie in the reference frame
+    q_abs_from_q_ref = geo.SE2.multiply(geo.SE2.inverse(q_ref), q_abs)
+    t, theta_rad = geo.translation_angle_from_SE2(q_abs_from_q_ref)
+    x, y = t
+    theta_deg = np.rad2deg(theta_rad)
+    return (D(x), D(y), D(theta_deg))
+
+
+def get_SE2disc_from_along_lane(lane: Lane, along_lane: D) -> SE2_disc:
+    """
+    Get the pose along a center lane
+    """
+    pose_SE2_transform = interpolate_along_lane(lane=lane, along_lane=float(along_lane))
+    return from_SE2Transform_to_SE2_disc(pose_SE2_transform)
+
+
+def get_SE2disc_in_ref_from_along_lane(ref: SE2_disc, lane: Lane, along_lane: D) -> SE2_disc:
+    """
+    Get the pose along a center lane in the coordinates of a reference frame
+    """
+    # Get the SE2 representation of the absolute pose
+    abs_pose = get_SE2disc_from_along_lane(lane=lane, along_lane=along_lane)
+    ref_pose = get_pose_in_ref_frame(abs_pose=abs_pose, ref=ref)
+    return ref_pose
+
+
 class DuckietownMapHashable(DuckietownMap):
     """
     Wrapper class for a DuckietownMap to make it hashable (make it usable for a DuckieState)
     """
-
     def __hash__(self):
         return hash(repr(self))
 
@@ -145,7 +191,6 @@ class LaneSegmentHashable(LaneSegment):
     """
     Wrapper class for a LaneSegment to make it hashable (make it usable for a DuckieState)
     """
-
     def __hash__(self):
         return hash(repr(self))
 

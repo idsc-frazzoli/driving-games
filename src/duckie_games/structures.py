@@ -10,6 +10,8 @@ from driving_games.structures import VehicleActions, VehicleCosts, SE2_disc, Lig
 from duckie_games.utils import (
     interpolate_along_lane,
     from_SE2Transform_to_SE2_disc,
+    get_SE2disc_from_along_lane,
+    get_SE2disc_in_ref_from_along_lane,
     DuckietownMapHashable,
     LaneSegmentHashable
 )
@@ -61,31 +63,17 @@ class DuckieState:
 
     @property
     def abs_pose(self) -> SE2_disc:
-        """ get the absolute pose of the duckie in the map """
-
-        pose_SE2_transform = interpolate_along_lane(lane=self.lane, along_lane=float(self.x))
-        return from_SE2Transform_to_SE2_disc(pose_SE2_transform)
+        """
+        get the absolute pose of the duckie in the map
+        """
+        return get_SE2disc_from_along_lane(lane=self.lane, along_lane=self.x)
 
     @property
     def ref_pose(self) -> SE2_disc:
-        """ get the pose of the duckie relative to the reference frame"""
-
-        # Get the SE2 representation of the absolute pose
-        *t_abs, theta_abs_deg = map(float, self.abs_pose)
-        theta_abs_rad = np.deg2rad(theta_abs_deg)
-        q_abs = geo.SE2_from_translation_angle(t_abs, theta_abs_rad)
-
-        # Get SE2 representation of the ref pose
-        *t_ref, theta_ref_deg = map(float, self.ref)
-        theta_ref_rad = np.deg2rad(theta_ref_deg)
-        q_ref = geo.SE2_from_translation_angle(t_ref, theta_ref_rad)
-
-        # Get the the pose of the duckie in the reference frame
-        q_abs_from_q_ref = geo.SE2.multiply(geo.SE2.inverse(q_ref), q_abs)
-        t, theta_rad = geo.translation_angle_from_SE2(q_abs_from_q_ref)
-        x, y = t
-        theta_deg = np.rad2deg(theta_rad)
-        return (D(x), D(y), D(theta_deg))
+        """
+        get the pose of the duckie relative to the reference frame
+        """
+        return get_SE2disc_in_ref_from_along_lane(ref=self.ref, lane=self.lane, along_lane=self.x)
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
