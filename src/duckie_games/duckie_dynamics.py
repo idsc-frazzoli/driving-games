@@ -128,7 +128,6 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
         else:
             wait2 = D(0)
         ret = DuckieState(
-            duckie_map=x.duckie_map,
             ref=x.ref,
             lane=x.lane,
             x=x2,

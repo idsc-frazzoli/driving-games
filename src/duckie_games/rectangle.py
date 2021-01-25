@@ -72,7 +72,6 @@ class Coordinates(Tuple[D, D]):
     __rmul__ = __mul__
 
 
-
 @dataclass(frozen=True)
 class Rectangle:
     """ Represents a rectangle having orientations """
@@ -160,7 +159,7 @@ class Rectangle:
         bl = self._bottom_left
         tr = self._top_right
 
-        res : List[Coordinates] = []
+        res: List[Coordinates] = []
         for i, j in product(range(n), range(n)):
             alpha = D(i) / D(n - 1)
             beta = D(j) / D(n - 1)
@@ -170,8 +169,6 @@ class Rectangle:
             coords = self._from_rectangle_coord_to_abs(coord_rect_frame)
             res.append(coords)
         return res
-
-
 
     @property
     def _closed_contour_rectangle_frame(self) -> List[Coordinates]:
@@ -300,17 +297,21 @@ class ProjectedCar:
 
 
 def projected_car_from_along_lane(lane: Lane, along_lane: D, vg: DuckieGeometry):
+    """
+    Generates a car represented as a rectangle. With orientation 0° the car drives from left to right,
+     therefore is the length of the car equivalent to the width of the rectangle.
+    """
     center_pose = get_SE2disc_from_along_lane(lane=lane, along_lane=along_lane)
-    length = vg.length
-    width = vg.width
+    width = vg.length
+    length = vg.width
     rect = Rectangle(
         center_pose=center_pose,
         width=width,
         height=length
     )
     rect_contour : List[Coordinates] = rect.contour
-    front_left = rect_contour[1]
-    front_right = rect_contour[0]
+    front_left = rect_contour[0]
+    front_right = rect_contour[-1]
     front_center = front_left + (front_right - front_left) / 2
 
     return ProjectedCar(
@@ -320,17 +321,22 @@ def projected_car_from_along_lane(lane: Lane, along_lane: D, vg: DuckieGeometry)
         front_right=front_right
     )
 
+
 def projected_car_from_state(x: DuckieState, vg: DuckieGeometry) -> ProjectedCar:
-    length = vg.length
-    width = vg.width
+    """
+    Generates a car represented as a rectangle. With orientation 0° the car drives from left to right,
+     therefore is the length of the car equivalent to the width of the rectangle.
+    """
+    width = vg.length
+    length = vg.width
     rect = Rectangle(
         center_pose=x.abs_pose,
         width=width,
         height=length
     )
     rect_contour = rect.contour
-    front_left = rect_contour[1]
-    front_right = rect_contour[0]
+    front_left = rect_contour[0]
+    front_right = rect_contour[-1]
     front_center = front_left + (front_right - front_left) / 2
 
     return ProjectedCar(

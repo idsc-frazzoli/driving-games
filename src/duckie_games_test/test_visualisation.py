@@ -5,14 +5,14 @@ from reprep import Report
 from driving_games import PlayerName, NO_LIGHTS
 from duckie_games.structures import DuckieGeometry, DuckieState
 from duckie_games.visualisation import DuckieGameVisualization
-from duckie_games.zoo import two_player_duckie_game_parameters
+from duckie_games.zoo import two_player_duckie_game_parameters, two_player_duckie_game_parameters_stretched
 from duckie_games.utils import LaneSegmentHashable, DuckietownMapHashable
 from decimal import Decimal as D
 from matplotlib import pyplot as plt
 
 
-def test_available_cars():
-    duckie_game_params = two_player_duckie_game_parameters
+def test_visualisation():
+    duckie_game_params = two_player_duckie_game_parameters_stretched
 
     duckie_map = duckie_game_params.duckie_map
     map_name = duckie_game_params.map_name
@@ -29,7 +29,6 @@ def test_available_cars():
         lane_hashable = LaneSegmentHashable.initializor(lane)
 
         ds = DuckieState(
-            duckie_map=duckie_map_hashable,
             ref=ref,
             x=D(duckie_game_params.initial_progress[duckie_name]),
             lane=lane_hashable,
@@ -38,8 +37,6 @@ def test_available_cars():
             light=NO_LIGHTS
         )
         duckie_states[duckie_name] = ds
-
-    L = D(21)
 
     dg_vis = DuckieGameVisualization(
         duckie_map=duckie_map, map_name=map_name, geometries=duckie_geometries, ds=duckie_game_params.shared_resources_ds

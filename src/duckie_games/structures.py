@@ -38,9 +38,6 @@ class DuckieGeometry:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class DuckieState:
-    duckie_map: DuckietownMapHashable
-    """ Duckietown world map where the duckie is playing """
-
     ref: SE2_disc
     """ Reference frame from where the vehicle started """
 

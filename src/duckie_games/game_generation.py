@@ -150,7 +150,6 @@ def get_duckie_game(
         lane_hashable = LaneSegmentHashable.initializor(lane)
 
         duckie_x = DuckieState(
-            duckie_map=duckie_map_hashable,
             ref=ref,
             x=D(duckie_game_params.initial_progress[duckie_name]),
             lane=lane_hashable,

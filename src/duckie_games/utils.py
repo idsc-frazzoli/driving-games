@@ -1,6 +1,7 @@
 from math import isclose
 from decimal import Decimal as D
 import itertools as it
+import yaml
 
 from typing import List, cast
 import numpy as np
@@ -169,6 +170,13 @@ def get_SE2disc_in_ref_from_along_lane(ref: SE2_disc, lane: Lane, along_lane: D)
     abs_pose = get_SE2disc_from_along_lane(lane=lane, along_lane=along_lane)
     ref_pose = get_pose_in_ref_frame(abs_pose=abs_pose, ref=ref)
     return ref_pose
+
+
+def load_duckie_map_from_yaml(rel_path: str) -> DuckietownMap:
+    with open(rel_path) as yml_file:
+        duckie_map_yaml_parsed = yaml.load(yml_file, Loader=yaml.SafeLoader)
+    duckie_map = dw.construct_map(duckie_map_yaml_parsed)
+    return duckie_map
 
 
 class DuckietownMapHashable(DuckietownMap):
