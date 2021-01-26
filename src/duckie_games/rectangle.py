@@ -20,9 +20,9 @@ from duckie_games.utils import (
 )
 
 
-#Coordinates = Tuple[D, D]
 Width = D
 Height = D
+
 
 class Coordinates(Tuple[D, D]):
 
@@ -106,6 +106,24 @@ class Rectangle:
         """ Returns the area of the rectangle """
         a, b = self.sizes
         return a * b
+
+    @property
+    def center(self) -> Coordinates:
+        return Coordinates(
+            (self.center_pose[0], self.center_pose[1])
+        )
+
+    @property
+    def orientation_in_deg(self) -> D:
+        return self.center_pose[2]
+
+    @property
+    def orientation_in_rad(self) -> D:
+        orient_deg = self.orientation_in_deg
+        orient_rad = D(
+            np.rad2deg(float(orient_deg))
+        )
+        return orient_rad
 
     @property
     def closed_contour(self) -> List[Coordinates]:
@@ -392,3 +410,13 @@ def SE2_from_DuckieState(s: DuckieState):
     p = SE2_from_xytheta([float(s.x), 0, 0])
     ref = SE2_from_xytheta([float(s.ref[0]), float(s.ref[1]), np.deg2rad(float(s.ref[2]))])
     return SE2.multiply(ref, p)
+
+
+def two_rectangle_intersection(r1: Rectangle, r2: Rectangle) -> bool:
+
+    r1_test_p = r1.contour + [r1.center]
+    r2_test_p = r2.contour + [r2.center]
+    r1_cont_in_r2 = any(r2.contains_point(p) for p in r1_test_p)
+    r2_cont_in_r1 = any(r1.contains_point(p) for p in r2_test_p)
+
+    return r1_cont_in_r2 or r2_cont_in_r1
