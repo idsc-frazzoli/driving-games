@@ -40,14 +40,20 @@ class Coordinates(Tuple[D, D]):
         return Coordinates(coords)
 
     def __add__(self, other):
-        x = self[0] + other[0]
-        y = self[1] + other[1]
-        return Coordinates((x, y))
+        if isinstance(other, Coordinates):
+            x = self[0] + other[0]
+            y = self[1] + other[1]
+            return Coordinates((x, y))
+        else:
+            raise ZNotImplementedError("Must be of type Coordinates")
 
     def __sub__(self, other):
-        x = self[0] - other[0]
-        y = self[1] - other[1]
-        return Coordinates((x, y))
+        if isinstance(other, Coordinates):
+            x = self[0] - other[0]
+            y = self[1] - other[1]
+            return Coordinates((x, y))
+        else:
+            raise ZNotImplementedError("Must be of type Coordinates")
 
     def __truediv__(self, other):
         x = self[0]
@@ -55,9 +61,9 @@ class Coordinates(Tuple[D, D]):
         if isinstance(other, D):
             return Coordinates((x / other, y / other))
         elif isinstance(other, float) or isinstance(other, int):
-            return Coordinates((D(x) / other, D(y) / other))
+            return Coordinates((x / D(other), y / D(other)))
         else:
-            raise ZNotImplementedError()
+            raise ZNotImplementedError("Division of those types not supported")
 
     def __mul__(self, other):
         x = self[0]
@@ -65,9 +71,9 @@ class Coordinates(Tuple[D, D]):
         if isinstance(other, D):
             return Coordinates((x * other, y * other))
         elif isinstance(other, float) or isinstance(other, int):
-            return Coordinates((D(x) * other, D(y) * other))
+            return Coordinates((x * D(other), D(y) * D(other)))
         else:
-            raise ZNotImplementedError()
+            raise ZNotImplementedError("Multiplication of those types not supported")
 
     __rmul__ = __mul__
 
@@ -309,7 +315,7 @@ def projected_car_from_along_lane(lane: Lane, along_lane: D, vg: DuckieGeometry)
         width=width,
         height=length
     )
-    rect_contour : List[Coordinates] = rect.contour
+    rect_contour: List[Coordinates] = rect.contour
     front_left = rect_contour[0]
     front_right = rect_contour[-1]
     front_center = front_left + (front_right - front_left) / 2
