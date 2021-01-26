@@ -58,6 +58,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         svg_path = os.path.join(outdir, "drawing.svg")
         png_path = os.path.join(outdir, "drawing.png")
 
+        # todo find converter without the render bug (or display html directly)
         if not os.path.exists(svg_path):
             draw_static(m, outdir)
             svg2png(url=svg_path, write_to=png_path)
@@ -65,7 +66,8 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         try:
             img = imread(png_path)
         except FileNotFoundError:
-            raise(FileNotFoundError, "Cannot find the png of the duckiemap")
+            msg = f"Cannot find the png of the duckiemap. Create drawing.png in {outdir} first"
+            raise(FileNotFoundError, msg)
 
         # logger.info(px=px, py=py, points=points)
         tile_size=m.tile_size
