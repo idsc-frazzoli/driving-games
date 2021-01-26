@@ -12,7 +12,6 @@ from duckie_games.utils import (
     from_SE2Transform_to_SE2_disc,
     get_SE2disc_from_along_lane,
     get_SE2disc_in_ref_from_along_lane,
-    DuckietownMapHashable,
     LaneSegmentHashable
 )
 

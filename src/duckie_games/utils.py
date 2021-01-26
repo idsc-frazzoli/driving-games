@@ -2,16 +2,18 @@ from math import isclose
 from decimal import Decimal as D
 import itertools as it
 import yaml
-
 from typing import List, cast
 import numpy as np
 
-import geometry as geo
-from driving_games.structures import SE2_disc
+
 import duckietown_world as dw
 from duckietown_world.geo.transforms import SE2Transform
 from duckietown_world.world_duckietown.lane_segment import LaneSegment
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
+
+import geometry as geo
+from driving_games.structures import SE2_disc
+
 
 """
 Collection of functions that handle the module DuckietownWorld
@@ -137,6 +139,9 @@ def get_lane_segments(duckie_map: DuckietownMap, lane_names: List[LaneName]) -> 
 
 
 def get_pose_in_ref_frame(abs_pose: SE2_disc, ref: SE2_disc) -> SE2_disc:
+    """
+    Returns the pose of an object in the reference frame given
+    """
     *t_abs, theta_abs_deg = map(float, abs_pose)
     theta_abs_rad = np.deg2rad(theta_abs_deg)
     q_abs = geo.SE2_from_translation_angle(t_abs, theta_abs_rad)
@@ -173,39 +178,30 @@ def get_SE2disc_in_ref_from_along_lane(ref: SE2_disc, lane: Lane, along_lane: D)
 
 
 def load_duckie_map_from_yaml(rel_path: str) -> DuckietownMap:
+    """
+    Loads Dcukiemap out of a yaml file
+    """
     with open(rel_path) as yml_file:
         duckie_map_yaml_parsed = yaml.load(yml_file, Loader=yaml.SafeLoader)
     duckie_map = dw.construct_map(duckie_map_yaml_parsed)
     return duckie_map
 
 
-class DuckietownMapHashable(DuckietownMap):
-    """
-    Wrapper class for a DuckietownMap to make it hashable (make it usable for a DuckieState)
-    """
-    def __hash__(self):
-        return hash(repr(self))
-
-    # def __eq__(self, other):
-    #     return hash(self) == hash(other)
-
-    @classmethod
-    def initializor(cls, duckie_map: DuckietownMap):
-        dm_dict = duckie_map.__dict__
-        return cls(**dm_dict)
-
-
 class LaneSegmentHashable(LaneSegment):
     """
-    Wrapper class for a LaneSegment to make it hashable (make it usable for a DuckieState)
+        Wrapper class for a LaneSegment to make it hashable (make it usable for a DuckieState)
     """
+    @classmethod
+    def initializor(cls, lane_segment: LaneSegment) -> "LaneSegmentHashable":
+        ls_dict = lane_segment.__dict__
+        return cls(**ls_dict)
+
     def __hash__(self):
-        return hash(repr(self))
+        ctr_as_SE2_disc = it.chain(
+            *[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points]
+        )
+        to_hash = *ctr_as_SE2_disc, self.width
+        return hash(to_hash)
 
     # def __eq__(self, other):
     #     return hash(self) == hash(other)
-
-    @classmethod
-    def initializor(cls, lane_segment: LaneSegment):
-        ls_dict = lane_segment.__dict__
-        return cls(**ls_dict)

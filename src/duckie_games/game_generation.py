@@ -30,7 +30,6 @@ from duckie_games.utils import (
     interpolate_along_lane,
     from_SE2Transform_to_SE2_disc,
     LaneSegmentHashable,
-    DuckietownMapHashable
 )
 
 
@@ -128,7 +127,6 @@ def get_duckie_game(
     ps: PossibilityMonad = uncertainty_params.poss_monad
 
     duckie_map = duckie_game_params.duckie_map
-    duckie_map_hashable = DuckietownMapHashable.initializor(duckie_map)
 
     duckie_players: Dict[PlayerName, DuckieGamePlayer] = {}
     shared_resources_ds = duckie_game_params.shared_resources_ds

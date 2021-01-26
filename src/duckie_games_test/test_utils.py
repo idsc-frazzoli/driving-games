@@ -6,17 +6,17 @@ from copy import deepcopy
 import geometry as geo
 
 import duckietown_world as dw
-from duckietown_world.world_duckietown.sampling_poses import sample_good_starting_pose
 from duckietown_world.svg_drawing.ipython_utils import ipython_draw_html
 
-from driving_games.structures import SE2_disc
+from duckie_games.zoo import two_player_duckie_game_parameters_stretched
 from duckie_games.utils import (
     from_SE2_disc_to_SE2Transform,
     from_SE2Transform_to_SE2_disc,
     interpolate_n_points,
     interpolate_along_lane_n_points,
     merge_lanes,
-    get_lane_segments
+    get_lane_segments,
+    LaneSegmentHashable
 )
 
 
@@ -121,3 +121,26 @@ def test_interpolation():
     name = "interpolated_0_max_length"
     outdir = d + name
     ipython_draw_html(po=duckie_map_draw, outdir=outdir)
+
+
+def test_hashable_lane():
+    """
+    Tests the hash function of the wrapper class
+    """
+    players = two_player_duckie_game_parameters_stretched.player_names
+    lane1 = two_player_duckie_game_parameters_stretched.lanes[players[0]]
+    lane2 = two_player_duckie_game_parameters_stretched.lanes[players[1]]
+    lane1_hash = LaneSegmentHashable.initializor(lane1)
+    lane2_hash = LaneSegmentHashable.initializor(lane2)
+
+    print(lane1.get_lane_length())
+    print(lane2.get_lane_length())
+
+    print(lane1_hash.get_lane_length())
+    print(hash(lane1_hash))
+
+    print(lane2_hash.get_lane_length())
+    print(hash(lane2_hash))
+
+    assert isclose(lane1.get_lane_length(), lane1_hash.get_lane_length()), "Lane 1 has not same length as hashed lane 1"
+    assert isclose(lane1.get_lane_length(), lane1_hash.get_lane_length()), "Lane 2 has not same length as hashed lane 2"

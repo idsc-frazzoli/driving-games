@@ -13,7 +13,6 @@ from duckie_games.utils import (
     interpolate_along_lane,
     from_SE2Transform_to_SE2_disc,
     LaneSegmentHashable,
-    DuckietownMapHashable
 )
 
 
@@ -40,7 +39,6 @@ def test_duckie_state():
     for x in x_along_lane:
         ds: DuckieState
         ds = DuckieState(
-            duckie_map=DuckietownMapHashable.initializor(duckie_map),
             ref=ref,
             lane=LaneSegmentHashable.initializor(lane),
             x=x,
