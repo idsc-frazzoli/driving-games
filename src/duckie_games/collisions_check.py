@@ -3,6 +3,7 @@ from typing import Mapping, MutableMapping, List, Dict, Optional, Tuple
 from frozendict import frozendict
 from dataclasses import dataclass
 import itertools
+from math import isclose
 
 from games import PlayerName
 from zuper_commons.types import ZNotImplementedError
@@ -230,7 +231,10 @@ def get_angle_of_collision(a: ProjectedCar, b: ProjectedCar) -> Tuple[Angle_Deg,
         angle_a = angle_a + D(360)
 
     # for "car b" we have to change the sign, to follow the right hand rule
-    angle_b = -angle_a
+    if not isclose(angle_a, D(180)):
+        angle_b = -angle_a
+    else:
+        angle_b = angle_a
 
     return angle_a, angle_b
 
@@ -300,10 +304,23 @@ def get_impact_location(a: ProjectedCar, b: ProjectedCar) -> Tuple[ImpactLocatio
     ].count(True)
 
     # Count where the points of "a" lie in coordinate system of "b"
-    b_front = [D(0) <= a_angle_from_b.copy_abs() <= b_angle_to_x_diag for a_angle_from_b in a_pts_angles_from_b].count(True)
-    b_left = [b_angle_to_x_diag < a_angle_from_b < b_angle_to_y_diag for a_angle_from_b in a_pts_angles_from_b].count(True)
-    b_right = [b_angle_to_x_diag < -a_angle_from_b < b_angle_to_y_diag for a_angle_from_b in a_pts_angles_from_b].count(True)
-    b_back = [b_angle_to_x_diag <= a_angle_from_b.copy_abs() <= D(180) for a_angle_from_b in a_pts_angles_from_b].count(True)
+    b_front = [
+        D(0) <= a_angle_from_b.copy_abs() <= b_angle_to_x_diag
+        for a_angle_from_b in a_pts_angles_from_b
+    ].count(True)
+
+    b_left = [
+        b_angle_to_x_diag < a_angle_from_b < b_angle_to_y_diag
+        for a_angle_from_b in a_pts_angles_from_b
+    ].count(True)
+
+    b_right = [
+        b_angle_to_x_diag < -a_angle_from_b < b_angle_to_y_diag for a_angle_from_b in a_pts_angles_from_b
+    ].count(True)
+
+    b_back = [
+        b_angle_to_x_diag <= a_angle_from_b.copy_abs() <= D(180) for a_angle_from_b in a_pts_angles_from_b
+    ].count(True)
 
     a_impact_dict = {
         IMPACT_FRONT: a_front,
