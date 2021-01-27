@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import math
 from math import isclose
 from decimal import Decimal as D, localcontext
 from itertools import product
@@ -23,6 +24,8 @@ from duckie_games.utils import (
 Width = D
 Height = D
 
+Angle_Deg = D
+Angle_Rad = D
 
 class Coordinates(Tuple[D, D]):
 
@@ -32,6 +35,19 @@ class Coordinates(Tuple[D, D]):
     def as_float_tuple(self) -> Tuple[float, float]:
         """ Converts coordinates in decimals to coordinates in floats """
         return float(self[0]), float(self[1])
+
+    def as_polar(self) -> Tuple[D, Angle_Rad]:
+        """
+        Returns the coordinates as polar coordinates
+        Theta is always between -180° and 180°
+        """
+        x = self[0]
+        y = self[1]
+        r_squared = pow(x, 2) + pow(y, 2)
+        r = r_squared.sqrt()
+        theta_deg_float = np.rad2deg(math.atan2(y, x))
+        theta_deg = D(theta_deg_float)
+        return r, theta_deg
 
     @classmethod
     def from_float_tuple(cls, floats: Tuple[float, float]) -> "Coordinates":
@@ -114,11 +130,11 @@ class Rectangle:
         )
 
     @property
-    def orientation_in_deg(self) -> D:
+    def orientation_in_deg(self) -> Angle_Deg:
         return self.center_pose[2]
 
     @property
-    def orientation_in_rad(self) -> D:
+    def orientation_in_rad(self) -> Angle_Rad:
         orient_deg = self.orientation_in_deg
         orient_rad = D(
             np.rad2deg(float(orient_deg))
@@ -193,6 +209,31 @@ class Rectangle:
             coords = self._from_rectangle_coord_to_abs(coord_rect_frame)
             res.append(coords)
         return res
+
+    @property
+    def angles_diagnoals(self) -> Tuple[Angle_Deg, Angle_Deg]:
+        """
+        Returns the angles between the diagonals
+                      Y   angle_y
+                      ^  /
+                      | v
+                  x---|---x
+                  | \ |  /|
+                  |  \| / | <- angle_x
+        --------------x--------------> X
+                  |  /| \ |
+                  | / |  \|
+                  x----|---x
+                      |
+        """
+        top_right = self._closed_contour_rectangle_frame[0]
+        top_left = self._closed_contour_rectangle_frame[1]
+        _, angle_top_right = top_right.as_polar()
+        _, angle_top_left = top_left.as_polar()
+        angle_y = angle_top_left - angle_top_right
+        angle_x = D(180) - angle_y
+        return angle_x, angle_y
+
 
     @property
     def _closed_contour_rectangle_frame(self) -> List[Coordinates]:
@@ -320,7 +361,7 @@ class ProjectedCar:
     front_right: Coordinates
 
 
-def projected_car_from_along_lane(lane: Lane, along_lane: D, vg: DuckieGeometry):
+def projected_car_from_along_lane(lane: Lane, along_lane: D, vg: DuckieGeometry) -> ProjectedCar:
     """
     Generates a car represented as a rectangle. With orientation 0° the car drives from left to right,
      therefore is the length of the car equivalent to the width of the rectangle.
