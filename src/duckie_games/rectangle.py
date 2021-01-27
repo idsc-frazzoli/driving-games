@@ -1,20 +1,18 @@
 from dataclasses import dataclass
 import math
-from math import isclose
 from decimal import Decimal as D, localcontext
 from itertools import product
 from typing import List, Tuple, FrozenSet, Iterable
 import numpy as np
 
 import geometry as geo
-from geometry import xytheta_from_SE2, SE2_from_xytheta, SE2
+from geometry import SE2_from_xytheta, SE2
 from zuper_commons.types import ZNotImplementedError
 
 from games.utils import fs
 
 from duckie_games.structures import DuckieState, DuckieGeometry, SE2_disc
 from duckie_games.utils import (
-    from_SE2_to_SE2_disc,
     from_SE2_disc_to_SE2,
     Lane,
     get_SE2disc_from_along_lane
@@ -27,8 +25,12 @@ Height = D
 Angle_Deg = D
 Angle_Rad = D
 
-class Coordinates(Tuple[D, D]):
 
+class Coordinates(Tuple[D, D]):
+    """
+    Class representing 2D Coordinates in Decimals. Support simple addition and subtraction as well as
+    multiplication and division by a scalar.
+    """
     def __init__(self, *args, **kwargs):
         assert isinstance(self[0], D) and isinstance(self[1], D), "Inputs have to be of type Decimals"
 
@@ -38,8 +40,8 @@ class Coordinates(Tuple[D, D]):
 
     def as_polar(self) -> Tuple[D, Angle_Rad]:
         """
-        Returns the coordinates as polar coordinates
-        Theta is always between -180° and 180°
+        Returns the coordinates as polar coordinates.
+        Theta is always between ]-180°, 180°]
         """
         x = self[0]
         y = self[1]
@@ -125,19 +127,22 @@ class Rectangle:
 
     @property
     def center(self) -> Coordinates:
+        """ Returns the coordinates of the center of the rectangle """
         return Coordinates(
             (self.center_pose[0], self.center_pose[1])
         )
 
     @property
     def orientation_in_deg(self) -> Angle_Deg:
+        """ Returns the orientation of the rectangle in degrees """
         return self.center_pose[2]
 
     @property
     def orientation_in_rad(self) -> Angle_Rad:
+        """ Returns the orientation of the rectangle in rads """
         orient_deg = self.orientation_in_deg
         orient_rad = D(
-            np.rad2deg(float(orient_deg))
+            np.deg2rad(float(orient_deg))
         )
         return orient_rad
 
@@ -194,7 +199,8 @@ class Rectangle:
 
     def get_points_inside(self, n: int = 6) -> List[Coordinates]:
         """
-        Returns evenly spaced points inside the rectangle
+        Returns evenly spaced points inside the rectangle.
+        n points along width and n points along height.
         """
         bl = self._bottom_left
         tr = self._top_right
@@ -454,7 +460,9 @@ def SE2_from_DuckieState(s: DuckieState):
 
 
 def two_rectangle_intersection(r1: Rectangle, r2: Rectangle) -> bool:
-
+    """
+    Returns True if the two rectangles intersect
+    """
     r1_test_p = r1.contour + [r1.center]
     r2_test_p = r2.contour + [r2.center]
     r1_cont_in_r2 = any(r2.contains_point(p) for p in r1_test_p)

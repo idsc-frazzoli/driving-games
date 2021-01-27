@@ -1,8 +1,9 @@
 from matplotlib import pyplot as plt
 from matplotlib.image import imread
 import numpy as np
-from decimal import Decimal as D, localcontext
+from decimal import Decimal as D
 import os
+import math
 from math import isclose
 from functools import partial
 
@@ -24,7 +25,10 @@ from duckie_games.structures import DuckieState, DuckieGeometry
 module_path = os.path.dirname(__file__)
 
 
-def test_rectangle():
+def test_rectangle_visual():
+    """
+    Tests visually the rectangle class
+    """
     background_path = "out/map_drawing/4way/drawing.png"
     x_back = 7
     y_back = 7
@@ -65,7 +69,74 @@ def test_rectangle():
     plt.close(fig=fig)
 
 
+def test_rectangle_properties():
+
+    ref_orientation = D(30)
+    ref_orientation_rad = D(math.pi) / D(6)
+    ref_translation = D(3), D(4)
+    ref_height = D(3)
+    ref_width = D(4)
+    ref_area = D(12)
+    ref_angle_diag_x = 73.74
+    ref_angle_diag_y = 106.26 
+    
+    tol = 1e-2
+    isclose_wtol = partial(isclose, abs_tol=tol)
+
+    center_pose = (ref_translation[0], ref_translation[1], ref_orientation)
+    test_rect = Rectangle(
+        center_pose=center_pose,
+        width=ref_width,
+        height=ref_height
+    )
+
+    area = test_rect.area
+    assert isclose(ref_area, area), (
+        f"Area calculation does not work.\n"
+        f"ref {ref_area} is not {area}"
+    )
+
+    sizes = test_rect.sizes
+
+    assert all(map(isclose, [ref_width, ref_height], sizes)), (
+        f"Size function does not work.\n"
+        f"ref {[ref_width, ref_height]} is not {sizes}"
+    )
+    
+    center = test_rect.center
+    assert all(map(isclose, ref_translation, center)), (
+        f"Center function does not work.\n"
+        f"ref {ref_translation} is not {center}"
+    ) 
+    
+    orient_in_deg = test_rect.orientation_in_deg
+    assert isclose(ref_orientation, orient_in_deg), (
+        f"Orientation function in degrees does not work.\n"
+        f"ref {ref_orientation} is not {orient_in_deg}"
+    ) 
+    
+    orient_in_rad = test_rect.orientation_in_rad
+    assert isclose(ref_orientation_rad, orient_in_rad), (
+        f"Orientation function in rad does not work.\n"
+        f"ref {ref_orientation_rad} is not {orient_in_rad}"
+    )
+
+    angle_diag_x, angle_diag_y = test_rect.angles_diagnoals
+    assert isclose_wtol(ref_angle_diag_x, angle_diag_x), (
+        f"Diagonal angle function for x does not work.\n"
+        f"ref {ref_angle_diag_x} is not {angle_diag_x}"
+    )
+    
+    assert isclose_wtol(ref_angle_diag_y, angle_diag_y), (
+        f"Diagonal angle function for x does not work.\n"
+        f"ref {ref_angle_diag_y} is not {angle_diag_y}"
+    )
+
+
 def test_rectangle_intersection():
+    """
+    Tests the rectangle intersection function
+    """
     background_path = "out/map_drawing/4way/drawing.png"
     background_fp = os.path.join(
         module_path,
@@ -74,7 +145,7 @@ def test_rectangle_intersection():
     x_back = 8
     y_back = 8
 
-    rect_params ={
+    rect_params = {
         "orientation": [
             [D(50), D(-40)],
             [D(10), D(13.5)],
@@ -86,8 +157,8 @@ def test_rectangle_intersection():
             [(D(6), D(7)), (D(7), D(6))]
         ],
         "height": [
-            [D(3.5),D(2.5)],
-            [D(1),D(2)],
+            [D(3.5), D(2.5)],
+            [D(1), D(2)],
             [D(1), D(1)]
         ],
         "width": [
@@ -156,7 +227,10 @@ def test_rectangle_intersection():
     plt.close(fig=fig)
 
 
-def test_resources():
+def test_resources_visual():
+    """
+    Tests the get resources function visually
+    """
     background_path = "out/map_drawing/4way/drawing.png"
 
     duckie_name = two_player_duckie_game_parameters_stretched.player_names[1]
@@ -231,6 +305,9 @@ def test_resources():
 
 
 def test_coordinate_algebra():
+    """
+    Tests the algebra of the Coordinates class (sum, division, etc)
+    """
     ref_list1 = [D(4), D(5)]
     ref_list2 = [D(1), D(3)]
     ref_coord1 = Coordinates(ref_list1)
@@ -298,9 +375,12 @@ def test_coordinate_algebra():
 
 
 def test_coordinates_conversions():
+    """
+    Tests the different conversion functions of the class Coordinates
+    """
     test_coord = {
         'x': [
-            4,
+            4.0,
             -4,
             4,
             -4,
@@ -313,9 +393,9 @@ def test_coordinates_conversions():
         'y': [
             3,
             3,
+            -3.0,
             -3,
-            -3,
-            0,
+            0.0,
             0,
             -0,
             3.5,
@@ -331,7 +411,7 @@ def test_coordinates_conversions():
             0.1,
             3.5,
             3.9
-        ] ,
+        ],
         'theta': [
             36.87,
             143.13,
