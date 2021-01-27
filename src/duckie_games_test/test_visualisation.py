@@ -12,7 +12,7 @@ from matplotlib import pyplot as plt
 
 
 def test_visualisation():
-    duckie_game_params = two_player_duckie_game_parameters_stretched
+    duckie_game_params = two_player_duckie_game_parameters
 
     duckie_map = duckie_game_params.duckie_map
     map_name = duckie_game_params.map_name
@@ -50,5 +50,5 @@ def test_visualisation():
         for player_name in duckie_game_params.player_names:
             dg_vis.plot_player(player_name, duckie_states[player_name], commands=None)
     #fig.show()
-    plt.savefig("out/vis_test.png")
+    plt.savefig("out/test_visualisation.png")
 

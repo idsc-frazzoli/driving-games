@@ -182,8 +182,12 @@ def test_collision_check_utils():
             f"Impact location function does not work.\n"
             f"ref {ref_impact_location} is not {impact_location}"
         )
+    try:
+        fig.savefig("out/test_collision_check_utils.png")
+    except FileNotFoundError:
+        os.mkdir('out')
+        fig.savefig("out/test_collision_check_utils.png")
 
-    fig.savefig("out/collision_check_utils_test.png")
     fig.tight_layout()
     fig.show()
     plt.close(fig=fig)

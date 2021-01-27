@@ -33,7 +33,7 @@ def test_rectangle_visual():
     x_back = 7
     y_back = 7
 
-    orientation = D(50)
+    orientation = D(20)
     translation = D(3), D(4)
     height = D(4)
     width = D(2)
@@ -58,12 +58,23 @@ def test_rectangle_visual():
     )
     fig, ax = plt.subplots()
     ax.set_title("Rectangle Test")
-    img = imread(background_fp)
-    ax.imshow(img, extent=[0, x_back, 0, y_back])
+
+    try:
+        img = imread(background_fp)
+        ax.imshow(img, extent=[0, x_back, 0, y_back])
+    except FileNotFoundError:
+        ax.set_xlim(left=0, right=x_back)
+        ax.set_ylim(bottom=0, top=y_back)
+
     ax.plot(x_cont, y_cont, linewidth=2)
     ax.plot(*translation, 'x')
     ax.plot(x_pin, y_pin, 'x')
-    fig.savefig("out/rectangle_test.png")
+    try:
+        fig.savefig("out/test_rectangle.png")
+    except FileNotFoundError:
+        os.mkdir('out')
+        fig.savefig("out/test_rectangle.png")
+
     fig.tight_layout()
     fig.show()
     plt.close(fig=fig)
@@ -175,8 +186,13 @@ def test_rectangle_intersection():
 
     fig, ax = plt.subplots()
     ax.set_title("Rectangle Test")
-    img = imread(background_fp)
-    ax.imshow(img, extent=[0, x_back, 0, y_back])
+
+    try:
+        img = imread(background_fp)
+        ax.imshow(img, extent=[0, x_back, 0, y_back])
+    except FileNotFoundError:
+        ax.set_xlim(left=0, right=x_back)
+        ax.set_ylim(bottom=0, top=y_back)
 
     for i in range(len(list(rect_params.values())[0])):
 
@@ -220,8 +236,12 @@ def test_rectangle_intersection():
             assert two_rectangle_intersection(r1=rect1, r2=rect2), f"Rectangles number {i} should intersect"
         else:
             assert not two_rectangle_intersection(r1=rect1, r2=rect2), f"Rectangles number {i} should not intersect"
+    try:
+        fig.savefig("out/test_rectangle_intersection.png")
+    except FileNotFoundError:
+        os.mkdir('out')
+        fig.savefig("out/test_rectangle_intersection.png")
 
-    fig.savefig("out/rectangle_intersection_test.png")
     fig.tight_layout()
     fig.show()
     plt.close(fig=fig)
@@ -275,8 +295,13 @@ def test_resources_visual():
     W = duckie_map['tilemap'].W
     x_size = tile_size * W
     y_size = tile_size * H
-    img = imread(background_fp)
-    ax.imshow(img, extent=[0, x_size, 0, y_size])
+
+    try:
+        img = imread(background_fp)
+        ax.imshow(img, extent=[0, x_size, 0, y_size])
+    except FileNotFoundError:
+        ax.set_xlim(left=0, right=x_size)
+        ax.set_ylim(bottom=0, top=y_size)
 
     for rectangle in resources:
         countour_points = np.array(rectangle.closed_contour).T
@@ -298,7 +323,12 @@ def test_resources_visual():
     x_front, y_front = xy_front[0, :], xy_front[1, :]
     ax.plot(x_front, y_front, 'x', linewidth=1.5)
 
-    fig.savefig("out/resources_test.png")
+    try:
+        fig.savefig("out/test_resources.png")
+    except FileNotFoundError:
+        os.mkdir('out')
+        fig.savefig("out/test_resources.png")
+
     fig.tight_layout()
     fig.show()
     plt.close(fig=fig)
@@ -450,6 +480,3 @@ def test_coordinates_conversions():
             f"Conversion to polar coordiates failed.\n"
             f"ref {ref_coord_as_polar} is not {coord_as_polars}"
         )
-        
-        
-
