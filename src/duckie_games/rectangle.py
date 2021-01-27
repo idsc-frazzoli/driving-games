@@ -398,23 +398,12 @@ def projected_car_from_state(x: DuckieState, vg: DuckieGeometry) -> ProjectedCar
     Generates a car represented as a rectangle. With orientation 0° the car drives from left to right,
      therefore is the length of the car equivalent to the width of the rectangle.
     """
-    width = vg.length
-    length = vg.width
-    rect = Rectangle(
-        center_pose=x.abs_pose,
-        width=width,
-        height=length
-    )
-    rect_contour = rect.contour
-    front_left = rect_contour[0]
-    front_right = rect_contour[-1]
-    front_center = front_left + (front_right - front_left) / 2
-
-    return ProjectedCar(
-        rectangle=rect,
-        front_left=front_left,
-        front_center=front_center,
-        front_right=front_right
+    lane = x.lane
+    along_lane = x.x
+    return projected_car_from_along_lane(
+        lane=lane,
+        along_lane=along_lane,
+        vg=vg
     )
 
 
