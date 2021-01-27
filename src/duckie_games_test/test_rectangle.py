@@ -1,9 +1,10 @@
 from matplotlib import pyplot as plt
 from matplotlib.image import imread
 import numpy as np
-from decimal import Decimal as D
+from decimal import Decimal as D, localcontext
 import os
 from math import isclose
+from functools import partial
 
 from zuper_commons.types import ZNotImplementedError
 
@@ -229,7 +230,7 @@ def test_resources():
     plt.close(fig=fig)
 
 
-def test_coordinates():
+def test_coordinate_algebra():
     ref_list1 = [D(4), D(5)]
     ref_list2 = [D(1), D(3)]
     ref_coord1 = Coordinates(ref_list1)
@@ -294,3 +295,81 @@ def test_coordinates():
         pass
     else:
         assert False, "Multiplication with itself possible"
+
+
+def test_coordinates_conversions():
+    test_coord = {
+        'x': [
+            4,
+            -4,
+            4,
+            -4,
+            2,
+            -10.9,
+            -0.1,
+            0,
+            0
+              ],
+        'y': [
+            3,
+            3,
+            -3,
+            -3,
+            0,
+            0,
+            -0,
+            3.5,
+            -3.9
+        ],
+        'r': [
+            5,
+            5,
+            5,
+            5,
+            2,
+            10.9,
+            0.1,
+            3.5,
+            3.9
+        ] ,
+        'theta': [
+            36.87,
+            143.13,
+            -36.87,
+            -143.13,
+            0,
+            180,
+            180,
+            90,
+            -90
+        ]
+    }
+    tol = 1e-2
+    isclose_wtol = partial(isclose, abs_tol=tol)
+
+    for x_ref, y_ref, r_ref, theta_ref in zip(*test_coord.values()):
+        ref_coord_as_float = (x_ref, y_ref)
+        ref_coord_as_coord = Coordinates((D(x_ref), D(y_ref)))
+        ref_coord_as_polar = (D(r_ref), D(theta_ref))
+
+        coord_from_floats = Coordinates.from_float_tuple(ref_coord_as_float)
+
+        assert all(map(isclose_wtol, ref_coord_as_coord, coord_from_floats)), (
+            f"Conversion from float tuples did not work.\n"
+            f"ref {ref_coord_as_coord} is not {coord_from_floats}"
+        )
+        coord_as_floats = ref_coord_as_coord.as_float_tuple()
+        assert all(map(isclose_wtol, ref_coord_as_float, coord_as_floats)), (
+            f"Conversion to float tuples did not work.\n"
+            f"ref {ref_coord_as_float} is not {coord_as_floats}"
+        )
+
+        coord_as_polars = ref_coord_as_coord.as_polar()
+
+        assert all(map(isclose_wtol, ref_coord_as_polar, coord_as_polars)), (
+            f"Conversion to polar coordiates failed.\n"
+            f"ref {ref_coord_as_polar} is not {coord_as_polars}"
+        )
+        
+        
+
