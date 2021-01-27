@@ -6,7 +6,7 @@ from driving_games import PlayerName, NO_LIGHTS
 from duckie_games.structures import DuckieGeometry, DuckieState
 from duckie_games.visualisation import DuckieGameVisualization
 from duckie_games.zoo import two_player_duckie_game_parameters, two_player_duckie_game_parameters_stretched
-from duckie_games.utils import LaneSegmentHashable, DuckietownMapHashable
+from duckie_games.utils import LaneSegmentHashable
 from decimal import Decimal as D
 from matplotlib import pyplot as plt
 
@@ -16,7 +16,6 @@ def test_visualisation():
 
     duckie_map = duckie_game_params.duckie_map
     map_name = duckie_game_params.map_name
-    duckie_map_hashable = DuckietownMapHashable.initializor(duckie_map)
     duckie_geometries = duckie_game_params.duckie_geometries
 
     duckie_states: Dict[PlayerName, DuckieState] = {}
