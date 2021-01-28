@@ -1,13 +1,22 @@
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
-from typing import NewType
+from typing import NewType, Optional
+
+from duckie_games.rectangle import Angle_Deg
 
 
-__all__ = ["ImpactLocation", "IMPACT_BACK", "IMPACT_FRONT", "IMPACT_SIDES", "IMPACT_RIGHT", "Collision"]
+__all__ = [
+    "ImpactLocation",
+    "IMPACT_BACK",
+    "IMPACT_FRONT",
+    "IMPACT_SIDES",
+    "IMPACT_RIGHT",
+    "IMPACT_LEFT",
+    "IMPACT_NONE",
+    "Collision"
+]
 
-
-Angle_Deg = D
 
 ImpactLocation = NewType("ImpactLocation", str)
 IMPACT_FRONT = ImpactLocation("front")
@@ -15,6 +24,7 @@ IMPACT_BACK = ImpactLocation("back")
 IMPACT_SIDES = ImpactLocation("sides")
 IMPACT_RIGHT = ImpactLocation('right')
 IMPACT_LEFT = ImpactLocation('left')
+IMPACT_NONE = ImpactLocation('none')
 
 
 @dataclass(frozen=True)
@@ -22,7 +32,7 @@ class Collision:
     __slots__ = ["location", "angle", "active", "energy_received", "energy_transmitted"]
     location: ImpactLocation
     """Where the impact was for this vehicle"""
-    angle: Angle_Deg
+    angle: Optional[Angle_Deg]
     """Angle of impact in degrees"""
     active: bool
     """ Whether the car was active in the collision. Defined as: the collision

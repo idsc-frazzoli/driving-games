@@ -178,7 +178,7 @@ def test_collision_check_utils():
 
         impact_location = get_impact_location(a=proj_car1, b=proj_car2)
 
-        assert all(map(_isequal, ref_line_sight, line_sight)), (
+        assert all(map(_isequal, ref_impact_location, impact_location)), (
             f"Impact location function does not work.\n"
             f"ref {ref_impact_location} is not {impact_location}"
         )

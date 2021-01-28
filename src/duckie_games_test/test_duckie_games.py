@@ -47,7 +47,7 @@ def test_two_player_duckie_game(duckie_game_parameters, duckie_uncert_params):
     """
     Similar values as in get_sim() of driving games, but played with duckies
     """
-    d = "out/two_player_duckie_game_org_no_collision/"
+    d = "out/two_player_duckie_game_new_collision_func/"
     game_name = "Two player Duckie game"
     solver_name = "Test"
     game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params)

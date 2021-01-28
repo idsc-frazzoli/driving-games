@@ -1,168 +1,210 @@
 from decimal import Decimal as D
-from typing import Mapping, MutableMapping, List, Dict, Optional, Tuple
+from typing import Mapping, List, Dict, Tuple
 from frozendict import frozendict
-from dataclasses import dataclass
 import itertools
-from math import isclose
+from math import isclose, sin, cos
 
 from games import PlayerName
 from zuper_commons.types import ZNotImplementedError
 from driving_games.structures import SE2_disc
 
 from duckie_games.structures import DuckieGeometry, DuckieState
-from duckie_games.collisions import Collision, IMPACT_RIGHT, IMPACT_LEFT, IMPACT_FRONT, IMPACT_BACK, IMPACT_SIDES, ImpactLocation, Angle_Deg
+from duckie_games.collisions import (
+    Collision,
+    IMPACT_RIGHT,
+    IMPACT_LEFT,
+    IMPACT_FRONT,
+    IMPACT_BACK,
+    IMPACT_SIDES,
+    IMPACT_NONE,
+    ImpactLocation,
+)
+
 from duckie_games.rectangle import (
     sample_x,
-    projected_car_from_state,
     ProjectedCar,
     projected_car_from_along_lane,
     two_rectangle_intersection,
-    Coordinates
+    Coordinates,
+    Angle_Deg
 )
-from duckie_games.utils import get_pose_in_ref_frame
 
 
+# todo refactor as a generic function
 def collision_check(
-    poses: Mapping[PlayerName, DuckieState],
-    geometries: Mapping[PlayerName, DuckieGeometry],
+        states: Mapping[PlayerName, DuckieState],
+        geometries: Mapping[PlayerName, DuckieGeometry],
 ) -> Mapping[PlayerName, Collision]:
-    dt = D(0.5)
-    n = 2
-    if len(poses) == 1:
-        return frozendict({})
-    if len(poses) > 2:
-        raise ZNotImplementedError(players=set(poses))
+    """
+    Checks for collisions in a n-player game with non-negative speeds along a lane.
+    This function only checks for two player collisions and then stops the game for the players around a certain radius
+    around of the accident. In urban driving this is a fair assumption, as an accident leads the other cars to stop.
+    """
 
-    p1, p2 = list(poses)
-    s1 = poses[p1]
-    s2 = poses[p2]
-    g1 = geometries[p1]
-    g2 = geometries[p2]
+    players = list(states)
 
-    x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-    x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+    collision_dict: Dict[PlayerName, Collision] = {}
 
-    for x1, x2 in zip(x1s, x2s):
-        pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
-        pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
+    for p1, p2 in itertools.combinations(players, 2):
 
-        # did p1 collide with p2?
-        p1_caused = a_caused_collision_with_b(pc1, pc2)
-        p2_caused = a_caused_collision_with_b(pc2, pc1)
-
-        p1_active = p1_caused
-        p2_active = p2_caused
-        if p1_caused and p2_caused:
-            # head-on collision
-            i1 = i2 = IMPACT_FRONT
-            vs = s1.v * g1.mass + s2.v * g2.mass
-            energy_received_1 = vs
-            energy_received_2 = vs
-            energy_given_1 = vs
-            energy_given_2 = vs
-            pass
-        elif p1_caused:
-            i1 = IMPACT_FRONT
-            i2 = IMPACT_SIDES
-            energy_received_1 = D(0)
-            energy_received_2 = s1.v * g1.mass
-            energy_given_1 = s1.v * g1.mass
-            energy_given_2 = D(0)
-        elif p2_caused:
-            i1 = IMPACT_SIDES
-            i2 = IMPACT_FRONT
-            energy_received_2 = D(0)
-            energy_received_1 = s1.v * g1.mass
-            energy_given_2 = s1.v * g1.mass
-            energy_given_1 = D(0)
-        else:
+        if p1 in collision_dict or p2 in collision_dict:
+            # Have already been in a collision or near a collision
             continue
 
-        c1 = Collision(i1, D(0), p1_active, energy_received_1, energy_given_1)
-        c2 = Collision(i2, D(0), p2_active, energy_received_2, energy_given_2)
-        return {p1: c1, p2: c2}
+        s1 = states[p1]
+        s2 = states[p2]
+        g1 = geometries[p1]
+        g2 = geometries[p2]
 
-    return {}
+        # samples in front and in the back of the car along the lane to account for the large time step
+        dt = D(0.5)  # todo change for timesteps not equal 1
+        n = 2
+        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
+        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
 
+        # check the sampled positions for collisions
+        for x1, x2 in zip(x1s, x2s):
 
-def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
-    return any(b.rectangle.contains_point(_) for _ in (a.front_right, a.front_center, a.front_left))
+            # get the footprint of the car as a rectangle
+            pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
+            pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
 
+            # Check if the two rectangles intersect = collision
+            if not two_rectangle_intersection(pc1.rectangle, pc2.rectangle):
+                # No collision
+                continue
 
-# # todo adapt for Duckies then refactor as a generic function
-# def collision_check_more_players(
-#         states: Mapping[PlayerName, DuckieState],
-#         geometries: Mapping[PlayerName, DuckieGeometry],
-# ) -> Mapping[PlayerName, Collision]:
-#
-#     players = list(states)
-#
-#     for p1, p2 in itertools.combinations(players, 2):
-#         s1 = states[p1]
-#         s2 = states[p2]
-#         g1 = geometries[p1]
-#         g2 = geometries[p2]
-#
-#         dt = D(0.5)  # todo
-#         n = 2
-#         x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-#         x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
-#
-#         for x1, x2 in zip(x1s, x2s):
-#
-#             pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
-#             pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
-#
-#             if not two_rectangle_intersection(pc1.rectangle, pc2.rectangle):
-#                 # No collision
-#                 continue
-#             else:
-#                 # Collision
-#
-#                 # did p1 collide with p2?
-#                 p1_caused, p2_caused = who_at_fault_line_of_sight(pc1, pc2)
-#                 p1_active, p2_active = p1_caused, p2_caused
-#
-#                 p1_pose = pc1.rectangle.center_pose
-#                 p2_pose = pc2.rectangle.center_pose
-#
-#                 p1_from_p2 = get_pose_in_ref_frame(abs_pose=p1_pose, ref=p2_pose)
-#                 p2_from_p1 = get_pose_in_ref_frame(abs_pose=p2_pose, ref=p1_pose)
-#
-#
-#                 if p1_caused and p2_caused:
-#                     # head-on collision
-#                     i1 = i2 = IMPACT_FRONT
-#                     vs = s1.v * g1.mass + s2.v * g2.mass
-#                     energy_received_1 = vs
-#                     energy_received_2 = vs
-#                     energy_given_1 = vs
-#                     energy_given_2 = vs
-#
-#                 elif p1_caused:
-#                     i1 = IMPACT_FRONT
-#                     i2 = IMPACT_SIDES
-#                     energy_received_1 = D(0)
-#                     energy_received_2 = s1.v * g1.mass
-#                     energy_given_1 = s1.v * g1.mass
-#                     energy_given_2 = D(0)
-#
-#                 elif p2_caused:
-#                     i1 = IMPACT_SIDES
-#                     i2 = IMPACT_FRONT
-#                     energy_received_2 = D(0)
-#                     energy_received_1 = s1.v * g1.mass
-#                     energy_given_2 = s1.v * g1.mass
-#                     energy_given_1 = D(0)
-#                 else:
-#                     assert False, "Should not get in this case"
-#
-#                 # todo angle of impact
-#                 c1 = Collision(D(0), p1_active, energy_received_1, energy_given_1)
-#                 c2 = Collision(D(0), p2_active, energy_received_2, energy_given_2)
-#                 return {p1: c1, p2: c2}
-#
-#     return {}
+            else:
+                # Collision
+
+                # The function assumes positive speed only
+                assert s1.v >= D(0) or s2.v >= D(0), (
+                    f"Collision function is not suited for negative speeds ({s1.v}, {s2.v})"
+                )
+
+                # who sees the other at the instance of the collision?
+                p1_sees_p2, p2_sees_p1 = who_at_fault_line_of_sight(pc1, pc2)
+
+                # Define active as seeing the other player at collision time
+                p1_active, p2_active = p1_sees_p2, p2_sees_p1
+
+                # get the angle of collision
+                p1_angle_col, p2_angle_col = get_angle_of_collision(pc1, pc2)
+
+                col_angle_pos = p1_angle_col.copy_abs()  # convert to absolute values
+                # get collision angle between 0° and 90°
+                col_angle_pos_0_90 = col_angle_pos if col_angle_pos <= 90 else D(180) - col_angle_pos
+
+                def _sin(theta): return D(sin(float(theta)))  # trigonometric functions for decimals
+                def _cos(theta): return D(cos(float(theta)))
+
+                # get the location where the impact happened
+                p1_impact_loc, p2_impact_loc = get_impact_location(pc1, pc2)
+
+                # function to check if it was a collision at one of the sides
+                def is_side_col(impact_loc: ImpactLocation):
+                    return impact_loc == IMPACT_RIGHT or impact_loc == IMPACT_LEFT
+
+                # Get the energy trasfered between the cars for different impact locations
+                if p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_FRONT:
+                    # head-on collision
+                    vs = s1.v * g1.mass + s2.v * g2.mass
+                    energy_received_1 = vs
+                    energy_received_2 = vs
+                    energy_given_1 = vs
+                    energy_given_2 = vs
+
+                elif p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_BACK:
+                    # p1 drives p2 in the back
+                    vs = s1.v * g1.mass - s2.v * g2.mass
+                    energy_received_1 = D(0)
+                    energy_received_2 = vs
+                    energy_given_1 = vs
+                    energy_given_2 = D(0)
+
+                elif p1_impact_loc == IMPACT_BACK and p2_impact_loc == IMPACT_FRONT:
+                    # p2 drives p1 in the back
+                    vs = s2.v * g2.mass - s1.v * g1.mass
+                    energy_received_1 = vs
+                    energy_received_2 = D(0)
+                    energy_given_1 = D(0)
+                    energy_given_2 = vs
+
+                elif p1_impact_loc == IMPACT_FRONT and is_side_col(p2_impact_loc):
+                    # p1 drives p2 in the sides
+                    vs = s1.v * g1.mass
+                    energy_received_1 = D(0)
+                    energy_received_2 = vs
+                    energy_given_1 = vs
+                    energy_given_2 = D(0)
+
+                elif is_side_col(p1_impact_loc) and p2_impact_loc == IMPACT_FRONT:
+                    # p2 drives p1 in the sides
+                    vs = s2.v * g2.mass
+                    energy_received_2 = D(0)
+                    energy_received_1 = vs
+                    energy_given_2 = vs
+                    energy_given_1 = D(0)
+
+                elif is_side_col(p1_impact_loc) and is_side_col(p2_impact_loc):
+                    # side to side collision, take only lateral collision speed
+                    half_col_angle = col_angle_pos_0_90 / D(2)
+
+                    vs = (g1.mass * s1.v + g2.mass * s2.v) * _sin(half_col_angle)
+
+                    energy_received_1 = vs
+                    energy_received_2 = vs
+                    energy_given_1 = vs
+                    energy_given_2 = vs
+
+                elif is_side_col(p1_impact_loc) and p2_impact_loc == IMPACT_BACK:
+                    # p1 drives with the sides in the back of p2, project speed of p1 along p2
+                    vs = g2.mass * s2.v - g1.mass * s1.v * _cos(col_angle_pos_0_90)
+                    energy_received_1 = D(0)
+                    energy_received_2 = vs
+                    energy_given_1 = vs
+                    energy_given_2 = D(0)
+
+                elif p1_impact_loc == IMPACT_BACK and is_side_col(p2_impact_loc):
+                    # p2 drives with the sides in the back of p1, project speed of p2 along p1
+                    vs = g1.mass * s1.v - g2.mass * s2.v * _cos(col_angle_pos_0_90)
+                    energy_received_2 = D(0)
+                    energy_received_1 = vs
+                    energy_given_2 = vs
+                    energy_given_1 = D(0)
+
+                else:
+                    # Case that should never happen
+                    assert False, "Should not happen, check get location function"
+
+                c1 = Collision(
+                    location=p1_impact_loc,
+                    angle=p1_angle_col,
+                    active=p1_active,
+                    energy_received=energy_received_1,
+                    energy_transmitted=energy_given_1
+                )
+                c2 = Collision(
+                    location=p2_impact_loc,
+                    angle=p2_angle_col,
+                    active=p2_active,
+                    energy_received=energy_received_2,
+                    energy_transmitted=energy_given_2
+                )
+                two_player_col = {p1: c1, p2: c2}
+                empty_col_dict = stop_game_for_players_around(
+                    colliding_players=(p1, p2),
+                    states=states,
+                    vg=geometries,
+                    radius_factor=D(5)
+                )
+                collision_dict.update(empty_col_dict)
+                collision_dict.update(two_player_col)
+
+                # don't check the other positions
+                break
+
+    return collision_dict
 
 
 def who_at_fault_line_of_sight(a: ProjectedCar, b: ProjectedCar) -> Tuple[bool, bool]:
@@ -173,7 +215,7 @@ def who_at_fault_line_of_sight(a: ProjectedCar, b: ProjectedCar) -> Tuple[bool, 
                      ^                     If there is any point
                      |/ / / / / / / /      of the contour of car 2
              x-------|-------x / / / /  <- in this region, car 1
-    car 1 -> |       | / / / |/ / / /      is also at fault
+    car 1 -> |       | / / / |/ / / /      is at fault
         -----------x--------------> X
              |       | / / / |/ / / /
              x-------|-------x / / / /
@@ -299,7 +341,7 @@ def get_impact_location(a: ProjectedCar, b: ProjectedCar) -> Tuple[ImpactLocatio
     ].count(True)
 
     a_back = [
-        a_angle_to_x_diag <= b_angle_from_a.copy_abs() <= D(180)
+        a_angle_to_y_diag <= b_angle_from_a.copy_abs() <= D(180)
         for b_angle_from_a in b_pts_angles_from_a
     ].count(True)
 
@@ -319,7 +361,7 @@ def get_impact_location(a: ProjectedCar, b: ProjectedCar) -> Tuple[ImpactLocatio
     ].count(True)
 
     b_back = [
-        b_angle_to_x_diag <= a_angle_from_b.copy_abs() <= D(180) for a_angle_from_b in a_pts_angles_from_b
+        b_angle_to_y_diag <= a_angle_from_b.copy_abs() <= D(180) for a_angle_from_b in a_pts_angles_from_b
     ].count(True)
 
     a_impact_dict = {
@@ -341,3 +383,120 @@ def get_impact_location(a: ProjectedCar, b: ProjectedCar) -> Tuple[ImpactLocatio
     b_impact = max(b_impact_dict, key=b_impact_dict.get)
 
     return a_impact, b_impact
+
+
+def stop_game_for_players_around(
+        colliding_players: Tuple[PlayerName, PlayerName],
+        states: Mapping[PlayerName, DuckieState],
+        vg: Mapping[PlayerName, DuckieGeometry],
+        radius_factor: D = D(5)
+) -> Mapping[PlayerName, Collision]:
+    """
+    Stops the game for players around a certain radius around the accident.
+    radius_factor: Used in the calculation for the radius. Will multiply the sum of the two lengths
+     of the colliding cars, to give the final radius.
+    """
+
+    col_player1, col_player2 = colliding_players
+
+    radius = (vg[col_player1].length + vg[col_player1].length) * radius_factor
+
+    pose1: SE2_disc
+    pose2: SE2_disc
+    pose1, pose2 = states[col_player1].abs_pose, states[col_player2].abs_pose
+
+    center_1, center_2 = Coordinates((pose1[0], pose1[1])), Coordinates((pose2[0], pose2[1]))
+
+    circle_center = center_1 + (center_2 - center_1) / 2
+
+    col_dict = {}
+    empty_col = Collision(
+        location=IMPACT_NONE,
+        angle=None,
+        active=False,
+        energy_received=D(0),
+        energy_transmitted=D(0)
+    )
+
+    for player, state in states.items():
+        if player == col_player1 or player == col_player2:
+            continue
+
+        pose: SE2_disc = state.abs_pose
+        pose_center = Coordinates([pose[0], pose[1]])
+
+        from_circle_center_to_pose = pose_center - circle_center
+
+        dist, _ = from_circle_center_to_pose.as_polar()
+
+        if dist <= radius:
+            col_dict[player] = empty_col
+
+    return col_dict
+
+
+def collision_check_old(
+    poses: Mapping[PlayerName, DuckieState],
+    geometries: Mapping[PlayerName, DuckieGeometry],
+) -> Mapping[PlayerName, Collision]:
+    dt = D(0.5)
+    n = 2
+    if len(poses) == 1:
+        return frozendict({})
+    if len(poses) > 2:
+        raise ZNotImplementedError(players=set(poses))
+
+    p1, p2 = list(poses)
+    s1 = poses[p1]
+    s2 = poses[p2]
+    g1 = geometries[p1]
+    g2 = geometries[p2]
+
+    x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
+    x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+
+    for x1, x2 in zip(x1s, x2s):
+        pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
+        pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
+
+        # did p1 collide with p2?
+        p1_caused = a_caused_collision_with_b(pc1, pc2)
+        p2_caused = a_caused_collision_with_b(pc2, pc1)
+
+        p1_active = p1_caused
+        p2_active = p2_caused
+        if p1_caused and p2_caused:
+            # head-on collision
+            i1 = i2 = IMPACT_FRONT
+            vs = s1.v * g1.mass + s2.v * g2.mass
+            energy_received_1 = vs
+            energy_received_2 = vs
+            energy_given_1 = vs
+            energy_given_2 = vs
+            pass
+        elif p1_caused:
+            i1 = IMPACT_FRONT
+            i2 = IMPACT_SIDES
+            energy_received_1 = D(0)
+            energy_received_2 = s1.v * g1.mass
+            energy_given_1 = s1.v * g1.mass
+            energy_given_2 = D(0)
+        elif p2_caused:
+            i1 = IMPACT_SIDES
+            i2 = IMPACT_FRONT
+            energy_received_2 = D(0)
+            energy_received_1 = s1.v * g1.mass
+            energy_given_2 = s1.v * g1.mass
+            energy_given_1 = D(0)
+        else:
+            continue
+
+        c1 = Collision(i1, D(0), p1_active, energy_received_1, energy_given_1)
+        c2 = Collision(i2, D(0), p2_active, energy_received_2, energy_given_2)
+        return {p1: c1, p2: c2}
+
+    return {}
+
+
+def a_caused_collision_with_b(a: ProjectedCar, b: ProjectedCar):
+    return any(b.rectangle.contains_point(_) for _ in (a.front_right, a.front_center, a.front_left))

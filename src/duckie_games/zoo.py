@@ -33,8 +33,10 @@ with localcontext() as ctx:
     duckie_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2")]
     lane_names = {
         duckie_names[0]: ['ls051', 'ls033', 'ls016'],
-        #duckie_names[1]: ['ls041', 'ls036', 'ls026'],
+        # duckie_names[0]: ['ls026', 'ls022', 'L13'],
+        # duckie_names[1]: ['ls041', 'ls036', 'ls026'],
         duckie_names[1]: ['ls041', 'ls035', 'ls050']
+
     }
     lanes: Dict[PlayerName, Lane]
     lanes = {dn: merge_lanes(get_lane_segments(duckie_map=duckie_map, lane_names=lane_names[dn])) for dn in duckie_names}
@@ -54,12 +56,12 @@ with localcontext() as ctx:
     max_path_first = max_paths[duckie_names[0]]
 
     # scale the parameters
-    max_speed = D(5) * max_path_first / max_path_driving_games
-    min_speed = D(0.5) * max_path_first / max_path_driving_games
+    max_speed = D(3) * max_path_first / max_path_driving_games
+    min_speed = D(0) * max_path_first / max_path_driving_games
     max_speeds = {dn: max_speed for dn in duckie_names}
     min_speeds = {dn:  min_speed for dn in duckie_names}
     #max_waits = {dn: D(1) for dn in duckie_names}
-    max_waits = {dn: D(1) for dn in duckie_names}
+    max_waits = {dn: D(3) for dn in duckie_names}
 
     # available_acc = [acc * max_path_first / max_path_driving_games for acc in [D(-2), D(-1), D(0), D(+1)]]
     available_acc = [acc * max_path_first / max_path_driving_games for acc in [D(-2), D(-1), D(0), D(+1)]]
@@ -106,6 +108,7 @@ with localcontext() as ctx:
     duckie_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2")]
     lane_names = {
         duckie_names[0]: ['ls051', 'ls033', 'ls016'],
+        #duckie_names[0]: ['ls026', 'ls022', 'L13'],
         #duckie_names[1]: ['ls041', 'ls036', 'ls026'],
         duckie_names[1]: ['ls041', 'ls035', 'ls050']
     }
@@ -128,14 +131,14 @@ with localcontext() as ctx:
     min_speed = D(1)
     max_speeds = {dn: max_speed for dn in duckie_names}
     min_speeds = {dn:  min_speed for dn in duckie_names}
-    max_waits = {dn: D(3) for dn in duckie_names}
+    max_waits = {dn: D(1) for dn in duckie_names}
 
     available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in duckie_names}
     light_actions = {dn: frozenset({NO_LIGHTS}) for dn in duckie_names}
     dt = D(1)
     initial_progress = {dn: 0 for dn in duckie_names}
     collision_threshold = 3
-    shared_resources_ds = D(1)
+    shared_resources_ds = D(1.5)
 
 # Parameters to compare solution with the game constructed in driving_games.zoo, get_sym()
 two_player_duckie_game_parameters_stretched = DuckieGameParams(
