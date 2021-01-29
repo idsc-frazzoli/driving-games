@@ -6,6 +6,7 @@ from typing import (
     Dict,
     FrozenSet as FSet,
     Mapping as M,
+    List
 )
 
 from frozendict import frozendict
@@ -17,7 +18,9 @@ from zuper_commons.types import ZValueError
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.create_joint_game_tree import create_game_graph
+from games.utils import iterate_dict_combinations
 from games.game_def import (
+    GamePlayer,
     check_joint_state,
     Combined,
     Game,
@@ -67,15 +70,18 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     dt = gp.solver_params.dt
     # find initial states
     # noinspection PyCallingNonCallable
-    initials = list((node for node, degree in G.in_degree() if degree == 0))
 
-    logger.info(initials=initials)
+    initials = get_initial_states(game_prepro=gp)
+
+    # initials_old = list((node for node, degree in G.in_degree() if degree == 0))
+
+    logger.info(msg="Initial states of all players", initials=initials)
     assert len(initials) == 1
     initial = initials[0]
 
     # noinspection PyCallingNonCallable
     finals = list(node for node, degree in G.out_degree() if degree == 0)
-    logger.info(finals=len(finals))
+    logger.info(msg="Final states of the first two players", finals=len(finals))
 
     cycles = list(simple_cycles(G))
     if cycles:
@@ -130,6 +136,20 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
         sims=sims,
     )
     # logger.info(game_tree=game_tree)
+
+def get_initial_states(game_prepro: GamePreprocessed) -> List[JointState]:
+    game_players: M[PlayerName, GamePlayer[X, U, Y, RP, RJ, SR]]
+    game_players = game_prepro.game.players
+
+    initials_dict: Dict[PlayerName, List[X]]  = {}
+    for player_name, game_pl_pre in game_players.items():
+        initials_support = game_pl_pre.initial.support()
+        initials_dict[player_name] = []
+        for _ini in initials_support:
+            initials_dict[player_name].append(_ini)
+
+    initials = list(iterate_dict_combinations(initials_dict))
+    return initials
 
 
 def solve_sequential_games(
@@ -379,7 +399,6 @@ def _solve_game(
         TOC = perf_counter()
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
-
 
 def solve_final_joint(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
