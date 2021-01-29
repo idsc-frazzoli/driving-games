@@ -24,6 +24,7 @@ from duckie_games.solve import preprocess_duckie_game
 from duckie_games.zoo import (
     two_player_duckie_game_parameters,
     two_player_duckie_game_parameters_stretched,
+    three_player_duckie_game_parameters_stretched,
     uncertainty_prob,
     uncertainty_sets,
 )
@@ -51,7 +52,7 @@ def test_two_player_duckie_game(duckie_game_parameters, duckie_uncert_params):
     game_name = "Two player Duckie game"
     solver_name = "Test"
     game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params)
-    use_factorization = True
+    use_factorization = False
     get_factorization = get_game_factorization  # factorization algo used
     dt = duckie_game_parameters.dt  # delta-t of discretization
     admissible_strategies = PURE_STRATEGIES
@@ -80,51 +81,38 @@ def test_two_player_duckie_game(duckie_game_parameters, duckie_uncert_params):
     # print(solutions.game_solution.states_to_solution)
 
 
-# todo write a test for more than 2 players
-
-# player_numbers = 3
-# player_names = [PlayerName(f"Duckie_{_ + 1}") for _ in range(0, player_numbers)]
-# player_bottom = player_numbers // 2
-# player_side = player_numbers - player_bottom
-# spacing_x = [int(_) for _ in np.linspace(0, 22, player_bottom + 2)[1:-1]]
-# spacing_y = [int(_) for _ in np.linspace(0, 22, player_side + 2)[1:-1]]
-# poses = (
-#     [(D(spacing_x[_]), D(0), D(+90)) if _ < player_bottom
-#      else (D(22), D(spacing_y[_ - player_bottom]), D(-180))
-#      for _ in range(player_numbers)]
-# )
-# initial_poses = {player_names[_]: poses[_] for _ in range(0, player_numbers)}
-#
-# duckie_game_params_n_player = [
-#     DuckieGameParams(
-#         player_number=player_numbers,
-#         player_names=player_names,
-#         initial_poses=initial_poses
-#     )
+# uncertainty_params = [
+#     uncertainty_sets,
+#     # uncertainty_prob,
 # ]
 #
-# params_n_player = list(product(vehicle_params, duckie_game_params_n_player, uncertainty_params))
+# duckie_game_params = [
+#     three_player_duckie_game_parameters_stretched
+# ]
 #
-#
-#
-# @parameterized(params_n_player)
-# def test_n_player_duckie_game(duckie_vehicle_parameters, duckie_game_parameters, duckie_uncert_params):
-#     d = f"out/duckie_game_{player_numbers}_player/"
-#     game_name = f"{player_numbers} Player Duckie Game"
-#     solver_name = f"Test {player_numbers}-players"
+# params = list(product(duckie_game_params, uncertainty_params))
+
+# @parameterized(params)
+# def test_three_player_duckie_game(duckie_game_parameters, duckie_uncert_params):
+#     """
+#     Test for a 3 player duckie game
+#     """
+#     d = "out/three_player_duckie_game/"
+#     game_name = "Three player duckie game"
+#     solver_name = "Test"
 #     game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params)
-#     use_factorization = True
+#     use_factorization = False
 #     get_factorization = get_game_factorization  # factorization algo used
-#     dt = D(1)  # delta-t of discretization
+#     dt = duckie_game_parameters.dt  # delta-t of discretization
 #     admissible_strategies = PURE_STRATEGIES
 #     strategy_multiple_nash = MIX_MNE
 #
 #     solve_params = FactorizationSolverParams(
-#             admissible_strategies=admissible_strategies,
-#             strategy_multiple_nash=strategy_multiple_nash,
-#             dt=dt,
-#             use_factorization=use_factorization,
-#             get_factorization=get_factorization
+#         admissible_strategies=admissible_strategies,
+#         strategy_multiple_nash=strategy_multiple_nash,
+#         dt=dt,
+#         use_factorization=use_factorization,
+#         get_factorization=get_factorization
 #     )
 #     solver_spec = FactorizationSolverSpec("test", solve_params)
 #

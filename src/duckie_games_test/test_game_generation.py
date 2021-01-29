@@ -7,18 +7,21 @@ from duckie_games.game_generation import get_duckie_game
 from duckie_games.zoo import (
     two_player_duckie_game_parameters,
     two_player_duckie_game_parameters_stretched,
+    three_player_duckie_game_parameters_stretched,
     uncertainty_sets,
     uncertainty_prob
 )
 
 uncertainty_params = [
     uncertainty_sets,
-    #uncertainty_prob,
+    uncertainty_prob,
 ]
 
 duckie_game_params = [
-    #two_player_duckie_game_parameters,
-    two_player_duckie_game_parameters_stretched
+    two_player_duckie_game_parameters,
+    two_player_duckie_game_parameters_stretched,
+    three_player_duckie_game_parameters_stretched
+
 ]
 
 params = list(product(duckie_game_params, uncertainty_params))
