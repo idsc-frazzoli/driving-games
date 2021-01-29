@@ -1,3 +1,4 @@
+from time import perf_counter
 from typing import Mapping
 
 from reprep import Report
@@ -10,6 +11,7 @@ from .trajectory_game import SolvedTrajectoryGame
 def report_game_visualization(game: StaticGame) -> Report:
     viz = game.game_vis
     r = Report("vis")
+    tic = perf_counter()
     with r.plot("actions") as pylab:
         ax = pylab.gca()
         with viz.plot_arena(pylab, ax):
@@ -18,6 +20,8 @@ def report_game_visualization(game: StaticGame) -> Report:
                     viz.plot_player(player_name=player_name, state=state)
                 viz.plot_actions(player=player)
 
+    toc = perf_counter() - tic
+    print(f"Report game viz time = {toc} s")
     return r
 
 

@@ -109,10 +109,10 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Worl
             return float(x), float(y)
 
         def line_width(n: VehicleState):
-            return float(1.0 / pow(2.0, G.edges[n]["gen"]))
+            return float(1.0 / pow(3.0, G.edges[n]["gen"]))
 
         def node_sizes(n: VehicleState):
-            return float(1.0 / pow(2.0, G.nodes[n]["gen"]))
+            return float(1.0 / pow(4.0, G.nodes[n]["gen"]))
 
         pos = {_: pos_node(_) for _ in G.nodes}
         widths = [line_width(_) for _ in G.edges]
@@ -136,7 +136,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Worl
         )
         ax: Axes = self.pylab.gca()
         nodes.set_zorder(20)
-        edges.set_zorder(15)
+        edges.set_zorder(5)
         ax.add_collection(nodes)
         ax.add_collection(edges)
 

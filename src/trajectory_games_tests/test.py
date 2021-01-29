@@ -25,6 +25,5 @@ def test_trajectory_game():
     r_game: Report = report_game_visualization(game=game)
     r_game.add_child(report_nash_eq(nash_eq))
     r_game.to_html(join(d, "r_animation.html"))
-    # r_game.to_html(join(d, "r_animation.r_game"))
 
     a = 2
