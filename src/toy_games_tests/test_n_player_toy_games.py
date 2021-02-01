@@ -35,7 +35,7 @@ uncertainty_params = [
 ]
 
 
-toy_lane1 = ToyLane(
+toy_lane_star_1 = ToyLane(
     control_points=frozendict({
         0: 1,
         1: 7,
@@ -43,7 +43,7 @@ toy_lane1 = ToyLane(
     })
 )
 
-toy_lane2 = ToyLane(
+toy_lane_star_2 = ToyLane(
     control_points=frozendict({
         0: 2,
         1: 7,
@@ -51,7 +51,7 @@ toy_lane2 = ToyLane(
     })
 )
 
-toy_lane3 = ToyLane(
+toy_lane_star_3 = ToyLane(
     control_points=frozendict({
         0: 3,
         1: 7,
@@ -59,15 +59,27 @@ toy_lane3 = ToyLane(
     })
 )
 
-toy_map = ToyCarMap(
+""" 
+This map contains 3-lanes. Collision happens at point (7):
+                 (1) 
+           (2) x  x  x (6)
+                \ | /
+                 \|/
+                  x (7)
+                 /|\
+                / | \
+           (3) x  x  x (5)
+                 (4)
+"""
+toy_map_star = ToyCarMap(
     lanes=[
-        toy_lane1,
-        toy_lane2,
-        #toy_lane3
+        toy_lane_star_1,
+        toy_lane_star_2,
+        #toy_lane_star_3
     ]
 )
 toy_params1 = ToyGameParams(
-    toy_game_map=toy_map
+    toy_game_map=toy_map_star
 )
 
 toy_game_params = [
@@ -83,7 +95,7 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params):
     N-Player toy game
     """
     d = "out/n_player_toy_car_game/"
-    game_name = "n-layer toy game"
+    game_name = "n-player toy game"
     solver_name = "Test"
     game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params)
     use_factorization = False
