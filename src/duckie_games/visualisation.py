@@ -2,10 +2,7 @@ import os
 from decimal import Decimal as D
 from numbers import Number
 from typing import Any, FrozenSet, Mapping, Optional, Sequence, Tuple
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPM
-from cairosvg import svg2png, svg2svg
-from IPython.display import SVG
+from cairosvg import svg2png
 
 import numpy as np
 from decorator import contextmanager
