@@ -113,9 +113,9 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
             assert v2 >= 0
             x2 = x.x + (x.v + accel_effective * dt) * dt
-            if x2 > self.max_path:
-                msg = "Invalid action gives out of bound"
-                raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
+            # if x2 > self.max_path:
+            #     msg = "Invalid action gives out of bound"
+            #     raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
         # if wait2 > self.max_wait:
         #     msg = f'Invalid action gives wait of {wait2}'
         #     raise InvalidAction(msg, x=x, u=u)

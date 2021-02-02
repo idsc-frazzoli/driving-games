@@ -18,6 +18,7 @@ from duckie_games.utils import (
     get_lane_segments,
     LaneSegmentHashable
 )
+import pickle
 
 
 def test_transformations():
@@ -143,4 +144,11 @@ def test_hashable_lane():
     print(hash(lane2_hash))
 
     assert isclose(lane1.get_lane_length(), lane1_hash.get_lane_length()), "Lane 1 has not same length as hashed lane 1"
-    assert isclose(lane1.get_lane_length(), lane1_hash.get_lane_length()), "Lane 2 has not same length as hashed lane 2"
+    assert isclose(lane2.get_lane_length(), lane2_hash.get_lane_length()), "Lane 2 has not same length as hashed lane 2"
+
+    pickled_version = pickle.dumps(lane1_hash)
+    
+    lane1_hash_unpickled = pickle.loads(pickled_version)
+    assert isclose(lane1.get_lane_length(), lane1_hash_unpickled.get_lane_length()), "Lane 1 has not same length as hashed lane 1"
+
+
