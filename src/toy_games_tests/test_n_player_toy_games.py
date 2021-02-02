@@ -20,8 +20,15 @@ from preferences import SetPreference1
 from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
 from duckie_games.solve import preprocess_duckie_game
 
-from toy_games.n_player_toy_structures import ToyCarMap, ToyLane
-from toy_games.n_player_toy_game import get_toy_car_game, ToyGameParams
+from toy_games.n_player_toy_game import get_toy_car_game
+from toy_games.n_player_toy_game_zoo import (
+    toy_params_star,
+    toy_params_x_with_base,
+    toy_params_indep_lanes,
+    toy_params_two_indep_games,
+    toy_params_two_x_joint,
+    toy_params_two_x_crossed
+)
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
@@ -32,57 +39,13 @@ uncertainty_params = [
     # uncertainty_prob,
 ]
 
-
-toy_lane_star_1 = ToyLane(
-    control_points=frozendict({
-        0: 1,
-        1: 7,
-        2: 4
-    })
-)
-
-toy_lane_star_2 = ToyLane(
-    control_points=frozendict({
-        0: 2,
-        1: 7,
-        2: 5
-    })
-)
-
-toy_lane_star_3 = ToyLane(
-    control_points=frozendict({
-        0: 3,
-        1: 7,
-        2: 6
-    })
-)
-
-""" 
-This map contains 3-lanes. Collision happens at point (7):
-                 (1) 
-           (2) x  x  x (6)
-                \ | /
-                 \|/
-                  x (7)
-                 /|\
-                / | \
-           (3) x  x  x (5)
-                 (4)
-"""
-toy_map_star = ToyCarMap(
-    lanes=[
-        toy_lane_star_1,
-        toy_lane_star_2,
-        # toy_lane_star_3
-    ]
-)
-toy_params1 = ToyGameParams(
-    toy_game_map=toy_map_star,
-    max_wait=2
-)
-
 toy_game_params = [
-    toy_params1
+    toy_params_star,
+    toy_params_x_with_base,
+    toy_params_indep_lanes,
+    toy_params_two_indep_games,
+    toy_params_two_x_joint,
+    toy_params_two_x_crossed
 ]
 
 params = list(product(toy_game_params, uncertainty_params))
@@ -94,7 +57,7 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params):
     N-Player toy game
     """
     d = "out/n_player_toy_car_game/"
-    game_name = "n-player toy game"
+    game_name = toy_game_parameters.params_name
     solver_name = "Test"
     game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params)
     use_factorization = False

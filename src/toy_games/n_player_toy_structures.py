@@ -23,7 +23,7 @@ PLUSTWO = Step("+2")
 AvailableSteps: AbstractSet[Step] = frozenset({
     WAIT,
     PLUSONE,
-    # PLUSTWO
+    #PLUSTWO
 })
 
 
@@ -110,10 +110,9 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
 
     @lru_cache(None)
     def successor(self, x: ToyCarState, u: ToyCarActions) -> ToyCarState:
-        # trick to get unique NOT path dependent final states and
-        # allow arbitrary payoff matrices
+
         if u.step == PLUSONE:
-            along_lane = x.along_lane + 1\
+            along_lane = x.along_lane + 1
 
             if along_lane > self.max_path:
                 msg = "Invalid action gives out of bounds"
@@ -255,7 +254,7 @@ class ToyCarVisualization(
         self.pylab = pylab
         ctr_pts = [lane.control_points for lane in self.lanes]
         max_lane_length = max(map(len, ctr_pts))
-        ax.set_xlim(left=0, right=max_lane_length - 1)
+        ax.set_xlim(left=-0.2, right=max_lane_length - 0.8)
         ax.set_ylim(bottom=0, top=1)
         for i, ctr_p in enumerate(ctr_pts):
             x_lane = np.array(list(ctr_p.keys()))

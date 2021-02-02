@@ -38,6 +38,8 @@ ToyCarGamePlayer = GamePlayer[
 
 @dataclass
 class ToyGameParams:
+    params_name: str
+    """Name of the params"""
     toy_game_map: ToyCarMap
     """ Map where the players play """
     max_wait: int
