@@ -171,8 +171,8 @@ with localcontext() as ctx:
     duckie_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2"), PlayerName("Duckie_3")]
     lane_names = {
         duckie_names[0]: ['ls051', 'ls033', 'ls016'],
-        duckie_names[1]: ['ls027', 'ls028', 'ls050'],
-        duckie_names[2]: ['ls041', 'ls035', 'ls050']
+        duckie_names[1]: ['ls041', 'ls036', 'ls026'],
+        duckie_names[2]: ['ls017', 'ls038', 'ls040']
     }
     lanes: Dict[PlayerName, Lane]
     lanes = {dn: merge_lanes(get_lane_segments(duckie_map=duckie_map, lane_names=lane_names[dn])) for dn in duckie_names}
@@ -189,13 +189,15 @@ with localcontext() as ctx:
 
     max_paths = {dn: D(lanes[dn].get_lane_length()) * D(1) for dn in duckie_names}
 
-    max_speed = D(5)
-    min_speed = D(1)
+    max_speed = D(6)
+    min_speed = D(0)
     max_speeds = {dn: max_speed for dn in duckie_names}
     min_speeds = {dn:  min_speed for dn in duckie_names}
-    max_waits = {dn: D(1) for dn in duckie_names}
+    max_waits = {dn: D(5) for dn in duckie_names}
 
-    available_accels = {dn: frozenset([D(-1), D(0), D(+1)]) for dn in duckie_names}
+    #available_accels = {dn: frozenset([D(-1), D(0), D(+1)]) for dn in duckie_names}
+    available_accels = {dn: frozenset([D(0), D(+3)]) for dn in duckie_names}
+    #available_accels = {dn: frozenset([D(+1)]) for dn in duckie_names}
     #available_accels[duckie_names[1]] = frozenset([D(+1)])
     light_actions = {dn: frozenset({NO_LIGHTS}) for dn in duckie_names}
     dt = D(1)
