@@ -28,8 +28,10 @@ class NotSeen:
 class ToyCarActions:
     step: Step
 
+
 PointInMap = int
 CtrPointID = int
+
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class ToyLane:
@@ -102,13 +104,19 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
         # trick to get unique NOT path dependent final states and
         # allow arbitrary payoff matrices
         if u.step == PLUSONE:
-            along_lane = x.along_lane + 1 if x.along_lane + 1 <= self.max_path else self.max_path
+            along_lane = x.along_lane + 1\
+
+            if along_lane > self.max_path:
+                msg = "Invalid action gives out of bounds"
+                raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
             return replace(x, along_lane=along_lane, time=x.time + 1)
 
         if u.step == PLUSTWO:
-
-            along_lane = x.along_lane + 2 if x.along_lane + 2 <= self.max_path else self.max_path
+            along_lane = x.along_lane + 2
+            if along_lane > self.max_path:
+                msg = "Invalid action gives out of bounds"
+                raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
             return replace(x, along_lane=along_lane, time=x.time + 1)
         else:
@@ -193,7 +201,6 @@ class ToyCarVisualization(
     def __init__(self, toy_map: ToyCarMap):
         self.toy_map = toy_map
 
-
     def hint_graph_node_pos(self, state: ToyCarState) -> Tuple[float, float]:
         pass
 
@@ -203,4 +210,3 @@ class ToyCarVisualization(
     @contextmanager
     def plot_arena(self, pylab, ax):
         yield
-
