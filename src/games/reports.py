@@ -25,7 +25,10 @@ def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Re
         r.add_child(report_player(game_pre, player_name, player))
         # break  # only one
     r.add_child(report_game(game_pre))
-    r.add_child(report_game_joint_final(game_pre))
+    try:
+        r.add_child(report_game_joint_final(game_pre))
+    except:
+        pass
     return r
 
 
