@@ -177,6 +177,9 @@ class ToyCollisionPreference(Preference[Optional[ToyCollision]]):
         if b.active and not a.active:
             return FIRST_PREFERRED
 
+        if (a.active and b.active) or (not a.active and not b.active):
+            return INDIFFERENT
+
         assert False, "Should not happen"
 
     def __repr__(self) -> str:
