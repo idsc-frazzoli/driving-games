@@ -1,4 +1,3 @@
-from decimal import Decimal as D
 from os.path import join
 from itertools import product
 from frozendict import frozendict
@@ -9,7 +8,6 @@ from games import (
     PURE_STRATEGIES,
     report_solutions,
     create_report_preprocessed,
-    PlayerName,
     UncertaintyParams,
     logger
 )
@@ -75,11 +73,12 @@ toy_map_star = ToyCarMap(
     lanes=[
         toy_lane_star_1,
         toy_lane_star_2,
-        #toy_lane_star_3
+        # toy_lane_star_3
     ]
 )
 toy_params1 = ToyGameParams(
-    toy_game_map=toy_map_star
+    toy_game_map=toy_map_star,
+    max_wait=2
 )
 
 toy_game_params = [
@@ -116,14 +115,14 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params):
     game_preprocessed = preprocess_duckie_game(game, solver_spec.solver_params)
     solutions = solve1(game_preprocessed)
 
-    logger.info(solutions)
+    # logger.info(solutions=solutions)
 
-    # dg = join(d, game_name)
-    # ds = join(dg, solver_name)
-    # r_solutions = report_solutions(game_preprocessed, solutions)
-    # r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
-    #
-    # r_solutions.to_html(join(ds, "r_solutions.html"))
-    # r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
-    # print(solutions.game_solution.policies)
-    # print(solutions.game_solution.states_to_solution)
+    dg = join(d, game_name)
+    ds = join(dg, solver_name)
+    r_solutions = report_solutions(game_preprocessed, solutions)
+    r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
+
+    r_solutions.to_html(join(ds, "r_solutions.html"))
+    r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+    # logger.info(policies=solutions.game_solution.policies)
+    # logger.info(states_to_solutions=solutions.game_solution.states_to_solution)

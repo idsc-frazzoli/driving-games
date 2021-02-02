@@ -1,4 +1,4 @@
-from typing import Any, FrozenSet, Mapping, Optional, Tuple, Type
+from typing import FrozenSet, Mapping, Optional, Tuple, Type
 import itertools
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
@@ -48,13 +48,14 @@ class ToyCarPersonalRewardStructureCustom(PersonalRewardStructure[ToyCarState, T
         check_isinstance(x, ToyCarState)
         return x.along_lane >= self.max_path
 
+
 @dataclass(frozen=True)
 class ToyCollision:
     active: bool
 
 
 class ToyCarPreferences(Preference[Combined[ToyCollision, ToyCarCosts]]):
-    def __init__(self, ignore_second = False):
+    def __init__(self, ignore_second=False):
         self.ignore_second = ignore_second
         self.collision = ToyCollisionPreference()
         self.time = SmallerPreferredTol(D(0))
@@ -92,12 +93,10 @@ class ToyCarJointReward(JointRewardStructure[ToyCarState, ToyCarActions, ToyColl
         res = toy_collision_check(joint_state=xs)
         return frozenset(res)
 
-
     def joint_reward(self, xs: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
 
         res = toy_collision_check(joint_state=xs)
         return res
-
 
 
 def toy_collision_check(joint_state: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
@@ -179,7 +178,6 @@ class ToyCollisionPreference(Preference[Optional[ToyCollision]]):
             return FIRST_PREFERRED
 
         assert False, "Should not happen"
-
 
     def __repr__(self) -> str:
         d = {

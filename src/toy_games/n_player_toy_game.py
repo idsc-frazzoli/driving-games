@@ -19,11 +19,10 @@ from toy_games.n_player_toy_structures import (
     ToyCarActions,
     ToyCarCosts,
     ToyResources,
-    ToyLane,
     ToyCarMap
 )
 from possibilities import PossibilityMonad
-from typing import FrozenSet as ASet, cast
+from typing import cast
 from decimal import Decimal as D
 
 __all__ = ["get_toy_car_game"]
@@ -41,8 +40,11 @@ ToyCarGamePlayer = GamePlayer[
 class ToyGameParams:
     toy_game_map: ToyCarMap
     """ Map where the players play """
-    dt=D(1)
+    max_wait: int
+    """How long the players can maximally wait"""
+    dt = D(1)
     """Not used"""
+
 
 def get_toy_car_game(toy_games_params: ToyGameParams, uncertainty_params: UncertaintyParams) -> ToyCarGame:
     """
@@ -61,7 +63,8 @@ def get_toy_car_game(toy_games_params: ToyGameParams, uncertainty_params: Uncert
         toy_car_state = ToyCarState(
             along_lane=0,
             time=0,
-            lane=lane
+            lane=lane,
+            wait=0
         )
 
         toy_car_initial = ps.unit(toy_car_state)
@@ -70,7 +73,8 @@ def get_toy_car_game(toy_games_params: ToyGameParams, uncertainty_params: Uncert
 
         toy_car_dynamics = ToyCarDynamics(
             poss_monad=ps,
-            max_path=max_path
+            max_path=max_path,
+            max_wait=toy_games_params.max_wait
         )
 
         toy_car_personal_reward_structure = ToyCarPersonalRewardStructureCustom(
