@@ -96,7 +96,7 @@ def solve_equilibria(
 
             game_value1: MutableMapping[PlayerName, UncertainCombined]
             game_value1 = {}
-            for player_name in gn.states:
+            for player_name in players_active:  # check only active players
 
                 def f(jpa: JointPureActions) -> UncertainCombined:
                     return solved[jpa][player_name]
@@ -105,6 +105,13 @@ def solve_equilibria(
 
             # logger.info(dist=dist)
             # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
+
+            # Added by Christoph
+            for player_final, final_value in gn.is_final.items():
+                game_value1[player_final] = ps.unit(Combined(final_value, None))
+
+            if set(game_value1) != set(gn.states):
+                raise ZValueError("incomplete", game_value=game_value1, gn=gn)
 
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=fd(profile))
         # Anything can happen
@@ -121,12 +128,18 @@ def solve_equilibria(
                 check_joint_pure_actions(joint_mixed_actions)
             # logger.info(dist=dist)
             game_value = {}
-            for player_name in gn.states:
+            for player_name in players_active:  # check only active players
 
                 def f(jpa: JointPureActions) -> UncertainCombined:
                     return solved[jpa][player_name]
 
                 game_value[player_name] = ps.join(ps.build(dist, f))
+
+            # Added by Christoph
+            for player_final, final_value in gn.is_final.items():
+                game_value[player_final] = ps.unit(Combined(final_value, None))
+            if set(game_value) != set(gn.states):
+                raise ZValueError("incomplete", game_value=game_value, gn=gn)
 
             # game_value: Mapping[PlayerName, UncertainCombined]
             game_value_ = fd(game_value)
