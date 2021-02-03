@@ -5,6 +5,8 @@ from parameterized import parameterized
 
 from games import (
     MIX_MNE,
+    SECURITY_MNE,
+    MIX_STRATEGIES,
     PURE_STRATEGIES,
     report_solutions,
     create_report_preprocessed,
@@ -48,23 +50,33 @@ toy_game_params = [
     toy_params_two_x_crossed
 ]
 
-params = list(product(toy_game_params, uncertainty_params))
+strategies = [
+    PURE_STRATEGIES,
+    MIX_STRATEGIES
+]
+
+nash_strategy = [
+    #MIX_MNE,
+    SECURITY_MNE
+]
+
+params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy))
 
 
 @parameterized(params)
-def test_n_player_toy_game(toy_game_parameters, uncert_params):
+def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat):
     """
     N-Player toy game
     """
     d = "out/n_player_toy_car_game/"
-    game_name = toy_game_parameters.params_name
+    game_name = f"{toy_game_parameters.params_name}-{strat}-{nash_strat}"
     solver_name = "Test"
     game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params)
     use_factorization = False
     get_factorization = get_game_factorization  # factorization algo used
     dt = toy_game_parameters.dt  # delta-t of discretization
-    admissible_strategies = PURE_STRATEGIES
-    strategy_multiple_nash = MIX_MNE
+    admissible_strategies = strat
+    strategy_multiple_nash = nash_strat
 
     solve_params = FactorizationSolverParams(
             admissible_strategies=admissible_strategies,
