@@ -267,46 +267,51 @@ toy_params_one_indep_lane = ToyGameParams(
 
 
 """
-This map contains 2 independent games. Collision at (5) and (10)
+This map contains 2 independent games. Collision at (7) and (13)
 
-    (2) x     x (1)   (7) x     x (6) 
-         \   /             \   /
-          \ /               \ /
-           x (5)             x (10)
-          / \               / \ 
-         /   \             /   \ 
-    (3) x     x (4)   (8) x     x (9)
+    (2) x       x (1)   (9) x       x (8) 
+         \     /             \     /
+      (6) x   x (5)      (13) x   x (12)
+           \ /                 \ /
+            x (7)               x (14)
+           / \                 / \ 
+          /   \               /   \ 
+     (3) x     x (4)     (10) x     x (11)
 """
 
 toy_lane_two_indep_games_1 = ToyLane(
     control_points=frozendict({
         0: 1,
         1: 5,
-        2: 3
+        2: 7,
+        3: 3
     })
 )
 
 toy_lane_two_indep_games_2 = ToyLane(
     control_points=frozendict({
         0: 2,
-        1: 5,
-        2: 4
+        1: 6,
+        2: 7,
+        3: 4
     })
 )
 
 toy_lane_two_indep_games_3 = ToyLane(
     control_points=frozendict({
-        0: 6,
-        1: 10,
-        2: 8
+        0: 8,
+        1: 12,
+        2: 14,
+        3: 10
     })
 )
 
 toy_lane_two_indep_games_4 = ToyLane(
     control_points=frozendict({
-        0: 7,
-        1: 10,
-        2: 9
+        0: 9,
+        1: 13,
+        2: 14,
+        3: 11
     })
 )
 

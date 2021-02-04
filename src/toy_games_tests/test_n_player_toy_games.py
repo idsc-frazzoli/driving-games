@@ -2,6 +2,7 @@ from os.path import join
 from itertools import product
 from frozendict import frozendict
 from parameterized import parameterized
+from time import perf_counter
 
 from games import (
     MIX_MNE,
@@ -24,6 +25,7 @@ from duckie_games.solve import preprocess_duckie_game
 
 from toy_games.n_player_toy_game import get_toy_car_game
 from toy_games.n_player_toy_game_zoo import (
+    toy_params_x,
     toy_params_star,
     toy_params_x_with_base,
     toy_params_indep_lanes,
@@ -38,41 +40,47 @@ uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder
 
 uncertainty_params = [
     uncertainty_sets,
-    # uncertainty_prob,
+    #uncertainty_prob,
 ]
 
 toy_game_params = [
-    toy_params_star,
-    toy_params_x_with_base,
-    toy_params_indep_lanes,
+    toy_params_x,
+    #toy_params_star,
+    #toy_params_x_with_base,
+    #toy_params_indep_lanes,
     toy_params_two_indep_games,
-    toy_params_two_x_joint,
-    toy_params_two_x_crossed
+    #toy_params_two_x_joint,
+    #toy_params_two_x_crossed
 ]
 
 strategies = [
     PURE_STRATEGIES,
-    MIX_STRATEGIES
+    #MIX_STRATEGIES
 ]
 
 nash_strategy = [
-    #MIX_MNE,
-    SECURITY_MNE
+    MIX_MNE,
+    #SECURITY_MNE
 ]
 
-params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy))
+use_factorization = [
+    True,
+    False
+]
+
+params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy, use_factorization))
 
 
 @parameterized(params)
-def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat):
+def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat, use_fact):
     """
     N-Player toy game
     """
     d = "out/n_player_toy_car_game/"
-    game_name = f"{toy_game_parameters.params_name}-{strat}-{nash_strat}"
+    game_name = f"{toy_game_parameters.params_name}-{strat}-{nash_strat}{'-fact' if use_factorization else ''}"
     solver_name = "Test"
     game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params)
-    use_factorization = False
+
     get_factorization = get_game_factorization  # factorization algo used
     dt = toy_game_parameters.dt  # delta-t of discretization
     admissible_strategies = strat
@@ -82,14 +90,16 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
             admissible_strategies=admissible_strategies,
             strategy_multiple_nash=strategy_multiple_nash,
             dt=dt,
-            use_factorization=use_factorization,
+            use_factorization=use_fact,
             get_factorization=get_factorization
     )
     solver_spec = FactorizationSolverSpec("test", solve_params)
 
+    t1 = perf_counter()
     game_preprocessed = preprocess_duckie_game(game, solver_spec.solver_params)
     solutions = solve1(game_preprocessed)
-
+    t2 = perf_counter()
+    logger.info("Time to solve the game", time=t2 - t1)
     # logger.info(solutions=solutions)
 
     dg = join(d, game_name)

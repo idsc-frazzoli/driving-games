@@ -4,6 +4,7 @@ from typing import (
     List,
     Optional,
 )
+from time import perf_counter
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
@@ -60,7 +61,10 @@ def preprocess_duckie_game(
         individual_games,
     )
     if solver_params.use_factorization:
+        t1 = perf_counter()
         game_factorization = solver_params.get_factorization(game, players_pre)
+        t2 = perf_counter()
+        logger.info("Time to factorize", time=t2 - t1)
 
     gp = GamePreprocessed(
         game=game,
