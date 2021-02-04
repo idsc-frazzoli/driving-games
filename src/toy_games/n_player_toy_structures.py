@@ -23,7 +23,7 @@ PLUSTWO = Step("+2")
 AvailableSteps: AbstractSet[Step] = frozenset({
     WAIT,
     PLUSONE,
-    #PLUSTWO
+    # PLUSTWO
 })
 
 
@@ -56,16 +56,16 @@ class ToyCarMap:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class ToyCarState(object):
-    __slots__ = ["lane", "along_lane", "time", "wait"]
+
     lane: ToyLane
     # Spacetime
-    along_lane: CtrPointID
+    x: CtrPointID  # corresponds to along the lane (x=0 first ctr. point, x=1 second ctr. point)
     time: int
     wait: int
 
     @property
     def point_in_map(self) -> PointInMap:
-        return self.lane.from_along_lane_to_point_in_map(along_lane=self.along_lane)
+        return self.lane.from_along_lane_to_point_in_map(along_lane=self.x)
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -112,21 +112,23 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
     def successor(self, x: ToyCarState, u: ToyCarActions) -> ToyCarState:
 
         if u.step == PLUSONE:
-            along_lane = x.along_lane + 1
+            along_lane = x.x + 1
 
             if along_lane > self.max_path:
                 msg = "Invalid action gives out of bounds"
                 raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
-            return replace(x, along_lane=along_lane, time=x.time + 1, wait=0)
+            return replace(x, x=along_lane, time=x.time + 1, wait=0)
+            # return replace(x, x=along_lane, wait=0)
 
         elif u.step == PLUSTWO:
-            along_lane = x.along_lane + 2
+            along_lane = x.x + 2
             if along_lane > self.max_path:
                 msg = "Invalid action gives out of bounds"
                 raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
-            return replace(x, along_lane=along_lane, time=x.time + 1, wait=0)
+            return replace(x, x=along_lane, time=x.time + 1, wait=0)
+            # replace(x, x=along_lane, wait=0)
 
         elif u.step == WAIT:
             wait2 = x.wait + 1
@@ -135,12 +137,14 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
                 raise InvalidAction(msg, x=x, u=u)
             else:
                 return replace(x, time=x.time + 1, wait=wait2)
+                # return replace(x, wait=wait2)
 
         else:
             raise ZValueError(x=x, u=u)
 
     def get_shared_resources(self, x: ToyCarState) -> FrozenSet[ToyResources]:
         resources = [ToyResources(time=x.time, point_in_map=x.point_in_map)]
+        # resources = [ToyResources(point_in_map=x.point_in_map)]
         return frozenset(resources)
 
 
@@ -223,7 +227,8 @@ class ToyCarVisualization(
         self.pylab: pyplot = None
 
     def hint_graph_node_pos(self, state: ToyCarState) -> Tuple[float, float]:
-        return float(state.along_lane), float(state.time)
+        # return float(state.x), float(state.time)
+        return float(state.x), float(state.lane.control_points[0])
 
     def plot_player(
             self,
@@ -234,7 +239,7 @@ class ToyCarVisualization(
     ):
         for i, lane in enumerate(self.lanes):
             if lane is state.lane:
-                along_lane = state.along_lane
+                along_lane = state.x
                 y = self.lane_y_pos[i]
                 self.pylab.text(
                     along_lane,

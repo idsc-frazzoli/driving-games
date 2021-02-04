@@ -25,7 +25,7 @@ from possibilities import PossibilityMonad
 from typing import cast
 from decimal import Decimal as D
 
-__all__ = ["get_toy_car_game"]
+__all__ = ["get_toy_car_game", "ToyGameParams"]
 
 ToyCarGame = Game[
     ToyCarState, ToyCarActions, ToyCarObservation, ToyCarCosts, ToyCollision, ToyResources
@@ -63,7 +63,7 @@ def get_toy_car_game(toy_games_params: ToyGameParams, uncertainty_params: Uncert
     for player, lane in zip(player_names, toy_map.lanes):
 
         toy_car_state = ToyCarState(
-            along_lane=0,
+            x=0,
             time=0,
             lane=lane,
             wait=0

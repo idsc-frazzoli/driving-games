@@ -1,9 +1,10 @@
 from frozendict import frozendict
 
 from toy_games.n_player_toy_structures import ToyCarMap, ToyLane
-from toy_games.n_player_toy_game import get_toy_car_game, ToyGameParams
+from toy_games.n_player_toy_game import ToyGameParams
 
 __all__ = [
+    "toy_params_x",
     "toy_params_star",
     "toy_params_x_with_base",
     "toy_params_indep_lanes",
@@ -14,6 +15,53 @@ __all__ = [
 
 """This params are applied to all maps"""
 max_wait = 2
+
+""" 
+This map contains 2-lanes. Collision happens at point (4):
+                
+           (6) x           x (1)
+                \         /
+             (7) x       x (2)
+                  \     /
+               (8) x   x (3)
+                    \ /
+                     x (4)
+                    / \ 
+               (5) x   x (9)
+
+"""
+
+toy_lane_x_1 = ToyLane(
+    control_points=frozendict({
+        0: 1,
+        1: 2,
+        2: 3,
+        3: 4,
+        4: 5,
+    })
+)
+
+toy_lane_x_2 = ToyLane(
+    control_points=frozendict({
+        0: 6,
+        1: 7,
+        2: 8,
+        3: 4,
+        4: 9
+    })
+)
+
+toy_map_x = ToyCarMap(
+    lanes=[
+        toy_lane_x_1,
+        toy_lane_x_2,
+    ]
+)
+toy_params_x = ToyGameParams(
+    params_name="2_player_x",
+    toy_game_map=toy_map_x,
+    max_wait=max_wait
+)
 
 """ 
 This map contains 3-lanes. Collision happens at point (7):
@@ -60,7 +108,7 @@ toy_map_star = ToyCarMap(
     ]
 )
 toy_params_star = ToyGameParams(
-    params_name= "3_player_star",
+    params_name="3_player_star",
     toy_game_map=toy_map_star,
     max_wait=max_wait
 )

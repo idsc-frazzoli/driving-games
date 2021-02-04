@@ -40,13 +40,13 @@ class ToyCarPersonalRewardStructureCustom(PersonalRewardStructure[ToyCarState, T
 
     def personal_final_reward(self, x: ToyCarState) -> ToyCarCosts:
         check_isinstance(x, ToyCarState)
-        remaining = self.max_path - x.along_lane
+        remaining = self.max_path - x.x
 
         return ToyCarCosts(D(remaining))
 
     def is_personal_final_state(self, x: ToyCarState) -> bool:
         check_isinstance(x, ToyCarState)
-        return x.along_lane >= self.max_path
+        return x.x >= self.max_path
 
 
 @dataclass(frozen=True)
