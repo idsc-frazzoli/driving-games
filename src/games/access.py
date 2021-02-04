@@ -134,19 +134,28 @@ def get_game_factorization(
         players_colliding = game.joint_reward.is_joint_final_state(jsf)
         if players_colliding:
             # logger.info('Found collision states', jsf=jsf, players_colliding=players_colliding)
-            partition = frozenset({frozenset(players_colliding)})
-            partitions[partition].add(jsf)
-            ipartitions[jsf] = partition
 
             if special:
                 logger.info(
                     "Found that the players are colliding",
                     jsf=jsf,
                     players_colliding=players_colliding,
-                    partition=partition,
+                    #partition=partition,
                 )
+            # Added by Christoph
+            # For more than two players one has to check the substates for cases when one of the player already finished
+            n = len(players_colliding)
+            for nplayers in range(2, n + 1):
+                for players_subset in itertools.combinations(players_colliding, nplayers):
+                    jsf_subset = fkeyfilter(players_subset.__contains__, jsf)
+                    if game.joint_reward.is_joint_final_state(jsf_subset):
+                        partition = frozenset({frozenset(players_subset)})
+                        partitions[partition].add(jsf_subset)
+                        ipartitions[jsf_subset] = partition
+
         else:
             resources_used = itemmap(get_ur, ljs)
+
             deps = find_dependencies(ps, resources_used)
 
             # if special:
