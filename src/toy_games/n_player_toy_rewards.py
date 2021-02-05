@@ -148,12 +148,25 @@ def toy_stop_game_for_players_around(
     empty_col = ToyCollision(
         active=False,
     )
+    col_point = joint_state[col_player1].point_in_map
 
     for player, state in joint_state.items():
         if player == col_player1 or player == col_player2:
             continue
         else:
-            col_dict[player] = empty_col
+            along_lane_player = state.x
+            ctr_p_lane_player = state.lane.control_points
+
+            def before_col_point(_ctr_p_item: dict.items):
+                _along_lane, _point_in_map = _ctr_p_item
+                if _along_lane >= along_lane_player:
+                    return _point_in_map == col_point
+                else:
+                    return False
+
+            if any([before_col_point(ctr_p_item) for ctr_p_item in ctr_p_lane_player.items()]):
+                # stop game for only for players which have the collision point still ahead
+                col_dict[player] = empty_col
 
     return col_dict
 
