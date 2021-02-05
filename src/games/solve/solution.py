@@ -39,7 +39,7 @@ from games.game_def import (
 from games.simulate import simulate1, Simulation
 from .solution_ghost import get_ghost_tree
 from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
-from .solve_equilibria_ import solve_equilibria
+from .solve_equilibria_ import solve_equilibria, get_game_values_final
 from .solution_structures import (
     GameGraph,
     GameNode,
@@ -320,13 +320,21 @@ def _solve_game(
         solved[pure_actions] = frozendict(players_dist)
 
     va: ValueAndActions[U, RP, RJ]
-    if gn.joint_final_rewards:  # final costs:
-        # fixme: when n > 2, it might be that only part of the crew ends
+
+    if set(gn.states) == set(gn.joint_final_rewards):  # final costs:
+        # All finish jointly
         va = solve_final_joint(sc, gn)
+
     elif set(gn.states) == set(gn.is_final):
         # All the actives finish independently
         va = solve_final_personal_both(sc, gn)
+
+    elif set(gn.states) == (set(gn.joint_final_rewards) | set(gn.is_final)):
+        # all finish mixed
+        va = solve_final_mixed(sc, gn)
+
     else:
+        # there are still active players
         va = solve_equilibria(sc, gn, solved)
 
     ur: UsedResources[X, U, Y, RP, RJ, SR]
@@ -429,6 +437,18 @@ def solve_final_personal_both(
     game_value: Dict[PlayerName, UncertainCombined] = {}
     for player_name, personal in gn.is_final.items():
         game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
+    game_value_ = frozendict(game_value)
+    actions = frozendict()
+    return ValueAndActions(game_value=game_value_, mixed_actions=actions)
+
+
+def solve_final_mixed(sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
+) -> ValueAndActions[U, RP, RJ]:
+
+    game_value: Dict[PlayerName, UncertainCombined] = {}
+    game_value.update(
+        get_game_values_final(gn=gn, sc=sc)
+    )
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)
