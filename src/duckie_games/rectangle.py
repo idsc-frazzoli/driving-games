@@ -1,13 +1,16 @@
 from dataclasses import dataclass
 import math
+from frozendict import frozendict
 from decimal import Decimal as D, localcontext
 from itertools import product
-from typing import List, Tuple, FrozenSet, Iterable
+from typing import List, Tuple, FrozenSet, Iterable, Mapping, MutableMapping
 import numpy as np
 
 import geometry as geo
 from geometry import SE2_from_xytheta, SE2
 from zuper_commons.types import ZNotImplementedError
+
+from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
 from games.utils import fs
 
@@ -89,11 +92,58 @@ class Coordinates(Tuple[D, D]):
         if isinstance(other, D):
             return Coordinates((x * other, y * other))
         elif isinstance(other, float) or isinstance(other, int):
-            return Coordinates((x * D(other), D(y) * D(other)))
+            return Coordinates((x * D(other), y * D(other)))
         else:
             raise ZNotImplementedError("Multiplication of those types not supported")
 
     __rmul__ = __mul__
+
+
+ResourceID = int
+CenterPointGridCell = Coordinates
+
+
+class DrivingGameMap(DuckietownMap):
+    """
+    Wrapper class for a Duckietown Map containing a discretized resource-grid.
+    """
+    cell_size: D
+    total_nb_of_cells: int
+    nb_H: int
+    nb_W: int
+    resources: Mapping[ResourceID, CenterPointGridCell]
+
+    def __init__(self, cell_size: D, *args, **kwargs):
+        self.cell_size = cell_size
+        DuckietownMap.__init__(self, *args, **kwargs)
+
+        H = self['tilemap'].H
+        W = self['tilemap'].W
+
+        nb_H = math.ceil(self.tile_size * H / cell_size)
+        nb_W = math.ceil(self.tile_size * W / cell_size)
+        self.nb_H = nb_H
+        self.nb_W = nb_W
+        self.nb_of_cells = nb_H * nb_W
+
+        x0 = y0 = cell_size / D(2)
+
+        r0 = Coordinates((x0, y0))
+        vec_x = Coordinates((cell_size, D(0)))
+        vec_y = Coordinates((D(0), cell_size))
+        resources: MutableMapping[ResourceID, CenterPointGridCell] = {}
+        _id = 0
+        for j in range(nb_H):
+            for i in range(nb_W):
+                resources[_id] = r0 + i * vec_x + j * vec_y
+                _id += 1
+
+        self.resources = frozendict(resources)
+
+    @classmethod
+    def initializor(cls, duckie_map: DuckietownMap, cell_size: D) -> "DrivingGameMap":
+        ls_dict = duckie_map.__dict__
+        return cls(cell_size=cell_size, **ls_dict)
 
 
 @dataclass(frozen=True)
