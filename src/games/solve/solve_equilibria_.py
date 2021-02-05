@@ -8,6 +8,7 @@ from preferences import Preference
 from zuper_commons.types import ZNotImplementedError, ZValueError
 
 from .equilibria import analyze_equilibria, EquilibriaAnalysis
+from games import logger
 from games.game_def import (
     check_joint_mixed_actions,
     check_joint_pure_actions,
@@ -54,9 +55,11 @@ def solve_equilibria(
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
     # tic = perf_counter()
+
     ea = analyze_equilibria(
         ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, solver_params=sc.solver_params
     )
+
     # toc = perf_counter() - tic
     # logger.info(f"Time taken to analyze equilibria: {toc:.2f} [s]")
     # logger.info(ea=ea)
@@ -66,8 +69,12 @@ def solve_equilibria(
         check_joint_mixed_actions(eq)
 
         game_value = dict(ea.nondom_nash_equilibria[eq])
-        for player_final, final_value in gn.is_final.items():
-            game_value[player_final] = ps.unit(Combined(final_value, None))
+
+        # Get the game values for the players in a final state
+        game_value.update(
+                get_game_values_final(sc=sc, gn=gn)
+            )
+
         if set(game_value) != set(gn.states):
             raise ZValueError("incomplete", game_value=game_value, gn=gn)
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
@@ -106,9 +113,10 @@ def solve_equilibria(
             # logger.info(dist=dist)
             # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
 
-            # Added by Christoph
-            for player_final, final_value in gn.is_final.items():
-                game_value1[player_final] = ps.unit(Combined(final_value, None))
+            # Get the game values for the players in a final state
+            game_value1.update(
+                get_game_values_final(sc=sc, gn=gn)
+            )
 
             if set(game_value1) != set(gn.states):
                 raise ZValueError("incomplete", game_value=game_value1, gn=gn)
@@ -135,9 +143,11 @@ def solve_equilibria(
 
                 game_value[player_name] = ps.join(ps.build(dist, f))
 
-            # Added by Christoph
-            for player_final, final_value in gn.is_final.items():
-                game_value[player_final] = ps.unit(Combined(final_value, None))
+            # Get the game values for the players in a final state
+            game_value.update(
+                get_game_values_final(sc=sc, gn=gn)
+            )
+
             if set(game_value) != set(gn.states):
                 raise ZValueError("incomplete", game_value=game_value, gn=gn)
 
@@ -149,3 +159,42 @@ def solve_equilibria(
             raise ZNotImplementedError(msg, ea=ea)
         else:
             assert False, mNE_strategy
+
+
+def get_game_values_final(sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]) -> Mapping[PlayerName, UncertainCombined]:
+    """
+    Get the game value of all the final states
+    """
+
+    pl_final = set(gn.is_final)  # Set of players that are at personal final state
+    pl_joint_final = set(gn.joint_final_rewards)  # set of players that are jointly final
+    pl_joint_and_personal = pl_final & pl_joint_final  # get the players who are both joint and personal final
+
+    game_value: Dict[PlayerName, UncertainCombined] = {}
+
+
+    # iterate through all the players that finished and extract the their reward
+    for player_name in (pl_final | pl_joint_final):
+
+        if player_name in pl_joint_and_personal:
+            # The player is both joint and personal final, extract both cost
+            personal = gn.is_final[player_name]
+            joint = gn.joint_final_rewards[player_name]
+            game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint))
+        else:
+            if player_name in pl_final:
+                # The player is personal final only, extract only the personal coste
+                personal = gn.is_final[player_name]
+                game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
+            elif player_name in pl_joint_final:
+                # player is joint final, extract the joint final cost and get the identity cost as personal cost
+                personal = sc.game.players[player_name].personal_reward_structure.personal_reward_identity()
+                joint = gn.joint_final_rewards[player_name]
+                game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint))
+            else:
+                assert False, "Should not happen"
+
+    game_value_ = frozendict(game_value)
+    return game_value_
+
+
