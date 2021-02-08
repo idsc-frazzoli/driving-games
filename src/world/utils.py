@@ -177,19 +177,9 @@ def get_SE2disc_in_ref_from_along_lane(ref: SE2_disc, lane: Lane, along_lane: D)
     return ref_pose
 
 
-def load_duckie_map_from_yaml(rel_path: str) -> DuckietownMap:
-    """
-    Loads Dcukiemap out of a yaml file
-    """
-    with open(rel_path) as yml_file:
-        duckie_map_yaml_parsed = yaml.load(yml_file, Loader=yaml.SafeLoader)
-    duckie_map = dw.construct_map(duckie_map_yaml_parsed)
-    return duckie_map
-
-
 class LaneSegmentHashable(LaneSegment):
     """
-        Wrapper class for a LaneSegment to make it hashable (make it usable for a DuckieState)
+        Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
     """
     @classmethod
     def initializor(cls, lane_segment: LaneSegment) -> "LaneSegmentHashable":
