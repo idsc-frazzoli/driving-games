@@ -23,8 +23,7 @@ from duckie_games.solve import preprocess_duckie_game
 
 from duckie_games.zoo import (
     two_player_duckie_game_parameters,
-    two_player_duckie_game_parameters_stretched,
-    three_player_duckie_game_parameters_stretched,
+    three_player_duckie_game_parameters,
     uncertainty_prob,
     uncertainty_sets,
 )
@@ -36,8 +35,7 @@ uncertainty_params = [
 ]
 
 duckie_game_params = [
-    # two_player_duckie_game_parameters,
-    two_player_duckie_game_parameters_stretched
+    two_player_duckie_game_parameters
 ]
 
 params = list(product(duckie_game_params, uncertainty_params))
@@ -87,10 +85,11 @@ uncertainty_params = [
 ]
 
 duckie_game_params = [
-    three_player_duckie_game_parameters_stretched
+    three_player_duckie_game_parameters
 ]
 
 params = list(product(duckie_game_params, uncertainty_params))
+
 
 @parameterized(params)
 def test_three_player_duckie_game(duckie_game_parameters, duckie_uncert_params):

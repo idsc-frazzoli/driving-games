@@ -18,8 +18,9 @@ from duckie_games.rectangle import (
     Coordinates,
     two_rectangle_intersection
 )
-from duckie_games.zoo import two_player_duckie_game_parameters_stretched
-from duckie_games.utils import LaneSegmentHashable
+from duckie_games.zoo import two_player_duckie_game_parameters
+from world.utils import LaneSegmentHashable
+from world.map_loading import map_directory
 from duckie_games.structures import DuckieState, DuckieGeometry
 
 module_path = os.path.dirname(__file__)
@@ -29,7 +30,7 @@ def test_rectangle_visual():
     """
     Tests visually the rectangle class
     """
-    background_path = "out/map_drawing/4way/drawing.png"
+    background_path = os.path.join(map_directory, "4way.png")
     x_back = 7
     y_back = 7
 
@@ -148,7 +149,7 @@ def test_rectangle_intersection():
     """
     Tests the rectangle intersection function
     """
-    background_path = "out/map_drawing/4way/drawing.png"
+    background_path = os.path.join(map_directory, "4way.png")
     background_fp = os.path.join(
         module_path,
         background_path
@@ -251,12 +252,12 @@ def test_resources_visual():
     """
     Tests the get resources function visually
     """
-    background_path = "out/map_drawing/4way/drawing.png"
+    background_path = os.path.join(map_directory, "4way.png")
 
-    duckie_name = two_player_duckie_game_parameters_stretched.player_names[1]
-    duckie_map = two_player_duckie_game_parameters_stretched.duckie_map
-    lane = two_player_duckie_game_parameters_stretched.lanes[duckie_name]
-    ref = two_player_duckie_game_parameters_stretched.refs[duckie_name]
+    duckie_name = two_player_duckie_game_parameters.player_names[1]
+    duckie_map = two_player_duckie_game_parameters.duckie_map
+    lane = two_player_duckie_game_parameters.lanes[duckie_name]
+    ref = two_player_duckie_game_parameters.refs[duckie_name]
 
     shared_resources_ds = D(1.5)
     length = D(5)

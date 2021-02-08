@@ -1,15 +1,10 @@
 from typing import Union, Tuple
 from dataclasses import dataclass
 from decimal import Decimal as D
-import numpy as np
-
-import geometry as geo
 
 from driving_games.structures import VehicleActions, VehicleCosts, SE2_disc, Lights
 
-from duckie_games.utils import (
-    interpolate_along_lane,
-    from_SE2Transform_to_SE2_disc,
+from world.utils import (
     get_SE2disc_from_along_lane,
     get_SE2disc_in_ref_from_along_lane,
     LaneSegmentHashable

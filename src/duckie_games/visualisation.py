@@ -10,7 +10,6 @@ from matplotlib import patches
 from matplotlib.image import imread
 
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
-from duckietown_world.svg_drawing.ipython_utils import ipython_draw_svg, ipython_draw_html
 from duckietown_world.svg_drawing.misc import draw_static
 
 from games import PlayerName, GameVisualization
@@ -18,8 +17,10 @@ from games import PlayerName, GameVisualization
 from driving_games.collisions_check import Collision
 from driving_games.structures import SE2_disc
 
+from world.utils import from_SE2_disc_to_SE2
+from world.map_loading import map_directory
+
 from duckie_games.duckie_observations import DuckieObservation
-from duckie_games.utils import from_SE2_disc_to_SE2
 from duckie_games.structures import (
     DuckieGeometry,
     DuckieActions,
@@ -27,6 +28,7 @@ from duckie_games.structures import (
     DuckieCosts
 )
 from duckie_games.rectangle import get_resources_used, Rectangle
+
 
 
 class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision]):
@@ -51,20 +53,18 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         d = "out"
         m = self.duckie_map
 
-        outdir = os.path.join(d, "map_drawing", f"{self.map_name}")
-        svg_path = os.path.join(outdir, "drawing.svg")
-        png_path = os.path.join(outdir, "drawing.png")
-
-        # todo find converter without the render bug (or display html directly)
-        if not os.path.exists(svg_path):
-            draw_static(m, outdir)
-            svg2png(url=svg_path, write_to=png_path)
+        png_path = os.path.join(map_directory, f"{self.map_name}.png")
 
         try:
             img = imread(png_path)
         except FileNotFoundError:
-            msg = f"Cannot find the png of the duckiemap. Create drawing.png in {outdir} first"
-            raise(FileNotFoundError, msg)
+            outdir = os.path.join(d, "map_drawing", f"{self.map_name}")
+            svg_path = os.path.join(outdir, "drawing.svg")
+            # todo find converter without the render bug (or display html directly)
+            if not os.path.exists(svg_path):
+                draw_static(m, outdir)
+                svg2png(url=svg_path, write_to=png_path)
+            img = imread(png_path)
 
         # logger.info(px=px, py=py, points=points)
         tile_size=m.tile_size

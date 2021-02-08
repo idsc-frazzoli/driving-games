@@ -1,7 +1,7 @@
 from decimal import Decimal as D
 
 from duckie_games.rectangle import DrivingGameMap
-from duckie_games.map_loading import load_driving_game_map
+from world.map_loading import load_driving_game_map
 from games import logger
 
 

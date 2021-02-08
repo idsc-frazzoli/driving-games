@@ -26,7 +26,7 @@ from duckie_games.visualisation import DuckieGameVisualization
 from duckie_games.personal_reward import DuckiePersonalRewardStructureTime
 from duckie_games.joint_reward import DuckieJointReward
 from duckie_games.preferences_coll_time import DuckiePreferencesCollTime
-from duckie_games.utils import (
+from world.utils import (
     interpolate_along_lane,
     from_SE2Transform_to_SE2_disc,
     LaneSegmentHashable,

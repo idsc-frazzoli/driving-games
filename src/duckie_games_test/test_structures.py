@@ -7,7 +7,7 @@ import duckietown_world as dw
 from driving_games.structures import SE2_disc, NO_LIGHTS
 
 from duckie_games.structures import DuckieState
-from duckie_games.utils import (
+from world.utils import (
     get_lane_segments,
     merge_lanes,
     interpolate_along_lane,

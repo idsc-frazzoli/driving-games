@@ -15,7 +15,7 @@ from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 from games.utils import fs
 
 from duckie_games.structures import DuckieState, DuckieGeometry, SE2_disc
-from duckie_games.utils import (
+from world.utils import (
     from_SE2_disc_to_SE2,
     Lane,
     get_SE2disc_from_along_lane

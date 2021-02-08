@@ -12,7 +12,7 @@ from duckie_games.rectangle import (
 )
 from duckie_games.collisions import IMPACT_RIGHT, IMPACT_LEFT, IMPACT_FRONT, IMPACT_BACK
 from duckie_games.collisions_check import who_at_fault_line_of_sight, get_angle_of_collision, get_impact_location
-
+from world.map_loading import map_directory
 
 module_path = os.path.dirname(__file__)
 
@@ -21,7 +21,7 @@ def test_collision_check_utils():
     """
     Tests the help functions visually
     """
-    background_path = "out/map_drawing/4way/drawing.png"
+    background_path = os.path.join(map_directory, "4way.png")
     background_fp = os.path.join(
         module_path,
         background_path

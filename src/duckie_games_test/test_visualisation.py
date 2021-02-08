@@ -1,12 +1,12 @@
-from typing import Mapping, Dict
+from typing import Dict
 
 from reprep import Report
 
 from driving_games import PlayerName, NO_LIGHTS
-from duckie_games.structures import DuckieGeometry, DuckieState
+from duckie_games.structures import DuckieState
 from duckie_games.visualisation import DuckieGameVisualization
-from duckie_games.zoo import two_player_duckie_game_parameters, two_player_duckie_game_parameters_stretched
-from duckie_games.utils import LaneSegmentHashable
+from duckie_games.zoo import two_player_duckie_game_parameters
+from world.utils import LaneSegmentHashable
 from decimal import Decimal as D
 from matplotlib import pyplot as plt
 
