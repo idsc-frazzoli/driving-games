@@ -8,7 +8,7 @@ import geometry as geo
 import duckietown_world as dw
 from duckietown_world.svg_drawing.ipython_utils import ipython_draw_html
 
-from duckie_games.zoo import two_player_duckie_game_parameters
+
 from world.utils import (
     from_SE2_disc_to_SE2Transform,
     from_SE2Transform_to_SE2_disc,
@@ -128,9 +128,18 @@ def test_hashable_lane():
     """
     Tests the hash function of the wrapper class
     """
-    players = two_player_duckie_game_parameters.player_names
-    lane1 = two_player_duckie_game_parameters.lanes[players[0]]
-    lane2 = two_player_duckie_game_parameters.lanes[players[1]]
+
+    duckie_map = dw.load_map('4way')
+
+    lane_names1 = ['ls051', 'ls031', 'ls040']
+    lane_names2 = ['ls044', 'L7', 'ls005', 'ls017']
+    lane_segments1 = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names1)
+    lane1 = merge_lanes(lane_segments1)
+
+    lane_segments2 = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names1)
+    lane2 = merge_lanes(lane_segments1)
+
+
     lane1_hash = LaneSegmentHashable.initializor(lane1)
     lane2_hash = LaneSegmentHashable.initializor(lane2)
 

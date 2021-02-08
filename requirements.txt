@@ -18,6 +18,7 @@ nashpy
 duckietown-world-daffy==6.2.7
 cairosvg
 
+
 # extra
 jupyter
 
