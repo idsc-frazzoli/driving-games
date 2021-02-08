@@ -2,7 +2,7 @@ import os
 
 from duckietown_world.svg_drawing.ipython_utils import ipython_draw_html
 
-from duckie_games.map_loading import load_driving_game_map
+from world.map_loading import load_driving_game_map
 
 
 d = "out/"

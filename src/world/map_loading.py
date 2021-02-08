@@ -12,7 +12,7 @@ from duckietown_world.world_duckietown.map_loading import get_object, get_transf
 from duckietown_world.geo import Scale2D, SE2Transform
 from duckietown_world.geo.measurements_utils import iterate_by_class
 
-from duckie_games.tiles import load_driving_games_tile_types
+from world.tiles import load_driving_games_tile_types
 
 __all__ = ["load_driving_game_map", "load_driving_game_map_from_yaml"]
 
