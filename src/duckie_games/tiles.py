@@ -158,6 +158,47 @@ go_right_double_left: &go_right_double_right
         - ~SE2Transform:
             p: [-0.11, -0.50]
             theta_deg: -90
+
+go_right_double_right_to_left: &go_right_double_right_to_left
+    ~LaneSegment:
+      width: *width_double
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.50, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.204, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.138, -0.358]
+            theta_deg: -45
+        - ~SE2Transform:
+            p: [-0.11, -0.424]
+            theta_deg: -90
+        - ~SE2Transform:
+            p: [-0.11, -0.50]
+            theta_deg: -90
+            
+            
+go_right_double_left_to_right: &go_right_double_left_to_right
+    ~LaneSegment:
+      width: *width_double
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.50, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.424, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.358, -0.138]
+            theta_deg: -45
+        - ~SE2Transform:
+            p: [-0.33, -0.204]
+            theta_deg: -90
+        - ~SE2Transform:
+            p: [-0.33, -0.50]
+            theta_deg: -90
             
 go_straight_double_right: &go_straight_double_right
     ~LaneSegment:
@@ -179,6 +220,46 @@ go_straight_double_left: &go_straight_double_left
             theta_deg: 0
         - ~SE2Transform:
             p: [+0.5, -0.11]
+            theta_deg: 0
+            
+go_straight_double_right_to_left: &go_straight_double_right_to_left
+    ~LaneSegment:
+      width: *width_double
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.50, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.25, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0, -0.22]
+            theta_deg: 45
+        - ~SE2Transform:
+            p: [0.25, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, -0.11]
+            theta_deg: 0
+            
+go_straight_double_left_to_right: &go_straight_double_left_to_right
+    ~LaneSegment:
+      width: *width_double
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.50, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.25, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0, -0.22]
+            theta_deg: -45
+        - ~SE2Transform:
+            p: [0.25, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, -0.33]
             theta_deg: 0
             
 go_left_double_right: &go_left_double_right
@@ -211,7 +292,47 @@ go_left_double_left: &go_left_double_left
 
         - ~SE2Transform:
             p: [+0.11, +0.50]
-            theta_deg: 90 
+            theta_deg: 90
+            
+go_left_double_right_to_left: &go_left_double_right_to_left
+    ~LaneSegment:
+      width: *width_double
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.50, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.016, -0.33]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.082, -0.302]
+            theta_deg: 45
+        - ~SE2Transform:
+            p: [0.11, -0.236]
+            theta_deg: 90
+        - ~SE2Transform:
+            p: [0.11, 0.50]
+            theta_deg: 90
+
+go_left_double_left_to_right: &go_left_double_left_to_right
+    ~LaneSegment:
+      width: *width_double
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.50, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.236, -0.11]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.302, -0.082]
+            theta_deg: 45
+        - ~SE2Transform:
+            p: [0.33, -0.016]
+            theta_deg: 90
+        - ~SE2Transform:
+            p: [0.33, 0.50]
+            theta_deg: 90
             
 straight_double:
     ~PlacedObject:
@@ -220,11 +341,19 @@ straight_double:
             lane2: *go_straight_double_left
             lane3: *go_straight_double_right
             lane4: *go_straight_double_left
+            lane5: *go_straight_double_right_to_left
+            lane6: *go_straight_double_left_to_right
+            lane7: *go_straight_double_right_to_left
+            lane8: *go_straight_double_left_to_right
         spatial_relations:
             lane1: {~SE2Transform:}
             lane2: {~SE2Transform:}
             lane3: {~SE2Transform: {theta_deg: 180}}
             lane4: {~SE2Transform: {theta_deg: 180}}
+            lane5: {~SE2Transform:}
+            lane6: {~SE2Transform:}
+            lane7: {~SE2Transform: {theta_deg: 180}}
+            lane8: {~SE2Transform: {theta_deg: 180}}
             
 curve_right_double: &curve_right_double
     ~PlacedObject:
@@ -247,16 +376,21 @@ curve_left_double: &curve_left_double
         spatial_relations: 
             curve: {~SE2Transform: {theta_deg: 270}}
             
-            
 1way_double: &1way_double
      ~PlacedObject:
         children:
             go_right_double_right: *go_right_double_right
-            go_right_double__left: *go_right_double_left
+            go_right_double_right_to_left: *go_right_double_right_to_left
+            go_right_double_left: *go_right_double_left
+            go_right_double_left_to_right: *go_right_double_left_to_right
             go_left_double_right: *go_left_double_right
+            go_left_double_right_to_left: *go_left_double_right_to_left
             go_left_double_left: *go_left_double_left
+            go_left_double_left_to_right: *go_left_double_left_to_right
             go_straight_double_right: *go_straight_double_right
+            go_straight_double_right_to_left: *go_straight_double_right_to_left
             go_straight_double_left: *go_straight_double_left
+            go_straight_double_left_to_right: *go_straight_double_left_to_right
 
 4way_double:
     ~PlacedObject:

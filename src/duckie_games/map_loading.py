@@ -14,6 +14,8 @@ from duckietown_world.geo.measurements_utils import iterate_by_class
 
 from duckie_games.tiles import load_driving_games_tile_types
 
+__all__ = ["load_driving_game_map", "load_driving_game_map_from_yaml"]
+
 module_path = os.path.dirname(__file__)
 
 map_directory = os.path.join(module_path, 'maps')
@@ -38,6 +40,9 @@ def load_driving_game_map_from_yaml(path: str) -> DuckietownMap:
 
 
 def construct_driving_game_map(yaml_data: dict) -> DuckietownMap:
+    """
+    Function forked from of the duckietown world module
+    """
     tile_size = yaml_data["tile_size"]
     dm = DuckietownMap(tile_size)
     tiles = yaml_data["tiles"]
