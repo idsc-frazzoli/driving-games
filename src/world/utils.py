@@ -14,6 +14,7 @@ from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
 import geometry as geo
 from driving_games.structures import SE2_disc
+from world.skeleton_graph import get_skeleton_graph
 
 
 """
@@ -134,7 +135,7 @@ def get_lane_segments(duckie_map: DuckietownMap, lane_names: List[LaneName]) -> 
     Given a list of names of consecutive lane segments in a duckietown map,
     return the corresponding lane segments
     """
-    sk = dw.get_skeleton_graph(duckie_map)  # get the skeleton graph
+    sk = get_skeleton_graph(duckie_map)  # get the skeleton graph
     map_lane_segments = sk.root2  # get the map with all the lane segments
     lane_segments = [cast(LaneSegment, map_lane_segments.children[lane_name]) for lane_name in lane_names]
     return lane_segments
@@ -147,7 +148,7 @@ def get_lane_from_node_sequence(m: DuckietownMap, node_sequence: List[NodeName])
     """
     assert len(node_sequence) > 1, "At least two nodes must be given"
 
-    sk = dw.get_skeleton_graph(m)  # get the skeleton graph
+    sk = get_skeleton_graph(m)  # get the skeleton graph
     topology_graph = sk.G
     map_lane_segments = sk.root2  # get the map with all the lane segments
 
