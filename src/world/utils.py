@@ -27,19 +27,20 @@ SE2value = np.array
 Lane = LaneSegment
 
 
-def interpolate(lane: LaneSegment, beta: float) -> SE2Transform:
-    """ Interpolate along the centerline of a lane. Start: beta=0, End beta=1 """
-
-    n_ctr_points = len(lane.control_points)  # get the control points of the lane
-    dw_beta = beta * (n_ctr_points - 1)  # transform the beta to the beta used by duckietown world
-    p = lane.center_point(dw_beta)  # get the pose
-    transform = dw.SE2Transform.from_SE2(p)  # transform the pose
+def interpolate(lane: dw.LaneSegment, beta: float) -> dw.SE2Transform:
+    """
+    Interpolate along the centerline of a lane. Start: beta=0, End beta=1
+    """
+    lane_length = lane.get_lane_length() # get the length of the lane
+    along_lane = beta * lane_length # get the corresponding position along the lane
+    transform = interpolate_along_lane(lane=lane, along_lane=along_lane)
     return transform
 
 
 def interpolate_n_points(lane: dw.LaneSegment, betas: List[float]) -> List[dw.SE2Transform]:
-    """ Get pose sequence as a SE2Transform along the center line of a lane, beta=0 start beta=1 end """
-
+    """
+    Get pose sequence as a SE2Transform along the center line of a lane, beta=0 start beta=1 end
+    """
     msg = f"betas = {betas} have to be in ascending order to follow a lane"
     assert all(map(isclose, sorted(betas), betas)), msg  # check if values are ascending
     transforms = [interpolate(lane, beta) for beta in betas]
