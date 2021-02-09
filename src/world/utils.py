@@ -1,7 +1,8 @@
 from math import isclose
+
+import networkx as nx
 from decimal import Decimal as D
 import itertools as it
-import yaml
 from typing import List, cast
 import numpy as np
 
@@ -20,6 +21,7 @@ Collection of functions that handle the module DuckietownWorld
 """
 
 LaneName = str
+NodeName = str
 SE2value = np.array
 Lane = LaneSegment
 
@@ -136,6 +138,49 @@ def get_lane_segments(duckie_map: DuckietownMap, lane_names: List[LaneName]) -> 
     map_lane_segments = sk.root2  # get the map with all the lane segments
     lane_segments = [cast(LaneSegment, map_lane_segments.children[lane_name]) for lane_name in lane_names]
     return lane_segments
+
+
+def get_lane_from_node_sequence(m: DuckietownMap, node_sequence: List[NodeName]) -> Lane:
+    """
+    For a sequence of nodes e.g ['P13', 'P2',...'P12'] this function returns the shortest lane which follows the given
+    node sequence.
+    """
+    assert len(node_sequence) > 1, "At least two nodes must be given"
+
+    sk = dw.get_skeleton_graph(m)  # get the skeleton graph
+    topology_graph = sk.G
+    map_lane_segments = sk.root2  # get the map with all the lane segments
+
+    # Extract the partial paths from one node to another
+    path_sequence = [
+        nx.shortest_path(topology_graph, start, end) for start, end in zip(node_sequence[:-1], node_sequence[1:])
+    ]
+
+    # remove the nodes at the end of the partial paths such that their are only present once
+    path = list(it.chain(
+        *[_path[:-1] if _path is not path_sequence[-1]
+          else _path for _path in path_sequence]
+    ))
+
+    # get the sequence of lanes names
+    lane_names = _get_lanes(path=path, graph=topology_graph)
+
+    # extract the lane segments
+    lane_segments = [cast(LaneSegment, map_lane_segments.children[lane_name]) for lane_name in lane_names]
+
+    # merge the lane segments to one lane
+    lane = merge_lanes(lane_segments)
+
+    return lane
+
+
+def _get_lanes(path, graph):
+    edges = zip(path[:-1], path[1:])
+    lanes = []
+    for a, b in edges:
+        lane = graph.get_edge_data(a, b)[0]['lane']
+        lanes.append(lane)
+    return lanes
 
 
 def get_pose_in_ref_frame(abs_pose: SE2_disc, ref: SE2_disc) -> SE2_disc:
