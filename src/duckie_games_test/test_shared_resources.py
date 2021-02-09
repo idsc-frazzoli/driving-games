@@ -19,7 +19,7 @@ def test_visualize_resource_grid():
     """
     Tests the resource grid visually
     """
-    map_name = "4way-double"
+    map_name = "4way"
     driving_game_map = load_driving_game_map(map_name)
     resource_cell_size = D(1)
     driving_game_grid_map = DrivingGameGridMap.initializor(m=driving_game_map, cell_size=resource_cell_size)

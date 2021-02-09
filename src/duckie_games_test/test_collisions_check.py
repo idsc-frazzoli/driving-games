@@ -5,7 +5,6 @@ from decimal import Decimal as D
 import os
 from math import isclose
 
-
 from duckie_games.rectangle import (
     ProjectedCar,
     Rectangle,
@@ -22,10 +21,7 @@ def test_collision_check_utils():
     Tests the help functions visually
     """
     background_path = os.path.join(map_directory, "4way.png")
-    background_fp = os.path.join(
-        module_path,
-        background_path
-    )
+
     x_back = 35
     y_back = 35
 
@@ -78,7 +74,7 @@ def test_collision_check_utils():
     ax.set_title("Collision Check Utils Test")
 
     try:
-        img = imread(background_fp)
+        img = imread(background_path)
         ax.imshow(img, extent=[0, x_back, 0, y_back])
     except FileNotFoundError:
         ax.set_xlim(left=0, right=x_back)
