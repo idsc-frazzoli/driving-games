@@ -16,7 +16,8 @@ from world.utils import (
     interpolate_along_lane_n_points,
     merge_lanes,
     get_lane_segments,
-    LaneSegmentHashable
+    LaneSegmentHashable,
+    get_lane_from_node_sequence
 )
 import pickle
 
@@ -75,6 +76,21 @@ def test_lane_extracting_merging():
     name = "merged_lane"
     outdir = d + name
     ipython_draw_html(po=merged_lane_obj, outdir=outdir)
+
+
+def test_lane_extraction_from_node():
+    """
+    Visually test if the lane extraction from nodes work
+    """
+    d = "out/"
+    duckie_map = dw.load_map('4way')
+    node_sequence = ['P27', 'P14', 'P7', 'P1', 'P3']
+    lane = get_lane_from_node_sequence(m=duckie_map, node_sequence=node_sequence)
+    lane_obj = dw.PlacedObject()
+    lane_obj.set_object("lane", lane, ground_truth=dw.SE2Transform.identity())
+    name = "lane_from_node_sequence"
+    outdir = d + name
+    ipython_draw_html(po=lane_obj, outdir=outdir)
 
 
 def test_interpolation():
@@ -136,8 +152,8 @@ def test_hashable_lane():
     lane_segments1 = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names1)
     lane1 = merge_lanes(lane_segments1)
 
-    lane_segments2 = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names1)
-    lane2 = merge_lanes(lane_segments1)
+    lane_segments2 = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names2)
+    lane2 = merge_lanes(lane_segments2)
 
 
     lane1_hash = LaneSegmentHashable.initializor(lane1)
@@ -158,6 +174,8 @@ def test_hashable_lane():
     pickled_version = pickle.dumps(lane1_hash)
     
     lane1_hash_unpickled = pickle.loads(pickled_version)
-    assert isclose(lane1.get_lane_length(), lane1_hash_unpickled.get_lane_length()), "Lane 1 has not same length as hashed lane 1"
+    assert isclose(lane1.get_lane_length(), lane1_hash_unpickled.get_lane_length()), (
+        "Lane 1 has not same length as hashed lane 1"
+    )
 
 
