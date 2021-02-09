@@ -9,7 +9,6 @@ from decorator import contextmanager
 from matplotlib import patches
 from matplotlib.image import imread
 
-from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 from duckietown_world.svg_drawing.misc import draw_static
 
 from games import PlayerName, GameVisualization
@@ -27,21 +26,27 @@ from duckie_games.structures import (
     DuckieState,
     DuckieCosts
 )
-from duckie_games.rectangle import get_resources_used, Rectangle
-
+from duckie_games.rectangle import Rectangle
+from duckie_games.shared_resources import DrivingGameGridMap, get_resources_used, ResourceID
 
 
 class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision]):
     """ Visualization for the duckie games"""
 
-    duckie_map: DuckietownMap
+    duckie_map: DrivingGameGridMap
     map_name: str
     side: D
     geometries: Mapping[PlayerName, DuckieGeometry]
     ds: D
     pylab: Any
 
-    def __init__(self, duckie_map: DuckietownMap, map_name: str, geometries: Mapping[PlayerName, DuckieGeometry], ds: D):
+    def __init__(
+            self,
+            duckie_map: DrivingGameGridMap,
+            map_name: str,
+            geometries: Mapping[PlayerName, DuckieGeometry],
+            ds: D
+    ):
         self.duckie_map = duckie_map
         self.map_name = map_name
         self.ds = ds
@@ -67,7 +72,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
             img = imread(png_path)
 
         # logger.info(px=px, py=py, points=points)
-        tile_size=m.tile_size
+        tile_size = m.tile_size
         H = m['tilemap'].H
         W = m['tilemap'].W
         x_size = tile_size * W
@@ -76,8 +81,8 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         self.pylab = pylab
 
         yield
-        #b = 0.1 * L
-        #pylab.axis((0 - b, L + b, 0 - b, L + b))
+        # b = 0.1 * L
+        # pylab.axis((0 - b, L + b, 0 - b, L + b))
         pylab.axis("off")
         ax.set_aspect("equal")
 
@@ -89,7 +94,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
             opacity: float = 1.0,
     ):
         """ Draw the player at a certain state doing certain commands (if givne)"""
-        q_SE2disc : SE2_disc = state.abs_pose
+        q_SE2disc: SE2_disc = state.abs_pose
         q = from_SE2_disc_to_SE2(q_SE2disc)
 
         if commands is None:
@@ -109,15 +114,20 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         }
         velocity = float(state.v)
         vg = self.geometries[player_name]
-        resources: FrozenSet[Rectangle]
+        resources: FrozenSet[ResourceID]
         vcolor = np.array(vg.color) * 0.5 + np.array([0.5, 0.5, 0.5]) * 0.5
-        resources = get_resources_used(vs=state, vg=vg, ds=self.ds)
-        for rectangle in resources:
-            countour_points = np.array(rectangle.closed_contour).T
+        resources = get_resources_used(vs=state, vg=vg, m=self.duckie_map)
 
+        for _id in resources:
+            center_x, center_y = self.duckie_map.resources[_id]
+            rec = Rectangle(
+                center_pose=(center_x, center_y, D(0)),
+                width=self.ds,
+                height=self.ds
+            )
+            countour_points = np.array(rec.closed_contour).T
             x, y = countour_points[0, :], countour_points[1, :]
-
-            self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
+            self.pylab.fill(x, y, linewidth=0.05, color=vcolor, alpha=0.6, zorder=15)
 
         plot_car(
             self.pylab,
@@ -172,7 +182,7 @@ def plot_car(
 
     arrow = ((+L / 2, 0), (+L / 2 + velocity, 0))
     x3, y3 = get_transformed_xy(q, arrow)
-    pylab.plot(x3, y3, "r-", zorder=99)
+    pylab.plot(x3, y3, "r-", zorder=20)
 
     x4, y4 = get_transformed_xy(q, ((0, 0),))
     # pylab.plot(x4, y4, "k*", zorder=15)
@@ -180,10 +190,11 @@ def plot_car(
         x4,
         y4,
         player_name,
-        zorder=15,
+        zorder=30,
         horizontalalignment="center",
         verticalalignment="center",
     )
+
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
     car = tuple((x, y, 1) for x, y in points)

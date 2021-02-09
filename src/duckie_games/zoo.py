@@ -1,15 +1,14 @@
-from decimal import Decimal as D, localcontext
-from typing import Dict
 import os
 
-import duckietown_world as dw
+from decimal import Decimal as D, localcontext
+from typing import Dict
+
 from duckietown_world.world_duckietown.duckiebot import DB18
 
 from games import PlayerName, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
-
 from driving_games.structures import NO_LIGHTS
 
 from world.utils import get_lane_segments, merge_lanes, Lane
@@ -30,25 +29,38 @@ uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder
 with localcontext() as ctx:
     ctx.prec = 2
     map_name = '4way'
+    # map_name = '4way-double'
     duckie_map = load_driving_game_map(map_name)
     player_nb = 2
     duckie_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2")]
-    lane_names = {
+    lane_names = { # 4way lanes
         duckie_names[0]: ['ls051', 'ls033', 'ls016'],
         #duckie_names[0]: ['ls026', 'ls022', 'L13'],
-        #duckie_names[1]: ['ls041', 'ls036', 'ls026'],
+        #duckie_names[1]: ['ls041', 'ls036', 'ls026'],  # gives error
         duckie_names[1]: ['ls041', 'ls035', 'ls050']
     }
+    # lane_names = { # 4way double
+    #     duckie_names[0]: ['ls131', 'ls110', 'ls157'],
+    #     duckie_names[1]: ['ls159', 'ls102', 'ls045']
+    # }
     lanes: Dict[PlayerName, Lane]
     lanes = {dn: merge_lanes(get_lane_segments(duckie_map=duckie_map, lane_names=lane_names[dn])) for dn in duckie_names}
 
-    duck_g = DuckieGeometry(
+    duck_g = DuckieGeometry(  # 4way
         mass=D(1000),
         length = D(4.5),
         width = D(1.8),
         color=(1, 0, 0),
         height=D(DB18().height)
     )
+
+    # duck_g = DuckieGeometry(  # 4way-double
+    #     mass=D(1000),
+    #     length=D(2.25),
+    #     width=D(0.9),
+    #     color=(1, 0, 0),
+    #     height=D(DB18().height)
+    # )
 
     duckie_geometries = {dn: duck_g for dn in duckie_names}
 
@@ -60,12 +72,13 @@ with localcontext() as ctx:
     min_speeds = {dn:  min_speed for dn in duckie_names}
     max_waits = {dn: D(1) for dn in duckie_names}
 
-    available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in duckie_names}
+    #available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in duckie_names}
+    available_accels = {dn: frozenset([D(-1), D(0), D(+1)]) for dn in duckie_names}
     light_actions = {dn: frozenset({NO_LIGHTS}) for dn in duckie_names}
     dt = D(1)
     initial_progress = {dn: 0 for dn in duckie_names}
     collision_threshold = 3
-    shared_resources_ds = D(1.5)
+    shared_resources_ds = duck_g.width / D(3)
 
 # Parameters to compare solution with the game constructed in driving_games.zoo, get_sym()
 two_player_duckie_game_parameters = DuckieGameParams(
@@ -129,7 +142,7 @@ with localcontext() as ctx:
     dt = D(1)
     initial_progress = {dn: 0 for dn in duckie_names}
     collision_threshold = 3
-    shared_resources_ds = D(1.5)
+    shared_resources_ds = D(1)
 
 # A three player duckie game
 three_player_duckie_game_parameters = DuckieGameParams(

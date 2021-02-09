@@ -20,12 +20,14 @@ from driving_games.structures import NO_LIGHTS, Lights, SE2_disc
 
 from duckie_games.structures import DuckieGeometry, DuckieState, DuckieActions, DuckieCosts
 from duckie_games.duckie_observations import DuckieObservation, DuckieDirectObservations
-from duckie_games.rectangle import Rectangle
+
 from duckie_games.duckie_dynamics import DuckieDynamics
 from duckie_games.visualisation import DuckieGameVisualization
 from duckie_games.personal_reward import DuckiePersonalRewardStructureTime
 from duckie_games.joint_reward import DuckieJointReward
 from duckie_games.preferences_coll_time import DuckiePreferencesCollTime
+from duckie_games.shared_resources import DrivingGameGridMap, ResourceID
+
 from world.utils import (
     interpolate_along_lane,
     from_SE2Transform_to_SE2_disc,
@@ -33,10 +35,10 @@ from world.utils import (
 )
 
 
-DuckieGame = Game[DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision, Rectangle]
+DuckieGame = Game[DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision, ResourceID]
 
 DuckieGamePlayer = GamePlayer[
-    DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision, Rectangle
+    DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision, ResourceID
 ]
 
 Lane = LaneSegment
@@ -128,11 +130,19 @@ def get_duckie_game(
 
     duckie_map = duckie_game_params.duckie_map
 
-    duckie_players: Dict[PlayerName, DuckieGamePlayer] = {}
     shared_resources_ds = duckie_game_params.shared_resources_ds
+
+    # Create the map containing the resource grid
+    duckie_map_grid = DrivingGameGridMap.initializor(
+        m=duckie_map,
+        cell_size=shared_resources_ds
+    )
+
     dt = duckie_game_params.dt
 
     refs = duckie_game_params.refs
+
+    duckie_players: Dict[PlayerName, DuckieGamePlayer] = {}
 
     for duckie_name in duckie_game_params.player_names:
 
@@ -168,6 +178,7 @@ def get_duckie_game(
             vg=duckie_geometry,
             shared_resources_ds=shared_resources_ds,
             poss_monad=ps,
+            driving_game_grid_map=duckie_map_grid
         )
 
         duckie_personal_reward_structure = DuckiePersonalRewardStructureTime(max_path)
@@ -202,7 +213,7 @@ def get_duckie_game(
     ]
 
     game_visualization = DuckieGameVisualization(
-        duckie_map=duckie_map,
+        duckie_map=duckie_map_grid,
         map_name=duckie_game_params.map_name,
         geometries=duckie_game_params.duckie_geometries,
         ds=duckie_game_params.shared_resources_ds

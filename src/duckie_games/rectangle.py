@@ -1,16 +1,14 @@
-from dataclasses import dataclass
 import math
-from frozendict import frozendict
+
+from dataclasses import dataclass
 from decimal import Decimal as D, localcontext
 from itertools import product
-from typing import List, Tuple, FrozenSet, Iterable, Mapping, MutableMapping
+from typing import List, Tuple, FrozenSet, Iterable
 import numpy as np
 
 import geometry as geo
 from geometry import SE2_from_xytheta, SE2
 from zuper_commons.types import ZNotImplementedError
-
-from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
 from games.utils import fs
 
@@ -97,53 +95,6 @@ class Coordinates(Tuple[D, D]):
             raise ZNotImplementedError("Multiplication of those types not supported")
 
     __rmul__ = __mul__
-
-
-ResourceID = int
-CenterPointGridCell = Coordinates
-
-
-class DrivingGameMap(DuckietownMap):
-    """
-    Wrapper class for a Duckietown Map containing a discretized resource-grid.
-    """
-    cell_size: D
-    total_nb_of_cells: int
-    nb_H: int
-    nb_W: int
-    resources: Mapping[ResourceID, CenterPointGridCell]
-
-    def __init__(self, cell_size: D, *args, **kwargs):
-        self.cell_size = cell_size
-        DuckietownMap.__init__(self, *args, **kwargs)
-
-        H = self['tilemap'].H
-        W = self['tilemap'].W
-
-        nb_H = math.ceil(self.tile_size * H / cell_size)
-        nb_W = math.ceil(self.tile_size * W / cell_size)
-        self.nb_H = nb_H
-        self.nb_W = nb_W
-        self.nb_of_cells = nb_H * nb_W
-
-        x0 = y0 = cell_size / D(2)
-
-        r0 = Coordinates((x0, y0))
-        vec_x = Coordinates((cell_size, D(0)))
-        vec_y = Coordinates((D(0), cell_size))
-        resources: MutableMapping[ResourceID, CenterPointGridCell] = {}
-        _id = 0
-        for j in range(nb_H):
-            for i in range(nb_W):
-                resources[_id] = r0 + i * vec_x + j * vec_y
-                _id += 1
-
-        self.resources = frozendict(resources)
-
-    @classmethod
-    def initializor(cls, duckie_map: DuckietownMap, cell_size: D) -> "DrivingGameMap":
-        ls_dict = duckie_map.__dict__
-        return cls(cell_size=cell_size, **ls_dict)
 
 
 @dataclass(frozen=True)
@@ -473,7 +424,7 @@ def get_vehicle_points(vs: DuckieState, vg: DuckieGeometry) -> FrozenSet[Coordin
     return fs(points)
 
 
-def get_resources_used(vs: DuckieState, vg: DuckieGeometry, ds: D) -> FrozenSet[Rectangle]:
+def get_resources_used_old(vs: DuckieState, vg: DuckieGeometry, ds: D) -> FrozenSet[Rectangle]:
     """ Gets the rectangles that contain the vehicle. """
     points = get_vehicle_points(vs, vg)
     orient = vs.abs_pose[2]  # orientation of vehicle

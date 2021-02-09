@@ -9,13 +9,13 @@ from games.game_def import Dynamics
 from possibilities import Poss, PossibilityMonad
 
 from driving_games.vehicle_dynamics import InvalidAction
-from duckie_games.rectangle import Rectangle, get_resources_used
 from driving_games.structures import SE2_disc, LightsValue, Lights
+from duckie_games.shared_resources import get_resources_used, ResourceID, DrivingGameGridMap
 
 from duckie_games.structures import DuckieState, DuckieActions, DuckieGeometry
 
 
-class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
+class DuckieDynamics(Dynamics[DuckieState, DuckieActions, ResourceID]):
     # todo check units
     max_speed: D
     """ Maximum speed [m/s] """
@@ -41,6 +41,9 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
     vg: DuckieGeometry
     """ The duckiebot's geometry. """
 
+    driving_game_grid_map: DrivingGameGridMap
+    """ The Driving Game Map containing a resource grid """
+
     def __init__(
             self,
             max_speed: D,
@@ -53,6 +56,7 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
             shared_resources_ds: D,
             vg: DuckieGeometry,
             poss_monad: PossibilityMonad,
+            driving_game_grid_map: DrivingGameGridMap
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -64,6 +68,7 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
         self.shared_resources_ds = shared_resources_ds
         self.vg = vg
         self.ps = poss_monad
+        self.driving_game_grid_map = driving_game_grid_map
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[DuckieActions]:
@@ -139,5 +144,5 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, Rectangle]):
             raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
 
-    def get_shared_resources(self, x: DuckieState) -> FrozenSet[Rectangle]:
-        return get_resources_used(vs=x, vg=self.vg, ds=self.shared_resources_ds)
+    def get_shared_resources(self, x: DuckieState) -> FrozenSet[ResourceID]:
+        return get_resources_used(vs=x, vg=self.vg, m=self.driving_game_grid_map)
