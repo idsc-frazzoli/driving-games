@@ -3,6 +3,7 @@ from typing import Mapping, List, Dict, Tuple
 from frozendict import frozendict
 import itertools
 from math import isclose, sin, cos
+import numpy as np
 
 from games import PlayerName
 from zuper_commons.types import ZNotImplementedError, ZValueError
@@ -102,8 +103,8 @@ def collision_check(
                 # get collision angle between 0° and 90°
                 col_angle_pos_0_90 = col_angle_pos if col_angle_pos <= 90 else D(180) - col_angle_pos
 
-                def _sin(theta): return D(sin(float(theta)))  # trigonometric functions for decimals
-                def _cos(theta): return D(cos(float(theta)))
+                def _sin(theta): return D(sin(np.deg2rad(float(theta))))  # trigonometric functions for decimals in deg
+                def _cos(theta): return D(cos(np.deg2rad(float(theta))))
 
                 # get the location where the impact happened
                 p1_impact_loc, p2_impact_loc = get_impact_location(pc1, pc2)
@@ -195,6 +196,8 @@ def collision_check(
                         energy_given_1=energy_given_1,
                         energy_received_2=energy_received_2,
                         energy_given_2=energy_given_2,
+                        p1_impact_loc=p1_impact_loc,
+                        p2_impact_loc=p2_impact_loc
                     )
 
                 c1 = Collision(
