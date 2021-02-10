@@ -241,7 +241,6 @@ class Rectangle:
         angle_x = D(180) - angle_y
         return angle_x, angle_y
 
-
     @property
     def _closed_contour_rectangle_frame(self) -> List[Coordinates]:
         """
@@ -347,6 +346,16 @@ class Rectangle:
         )[:-1]  # transform back to Euclidean representation
         coord_abs = Coordinates.from_float_tuple(coord_abs_as_floats)  # transform back to coordinates
         return coord_abs
+
+
+def sample_x_speed_dep(x: D, v: D, dt: D, n_min: int, n_max: int) -> List[D]:
+    """Samples n points from last timestep next timestep depending on speed
+
+        """
+    v_max = 6  # todo
+    v_min = 0
+    n = int(n_min + (v - v_min) / (v_max - v_min) * (n_max - n_min))
+    return [x + v * dt * round(D(i / n), 2) for i in range(-n, n+1)]
 
 
 def sample_x(x: D, v: D, dt: D, n: int) -> List[D]:

@@ -5,7 +5,7 @@ import itertools
 from math import isclose, sin, cos
 
 from games import PlayerName
-from zuper_commons.types import ZNotImplementedError
+from zuper_commons.types import ZNotImplementedError, ZValueError
 from driving_games.structures import SE2_disc
 
 from duckie_games.structures import DuckieGeometry, DuckieState
@@ -22,6 +22,7 @@ from duckie_games.collisions import (
 
 from duckie_games.rectangle import (
     sample_x,
+    sample_x_speed_dep,
     ProjectedCar,
     projected_car_from_along_lane,
     two_rectangle_intersection,
@@ -57,10 +58,16 @@ def collision_check(
         g2 = geometries[p2]
 
         # samples in front and in the back of the car along the lane to account for the large time step
-        dt = D(0.5)  # todo change for timesteps not equal 1
-        n = 2
-        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+        dt = D(1)  # todo change for timesteps not equal 1
+        n_min = 2
+        n_max = 3
+        x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
+        x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
+
+        # dt = D(0.5)
+        # n = 2
+        # x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
+        # x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
 
         # check the sampled positions for collisions
         for x1, x2 in zip(x1s, x2s):
@@ -176,6 +183,19 @@ def collision_check(
                 else:
                     # Case that should never happen
                     assert False, "Should not happen, check get location function"
+
+                if energy_received_1 < 0 or energy_given_1 < 0 or energy_received_2 < 0 or energy_given_2 < 0:
+                    raise ZValueError(
+                        "energy is negative",
+                        s1=s1,
+                        s2=s2,
+                        x1=x1,
+                        x2=x2,
+                        energy_received_1=energy_received_1,
+                        energy_given_1=energy_given_1,
+                        energy_received_2=energy_received_2,
+                        energy_given_2=energy_given_2,
+                    )
 
                 c1 = Collision(
                     location=p1_impact_loc,
