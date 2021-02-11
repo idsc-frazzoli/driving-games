@@ -1,4 +1,4 @@
-from decimal import Decimal as D
+from decimal import Decimal as D, localcontext
 from typing import Mapping, List, Dict, Tuple
 from frozendict import frozendict
 import itertools
@@ -113,77 +113,81 @@ def collision_check(
                 def is_side_col(impact_loc: ImpactLocation):
                     return impact_loc == IMPACT_RIGHT or impact_loc == IMPACT_LEFT
 
-                # Get the energy trasfered between the cars for different impact locations
-                if p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_FRONT:
-                    # head-on collision
-                    vs = s1.v * g1.mass + s2.v * g2.mass
-                    energy_received_1 = vs
-                    energy_received_2 = vs
-                    energy_given_1 = vs
-                    energy_given_2 = vs
+                with localcontext() as ctx:
+                    ctx.prec = 2
+                    # Get the energy trasfered between the cars for different impact locations
+                    if p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_FRONT:
+                        # head-on collision
+                        vs = s1.v * g1.mass + s2.v * g2.mass
+                        energy_received_1 = vs
+                        energy_received_2 = vs
+                        energy_given_1 = vs
+                        energy_given_2 = vs
 
-                elif p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_BACK:
-                    # p1 drives p2 in the back
-                    vs = s1.v * g1.mass - s2.v * g2.mass
-                    energy_received_1 = D(0)
-                    energy_received_2 = vs
-                    energy_given_1 = vs
-                    energy_given_2 = D(0)
+                    elif p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_BACK:
+                        # p1 drives p2 in the back
+                        vs = s1.v * g1.mass - s2.v * g2.mass
+                        energy_received_1 = D(0)
+                        energy_received_2 = vs
+                        energy_given_1 = vs
+                        energy_given_2 = D(0)
 
-                elif p1_impact_loc == IMPACT_BACK and p2_impact_loc == IMPACT_FRONT:
-                    # p2 drives p1 in the back
-                    vs = s2.v * g2.mass - s1.v * g1.mass
-                    energy_received_1 = vs
-                    energy_received_2 = D(0)
-                    energy_given_1 = D(0)
-                    energy_given_2 = vs
+                    elif p1_impact_loc == IMPACT_BACK and p2_impact_loc == IMPACT_FRONT:
+                        # p2 drives p1 in the back
+                        vs = s2.v * g2.mass - s1.v * g1.mass
+                        energy_received_1 = vs
+                        energy_received_2 = D(0)
+                        energy_given_1 = D(0)
+                        energy_given_2 = vs
 
-                elif p1_impact_loc == IMPACT_FRONT and is_side_col(p2_impact_loc):
-                    # p1 drives p2 in the sides
-                    vs = s1.v * g1.mass
-                    energy_received_1 = D(0)
-                    energy_received_2 = vs
-                    energy_given_1 = vs
-                    energy_given_2 = D(0)
+                    elif p1_impact_loc == IMPACT_FRONT and is_side_col(p2_impact_loc):
+                        # p1 drives p2 in the sides
+                        vs = s1.v * g1.mass
+                        energy_received_1 = D(0)
+                        energy_received_2 = vs
+                        energy_given_1 = vs
+                        energy_given_2 = D(0)
 
-                elif is_side_col(p1_impact_loc) and p2_impact_loc == IMPACT_FRONT:
-                    # p2 drives p1 in the sides
-                    vs = s2.v * g2.mass
-                    energy_received_2 = D(0)
-                    energy_received_1 = vs
-                    energy_given_2 = vs
-                    energy_given_1 = D(0)
+                    elif is_side_col(p1_impact_loc) and p2_impact_loc == IMPACT_FRONT:
+                        # p2 drives p1 in the sides
+                        vs = s2.v * g2.mass
+                        energy_received_2 = D(0)
+                        energy_received_1 = vs
+                        energy_given_2 = vs
+                        energy_given_1 = D(0)
 
-                elif is_side_col(p1_impact_loc) and is_side_col(p2_impact_loc):
-                    # side to side collision, take only lateral collision speed
-                    half_col_angle = col_angle_pos_0_90 / D(2)
+                    elif is_side_col(p1_impact_loc) and is_side_col(p2_impact_loc):
+                        # side to side collision, take only lateral collision speed
+                        half_col_angle = col_angle_pos_0_90 / D(2)
 
-                    vs = (g1.mass * s1.v + g2.mass * s2.v) * _sin(half_col_angle)
+                        vs = (g1.mass * s1.v + g2.mass * s2.v) * _sin(half_col_angle)
 
-                    energy_received_1 = vs
-                    energy_received_2 = vs
-                    energy_given_1 = vs
-                    energy_given_2 = vs
+                        energy_received_1 = vs
+                        energy_received_2 = vs
+                        energy_given_1 = vs
+                        energy_given_2 = vs
 
-                elif is_side_col(p1_impact_loc) and p2_impact_loc == IMPACT_BACK:
-                    # p1 drives with the sides in the back of p2, project speed of p1 along p2
-                    vs = g2.mass * s2.v - g1.mass * s1.v * _cos(col_angle_pos_0_90)
-                    energy_received_1 = D(0)
-                    energy_received_2 = vs
-                    energy_given_1 = vs
-                    energy_given_2 = D(0)
+                    elif is_side_col(p1_impact_loc) and p2_impact_loc == IMPACT_BACK:
+                        # p1 drives with the sides in the back of p2, project speed of p1 along p2
+                        vs_s = g1.mass * s1.v * _cos(col_angle_pos_0_90) - g2.mass * s2.v
+                        vs = vs_s.copy_abs()
+                        energy_received_1 = D(0)
+                        energy_received_2 = vs
+                        energy_given_1 = vs
+                        energy_given_2 = D(0)
 
-                elif p1_impact_loc == IMPACT_BACK and is_side_col(p2_impact_loc):
-                    # p2 drives with the sides in the back of p1, project speed of p2 along p1
-                    vs = g1.mass * s1.v - g2.mass * s2.v * _cos(col_angle_pos_0_90)
-                    energy_received_2 = D(0)
-                    energy_received_1 = vs
-                    energy_given_2 = vs
-                    energy_given_1 = D(0)
+                    elif p1_impact_loc == IMPACT_BACK and is_side_col(p2_impact_loc):
+                        # p2 drives with the sides in the back of p1, project speed of p2 along p1
+                        vs_s = g2.mass * s2.v * _cos(col_angle_pos_0_90) - g1.mass * s1.v
+                        vs = vs_s.copy_abs()
+                        energy_received_2 = D(0)
+                        energy_received_1 = vs
+                        energy_given_2 = vs
+                        energy_given_1 = D(0)
 
-                else:
-                    # Case that should never happen
-                    assert False, "Should not happen, check get location function"
+                    else:
+                        # Case that should never happen
+                        assert False, "Should not happen, check get location function"
 
                 if energy_received_1 < 0 or energy_given_1 < 0 or energy_received_2 < 0 or energy_given_2 < 0:
                     raise ZValueError(
@@ -279,8 +283,8 @@ def get_angle_of_collision(a: ProjectedCar, b: ProjectedCar) -> Tuple[Angle_Deg,
     b_pose: SE2_disc = b.rectangle.center_pose
 
     # Make sure that the angles are both positive
-    a_orient = a_pose[2]
-    b_orient = b_pose[2]
+    a_orient = round(a_pose[2], 2)
+    b_orient = round(b_pose[2], 2)
     if a_pose[2] < 0:
         a_orient = a_orient + D(360)
     if b_pose[2] < 0:
