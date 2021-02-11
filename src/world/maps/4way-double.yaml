@@ -7,4 +7,4 @@ tiles:
   - [straight_double/S   , asphalt           , straight_double/S    , asphalt           , straight_double/N]
   - [curve_left_double/S , straight_double/E , 3way_left_double/E   , straight_double/E , curve_left_double/E]
 
-tile_size: 7
+tile_size: 14
