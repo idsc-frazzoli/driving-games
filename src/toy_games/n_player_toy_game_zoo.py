@@ -407,6 +407,8 @@ This map contains a joint 5 player game. Collision at (4), (5) and (9)
                (4)
 """
 
+max_wait = 6
+
 toy_lane_two_x_crossed_1 = ToyLane(
     control_points=frozendict({
         0: 1,

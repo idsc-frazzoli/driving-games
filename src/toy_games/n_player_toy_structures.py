@@ -60,7 +60,7 @@ class ToyCarState(object):
     lane: ToyLane
     # Spacetime
     x: CtrPointID  # corresponds to along the lane (x=0 first ctr. point, x=1 second ctr. point)
-    time: int
+    # time: int
     wait: int
 
     @property
@@ -75,7 +75,7 @@ class Seen:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class ToyResources:
-    time: int
+    # time: int
     point_in_map: int
 
 
@@ -115,11 +115,12 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
             along_lane = x.x + 1
 
             if along_lane > self.max_path:
-                msg = "Invalid action gives out of bounds"
-                raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
+                along_lane = self.max_path
+                # msg = "Invalid action gives out of bounds"
+                # raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
-            return replace(x, x=along_lane, time=x.time + 1, wait=0)
-            # return replace(x, x=along_lane, wait=0)
+            # return replace(x, x=along_lane, time=x.time + 1, wait=0)
+            return replace(x, x=along_lane, wait=0)
 
         elif u.step == PLUSTWO:
             along_lane = x.x + 2
@@ -127,8 +128,8 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
                 msg = "Invalid action gives out of bounds"
                 raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
-            return replace(x, x=along_lane, time=x.time + 1, wait=0)
-            # replace(x, x=along_lane, wait=0)
+            # return replace(x, x=along_lane, time=x.time + 1, wait=0)
+            replace(x, x=along_lane, wait=0)
 
         elif u.step == WAIT:
             wait2 = x.wait + 1
@@ -136,15 +137,15 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
                 msg = f"Invalid action gives wait of {wait2}"
                 raise InvalidAction(msg, x=x, u=u)
             else:
-                return replace(x, time=x.time + 1, wait=wait2)
-                # return replace(x, wait=wait2)
+                # return replace(x, time=x.time + 1, wait=wait2)
+                return replace(x, wait=wait2)
 
         else:
             raise ZValueError(x=x, u=u)
 
     def get_shared_resources(self, x: ToyCarState) -> FrozenSet[ToyResources]:
-        resources = [ToyResources(time=x.time, point_in_map=x.point_in_map)]
-        # resources = [ToyResources(point_in_map=x.point_in_map)]
+        # resources = [ToyResources(time=x.time, point_in_map=x.point_in_map)]
+        resources = [ToyResources(point_in_map=x.point_in_map)]
         return frozenset(resources)
 
 

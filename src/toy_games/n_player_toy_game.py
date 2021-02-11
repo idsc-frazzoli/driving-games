@@ -64,7 +64,7 @@ def get_toy_car_game(toy_games_params: ToyGameParams, uncertainty_params: Uncert
 
         toy_car_state = ToyCarState(
             x=0,
-            time=0,
+            # time=0,
             lane=lane,
             wait=0
         )
