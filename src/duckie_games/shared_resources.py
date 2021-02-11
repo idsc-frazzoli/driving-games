@@ -79,9 +79,13 @@ def get_resources_used(vs: DuckieState, vg: DuckieGeometry, m: DrivingGameGridMa
             for j in range(range_to_check):
                 for i in range(range_to_check):
                     _id = start_ID + i + j * nb_W
-                    center_point_gc = m.resources[_id]
-                    if rect_car.contains_point(center_point_gc):
-                        resources_id_used.add(_id)
+                    try:
+                        center_point_gc = m.resources[_id]
+                        if rect_car.contains_point(center_point_gc):
+                            resources_id_used.add(_id)
+                    except KeyError:
+                        # Resource not on map anymore
+                        pass
 
     return frozenset(resources_id_used)
 
