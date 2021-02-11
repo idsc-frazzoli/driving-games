@@ -5,4 +5,4 @@ tiles:
   - [straight_double/W , 4way_double          , straight_double/E ]
   - [asphalt           , straight_double/S    , asphalt           ]
 
-tile_size: 7
+tile_size: 14
