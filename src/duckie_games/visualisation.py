@@ -78,6 +78,8 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         x_size = tile_size * W
         y_size = tile_size * H
         pylab.imshow(img, extent=[0, x_size, 0, y_size])
+        ax.set_xlim(left=0, right=x_size)
+        ax.set_ylim(bottom=0, top=y_size)
         self.pylab = pylab
 
         yield
