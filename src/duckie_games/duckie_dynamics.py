@@ -114,11 +114,12 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, ResourceID]):
             if v2 > self.max_speed:
                 v2 = self.max_speed
             if not (self.min_speed <= v2 <= self.max_speed):
-                msg = "Invalid action gives speed too fast"
+                msg = "Invalid action gives speed too fast or slow"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
             assert v2 >= 0
-            x2 = x.x + (x.v + accel_effective * dt) * dt
-            # if x2 > self.max_path:
+            x2 = x.x + v2 * dt
+            if x2 > self.max_path:
+                x2 = self.max_path
             #     msg = "Invalid action gives out of bound"
             #     raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.max_speed)
         # if wait2 > self.max_wait:
