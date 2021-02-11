@@ -1,10 +1,10 @@
+import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, Dict, FrozenSet, List
+from typing import cast, Dict, FrozenSet, List, Optional
 from frozendict import frozendict
 
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
-from duckietown_world.world_duckietown.lane_segment import LaneSegment
 
 from games import (
     Game,
@@ -28,12 +28,15 @@ from duckie_games.joint_reward import DuckieJointReward
 from duckie_games.preferences_coll_time import DuckiePreferencesCollTime
 from duckie_games.shared_resources import DrivingGameGridMap, ResourceID
 
+from world.map_loading import load_driving_game_map
 from world.utils import (
     interpolate_along_lane,
     from_SE2Transform_to_SE2_disc,
     LaneSegmentHashable,
+    get_lane_from_node_sequence,
+    NodeName,
+    Lane
 )
-
 
 DuckieGame = Game[DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision, ResourceID]
 
@@ -41,24 +44,11 @@ DuckieGamePlayer = GamePlayer[
     DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision, ResourceID
 ]
 
-Lane = LaneSegment
-
-
-@dataclass
-class DuckieVehicleParams:
-    max_speed: D
-    min_speed: D
-    max_wait: D
-    available_accels: FrozenSet[D]
-    collision_threshold: float
-    light_actions: FrozenSet[Lights]
-    dt: D
-
 
 @dataclass
 class DuckieGameParams:
-    duckie_map: DuckietownMap
-    """ Map where the players play """
+    desc: str
+    """ Description of the game params """
 
     map_name: str
     """ The name of the map """
@@ -69,7 +59,7 @@ class DuckieGameParams:
     player_names: List[PlayerName]
     """ List of all the player names """
 
-    duckie_geometries: Dict[PlayerName, DuckieGeometry]
+    player_geometries: Dict[PlayerName, DuckieGeometry]
     """ Geometry parameters of duckies """
 
     max_speed: Dict[PlayerName, D]
@@ -93,9 +83,6 @@ class DuckieGameParams:
     dt: D
     """ Discretization timestep """
 
-    lanes: Dict[PlayerName, Lane]
-    """ Which duckie follows which lane """
-
     initial_progress: Dict[PlayerName, float]
     """ Initial progress along the lane """
 
@@ -103,9 +90,22 @@ class DuckieGameParams:
     """ Collision threshold """
 
     shared_resources_ds: D
-    """ Shared resources"""  # todo
+    """ Size of the shared resource grid cells"""
+
+    lanes: Optional[Dict[PlayerName, Lane]] = None
+    """ Which duckie follows which lane """
+
+    node_sequence: Optional[Dict[PlayerName, List[NodeName]]] = None
+    """ Sequence of nodes for the duckie to follow """
 
     def __post_init__(self):
+        msg = "Either lanes or the node sequence has to be specified"
+        assert bool(self.lanes) ^ bool(self.node_sequence), msg
+        if not self.lanes:
+            m = load_driving_game_map(self.map_name)
+            self.lanes = {}
+            for name in self.player_names:
+                self.lanes[name] = get_lane_from_node_sequence(m=m, node_sequence=self.node_sequence[name])
         check_duckie_game_params(self)
 
     @property
@@ -128,12 +128,12 @@ def get_duckie_game(
     """
     ps: PossibilityMonad = uncertainty_params.poss_monad
 
-    duckie_map = duckie_game_params.duckie_map
+    duckie_map: DuckietownMap = load_driving_game_map(name=duckie_game_params.map_name)
 
     shared_resources_ds = duckie_game_params.shared_resources_ds
 
     # Create the map containing the resource grid
-    duckie_map_grid = DrivingGameGridMap.initializor(
+    duckie_map_grid: DrivingGameGridMap = DrivingGameGridMap.initializor(
         m=duckie_map,
         cell_size=shared_resources_ds
     )
@@ -153,7 +153,7 @@ def get_duckie_game(
         ref = refs[duckie_name]
         available_accels = duckie_game_params.available_accels[duckie_name]
         light_actions = duckie_game_params.light_actions[duckie_name]
-        duckie_geometry = duckie_game_params.duckie_geometries[duckie_name]
+        duckie_geometry = duckie_game_params.player_geometries[duckie_name]
         lane = duckie_game_params.lanes[duckie_name]
         lane_hashable = LaneSegmentHashable.initializor(lane)
 
@@ -205,7 +205,7 @@ def get_duckie_game(
 
     joint_reward = DuckieJointReward(
         collision_threshold=duckie_game_params.collision_threshold,
-        geometries=duckie_game_params.duckie_geometries
+        geometries=duckie_game_params.player_geometries
     )
 
     game_visualization: DuckieGameVisualization[
@@ -215,7 +215,7 @@ def get_duckie_game(
     game_visualization = DuckieGameVisualization(
         duckie_map=duckie_map_grid,
         map_name=duckie_game_params.map_name,
-        geometries=duckie_game_params.duckie_geometries,
+        geometries=duckie_game_params.player_geometries,
         ds=duckie_game_params.shared_resources_ds
     )
     game: DuckieGame
@@ -233,7 +233,7 @@ def check_duckie_game_params(dg_params: DuckieGameParams) -> None:
     """ Checks if all game parameters are filled out"""
     lengths = map(len,
                   [dg_params.player_names,
-                   dg_params.duckie_geometries,
+                   dg_params.player_geometries,
                    dg_params.max_speed,
                    dg_params.min_speed,
                    dg_params.max_wait,
@@ -243,6 +243,7 @@ def check_duckie_game_params(dg_params: DuckieGameParams) -> None:
                    dg_params.lanes,
                    dg_params.initial_progress]
                   )
-    check_player_lengths = lambda x: x == dg_params.player_number
+    def check_player_lengths(x): return x == dg_params.player_number
+
     msg = f"Specify duckie game parameters for each player"
     assert all(map(check_player_lengths, lengths)), msg

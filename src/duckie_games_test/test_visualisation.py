@@ -5,8 +5,9 @@ from reprep import Report
 from driving_games import PlayerName, NO_LIGHTS
 from duckie_games.structures import DuckieState
 from duckie_games.visualisation import DuckieGameVisualization
-from duckie_games.zoo import two_player_duckie_game_parameters
+from duckie_games.zoo import two_player_4way
 from world.utils import LaneSegmentHashable
+from world.map_loading import load_driving_game_map
 from decimal import Decimal as D
 from matplotlib import pyplot as plt
 
@@ -17,12 +18,12 @@ def test_visualisation():
     """
     Visual test of the animation for the reports
     """
-    duckie_game_params = two_player_duckie_game_parameters
-    duckie_map = duckie_game_params.duckie_map
+    duckie_game_params = two_player_4way
+    map_name = duckie_game_params.map_name
+    duckie_map = load_driving_game_map(map_name)
     shared_resources_ds = duckie_game_params.shared_resources_ds
     duckie_map_grid = DrivingGameGridMap.initializor(m=duckie_map, cell_size=shared_resources_ds)
-    map_name = duckie_game_params.map_name
-    duckie_geometries = duckie_game_params.duckie_geometries
+    duckie_geometries = duckie_game_params.player_geometries
 
     duckie_states: Dict[PlayerName, DuckieState] = {}
     for duckie_name in duckie_game_params.player_names:

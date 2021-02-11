@@ -1,9 +1,5 @@
-import os
-
-from decimal import Decimal as D, localcontext
-from typing import Dict
-
-from duckietown_world.world_duckietown.duckiebot import DB18
+from decimal import Decimal as D
+from dataclasses import replace
 
 from games import PlayerName, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
@@ -11,155 +7,430 @@ from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
 from driving_games.structures import NO_LIGHTS
 
-from world.utils import get_lane_segments, merge_lanes, Lane
-from world.map_loading import load_driving_game_map
 from duckie_games.game_generation import DuckieGameParams
 from duckie_games.structures import DuckieGeometry
 
-__all__ = ['two_player_duckie_game_parameters', 'three_player_duckie_game_parameters', 'uncertainty_sets', 'uncertainty_prob']
-
-module_path = os.path.dirname(__file__)
+__all__ = [
+    'two_player_4way',
+    'two_player_4way_intersection_only',
+    'three_player_4way',
+    'three_player_4way_intersection_only',
+    'three_player_4way_double',
+    'three_player_4way_double_intersection_only',
+    'uncertainty_sets',
+    'uncertainty_prob'
+]
 
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 
+#%%
+"""
+-----------------------------------------------------------------------
+TWO PLAYER GAMES
+-----------------------------------------------------------------------
+"""
+#%% Two player 4way
 
-# Stretched version of the two player duckie game
-with localcontext() as ctx:
-    ctx.prec = 2
-    map_name = '4way'
-    # map_name = '4way-double'
-    duckie_map = load_driving_game_map(map_name)
-    player_nb = 2
-    duckie_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2")]
-    lane_names = { # 4way lanes
-        duckie_names[0]: ['ls051', 'ls033', 'ls016'],
-        #duckie_names[0]: ['ls026', 'ls022', 'L13'],
-        #duckie_names[1]: ['ls041', 'ls036', 'ls026'],  # gives error
-        duckie_names[1]: ['ls041', 'ls035', 'ls050']
-    }
-    # lane_names = { # 4way double
-    #     duckie_names[0]: ['ls131', 'ls110', 'ls157'],
-    #     duckie_names[1]: ['ls159', 'ls102', 'ls045']
-    # }
-    lanes: Dict[PlayerName, Lane]
-    lanes = {dn: merge_lanes(get_lane_segments(duckie_map=duckie_map, lane_names=lane_names[dn])) for dn in duckie_names}
+desc = (
+    """
+    Two player game on map 4way 
+    """
+)
+map_name = '4way'
+player_nb = 2
+dt = D(1)
+collision_threshold = 3
 
-    duck_g = DuckieGeometry(  # 4way
-        mass=D(1000),
-        length = D(4.5),
-        width = D(1.8),
+player_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2")]
+
+node_sequences = [
+    ['P27', 'P4'],  # go straight
+    ['P23', 'P26'],  # turn left
+]
+
+# node_sequences = [
+#     ['P27', 'P4'],  # go straight
+#     ['P23', 'P14']  # go straight
+# ]
+
+mass = D(1000)
+length = D(4.5)
+width = D(1.8)
+height = D(1.8)
+geometries = [
+    DuckieGeometry(
+        mass=mass,
+        length=length,
+        width=width,
         color=(1, 0, 0),
-        height=D(DB18().height)
-    )
+        height=height,
+    ),
+    DuckieGeometry(
+            mass=mass,
+            length=length,
+            width=width,
+            color=(0, 1, 0),
+            height=height,
+        )
+]
 
-    # duck_g = DuckieGeometry(  # 4way-double
-    #     mass=D(1000),
-    #     length=D(2.25),
-    #     width=D(0.9),
-    #     color=(1, 0, 0),
-    #     height=D(DB18().height)
-    # )
+shared_resources_ds = round(width / D(3), 2)
 
-    duckie_geometries = {dn: duck_g for dn in duckie_names}
+initial_progress = [D(0), D(0)]
+max_paths = [D(20), D(20)]
+max_speeds = [D(5), D(5)]
+min_speeds = [D(1), D(1)]
+max_waits = [D(1), D(1)]
 
-    max_paths = {dn: D(lanes[dn].get_lane_length()) * D(1) for dn in duckie_names}
+# accel = [D(-2), D(-1), D(0), D(+1)]
+accel = [D(-1), D(0), D(+1)]
+available_accels = [
+    accel,
+    accel
+]
+light_ac = [NO_LIGHTS]
+light_actions = [
+    light_ac,
+    light_ac
+]
 
-    max_speed = D(5)
-    min_speed = D(1)
-    max_speeds = {dn: max_speed for dn in duckie_names}
-    min_speeds = {dn:  min_speed for dn in duckie_names}
-    max_waits = {dn: D(1) for dn in duckie_names}
 
-    #available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in duckie_names}
-    available_accels = {dn: frozenset([D(-1), D(0), D(+1)]) for dn in duckie_names}
-    light_actions = {dn: frozenset({NO_LIGHTS}) for dn in duckie_names}
-    dt = D(1)
-    initial_progress = {dn: 0 for dn in duckie_names}
-    collision_threshold = 3
-    shared_resources_ds = duck_g.width / D(3)
+player_geometries = {pn: _ for pn, _ in zip(player_names, geometries)}
 
-# Parameters to compare solution with the game constructed in driving_games.zoo, get_sym()
-two_player_duckie_game_parameters = DuckieGameParams(
-    duckie_map=duckie_map,
+player_max_paths = {pn: _ for pn, _ in zip(player_names, max_paths)}
+
+player_max_speeds = {pn: _ for pn, _ in zip(player_names, max_speeds)}
+player_min_speeds = {pn: _ for pn, _ in zip(player_names, min_speeds)}
+player_max_waits = {pn: _ for pn, _ in zip(player_names, max_waits)}
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+
+# available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in player_names}
+player_available_accels = {pn: frozenset(_) for pn, _ in zip(player_names, available_accels)}
+player_light_actions = {pn: frozenset(_) for pn, _ in zip(player_names, light_actions)}
+
+player_initial_progress = {pn: _ for pn, _ in zip(player_names, initial_progress)}
+
+two_player_4way = DuckieGameParams(
+    desc=desc,
     map_name=map_name,
     player_number=player_nb,
-    player_names=duckie_names,
-    duckie_geometries=duckie_geometries,
-    max_speed=max_speeds,
-    min_speed=min_speeds,
-    max_wait=max_waits,
-    max_path=max_paths,
-    available_accels=available_accels,
-    light_actions=light_actions,
+    player_names=player_names,
+    player_geometries=player_geometries,
+    max_speed=player_max_speeds,
+    min_speed=player_min_speeds,
+    max_wait=player_max_waits,
+    max_path=player_max_paths,
+    available_accels=player_available_accels,
+    light_actions=player_light_actions,
     dt=dt,
-    lanes=lanes,
-    initial_progress=initial_progress,
+    node_sequence=player_node_sequence,
+    initial_progress=player_initial_progress,
     collision_threshold=collision_threshold,
     shared_resources_ds=shared_resources_ds
 )
 
+#%% 2 player 4 way intersection onyl
+desc = (
+    """
+    Two player game on the map 4way intersection only
+    """
+)
 
-# Stretched version of a three player duckie game
-with localcontext() as ctx:
-    ctx.prec = 2
-    map_name = '4way'
-    duckie_map = load_driving_game_map(map_name)
-    player_nb = 3
-    duckie_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2"), PlayerName("Duckie_3")]
-    lane_names = {
-        duckie_names[0]: ['ls051', 'ls033', 'ls016'],
-        duckie_names[1]: ['ls041', 'ls036', 'ls026'],
-        duckie_names[2]: ['ls017', 'ls038', 'ls040']
-    }
-    lanes: Dict[PlayerName, Lane]
-    lanes = {dn: merge_lanes(get_lane_segments(duckie_map=duckie_map, lane_names=lane_names[dn])) for dn in duckie_names}
+node_sequences = [
+    ['P15', 'P1'],  # go straight
+    ['P13', 'P14'],  # turn left
+]
 
-    duck_g = DuckieGeometry(
-        mass=D(1000),
-        length = D(4.5),
-        width = D(1.8),
+# node_sequences = [
+#     ['P15', 'P1'],  # go straight
+#     ['P13', 'P5'],  # go straight
+# ]
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+map_name = "4way-intersection-only"
+
+two_player_4way_intersection_only = replace(
+    obj=two_player_4way,
+    desc=desc,
+    map_name=map_name,
+    node_sequence=player_node_sequence,
+    lanes=None
+)
+
+#%%
+"""
+-----------------------------------------------------------------------
+THREE PLAYER GAMES
+-----------------------------------------------------------------------
+"""
+#%% 3 player 4way
+
+desc = (
+    """
+    Three player game on the map 4way
+    """
+)
+
+map_name = "4way"
+
+player_nb = 3
+dt = D(1)
+collision_threshold = 3
+
+player_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2"), PlayerName("Duckie_3")]
+
+node_sequences = [
+    ['P27', 'P4'],  # go straight
+    ['P23', 'P26'],  # turn left
+    ['P13', 'P22']  # go straight
+]
+
+mass = D(1000)
+length = D(4.5)
+width = D(1.8)
+height = D(1.8)
+geometries = [
+    DuckieGeometry(
+        mass=mass,
+        length=length,
+        width=width,
         color=(1, 0, 0),
-        height=D(DB18().height)
-    )
+        height=height,
+    ),
+    DuckieGeometry(
+            mass=mass,
+            length=length,
+            width=width,
+            color=(0, 1, 0),
+            height=height,
+        ),
+    DuckieGeometry(
+            mass=mass,
+            length=length,
+            width=width,
+            color=(0, 0, 1),
+            height=height,
+        )
+]
 
-    duckie_geometries = {dn: duck_g for dn in duckie_names}
+shared_resources_ds = round(width / D(3), 2)
 
-    # max_paths = {dn: D(lanes[dn].get_lane_length()) * D(1) for dn in duckie_names}
-    max_paths = {dn: D(21) for dn in duckie_names}
-    max_speed = D(3)
-    min_speed = D(1)
-    max_speeds = {dn: max_speed for dn in duckie_names}
-    min_speeds = {dn:  min_speed for dn in duckie_names}
-    max_waits = {dn: D(1) for dn in duckie_names}
+initial_progress = [D(0), D(0), D(0)]
+max_paths = [D(20), D(20), D(20)]
+max_speeds = [D(5), D(5), D(5)]
+min_speeds = [D(1), D(1), D(5)]
+max_waits = [D(1), D(1), D(1)]
 
-    #available_accels = {dn: frozenset([D(-1), D(0), D(+1)]) for dn in duckie_names}
-    available_accels = {dn: frozenset([D(0), D(+3)]) for dn in duckie_names}
-    #available_accels = {dn: frozenset([D(+1)]) for dn in duckie_names}
-    #available_accels[duckie_names[1]] = frozenset([D(+1)])
-    light_actions = {dn: frozenset({NO_LIGHTS}) for dn in duckie_names}
-    dt = D(1)
-    initial_progress = {dn: 0 for dn in duckie_names}
-    collision_threshold = 3
-    shared_resources_ds = D(1)
+# accel = [D(-2), D(-1), D(0), D(+1)]
+# accel = [D(-1), D(0), D(+1)]
+accel = [D(0), D(+2)]
+available_accels = [
+    accel,
+    accel,
+    accel
+]
+light_ac = [NO_LIGHTS]
+light_actions = [
+    light_ac,
+    light_ac,
+    light_ac
+]
 
-# A three player duckie game
-three_player_duckie_game_parameters = DuckieGameParams(
-    duckie_map=duckie_map,
+player_geometries = {pn: _ for pn, _ in zip(player_names, geometries)}
+
+player_max_paths = {pn: _ for pn, _ in zip(player_names, max_paths)}
+
+player_max_speeds = {pn: _ for pn, _ in zip(player_names, max_speeds)}
+player_min_speeds = {pn: _ for pn, _ in zip(player_names, min_speeds)}
+player_max_waits = {pn: _ for pn, _ in zip(player_names, max_waits)}
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+
+# available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in player_names}
+player_available_accels = {pn: frozenset(_) for pn, _ in zip(player_names, available_accels)}
+player_light_actions = {pn: frozenset(_) for pn, _ in zip(player_names, light_actions)}
+
+player_initial_progress = {pn: _ for pn, _ in zip(player_names, initial_progress)}
+
+three_player_4way = DuckieGameParams(
+    desc=desc,
     map_name=map_name,
     player_number=player_nb,
-    player_names=duckie_names,
-    duckie_geometries=duckie_geometries,
-    max_speed=max_speeds,
-    min_speed=min_speeds,
-    max_wait=max_waits,
-    max_path=max_paths,
-    available_accels=available_accels,
-    light_actions=light_actions,
+    player_names=player_names,
+    player_geometries=player_geometries,
+    max_speed=player_max_speeds,
+    min_speed=player_min_speeds,
+    max_wait=player_max_waits,
+    max_path=player_max_paths,
+    available_accels=player_available_accels,
+    light_actions=player_light_actions,
     dt=dt,
-    lanes=lanes,
-    initial_progress=initial_progress,
+    node_sequence=player_node_sequence,
+    initial_progress=player_initial_progress,
     collision_threshold=collision_threshold,
     shared_resources_ds=shared_resources_ds
+)
+
+#%% 3 player 4way intersection only
+
+desc = (
+    """
+    Three player game on the map 4way intersection only
+    """
+)
+
+node_sequences = [
+    ['P15', 'P1'],  # go straight
+    ['P13', 'P14'],  # turn left
+    ['P6', 'P12']  # go straight
+]
+
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+map_name = "4way-intersection-only"
+
+three_player_4way_intersection_only = replace(
+    obj=three_player_4way,
+    desc=desc,
+    map_name=map_name,
+    node_sequence=player_node_sequence,
+    lanes=None
+)
+
+#%% 3 player 4 way double
+
+desc = (
+    """
+    Three player game on the map 4way double
+    """
+)
+
+map_name = "4way-double"
+
+player_nb = 3
+dt = D(1)
+collision_threshold = 3
+
+player_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2"), PlayerName("Duckie_3")]
+
+node_sequences = [
+    ['P74', 'P56', 'P48', 'P44'],  # turn left
+    ['P63', 'P58', 'P49', 'P45'],  # go straight
+    ['P42', 'P50', 'P32', 'P16']  # turn left
+]
+
+mass = D(1000)
+length = D(4.5)
+width = D(1.8)
+height = D(1.8)
+geometries = [
+    DuckieGeometry(
+        mass=mass,
+        length=length,
+        width=width,
+        color=(1, 0, 0),
+        height=height,
+    ),
+    DuckieGeometry(
+            mass=mass,
+            length=length,
+            width=width,
+            color=(0, 1, 0),
+            height=height,
+        ),
+    DuckieGeometry(
+            mass=mass,
+            length=length,
+            width=width,
+            color=(0, 0, 1),
+            height=height,
+        )
+]
+
+shared_resources_ds = round(width / D(3), 2)
+
+initial_progress = [D(0), D(0), D(0)]
+max_paths = [D(40), D(40), D(40)]
+max_speeds = [D(10), D(10), D(10)]
+min_speeds = [D(2), D(2), D(2)]
+max_waits = [D(1), D(1), D(1)]
+
+# accel = [D(-2), D(-1), D(0), D(+1)]
+# accel = [D(-1), D(0), D(+1)]
+accel = [D(0), D(+4)]
+available_accels = [
+    accel,
+    accel,
+    accel
+]
+light_ac = [NO_LIGHTS]
+light_actions = [
+    light_ac,
+    light_ac,
+    light_ac
+]
+
+
+player_geometries = {pn: _ for pn, _ in zip(player_names, geometries)}
+
+player_max_paths = {pn: _ for pn, _ in zip(player_names, max_paths)}
+
+player_max_speeds = {pn: _ for pn, _ in zip(player_names, max_speeds)}
+player_min_speeds = {pn: _ for pn, _ in zip(player_names, min_speeds)}
+player_max_waits = {pn: _ for pn, _ in zip(player_names, max_waits)}
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+
+# available_accels = {dn: frozenset([D(-2), D(-1), D(0), D(+1)]) for dn in player_names}
+player_available_accels = {pn: frozenset(_) for pn, _ in zip(player_names, available_accels)}
+player_light_actions = {pn: frozenset(_) for pn, _ in zip(player_names, light_actions)}
+
+player_initial_progress = {pn: _ for pn, _ in zip(player_names, initial_progress)}
+
+three_player_4way_double = DuckieGameParams(
+    desc=desc,
+    map_name=map_name,
+    player_number=player_nb,
+    player_names=player_names,
+    player_geometries=player_geometries,
+    max_speed=player_max_speeds,
+    min_speed=player_min_speeds,
+    max_wait=player_max_waits,
+    max_path=player_max_paths,
+    available_accels=player_available_accels,
+    light_actions=player_light_actions,
+    dt=dt,
+    node_sequence=player_node_sequence,
+    initial_progress=player_initial_progress,
+    collision_threshold=collision_threshold,
+    shared_resources_ds=shared_resources_ds
+)
+
+#%% 3 player 4way double intersection only
+
+desc = (
+    """
+    Three player game on the map 4way double intersection only
+    """
+)
+
+node_sequences = [
+    ['P30', 'P20', 'P8', 'P9'],  # turn left
+    ['P27', 'P22', 'P10', 'P11'],  # go straight
+    ['P12', 'P13', 'P0', 'P1']  # turn left
+]
+
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+map_name = "4way-double-intersection-only"
+
+three_player_4way_double_intersection_only = replace(
+    obj=three_player_4way_double,
+    desc=desc,
+    map_name=map_name,
+    node_sequence=player_node_sequence,
+    lanes=None
 )

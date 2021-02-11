@@ -5,8 +5,12 @@ from parameterized import parameterized
 from duckie_games.game_generation import get_duckie_game
 
 from duckie_games.zoo import (
-    two_player_duckie_game_parameters,
-    three_player_duckie_game_parameters,
+    two_player_4way,
+    two_player_4way_intersection_only,
+    three_player_4way,
+    three_player_4way_intersection_only,
+    three_player_4way_double,
+    three_player_4way_double_intersection_only,
     uncertainty_sets,
     uncertainty_prob
 )
@@ -17,8 +21,12 @@ uncertainty_params = [
 ]
 
 duckie_game_params = [
-    two_player_duckie_game_parameters,
-    three_player_duckie_game_parameters
+    two_player_4way,
+    two_player_4way_intersection_only,
+    three_player_4way,
+    three_player_4way_intersection_only,
+    three_player_4way_double,
+    three_player_4way_double_intersection_only,
 ]
 
 params = list(product(duckie_game_params, uncertainty_params))

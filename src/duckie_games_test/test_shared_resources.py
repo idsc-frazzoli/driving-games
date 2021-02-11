@@ -9,7 +9,7 @@ from driving_games.structures import NO_LIGHTS
 from world.map_loading import load_driving_game_map, map_directory
 from world.utils import LaneSegmentHashable
 
-from duckie_games.zoo import two_player_duckie_game_parameters
+from duckie_games.zoo import two_player_4way
 from duckie_games.shared_resources import DrivingGameGridMap, get_resources_used
 from duckie_games.rectangle import projected_car_from_along_lane, Rectangle
 from duckie_games.structures import DuckieState, DuckieGeometry
@@ -59,7 +59,7 @@ def test_resources_visual():
     """
     Tests the get resources function visually
     """
-    map_name = two_player_duckie_game_parameters.map_name
+    map_name = two_player_4way.map_name
     driving_game_map = load_driving_game_map(map_name)
     resource_cell_size = D(0.5)
     driving_game_grid_map = DrivingGameGridMap.initializor(m=driving_game_map, cell_size=resource_cell_size)
@@ -71,9 +71,9 @@ def test_resources_visual():
     x_back = tile_size * W
     y_back = tile_size * H
 
-    duckie_name = two_player_duckie_game_parameters.player_names[0]
-    lane = two_player_duckie_game_parameters.lanes[duckie_name]
-    ref = two_player_duckie_game_parameters.refs[duckie_name]
+    duckie_name = two_player_4way.player_names[0]
+    lane = two_player_4way.lanes[duckie_name]
+    ref = two_player_4way.refs[duckie_name]
 
     length = D(5)
     width = D(1.8)
