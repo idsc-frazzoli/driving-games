@@ -119,17 +119,18 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
                 # msg = "Invalid action gives out of bounds"
                 # raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
-            # return replace(x, x=along_lane, time=x.time + 1, wait=0)
-            return replace(x, x=along_lane, wait=0)
+            # xnew = replace(x, x=along_lane, time=x.time + 1, wait=0)
+            xnew = replace(x, x=along_lane, wait=0)
 
         elif u.step == PLUSTWO:
             along_lane = x.x + 2
             if along_lane > self.max_path:
-                msg = "Invalid action gives out of bounds"
-                raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
+                along_lane = self.max_path
+                # msg = "Invalid action gives out of bounds"
+                # raise InvalidAction(msg, x=x, u=u, along_lane=along_lane, max_path=self.max_path)
 
-            # return replace(x, x=along_lane, time=x.time + 1, wait=0)
-            replace(x, x=along_lane, wait=0)
+            # xnew = replace(x, x=along_lane, time=x.time + 1, wait=0)
+            xnew = replace(x, x=along_lane, wait=0)
 
         elif u.step == WAIT:
             wait2 = x.wait + 1
@@ -137,11 +138,13 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
                 msg = f"Invalid action gives wait of {wait2}"
                 raise InvalidAction(msg, x=x, u=u)
             else:
-                # return replace(x, time=x.time + 1, wait=wait2)
-                return replace(x, wait=wait2)
+                # xnew = replace(x, time=x.time + 1, wait=wait2)
+                xnew = replace(x, wait=wait2)
 
         else:
             raise ZValueError(x=x, u=u)
+
+        return xnew
 
     def get_shared_resources(self, x: ToyCarState) -> FrozenSet[ToyResources]:
         # resources = [ToyResources(time=x.time, point_in_map=x.point_in_map)]
