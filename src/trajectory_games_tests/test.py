@@ -1,10 +1,10 @@
 from os.path import join
 from typing import Mapping
-
 from reprep import Report
 
 from trajectory_games import TrajectoryGame, compute_solving_context, solve_game, StaticSolvingContext, \
-    report_game_visualization, SolvedTrajectoryGame, report_nash_eq
+    report_game_visualization, SolvedTrajectoryGame, report_nash_eq, \
+    report_preferences
 
 from trajectory_games.game_factory import get_trajectory_game
 
@@ -24,6 +24,7 @@ def test_trajectory_game():
 
     r_game: Report = report_game_visualization(game=game)
     r_game.add_child(report_nash_eq(nash_eq))
+    r_game.add_child(report_preferences(context.outcome_pref))
     r_game.to_html(join(d, "r_animation.html"))
 
     a = 2

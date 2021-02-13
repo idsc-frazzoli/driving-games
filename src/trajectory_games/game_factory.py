@@ -45,12 +45,13 @@ def get_trajectory_game_players() -> Mapping[PlayerName, TrajectoryGamePlayer]:
 
     p1 = PlayerName("P1")
     p2 = PlayerName("P2")
-    state1 = VehicleState(x=D("2"), y=D("5"), th=D(pi / 2), v=D("8"), st=D("0"), t=D("0"))
-    state2 = VehicleState(x=D("-2"), y=D("0"), th=D(pi / 2), v=D("10"), st=D("0"), t=D("0"))
+    state1 = VehicleState(x=D("0.5"), y=D("5"), th=D(pi / 2), v=D("8"), st=D("0"), t=D("0"))
+    state2 = VehicleState(x=D("-0.5"), y=D("0"), th=D(pi / 2), v=D("15"), st=D("0"), t=D("0"))
 
     ps = PossibilitySet()
     metrics: Set[Metric] = get_metrics_set()
-    pref = PosetalPreference(keys=metrics)
+    pref1 = PosetalPreference(pref_file='player_pref/player1.pref', keys=metrics)
+    pref2 = PosetalPreference(pref_file='player_pref/player2.pref', keys=metrics)
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
     vg1 = VehicleGeometry(m=D("200"), w=D("0.7"), l=D("1.5"), colour=(1, 0, 0))
@@ -59,14 +60,14 @@ def get_trajectory_game_players() -> Mapping[PlayerName, TrajectoryGamePlayer]:
         p1: TrajectoryGamePlayer(
             state=ps.unit(state1),
             actions_generator=traj_gen,
-            preference=pref,
+            preference=pref1,
             monadic_preference_builder=mpref_build,
             vg=vg1,
         ),
         p2: TrajectoryGamePlayer(
             state=ps.unit(state2),
             actions_generator=traj_gen,
-            preference=pref,
+            preference=pref2,
             monadic_preference_builder=mpref_build,
             vg=vg2,
         ),

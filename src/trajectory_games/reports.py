@@ -1,11 +1,14 @@
 from time import perf_counter
-from typing import Mapping
+from typing import Mapping, Tuple
 
+import networkx as nx
 from reprep import Report
 from zuper_commons.text import remove_escapes
 
+from games.game_def import PlayerName
 from .static_game import StaticGame
 from .trajectory_game import SolvedTrajectoryGame
+from .preference import PosetalPreference
 
 
 def report_game_visualization(game: StaticGame) -> Report:
@@ -67,3 +70,44 @@ def report_nash_eq(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
         #               f"\t\toutcome={list(node.outcomes[player].values())}")
         #     print("\n")
     return r
+
+
+def report_preferences(pref_map: Mapping[PlayerName, PosetalPreference]) -> Report:
+    r = Report("pref")
+
+    with r.plot("preferences") as pylab:
+        i: float = 0.0
+        for player_name, pref in pref_map.items():
+            plot_player(pylab, pref.graph, (i, 0.0))
+            i = i + 100
+    return r
+
+
+def plot_player(pylab, G: nx.DiGraph, origin: Tuple[float, float]):
+
+    X,Y = origin
+
+    def pos_node(n: str):
+        x = G.nodes[n]["x"]
+        y = G.nodes[n]["y"]
+        return float(x)+X, float(y)+Y
+
+    pos = {_: pos_node(_) for _ in G.nodes}
+
+    labels = {n:n for n in G.nodes}
+    nx.draw_networkx_edges(
+        G,
+        pos=pos,
+        edgelist=G.edges(),
+        arrows=True,
+    )
+
+    ax = pylab.gca()
+    nx.draw_networkx_labels(
+        G,
+        pos=pos,
+        labels=labels,
+        ax=ax,
+        font_size=8,
+        font_color='b'
+    )

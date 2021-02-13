@@ -19,7 +19,21 @@ from .world import World
 from .paths import Trajectory
 from .trajectory_game import JointPureTraj
 
-# TODO[SIR]: Add __all__
+__all__ = [
+    "get_metrics_set",
+    "SurvivalTime",
+    "DeviationLateral",
+    "DeviationHeading",
+    "DrivableAreaViolation",
+    "ProgressAlongReference",
+    "LongitudinalAcceleration",
+    "LongitudinalJerk",
+    "LateralComfort",
+    "SteeringAngle",
+    "SteeringRate",
+    "CollisionEnergy",
+    "evaluate_metrics",
+]
 
 
 def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp]:
@@ -98,8 +112,6 @@ class SurvivalTime(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Survival time"
         description = "Length of the episode (negative for smaller preferred)"
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -117,7 +129,7 @@ class SurvivalTime(Metric):
             total = cumulative.values[-1]
 
             ret = EvaluatedMetric(
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 total=total,
                 incremental=incremental,
@@ -133,8 +145,6 @@ class DeviationLateral(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Deviation from reference path"
         description = "This metric describes the deviation from reference path. "
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -152,7 +162,7 @@ class DeviationLateral(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=sequence,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -166,7 +176,6 @@ class DeviationHeading(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        title = "Heading Deviation"
         description = "This metric describes the heading deviation from reference path."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -187,7 +196,7 @@ class DeviationHeading(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=sequence,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -201,8 +210,6 @@ class DrivableAreaViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Drivable area violation"
         description = "This metric computes the drivable area violation by the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -231,7 +238,7 @@ class DrivableAreaViolation(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=sequence,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -245,8 +252,6 @@ class ProgressAlongReference(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Reference progress"
         description = "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -268,7 +273,7 @@ class ProgressAlongReference(Metric):
             ret = EvaluatedMetric(
                 total=total,
                 incremental=incremental,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -282,8 +287,6 @@ class LongitudinalAcceleration(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Longitudinal acceleration"
         description = "This metric computes the longitudinal acceleration the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -303,7 +306,7 @@ class LongitudinalAcceleration(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=acc_seq,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -317,8 +320,6 @@ class LongitudinalJerk(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Longitudinal acceleration jerk"
         description = "This metric computes the longitudinal acceleration jerk of the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -341,7 +342,7 @@ class LongitudinalJerk(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=dacc_seq,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -355,8 +356,6 @@ class LateralComfort(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Lateral discomfort"
         description = "This metric computes the lateral discomfort or lateral acceleration the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -373,7 +372,7 @@ class LateralComfort(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=ay_seq,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -387,8 +386,6 @@ class SteeringAngle(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Steering angle"
         description = "This metric computes the steering angle the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -406,7 +403,7 @@ class SteeringAngle(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=st_seq,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -420,8 +417,6 @@ class SteeringRate(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Steering rate"
         description = "This metric computes the rate of change of steering angle the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -441,7 +436,7 @@ class SteeringRate(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=dst_seq,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )
@@ -457,8 +452,6 @@ class CollisionEnergy(Metric):
     COLLISION_MIN_DIST = D("0.2")
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        title = "Collision Energy"
         description = "This metric computes the energy of collision between agents."
 
         def calculate_metric(player1: PlayerName) -> EvaluatedMetric:
@@ -547,7 +540,7 @@ class CollisionEnergy(Metric):
             ret = EvaluatedMetric(
                 total=dtot,
                 incremental=inc,
-                title=title,
+                title=type(self).__name__,
                 description=description,
                 cumulative=cumulative,
             )

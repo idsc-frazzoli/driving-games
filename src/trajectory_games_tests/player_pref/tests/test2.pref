@@ -1,0 +1,14 @@
+# Source <= Targets
+CollisionEnergy ProgressAlongReference DrivableAreaViolation LateralComfort
+ProgressAlongReference DeviationLateral
+DrivableAreaViolation LongitudinalJerk
+LateralComfort LongitudinalAcceleration
+DeviationLateral DeviationHeading
+DeviationHeading LongitudinalJerk
+LongitudinalJerk LongitudinalAcceleration
+
+# ALL METRICS:
+# SurvivalTime, DeviationLateral, DeviationHeading, DrivableAreaViolation,
+# ProgressAlongReference, LongitudinalAcceleration, LongitudinalJerk,
+# LateralComfort, SteeringAngle, SteeringRate,
+# CollisionEnergy,
