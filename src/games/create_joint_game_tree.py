@@ -2,6 +2,7 @@ from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
+from time import perf_counter
 
 from frozendict import frozendict
 from networkx import DiGraph, topological_sort
@@ -29,6 +30,7 @@ from games.solve.solution_structures import (
     GameGraph,
     GameNode,
 )
+from games.performance import CreateGameGraphPI
 from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = []
@@ -57,13 +59,14 @@ def create_game_graph(
     dt: D,
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
+    create_gt_perf: Optional[CreateGameGraphPI] = None
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """ Create the game graph. """
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
     for js in initials:
-        _create_game_graph(ic, js)
+        _create_game_graph(ic, js, create_gt_perf)
 
     # create networkx graph
     G = get_networkx_graph(state2node)
@@ -138,7 +141,11 @@ def get_moves(
     return res
 
 
-def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
+def _create_game_graph(
+        ic: IterationContext,
+        states: JointState,
+        create_gt_perf: Optional[CreateGameGraphPI] = None
+) -> GameNode[X, U, Y, RP, RJ, SR]:
     """
     # todo
     :param ic:
@@ -161,12 +168,22 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_final[player_name] = f
 
+    # start timer to collect the time for the collision checks
+    t1 = perf_counter()
+
     who_exits = frozenset(ic.game.joint_reward.is_joint_final_state(states))
     joint_final = who_exits
     if joint_final:
         joint_final_rewards = ic.game.joint_reward.joint_reward(states)
     else:
         joint_final_rewards = {}
+
+    # End timer and collect performance if given
+    t2 = perf_counter()
+    tot_t = t2 - t1
+    if create_gt_perf:
+        create_gt_perf.check_collision_total_time += tot_t
+
 
     players_exiting = set(who_exits) | set(is_final)
 
@@ -229,12 +246,20 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for p in poutcomes.support():
             for _, js_ in p.items():
-                _create_game_graph(ic2, js_)
+                _create_game_graph(ic2, js_, create_gt_perf)
 
+    # Start timer to collect time for resources collection
+    t1 = perf_counter()
     resources = {}
     for player_name, player_state in states.items():
         dynamics = ic.game.players[player_name].dynamics
         resources[player_name] = dynamics.get_shared_resources(player_state)
+
+    # End timer and collect performance if given
+    t2 = perf_counter()
+    tot_t = t2 - t1
+    if create_gt_perf:
+        create_gt_perf.get_shared_resources_total_time += tot_t
 
     res = GameNode(
         moves=movesets_for_remaining,
