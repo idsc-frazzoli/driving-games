@@ -6,7 +6,8 @@ from typing import (
     Dict,
     FrozenSet as FSet,
     Mapping as M,
-    List
+    List,
+    Optional,
 )
 
 from frozendict import frozendict
@@ -37,6 +38,7 @@ from games.game_def import (
     Y,
 )
 from games.simulate import simulate1, Simulation
+from games.performance import GamePerformance, SolveGamePI
 from .solution_ghost import get_ghost_tree
 from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
 from .solve_equilibria_ import solve_equilibria, get_game_values_final
@@ -59,7 +61,10 @@ __all__ = ["solve1"]
 TOC = perf_counter()
 
 
-def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve1(
+        gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
+        game_perf: Optional[GamePerformance] = None
+) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo
 
@@ -99,16 +104,37 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     else:
         gf = None
 
-    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf)
+    t1 = perf_counter()
+    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf, create_gt_perf=game_perf.create_gt_pi)
+    t2 = perf_counter()
+    tot_t = t2 - t1
+    logger.info("Time to create the game tree", time=tot_t)
+    if game_perf:
+        game_perf.create_gt_pi.total_time = tot_t
 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
+
     # solve sequential games equilibria
-    sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+    if len(initial_state) == 2:  # todo define sequential games for n>2
+        sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
-    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
+
+    solve_game_perf = game_perf.solve_game_pi if game_perf else None  # extract the performance info for solving
+
+    # start the timer to collect time used for solving
+    t1 = perf_counter()
+
+    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials, solve_game_perf=solve_game_perf)
+
+    # stop timer and collect performance if given
+    t2 = perf_counter()
+    if game_perf:
+        game_perf.solve_game_pi.total_time = t2 - t1
+
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
@@ -204,6 +230,7 @@ def solve_game2(
     solver_params: SolverParams,
     gg: GameGraph[X, U, Y, RP, RJ, SR],
     jss: AbstractSet[JointState],
+    solve_game_perf: Optional[SolveGamePI] = None
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
     Computes the solution of the game rooted in `jss` and extract the policy for each player, for each game node
@@ -226,7 +253,7 @@ def solve_game2(
     )
     for js0 in jss:
         check_joint_state(js0)
-        _solve_game(sc, js0)
+        _solve_game(sc, js0, solve_game_perf)
 
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState], Poss[U]]]]
     ps = game.ps
@@ -251,6 +278,7 @@ def solve_game2(
 def _solve_game(
     sc: SolvingContext[X, U, Y, RP, RJ, SR],
     js: JointState,
+    solve_game_perf: Optional[SolveGamePI] = None
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
     Actual recursive function that solves the game nodes with backward induction
@@ -288,7 +316,7 @@ def _solve_game(
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:
         def u(a: M[PlayerName, JointState]) -> M[PlayerName, JointState]:
-            return frozendict(valmap(lambda _: _solve_game(sc, _).states, a))
+            return frozendict(valmap(lambda _: _solve_game(sc, _, solve_game_perf).states, a))
 
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
 
@@ -339,6 +367,10 @@ def _solve_game(
 
     ur: UsedResources[X, U, Y, RP, RJ, SR]
     usage_current = ps.unit(gn.resources)
+
+    # start timer for resource collection times
+    t1 = perf_counter()
+
     # logger.info(va=va)
     if va.mixed_actions:
         next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
@@ -386,6 +418,13 @@ def _solve_game(
     else:
         usages_ = frozendict({D(0): usage_current})
         ur = UsedResources(usages_)
+
+    # stop timer for resource collection time, collect performance if given
+    t2 = perf_counter()
+    tot_t = t2 - t1
+    if solve_game_perf:
+        solve_game_perf.get_resources_pi.total_time += tot_t
+
     try:
         ret = SolvedGameNode(states=js, solved=frozendict(solved_to_node), va=va, ur=ur)
     except Exception as e:
