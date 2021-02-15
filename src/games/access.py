@@ -1,5 +1,6 @@
 import itertools
 import random
+from time import perf_counter
 from collections import defaultdict
 from decimal import Decimal as D
 from functools import reduce
@@ -41,6 +42,7 @@ from .game_def import (
 )
 from .get_indiv_games import get_individual_games
 from games.solve.solution import solve_game2
+from games.performance import GamePerformance, GetFactorizationPI, CreateGameGraphPI, SolveGamePI
 from games.solve.solution_structures import (
     GameFactorization,
     GameGraph,
@@ -60,6 +62,7 @@ from .utils import fkeyfilter, iterate_dict_combinations
 def preprocess_game(
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
+    game_perf: Optional[GamePerformance] = None
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     1. Preprocesses the game computing the general game graph (MultiDiGraph used for visualisation)
@@ -98,11 +101,13 @@ def preprocess_game(
 def get_game_factorization(
     game: Game[X, U, Y, RP, RJ, SR],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
+    fact_perf: Optional[GetFactorizationPI] = None
 ) -> GameFactorization[X]:
     """
 
     :param game:
     :param players_pre:
+    :param fact_perf:
     :return:
     """
     ps = game.ps
@@ -131,9 +136,14 @@ def get_game_factorization(
         # that we do not consider it decoupled.. otherwise there is no collision
         # ever detected
 
+        t1 = perf_counter()
         players_colliding = game.joint_reward.is_joint_final_state(jsf)
         if players_colliding:
             # logger.info('Found collision states', jsf=jsf, players_colliding=players_colliding)
+
+            partition = frozenset({frozenset(players_colliding)})
+            partitions[partition].add(jsf)
+            ipartitions[jsf] = partition
 
             if special:
                 logger.info(
@@ -145,7 +155,7 @@ def get_game_factorization(
             # Added by Christoph
             # For more than two players one has to check the substates for cases when one of the player already finished
             n = len(players_colliding)
-            for nplayers in range(2, n + 1):
+            for nplayers in range(2, n):
                 for players_subset in itertools.combinations(players_colliding, nplayers):
                     jsf_subset = fkeyfilter(players_subset.__contains__, jsf)
                     if game.joint_reward.is_joint_final_state(jsf_subset):
@@ -153,10 +163,25 @@ def get_game_factorization(
                         partitions[partition].add(jsf_subset)
                         ipartitions[jsf_subset] = partition
 
+            t2 = perf_counter()
+            tot_t = t2 - t1
+            if fact_perf:
+                fact_perf.total_time_collision_check += tot_t
+
         else:
             resources_used = itemmap(get_ur, ljs)
 
+            # start timer to collect the time for finding dependencies between players
+            t1 = perf_counter()
+
             deps = find_dependencies(ps, resources_used)
+
+            # stop timer and collect performance if given
+            t2 = perf_counter()
+            tot_t = t2 - t1
+            if fact_perf:
+                fact_perf.find_dependencies_times[jsf] = tot_t
+                fact_perf.total_time_find_dependencies += tot_t
 
             # if special:
             #     logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
@@ -175,7 +200,7 @@ def get_game_factorization(
             ipartitions[js] = single
 
     mpartitions = valmap(frozenset, partitions)
-    logger.info("stats", partitions=valmap(lambda _: len(_), partitions))
+    # logger.info("stats", partitions=valmap(lambda _: len(_), partitions))
     return GameFactorization(mpartitions, ipartitions)
 
 
@@ -249,11 +274,15 @@ def collapse_states(
 def preprocess_player(
     individual_game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
+    create_gt_perf: Optional[CreateGameGraphPI] = None,
+    solve_game_perf: Optional[SolveGamePI] = None
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # todo
     :param individual_game:
     :param solver_params:
+    :param create_gt_perf:
+    :param solve_game_perf:
     :return:
     """
     l = list(individual_game.players)
@@ -262,13 +291,30 @@ def preprocess_player(
     player: GamePlayer = individual_game.players[player_name]
     graph = get_player_graph(player, solver_params.dt)
 
-    game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
 
-    game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
+    # start timer to collect time for creating the game graph
+    t1 = perf_counter()
+
+    game_graph: GameGraph[X, U, Y, RP, RJ, SR]
+    game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None, create_gt_perf=create_gt_perf)
+
+    # stop timer and collect performance if given
+    t2 = perf_counter()
+    if create_gt_perf:
+        create_gt_perf.total_time = t2 - t1
+
+
+    # start timer to collect time for solving the game
+    t1 = perf_counter()
 
     gs: GameSolution[X, U, Y, RP, RJ, SR]
-    gs = solve_game2(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
+    gs = solve_game2(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials, solve_game_perf=solve_game_perf)
+
+    # stop timer and collect performance if given
+    t2 = perf_counter()
+    if solve_game_perf:
+        solve_game_perf.total_time = t2 - t1
 
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
