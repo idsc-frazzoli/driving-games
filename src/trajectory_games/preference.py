@@ -80,13 +80,13 @@ class PosetalPreference(Preference[PlayerOutcome]):
         # Find longest path to edge from any root - assign as degree
         for node in self.graph.nodes:
             if node in roots: continue
-            degree = 0
+            level = 0
             for root in roots:
                 new_deg = len(max(all_simple_paths(self.graph, source=root, target=node), key=lambda x: len(x))) - 1
-                degree = max(degree, new_deg)
-            if degree not in level_nodes: level_nodes[degree] = set()
-            level_nodes[degree].add(node)
-            self.graph.nodes[node]['level'] = degree
+                level = max(level, new_deg)
+            if level not in level_nodes: level_nodes[level] = set()
+            level_nodes[level].add(node)
+            self.graph.nodes[node]['level'] = level
 
         # Grid layout for visualisation
         scale = 25.
