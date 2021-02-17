@@ -2,6 +2,7 @@ import math
 from typing import Tuple, List, Dict, Mapping, Callable, Set
 from decimal import Decimal as D
 
+from duckietown_world import LanePose
 from frozendict import frozendict
 
 from games import PlayerName
@@ -15,7 +16,7 @@ from .metrics_def import (
     TrajGameOutcome,
     PlayerOutcome,
 )
-from .world import World
+from .trajectory_world import TrajectoryWorld
 from .paths import Trajectory
 from .trajectory_game import JointPureTraj
 
@@ -154,8 +155,7 @@ class DeviationLateral(Metric):
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
-            _, n = zip(*traj_sn)
-            abs_n = [abs(_) for _ in n]
+            abs_n = [D(_.distance_from_center) for _ in traj_sn]
             sequence = SampledSequence[D](interval, abs_n)
 
             cumulative, dtot = get_integrated(sequence)
@@ -185,10 +185,7 @@ class DeviationHeading(Metric):
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
-            s, _ = zip(*traj_sn)
-            path_head = context.get_world().get_reference(player).heading_at_s(s)
-            traj_head = [x.th for _, x in context.get_trajectory(player)]
-            head = [abs(t - p) for t, p in zip(traj_head, path_head)]
+            head = [D(abs(_.relative_heading)) for _ in traj_sn]
 
             sequence = SampledSequence[D](interval, head)
             cumulative, dtot = get_integrated(sequence)
@@ -207,6 +204,7 @@ class DeviationHeading(Metric):
 
 
 class DrivableAreaViolation(Metric):
+    # TODO[SIR]: This only considers CoG and not car edges
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
@@ -219,19 +217,15 @@ class DrivableAreaViolation(Metric):
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
-            s, n = zip(*traj_sn)
-            bounds = context.get_world().get_reference(player).get_bounds_at_s(s)
 
-            def check_bounds(v: D, b: Tuple[D, D]) -> D:
-                if b[0] <= v <= b[1]:
-                    return D("0")
-                elif v < b[0]:
-                    return b[0] - v
-                else:
-                    return b[1] - v
+            def get_violation(curv: LanePose) -> D:
+                diff = 0.
+                if not curv.lateral_inside:
+                    if curv.outside_left: diff = curv.distance_from_left
+                    elif curv.outside_right: diff = curv.distance_from_right
+                return D(diff)
 
-            values = [check_bounds(p_n, p_b) for p_n, p_b in zip(n, bounds)]
-
+            values = [get_violation(_) for _ in traj_sn]
             sequence = SampledSequence[D](interval, values)
             cumulative, dtot = get_integrated(sequence)
 
@@ -261,10 +255,8 @@ class ProgressAlongReference(Metric):
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
-            s, _ = zip(*traj_sn)
-
             # negative for smaller preferred
-            progress: List[D] = [s[0] - _ for _ in s]
+            progress = [D(traj_sn[0].along_lane - _.along_lane) for _ in traj_sn]
             total: D = progress[-1]
             inc: List[D] = [D("0")] + [j - i for i, j in zip(progress[:-1], progress[1:])]
             incremental = SampledSequence[D](interval, inc)
@@ -456,7 +448,7 @@ class CollisionEnergy(Metric):
 
         def calculate_metric(player1: PlayerName) -> EvaluatedMetric:
 
-            world: World = context.get_world()
+            world: TrajectoryWorld = context.get_world()
             geometry: Mapping[PlayerName, VehicleGeometry] = {
                 p: world.get_geometry(p) for p in context.get_players()
             }
@@ -524,8 +516,10 @@ class CollisionEnergy(Metric):
             collision_energy: List[D] = []
             for player2 in context.get_players():
                 if player1 == player2:
-                    continue
-                coll_e = calculate_collision(players=[player1, player2])
+                    timesteps: List[Timestamp] = context.get_interval(player1)
+                    coll_e = [D('0') for _ in timesteps]
+                else:
+                    coll_e = calculate_collision(players=[player1, player2])
                 if not collision_energy:
                     collision_energy = coll_e
                 else:
@@ -567,7 +561,7 @@ def get_metrics_set() -> Set[Metric]:
     return metrics
 
 
-def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: World) -> TrajGameOutcome:
+def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: TrajectoryWorld) -> TrajGameOutcome:
     metrics: Set[Metric] = get_metrics_set()
 
     context = MetricEvaluationContext(world=world, trajectories=trajectories)

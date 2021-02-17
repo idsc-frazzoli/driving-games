@@ -6,7 +6,7 @@ from .static_game import *
 from .sequence import *
 from .paths import *
 from .structures import *
-from .world import *
+from .trajectory_world import *
 from .metrics_def import *
 from .metrics import *
 from .bicycle_dynamics import *

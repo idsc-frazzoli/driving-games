@@ -18,7 +18,7 @@ __all__ = [
 class EvaluatedMetricPreference(Preference[EvaluatedMetric]):
     """Compare the total values between evaluated metrics, doesn't check for types"""
 
-    pref: SmallerPreferredTol = SmallerPreferredTol(D("1e-6"))
+    pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
 
     @staticmethod
     def get_type() -> Type[EvaluatedMetric]:

@@ -1,18 +1,22 @@
 from numbers import Number
-from typing import Any, Sequence, Tuple, Dict
+from typing import Any, Sequence, Tuple
 
 import numpy as np
+import os
 from decorator import contextmanager
+from duckietown_world import DuckietownMap
+from imageio import imread
 from matplotlib import patches
 from matplotlib.axes import Axes
 from networkx import MultiDiGraph, draw_networkx_nodes, draw_networkx_edges
 
 from games import PlayerName
 from geometry import SE2_from_xytheta
+
+from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleActions, VehicleGeometry, VehicleState
 from .static_game import GameVisualization, StaticGamePlayer
-from .world import World
-from .paths import PathWithBounds
+from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TrajGameVisualization"]
 
@@ -21,68 +25,42 @@ VehicleCosts = None
 Collision = None
 
 
-class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, World]):
+class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, TrajectoryWorld]):
     """ Visualization for the trajectory games"""
 
-    world: World
+    world: TrajectoryWorld
     pylab: Any
+    grid: DuckietownMap
 
-    def __init__(self, world: World):
+    def __init__(self, world: TrajectoryWorld):
         self.world = world
         self.pylab = None
+        self.grid = load_driving_game_map(name=world.map_name)
 
     @contextmanager
     def plot_arena(self, pylab, ax):
 
-        side: float = 0.1  # Additional space on sides (scale of length)
-        disc: float = 1.0  # discretisation (m)
-
-        x_max, x_min, y_max, y_min = -1000., 1000., -1000., 1000.
-        paths: Dict[PlayerName, PathWithBounds] = {}
-        path_patches = {}
-        for player in self.world.get_players():
-            path = self.world.get_reference(player=player)
-            s_min, s_max = path.get_s_limits()
-            s_min, s_max = float(s_min), float(s_max)
-            ds = int(s_max - s_min // disc)
-            s = np.linspace(s_min, s_max, ds)
-            n_min, n_max = zip(*path.get_bounds_at_s(s))
-            sn_min = list(zip(s, n_min))
-            sn_max = list(zip(s, n_max))
-            xy_min = np.float_(path.curvilinear_to_cartesian(sn_min))
-            xy_max = np.float_(path.curvilinear_to_cartesian(sn_max))
-            poly_points = np.vstack([xy_min, np.flipud(xy_max)])
-            x_min = min(x_min, np.min(poly_points[:, 0]))
-            x_max = max(x_max, np.max(poly_points[:, 0]))
-            y_min = min(y_min, np.min(poly_points[:, 1]))
-            y_max = max(y_max, np.max(poly_points[:, 1]))
-            # colour = self.world.get_geometry(player).colour
-            path_patches[player] = patches.Polygon(poly_points, linewidth=0, edgecolor="r",
-                                                   facecolor="lightgray")
-            paths[player] = path
-
-        points = ((x_min, y_min), (x_max, y_min), (x_max, y_max),
-                  (x_min, y_max), (x_min, y_min))
-        px, py = zip(*points)
-        pylab.plot(px, py, "k-")
+        png_path = os.path.join(map_directory, f"{self.world.map_name}.png")
+        img = imread(png_path)
+        tile_size = self.grid.tile_size
+        H = self.grid['tilemap'].H
+        W = self.grid['tilemap'].W
+        x_size = tile_size * W
+        y_size = tile_size * H
+        pylab.imshow(img, extent=[0, x_size, 0, y_size])
+        ax.set_xlim(left=0, right=x_size)
+        ax.set_ylim(bottom=0, top=y_size)
         self.pylab = pylab
 
-        x_lim, y_lim = x_max - x_min, y_max - y_min
-        side *= max(x_lim, y_lim)
-        grass = patches.Rectangle((x_min - side, y_min - side),
-                                  x_lim + 2 * side, y_lim + 2 * side,
-                                  linewidth=0, edgecolor="r", facecolor="green")
-        ax.add_patch(grass)
-        for _, patch in path_patches.items():
-            ax.add_patch(patch)
-            pass
+        for player, lane in self.world.lanes.items():
+            points = lane.lane_profile()
+            xp, yp = zip(*points)
+            x = np.array(xp)
+            y = np.array(yp)
+            pylab.fill(x, y, color=self.world.get_geometry(player).colour, alpha=.1, zorder=1)
 
         yield
-        pylab.axis((x_min - 2 * side, x_max + 2 * side, y_min - 2 * side, y_max + 2 * side))
-        # pylab.axis("off")
-        # pylab.xlabel("x")
-        # pylab.ylabel("y")
-        ax.set_aspect("equal")
+        # pylab.grid()
 
     def plot_player(
             self,
@@ -139,6 +117,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Worl
         edges.set_zorder(5)
         ax.add_collection(nodes)
         ax.add_collection(edges)
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
 
 
 def plot_car(

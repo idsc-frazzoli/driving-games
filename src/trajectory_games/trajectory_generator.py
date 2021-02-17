@@ -1,23 +1,21 @@
 from abc import ABC, abstractmethod
-from os.path import join
 from time import perf_counter
 from typing import FrozenSet, Set, List
 
-from networkx import MultiDiGraph, topological_sort, draw_networkx_nodes, draw_networkx_edges
-from reprep import Report
+from networkx import MultiDiGraph, topological_sort
 
 from .structures import VehicleState, TrajectoryParams
 from .static_game import ActionSetGenerator
 from .paths import Trajectory
-from .world import World
+from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
 
 __all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
 
 
-class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World], ABC):
+class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld], ABC):
     @abstractmethod
-    def get_action_set(self, state: VehicleState, world: World, **kwargs) -> FrozenSet[Trajectory]:
+    def get_action_set(self, state: VehicleState, world: TrajectoryWorld, **kwargs) -> FrozenSet[Trajectory]:
         pass
 
 
@@ -26,7 +24,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         self.params = params
         self._bicycle_dyn = BicycleDynamics(params=params)
 
-    def get_action_set(self, state: VehicleState, world: World, graph: MultiDiGraph = None) -> FrozenSet[Trajectory]:
+    def get_action_set(self, state: VehicleState, world: TrajectoryWorld, graph: MultiDiGraph = None) -> FrozenSet[Trajectory]:
         G = self._get_trajectory_graph(state=state)
         if isinstance(graph, MultiDiGraph):
             graph.__init__(G)

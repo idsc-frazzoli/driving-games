@@ -1,8 +1,8 @@
 # Source <= Targets
 CollisionEnergy DrivableAreaViolation
 DrivableAreaViolation ProgressAlongReference LateralComfort
-LateralComfort LongitudinalJerk
-ProgressAlongReference DeviationLateral DeviationHeading
+LateralComfort DeviationLateral DeviationHeading
+ProgressAlongReference LongitudinalJerk
 LongitudinalJerk DeviationLateral DeviationHeading
 
 # ALL METRICS:

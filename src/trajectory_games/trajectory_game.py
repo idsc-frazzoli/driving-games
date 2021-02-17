@@ -3,7 +3,7 @@ from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
 from networkx import MultiDiGraph
-from multiprocessing import Pool
+# from multiprocessing import Pool
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
@@ -14,7 +14,7 @@ from preferences import (
 
 from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
-from .world import World
+from .trajectory_world import TrajectoryWorld
 from .metrics_def import PlayerOutcome, TrajGameOutcome
 from .static_game import (
     StaticGame,
@@ -39,17 +39,17 @@ JointPureTraj = Mapping[PlayerName, Trajectory]
 JointMixedTraj = Mapping[PlayerName, Poss[Trajectory]]
 
 
-class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, World]):
+class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
     @abstractmethod
-    def get_actions_set(self, state: Poss[VehicleState], world: World) -> FrozenSet[Trajectory]:
+    def get_actions_set(self, state: Poss[VehicleState], world: TrajectoryWorld) -> FrozenSet[Trajectory]:
         """ Generate all possible actions for a given state and world. """
 
 
-class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, World, PlayerOutcome, VehicleGeometry]):
+class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
     pass
 
 
-class TrajectoryGame(StaticGame[VehicleState, Trajectory, World, PlayerOutcome, VehicleGeometry]):
+class TrajectoryGame(StaticGame[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
     pass
 
 
@@ -85,32 +85,30 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
 
     # Compute the distribution of outcomes for each joint action
     outcomes: Dict[JointPureTraj, Poss[TrajGameOutcome]] = {}
-    joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
 
-    def outcome_callback(outcomes_list):
-        for key, value in outcomes_list:
-            outcomes[joint_traj_dict[key]] = value
-
-    get_outcomes = partial(compute_outcomes, sgame=sgame)
-    tic = perf_counter()
-    pool = Pool()
-    # TODO[SIR]: Metric cache is not shared between threads now
-    pool_res = pool.map_async(func=get_outcomes, callback=outcome_callback,
-                              iterable=joint_traj_dict.items())
-    pool_res.get()
-    print(f"Outcomes Eval Time = {perf_counter() - tic}s")
-    pool.close()
-    pool.join()
-
+    # joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
+    # def outcome_callback(outcomes_list):
+    #     for key, value in outcomes_list:
+    #         outcomes[joint_traj_dict[key]] = value
+    # get_outcomes = partial(compute_outcomes, sgame=sgame)
     # tic = perf_counter()
-    # outcomes = {}
-    # get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
-    # ps = sgame.ps
-    # for joint_traj in set(iterate_dict_combinations(available_traj)):
-    #     outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
-    #
-    # toc = perf_counter() - tic
-    # print(f"Outcomes evaluation time = {toc} s")
+    # pool = Pool()
+    # # TODO[SIR]: Metric cache is not shared between threads now
+    # pool_res = pool.map_async(func=get_outcomes, callback=outcome_callback,
+    #                           iterable=joint_traj_dict.items())
+    # pool_res.get()
+    # print(f"Outcomes Eval Time = {perf_counter() - tic}s")
+    # pool.close()
+    # pool.join()
+
+    tic = perf_counter()
+    get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
+    ps = sgame.ps
+    for joint_traj in set(iterate_dict_combinations(available_traj)):
+        outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
+
+    toc = perf_counter() - tic
+    print(f"Outcomes evaluation time = {toc} s")
 
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {
