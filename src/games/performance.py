@@ -19,21 +19,12 @@ class GetFactorizationPI(PerformanceInfo):
     """
     Contains performance information of the factorization process
     """
-    find_dependencies_times: Dict[JointState, float]
-    """For each joint state collects the number of seconds to find the dependencies between players"""
 
     total_time_find_dependencies: float
     """The total time spend to find the dependencies"""
 
     total_time_collision_check: float
     """ The total time to check collision """
-
-    def __repr__(self):
-        return (f"GetFactorizationPI(total_time={self.total_time}, "
-                f"total_time_find_dependencies={self.total_time_find_dependencies})"
-                )
-
-    __str__ = __repr__
 
 
 @dataclass
@@ -92,6 +83,9 @@ class PreprocessPlayerPI(PerformanceInfo):
 
     def __repr__(self):
         return (f"PreprocessPlayerPI(total_time={self.total_time}, "
+                f"get_fact_pi={self.get_fact_pi}, "
+                f"create_game_tree_pre_pi={self.create_game_tree_pre_pi}, "
+                f"solve_game_pre_pi={self.solve_game_pre_pi}, "
                 f"total_time_get_fut_resources={self.total_time_get_fut_resources}, "
                 f"total_time_solve_game={self.total_time_solve_game})"
                 )
@@ -150,9 +144,8 @@ def get_initialized_game_performance(
 
     get_fact_pi = GetFactorizationPI(
         total_time=0,
-        find_dependencies_times={},
         total_time_find_dependencies=0,
-        total_time_collision_check=0
+        total_time_collision_check=0,
     )
 
     size_action_set: Dict[PlayerName, int] = {}
