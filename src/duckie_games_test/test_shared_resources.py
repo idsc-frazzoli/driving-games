@@ -10,7 +10,7 @@ from world.map_loading import load_driving_game_map, map_directory
 from world.utils import LaneSegmentHashable
 
 from duckie_games.zoo import two_player_4way
-from duckie_games.shared_resources import DrivingGameGridMap, get_resources_used
+from duckie_games.shared_resources import DrivingGameGridMap
 from duckie_games.rectangle import projected_car_from_along_lane, Rectangle
 from duckie_games.structures import DuckieState, DuckieGeometry
 
@@ -71,14 +71,14 @@ def test_resources_visual():
     x_back = tile_size * W
     y_back = tile_size * H
 
-    duckie_name = two_player_4way.player_names[0]
+    duckie_name = two_player_4way.player_names[1]
     lane = two_player_4way.lanes[duckie_name]
     ref = two_player_4way.refs[duckie_name]
 
     length = D(5)
     width = D(1.8)
     along_lane = D(10)
-    speed = D(2)
+    speed = D(4)
 
     duckie_x = DuckieState(
         ref=ref,
@@ -97,7 +97,7 @@ def test_resources_visual():
         height=D(2)
     )
 
-    resources = get_resources_used(vs=duckie_x, vg=duck_g, m=driving_game_grid_map)
+    resources = driving_game_grid_map.get_resources_used(vs=duckie_x, vg=duck_g)
 
     fig, ax = plt.subplots()
     ax.set_title("Resources Test")
