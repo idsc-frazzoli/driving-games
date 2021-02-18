@@ -78,14 +78,19 @@ geometries = [
 
 shared_resources_ds = round(width / D(3), 2)
 
-initial_progress = [D(0), D(0)]
+initial_progress = [D(1), D(1)]
 max_paths = [D(20), D(20)]
 max_speeds = [D(5), D(5)]
 min_speeds = [D(1), D(1)]
 max_waits = [D(1), D(1)]
 
-# accel = [D(-2), D(-1), D(0), D(+1)]
-accel = [D(-1), D(0), D(+1)]
+# accel = [D(-1), D(0), D(+1)]
+accel = [D(-2), D(-1), D(0), D(+1)]
+# accel = [D(-2), D(-1), D(0), D(+0.5), D(+1)]
+# accel = [D(-2), D(-1), D(-0.5), D(0), D(+0.5), D(+1)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(0), D(+1.5), D(+1)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(0), D(0.5), D(+1), D(+1.5)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(-0.25), D(0), D(+0.5), D(1), D(+1.5)]
 available_accels = [
     accel,
     accel
@@ -218,15 +223,15 @@ geometries = [
 
 shared_resources_ds = round(width / D(3), 2)
 
-initial_progress = [D(0), D(0), D(0)]
+initial_progress = [D(1), D(1), D(1)]
 max_paths = [D(20), D(20), D(20)]
 max_speeds = [D(5), D(5), D(5)]
 min_speeds = [D(1), D(1), D(5)]
 max_waits = [D(1), D(1), D(1)]
 
-# accel = [D(-2), D(-1), D(0), D(+1)]
+accel = [D(-2), D(-1), D(0), D(+1)]
 # accel = [D(-1), D(0), D(+1)]
-accel = [D(0), D(+2)]
+# accel = [D(0), D(+3)]
 available_accels = [
     accel,
     accel,
@@ -352,15 +357,15 @@ geometries = [
 
 shared_resources_ds = round(width / D(3), 2)
 
-initial_progress = [D(0), D(0), D(0)]
-max_paths = [D(40), D(40), D(40)]
-max_speeds = [D(10), D(10), D(10)]
+initial_progress = [D(5), D(5), D(5)]
+max_paths = [D(35), D(35), D(35)]
+max_speeds = [D(6), D(6), D(6)]
 min_speeds = [D(2), D(2), D(2)]
 max_waits = [D(1), D(1), D(1)]
 
 # accel = [D(-2), D(-1), D(0), D(+1)]
 # accel = [D(-1), D(0), D(+1)]
-accel = [D(0), D(+4)]
+accel = [D(0), D(+3)]
 available_accels = [
     accel,
     accel,
