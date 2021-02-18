@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from games.solve.solution_structures import SolverParams, GameFactorization, GamePlayerPreprocessed
 from games_zoo.solvers import SolverSpec
+from games.performance import GetFactorizationPI
 from games.game_def import (
     Game,
     PlayerName,
@@ -20,7 +21,7 @@ Player_Preprocessed = Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ
 
 @dataclass(frozen=True)
 class FactorizationSolverParams(SolverParams):
-    get_factorization: Optional[Callable[[Game[X, U, Y, RP, RJ, SR], Player_Preprocessed], GameFactorization]]
+    get_factorization: Optional[Callable[[Game[X, U, Y, RP, RJ, SR], Player_Preprocessed, Optional[GetFactorizationPI]], GameFactorization]]
     """ Contains the factorization algo used """
 
 @dataclass
