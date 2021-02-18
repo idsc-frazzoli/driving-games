@@ -14,7 +14,6 @@ def report_performance(list_game_perf: List[GamePerformance]):
     r = Report()
     for i, gp in enumerate(list_game_perf):
         _gp = deepcopy(gp)
-        _gp.pre_pro_player_pi.get_fact_pi.find_dependencies_times = "Too long to display"
         st = remove_escapes(debug_print(_gp))
         r.text(f"Run {i}", st)
     return r
