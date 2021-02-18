@@ -1,5 +1,5 @@
 from decimal import Decimal as D, localcontext
-from typing import Mapping, List, Dict, Tuple
+from typing import Mapping, List, Dict, Tuple, Set, FrozenSet
 from frozendict import frozendict
 import itertools
 from math import isclose, sin, cos
@@ -10,6 +10,7 @@ from zuper_commons.types import ZNotImplementedError, ZValueError
 from driving_games.structures import SE2_disc
 
 from duckie_games.structures import DuckieGeometry, DuckieState
+from duckie_games.duckie_dynamics import DuckieDynamics
 from duckie_games.collisions import (
     Collision,
     IMPACT_RIGHT,
@@ -33,7 +34,7 @@ from duckie_games.rectangle import (
 
 
 # todo refactor as a generic function
-def collision_check(
+def collision_check_rectangle_energy(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
 ) -> Mapping[PlayerName, Collision]:
@@ -119,6 +120,7 @@ def collision_check(
                     if p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_FRONT:
                         # head-on collision
                         vs = s1.v * g1.mass + s2.v * g2.mass
+
                         energy_received_1 = vs
                         energy_received_2 = vs
                         energy_given_1 = vs
@@ -126,7 +128,8 @@ def collision_check(
 
                     elif p1_impact_loc == IMPACT_FRONT and p2_impact_loc == IMPACT_BACK:
                         # p1 drives p2 in the back
-                        vs = s1.v * g1.mass - s2.v * g2.mass
+                        vs_s = s1.v * g1.mass - s2.v * g2.mass
+                        vs = vs_s.copy_abs()
                         energy_received_1 = D(0)
                         energy_received_2 = vs
                         energy_given_1 = vs
@@ -134,7 +137,8 @@ def collision_check(
 
                     elif p1_impact_loc == IMPACT_BACK and p2_impact_loc == IMPACT_FRONT:
                         # p2 drives p1 in the back
-                        vs = s2.v * g2.mass - s1.v * g1.mass
+                        vs_s = s2.v * g2.mass - s1.v * g1.mass
+                        vs = vs_s.copy_abs()
                         energy_received_1 = vs
                         energy_received_2 = D(0)
                         energy_given_1 = D(0)
@@ -231,7 +235,188 @@ def collision_check(
                 # don't check the other positions
                 break
 
-    return collision_dict
+    return frozendict(collision_dict)
+
+
+def collision_check_resources_no_energy(
+        states: Mapping[PlayerName, DuckieState],
+        geometries: Mapping[PlayerName, DuckieGeometry],
+        dynamics: Mapping[PlayerName, DuckieDynamics],
+) -> Mapping[PlayerName, Collision]:
+    """
+    Checks for collisions in a n-player game with non-negative speeds along a lane.
+    This function only checks for two player collisions and then stops the game for the players around a certain radius
+    around of the accident. In urban driving this is a fair assumption, as an accident leads the other cars to stop.
+    """
+
+    players = list(states)
+
+    collision_dict: Dict[PlayerName, Collision] = {}
+
+    for p1, p2 in itertools.combinations(players, 2):
+
+        if p1 in collision_dict or p2 in collision_dict:
+            # Have already been in a collision or near a collision
+            continue
+
+        s1 = states[p1]
+        s2 = states[p2]
+        g1 = geometries[p1]
+        g2 = geometries[p2]
+        d1 = dynamics[p1]
+        d2 = dynamics[p2]
+
+        # first quick check
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+            # no collision
+            continue
+
+        # samples in front and in the back of the car along the lane to account for the large time step
+        # dt = D(1)  # todo change for timesteps not equal 1
+        # n_min = 2
+        # n_max = 3
+        # x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
+        # x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
+
+        dt = D(0.5)
+        n = 2
+        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
+        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+
+        # check the sampled positions for collisions
+        for x1, x2 in zip(x1s, x2s):
+
+            # get the footprint of the car as a rectangle
+            pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
+            pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
+
+            # Check if the two rectangles intersect = collision
+            if not two_rectangle_intersection(pc1.rectangle, pc2.rectangle):
+                # No collision
+                continue
+
+            else:
+                # Collision
+
+                # The function assumes positive speed only
+                assert s1.v >= D(0) or s2.v >= D(0), (
+                    f"Collision function is not suited for negative speeds ({s1.v}, {s2.v})"
+                )
+
+                # who sees the other at the instance of the collision?
+                p1_sees_p2, p2_sees_p1 = who_at_fault_line_of_sight(pc1, pc2)
+
+                # Define active as seeing the other player at collision time
+                p1_active, p2_active = p1_sees_p2, p2_sees_p1
+
+                # get the angle of collision
+                p1_angle_col, p2_angle_col = get_angle_of_collision(pc1, pc2)
+
+                # get the location where the impact happened
+                p1_impact_loc, p2_impact_loc = get_impact_location(pc1, pc2)
+
+                c1 = Collision(
+                    location=p1_impact_loc,
+                    angle=p1_angle_col,
+                    active=p1_active,
+                    energy_received=D(0),
+                    energy_transmitted=D(0)
+                )
+                c2 = Collision(
+                    location=p2_impact_loc,
+                    angle=p2_angle_col,
+                    active=p2_active,
+                    energy_received=D(0),
+                    energy_transmitted=D(0)
+                )
+                two_player_col = {p1: c1, p2: c2}
+                empty_col_dict = stop_game_for_players_around(
+                    colliding_players=(p1, p2),
+                    states=states,
+                    vg=geometries,
+                    radius_factor=D(5)
+                )
+                collision_dict.update(empty_col_dict)
+                collision_dict.update(two_player_col)
+
+                # don't check the other positions
+                break
+
+    return frozendict(collision_dict)
+
+
+def collision_check_players_only_resources(
+        states: Mapping[PlayerName, DuckieState],
+        geometries: Mapping[PlayerName, DuckieGeometry],
+        dynamics: Mapping[PlayerName, DuckieDynamics],
+) -> FrozenSet[PlayerName]:
+    """
+    Checks for collisions in a n-player game with non-negative speeds along a lane.
+    This function only checks for two player collisions and then stops the game for the players around a certain radius
+    around of the accident. In urban driving this is a fair assumption, as an accident leads the other cars to stop.
+    """
+
+    players = list(states)
+
+    collision_set: Set[PlayerName] = set()
+
+    for p1, p2 in itertools.combinations(players, 2):
+
+        if p1 in collision_set or p2 in collision_set:
+            # Have already been in a collision or near a collision
+            continue
+
+        s1 = states[p1]
+        s2 = states[p2]
+        g1 = geometries[p1]
+        g2 = geometries[p2]
+        d1 = dynamics[p1]
+        d2 = dynamics[p2]
+
+        # first quick check
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+            # no collision
+            continue
+
+        # samples in front and in the back of the car along the lane to account for the large time step
+        # dt = D(1)  # todo change for timesteps not equal 1
+        # n_min = 2
+        # n_max = 3
+        # x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
+        # x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
+
+        dt = D(0.5)
+        n = 2
+        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
+        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+
+        # check the sampled positions for collisions
+        for x1, x2 in zip(x1s, x2s):
+
+            # get the footprint of the car as a rectangle
+            pc1 = projected_car_from_along_lane(lane=s1.lane, along_lane=x1, vg=g1)
+            pc2 = projected_car_from_along_lane(lane=s2.lane, along_lane=x2, vg=g2)
+
+            # Check if the two rectangles intersect = collision
+            if not two_rectangle_intersection(pc1.rectangle, pc2.rectangle):
+                # No collision
+                continue
+
+            else:
+                # Collision
+
+                two_player_col = {p1, p2}
+                empty_col_set = set(stop_game_for_players_around(
+                    colliding_players=(p1, p2),
+                    states=states,
+                    vg=geometries,
+                    radius_factor=D(5)
+                ))
+                collision_set = collision_set | two_player_col | empty_col_set
+                # don't check the other positions
+                break
+
+    return frozenset(collision_set)
 
 
 def who_at_fault_line_of_sight(a: ProjectedCar, b: ProjectedCar) -> Tuple[bool, bool]:
@@ -243,11 +428,11 @@ def who_at_fault_line_of_sight(a: ProjectedCar, b: ProjectedCar) -> Tuple[bool, 
                      |/ / / / / / / /      of the contour of car 2
              x-------|-------x / / / /  <- in this region, car 1
     car 1 -> |       | / / / |/ / / /      is at fault
-        -----------x--------------> X
+          -----------x--------------> X
              |       | / / / |/ / / /
              x-------|-------x / / / /
                      |/ / / / / / / /
-        """
+    """
 
     # Get contour of both cars
     a_contour: List[Coordinates] = a.rectangle.contour
@@ -423,6 +608,10 @@ def stop_game_for_players_around(
     radius_factor: Used in the calculation for the radius. Will multiply the sum of the two lengths
      of the colliding cars, to give the final radius.
     """
+
+    # no need if only two players are around
+    if len(states) == 2:
+        return {}
 
     col_player1, col_player2 = colliding_players
 

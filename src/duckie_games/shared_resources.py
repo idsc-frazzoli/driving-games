@@ -5,6 +5,9 @@ from decimal import Decimal as D, localcontext
 from typing import Mapping, MutableMapping, Set, FrozenSet
 
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
+from duckietown_world.utils import memoized_reset
+
+from world.utils import Lane
 
 from duckie_games.structures import DuckieState, DuckieGeometry
 from duckie_games.rectangle import Coordinates, projected_car_from_along_lane, sample_x
@@ -55,20 +58,33 @@ class DrivingGameGridMap(DuckietownMap):
         ls_dict = m.__dict__
         return cls(cell_size=cell_size, **ls_dict)
 
+    @memoized_reset
+    def get_resources_used(self, vs: DuckieState, vg: DuckieGeometry) -> FrozenSet[ResourceID]:
 
-def get_resources_used(vs: DuckieState, vg: DuckieGeometry, m: DrivingGameGridMap) -> FrozenSet[ResourceID]:
-    cell_size = m.cell_size
-    nb_W = m.nb_W
+        dt = D(0.5)
+        n = 2
+        xs = sample_x(vs.x, vs.v, dt=dt, n=n)
 
-    dt = D(0.5)
-    n = 2
-    xs = sample_x(vs.x, vs.v, dt=dt, n=n)
+        resources_id_used: Set[ResourceID] = set()
+        for x in xs:
+            resources_id_used |= self.get_resource_footprint_from_along_lane(lane=vs.lane, along_lane=x, vg=vg)
 
-    range_to_check = cell_span_to_check(vg=vg, m=m)
+        return frozenset(resources_id_used)
 
-    resources_id_used: Set[ResourceID] = set()
-    for x in xs:
-        rect_car = projected_car_from_along_lane(lane=vs.lane, along_lane=x, vg=vg).rectangle
+    @memoized_reset
+    def get_resource_footprint_from_along_lane(
+            self,
+            lane: Lane,
+            along_lane: D,
+            vg: DuckieGeometry
+    ) -> FrozenSet[ResourceID]:
+        cell_size = self.cell_size
+        nb_W = self.nb_W
+
+        range_to_check = self._cell_span_to_check(vg=vg)
+        resources_id_used: Set[ResourceID] = set()
+
+        rect_car = projected_car_from_along_lane(lane=lane, along_lane=along_lane, vg=vg).rectangle
         car_center = rect_car.center
         car_center_point_id = int(car_center[0] // cell_size) + int(car_center[1] // cell_size) * nb_W
         if range_to_check == 1:
@@ -80,24 +96,22 @@ def get_resources_used(vs: DuckieState, vg: DuckieGeometry, m: DrivingGameGridMa
                 for i in range(range_to_check):
                     _id = start_ID + i + j * nb_W
                     try:
-                        center_point_gc = m.resources[_id]
+                        center_point_gc = self.resources[_id]
                         if rect_car.contains_point(center_point_gc):
                             resources_id_used.add(_id)
                     except KeyError:
                         # Resource not on map anymore
                         pass
+        return frozenset(resources_id_used)
 
-    return frozenset(resources_id_used)
-
-
-def cell_span_to_check(vg: DuckieGeometry, m: DrivingGameGridMap) -> int:
-    with localcontext() as ctx:
-        ctx.prec = 2
-        car_diag_squared = pow(vg.length, 2) + pow(vg.width, 2)
-        car_diag = car_diag_squared.sqrt()
-        length_in_gc = math.ceil(car_diag / m.cell_size)
-        if length_in_gc % 2 == 0:
-            res = length_in_gc + 1
-        else:
-            res = length_in_gc
-    return res
+    def _cell_span_to_check(self, vg: DuckieGeometry) -> int:
+        with localcontext() as ctx:
+            ctx.prec = 2
+            car_diag_squared = pow(vg.length, 2) + pow(vg.width, 2)
+            car_diag = car_diag_squared.sqrt()
+            length_in_gc = math.ceil(car_diag / self.cell_size)
+            if length_in_gc % 2 == 0:
+                res = length_in_gc + 1
+            else:
+                res = length_in_gc
+        return res

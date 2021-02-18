@@ -9,8 +9,8 @@ from games.game_def import Dynamics
 from possibilities import Poss, PossibilityMonad
 
 from driving_games.vehicle_dynamics import InvalidAction
-from driving_games.structures import SE2_disc, LightsValue, Lights
-from duckie_games.shared_resources import get_resources_used, ResourceID, DrivingGameGridMap
+from driving_games.structures import SE2_disc, Lights
+from duckie_games.shared_resources import ResourceID, DrivingGameGridMap
 
 from duckie_games.structures import DuckieState, DuckieActions, DuckieGeometry
 
@@ -73,7 +73,7 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, ResourceID]):
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[DuckieActions]:
         res = set()
-        for light, accel in itertools.product(LightsValue, self.available_accels):
+        for light, accel in itertools.product(self.lights_commands, self.available_accels):
             res.add(DuckieActions(accel=accel, light=light))
         return frozenset(res)
 
@@ -145,5 +145,6 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, ResourceID]):
             raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
 
+    @lru_cache(None)
     def get_shared_resources(self, x: DuckieState) -> FrozenSet[ResourceID]:
-        return get_resources_used(vs=x, vg=self.vg, m=self.driving_game_grid_map)
+        return self.driving_game_grid_map.get_resources_used(vs=x, vg=self.vg)

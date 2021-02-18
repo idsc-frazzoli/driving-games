@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import cast, Dict, FrozenSet, List, Optional
@@ -144,6 +143,8 @@ def get_duckie_game(
 
     duckie_players: Dict[PlayerName, DuckieGamePlayer] = {}
 
+    duckie_dynamcis_dict = {}
+
     for duckie_name in duckie_game_params.player_names:
 
         max_path = duckie_game_params.max_path[duckie_name]
@@ -180,6 +181,7 @@ def get_duckie_game(
             poss_monad=ps,
             driving_game_grid_map=duckie_map_grid
         )
+        duckie_dynamcis_dict[duckie_name] = duckie_dynamics
 
         duckie_personal_reward_structure = DuckiePersonalRewardStructureTime(max_path)
 
@@ -205,7 +207,8 @@ def get_duckie_game(
 
     joint_reward = DuckieJointReward(
         collision_threshold=duckie_game_params.collision_threshold,
-        geometries=duckie_game_params.player_geometries
+        geometries=frozendict(duckie_game_params.player_geometries),
+        dynamics=frozendict(duckie_dynamcis_dict),
     )
 
     game_visualization: DuckieGameVisualization[
@@ -243,6 +246,7 @@ def check_duckie_game_params(dg_params: DuckieGameParams) -> None:
                    dg_params.lanes,
                    dg_params.initial_progress]
                   )
+
     def check_player_lengths(x): return x == dg_params.player_number
 
     msg = f"Specify duckie game parameters for each player"

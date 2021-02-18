@@ -27,7 +27,7 @@ from duckie_games.structures import (
     DuckieCosts
 )
 from duckie_games.rectangle import Rectangle
-from duckie_games.shared_resources import DrivingGameGridMap, get_resources_used, ResourceID
+from duckie_games.shared_resources import DrivingGameGridMap, ResourceID
 
 
 class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, DuckieObservation, DuckieCosts, Collision]):
@@ -118,7 +118,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         vg = self.geometries[player_name]
         resources: FrozenSet[ResourceID]
         vcolor = np.array(vg.color) * 0.5 + np.array([0.5, 0.5, 0.5]) * 0.5
-        resources = get_resources_used(vs=state, vg=vg, m=self.duckie_map)
+        resources = self.duckie_map.get_resources_used(vs=state, vg=vg)
 
         for _id in resources:
             center_x, center_y = self.duckie_map.resources[_id]
