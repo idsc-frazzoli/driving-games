@@ -42,7 +42,7 @@ from .game_def import (
 )
 from .get_indiv_games import get_individual_games
 from games.solve.solution import solve_game2
-from games.performance import GamePerformance, GetFactorizationPI, CreateGameGraphPI, SolveGamePI
+from games.performance import GetFactorizationPI, CreateGameGraphPI, SolveGamePI
 from games.solve.solution_structures import (
     GameFactorization,
     GameGraph,
@@ -62,7 +62,6 @@ from .utils import fkeyfilter, iterate_dict_combinations
 def preprocess_game(
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
-    game_perf: Optional[GamePerformance] = None
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     1. Preprocesses the game computing the general game graph (MultiDiGraph used for visualisation)
@@ -136,10 +135,22 @@ def get_game_factorization(
         # that we do not consider it decoupled.. otherwise there is no collision
         # ever detected
 
+        # start timer to collect the time for the collision check
         t1 = perf_counter()
+
         players_colliding = game.joint_reward.is_joint_final_state(jsf)
+
+        # stop timer and collect performance if given
+        t2 = perf_counter()
+        tot_t = t2 - t1
+        if fact_perf:
+            fact_perf.total_time_collision_check += tot_t
+
         if players_colliding:
             # logger.info('Found collision states', jsf=jsf, players_colliding=players_colliding)
+
+            # start timer to collect the time for finding the sub-collisions
+            t1 = perf_counter()
 
             partition = frozenset({frozenset(players_colliding)})
             partitions[partition].add(jsf)
@@ -150,7 +161,7 @@ def get_game_factorization(
                     "Found that the players are colliding",
                     jsf=jsf,
                     players_colliding=players_colliding,
-                    #partition=partition,
+                    # partition=partition,
                 )
             # Added by Christoph
             # For more than two players one has to check the substates for cases when one of the player already finished
@@ -163,6 +174,7 @@ def get_game_factorization(
                         partitions[partition].add(jsf_subset)
                         ipartitions[jsf_subset] = partition
 
+            # Stop timer and collect performance if given
             t2 = perf_counter()
             tot_t = t2 - t1
             if fact_perf:
@@ -180,7 +192,6 @@ def get_game_factorization(
             t2 = perf_counter()
             tot_t = t2 - t1
             if fact_perf:
-                fact_perf.find_dependencies_times[jsf] = tot_t
                 fact_perf.total_time_find_dependencies += tot_t
 
             # if special:
