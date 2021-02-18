@@ -15,12 +15,16 @@ from games import (
 )
 from games.access import get_game_factorization
 from games.solve.solution import solve1
+from games.reports_performance import report_performance
+from games.performance import get_initialized_game_performance, GamePerformance
+
 from possibilities import PossibilitySet, PossibilityDist
 from preferences.preferences_probability import ProbPrefExpectedValue
 from preferences import SetPreference1
 
 from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
-from duckie_games.solve import preprocess_duckie_game
+from factorization.solve_n_players import preprocess_n_player_game
+from factorization.algos_factorization import get_game_factorization_no_collision_check
 
 from toy_games.n_player_toy_game import get_toy_car_game
 from toy_games.n_player_toy_game_zoo import (
@@ -44,12 +48,12 @@ uncertainty_params = [
 
 toy_game_params = [
     toy_params_x,
-    toy_params_star,
-    toy_params_x_with_base,
-    toy_params_indep_lanes,
+    # toy_params_star,
+    # toy_params_x_with_base,
+    # toy_params_indep_lanes,
     toy_params_two_indep_games,
-    toy_params_two_x_joint,
-    toy_params_two_x_crossed
+    # toy_params_two_x_joint,
+    # toy_params_two_x_crossed
 ]
 
 strategies = [
@@ -63,8 +67,9 @@ nash_strategy = [
 ]
 
 use_factorization = [
-    #True,
-    False
+    [True, get_game_factorization, "base"],
+    [True, get_game_factorization_no_collision_check, "no_col"],
+    [False, None]
 ]
 
 params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy, use_factorization))
@@ -75,13 +80,16 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
     """
     N-Player toy game
     """
+    runs = 1
+    r_run = 0
+
     d = "out/"
     game_name = f"{toy_game_parameters.params_name}"
-    solver_name = f"{strat}-{nash_strat}{'-fact' if use_fact else ''}"
+    solver_name = f"{strat}-{nash_strat}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
     logger.info(f"Start test: {game_name} with solver params {solver_name}")
     game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params)
 
-    get_factorization = get_game_factorization  # factorization algo used
+    get_factorization = use_fact[1]  # factorization algo used
     dt = toy_game_parameters.dt  # delta-t of discretization
     admissible_strategies = strat
     strategy_multiple_nash = nash_strat
@@ -90,24 +98,40 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
             admissible_strategies=admissible_strategies,
             strategy_multiple_nash=strategy_multiple_nash,
             dt=dt,
-            use_factorization=use_fact,
+            use_factorization=use_fact[0],
             get_factorization=get_factorization
     )
     solver_spec = FactorizationSolverSpec(solver_name, solve_params)
 
-    t1 = perf_counter()
-    game_preprocessed = preprocess_duckie_game(game, solver_spec.solver_params)
-    solutions = solve1(game_preprocessed)
-    t2 = perf_counter()
-    logger.info("Time to solve the game", time=t2 - t1)
-    # logger.info(solutions=solutions)
-
     dg = join(d, game_name)
     ds = join(dg, solver_name)
-    r_solutions = report_solutions(game_preprocessed, solutions)
-    r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
 
-    r_solutions.to_html(join(ds, "r_solutions.html"))
-    r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
-    # logger.info(policies=solutions.game_solution.policies)
-    # logger.info(states_to_solutions=solutions.game_solution.states_to_solution)
+    list_game_perf = []
+    for i in range(runs):
+        game_performance: GamePerformance = get_initialized_game_performance(game=game, solver_params=solve_params)
+
+        # start performance counter collect time used for preprocessing
+        t1 = perf_counter()
+
+        game_preprocessed = preprocess_n_player_game(game, solver_spec.solver_params, game_perf=game_performance)
+
+        # stop counter and collect performance
+        t2 = perf_counter()
+        game_performance.pre_pro_player_pi.total_time = t2 - t1
+
+        solutions = solve1(game_preprocessed, game_perf=game_performance)
+
+        logger.info("Game Performance", game_performance=game_performance)
+
+        list_game_perf.append(game_performance)
+        if r_run == i:
+
+            r_solutions = report_solutions(game_preprocessed, solutions)
+            r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
+
+            r_solutions.to_html(join(ds, "r_solutions.html"))
+            r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+
+    r_performance = report_performance(list_game_perf=list_game_perf)
+    r_performance.to_html(join(ds, "r_performance.html"))
+
