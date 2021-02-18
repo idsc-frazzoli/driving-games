@@ -100,7 +100,8 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 i = i+1
         self.level_nodes = level_nodes
 
-    def get_type(self) -> Type[PlayerOutcome]:
+    @staticmethod
+    def get_type() -> Type[PlayerOutcome]:
         return PlayerOutcome
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:

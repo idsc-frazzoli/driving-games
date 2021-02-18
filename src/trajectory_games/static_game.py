@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional
+from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple
 
 from networkx import MultiDiGraph
 
@@ -55,11 +55,20 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_player(self, player_name: PlayerName, state: X):
+    def plot_player(self, pylab, player_name: PlayerName, state: X):
         pass
 
     @abstractmethod
-    def plot_actions(self, player: "StaticGamePlayer"):
+    def plot_actions(self, pylab, player: "StaticGamePlayer"):
+        pass
+
+    @abstractmethod
+    def plot_equilibria(self, pylab, path: U, player: "StaticGamePlayer"):
+        pass
+
+    @abstractmethod
+    def plot_pref(self, pylab, player: "StaticGamePlayer",
+                  origin: Tuple[float, float], labels: Mapping[str, str] = None):
         pass
 
 

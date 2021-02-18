@@ -1,21 +1,24 @@
 from numbers import Number
-from typing import Any, Sequence, Tuple
+from typing import Sequence, Tuple, Mapping
 
 import numpy as np
 import os
+from decimal import Decimal as D
 from decorator import contextmanager
 from duckietown_world import DuckietownMap
 from imageio import imread
 from matplotlib import patches
 from matplotlib.axes import Axes
-from networkx import MultiDiGraph, draw_networkx_nodes, draw_networkx_edges
+from networkx import MultiDiGraph, DiGraph, draw_networkx_nodes, draw_networkx_edges, draw_networkx_labels
 
 from games import PlayerName
 from geometry import SE2_from_xytheta
 
 from world.map_loading import map_directory, load_driving_game_map
-from .structures import VehicleActions, VehicleGeometry, VehicleState
+from .structures import VehicleGeometry, VehicleState
+from .paths import Trajectory
 from .static_game import GameVisualization, StaticGamePlayer
+from .preference import PosetalPreference
 from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TrajGameVisualization"]
@@ -25,16 +28,14 @@ VehicleCosts = None
 Collision = None
 
 
-class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, TrajectoryWorld]):
+class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
     """ Visualization for the trajectory games"""
 
     world: TrajectoryWorld
-    pylab: Any
     grid: DuckietownMap
 
     def __init__(self, world: TrajectoryWorld):
         self.world = world
-        self.pylab = None
         self.grid = load_driving_game_map(name=world.map_name)
 
     @contextmanager
@@ -50,7 +51,6 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Traj
         pylab.imshow(img, extent=[0, x_size, 0, y_size])
         ax.set_xlim(left=0, right=x_size)
         ax.set_ylim(bottom=0, top=y_size)
-        self.pylab = pylab
 
         for player, lane in self.world.lanes.items():
             points = lane.lane_profile()
@@ -63,7 +63,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Traj
         # pylab.grid()
 
     def plot_player(
-            self,
+            self, pylab,
             player_name: PlayerName,
             state: VehicleState,
     ):
@@ -71,13 +71,13 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Traj
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
         plot_car(
-            pylab=self.pylab,
+            pylab=pylab,
             player_name=player_name,
             state=state,
             vg=vg,
         )
 
-    def plot_actions(self, player: StaticGamePlayer):
+    def plot_actions(self, pylab, player: StaticGamePlayer):
         G: MultiDiGraph = player.graph
         colour = player.vg.colour
 
@@ -112,13 +112,62 @@ class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, Traj
             width=widths,
             edge_color=colour,
         )
-        ax: Axes = self.pylab.gca()
+        ax: Axes = pylab.gca()
         nodes.set_zorder(20)
         edges.set_zorder(5)
         ax.add_collection(nodes)
         ax.add_collection(edges)
         ax.yaxis.set_ticks_position('left')
         ax.xaxis.set_ticks_position('bottom')
+
+    def plot_equilibria(self, pylab, path: Trajectory, player: StaticGamePlayer):
+
+        def f(val: D): return float(val)
+        # TODO[SIR]: Read hard coded value from params
+        vals = [(f(point.x), f(point.y), f(point.v)/20.0) for time, point in path]
+        x, y, v = zip(*vals)
+        pylab.plot(x, y, color=player.vg.colour)
+        pylab.scatter(x, y, c=v)
+
+    def plot_pref(self, pylab, player: StaticGamePlayer,
+                  origin: Tuple[float, float], labels: Mapping[str, str] = None):
+
+        assert isinstance(player.preference, PosetalPreference), \
+            f"Preference is of type {player.preference.get_type()} and not {PosetalPreference.get_type()}"
+        X, Y = origin
+        G: DiGraph = player.preference.graph
+
+        def pos_node(n: str):
+            x = G.nodes[n]["x"]
+            y = G.nodes[n]["y"]
+            return float(x) + X, float(y) + Y
+
+        pos = {_: pos_node(_) for _ in G.nodes}
+
+        if labels is None:
+            labels = {n: n for n in G.nodes}
+        else:
+            assert len(G.nodes) == len(labels.keys()), \
+                f"Size mismatch between nodes ({len(G.nodes)}) and labels ({len(labels.keys())})"
+            for n in G.nodes:
+                assert n in labels.keys(), \
+                    f"Node {n} not present in keys - {labels.keys()}"
+        draw_networkx_edges(
+            G,
+            pos=pos,
+            edgelist=G.edges(),
+            arrows=True,
+        )
+
+        ax = pylab.gca()
+        draw_networkx_labels(
+            G,
+            pos=pos,
+            labels=labels,
+            ax=ax,
+            font_size=8,
+            font_color='b'
+        )
 
 
 def plot_car(

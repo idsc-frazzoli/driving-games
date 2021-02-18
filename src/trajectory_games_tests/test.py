@@ -22,9 +22,10 @@ def test_trajectory_game():
         f"Strong = {len(nash_eq['strong_nash'])}."
     )
 
-    r_game: Report = report_game_visualization(game=game)
-    r_game.add_child(report_nash_eq(nash_eq))
-    r_game.add_child(report_preferences(context.outcome_pref))
+    r_game = Report()
+    r_game.add_child(report_game_visualization(game=game))
+    r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq))
+    r_game.add_child(report_preferences(game=game))
     r_game.to_html(join(d, "r_animation.html"))
 
     a = 2

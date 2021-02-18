@@ -40,7 +40,7 @@ def get_trajectory_game_players(world: TrajectoryWorld) ->\
 
     vg: VehicleGeometry = world.get_geometry(world.get_players()[0])
     param = TrajectoryParams(
-        max_gen=2,
+        max_gen=1,
         dt=D("1.0"),
         u_acc=u_acc,
         u_dst=u_dst,
