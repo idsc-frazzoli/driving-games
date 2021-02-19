@@ -1,0 +1,57 @@
+
+# All vehicles
+#vehicle_name:
+#  m:      Mass (kg)
+#  w:      Width (m)
+#  l:      Length (m)
+#  colour: Colour (one from list at the bottom)
+
+red_car:
+  m:      1000
+  w:      1.0
+  l:      2.0
+  colour: "red"
+
+blue_car:
+  m:      1000
+  w:      1.0
+  l:      2.0
+  colour: "blue"
+
+green_car:
+  m:      1000
+  w:      1.0
+  l:      2.0
+  colour: "green"
+
+yellow_car:
+  m:      1000
+  w:      1.0
+  l:      2.0
+  colour: "yellow"
+
+red_truck:
+  m:      3000
+  w:      2.5
+  l:      4.0
+  colour: "red"
+
+blue_truck:
+  m:      3000
+  w:      2.5
+  l:      4.0
+  colour: "blue"
+
+red_bicycle:
+  m:      80
+  w:      0.25
+  l:      1.0
+  colour: "red"
+
+#colours -> [R, G, B]
+colours:
+  red:      [1.0, 0.0, 0.0]
+  green:    [0.0, 0.6, 0.0]
+  blue:     [0.0, 0.0, 1.0]
+  yellow:   [1.0, 0.7, 0.0]
+

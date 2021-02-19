@@ -108,7 +108,7 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
 
     toc = perf_counter() - tic
-    print(f"Outcomes evaluation time = {toc} s")
+    print(f"Outcomes evaluation time = {toc:.2f} s")
 
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {

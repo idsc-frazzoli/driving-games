@@ -39,7 +39,8 @@ def solve_game(
         out = equilibria_check(joint_actions=val, context=context)
         callback(out)
 
-    print(f"Nash equilibrium computation time = {perf_counter() - tic}s")
+    toc = perf_counter() - tic
+    print(f"Nash equilibrium computation time = {toc:.2f} s")
 
     ret: Dict[str, SolvedTrajectoryGame] = {
         "indiff_nash": indiff_nash,

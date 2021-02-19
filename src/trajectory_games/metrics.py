@@ -1,6 +1,7 @@
 import math
 from typing import Tuple, List, Dict, Mapping, Callable, Set
 from decimal import Decimal as D
+import numpy as np
 
 from duckietown_world import LanePose
 from frozendict import frozendict
@@ -467,10 +468,17 @@ class CollisionEnergy(Metric):
                 geo1, l1 = get_geo(players[0])
                 geo2, l2 = get_geo(players[1])
 
-                # TODO[SIR]: This only checks at timesteps and doesn't interpolate, might be a problem for long steps
-                timesteps: List[Timestamp] = context.get_interval(players[0])
+                # TODO[SIR]: This only checks at discrete timesteps, might be a problem for long steps
+                times1: List[Timestamp] = context.get_interval(players[0])
+                times2: List[Timestamp] = context.get_interval(players[1])
+                if times1 == times2: times = times1
+                else:
+                    times: List[Timestamp] =\
+                        [D(_) for _ in np.linspace(float(min(times1[0], times2[0])),
+                                                   float(max(times1[-1], times2[-1])),
+                                                   max(len(times1), len(times2)))]
                 energy: List[D] = []
-                for step in timesteps:
+                for step in times:
                     state1: VehicleState = joint_traj[players[0]].at(step)
                     state2: VehicleState = joint_traj[players[1]].at(step)
 

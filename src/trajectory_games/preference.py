@@ -51,6 +51,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def build_graph_from_file(self, pref_file):
 
+        pref_file = pref_file + ".pref"
         # Ensure file exists
         assert os.path.isfile(pref_file), f"{pref_file} does not exist!"
 

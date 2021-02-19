@@ -1,9 +1,7 @@
+# Toy game preferences
 # Source <= Targets
 CollisionEnergy DrivableAreaViolation
 DrivableAreaViolation ProgressAlongReference LateralComfort
-LateralComfort DeviationLateral DeviationHeading
-ProgressAlongReference LongitudinalJerk
-LongitudinalJerk DeviationLateral DeviationHeading
 
 # ALL METRICS:
 # SurvivalTime, DeviationLateral, DeviationHeading, DrivableAreaViolation,

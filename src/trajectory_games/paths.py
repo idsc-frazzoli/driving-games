@@ -33,7 +33,7 @@ class Trajectory:
         return ret
 
     def at(self, t: Timestamp) -> VehicleState:
-        return self.traj.at(t)
+        return self.traj.get_interp(t)
 
     def __iter__(self):
         return self.traj.__iter__()

@@ -1,7 +1,4 @@
-from zuper_commons.logs import ZLogger
-
-logger = ZLogger(__name__)
-
+from .config import *
 from .static_game import *
 from .sequence import *
 from .paths import *
@@ -16,3 +13,4 @@ from .preference import *
 from .solve import *
 from .visualization import *
 from .reports import *
+from .game_factory import *

@@ -1,3 +1,4 @@
+# Trajectory game preference
 # Source <= Targets
 CollisionEnergy DrivableAreaViolation
 DrivableAreaViolation ProgressAlongReference LateralComfort

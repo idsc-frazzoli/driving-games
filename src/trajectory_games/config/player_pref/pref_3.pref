@@ -1,9 +1,9 @@
+# Comfort Preference
 # Source <= Targets
 CollisionEnergy DrivableAreaViolation
-DrivableAreaViolation ProgressAlongReference LateralComfort
-LateralComfort DeviationLateral DeviationHeading
-ProgressAlongReference LongitudinalJerk
-LongitudinalJerk DeviationLateral DeviationHeading
+DrivableAreaViolation LateralComfort
+LateralComfort LongitudinalJerk
+LongitudinalJerk DeviationLateral DeviationHeading ProgressAlongReference
 
 # ALL METRICS:
 # SurvivalTime, DeviationLateral, DeviationHeading, DrivableAreaViolation,

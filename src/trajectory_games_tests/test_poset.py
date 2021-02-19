@@ -1,9 +1,10 @@
+import os
 from copy import deepcopy
 from typing import Set, Dict
 from decimal import Decimal as D
 from nose.tools import assert_equal
 
-from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, SampledSequence
+from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, SampledSequence, pref_dir
 
 from trajectory_games.metrics import get_metrics_set, SurvivalTime, DeviationLateral, DeviationHeading, \
     DrivableAreaViolation, ProgressAlongReference, LongitudinalAcceleration, LongitudinalJerk, \
@@ -14,9 +15,9 @@ from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFE
 
 def test_poset():
     metrics: Set[Metric] = get_metrics_set()
-    pref1 = PosetalPreference(pref_file='player_pref/tests/test1.pref', keys=metrics)
-    pref2 = PosetalPreference(pref_file='player_pref/tests/test2.pref', keys=metrics)
-    pref3 = PosetalPreference(pref_file='player_pref/tests/test3.pref', keys=metrics)
+    pref1 = PosetalPreference(pref_file=os.path.join(pref_dir, "tests/test1"), keys=metrics)
+    pref2 = PosetalPreference(pref_file=os.path.join(pref_dir, "tests/test2"), keys=metrics)
+    pref3 = PosetalPreference(pref_file=os.path.join(pref_dir, "tests/test3"), keys=metrics)
 
     default: EvaluatedMetric = EvaluatedMetric(total=D('0'), description='', title='',
                                                incremental=SampledSequence([], []), cumulative=SampledSequence([], []))

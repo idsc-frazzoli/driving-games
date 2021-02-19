@@ -1,0 +1,12 @@
+
+#map_name:
+#  direction1:     [List of Nodes]
+#  direction2:     [List of Nodes]
+#  ...
+
+4way-double-intersection-only:
+  down_left:      ['P30', 'P21', 'P8',  'P9' ]
+  right_left:     ['P27', 'P22', 'P10', 'P11']
+  left_up:        ['P12', 'P13', 'P0',  'P1' ]
+  up_down:        ['P4',  'P5',  'P17', 'P28']
+

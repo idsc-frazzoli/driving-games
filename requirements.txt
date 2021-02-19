@@ -39,3 +39,12 @@ sphinx
 sphinx-rtd-theme
 sphinx-autodoc-typehints
 sphinx-autodoc-annotation
+
+# Trajectory game
+dataclasses~=0.6
+PyYAML~=5.4.1
+oyaml~=1.0
+decorator~=4.4.2
+matplotlib~=3.3.4
+imageio~=2.9.0
+setuptools~=53.0.0

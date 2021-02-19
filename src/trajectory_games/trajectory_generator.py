@@ -25,10 +25,13 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         self._bicycle_dyn = BicycleDynamics(params=params)
 
     def get_action_set(self, state: VehicleState, world: TrajectoryWorld, graph: MultiDiGraph = None) -> FrozenSet[Trajectory]:
+        tic = perf_counter()
         G = self._get_trajectory_graph(state=state)
         if isinstance(graph, MultiDiGraph):
             graph.__init__(G)
         trajectories = self._trajectory_graph_to_list(G=G)
+        toc = perf_counter() - tic
+        print(f"Trajectory generation time = {toc:.2f} s")
         return frozenset(trajectories)
 
     def _get_trajectory_graph(self, state: VehicleState) -> MultiDiGraph:
@@ -41,7 +44,6 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         add_node(state, gen=0)
         i: int = 0
         expanded = set()
-        tic = perf_counter()
         while stack:
             i += 1
             s1 = stack.pop(0)
@@ -58,20 +60,15 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                         stack.append(s2)
                 G.add_edge(s1, s2, u=u, gen=n_gen)
 
-        toc = perf_counter() - tic
-        print("Trajectory graph generation time = {} s".format(toc))
         return G
 
     @staticmethod
     def _trajectory_graph_to_list(G: MultiDiGraph) -> Set[Trajectory]:
-        tic = perf_counter()
         expanded = set()
         all_traj: Set[Trajectory] = set()
         for n1 in topological_sort(G):
             traj: List[VehicleState] = [n1]
             TrajectoryGenerator1._expand_graph(G=G, node=n1, traj=traj, all_traj=all_traj, expanded=expanded)
-        toc = perf_counter() - tic
-        print("Trajectory list generation time = {} s".format(toc))
         return all_traj
 
     @staticmethod

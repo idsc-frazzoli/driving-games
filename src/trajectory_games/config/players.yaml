@@ -1,0 +1,38 @@
+
+#map_name: Map to load (from worlds)
+map_name: "4way-double-intersection-only"
+
+#players:    List of players in the game
+#  P1:        Player Name
+#    state:    Initial state (from initial_states.yaml)
+#    traj:     Trajectory params (from trajectories.yaml)
+#    pref:     Player preference (from player_pref folder)
+#    lane:     Lane to follow (from lanes.yaml for current map)
+#    vg:       Vehicle geometry (from vehicles.yaml)
+#  P2: ...
+
+players:
+  P1:
+    state:    "state_1"
+    traj:     "traj_1"
+    pref:     "pref_1"
+    lane:     "down_left"
+    vg:       "red_bicycle"
+  P2:
+    state:    "state_2"
+    traj:     "traj_1"
+    pref:     "pref_2"
+    lane:     "right_left"
+    vg:       "blue_truck"
+  P3:
+    state:    "state_2"
+    traj:     "traj_1"
+    pref:     "pref_3"
+    lane:     "left_up"
+    vg:       "green_car"
+  P4:
+    state:    "state_3"
+    traj:     "traj_1"
+    pref:     "pref_4"
+    lane:     "up_down"
+    vg:       "yellow_car"

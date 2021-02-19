@@ -1,0 +1,33 @@
+
+#trajectory_params:
+#  max_gen:    Number of timesteps (or generations) for tree
+#  dt:         Sampling time (s)
+#  step_acc:   Acceleration step (m/s2)
+#  n_acc:      Number of acceleration steps
+#  step_dst:   Steering rate step (rad/s)
+#  n_dst:      Number of steering steps
+#  v_max:      Maximum velocity (m/s)
+#  v_min:      Minimum velocity (m/s)
+#  st_max:     Maximum steering angle (rad)
+
+traj_1:
+  max_gen:    1
+  dt:         1.0
+  step_acc:   3
+  n_acc:      3
+  step_dst:   0.1
+  n_dst:      1
+  v_max:      20.0
+  v_min:      0.5
+  st_max:     0.5
+
+traj_2:
+  max_gen:    2
+  dt:         1.0
+  step_acc:   3
+  n_acc:      1
+  step_dst:   0.1
+  n_dst:      3
+  v_max:      20.0
+  v_min:      0.5
+  st_max:     0.5

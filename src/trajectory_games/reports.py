@@ -23,7 +23,7 @@ def report_game_visualization(game: StaticGame) -> Report:
                 viz.plot_actions(pylab=pylab, player=player)
 
     toc = perf_counter() - tic
-    print(f"Report game viz time = {toc} s")
+    print(f"Report game viz time = {toc:.2f} s")
     return r
 
 
@@ -85,7 +85,7 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame]
     r_all.add_child(r)
     r_all.add_child(req)
     toc = perf_counter() - tic
-    print(f"Nash eq viz time = {toc} s")
+    print(f"Nash eq viz time = {toc:.2f} s")
     return r_all
 
 
@@ -102,5 +102,5 @@ def report_preferences(game: StaticGame) -> Report:
         ax: Axes = pylab.gca()
         ax.set_xlim(-50.0, i-50.0)
     toc = perf_counter() - tic
-    print(f"Preference viz time = {toc} s")
+    print(f"Preference viz time = {toc:.2f} s")
     return r
