@@ -43,23 +43,29 @@ def get_trajectory_game() -> TrajectoryGame:
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
     for pname, pconfig in config["players"].items():
-        lanes[pname] = get_lane_from_node_sequence(m=duckie_map,
-                                                   node_sequence=config_lanes[pconfig["lane"]])
+        lanes[pname] = get_lane_from_node_sequence(m=duckie_map, node_sequence=config_lanes[pconfig["lane"]])
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
         weights[pname] = pconfig["weights"] if "weights" in pconfig.keys() else None
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TrajectoryGenerator1(params=param)
-        pref = PosetalPreference(pref_file=os.path.join(pref_dir, pconfig['pref']), keys=metrics)
+        pref = PosetalPreference(pref_file=os.path.join(pref_dir, pconfig["pref"]), keys=metrics)
         state = VehicleState.from_config(name=pconfig["state"], lane=lanes[pname])
-        players[pname] = TrajectoryGamePlayer(state=ps.unit(state), actions_generator=traj_gen,
-                                              preference=pref, monadic_preference_builder=mpref_build,
-                                              vg=geometries[pname])
+        players[pname] = TrajectoryGamePlayer(
+            state=ps.unit(state),
+            actions_generator=traj_gen,
+            preference=pref,
+            monadic_preference_builder=mpref_build,
+            vg=geometries[pname],
+        )
 
-    world = TrajectoryWorld(map_name=config["map_name"], geo=geometries,
-                            lanes=lanes, weights=weights)
-    game = TrajectoryGame(world=world, game_players=players, ps=ps,
-                          get_outcomes=evaluate_metrics,
-                          game_vis=TrajGameVisualization(world=world))
+    world = TrajectoryWorld(map_name=config["map_name"], geo=geometries, lanes=lanes, weights=weights)
+    game = TrajectoryGame(
+        world=world,
+        game_players=players,
+        ps=ps,
+        get_outcomes=evaluate_metrics,
+        game_vis=TrajGameVisualization(world=world),
+    )
     toc = perf_counter() - tic
     print(f"Game creation time = {toc:.2f} s")
     return game

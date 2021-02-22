@@ -5,8 +5,15 @@ from decimal import Decimal as D
 import os
 from networkx import DiGraph, read_adjlist, is_directed_acyclic_graph, all_simple_paths, has_path
 
-from preferences import Preference, ComparisonOutcome, SmallerPreferredTol, \
-    INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED
+from preferences import (
+    Preference,
+    ComparisonOutcome,
+    SmallerPreferredTol,
+    INDIFFERENT,
+    INCOMPARABLE,
+    FIRST_PREFERRED,
+    SECOND_PREFERRED,
+)
 from .metrics_def import Metric, EvaluatedMetric, PlayerOutcome
 
 __all__ = [
@@ -58,16 +65,16 @@ class PosetalPreference(Preference[PlayerOutcome]):
         # Parsing doesn't like empty lines, so clean them up
         with open(pref_file) as filehandle:
             lines = filehandle.readlines()
-        with open('graph', 'w') as filehandle:
+        with open("graph", "w") as filehandle:
             lines = filter(lambda x: x.strip(), lines)
             filehandle.writelines(lines)
 
         # Create graph from file
-        self.graph = read_adjlist('graph', create_using=DiGraph(), nodetype=str)
+        self.graph = read_adjlist("graph", create_using=DiGraph(), nodetype=str)
         assert is_directed_acyclic_graph(self.graph)
 
         # Clean up
-        os.remove('graph')
+        os.remove("graph")
 
     def calculate_levels(self):
         level_nodes: Dict[int, Set[str]] = {}
@@ -76,29 +83,33 @@ class PosetalPreference(Preference[PlayerOutcome]):
         roots = [n for n, d in self.graph.in_degree() if d == 0]
         level_nodes[0] = set(roots)
         for root in roots:
-            self.graph.nodes[root]['level'] = 0
+            self.graph.nodes[root]["level"] = 0
 
         # Find longest path to edge from any root - assign as degree
         for node in self.graph.nodes:
-            if node in roots: continue
+            if node in roots:
+                continue
             level = 0
             for root in roots:
-                new_deg = len(max(all_simple_paths(self.graph, source=root, target=node), key=lambda x: len(x))) - 1
+                new_deg = (
+                    len(max(all_simple_paths(self.graph, source=root, target=node), key=lambda x: len(x))) - 1
+                )
                 level = max(level, new_deg)
-            if level not in level_nodes: level_nodes[level] = set()
+            if level not in level_nodes:
+                level_nodes[level] = set()
             level_nodes[level].add(node)
-            self.graph.nodes[node]['level'] = level
+            self.graph.nodes[node]["level"] = level
 
         # Grid layout for visualisation
-        scale = 25.
+        scale = 25.0
         for deg, nodes in level_nodes.items():
             n_nodes = len(nodes)
-            start = -(n_nodes-1)/2 - (.0 if n_nodes % 2 == 1 else .2)
+            start = -(n_nodes - 1) / 2 - (0.0 if n_nodes % 2 == 1 else 0.2)
             i = 0
             for node in nodes:
-                self.graph.nodes[node]['x'] = (start + i)*scale*2.0
-                self.graph.nodes[node]['y'] = -deg*scale*0.4
-                i = i+1
+                self.graph.nodes[node]["x"] = (start + i) * scale * 2.0
+                self.graph.nodes[node]["y"] = -deg * scale * 0.4
+                i = i + 1
         self.level_nodes = level_nodes
 
     @staticmethod
@@ -119,17 +130,20 @@ class PosetalPreference(Preference[PlayerOutcome]):
             if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
                 return INCOMPARABLE
             _, metric = OPEN.get()
-            if metric in DONE: continue
+            if metric in DONE:
+                continue
             DONE.add(metric)
             connected = False
             for closed in CLOSED:
-                if has_path(G=self.graph, source=closed, target=metric): connected = True
-            if connected: continue
+                if has_path(G=self.graph, source=closed, target=metric):
+                    connected = True
+            if connected:
+                continue
             metric_type: Metric = self.metric_dict[metric]
             outcome = EvaluatedMetricPreference.compare(a[metric_type], b[metric_type])
             if outcome == INDIFFERENT:
                 for child in self.graph.successors(metric):
-                    OPEN.put((self.graph.nodes[child]['level'], child))
+                    OPEN.put((self.graph.nodes[child]["level"], child))
             else:
                 OUTCOMES.add(outcome)
                 CLOSED.add(metric)

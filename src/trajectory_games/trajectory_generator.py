@@ -24,7 +24,9 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         self.params = params
         self._bicycle_dyn = BicycleDynamics(params=params)
 
-    def get_action_set(self, state: VehicleState, world: TrajectoryWorld, graph: MultiDiGraph = None) -> FrozenSet[Trajectory]:
+    def get_action_set(
+        self, state: VehicleState, world: TrajectoryWorld, graph: MultiDiGraph = None
+    ) -> FrozenSet[Trajectory]:
         tic = perf_counter()
         G = self._get_trajectory_graph(state=state)
         if isinstance(graph, MultiDiGraph):

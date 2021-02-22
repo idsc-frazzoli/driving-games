@@ -6,7 +6,6 @@ import itertools as it
 from typing import List, cast
 import numpy as np
 
-
 import duckietown_world as dw
 from duckietown_world.geo.transforms import SE2Transform
 from duckietown_world.world_duckietown.lane_segment import LaneSegment
@@ -15,7 +14,6 @@ from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 import geometry as geo
 from driving_games.structures import SE2_disc
 from world.skeleton_graph import get_skeleton_graph
-
 
 """
 Collection of functions that handle the module DuckietownWorld
@@ -31,8 +29,8 @@ def interpolate(lane: dw.LaneSegment, beta: float) -> dw.SE2Transform:
     """
     Interpolate along the centerline of a lane. Start: beta=0, End beta=1
     """
-    lane_length = lane.get_lane_length() # get the length of the lane
-    along_lane = beta * lane_length # get the corresponding position along the lane
+    lane_length = lane.get_lane_length()  # get the length of the lane
+    along_lane = beta * lane_length  # get the corresponding position along the lane
     transform = interpolate_along_lane(lane=lane, along_lane=along_lane)
     return transform
 
@@ -57,8 +55,7 @@ def interpolate_along_lane(lane: LaneSegment, along_lane: float) -> SE2Transform
 
 
 def interpolate_along_lane_n_points(
-    lane: LaneSegment,
-    positions_along_lane: List[float]
+    lane: LaneSegment, positions_along_lane: List[float]
 ) -> List[SE2Transform]:
     """
     Input: lane and sequence of 1D positions along the lane. Output: Pose sequence on the duckietown map
@@ -118,16 +115,11 @@ def merge_lanes(lanes: List[LaneSegment]) -> Lane:
     width = lanes[0].width
     # Make a list of all the control points, while making sure that the points that overlap are only taken once
     contr_points_lanes = list(
-        it.chain(
-            *[ls.control_points[:-1] if ls is not lanes[-1]
-              else ls.control_points for ls in lanes]
-        )
+        it.chain(*[ls.control_points[:-1] if ls is not lanes[-1] else ls.control_points for ls in lanes])
     )
 
     # Creating a unified lane segment
-    merged_lane_segments = dw.LaneSegment(
-        width=width, control_points=contr_points_lanes
-    )
+    merged_lane_segments = dw.LaneSegment(width=width, control_points=contr_points_lanes)
     return merged_lane_segments
 
 
@@ -155,14 +147,14 @@ def get_lane_from_node_sequence(m: DuckietownMap, node_sequence: List[NodeName])
 
     # Extract the partial paths from one node to another
     path_sequence = [
-        nx.shortest_path(topology_graph, start, end) for start, end in zip(node_sequence[:-1], node_sequence[1:])
+        nx.shortest_path(topology_graph, start, end)
+        for start, end in zip(node_sequence[:-1], node_sequence[1:])
     ]
 
     # remove the nodes at the end of the partial paths such that their are only present once
-    path = list(it.chain(
-        *[_path[:-1] if _path is not path_sequence[-1]
-          else _path for _path in path_sequence]
-    ))
+    path = list(
+        it.chain(*[_path[:-1] if _path is not path_sequence[-1] else _path for _path in path_sequence])
+    )
 
     # get the sequence of lanes names
     lane_names = _get_lanes(path=path, graph=topology_graph)
@@ -180,7 +172,7 @@ def _get_lanes(path, graph):
     edges = zip(path[:-1], path[1:])
     lanes = []
     for a, b in edges:
-        lane = graph.get_edge_data(a, b)[0]['lane']
+        lane = graph.get_edge_data(a, b)[0]["lane"]
         lanes.append(lane)
     return lanes
 
@@ -226,19 +218,15 @@ def get_SE2disc_in_ref_from_along_lane(ref: SE2_disc, lane: Lane, along_lane: D)
 
 class LaneSegmentHashable(LaneSegment):
     """
-        Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
+    Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
     """
+
     @classmethod
     def initializor(cls, lane_segment: LaneSegment) -> "LaneSegmentHashable":
         ls_dict = lane_segment.__dict__
         return cls(**ls_dict)
 
     def __hash__(self):
-        ctr_as_SE2_disc = it.chain(
-            *[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points]
-        )
+        ctr_as_SE2_disc = it.chain(*[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points])
         to_hash = *ctr_as_SE2_disc, self.width
         return hash(to_hash)
-
-    # def __eq__(self, other):
-    #     return hash(self) == hash(other)

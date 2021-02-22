@@ -34,8 +34,7 @@ class VehicleGeometry:
         return VehicleGeometry(m=D("1000"), w=D("1.0"), l=D("2.0"), colour=(1, 1, 1))
 
     @classmethod
-    def load_colour(cls, name:str) -> Tuple[float, float, float]:
-
+    def load_colour(cls, name: str) -> Tuple[float, float, float]:
         def default():
             return 1, 1, 1
 
@@ -145,14 +144,13 @@ class VehicleState:
     __rmul__ = __mul__
 
     def __repr__(self) -> str:
-        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith('_')})
+        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
 
     @classmethod
     def default(cls, lane: Lane) -> "VehicleState":
         beta0 = lane.beta_from_along_lane(along_lane=0)
         se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
-        state = VehicleState(x=D(se2.p[0]), y=D(se2.p[1]), th=D(se2.theta),
-                             v=D("10"), st=D("0"), t=D("0"))
+        state = VehicleState(x=D(se2.p[0]), y=D(se2.p[1]), th=D(se2.theta), v=D("10"), st=D("0"), t=D("0"))
         return state
 
     @classmethod
@@ -201,9 +199,16 @@ class TrajectoryParams:
     def default(cls) -> "TrajectoryParams":
         u_acc = frozenset([D("-1"), D("0"), D("1")])
         u_dst = frozenset([_ * D("0.2") for _ in u_acc])
-        params = TrajectoryParams(max_gen=1, dt=D("1"), u_acc=u_acc, u_dst=u_dst,
-                                  v_max=D("15"), v_min=D("0"), st_max=D("0.5"),
-                                  vg=VehicleGeometry.from_config(""))
+        params = TrajectoryParams(
+            max_gen=1,
+            dt=D("1"),
+            u_acc=u_acc,
+            u_dst=u_dst,
+            v_max=D("15"),
+            v_min=D("0"),
+            st_max=D("0.5"),
+            vg=VehicleGeometry.from_config(""),
+        )
         return params
 
     @classmethod
@@ -218,10 +223,18 @@ class TrajectoryParams:
 
         if name in cls._config.keys():
             config = cls._config[name]
-            u_acc = frozenset([D(_ * config["step_acc"]) for _ in
-                               range(-config["n_acc"] // 2 + 1, config["n_acc"] // 2 + 1)])
-            u_dst = frozenset([D(_ * config["step_dst"]) for _ in
-                               range(-config["n_dst"] // 2 + 1, config["n_dst"] // 2 + 1)])
+            u_acc = frozenset(
+                [
+                    D(_ * config["step_acc"])
+                    for _ in range(-config["n_acc"] // 2 + 1, config["n_acc"] // 2 + 1)
+                ]
+            )
+            u_dst = frozenset(
+                [
+                    D(_ * config["step_dst"])
+                    for _ in range(-config["n_dst"] // 2 + 1, config["n_dst"] // 2 + 1)
+                ]
+            )
             params = TrajectoryParams(
                 max_gen=config["max_gen"],
                 dt=D(config["dt"]),

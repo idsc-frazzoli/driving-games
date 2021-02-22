@@ -3,6 +3,7 @@ from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
 from networkx import MultiDiGraph
+
 # from multiprocessing import Pool
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
@@ -45,7 +46,9 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         """ Generate all possible actions for a given state and world. """
 
 
-class TrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
+class TrajectoryGamePlayer(
+    StaticGamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]
+):
     pass
 
 

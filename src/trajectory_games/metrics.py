@@ -223,10 +223,12 @@ class DrivableAreaViolation(Metric):
             traj_sn = context.get_curvilinear_points(player)
 
             def get_violation(curv: LanePose) -> D:
-                diff = 0.
+                diff = 0.0
                 if not curv.lateral_inside:
-                    if curv.outside_left: diff = curv.distance_from_left
-                    elif curv.outside_right: diff = curv.distance_from_right
+                    if curv.outside_left:
+                        diff = curv.distance_from_left
+                    elif curv.outside_right:
+                        diff = curv.distance_from_right
                 return D(diff)
 
             values = [get_violation(_) for _ in traj_sn]
@@ -474,12 +476,17 @@ class CollisionEnergy(Metric):
                 # TODO[SIR]: This only checks at discrete timesteps, might be a problem for long steps
                 times1: List[Timestamp] = context.get_interval(players[0])
                 times2: List[Timestamp] = context.get_interval(players[1])
-                if times1 == times2: times = times1
+                if times1 == times2:
+                    times = times1
                 else:
-                    times: List[Timestamp] =\
-                        [D(_) for _ in np.linspace(float(min(times1[0], times2[0])),
-                                                   float(max(times1[-1], times2[-1])),
-                                                   max(len(times1), len(times2)))]
+                    times: List[Timestamp] = [
+                        D(_)
+                        for _ in np.linspace(
+                            float(min(times1[0], times2[0])),
+                            float(max(times1[-1], times2[-1])),
+                            max(len(times1), len(times2)),
+                        )
+                    ]
                 energy: List[D] = []
                 for step in times:
                     state1: VehicleState = joint_traj[players[0]].at(step)
@@ -528,7 +535,7 @@ class CollisionEnergy(Metric):
             for player2 in context.get_players():
                 if player1 == player2:
                     timesteps: List[Timestamp] = context.get_interval(player1)
-                    coll_e = [D('0') for _ in timesteps]
+                    coll_e = [D("0") for _ in timesteps]
                 else:
                     coll_e = calculate_collision(players=[player1, player2])
                 if not collision_energy:
@@ -564,23 +571,25 @@ class WeightedMetric(Metric):
             with open(filename) as load_file:
                 self.config = safe_load(load_file)
 
-    def evaluate(self, context: MetricEvaluationContext,
-                 results: Mapping[Metric, MetricEvaluationResult] = None) -> MetricEvaluationResult:
-        description = "This metric computes the weighted sum of all other metrics. " \
-                      "Only the total value is calculated and not incremental or cumulative."
+    def evaluate(
+        self, context: MetricEvaluationContext, results: Mapping[Metric, MetricEvaluationResult] = None
+    ) -> MetricEvaluationResult:
+        description = (
+            "This metric computes the weighted sum of all other metrics. "
+            "Only the total value is calculated and not incremental or cumulative."
+        )
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             weights_str = context.get_world().get_weights(player)
-            weights: Mapping[str, float] = self.config[weights_str]\
-                if weights_str in self.config else {}
-            wsum = D('0')
+            weights: Mapping[str, float] = self.config[weights_str] if weights_str in self.config else {}
+            wsum = D("0")
             if len(weights.keys()) > 0 and results is not None:
                 for metric in results.keys():
                     name = type(metric).__name__
                     if name in weights:
                         wsum += results[metric][player].total * D(weights[name])
             interval = context.get_interval(player)
-            zeros = SampledSequence[D](interval, [D('0') for _ in interval])
+            zeros = SampledSequence[D](interval, [D("0") for _ in interval])
             ret = EvaluatedMetric(
                 total=wsum,
                 incremental=zeros,
@@ -623,15 +632,19 @@ def get_metrics_set() -> Set[Metric]:
     return metrics
 
 
-def evaluate_metrics(trajectories: Mapping[PlayerName, Trajectory], world: TrajectoryWorld) -> TrajGameOutcome:
+def evaluate_metrics(
+    trajectories: Mapping[PlayerName, Trajectory], world: TrajectoryWorld
+) -> TrajGameOutcome:
     metrics: Set[Metric] = get_metrics_set()
     context = MetricEvaluationContext(world=world, trajectories=trajectories)
 
     metric_results: Dict[Metric, MetricEvaluationResult] = {}
     weighted = None
     for metric in metrics:
-        if metric == WeightedMetric(): weighted = metric
-        else: metric_results[metric] = metric.evaluate(context)
+        if metric == WeightedMetric():
+            weighted = metric
+        else:
+            metric_results[metric] = metric.evaluate(context)
     metric_results[weighted] = weighted.evaluate(context, metric_results)
 
     game_outcome: Dict[PlayerName, PlayerOutcome] = {}

@@ -25,9 +25,10 @@ class TrajectoryWorld:
     """ Weights config name for each player"""
 
     def __post_init__(self):
-        assert self.lanes.keys() == self.geo.keys() == self.weights.keys(), \
-            f"Keys do not match: lanes = {self.lanes.keys()}," \
+        assert self.lanes.keys() == self.geo.keys() == self.weights.keys(), (
+            f"Keys do not match: lanes = {self.lanes.keys()},"
             f" geo = {self.geo.keys()}, weights = {self.weights.keys()}"
+        )
 
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())

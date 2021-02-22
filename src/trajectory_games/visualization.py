@@ -44,8 +44,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         png_path = os.path.join(map_directory, f"{self.world.map_name}.png")
         img = imread(png_path)
         tile_size = self.grid.tile_size
-        H = self.grid['tilemap'].H
-        W = self.grid['tilemap'].W
+        H = self.grid["tilemap"].H
+        W = self.grid["tilemap"].W
         x_size = tile_size * W
         y_size = tile_size * H
         pylab.imshow(img, extent=[0, x_size, 0, y_size])
@@ -57,15 +57,16 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             xp, yp = zip(*points)
             x = np.array(xp)
             y = np.array(yp)
-            pylab.fill(x, y, color=self.world.get_geometry(player).colour, alpha=.1, zorder=1)
+            pylab.fill(x, y, color=self.world.get_geometry(player).colour, alpha=0.1, zorder=1)
 
         yield
         # pylab.grid()
 
     def plot_player(
-            self, pylab,
-            player_name: PlayerName,
-            state: VehicleState,
+        self,
+        pylab,
+        player_name: PlayerName,
+        state: VehicleState,
     ):
         """ Draw the player and his action set at a certain state. """
 
@@ -100,7 +101,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             pos=pos,
             nodelist=G.nodes(),
             node_size=node_size,
-            node_color='grey',
+            node_color="grey",
             alpha=0.5,
         )
         edges = draw_networkx_edges(
@@ -117,23 +118,26 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         edges.set_zorder(5)
         ax.add_collection(nodes)
         ax.add_collection(edges)
-        ax.yaxis.set_ticks_position('left')
-        ax.xaxis.set_ticks_position('bottom')
+        ax.yaxis.set_ticks_position("left")
+        ax.xaxis.set_ticks_position("bottom")
 
     def plot_equilibria(self, pylab, path: Trajectory, player: StaticGamePlayer):
+        def f(val: D):
+            return float(val)
 
-        def f(val: D): return float(val)
         # TODO[SIR]: Read hard coded value from params
-        vals = [(f(point.x), f(point.y), f(point.v)/20.0) for time, point in path]
+        vals = [(f(point.x), f(point.y), f(point.v) / 20.0) for time, point in path]
         x, y, v = zip(*vals)
         pylab.plot(x, y, color=player.vg.colour)
         pylab.scatter(x, y, c=v)
 
-    def plot_pref(self, pylab, player: StaticGamePlayer,
-                  origin: Tuple[float, float], labels: Mapping[str, str] = None):
+    def plot_pref(
+        self, pylab, player: StaticGamePlayer, origin: Tuple[float, float], labels: Mapping[str, str] = None
+    ):
 
-        assert isinstance(player.preference, PosetalPreference), \
-            f"Preference is of type {player.preference.get_type()} and not {PosetalPreference.get_type()}"
+        assert isinstance(
+            player.preference, PosetalPreference
+        ), f"Preference is of type {player.preference.get_type()} and not {PosetalPreference.get_type()}"
         X, Y = origin
         G: DiGraph = player.preference.graph
 
@@ -147,11 +151,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         if labels is None:
             labels = {n: n for n in G.nodes}
         else:
-            assert len(G.nodes) == len(labels.keys()), \
-                f"Size mismatch between nodes ({len(G.nodes)}) and labels ({len(labels.keys())})"
+            assert len(G.nodes) == len(
+                labels.keys()
+            ), f"Size mismatch between nodes ({len(G.nodes)}) and labels ({len(labels.keys())})"
             for n in G.nodes:
-                assert n in labels.keys(), \
-                    f"Node {n} not present in keys - {labels.keys()}"
+                assert n in labels.keys(), f"Node {n} not present in keys - {labels.keys()}"
         draw_networkx_edges(
             G,
             pos=pos,
@@ -160,37 +164,31 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         )
 
         ax = pylab.gca()
-        draw_networkx_labels(
-            G,
-            pos=pos,
-            labels=labels,
-            ax=ax,
-            font_size=8,
-            font_color='b'
-        )
+        draw_networkx_labels(G, pos=pos, labels=labels, ax=ax, font_size=8, font_color="b")
 
 
 def plot_car(
-        pylab,
-        player_name: PlayerName,
-        state: VehicleState,
-        vg: VehicleGeometry,
+    pylab,
+    player_name: PlayerName,
+    state: VehicleState,
+    vg: VehicleGeometry,
 ):
     PLOT_VEL = False
     L = float(vg.l)
     W = float(vg.w)
     car_color = vg.colour
-    car: Tuple[Tuple[float, float], ...] = \
-        ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
+    car: Tuple[Tuple[float, float], ...] = ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
     xy_theta = tuple(float(_) for _ in (state.x, state.y, state.th))
     q = SE2_from_xytheta(xy_theta)
     x1, y1 = get_transformed_xy(q, car)
-    pylab.fill(x1, y1, color=car_color, alpha=.3, zorder=10)
+    pylab.fill(x1, y1, color=car_color, alpha=0.3, zorder=10)
 
     v_size = float(state.v) * 0.2
     v_vect = ((+L, 0), (+L + v_size, 0))
     x3, y3 = get_transformed_xy(q, v_vect)
-    arrow = patches.Arrow(x=x3[0], y=y3[0], dx=x3[1] - x3[0], dy=y3[1] - y3[0], facecolor=car_color, edgecolor='k')
+    arrow = patches.Arrow(
+        x=x3[0], y=y3[0], dx=x3[1] - x3[0], dy=y3[1] - y3[0], facecolor=car_color, edgecolor="k"
+    )
     if PLOT_VEL:
         pylab.gca().add_patch(arrow)
 

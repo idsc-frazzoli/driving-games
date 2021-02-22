@@ -2,9 +2,17 @@ from os.path import join
 from typing import Mapping
 from reprep import Report
 
-from trajectory_games import TrajectoryGame, compute_solving_context, solve_game, StaticSolvingContext, \
-    report_game_visualization, SolvedTrajectoryGame, report_nash_eq, \
-    report_preferences, get_trajectory_game
+from trajectory_games import (
+    TrajectoryGame,
+    compute_solving_context,
+    solve_game,
+    StaticSolvingContext,
+    report_game_visualization,
+    SolvedTrajectoryGame,
+    report_nash_eq,
+    report_preferences,
+    get_trajectory_game,
+)
 
 
 def test_trajectory_game():

@@ -38,8 +38,10 @@ class MetricEvaluationContext:
     """ Cached trajectories to speed up computation, do not set manually """
 
     def __post_init__(self):
-        if MetricEvaluationContext._cache_cart is None: MetricEvaluationContext._cache_cart = {}
-        if MetricEvaluationContext._cache_curv is None: MetricEvaluationContext._cache_curv = {}
+        if MetricEvaluationContext._cache_cart is None:
+            MetricEvaluationContext._cache_cart = {}
+        if MetricEvaluationContext._cache_curv is None:
+            MetricEvaluationContext._cache_curv = {}
         cart: Dict[PlayerName, List[SE2Transform]] = {}
         curv: Dict[PlayerName, List[LanePose]] = {}
         for player, traj in self.trajectories.items():

@@ -67,8 +67,9 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_pref(self, pylab, player: "StaticGamePlayer",
-                  origin: Tuple[float, float], labels: Mapping[str, str] = None):
+    def plot_pref(
+        self, pylab, player: "StaticGamePlayer", origin: Tuple[float, float], labels: Mapping[str, str] = None
+    ):
         pass
 
 

@@ -36,11 +36,13 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame]
     req = Report("plots")
 
     for player in game.game_players.values():
-        assert isinstance(player.preference, PosetalPreference), \
-            f"Preference is of type {player.preference.get_type()} and not {PosetalPreference.get_type()}"
+        assert isinstance(
+            player.preference, PosetalPreference
+        ), f"Preference is of type {player.preference.get_type()} and not {PosetalPreference.get_type()}"
 
     for k, node_set in nash_eq.items():
-        if k.startswith("weak"): continue
+        if k.startswith("weak"):
+            continue
         texts = []
         if not bool(node_set):
             texts.append("\t No equilibria")
@@ -50,8 +52,9 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame]
         i = 1
         for node in node_set:
             for player, action in node.actions.items():
-                texts.append(f"\t{player}: action={action},\n"
-                             f"\t\toutcome={list(node.outcomes[player].values())}")
+                texts.append(
+                    f"\t{player}: action={action},\n" f"\t\toutcome={list(node.outcomes[player].values())}"
+                )
             texts.append("\n")
             rplot = Report(f"{k}_{i}")
             # TODO[SIR]: Can we reuse the same plot instead of creating new?
@@ -77,7 +80,7 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame]
                 ax.set_xlim(-50.0, n - 50.0)
 
             req.add_child(rplot)
-            i = i+1
+            i = i + 1
 
         text = "\n".join(texts)
         r.text(f"{k} -", remove_escapes(text))
@@ -100,7 +103,7 @@ def report_preferences(game: StaticGame) -> Report:
             viz.plot_pref(pylab, player=player, origin=(i, 0.0))
             i = i + 100
         ax: Axes = pylab.gca()
-        ax.set_xlim(-50.0, i-50.0)
+        ax.set_xlim(-50.0, i - 50.0)
     toc = perf_counter() - tic
     print(f"Preference viz time = {toc:.2f} s")
     return r
