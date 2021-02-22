@@ -474,19 +474,14 @@ class CollisionEnergy(Metric):
                 geo2, l2 = get_geo(players[1])
 
                 # TODO[SIR]: This only checks at discrete timesteps, might be a problem for long steps
-                times1: List[Timestamp] = context.get_interval(players[0])
-                times2: List[Timestamp] = context.get_interval(players[1])
-                if times1 == times2:
-                    times = times1
-                else:
-                    times: List[Timestamp] = [
-                        D(_)
-                        for _ in np.linspace(
-                            float(min(times1[0], times2[0])),
-                            float(max(times1[-1], times2[-1])),
-                            max(len(times1), len(times2)),
-                        )
-                    ]
+                times: List[Timestamp] = context.get_interval(players[0])
+                # times2: List[Timestamp] = context.get_interval(players[1])
+                # if times1 == times2: times = times1
+                # else:
+                #     times: List[Timestamp] =\
+                #         [D(_) for _ in np.linspace(float(min(times1[0], times2[0])),
+                #                                    float(max(times1[-1], times2[-1])),
+                #                                    max(len(times1), len(times2)))]
                 energy: List[D] = []
                 for step in times:
                     state1: VehicleState = joint_traj[players[0]].at(step)

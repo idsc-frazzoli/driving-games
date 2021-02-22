@@ -15,27 +15,27 @@ map_name: "4way-double-intersection-only"
 players:
   P1:
     state:    "state_1"
-    traj:     "traj_1"
+    traj:     "traj_2"
     pref:     "pref_5"
     lane:     "down_left"
     vg:       "red_bicycle"
     weights:  "weights_1"
   P2:
     state:    "state_2"
-    traj:     "traj_1"
+    traj:     "traj_2"
     pref:     "pref_2"
     lane:     "right_left"
     vg:       "blue_truck"
     weights:  None
   P3:
     state:    "state_2"
-    traj:     "traj_1"
+    traj:     "traj_2"
     pref:     "pref_3"
     lane:     "left_up"
     vg:       "green_car"
   P4:
     state:    "state_3"
-    traj:     "traj_1"
+    traj:     "traj_2"
     pref:     "pref_4"
     lane:     "up_down"
     vg:       "yellow_car"
