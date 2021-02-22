@@ -35,6 +35,7 @@ def get_trajectory_game() -> TrajectoryGame:
     lanes: Dict[PlayerName, Lane] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
+    weights: Dict[PlayerName, str] = {}
     duckie_map = load_driving_game_map(config["map_name"])
 
     ps = PossibilitySet()
@@ -45,6 +46,7 @@ def get_trajectory_game() -> TrajectoryGame:
         lanes[pname] = get_lane_from_node_sequence(m=duckie_map,
                                                    node_sequence=config_lanes[pconfig["lane"]])
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
+        weights[pname] = pconfig["weights"] if "weights" in pconfig.keys() else None
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TrajectoryGenerator1(params=param)
         pref = PosetalPreference(pref_file=os.path.join(pref_dir, pconfig['pref']), keys=metrics)
@@ -53,7 +55,8 @@ def get_trajectory_game() -> TrajectoryGame:
                                               preference=pref, monadic_preference_builder=mpref_build,
                                               vg=geometries[pname])
 
-    world = TrajectoryWorld(map_name=config["map_name"], geo=geometries, lanes=lanes)
+    world = TrajectoryWorld(map_name=config["map_name"], geo=geometries,
+                            lanes=lanes, weights=weights)
     game = TrajectoryGame(world=world, game_players=players, ps=ps,
                           get_outcomes=evaluate_metrics,
                           game_vis=TrajGameVisualization(world=world))

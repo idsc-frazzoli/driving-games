@@ -21,10 +21,13 @@ class TrajectoryWorld:
     lanes: Mapping[PlayerName, Lane]
     """ Reference lanes for each player """
 
+    weights: Mapping[PlayerName, str]
+    """ Weights config name for each player"""
+
     def __post_init__(self):
-        assert self.lanes.keys() == self.geo.keys(), \
-            f"Keys for geometry and lanes do not match - " \
-            f"lanes = {self.lanes.keys()}, geo = {self.geo.keys()}"
+        assert self.lanes.keys() == self.geo.keys() == self.weights.keys(), \
+            f"Keys do not match: lanes = {self.lanes.keys()}," \
+            f" geo = {self.geo.keys()}, weights = {self.weights.keys()}"
 
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())
@@ -34,3 +37,6 @@ class TrajectoryWorld:
 
     def get_geometry(self, player: PlayerName) -> VehicleGeometry:
         return self.geo[player]
+
+    def get_weights(self, player: PlayerName) -> str:
+        return self.weights[player]

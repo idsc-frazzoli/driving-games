@@ -9,21 +9,24 @@ map_name: "4way-double-intersection-only"
 #    pref:     Player preference (from player_pref folder)
 #    lane:     Lane to follow (from lanes.yaml for current map)
 #    vg:       Vehicle geometry (from vehicles.yaml)
+#    weights:  (Optional) Weights for WeightedMetric (from pref_weights.yaml)
 #  P2: ...
 
 players:
   P1:
     state:    "state_1"
     traj:     "traj_1"
-    pref:     "pref_1"
+    pref:     "pref_5"
     lane:     "down_left"
     vg:       "red_bicycle"
+    weights:  "weights_1"
   P2:
     state:    "state_2"
     traj:     "traj_1"
     pref:     "pref_2"
     lane:     "right_left"
     vg:       "blue_truck"
+    weights:  None
   P3:
     state:    "state_2"
     traj:     "traj_1"
