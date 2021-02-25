@@ -2,7 +2,6 @@ import math
 import os
 from typing import Tuple, List, Dict, Mapping, Callable, Set
 from decimal import Decimal as D
-import numpy as np
 
 from duckietown_world import LanePose
 from frozendict import frozendict

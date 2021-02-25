@@ -6,43 +6,35 @@
 #  l:      Length (m)
 #  colour: Colour (one from list at the bottom)
 
-red_car:
+red_car:      &car
   m:      1000
   w:      1.0
   l:      2.0
   colour: "red"
 
 blue_car:
-  m:      1000
-  w:      1.0
-  l:      2.0
+  <<: *car
   colour: "blue"
 
 green_car:
-  m:      1000
-  w:      1.0
-  l:      2.0
+  <<: *car
   colour: "green"
 
 yellow_car:
-  m:      1000
-  w:      1.0
-  l:      2.0
+  <<: *car
   colour: "yellow"
 
-red_truck:
+red_truck:    &truck
   m:      3000
   w:      2.5
   l:      4.0
   colour: "red"
 
 blue_truck:
-  m:      3000
-  w:      2.5
-  l:      4.0
+  <<: *truck
   colour: "blue"
 
-red_bicycle:
+red_bicycle:  &bicycle
   m:      80
   w:      0.25
   l:      1.0

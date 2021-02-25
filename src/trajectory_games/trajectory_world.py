@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Mapping, List, Dict
+from typing import Mapping, List
 
 from games import PlayerName
 from world import Lane
