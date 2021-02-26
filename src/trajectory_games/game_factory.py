@@ -49,6 +49,7 @@ def get_trajectory_game() -> TrajectoryGame:
         pref = PosetalPreference(pref_str=pconfig["pref"])
         state = VehicleState.from_config(name=pconfig["state"], lane=lanes[pname])
         players[pname] = TrajectoryGamePlayer(
+            name=pname,
             state=ps.unit(state),
             actions_generator=traj_gen,
             preference=pref,

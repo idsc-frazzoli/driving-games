@@ -77,6 +77,8 @@ class GameVisualization(Generic[X, U, W], ABC):
 class StaticGamePlayer(Generic[X, U, W, P, G]):
     """ Information about one player. """
 
+    name: PlayerName
+    """The player's name"""
     state: Poss[X]
     """The player state in the world"""
     actions_generator: ActionSetGenerator

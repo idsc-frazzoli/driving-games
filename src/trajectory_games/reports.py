@@ -12,7 +12,7 @@ from .preference import PosetalPreference
 
 def report_game_visualization(game: StaticGame) -> Report:
     viz = game.game_vis
-    r = Report("vis")
+    r = Report("Trajectories")
     tic = perf_counter()
     with r.plot("actions") as pylab:
         ax = pylab.gca()
@@ -93,16 +93,14 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame]
 
 def report_preferences(game: StaticGame) -> Report:
     tic = perf_counter()
-    r = Report("pref")
+    r = Report("Preference_structures")
     viz = game.game_vis
 
-    with r.plot("preferences") as pylab:
-        i: float = 0.0
-        for player in game.game_players.values():
-            viz.plot_pref(pylab, player=player, origin=(i, 0.0))
-            i = i + 250
-        ax: Axes = pylab.gca()
-        ax.set_xlim(-150.0, i - 100.0)
+    for player in game.game_players.values():
+        with r.plot(player.name) as pylab:
+            viz.plot_pref(pylab, player=player, origin=(0.0, 0.0))
+            ax: Axes = pylab.gca()
+            ax.set_xlim(-150.0, 125.0)
     toc = perf_counter() - tic
     print(f"Preference viz time = {toc:.2f} s")
     return r

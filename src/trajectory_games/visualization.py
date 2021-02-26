@@ -148,15 +148,17 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             return float(x) + X, float(y) + Y
 
         pos = {_: pos_node(_) for _ in G.nodes}
-
+        text: str
         if labels is None:
             labels = {n: str(n) for n in G.nodes}
+            text = "_pref"
         else:
             assert len(G.nodes) == len(
                 labels.keys()
             ), f"Size mismatch between nodes ({len(G.nodes)}) and labels ({len(labels.keys())})"
             for n in G.nodes:
                 assert n in labels.keys(), f"Node {n} not present in keys - {labels.keys()}"
+            text = "_outcomes"
         draw_networkx_edges(
             G,
             pos=pos,
@@ -164,8 +166,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             arrows=True,
         )
 
-        ax = pylab.gca()
+        ax: Axes = pylab.gca()
         draw_networkx_labels(G, pos=pos, labels=labels, ax=ax, font_size=8, font_color="b")
+        ax.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
 
 
 def plot_car(
