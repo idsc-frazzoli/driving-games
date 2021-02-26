@@ -160,6 +160,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             pos=pos,
             edgelist=G.edges(),
             arrows=True,
+            arrowstyle="-",
         )
 
         ax: Axes = pylab.gca()
