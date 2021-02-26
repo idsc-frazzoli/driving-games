@@ -1,9 +1,10 @@
 from queue import PriorityQueue
-from typing import Type, Dict, Mapping, Set
+from typing import Type, Dict, Mapping, Set, NewType
 from decimal import Decimal as D
 
 import os
-from networkx import DiGraph, read_adjlist, is_directed_acyclic_graph, all_simple_paths, has_path
+from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
+from yaml import safe_load
 
 from preferences import (
     Preference,
@@ -14,70 +15,98 @@ from preferences import (
     FIRST_PREFERRED,
     SECOND_PREFERRED,
 )
-from .metrics_def import Metric, EvaluatedMetric, PlayerOutcome
+from .config import config_dir
+from .metrics_def import Metric, PlayerOutcome
+from .metrics import get_metrics_set
 
 __all__ = [
-    "EvaluatedMetricPreference",
+    "WeightedPreference",
     "PosetalPreference",
 ]
 
 
-class EvaluatedMetricPreference(Preference[EvaluatedMetric]):
-    """Compare the total values between evaluated metrics, doesn't check for types"""
+class WeightedPreference(Preference[PlayerOutcome]):
+    """Compare the total weighted values between evaluated metrics"""
 
-    pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
+    weights: Mapping[Metric, D]
+
+    _pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
+    _config: Mapping = None
+    _metric_dict: Mapping[str, Metric] = None
+
+    def __init__(self, weights_str: str):
+        if WeightedPreference._config is None:
+            filename = os.path.join(config_dir, "pref_nodes.yaml")
+            with open(filename) as load_file:
+                WeightedPreference._config = safe_load(load_file)
+            WeightedPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
+
+        self.weights = {self._metric_dict[k]: D(v) for k, v in self._config[weights_str].items()}
 
     @staticmethod
-    def get_type() -> Type[EvaluatedMetric]:
-        return EvaluatedMetric
+    def get_type() -> Type[PlayerOutcome]:
+        return PlayerOutcome
 
-    @staticmethod
-    def compare(a: EvaluatedMetric, b: EvaluatedMetric) -> ComparisonOutcome:
-        return EvaluatedMetricPreference.pref.compare(a.total, b.total)
+    def evaluate(self, outcome: PlayerOutcome) -> D:
+        w = D("0")
+        for metric, weight in self.weights.items():
+            w += outcome[metric].total * weight
+        return w
+
+    def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
+        return self._pref.compare(self.evaluate(a), self.evaluate(b))
+
+    def __repr__(self):
+        ret: str = ""
+        for metric, weight in self.weights.items():
+            if len(ret) > 0:
+                ret += "\n"
+            ret += f"{round(float(weight), 2)}*{type(metric).__name__}"
+        return ret
+
+    def __lt__(self, other: "WeightedPreference") -> bool:
+        return len(self.weights) < len(other.weights)
+
+
+metric_type = NewType("metric", WeightedPreference)
 
 
 class PosetalPreference(Preference[PlayerOutcome]):
+    _config: Mapping = None
+
     graph: DiGraph
-    metric_dict: Mapping[str, Metric]
-    level_nodes: Mapping[int, Set[str]]
+    node_dict: Dict[str, metric_type] = {}
+    level_nodes: Mapping[int, Set[metric_type]]
 
-    def __init__(self, pref_file: str, keys: Set[Metric]):
+    def __init__(self, pref_str: str):
+        if PosetalPreference._config is None:
+            filename = os.path.join(config_dir, "player_pref.yaml")
+            with open(filename) as load_file:
+                PosetalPreference._config = safe_load(load_file)
 
-        self.build_graph_from_file(pref_file)
-
-        # Create dict from metric names to metrics
-        metric_dict: Dict[str, Metric] = {}
-        for metric in keys:
-            metric_dict[type(metric).__name__] = metric
-        for node in self.graph:
-            assert node in metric_dict, f"{node} not found in {metric_dict.keys()}"
-        self.metric_dict = metric_dict
-
+        # Build graph
+        self.build_graph(pref_str)
         # Pre-processing to speed up outcome comparisons
         self.calculate_levels()
 
-    def build_graph_from_file(self, pref_file):
+    def add_node(self, name: str) -> metric_type:
+        if name not in self.node_dict:
+            node = WeightedPreference(weights_str=name)
+            self.graph.add_node(node)
+            self.node_dict[name] = node
+        return self.node_dict[name]
 
-        pref_file = pref_file + ".pref"
-        # Ensure file exists
-        assert os.path.isfile(pref_file), f"{pref_file} does not exist!"
-
-        # Parsing doesn't like empty lines, so clean them up
-        with open(pref_file) as filehandle:
-            lines = filehandle.readlines()
-        with open("graph", "w") as filehandle:
-            lines = filter(lambda x: x.strip(), lines)
-            filehandle.writelines(lines)
-
-        # Create graph from file
-        self.graph = read_adjlist("graph", create_using=DiGraph(), nodetype=str)
+    def build_graph(self, pref_str: str):
+        self.graph = DiGraph()
+        for key, parents in self._config[pref_str].items():
+            node = self.add_node(name=key)
+            for p in parents:
+                p_node = self.add_node(name=p)
+                self.graph.add_edge(p_node, node)
         assert is_directed_acyclic_graph(self.graph)
 
-        # Clean up
-        os.remove("graph")
-
     def calculate_levels(self):
-        level_nodes: Dict[int, Set[str]] = {}
+        level_nodes: Dict[int, Set[metric_type]] = {}
 
         # Roots don't have input edges, degree = 0
         roots = [n for n, d in self.graph.in_degree() if d == 0]
@@ -91,9 +120,8 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 continue
             level = 0
             for root in roots:
-                new_deg = (
-                    len(max(all_simple_paths(self.graph, source=root, target=node), key=lambda x: len(x))) - 1
-                )
+                new_deg = (len(max(all_simple_paths(self.graph, source=root, target=node),
+                                   key=lambda x: len(x))) - 1)
                 level = max(level, new_deg)
             if level not in level_nodes:
                 level_nodes[level] = set()
@@ -101,7 +129,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
             self.graph.nodes[node]["level"] = level
 
         # Grid layout for visualisation
-        scale = 25.0
+        scale = 40.0
         for deg, nodes in level_nodes.items():
             n_nodes = len(nodes)
             start = -(n_nodes - 1) / 2 - (0.0 if n_nodes % 2 == 1 else 0.2)
@@ -119,8 +147,8 @@ class PosetalPreference(Preference[PlayerOutcome]):
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
 
         OPEN = PriorityQueue(self.graph.number_of_nodes())
-        DONE: Set[str] = set()
-        CLOSED: Set[str] = set()
+        DONE: Set[metric_type] = set()
+        CLOSED: Set[metric_type] = set()
         OUTCOMES: Set[ComparisonOutcome] = set()
 
         for root in self.level_nodes[0]:
@@ -139,8 +167,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
                     connected = True
             if connected:
                 continue
-            metric_type: Metric = self.metric_dict[metric]
-            outcome = EvaluatedMetricPreference.compare(a[metric_type], b[metric_type])
+            outcome = metric.compare(a, b)
             if outcome == INDIFFERENT:
                 for child in self.graph.successors(metric):
                     OPEN.put((self.graph.nodes[child]["level"], child))

@@ -1,17 +1,16 @@
 import os
 from time import perf_counter
-from typing import Dict, Set
+from typing import Dict
 from yaml import safe_load
 
 from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
 
-from .config import config_dir, pref_dir
+from .config import config_dir
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TrajectoryGenerator1
-from .metrics_def import Metric
-from .metrics import get_metrics_set, evaluate_metrics
+from .metrics import evaluate_metrics
 from .preference import PosetalPreference
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer
 from .trajectory_world import TrajectoryWorld
@@ -39,7 +38,6 @@ def get_trajectory_game() -> TrajectoryGame:
     duckie_map = load_driving_game_map(config["map_name"])
 
     ps = PossibilitySet()
-    metrics: Set[Metric] = get_metrics_set()
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
     for pname, pconfig in config["players"].items():
@@ -48,7 +46,7 @@ def get_trajectory_game() -> TrajectoryGame:
         weights[pname] = pconfig["weights"] if "weights" in pconfig.keys() else None
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TrajectoryGenerator1(params=param)
-        pref = PosetalPreference(pref_file=os.path.join(pref_dir, pconfig["pref"]), keys=metrics)
+        pref = PosetalPreference(pref_str=pconfig["pref"])
         state = VehicleState.from_config(name=pconfig["state"], lane=lanes[pname])
         players[pname] = TrajectoryGamePlayer(
             state=ps.unit(state),

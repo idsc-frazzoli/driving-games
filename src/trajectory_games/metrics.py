@@ -1,14 +1,11 @@
 import math
-import os
 from typing import Tuple, List, Dict, Mapping, Callable, Set
 from decimal import Decimal as D
 
 from duckietown_world import LanePose
 from frozendict import frozendict
-from yaml import safe_load
 
 from games import PlayerName
-from .config import config_dir
 from .structures import VehicleGeometry, VehicleState
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
 from .metrics_def import (
@@ -556,46 +553,6 @@ class CollisionEnergy(Metric):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-class WeightedMetric(Metric):
-    config: Dict = None
-
-    def __init__(self):
-        if self.config is None:
-            filename = os.path.join(config_dir, "pref_weights.yaml")
-            with open(filename) as load_file:
-                self.config = safe_load(load_file)
-
-    def evaluate(
-        self, context: MetricEvaluationContext, results: Mapping[Metric, MetricEvaluationResult] = None
-    ) -> MetricEvaluationResult:
-        description = (
-            "This metric computes the weighted sum of all other metrics. "
-            "Only the total value is calculated and not incremental or cumulative."
-        )
-
-        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            weights_str = context.get_world().get_weights(player)
-            weights: Mapping[str, float] = self.config[weights_str] if weights_str in self.config else {}
-            wsum = D("0")
-            if len(weights.keys()) > 0 and results is not None:
-                for metric in results.keys():
-                    name = type(metric).__name__
-                    if name in weights:
-                        wsum += results[metric][player].total * D(weights[name])
-            interval = context.get_interval(player)
-            zeros = SampledSequence[D](interval, [D("0") for _ in interval])
-            ret = EvaluatedMetric(
-                total=wsum,
-                incremental=zeros,
-                title=type(self).__name__,
-                description=description,
-                cumulative=zeros,
-            )
-            return ret
-
-        return get_evaluated_metric(context.get_players(), calculate_metric)
-
-
 def get_personal_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {
         SurvivalTime(),
@@ -622,7 +579,6 @@ def get_joint_metrics() -> Set[Metric]:
 def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = get_personal_metrics()
     metrics |= get_joint_metrics()
-    metrics.add(WeightedMetric())
     return metrics
 
 
@@ -633,13 +589,8 @@ def evaluate_metrics(
     context = MetricEvaluationContext(world=world, trajectories=trajectories)
 
     metric_results: Dict[Metric, MetricEvaluationResult] = {}
-    weighted = None
     for metric in metrics:
-        if metric == WeightedMetric():
-            weighted = metric
-        else:
-            metric_results[metric] = metric.evaluate(context)
-    metric_results[weighted] = weighted.evaluate(context, metric_results)
+        metric_results[metric] = metric.evaluate(context)
 
     game_outcome: Dict[PlayerName, PlayerOutcome] = {}
     player_outcome: Dict[Metric, EvaluatedMetric]

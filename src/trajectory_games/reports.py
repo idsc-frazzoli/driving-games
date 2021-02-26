@@ -72,12 +72,11 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame]
                     metrics: Dict[str, str] = {}
                     outcomes = node.outcomes[player_name]
                     for pref in player.preference.graph.nodes:
-                        metric = player.preference.metric_dict[pref]
-                        metrics[pref] = str(round(float(outcomes[metric].total), 2))
+                        metrics[pref] = str(round(float(pref.evaluate(outcomes)), 2))
                     viz.plot_pref(pylab, player=player, origin=(n, 0.0), labels=metrics)
-                    n = n + 100
+                    n = n + 200
                 ax: Axes = pylab.gca()
-                ax.set_xlim(-50.0, n - 50.0)
+                ax.set_xlim(-150.0, n - 100.0)
 
             req.add_child(rplot)
             i = i + 1
@@ -101,9 +100,9 @@ def report_preferences(game: StaticGame) -> Report:
         i: float = 0.0
         for player in game.game_players.values():
             viz.plot_pref(pylab, player=player, origin=(i, 0.0))
-            i = i + 100
+            i = i + 250
         ax: Axes = pylab.gca()
-        ax.set_xlim(-50.0, i - 50.0)
+        ax.set_xlim(-150.0, i - 100.0)
     toc = perf_counter() - tic
     print(f"Preference viz time = {toc:.2f} s")
     return r

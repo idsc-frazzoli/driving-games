@@ -1,5 +1,5 @@
 
-#weights:                      Weights for all the metrics (Missing taken as zero)
+#weights:                      Weights for all the metrics
 #  SurvivalTime:               weight
 #  DeviationLateral:           weight
 #  DeviationHeading:           weight
@@ -12,14 +12,39 @@
 #  SteeringRate:               weight
 #  CollisionEnergy:            weight
 
-# pref_1.pref
+## Raw metric nodes
+SurvivalTime:
+  SurvivalTime:             1.0
+DeviationLateral:
+  DeviationLateral:         1.0
+DeviationHeading:
+  DeviationHeading:         1.0
+DrivableAreaViolation:
+  DrivableAreaViolation:    1.0
+ProgressAlongReference:
+  ProgressAlongReference:   1.0
+LongitudinalAcceleration:
+  LongitudinalAcceleration: 1.0
+LongitudinalJerk:
+  LongitudinalJerk:         1.0
+LateralComfort:
+  LateralComfort:           1.0
+SteeringAngle:
+  SteeringAngle:            1.0
+SteeringRate:
+  SteeringRate:             1.0
+CollisionEnergy:
+  CollisionEnergy:          1.0
+
+## Combination metric nodes
+# pref_1
 weights_1:
   DrivableAreaViolation:      5.0
   ProgressAlongReference:     2.0
   LateralComfort:             2.0
   CollisionEnergy:            10.0
 
-# pref_2.pref
+# pref_2
 weights_2:
   DeviationLateral:           0.5
   DeviationHeading:           0.5
@@ -29,7 +54,7 @@ weights_2:
   LateralComfort:             2.0
   CollisionEnergy:            10.0
 
-# pref_3.pref
+# pref_3
 weights_3:
   DeviationLateral:           0.5
   DeviationHeading:           0.5
@@ -39,10 +64,15 @@ weights_3:
   LateralComfort:             2.0
   CollisionEnergy:            10.0
 
-# pref_4.pref
+# pref_4
 weights_4:
   DeviationLateral:           0.5
   DeviationHeading:           0.5
   DrivableAreaViolation:      5.0
   ProgressAlongReference:     2.0
   CollisionEnergy:            10.0
+
+weights_5:
+  DeviationLateral:           0.5
+  DeviationHeading:           0.5
+  ProgressAlongReference:     2.0

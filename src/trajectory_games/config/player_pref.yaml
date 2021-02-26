@@ -1,0 +1,75 @@
+
+# Pref structure for each player
+# Player_name:
+#   node1:   List[None]
+#   node2:   List[Parent1, Parent2, ...]
+#   node3:   List[Parent1, Parent3, ...]
+#     nodes    -> Any node from pref_nodes.yaml
+#     Parents  -> Any node from pref_nodes.yaml
+
+
+# Toy game preferences
+pref_1:                       &pref_1
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  ProgressAlongReference:     ["DrivableAreaViolation"]
+  LateralComfort:             ["DrivableAreaViolation"]
+
+# Trajectory game preference
+pref_2:                       &pref_2
+  <<: *pref_1
+  LongitudinalJerk:           ["ProgressAlongReference"]
+  DeviationLateral:           ["LateralComfort", "LongitudinalJerk"]
+  DeviationHeading:           ["LateralComfort", "LongitudinalJerk"]
+
+# Comfort Preference
+pref_3:                       &pref_3
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  LateralComfort:             ["DrivableAreaViolation"]
+  LongitudinalJerk:           ["LateralComfort"]
+  DeviationLateral:           ["LongitudinalJerk"]
+  DeviationHeading:           ["LongitudinalJerk"]
+  ProgressAlongReference:     ["LongitudinalJerk"]
+
+# Racing preference
+pref_4:                       &pref_4
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  ProgressAlongReference:     ["DrivableAreaViolation"]
+  DeviationLateral:           ["ProgressAlongReference"]
+  DeviationHeading:           ["ProgressAlongReference"]
+
+# Weighted preference
+pref_5:                       &pref_5
+  weights_1:                  []
+
+# Some Combination preference
+pref_6:                       &pref_6
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  weights_5:                  ["DrivableAreaViolation"]
+  LateralComfort:             ["weights_5"]
+  LongitudinalJerk:           ["weights_5"]
+
+
+
+## Test preferences
+test_1:                       &test_1
+  CollisionEnergy:            []
+  ProgressAlongReference:     ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  LateralComfort:             ["CollisionEnergy"]
+  DeviationLateral:           ["ProgressAlongReference"]
+
+test_2:                       &test_2
+  <<: *test_1
+  DeviationHeading:           ["DeviationLateral"]
+  LongitudinalJerk:           ["DrivableAreaViolation", "DeviationHeading"]
+  LongitudinalAcceleration:   ["LateralComfort", "LongitudinalJerk"]
+
+test_3:                       &test_3
+  <<: *test_2
+  SurvivalTime:               ["LateralComfort"]
+  SteeringRate:               ["DrivableAreaViolation", "SurvivalTime"]
+  SteeringAngle:              ["ProgressAlongReference", "SteeringRate"]

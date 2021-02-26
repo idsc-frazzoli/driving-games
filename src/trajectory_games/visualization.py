@@ -18,7 +18,7 @@ from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
 from .paths import Trajectory
 from .static_game import GameVisualization, StaticGamePlayer
-from .preference import PosetalPreference
+from .preference import PosetalPreference, WeightedPreference
 from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TrajGameVisualization"]
@@ -132,7 +132,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         pylab.scatter(x, y, c=v)
 
     def plot_pref(
-        self, pylab, player: StaticGamePlayer, origin: Tuple[float, float], labels: Mapping[str, str] = None
+        self, pylab, player: StaticGamePlayer, origin: Tuple[float, float],
+            labels: Mapping[WeightedPreference, str] = None
     ):
 
         assert isinstance(
@@ -141,7 +142,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         X, Y = origin
         G: DiGraph = player.preference.graph
 
-        def pos_node(n: str):
+        def pos_node(n: WeightedPreference):
             x = G.nodes[n]["x"]
             y = G.nodes[n]["y"]
             return float(x) + X, float(y) + Y
@@ -149,7 +150,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         pos = {_: pos_node(_) for _ in G.nodes}
 
         if labels is None:
-            labels = {n: n for n in G.nodes}
+            labels = {n: str(n) for n in G.nodes}
         else:
             assert len(G.nodes) == len(
                 labels.keys()
