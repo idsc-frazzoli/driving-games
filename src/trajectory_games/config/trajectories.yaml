@@ -21,8 +21,15 @@ traj_1:       &traj
   v_min:      0.5
   st_max:     0.5
 
-traj_2:
+traj_2:       &traj_2
   <<:         *traj
   max_gen:    2
+  n_acc:      1
+  n_dst:      3
+
+traj_4:       &traj_4
+  <<:         *traj_2
+  dt:         0.5
+  max_gen:    4
   n_acc:      1
   n_dst:      3

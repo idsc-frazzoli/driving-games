@@ -1,14 +1,16 @@
 from numbers import Number
-from typing import Sequence, Tuple, Mapping
+from typing import Sequence, Tuple, Mapping, FrozenSet
 
 import numpy as np
 import os
 from decimal import Decimal as D
 from decorator import contextmanager
-from duckietown_world import DuckietownMap
+from duckietown_world import DuckietownMap, LaneSegment
+from duckietown_world.utils import SE2_apply_R2
 from imageio import imread
 from matplotlib import patches
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
 from networkx import MultiDiGraph, DiGraph, draw_networkx_nodes, draw_networkx_edges, draw_networkx_labels
 
 from games import PlayerName
@@ -104,20 +106,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             node_color="grey",
             alpha=0.5,
         )
-        edges = draw_networkx_edges(
-            G,
-            pos=pos,
-            edgelist=G.edges(),
-            alpha=0.5,
-            arrows=False,
-            width=widths,
-            edge_color=colour,
-        )
         ax: Axes = pylab.gca()
         nodes.set_zorder(20)
-        edges.set_zorder(5)
         ax.add_collection(nodes)
-        ax.add_collection(edges)
+
+        state = next(iter(player.state.support()))
+        trajectories = player.actions_generator.get_action_set(state=state, world=None)
+        self.plot_trajectories(pylab=pylab, trajectories=trajectories,
+                               colour=player.vg.colour, width=0.5)
         ax.yaxis.set_ticks_position("left")
         ax.xaxis.set_ticks_position("bottom")
 
@@ -125,11 +121,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         def f(val: D):
             return float(val)
 
-        # TODO[SIR]: Read hard coded value from params
-        vals = [(f(point.x), f(point.y), f(point.v) / 20.0) for time, point in path]
-        x, y, v = zip(*vals)
-        pylab.plot(x, y, color=player.vg.colour)
-        pylab.scatter(x, y, c=v)
+        self.plot_trajectories(pylab=pylab, trajectories=frozenset([path]),
+                               colour=player.vg.colour, width=1.0)
+        vals = [(f(point.x), f(point.y), f(point.t)) for time, point in path]
+        x, y, t = zip(*vals)
+        pylab.scatter(x, y, s=10.0, c=t, zorder=10)
 
     def plot_pref(
         self, pylab, player: StaticGamePlayer, origin: Tuple[float, float],
@@ -169,6 +165,21 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         ax: Axes = pylab.gca()
         draw_networkx_labels(G, pos=pos, labels=labels, ax=ax, font_size=8, font_color="b")
         ax.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
+
+    @staticmethod
+    def plot_trajectories(pylab, trajectories: FrozenSet[Trajectory],
+                          colour: Tuple[float, float, float], width: float):
+        segments = []
+        for traj in trajectories:
+            lane = LaneSegment(width=0.1, control_points=traj.get_path())
+            line_se2 = lane.center_line_points()
+            offset = np.array([0, 0])
+            line = [SE2_apply_R2(p, offset) for p in line_se2]
+            segments.append(np.array(list(zip(*line))).T)
+        lines = LineCollection(segments=segments, colors=colour, linewidths=width)
+        lines.set_zorder(5)
+        ax: Axes = pylab.gca()
+        ax.add_collection(lines)
 
 
 def plot_car(

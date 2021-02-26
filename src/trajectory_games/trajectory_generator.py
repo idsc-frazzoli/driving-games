@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from time import perf_counter
-from typing import FrozenSet, Set, List
+from typing import FrozenSet, Set, List, Dict
 
 from networkx import MultiDiGraph, topological_sort
 
@@ -20,13 +20,20 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
 
 class TrajectoryGenerator1(TrajectoryGenerator):
+    params: TrajectoryParams
+    _bicycle_dyn: BicycleDynamics
+    _cache: Dict[VehicleState, FrozenSet[Trajectory]]
+
     def __init__(self, params: TrajectoryParams):
         self.params = params
         self._bicycle_dyn = BicycleDynamics(params=params)
+        self._cache = {}
 
     def get_action_set(
-        self, state: VehicleState, world: TrajectoryWorld, graph: MultiDiGraph = None
+        self, state: VehicleState, world: TrajectoryWorld = None, graph: MultiDiGraph = None
     ) -> FrozenSet[Trajectory]:
+        if state in self._cache:
+            return self._cache[state]
         tic = perf_counter()
         G = self._get_trajectory_graph(state=state)
         if isinstance(graph, MultiDiGraph):
@@ -34,7 +41,9 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         trajectories = self._trajectory_graph_to_list(G=G)
         toc = perf_counter() - tic
         print(f"Trajectory generation time = {toc:.2f} s")
-        return frozenset(trajectories)
+        ret = frozenset(trajectories)
+        self._cache[state] = ret
+        return ret
 
     def _get_trajectory_graph(self, state: VehicleState) -> MultiDiGraph:
         stack = list([state])
