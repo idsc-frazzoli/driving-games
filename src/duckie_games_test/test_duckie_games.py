@@ -8,6 +8,7 @@ from games import (
     MIX_MNE,
     SECURITY_MNE,
     MIX_STRATEGIES,
+    FINITE_MIX_STRATEGIES,
     PURE_STRATEGIES,
     report_solutions,
     create_report_preprocessed,
@@ -40,15 +41,15 @@ from duckie_games.zoo import (
 
 
 uncertainty_params = [
-    uncertainty_sets,
-    # uncertainty_prob,
+    # [uncertainty_sets, "sets"],
+    [uncertainty_prob, "prob"],
 ]
 
 duckie_game_params = [
     # two_player_4way,
-    two_player_4way_intersection_only,
+    # two_player_4way_intersection_only,
     # three_player_4way,
-    # three_player_4way_intersection_only,
+    three_player_4way_intersection_only,
     # three_player_4way_double,
     # three_player_4way_double_intersection_only,
 ]
@@ -56,6 +57,7 @@ duckie_game_params = [
 strategies = [
     PURE_STRATEGIES,
     # MIX_STRATEGIES
+    # FINITE_MIX_STRATEGIES
 ]
 
 nash_strategy = [
@@ -64,9 +66,9 @@ nash_strategy = [
 ]
 
 use_factorization = [
-    [True, get_game_factorization, "base"],
+    # [True, get_game_factorization, "base"],
     [True, get_game_factorization_no_collision_check, "no_col"],
-    [False, None]
+    # [False, None]
 ]
 
 params = list(product(duckie_game_params, uncertainty_params, strategies, nash_strategy, use_factorization))
@@ -84,8 +86,8 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
     d = "out/"
     game_name = _get_game_name(duckie_game_parameters)
 
-    solver_name = f"{strat}-{nash_strat}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
-    game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params)
+    solver_name = f"{strat}-{nash_strat}-{duckie_uncert_params[1]}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
+    game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params[0])
     use_factorization = use_fact[0]
     get_factorization = use_fact[1]  # factorization algo used
     dt = duckie_game_parameters.dt  # delta-t of discretization

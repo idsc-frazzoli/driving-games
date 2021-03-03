@@ -229,6 +229,7 @@ max_speeds = [D(5), D(5), D(5)]
 min_speeds = [D(1), D(1), D(5)]
 max_waits = [D(1), D(1), D(1)]
 
+# accel = [D(-2), D(-1), D(0), D(0.5), D(+1)]
 accel = [D(-2), D(-1), D(0), D(+1)]
 # accel = [D(-1), D(0), D(+1)]
 # accel = [D(0), D(+3)]

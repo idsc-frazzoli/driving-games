@@ -6,8 +6,10 @@ from games import JointRewardStructure, PlayerName
 from driving_games.collisions import Collision
 
 from duckie_games.collisions_check import (
+    spatial_collision_check_resources_no_energy_players_only,
+    spatial_collision_check_resources_no_energy,
     collision_check_resources_no_energy,
-    collision_check_players_only_resources,
+    collision_check_resources_no_energy_players_only,
     collision_check_rectangle_energy
 )
 from duckie_games.structures import DuckieActions, DuckieGeometry, DuckieState
@@ -25,14 +27,14 @@ class DuckieJointReward(JointRewardStructure[DuckieState, DuckieActions, Collisi
         self.geometries = geometries
         self.dynamics = dynamics
 
-    #@lru_cache(None)
+    # @lru_cache(None)
     @memoized_reset
     def is_joint_final_state(self, xs: Mapping[PlayerName, DuckieState]) -> FrozenSet[PlayerName]:
-        res = collision_check_players_only_resources(xs, self.geometries, self.dynamics)
+        res = spatial_collision_check_resources_no_energy_players_only(xs, self.geometries, self.dynamics)
         return frozenset(res)
 
-    #@lru_cache(None)
+    # @lru_cache(None)
     @memoized_reset
     def joint_reward(self, xs: Mapping[PlayerName, DuckieState]) -> Mapping[PlayerName, Collision]:
-        res = collision_check_resources_no_energy(xs, self.geometries, self.dynamics)
+        res = spatial_collision_check_resources_no_energy(xs, self.geometries, self.dynamics)
         return res
