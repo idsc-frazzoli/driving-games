@@ -15,7 +15,7 @@ from networkx import simple_cycles
 from toolz import valmap
 
 from possibilities import Poss
-from zuper_commons.types import ZValueError
+from zuper_commons.types import ZValueError, ZNotImplementedError
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.create_joint_game_tree import create_game_graph
@@ -26,6 +26,7 @@ from games.game_def import (
     Combined,
     Game,
     JointPureActions,
+    JointMixedActions,
     JointState,
     P,
     PlayerName,
@@ -138,7 +139,7 @@ def solve1(
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
-        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy)
+        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy, gf, player_name)
 
     logger.info(
         f"Value of joint solution",
@@ -373,9 +374,10 @@ def _solve_game(
 
     # logger.info(va=va)
     if va.mixed_actions:
-        next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
+        mixed_actions_res = mixed_actions_resources(sc, va, gn)
+        next_states: Poss[M[PlayerName, JointState]]
         # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
-        next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
+        next_states = ps.join(ps.build_multiple(mixed_actions_res, solved_to_node.__getitem__))
 
         usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
         usages = {D(0): usage_current}
@@ -483,6 +485,12 @@ def solve_final_personal_both(
 
 def solve_final_mixed(sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
+    """
+    Solves end game node which is final and jointly final at the same time
+    :param sc:
+    :param gn:
+    :return:
+    """
 
     game_value: Dict[PlayerName, UncertainCombined] = {}
     game_value.update(
@@ -491,3 +499,29 @@ def solve_final_mixed(sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)
+
+
+def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNode, beta = 0) -> JointMixedActions:
+    """
+    Computes the joint mixed actions for which the players collect resources.
+    For beta=0 we collect the resources for the forward reachable set
+    for beta=1 we collect resources of the game solution.
+
+    :param sc:
+    :param va:
+    :param gn:
+    :param beta: Default is beta=0 (forward reachable set)
+    :return: gamma resources as defined in Christophs Thesis
+    """
+
+    mixed_actions_res: JointMixedActions
+    if beta == 1:  # full trust
+        mixed_actions_res = va.mixed_actions
+    elif beta == 0:  # not trust forward reachable set
+        mixed_actions_res = valmap(sc.game.ps.lift_many, gn.moves)
+    else:
+        raise ZNotImplementedError(
+            "Beta inbetween 0 and 1 not yet implemented",
+            beta=beta
+        )
+    return frozendict(mixed_actions_res)
