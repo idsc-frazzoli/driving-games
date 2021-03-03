@@ -244,7 +244,9 @@ def find_dependencies(
             else:
                 at_i: Poss[Mapping[PlayerName, FSet[SR]]] = ur.used[i]
                 at_i_player: Poss[FSet[SR]]
-                at_i_player = ps.build(at_i, lambda _: _[player_name])
+                # It could be that the player already finished for some actions (does not use any resources)
+                # and for some actions he didn't finish (uses resources) -> return default value empty set
+                at_i_player = ps.build(at_i, lambda _: _.get(player_name, frozenset()))
                 support_sets = flatten_sets(at_i_player.support())
                 res = support_sets
 
