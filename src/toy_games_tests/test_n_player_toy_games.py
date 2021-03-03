@@ -7,6 +7,7 @@ from games import (
     MIX_MNE,
     SECURITY_MNE,
     MIX_STRATEGIES,
+    FINITE_MIX_STRATEGIES,
     PURE_STRATEGIES,
     report_solutions,
     create_report_preprocessed,
@@ -32,6 +33,7 @@ from toy_games.n_player_toy_game_zoo import (
     toy_params_star,
     toy_params_x_with_base,
     toy_params_indep_lanes,
+    toy_params_one_indep_lane,
     toy_params_two_indep_games,
     toy_params_two_x_joint,
     toy_params_two_x_crossed
@@ -42,32 +44,34 @@ uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder
 
 
 uncertainty_params = [
-    uncertainty_sets,
-    # uncertainty_prob,
+    [uncertainty_sets, "sets"],
+    [uncertainty_prob, "prob"],
 ]
 
 toy_game_params = [
     toy_params_x,
-    # toy_params_star,
-    # toy_params_x_with_base,
-    # toy_params_indep_lanes,
+    toy_params_star,
+    toy_params_x_with_base,
+    toy_params_indep_lanes,
+    toy_params_one_indep_lane,
     toy_params_two_indep_games,
-    # toy_params_two_x_joint,
-    # toy_params_two_x_crossed
+    toy_params_two_x_joint,
+    toy_params_two_x_crossed,
 ]
 
 strategies = [
     PURE_STRATEGIES,
-    MIX_STRATEGIES
+    # MIX_STRATEGIES
+    FINITE_MIX_STRATEGIES
 ]
 
 nash_strategy = [
     MIX_MNE,
-    SECURITY_MNE
+    # SECURITY_MNE
 ]
 
 use_factorization = [
-    [True, get_game_factorization, "base"],
+    # [True, get_game_factorization, "base"],
     [True, get_game_factorization_no_collision_check, "no_col"],
     [False, None]
 ]
@@ -85,9 +89,9 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
 
     d = "out/"
     game_name = f"{toy_game_parameters.params_name}"
-    solver_name = f"{strat}-{nash_strat}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
+    solver_name = f"{strat}-{nash_strat}-{uncert_params[1]}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
     logger.info(f"Start test: {game_name} with solver params {solver_name}")
-    game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params)
+    game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params[0])
 
     get_factorization = use_fact[1]  # factorization algo used
     dt = toy_game_parameters.dt  # delta-t of discretization
@@ -134,4 +138,3 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
 
     r_performance = report_performance(list_game_perf=list_game_perf)
     r_performance.to_html(join(ds, "r_performance.html"))
-

@@ -2,7 +2,9 @@ from typing import FrozenSet, Mapping, Optional, Tuple, Type
 import itertools
 from zuper_commons.types import check_isinstance
 from decimal import Decimal as D
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from fractions import Fraction
+from math import isclose
 
 from zuper_typing import debug_print
 
@@ -51,7 +53,33 @@ class ToyCarPersonalRewardStructureCustom(PersonalRewardStructure[ToyCarState, T
 
 @dataclass(frozen=True)
 class ToyCollision:
-    active: bool
+    #active: bool
+    active: D # 1 indicates the car was active 0 indicates it was not active
+
+    # Monoid sum of Collision
+    def __add__(self, other: "ToyCollision") -> "ToyCollision":
+        if other is None:
+            return self
+        elif isinstance(other, ToyCollision):
+            # fixme how to propagate "active" and "location" ?
+            return replace(
+                self,
+                active=self.active + other.active
+            )
+        else:
+            raise NotImplementedError
+
+    __radd__ = __add__
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "ToyCollision":
+        # weighting costs, e.g. according to a probability
+        w = D(float(weight))
+        return replace(
+            self, active=self.active * w
+        )
+
+    __rmul__ = __mul__
 
 
 class ToyCarPreferences(Preference[Combined[ToyCollision, ToyCarCosts]]):
@@ -90,12 +118,12 @@ class ToyCarPreferences(Preference[Combined[ToyCollision, ToyCarCosts]]):
 class ToyCarJointReward(JointRewardStructure[ToyCarState, ToyCarActions, ToyCollision]):
 
     def is_joint_final_state(self, xs: Mapping[PlayerName, ToyCarState]) -> FrozenSet[PlayerName]:
-        res = toy_collision_check(joint_state=xs)
+        res = toy_collision_check2(joint_state=xs)
         return frozenset(res)
 
     def joint_reward(self, xs: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
 
-        res = toy_collision_check(joint_state=xs)
+        res = toy_collision_check2(joint_state=xs)
         return res
 
 
@@ -119,10 +147,12 @@ def toy_collision_check(joint_state: Mapping[PlayerName, ToyCarState]) -> Mappin
         else:
             # collision
             c1 = ToyCollision(
-                active=True
+                #active=True
+                active=D(1)
             )
             c2 = ToyCollision(
-                active=True
+                #active=True
+                active=D(1)
             )
 
             two_player_col = {p1: c1, p2: c2}
@@ -146,7 +176,8 @@ def toy_stop_game_for_players_around(
 
     col_dict = {}
     empty_col = ToyCollision(
-        active=False,
+        # active=False,
+        active=D(0)
     )
     col_point = joint_state[col_player1].point_in_map
 
@@ -171,6 +202,41 @@ def toy_stop_game_for_players_around(
     return col_dict
 
 
+def toy_collision_check2(joint_state: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
+    collision_dict = {}
+
+    players = list(joint_state)
+
+    for p1, p2 in itertools.combinations(players, 2):
+
+        # if p1 in collision_dict or p2 in collision_dict:
+        #     # Have already been in a collision or near a collision
+        #     continue
+
+        s1 = joint_state[p1]
+        s2 = joint_state[p2]
+
+        if not s1.point_in_map == s2.point_in_map:
+            # no collision
+            continue
+        else:
+            # collision
+            c1 = ToyCollision(
+                # active=True
+                active=D(1)
+            )
+            c2 = ToyCollision(
+                # active=True
+                active=D(1)
+            )
+
+            two_player_col = {p1: c1, p2: c2}
+
+            collision_dict.update(two_player_col)
+
+    return collision_dict
+
+
 class ToyCollisionPreference(Preference[Optional[ToyCollision]]):
 
     def get_type(self) -> Type[Optional[ToyCollision]]:
@@ -185,13 +251,21 @@ class ToyCollisionPreference(Preference[Optional[ToyCollision]]):
             return SECOND_PREFERRED
         assert a is not None
         assert b is not None
-        if a.active and not b.active:
-            return SECOND_PREFERRED
-        if b.active and not a.active:
-            return FIRST_PREFERRED
+        # if a.active and not b.active:
+        #     return SECOND_PREFERRED
+        # if b.active and not a.active:
+        #     return FIRST_PREFERRED
+        #
+        # if (a.active and b.active) or (not a.active and not b.active):
+        #     return INDIFFERENT
 
-        if (a.active and b.active) or (not a.active and not b.active):
+        if isclose(a.active, b.active):
             return INDIFFERENT
+
+        if a.active > b.active:
+            return SECOND_PREFERRED
+        if b.active > a.active:
+            return FIRST_PREFERRED
 
         assert False, "Should not happen"
 

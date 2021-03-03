@@ -8,6 +8,7 @@ __all__ = [
     "toy_params_star",
     "toy_params_x_with_base",
     "toy_params_indep_lanes",
+    "toy_params_one_indep_lane",
     "toy_params_two_indep_games",
     "toy_params_two_x_joint",
     "toy_params_two_x_crossed"
@@ -167,12 +168,12 @@ toy_params_x_with_base = ToyGameParams(
 """
 This map contains 3 independent lanes. No collision happened
 
-                (2)
-       (1) x-----x-----x (3)
-                (5)
-       (4) x-----x-----x (6)
-                 (8)
-       (7) x-----x-----x (9)
+                (2)    (3)
+       (1) x-----x-----x-----x (4)
+                (6)   (7)
+       (5) x-----x-----x-----x (8)
+                 (10)  (11)
+       (9) x-----x-----x-----x (12)
 
 """
 
@@ -180,23 +181,26 @@ toy_lane_indep_lanes_1 = ToyLane(
     control_points=frozendict({
         0: 1,
         1: 2,
-        2: 3
+        2: 3,
+        3: 4
     })
 )
 
 toy_lane_indep_lanes_2 = ToyLane(
     control_points=frozendict({
-        0: 4,
-        1: 5,
-        2: 6
+        0: 5,
+        1: 6,
+        2: 7,
+        3: 8
     })
 )
 
 toy_lane_indep_lanes_3 = ToyLane(
     control_points=frozendict({
-        0: 7,
-        1: 8,
-        2: 9
+        0: 9,
+        1: 10,
+        2: 11,
+        3: 12
     })
 )
 
