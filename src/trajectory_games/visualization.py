@@ -111,7 +111,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         ax.add_collection(nodes)
 
         state = next(iter(player.state.support()))
-        trajectories = player.actions_generator.get_action_set(state=state, world=None)
+        trajectories = player.actions_generator.get_action_set(state=state, world=None, player=player.name)
         self.plot_trajectories(pylab=pylab, trajectories=trajectories,
                                colour=player.vg.colour, width=0.5)
         ax.yaxis.set_ticks_position("left")

@@ -43,7 +43,7 @@ class ActionSetGenerator(Generic[X, U, W], ABC):
     """ A generic getter for the available actions"""
 
     @abstractmethod
-    def get_action_set(self, state: X, world: W, **kwargs) -> FrozenSet[U]:
+    def get_action_set(self, state: X, player: PlayerName, world: W, **kwargs) -> FrozenSet[U]:
         pass
 
 

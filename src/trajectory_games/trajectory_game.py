@@ -83,7 +83,7 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         assert len(states) == 1, states
         game_player.graph = MultiDiGraph()
         available_traj[player_name] = game_player.actions_generator.get_action_set(
-            state=next(iter(states)), world=sgame.world, graph=game_player.graph
+            state=next(iter(states)), world=sgame.world, graph=game_player.graph, player=player_name
         )
 
     # Compute the distribution of outcomes for each joint action

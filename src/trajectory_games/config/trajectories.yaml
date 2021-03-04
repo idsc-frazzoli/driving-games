@@ -10,10 +10,10 @@
 #  v_min:      Minimum velocity (m/s)
 #  st_max:     Maximum steering angle (rad)
 
-traj_1:       &traj
+traj_1:       &traj_1
   max_gen:    1
   dt:         1.0
-  step_acc:   3
+  step_acc:   5
   n_acc:      3
   step_dst:   0.1
   n_dst:      1
@@ -22,10 +22,18 @@ traj_1:       &traj
   st_max:     0.5
 
 traj_2:       &traj_2
-  <<:         *traj
+  <<:         *traj_1
+  dt:         1.2
   max_gen:    2
   n_acc:      1
   n_dst:      3
+
+traj_3:       &traj_3
+  <<:         *traj_1
+  dt:         0.8
+  max_gen:    3
+  n_acc:      1
+  n_dst:      1
 
 traj_4:       &traj_4
   <<:         *traj_2

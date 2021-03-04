@@ -3,14 +3,12 @@ from itertools import product
 from typing import FrozenSet, Set, Mapping
 from decimal import Decimal as D
 
-from games import Dynamics
-from driving_games import Rectangle, make_rectangle
 from .structures import VehicleState, VehicleActions, VehicleGeometry, TrajectoryParams
 
 __all__ = ["BicycleDynamics"]
 
 
-class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
+class BicycleDynamics:
     v_max: D
     """ Maximum speed [m/s] """
 
@@ -36,6 +34,10 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         self.vg = params.vg
         self.u_acc = params.u_acc
         self.u_dst = params.u_dst
+        if not self.u_acc:
+            raise ValueError("No feasible acceleration")
+        if not self.u_dst:
+            raise ValueError("No feasible steering rate")
 
     def all_actions(self) -> Set[VehicleActions]:
         res = set()
@@ -43,17 +45,22 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
             res.add(VehicleActions(acc=acc, dst=dst))
         return res
 
-    def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, VehicleState]:
+    def successors(self, x: VehicleState, dt: D, u0: VehicleActions = None) \
+            -> Mapping[VehicleActions, VehicleState]:
         """ For each state, returns a dictionary U -> Possible Xs """
 
-        # only allow inputs with feasible final vel, st
-        u_acc = [_ for _ in self.u_acc if self.v_min <= x.v + _ * dt <= self.v_max]
-        u_dst = [_ for _ in self.u_dst if -self.st_max <= x.st + _ * dt <= self.st_max]
+        def get_clip(val, lo, hi):
+            if lo <= val <= hi:
+                return val
+            if val < lo:
+                return lo
+            return hi
 
-        if not u_acc:
-            raise ValueError("No feasible acceleration")
-        if not u_dst:
-            raise ValueError("No feasible steering rate")
+        if u0 is None:
+            u0 = VehicleActions(acc=D("0"), dst=D("0"))
+        u_acc = set([get_clip(val=_+u0.acc, lo=(self.v_min-x.v)/dt, hi=(self.v_max-x.v)/dt) for _ in self.u_acc])
+        u_dst = set([get_clip(val=_+u0.dst, lo=(-self.st_max-x.st)/dt, hi=(self.st_max-x.st)/dt) for _ in self.u_dst])
+
         res = {}
         for acc, dst in product(u_acc, u_dst):
             u = VehicleActions(acc=acc, dst=dst)
@@ -68,10 +75,9 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         stf = clip(x0.st + u.dst * dt, low=-self.st_max, high=self.st_max)
         u_clip = VehicleActions(acc=(vf - x0.v) / dt, dst=(stf - x0.st) / dt)
 
-        alpha = D("1")
         k1 = self.dynamics(x0, u_clip)
-        k2 = self.dynamics(x0 + k1 * (dt * alpha), u_clip)
-        ret = x0 + k1 * (dt * (D("0.5") / alpha)) + k2 * (dt * (D("0.5") / alpha))
+        k2 = self.dynamics(x0 + k1 * dt, u_clip)
+        ret = x0 + (k1 + k2) * (dt / D("2"))
         return ret
 
     def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
@@ -86,11 +92,3 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         ydot = dx * sinth + dy * costh
         ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=D("1"))
         return ret
-
-    def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:
-        # TODO[SIR]: Rectangle assumes heading is along one axis,
-        #  change this to generalise for any random heading
-        center = x.x, x.y
-        sides = self.vg.w, 2 * self.vg.l
-        rect = make_rectangle(center=center, sides=sides)
-        return frozenset({rect})

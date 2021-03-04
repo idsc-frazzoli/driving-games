@@ -86,7 +86,8 @@ def equilibria_check(joint_actions, context: StaticSolvingContext):
             comp_outcome: ComparisonOutcome = context.outcome_pref[player].compare(
                 player_outcome, player_outcome_alt
             )
-            results.add(comp_outcome)
+            if comp_outcome != INDIFFERENT:
+                results.add(comp_outcome)
 
             # If second option is preferred, current point is not a nash eq.
             if comp_outcome == SECOND_PREFERRED:
@@ -101,7 +102,7 @@ def equilibria_check(joint_actions, context: StaticSolvingContext):
         return joint_actions, outcome, False, False, False, False
 
     strong = results == {FIRST_PREFERRED}
-    weak = INDIFFERENT in results or INCOMPARABLE in results
-    indiff = INDIFFERENT in results
+    indiff = not bool(results)      # INDIFFERENT if set is empty
     incomp = INCOMPARABLE in results
+    weak = indiff or incomp
     return joint_actions, outcome, indiff, incomp, weak, strong
