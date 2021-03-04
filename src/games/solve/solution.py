@@ -105,8 +105,13 @@ def solve1(
     else:
         gf = None
 
+    if game_perf:
+        create_gt_perf = game_perf.create_gt_pi
+    else:
+        create_gt_perf = None
+
     t1 = perf_counter()
-    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf, create_gt_perf=game_perf.create_gt_pi)
+    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf, create_gt_perf=create_gt_perf)
     t2 = perf_counter()
     tot_t = t2 - t1
     logger.info("Time to create the game tree", time=tot_t)
