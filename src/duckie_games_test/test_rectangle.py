@@ -1,0 +1,383 @@
+from matplotlib import pyplot as plt
+from matplotlib.image import imread
+import numpy as np
+from decimal import Decimal as D
+import os
+import math
+from math import isclose
+from functools import partial
+
+from zuper_commons.types import ZNotImplementedError
+
+from duckie_games.rectangle import (
+    Rectangle,
+    Coordinates,
+    two_rectangle_intersection
+)
+
+from world.map_loading import map_directory
+
+module_path = os.path.dirname(__file__)
+
+
+def test_rectangle_visual():
+    """
+    Tests visually the rectangle class
+    """
+    background_path = os.path.join(map_directory, "4way.png")
+    x_back = 7
+    y_back = 7
+
+    orientation = D(20)
+    translation = D(3), D(4)
+    height = D(4)
+    width = D(2)
+
+    center_pose = (translation[0], translation[1], orientation)
+    rect = Rectangle(
+        center_pose=center_pose,
+        width=width,
+        height=height
+    )
+    contour = rect.closed_contour
+    contour_np = np.array(contour).T
+    x_cont, y_cont = contour_np[0, :], contour_np[1, :]
+
+    point_inside = rect.get_points_inside()
+    point_inside_np = np.array(point_inside).T
+    x_pin, y_pin = point_inside_np[0, :], point_inside_np[1, :]
+
+    fig, ax = plt.subplots()
+    ax.set_title("Rectangle Test")
+
+    try:
+        img = imread(background_path)
+        ax.imshow(img, extent=[0, x_back, 0, y_back])
+    except FileNotFoundError:
+        ax.set_xlim(left=0, right=x_back)
+        ax.set_ylim(bottom=0, top=y_back)
+
+    ax.plot(x_cont, y_cont, linewidth=2)
+    ax.plot(*translation, 'x')
+    ax.plot(x_pin, y_pin, 'x')
+    try:
+        fig.savefig("out/test_rectangle.png")
+    except FileNotFoundError:
+        os.mkdir('out')
+        fig.savefig("out/test_rectangle.png")
+
+    fig.tight_layout()
+    fig.show()
+    plt.close(fig=fig)
+
+
+def test_rectangle_properties():
+
+    ref_orientation = D(30)
+    ref_orientation_rad = D(math.pi) / D(6)
+    ref_translation = D(3), D(4)
+    ref_height = D(3)
+    ref_width = D(4)
+    ref_area = D(12)
+    ref_angle_diag_x = 73.74
+    ref_angle_diag_y = 106.26 
+    
+    tol = 1e-2
+    isclose_wtol = partial(isclose, abs_tol=tol)
+
+    center_pose = (ref_translation[0], ref_translation[1], ref_orientation)
+    test_rect = Rectangle(
+        center_pose=center_pose,
+        width=ref_width,
+        height=ref_height
+    )
+
+    area = test_rect.area
+    assert isclose(ref_area, area), (
+        f"Area calculation does not work.\n"
+        f"ref {ref_area} is not {area}"
+    )
+
+    sizes = test_rect.sizes
+
+    assert all(map(isclose, [ref_width, ref_height], sizes)), (
+        f"Size function does not work.\n"
+        f"ref {[ref_width, ref_height]} is not {sizes}"
+    )
+    
+    center = test_rect.center
+    assert all(map(isclose, ref_translation, center)), (
+        f"Center function does not work.\n"
+        f"ref {ref_translation} is not {center}"
+    ) 
+    
+    orient_in_deg = test_rect.orientation_in_deg
+    assert isclose(ref_orientation, orient_in_deg), (
+        f"Orientation function in degrees does not work.\n"
+        f"ref {ref_orientation} is not {orient_in_deg}"
+    ) 
+    
+    orient_in_rad = test_rect.orientation_in_rad
+    assert isclose(ref_orientation_rad, orient_in_rad), (
+        f"Orientation function in rad does not work.\n"
+        f"ref {ref_orientation_rad} is not {orient_in_rad}"
+    )
+
+    angle_diag_x, angle_diag_y = test_rect.angles_diagnoals
+    assert isclose_wtol(ref_angle_diag_x, angle_diag_x), (
+        f"Diagonal angle function for x does not work.\n"
+        f"ref {ref_angle_diag_x} is not {angle_diag_x}"
+    )
+    
+    assert isclose_wtol(ref_angle_diag_y, angle_diag_y), (
+        f"Diagonal angle function for x does not work.\n"
+        f"ref {ref_angle_diag_y} is not {angle_diag_y}"
+    )
+
+
+def test_rectangle_intersection():
+    """
+    Tests the rectangle intersection function
+    """
+    background_path = os.path.join(map_directory, "4way.png")
+
+    x_back = 8
+    y_back = 8
+
+    rect_params = {
+        "orientation": [
+            [D(50), D(-40)],
+            [D(10), D(13.5)],
+            [D(0), D(90)]
+        ],
+        "translation": [
+            [(D(2), D(4)), (D(1.3), D(4.7))],
+            [(D(5), D(1.5)), (D(5), D(3.5))],
+            [(D(6), D(7)), (D(7), D(6))]
+        ],
+        "height": [
+            [D(3.5), D(2.5)],
+            [D(1), D(2)],
+            [D(1), D(1)]
+        ],
+        "width": [
+            [D(1.5), D(0.5)],
+            [D(3), D(1)],
+            [D(3), D(3)]
+        ],
+        "intersect": [
+            True,
+            False,
+            True
+        ]
+    }
+
+    fig, ax = plt.subplots()
+    ax.set_title("Rectangle Test")
+
+    try:
+        img = imread(background_path)
+        ax.imshow(img, extent=[0, x_back, 0, y_back])
+    except FileNotFoundError:
+        ax.set_xlim(left=0, right=x_back)
+        ax.set_ylim(bottom=0, top=y_back)
+
+    for i in range(len(list(rect_params.values())[0])):
+
+        orientation1 = rect_params["orientation"][i][0]
+        translation1 = rect_params["translation"][i][0]
+        height1 = rect_params["height"][i][0]
+        width1 = rect_params["width"][i][0]
+
+        orientation2 = rect_params["orientation"][i][1]
+        translation2 = rect_params["translation"][i][1]
+        height2 = rect_params["height"][i][1]
+        width2 = rect_params["width"][i][1]
+
+        center_pose1 = (translation1[0], translation1[1], orientation1)
+        rect1 = Rectangle(
+            center_pose=center_pose1,
+            width=width1,
+            height=height1
+        )
+        contour1 = rect1.closed_contour
+        contour_np1 = np.array(contour1).T
+        x_cont1, y_cont1 = contour_np1[0, :], contour_np1[1, :]
+
+        center_pose2 = (translation2[0], translation2[1], orientation2)
+        rect2 = Rectangle(
+            center_pose=center_pose2,
+            width=width2,
+            height=height2
+        )
+        contour2 = rect2.closed_contour
+        contour_np2 = np.array(contour2).T
+        x_cont2, y_cont2 = contour_np2[0, :], contour_np2[1, :]
+
+        ax.plot(x_cont1, y_cont1, linewidth=2)
+        ax.plot(*translation1, 'x')
+
+        ax.plot(x_cont2, y_cont2, linewidth=2)
+        ax.plot(*translation2, 'x')
+
+        if rect_params["intersect"][i]:
+            assert two_rectangle_intersection(r1=rect1, r2=rect2), f"Rectangles number {i} should intersect"
+        else:
+            assert not two_rectangle_intersection(r1=rect1, r2=rect2), f"Rectangles number {i} should not intersect"
+    try:
+        fig.savefig("out/test_rectangle_intersection.png")
+    except FileNotFoundError:
+        os.mkdir('out')
+        fig.savefig("out/test_rectangle_intersection.png")
+
+    fig.tight_layout()
+    fig.show()
+    plt.close(fig=fig)
+
+
+def test_coordinate_algebra():
+    """
+    Tests the algebra of the Coordinates class (sum, division, etc)
+    """
+    ref_list1 = [D(4), D(5)]
+    ref_list2 = [D(1), D(3)]
+    ref_coord1 = Coordinates(ref_list1)
+    ref_coord2 = Coordinates(ref_list2)
+
+    ref_sum = []
+    ref_sub = []
+    for x1, x2 in zip(ref_list1, ref_list2):
+        ref_sum.append(x1 + x2)
+        ref_sub.append(x1 - x2)
+
+    _sum = ref_coord1 + ref_coord2
+    _sub = ref_coord1 - ref_coord2
+
+    assert all(map(isclose, _sum, ref_sum)), "Sum operator does not work properly"
+
+    assert all(map(isclose, _sub, ref_sub)), "Subtraction operator does not work properly"
+
+    try:
+        ref_coord1 + ref_list1
+    except ZNotImplementedError:
+        pass
+    else:
+        assert False, "Addition of other types possible"
+
+    try:
+        ref_coord1 - ref_list1
+    except ZNotImplementedError:
+        pass
+    else:
+        assert False, "Subtraction of other types possible"
+
+    numb = 2
+    to_div_mult = [D(numb), float(numb), int(numb)]
+
+    for _ in to_div_mult:
+        _div = ref_coord1 / _
+        ref_div = [ref_list1[0] / D(_), ref_list1[1] / D(_)]
+        assert all(map(isclose, _div, ref_div)), f"Division of type {type(_)} not possible"
+        _mult = ref_coord1 * _
+        ref_mult = [ref_list1[0] * D(_), ref_list1[1] * D(_)]
+
+        _rmult = _ * ref_coord1
+        ref_rmult = [D(_) * ref_list1[0], D(_) * ref_list1[1]]
+
+        assert all(map(isclose, _mult, ref_mult)), f"Left multiplication of type {type(_)} not possible"
+
+        assert all(map(isclose, _rmult, ref_rmult)), f"Right multiplication of type {type(_)} not possible"
+
+        assert all(map(isclose, _mult, _rmult)), f"Right and left multiplication of type {type(_)} are not the same"
+
+    try:
+        ref_coord1 / ref_coord2
+    except ZNotImplementedError:
+        pass
+    else:
+        assert False, "Division with itself possible"
+
+    try:
+        ref_coord1 * ref_coord2
+    except ZNotImplementedError:
+        pass
+    else:
+        assert False, "Multiplication with itself possible"
+
+
+def test_coordinates_conversions():
+    """
+    Tests the different conversion functions of the class Coordinates
+    """
+    test_coord = {
+        'x': [
+            4.0,
+            -4,
+            4,
+            -4,
+            2,
+            -10.9,
+            -0.1,
+            0,
+            0
+              ],
+        'y': [
+            3,
+            3,
+            -3.0,
+            -3,
+            0.0,
+            0,
+            -0,
+            3.5,
+            -3.9
+        ],
+        'r': [
+            5,
+            5,
+            5,
+            5,
+            2,
+            10.9,
+            0.1,
+            3.5,
+            3.9
+        ],
+        'theta': [
+            36.87,
+            143.13,
+            -36.87,
+            -143.13,
+            0,
+            180,
+            180,
+            90,
+            -90
+        ]
+    }
+    tol = 1e-2
+    isclose_wtol = partial(isclose, abs_tol=tol)
+
+    for x_ref, y_ref, r_ref, theta_ref in zip(*test_coord.values()):
+        ref_coord_as_float = (x_ref, y_ref)
+        ref_coord_as_coord = Coordinates((D(x_ref), D(y_ref)))
+        ref_coord_as_polar = (D(r_ref), D(theta_ref))
+
+        coord_from_floats = Coordinates.from_float_tuple(ref_coord_as_float)
+
+        assert all(map(isclose_wtol, ref_coord_as_coord, coord_from_floats)), (
+            f"Conversion from float tuples did not work.\n"
+            f"ref {ref_coord_as_coord} is not {coord_from_floats}"
+        )
+        coord_as_floats = ref_coord_as_coord.as_float_tuple()
+        assert all(map(isclose_wtol, ref_coord_as_float, coord_as_floats)), (
+            f"Conversion to float tuples did not work.\n"
+            f"ref {ref_coord_as_float} is not {coord_as_floats}"
+        )
+
+        coord_as_polars = ref_coord_as_coord.as_polar()
+
+        assert all(map(isclose_wtol, ref_coord_as_polar, coord_as_polars)), (
+            f"Conversion to polar coordiates failed.\n"
+            f"ref {ref_coord_as_polar} is not {coord_as_polars}"
+        )

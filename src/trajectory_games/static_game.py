@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional
 
+from networkx import MultiDiGraph
+
 from games import (
     PlayerName,
     U,
@@ -19,7 +21,9 @@ from preferences import Preference
 
 __all__ = [
     "W",
+    "G",
     "ActionSetGenerator",
+    "GameVisualization",
     "StaticGamePlayer",
     "StaticGame",
     "StaticSolvedGameNode",
@@ -29,6 +33,8 @@ __all__ = [
 
 W = TypeVar("W")
 """Generic variable for a world"""
+G = TypeVar("G")
+"""Generic variable for a geometry"""
 
 JointOutcome = Mapping[PlayerName, P]
 
@@ -37,12 +43,28 @@ class ActionSetGenerator(Generic[X, U, W], ABC):
     """ A generic getter for the available actions"""
 
     @abstractmethod
-    def get_action_set(self, state: X, world: W) -> FrozenSet[U]:
+    def get_action_set(self, state: X, world: W, **kwargs) -> FrozenSet[U]:
+        pass
+
+
+class GameVisualization(Generic[X, U, W], ABC):
+    """ A generic game visualization interface"""
+
+    @abstractmethod
+    def plot_arena(self, pylab, ax):
+        pass
+
+    @abstractmethod
+    def plot_player(self, player_name: PlayerName, state: X):
+        pass
+
+    @abstractmethod
+    def plot_actions(self, player: "StaticGamePlayer"):
         pass
 
 
 @dataclass
-class StaticGamePlayer(Generic[X, U, W, P]):
+class StaticGamePlayer(Generic[X, U, W, P, G]):
     """ Information about one player. """
 
     state: Poss[X]
@@ -53,21 +75,27 @@ class StaticGamePlayer(Generic[X, U, W, P]):
     """ Its preferences about the outcomes. """
     monadic_preference_builder: MonadicPreferenceBuilder
     """ How to elevate and evaluate preferences over monadic outcomes."""
+    vg: G
+    """ Vehicle geometry """
+    graph: MultiDiGraph = None
+    """The networkx graph"""
 
 
 @dataclass
-class StaticGame(Generic[X, U, W, P]):
+class StaticGame(Generic[X, U, W, P, G]):
     """A static game is a single stage game where players have a finite action set.
     We are considering games in which the agents live in a common world."""
 
     world: W
     """The world where the agents live"""
-    game_players: Mapping[PlayerName, StaticGamePlayer[X, U, W, P]]
+    game_players: Mapping[PlayerName, StaticGamePlayer[X, U, W, P, G]]
     """The players"""
     ps: PossibilityMonad
     """The game monad"""
     get_outcomes: Callable[[JointPureActions, W], JointOutcome]
     """The "game dynamics", given a pure action for each player, we have a distribution of outcomes"""
+    game_vis: GameVisualization[X, U, W]
+    """The game visualization"""
 
 
 @dataclass(frozen=True, unsafe_hash=True)
