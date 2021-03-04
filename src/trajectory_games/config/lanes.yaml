@@ -1,17 +1,46 @@
 
 #map_name:
-#  direction1:     [List of Nodes]
-#  direction2:     [List of Nodes]
+#  direction1direction2lane:     [List of Nodes]
+#  direction1direction2lane:     [List of Nodes]
 #  ...
-# Lane number: 1-right, 2-left
+#  direction - d(down), r(right), u(up), l(left)
+#  Lane number: 1-right, 2-left, 3-cross
 
 4way-double-intersection-only:
-  down_left_1:      ['P30', 'P21', 'P8',  'P9' ]
-  down_left_2:      ['P31', 'P20', 'P10', 'P11']
-  right_left_2:     ['P27', 'P22', 'P10', 'P11']
-  left_up_1:        ['P12', 'P13', 'P0',  'P1' ]
-  left_up_2:        ['P14', 'P15', 'P2',  'P3' ]
-  up_down_1:        ['P4',  'P5',  'P17', 'P28']
-  down_right_1:     ['P30', 'P21', 'P18', 'P24']
-  down_right_2:     ['P31', 'P20', 'P19', 'P25']
+
+  dl1:      ['P30', 'P21', 'P8',  'P9' ]
+  dl2:      ['P31', 'P20', 'P10', 'P11']
+  dl3:      ['P30', 'P20', 'P10', 'P11']
+  du1:      ['P30', 'P21', 'P0',  'P1' ]
+  du2:      ['P31', 'P20', 'P2',  'P3' ]
+  dr1:      ['P30', 'P21', 'P18', 'P24']
+  dr2:      ['P31', 'P20', 'P19', 'P25']
+  dr3:      ['P31', 'P21', 'P18', 'P24']
+
+  rd1:      ['P26', 'P23', 'P17', 'P28']
+  rd2:      ['P27', 'P22', 'P16', 'P29']
+  rd3:      ['P26', 'P22', 'P16', 'P29']
+  rl1:      ['P26', 'P23', 'P8',  'P9' ]
+  rl2:      ['P27', 'P22', 'P10', 'P11']
+  ru1:      ['P26', 'P23', 'P0',  'P1' ]
+  ru2:      ['P27', 'P22', 'P2',  'P3' ]
+  ru3:      ['P27', 'P23', 'P0',  'P1' ]
+
+  ur1:      ['P4',  'P5',  'P18', 'P24']
+  ur2:      ['P6',  'P7',  'P19', 'P25']
+  ur3:      ['P4',  'P7',  'P19', 'P25']
+  ud1:      ['P4',  'P5',  'P17', 'P28']
+  ud2:      ['P6',  'P7',  'P16', 'P29']
+  ul1:      ['P4',  'P5',  'P8',  'P9' ]
+  ul2:      ['P6',  'P7',  'P10', 'P11']
+  ul3:      ['P6',  'P5',  'P8',  'P9' ]
+
+  lu1:      ['P12', 'P13', 'P0',  'P1' ]
+  lu2:      ['P14', 'P15', 'P2',  'P3' ]
+  lu3:      ['P12', 'P15', 'P2',  'P3' ]
+  lr1:      ['P12', 'P13', 'P18', 'P24']
+  lr2:      ['P14', 'P15', 'P19', 'P25']
+  ld1:      ['P12', 'P13', 'P17', 'P28']
+  ld2:      ['P14', 'P15', 'P16', 'P29']
+  ld3:      ['P14', 'P13', 'P17', 'P28']
 
