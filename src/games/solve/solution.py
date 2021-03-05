@@ -47,6 +47,7 @@ from .solution_structures import (
     GameGraph,
     GameNode,
     GamePreprocessed,
+    GameFactorization,
     GameSolution,
     Solutions,
     SolutionsPlayer,
@@ -124,7 +125,7 @@ def solve1(
 
     # solve sequential games equilibria
     if len(initial_state) == 2:  # todo define sequential games for n>2
-        sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+        sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims, gf=gf)
 
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
@@ -185,7 +186,11 @@ def get_initial_states(game_prepro: GamePreprocessed) -> List[JointState]:
 
 
 def solve_sequential_games(
-    gp: GamePreprocessed, gg: GameGraph, initial_state: JointState, sims: Dict[str, Simulation]
+    gp: GamePreprocessed,
+    gg: GameGraph,
+    initial_state: JointState,
+    sims: Dict[str, Simulation],
+    gf: Optional[GameFactorization] = None
 ) -> Dict[str, Simulation]:
     """#todo
 
@@ -193,6 +198,7 @@ def solve_sequential_games(
     :param gg:
     :param initial_state:
     :param sims:
+    :param gf:
     :return:
     """
     for player_name, pp in gp.players_pre.items():
@@ -218,7 +224,12 @@ def solve_sequential_games(
         logger.info(msg, game_values=game_values)
 
         controllers = dict(controllers_others)
-        controllers[player_name] = AgentFromPolicy(gp.game.ps, solution_ghost.policies[player_name])
+        controllers[player_name] = AgentFromPolicy(
+            gp.game.ps,
+            solution_ghost.policies[player_name],
+            gf=gf,
+            player_name=player_name
+        )
         sim_ = simulate1(
             gp.game,
             policies=controllers,
@@ -371,60 +382,10 @@ def _solve_game(
         # there are still active players
         va = solve_equilibria(sc, gn, solved)
 
-    ur: UsedResources[X, U, Y, RP, RJ, SR]
-    usage_current = ps.unit(gn.resources)
-
     # start timer for resource collection times
     t1 = perf_counter()
 
-    # logger.info(va=va)
-    if va.mixed_actions:
-        mixed_actions_res = mixed_actions_resources(sc, va, gn)
-        next_states: Poss[M[PlayerName, JointState]]
-        # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
-        next_states = ps.join(ps.build_multiple(mixed_actions_res, solved_to_node.__getitem__))
-
-        usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
-        usages = {D(0): usage_current}
-        # Π = 1
-
-        for i in map(D, range(10)):  # todo: use the range that's needed
-            default = ps.unit(frozendict())
-
-            def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
-                used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
-                for pname in va.mixed_actions:
-
-                    def get_its(y: M[PlayerName, FSet[SR]]) -> FSet[SR]:
-                        return y.get(pname, frozenset())
-
-                    st = x[player_name]
-                    gn_ = sc.cache[st]
-                    ui = gn_.ur.used.get(i, default)
-                    used_at_i_by_player: Poss[FSet[SR]] = ps.build(ui, get_its)
-                    used_by_players[pname] = used_at_i_by_player
-
-                def remove_empty(_: M[PlayerName, FSet[SR]]) -> M[PlayerName, FSet[SR]]:
-                    notempty = {}
-                    for k, sr_used in _.items():
-                        if sr_used:
-                            notempty[k] = sr_used
-                    return frozendict(notempty)
-
-                res: Poss[M[PlayerName, FSet[SR]]]
-                res = ps.build_multiple(used_by_players, remove_empty)
-                return res
-
-            at_d = ps.build(next_states, get_data)
-            f = ps.join(at_d)
-            if f.support() != {frozendict()}:
-                usages[i + 1] = f
-
-        # logger.info(next_resources=next_resources, usages=usages)
-        ur = UsedResources(frozendict(usages))
-    else:
-        usages_ = frozendict({D(0): usage_current})
-        ur = UsedResources(usages_)
+    ur = get_resources_old(sc, va, gn, solved_to_node)
 
     # stop timer for resource collection time, collect performance if given
     t2 = perf_counter()
@@ -504,6 +465,132 @@ def solve_final_mixed(sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)
+
+
+def get_resources(
+        sc: SolvingContext,
+        va: ValueAndActions,
+        gn: GameNode,
+        solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
+        beta=1
+) -> UsedResources:
+    ps = sc.game.ps
+    ur: UsedResources[X, U, Y, RP, RJ, SR]
+    usage_current = ps.unit(gn.resources)
+    # logger.info(va=va)
+    if va.mixed_actions:
+        mixed_actions_res = mixed_actions_resources(sc, va, gn, beta)
+        next_states: Poss[M[PlayerName, JointState]]
+        # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
+        next_states = ps.join(ps.build_multiple(mixed_actions_res, solved_to_node.__getitem__))
+
+        usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
+        usages = {D(0): usage_current}
+        # Π = 1
+        i = D(0)
+        while True:
+            default = ps.unit(frozendict())
+
+            def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
+                used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
+                for pname in va.mixed_actions:
+                    def get_its(y: M[PlayerName, FSet[SR]]) -> FSet[SR]:
+                        return y.get(pname, frozenset())
+
+                    st = x[pname]
+                    gn_ = sc.cache[st]
+                    ui = gn_.ur.used.get(i, default)
+                    used_at_i_by_player: Poss[FSet[SR]] = ps.build(ui, get_its)
+                    used_by_players[pname] = used_at_i_by_player
+
+                def remove_empty(_: M[PlayerName, FSet[SR]]) -> M[PlayerName, FSet[SR]]:
+                    notempty = {}
+                    for k, sr_used in _.items():
+                        if sr_used:
+                            notempty[k] = sr_used
+                    return frozendict(notempty)
+
+                res: Poss[M[PlayerName, FSet[SR]]]
+                res = ps.build_multiple(used_by_players, remove_empty)
+                return res
+
+            at_d = ps.build(next_states, get_data)
+            f = ps.join(at_d)
+            if f.support() != {frozendict()}:
+                usages[i + 1] = f
+            else:
+                break
+            i += 1
+
+        # logger.info(next_resources=next_resources, usages=usages)
+        ur = UsedResources(frozendict(usages))
+    else:
+        usages_ = frozendict({D(0): usage_current})
+        ur = UsedResources(usages_)
+
+    return ur
+
+
+def get_resources_old(
+        sc: SolvingContext,
+        va: ValueAndActions,
+        gn: GameNode,
+        solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
+        beta = 1
+) -> UsedResources:
+    
+    ps = sc.game.ps
+    ur: UsedResources[X, U, Y, RP, RJ, SR]
+    usage_current = ps.unit(gn.resources)
+    # logger.info(va=va)
+    if va.mixed_actions:
+        mixed_actions_res = mixed_actions_resources(sc, va, gn, beta)
+        next_states: Poss[M[PlayerName, JointState]]
+        # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
+        next_states = ps.join(ps.build_multiple(mixed_actions_res, solved_to_node.__getitem__))
+
+        usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
+        usages = {D(0): usage_current}
+        # Π = 1
+
+        for i in map(D, range(10)):  # todo: use the range that's needed
+            default = ps.unit(frozendict())
+
+            def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
+                used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
+                for pname in va.mixed_actions:
+                    def get_its(y: M[PlayerName, FSet[SR]]) -> FSet[SR]:
+                        return y.get(pname, frozenset())
+
+                    st = x[pname]
+                    gn_ = sc.cache[st]
+                    ui = gn_.ur.used.get(i, default)
+                    used_at_i_by_player: Poss[FSet[SR]] = ps.build(ui, get_its)
+                    used_by_players[pname] = used_at_i_by_player
+
+                def remove_empty(_: M[PlayerName, FSet[SR]]) -> M[PlayerName, FSet[SR]]:
+                    notempty = {}
+                    for k, sr_used in _.items():
+                        if sr_used:
+                            notempty[k] = sr_used
+                    return frozendict(notempty)
+
+                res: Poss[M[PlayerName, FSet[SR]]]
+                res = ps.build_multiple(used_by_players, remove_empty)
+                return res
+
+            at_d = ps.build(next_states, get_data)
+            f = ps.join(at_d)
+            if f.support() != {frozendict()}:
+                usages[i + 1] = f
+
+        # logger.info(next_resources=next_resources, usages=usages)
+        ur = UsedResources(frozendict(usages))
+    else:
+        usages_ = frozendict({D(0): usage_current})
+        ur = UsedResources(usages_)
+    
+    return ur
 
 
 def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNode, beta = 0) -> JointMixedActions:
