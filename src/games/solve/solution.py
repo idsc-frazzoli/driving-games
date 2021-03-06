@@ -1,6 +1,9 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
+import numpy as np
+import math
+from fractions import Fraction
 from typing import (
     AbstractSet,
     Dict,
@@ -8,18 +11,21 @@ from typing import (
     Mapping as M,
     List,
     Optional,
+    cast
 )
 
 from frozendict import frozendict
 from networkx import simple_cycles
 from toolz import valmap
 
-from possibilities import Poss
+from possibilities import Poss, PossibilitySet, ProbDist, PossibilityDist
+from possibilities.sets import SetPoss
+
 from zuper_commons.types import ZValueError, ZNotImplementedError
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.create_joint_game_tree import create_game_graph
-from games.utils import iterate_dict_combinations
+from games.utils import iterate_dict_combinations, fvalmap
 from games.game_def import (
     GamePlayer,
     check_joint_state,
@@ -385,7 +391,7 @@ def _solve_game(
     # start timer for resource collection times
     t1 = perf_counter()
 
-    ur = get_resources_old(sc, va, gn, solved_to_node)
+    ur = get_resources(sc, va, gn, solved_to_node)
 
     # stop timer for resource collection time, collect performance if given
     t2 = perf_counter()
@@ -472,7 +478,7 @@ def get_resources(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta=1
+        beta: float = 0
 ) -> UsedResources:
     ps = sc.game.ps
     ur: UsedResources[X, U, Y, RP, RJ, SR]
@@ -536,7 +542,7 @@ def get_resources_old(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta = 1
+        beta: float = 0
 ) -> UsedResources:
     
     ps = sc.game.ps
@@ -593,7 +599,7 @@ def get_resources_old(
     return ur
 
 
-def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNode, beta = 0) -> JointMixedActions:
+def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNode, beta: float) -> JointMixedActions:
     """
     Computes the joint mixed actions for which the players collect resources.
     For beta=0 we collect the resources for the forward reachable set
@@ -606,14 +612,115 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
     :return: gamma resources as defined in Christophs Thesis
     """
 
+    assert 0 <= beta <= 1, "beta has to be in interval [0,1]"
+
     mixed_actions_res: JointMixedActions
-    if beta == 1:  # full trust
+    if beta == 1:  # full trust get resources for the game actions
         mixed_actions_res = va.mixed_actions
-    elif beta == 0:  # not trust forward reachable set
-        mixed_actions_res = valmap(sc.game.ps.lift_many, gn.moves)
+    elif beta == 0:  # not trust get resources for forward reachable set
+        mixed_actions_res = fvalmap(sc.game.ps.lift_many, gn.moves)
     else:
+
+        if isinstance(sc.game.ps, PossibilityDist):
+            # for possibility distribution monad convolute/filter probability vector
+
+            _mixed_actions_res = {}
+            for pn in va.mixed_actions:
+
+                mixed_action_game: ProbDist[U]
+                mixed_action_game = cast(ProbDist, va.mixed_actions[pn])
+                mixed_action_possible: ProbDist[U]
+                mixed_action_possible = cast(ProbDist, sc.game.ps.lift_many(gn.moves[pn]))
+
+                actions_possible_ordered = order_support_actions(mixed_action_possible)
+
+                prob_action_game_ordered: List[Fraction]
+
+                prob_action_game_ordered = [
+                    mixed_action_game.p[_] if _ in mixed_action_game.p else 0 for _ in actions_possible_ordered
+                ]
+                _len_unif = math.ceil((1 - beta) * 2 * len(actions_possible_ordered))
+                len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
+                unif = [1] * len_unif
+
+                if len_unif > len(prob_action_game_ordered):
+                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'valid')
+                else:
+                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'same')
+
+                prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
+                mixed_action_resources_ordered = {
+                    ac: pb if not math.isclose(pb, 0) else None for ac, pb in zip(
+                        actions_possible_ordered, prob_action_resources_ordered
+                    )
+                }
+
+                _mixed_actions_res[pn] = ProbDist(mixed_action_resources_ordered)
+
+            mixed_actions_res = frozendict(_mixed_actions_res)
+
+        elif isinstance(sc.game.ps, PossibilitySet):
+            # for probability monad set add actions left and right to the game actions
+            _mixed_actions_res = {}
+            for pn in va.mixed_actions:
+                mixed_action_game: SetPoss[U]
+                mixed_actions_game = va.mixed_actions[pn]
+                mixed_action_possible: SetPoss[U] = sc.game.ps.lift_many(gn.moves[pn])
+
+                actions_game_ordered = order_support_actions(mixed_actions_game)
+                actions_possible_ordered = order_support_actions(mixed_action_possible)
+
+                left = []
+
+                for _elem in actions_possible_ordered:
+                    if _elem in actions_game_ordered:
+                        break
+                    left.append(_elem)
+
+                right = []
+                for _elem in reversed(actions_possible_ordered):
+                    if _elem in actions_game_ordered:
+                        break
+                    right.insert(0, _elem)
+
+                nb_to_append = math.floor((1 - beta) * (len(actions_possible_ordered) - len(actions_game_ordered)))
+
+                mixed_action_resources = list(actions_game_ordered)
+                for i in range(nb_to_append):
+                    if i % 2 == 0:
+                        if right:
+                            mixed_action_resources.append(right.pop(0))
+                        else:
+                            mixed_action_resources.insert(0, left.pop())
+                    else:
+                        if left:
+                            mixed_action_resources.insert(0, left.pop())
+                        else:
+                            mixed_action_resources.append(right.pop(0))
+
+                _mixed_actions_res[pn] = SetPoss(frozenset(mixed_action_resources))
+
+            mixed_actions_res = frozendict(_mixed_actions_res)
+
+        else:
+            raise ZNotImplementedError(
+                "Game trust for beta inbetween 0 and 1 not yet implemented for this type of possibility monad",
+                ps=sc.game.ps
+            )
+
+    return mixed_actions_res
+
+
+def order_support_actions(actions: Poss[U]) -> List[U]:
+    actions_ordered = list(actions.support())
+
+    def _key(elem: U) -> D:
+        return elem.accel
+    try:
+        actions_ordered.sort(key=_key)
+    except AttributeError:
         raise ZNotImplementedError(
-            "Beta inbetween 0 and 1 not yet implemented",
-            beta=beta
+            "Game Trust for beta between 0 and 1 not implemented for these class of actions"
         )
-    return frozendict(mixed_actions_res)
+
+    return actions_ordered
