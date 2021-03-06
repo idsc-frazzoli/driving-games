@@ -478,7 +478,7 @@ def get_resources(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta: float = 0
+        beta: float = 0.5
 ) -> UsedResources:
     ps = sc.game.ps
     ur: UsedResources[X, U, Y, RP, RJ, SR]
@@ -650,9 +650,9 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
 
                 prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
                 mixed_action_resources_ordered = {
-                    ac: pb if not math.isclose(pb, 0) else None for ac, pb in zip(
+                    ac: pb for ac, pb in zip(
                         actions_possible_ordered, prob_action_resources_ordered
-                    )
+                    ) if not math.isclose(pb, 0)
                 }
 
                 _mixed_actions_res[pn] = ProbDist(mixed_action_resources_ordered)
@@ -660,7 +660,7 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
             mixed_actions_res = frozendict(_mixed_actions_res)
 
         elif isinstance(sc.game.ps, PossibilitySet):
-            # for probability monad set add actions left and right to the game actions
+            # for probability monad set assume equal probabilities for all actions
             _mixed_actions_res = {}
             for pn in va.mixed_actions:
                 mixed_action_game: SetPoss[U]
@@ -670,33 +670,27 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
                 actions_game_ordered = order_support_actions(mixed_actions_game)
                 actions_possible_ordered = order_support_actions(mixed_action_possible)
 
-                left = []
+                prob_action_game_ordered: List[Fraction]
+                pb = Fraction(1, len(actions_game_ordered))
+                prob_action_game_ordered = [
+                    pb if _ in actions_game_ordered else 0 for _ in actions_possible_ordered
+                ]
+                _len_unif = math.ceil((1 - beta) * 2 * len(actions_possible_ordered))
+                len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
+                unif = [1] * len_unif
 
-                for _elem in actions_possible_ordered:
-                    if _elem in actions_game_ordered:
-                        break
-                    left.append(_elem)
+                if len_unif > len(prob_action_game_ordered):
+                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'valid')
+                else:
+                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'same')
 
-                right = []
-                for _elem in reversed(actions_possible_ordered):
-                    if _elem in actions_game_ordered:
-                        break
-                    right.insert(0, _elem)
+                prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
 
-                nb_to_append = math.floor((1 - beta) * (len(actions_possible_ordered) - len(actions_game_ordered)))
-
-                mixed_action_resources = list(actions_game_ordered)
-                for i in range(nb_to_append):
-                    if i % 2 == 0:
-                        if right:
-                            mixed_action_resources.append(right.pop(0))
-                        else:
-                            mixed_action_resources.insert(0, left.pop())
-                    else:
-                        if left:
-                            mixed_action_resources.insert(0, left.pop())
-                        else:
-                            mixed_action_resources.append(right.pop(0))
+                mixed_action_resources = [
+                    _action for _action, _pb in zip(
+                        actions_possible_ordered, prob_action_resources_ordered
+                    ) if not math.isclose(_pb, 0)
+                ]
 
                 _mixed_actions_res[pn] = SetPoss(frozenset(mixed_action_resources))
 
@@ -719,8 +713,11 @@ def order_support_actions(actions: Poss[U]) -> List[U]:
     try:
         actions_ordered.sort(key=_key)
     except AttributeError:
-        raise ZNotImplementedError(
-            "Game Trust for beta between 0 and 1 not implemented for these class of actions"
-        )
+        if actions_ordered[0] == "contemplate":
+            return actions_ordered
+        else:
+            raise ZNotImplementedError(
+                "Game Trust for beta between 0 and 1 not implemented for these class of actions"
+            )
 
     return actions_ordered
