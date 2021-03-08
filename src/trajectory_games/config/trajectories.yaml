@@ -1,39 +1,43 @@
 
 #trajectory_params:
+#  solve:      Solve Boundary Value problem to grow tree
 #  max_gen:    Number of timesteps (or generations) for tree
 #  dt:         Sampling time (s)
 #  step_acc:   Acceleration step (m/s2)
 #  n_acc:      Number of acceleration steps
-#  step_dst:   Steering rate step (rad/s)
-#  n_dst:      Number of steering steps
+#  step_dst:   Lateral rate step (m)
+#  n_dst:      Number of lateral steps
 #  v_max:      Maximum velocity (m/s)
 #  v_min:      Minimum velocity (m/s)
 #  st_max:     Maximum steering angle (rad)
+#  dst_max:    Maximum steering rate (rad/s)
 
 traj_1:       &traj_1
+  solve:      False
   max_gen:    1
   dt:         1.0
-  step_acc:   5
+  step_acc:   3
   n_acc:      3
-  step_dst:   0.1
-  n_dst:      1
+  step_dst:   0.15
+  n_dst:      3
   v_max:      20.0
-  v_min:      0.5
+  v_min:      1.0
   st_max:     0.5
+  dst_max:    1.0
 
 traj_2:       &traj_2
   <<:         *traj_1
-  dt:         1.2
+  dt:         1.0
   max_gen:    2
-  n_acc:      1
+  n_acc:      3
   n_dst:      3
 
 traj_3:       &traj_3
   <<:         *traj_1
   dt:         0.8
   max_gen:    3
-  n_acc:      1
-  n_dst:      1
+  n_acc:      3
+  n_dst:      3
 
 traj_4:       &traj_4
   <<:         *traj_2

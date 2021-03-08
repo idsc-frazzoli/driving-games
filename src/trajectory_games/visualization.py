@@ -5,7 +5,7 @@ import numpy as np
 import os
 from decimal import Decimal as D
 from decorator import contextmanager
-from duckietown_world import DuckietownMap, LaneSegment
+from duckietown_world import DuckietownMap
 from duckietown_world.utils import SE2_apply_R2
 from imageio import imread
 from matplotlib import patches
@@ -16,6 +16,7 @@ from networkx import MultiDiGraph, DiGraph, draw_networkx_nodes, draw_networkx_e
 from games import PlayerName
 from geometry import SE2_from_xytheta
 
+from world import LaneSegmentHashable
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
 from .paths import Trajectory
@@ -172,7 +173,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                           colour: Tuple[float, float, float], width: float):
         segments = []
         for traj in trajectories:
-            lane = LaneSegment(width=0.1, control_points=traj.get_path())
+            lane = LaneSegmentHashable(width=0.1, control_points=traj.get_path())
             line_se2 = lane.center_line_points()
             offset = np.array([0, 0])
             line = [SE2_apply_R2(p, offset) for p in line_se2]

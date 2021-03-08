@@ -10,7 +10,7 @@ from decimal import Decimal as D
 
 from games import PlayerName
 from trajectory_games import config_dir, TrajGameVisualization, TrajectoryWorld, VehicleGeometry
-from world import load_driving_game_map, get_lane_from_node_sequence, Lane
+from world import load_driving_game_map, get_lane_from_node_sequence, LaneSegmentHashable
 
 
 def test_lanes():
@@ -22,7 +22,7 @@ def test_lanes():
 
     duckie_map = load_driving_game_map(map_name)
 
-    lanes: Dict[PlayerName, Lane] = {}
+    lanes: Dict[PlayerName, LaneSegmentHashable] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
 
     def wrap(ang: float) -> float:
@@ -32,7 +32,7 @@ def test_lanes():
 
     i = 1
     for k, l in config_lanes.items():
-        lane = get_lane_from_node_sequence(m=duckie_map, node_sequence=l)
+        lane = LaneSegmentHashable.initializor(get_lane_from_node_sequence(m=duckie_map, node_sequence=l))
         good = True
         print(f"\nLane = {k}")
         for along1 in np.linspace(0.0, lane.get_lane_length(), 500):

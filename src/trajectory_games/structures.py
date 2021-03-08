@@ -4,7 +4,7 @@ from decimal import Decimal as D
 from typing import FrozenSet, Tuple, Dict
 from yaml import safe_load
 
-from world import Lane, SE2Transform
+from world import SE2Transform, LaneSegmentHashable
 from .config import config_dir
 
 __all__ = [
@@ -147,14 +147,14 @@ class VehicleState:
         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
 
     @classmethod
-    def default(cls, lane: Lane) -> "VehicleState":
+    def default(cls, lane: LaneSegmentHashable) -> "VehicleState":
         beta0 = lane.beta_from_along_lane(along_lane=0)
         se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
         state = VehicleState(x=D(se2.p[0]), y=D(se2.p[1]), th=D(se2.theta), v=D("10"), st=D("0"), t=D("0"))
         return state
 
     @classmethod
-    def from_config(cls, name: str, lane: Lane) -> "VehicleState":
+    def from_config(cls, name: str, lane: LaneSegmentHashable) -> "VehicleState":
 
         if len(name) == 0:
             return cls.default(lane)
@@ -183,6 +183,7 @@ class VehicleState:
 
 @dataclass
 class TrajectoryParams:
+    solve: bool
     max_gen: int
     dt: D
     u_acc: FrozenSet[D]
@@ -190,6 +191,7 @@ class TrajectoryParams:
     v_max: D
     v_min: D
     st_max: D
+    dst_max: D
     vg: VehicleGeometry
 
     _config: Dict = None
@@ -200,6 +202,7 @@ class TrajectoryParams:
         u_acc = frozenset([D("-1"), D("0"), D("1")])
         u_dst = frozenset([_ * D("0.2") for _ in u_acc])
         params = TrajectoryParams(
+            solve=False,
             max_gen=1,
             dt=D("1"),
             u_acc=u_acc,
@@ -207,6 +210,7 @@ class TrajectoryParams:
             v_max=D("15"),
             v_min=D("0"),
             st_max=D("0.5"),
+            dst_max=D("1"),
             vg=VehicleGeometry.from_config(""),
         )
         return params
@@ -236,6 +240,7 @@ class TrajectoryParams:
                 ]
             )
             params = TrajectoryParams(
+                solve=config["solve"],
                 max_gen=config["max_gen"],
                 dt=D(config["dt"]),
                 u_acc=u_acc,
@@ -243,6 +248,7 @@ class TrajectoryParams:
                 v_max=D(config["v_max"]),
                 v_min=D(config["v_min"]),
                 st_max=D(config["st_max"]),
+                dst_max=D(config["dst_max"]),
                 vg=VehicleGeometry.from_config(vg_name),
             )
         else:

@@ -45,29 +45,48 @@ class BicycleDynamics:
             res.add(VehicleActions(acc=acc, dst=dst))
         return res
 
+    @staticmethod
+    def get_clipped(val: D, lo: D, hi: D) -> D:
+        """ Get value clipped between limits """
+        if lo <= val <= hi:
+            return val
+        if val < lo:
+            return lo
+        return hi
+
+    def get_feasible_acc(self, x: VehicleState, dt: D, u0: VehicleActions) -> Set[D]:
+        """ Get feasible accelerations for current state with mean u0 """
+        u_acc = set([self.get_clipped(val=_+u0.acc,
+                                      lo=(self.v_min-x.v)/dt,
+                                      hi=(self.v_max-x.v)/dt)
+                     for _ in self.u_acc])
+        return u_acc
+
+    def get_feasible_dst(self, x: VehicleState, dt: D, u0: VehicleActions) -> Set[D]:
+        """ Get feasible steering rates for current state with mean u0 """
+        u_dst = set([self.get_clipped(val=_+u0.dst,
+                                      lo=(-self.st_max-x.st)/dt,
+                                      hi=(self.st_max-x.st)/dt)
+                     for _ in self.u_dst])
+        return u_dst
+
     def successors(self, x: VehicleState, dt: D, u0: VehicleActions = None) \
             -> Mapping[VehicleActions, VehicleState]:
         """ For each state, returns a dictionary U -> Possible Xs """
 
-        def get_clip(val, lo, hi):
-            if lo <= val <= hi:
-                return val
-            if val < lo:
-                return lo
-            return hi
-
         if u0 is None:
             u0 = VehicleActions(acc=D("0"), dst=D("0"))
-        u_acc = set([get_clip(val=_+u0.acc, lo=(self.v_min-x.v)/dt, hi=(self.v_max-x.v)/dt) for _ in self.u_acc])
-        u_dst = set([get_clip(val=_+u0.dst, lo=(-self.st_max-x.st)/dt, hi=(self.st_max-x.st)/dt) for _ in self.u_dst])
+        u_acc = self.get_feasible_acc(x=x, dt=dt, u0=u0)
+        u_dst = self.get_feasible_dst(x=x, dt=dt, u0=u0)
 
         res = {}
         for acc, dst in product(u_acc, u_dst):
             u = VehicleActions(acc=acc, dst=dst)
-            res[u] = self.successor(x, u, dt)
+            res[u] = self.successor_forward(x, u, dt)
         return res
 
     def successor(self, x0: VehicleState, u: VehicleActions, dt: D):
+        """ Perform RK2 integration to propagate state using actions for time dt """
         def clip(value, low, high):
             return max(low, min(high, value))
 
@@ -80,8 +99,25 @@ class BicycleDynamics:
         ret = x0 + (k1 + k2) * (dt / D("2"))
         return ret
 
-    def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
+    def successor_forward(self, x0: VehicleState, u: VehicleActions, dt: D):
+        """ Perform Euler forward integration to propagate state using actions for time dt """
+        v0, st0 = x0.v, x0.st
+        x0.v += u.acc * dt
+        x0.st += u.dst * dt
+        tol = D("1e-3")
+        if not self.v_min - tol <= x0.v <= self.v_max + tol:
+            print("Velocity outside limits")
+        if not -self.st_max - tol <= x0.st <= self.st_max + tol:
+            print(f"Steering = {x0.st}, outside limits")
+        u = VehicleActions(acc=D("0"), dst=D("0"))
 
+        k1 = self.dynamics(x0, u)
+        ret = x0 + k1 * dt
+        x0.v, x0.st = v0, st0
+        return ret
+
+    def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
+        """ Get rate of change of states for given control inputs """
         dx = x0.v
         dr = dx * D(math.tan(x0.st)) / (2 * self.vg.l)
         dy = dr * self.vg.l

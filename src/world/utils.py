@@ -3,15 +3,18 @@ from math import isclose
 import networkx as nx
 from decimal import Decimal as D
 import itertools as it
-from typing import List, cast
+from typing import List, cast, Tuple
 import numpy as np
 
 import duckietown_world as dw
 from duckietown_world.geo.transforms import SE2Transform
+from duckietown_world.utils import SE2_apply_R2
 from duckietown_world.world_duckietown.lane_segment import LaneSegment
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
 import geometry as geo
+from scipy.optimize import minimize_scalar
+
 from driving_games.structures import SE2_disc
 from world.skeleton_graph import get_skeleton_graph
 
@@ -230,3 +233,27 @@ class LaneSegmentHashable(LaneSegment):
         ctr_as_SE2_disc = it.chain(*[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points])
         to_hash = *ctr_as_SE2_disc, self.width
         return hash(to_hash)
+
+    def find_along_lane_closest_point(self, p, tol=0.001) -> Tuple[float, geo.SE2value]:
+
+        def get_delta(beta):
+            q0 = self.center_point(beta)
+            t0, _ = geo.translation_angle_from_SE2(q0)
+            d = np.linalg.norm(p - t0)
+
+            d1 = np.array([0, -d])
+            p1 = SE2_apply_R2(q0, d1)
+
+            d2 = np.array([0, +d])
+            p2 = SE2_apply_R2(q0, d2)
+
+            D2 = np.linalg.norm(p2 - p)
+            D1 = np.linalg.norm(p1 - p)
+            res = np.maximum(D1, D2)
+            return res
+
+        bracket = (-1.0, len(self.control_points))
+        res0 = minimize_scalar(get_delta, bracket=bracket, tol=tol)
+        beta0 = res0.x
+        q = self.center_point(beta0)
+        return beta0, q

@@ -15,7 +15,7 @@ from .preference import PosetalPreference
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
-from world import load_driving_game_map, Lane, get_lane_from_node_sequence
+from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",
@@ -31,7 +31,7 @@ def get_trajectory_game() -> TrajectoryGame:
         config = safe_load(load_file)
     with open(lanes_file) as load_file:
         config_lanes = safe_load(load_file)[config["map_name"]]
-    lanes: Dict[PlayerName, Lane] = {}
+    lanes: Dict[PlayerName, LaneSegmentHashable] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     duckie_map = load_driving_game_map(config["map_name"])
@@ -40,7 +40,8 @@ def get_trajectory_game() -> TrajectoryGame:
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
     for pname, pconfig in config["players"].items():
-        lanes[pname] = get_lane_from_node_sequence(m=duckie_map, node_sequence=config_lanes[pconfig["lane"]])
+        lane_seg = get_lane_from_node_sequence(m=duckie_map, node_sequence=config_lanes[pconfig["lane"]])
+        lanes[pname] = LaneSegmentHashable.initializor(lane_seg)
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TrajectoryGenerator1(params=param)
