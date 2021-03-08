@@ -1,7 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-import numpy as np
+from scipy import signal
 import math
 from fractions import Fraction
 from typing import (
@@ -478,7 +478,7 @@ def get_resources(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta: float = 0.5
+        beta: float = 1
 ) -> UsedResources:
     ps = sc.game.ps
     ur: UsedResources[X, U, Y, RP, RJ, SR]
@@ -542,7 +542,7 @@ def get_resources_old(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta: float = 0
+        beta: float = 1
 ) -> UsedResources:
     
     ps = sc.game.ps
@@ -608,7 +608,7 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
     :param sc:
     :param va:
     :param gn:
-    :param beta: Default is beta=0 (forward reachable set)
+    :param beta:
     :return: gamma resources as defined in Christophs Thesis
     """
 
@@ -643,10 +643,7 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
                 len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
                 unif = [1] * len_unif
 
-                if len_unif > len(prob_action_game_ordered):
-                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'valid')
-                else:
-                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'same')
+                prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, unif, 'same')
 
                 prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
                 mixed_action_resources_ordered = {
@@ -679,10 +676,7 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
                 len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
                 unif = [1] * len_unif
 
-                if len_unif > len(prob_action_game_ordered):
-                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'valid')
-                else:
-                    prob_action_resources_ordered = np.convolve(prob_action_game_ordered, unif, 'same')
+                prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, unif, 'same')
 
                 prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
 
