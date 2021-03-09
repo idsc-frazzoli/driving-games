@@ -1,7 +1,9 @@
 from collections import defaultdict
-from decimal import Decimal as D
+from decimal import Decimal as D, localcontext
 from time import perf_counter
 from scipy import signal
+from scipy.ndimage import gaussian_filter1d
+import numpy as np
 import math
 from fractions import Fraction
 from typing import (
@@ -388,10 +390,15 @@ def _solve_game(
         # there are still active players
         va = solve_equilibria(sc, gn, solved)
 
+
     # start timer for resource collection times
+
     t1 = perf_counter()
 
-    ur = get_resources(sc, va, gn, solved_to_node)
+    if hasattr(sc.solver_params, "beta"):  # todo make standard for all modules
+        ur = get_resources(sc, va, gn, solved_to_node, beta=sc.solver_params.beta)
+    else:
+        ur = get_resources(sc, va, gn, solved_to_node, beta=0)
 
     # stop timer for resource collection time, collect performance if given
     t2 = perf_counter()
@@ -478,13 +485,24 @@ def get_resources(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta: float = 1
+        beta: float
 ) -> UsedResources:
+    """
+    Computes the future resources of a player for the solved subgame at game node 'gn'
+
+    :param sc:
+    :param va:
+    :param gn:
+    :param solved_to_node:
+    :param beta:
+    :return:
+    """
     ps = sc.game.ps
     ur: UsedResources[X, U, Y, RP, RJ, SR]
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
     if va.mixed_actions:
+        # get the mixed actions for which to collect resources
         mixed_actions_res = mixed_actions_resources(sc, va, gn, beta)
         next_states: Poss[M[PlayerName, JointState]]
         # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
@@ -542,14 +560,24 @@ def get_resources_old(
         va: ValueAndActions,
         gn: GameNode,
         solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
-        beta: float = 1
+        beta: float
 ) -> UsedResources:
-    
+    """
+    Computes the future resources (only for a finite horizon) of a player for the solved subgame at game node gn
+
+    :param sc:
+    :param va:
+    :param gn:
+    :param solved_to_node:
+    :param beta:
+    :return:
+    """
     ps = sc.game.ps
     ur: UsedResources[X, U, Y, RP, RJ, SR]
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
     if va.mixed_actions:
+        # get the mixed actions for which to collect resources
         mixed_actions_res = mixed_actions_resources(sc, va, gn, beta)
         next_states: Poss[M[PlayerName, JointState]]
         # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
@@ -602,8 +630,10 @@ def get_resources_old(
 def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNode, beta: float) -> JointMixedActions:
     """
     Computes the joint mixed actions for which the players collect resources.
-    For beta=0 we collect the resources for the forward reachable set
-    for beta=1 we collect resources of the game solution.
+    The joint mixed actions in 'va' will be smoothed by a gaussian filter with variance beta.
+    Beta signifies the trust in the solution of the game.
+    For beta=0 we collect the resources for the game solution.
+    for beta=inf we collect resources for the forward reachable set.
 
     :param sc:
     :param va:
@@ -612,74 +642,136 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
     :return: gamma resources as defined in Christophs Thesis
     """
 
-    assert 0 <= beta <= 1, "beta has to be in interval [0,1]"
+    assert 0 <= beta , "beta has to be bigger or equal 0"
 
     mixed_actions_res: JointMixedActions
-    if beta == 1:  # full trust get resources for the game actions
-        mixed_actions_res = va.mixed_actions
-    elif beta == 0:  # not trust get resources for forward reachable set
+    if beta == 0:  # full trust get resources for the game actions
+        mixed_actions_res = va.mixed_actions  # return the mixed action of the solution of the game
+    elif beta == math.inf:  # not trust get resources for forward reachable set
+        # return uniform distribution over all actions available to a player
         mixed_actions_res = fvalmap(sc.game.ps.lift_many, gn.moves)
     else:
+        # a gaussian filter is applied to the joint mixed actions in va
+        # todo is there an other way which is independent on action set and cost function?
+
+        prec_fractions = 2  # todo precision of fractions after gaussian filtering
+        truncate_filter = 2  # todo truncation of finite gaussian
+
+        def _fraction_conversion(x: float) -> Fraction:
+            """ Converts a fraction into a float with the precision specified above """
+            with localcontext() as ctx:
+                ctx.prec =  prec_fractions
+                x_decimal = ctx.create_decimal_from_float(x)
+            x_fraction = Fraction(*x_decimal.as_integer_ratio())
+            return x_fraction
 
         if isinstance(sc.game.ps, PossibilityDist):
-            # for possibility distribution monad convolute/filter probability vector
+            # If the possibility monad is PossibilityDist we convolute the probability vector extracted from the mixed
+            # action
 
             _mixed_actions_res = {}
             for pn in va.mixed_actions:
 
                 mixed_action_game: ProbDist[U]
-                mixed_action_game = cast(ProbDist, va.mixed_actions[pn])
+                mixed_action_game = cast(ProbDist, va.mixed_actions[pn])  # Mixed action computed by solving game
+
                 mixed_action_possible: ProbDist[U]
+                # Uniform distribution over all actions
                 mixed_action_possible = cast(ProbDist, sc.game.ps.lift_many(gn.moves[pn]))
 
+                # order the support depending on class of action
                 actions_possible_ordered = order_support_actions(mixed_action_possible)
 
-                prob_action_game_ordered: List[Fraction]
+                # prob_action_game_ordered: List[Fraction]
+                # prob_action_game_ordered = [
+                #     mixed_action_game.p[_] if _ in mixed_action_game.p else 0 for _ in actions_possible_ordered
+                # ]
+                # _len_unif = math.ceil((1 - beta) * 2 * len(actions_possible_ordered))
+                # len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
+                # unif = [1] * len_unif
+                # prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, unif, 'same')
+                # prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
+                # mixed_action_resources_ordered = {
+                #     ac: pb for ac, pb in zip(
+                #         actions_possible_ordered, prob_action_resources_ordered
+                #     ) if not math.isclose(pb, 0)
+                # }
 
-                prob_action_game_ordered = [
-                    mixed_action_game.p[_] if _ in mixed_action_game.p else 0 for _ in actions_possible_ordered
+                prob_action_game_ordered: List[float]
+
+                prob_action_game_ordered = [  # get the ordered probability vector
+                    float(mixed_action_game.p[_]) if _ in mixed_action_game.p else 0 for _ in actions_possible_ordered
                 ]
-                _len_unif = math.ceil((1 - beta) * 2 * len(actions_possible_ordered))
-                len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
-                unif = [1] * len_unif
 
-                prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, unif, 'same')
+                # _x_kernel = range(len(actions_possible_ordered), len(actions_possible_ordered) + 1)
+                # x_kernel = np.array(list(map(Fraction,_x_kernel)))
+                # kernel = gauss_kernel(x_kernel, beta)
+                # finite_kernel = kernel[kernel > gauss_kernel(x_kernel, 3*beta)]
+                # prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, finite_kernel, 'same')
+                # prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
 
-                prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
-                mixed_action_resources_ordered = {
-                    ac: pb for ac, pb in zip(
-                        actions_possible_ordered, prob_action_resources_ordered
+                # Smooth probabilities according to the standard deviation beta specified
+                prob_action_resources_ordered = gaussian_filter1d(
+                    np.array(prob_action_game_ordered), beta, truncate=truncate_filter
+                )
+
+                # get the new mixed actions
+                mixed_action_resources_ordered = {  # fixme fractions make resource collection very slow, how to deal?
+                    ac: _fraction_conversion(pb) for ac, pb in zip(
+                        actions_possible_ordered,prob_action_resources_ordered
                     ) if not math.isclose(pb, 0)
                 }
 
-                _mixed_actions_res[pn] = ProbDist(mixed_action_resources_ordered)
+                _mixed_actions_res[pn] = ProbDist(frozendict(mixed_action_resources_ordered))
 
             mixed_actions_res = frozendict(_mixed_actions_res)
 
         elif isinstance(sc.game.ps, PossibilitySet):
-            # for probability monad set assume equal probabilities for all actions
+            # for probability monad set assume equal probabilities for all actions in va and apply gaussian filtering
             _mixed_actions_res = {}
             for pn in va.mixed_actions:
                 mixed_action_game: SetPoss[U]
-                mixed_actions_game = va.mixed_actions[pn]
+                mixed_actions_game = va.mixed_actions[pn]  # Mixed action computed by solving game
+
+                # Uniform distribution over all actions
                 mixed_action_possible: SetPoss[U] = sc.game.ps.lift_many(gn.moves[pn])
 
+                # get an ordered the support depending on class of actions
                 actions_game_ordered = order_support_actions(mixed_actions_game)
                 actions_possible_ordered = order_support_actions(mixed_action_possible)
 
-                prob_action_game_ordered: List[Fraction]
-                pb = Fraction(1, len(actions_game_ordered))
+                # define an uniform distribution over the actions in va
+                prob_action_game_ordered: List[float]
+                pb = 1 / len(actions_game_ordered)
                 prob_action_game_ordered = [
-                    pb if _ in actions_game_ordered else 0 for _ in actions_possible_ordered
+                   pb if _ in actions_game_ordered else 0 for _ in actions_possible_ordered
                 ]
-                _len_unif = math.ceil((1 - beta) * 2 * len(actions_possible_ordered))
-                len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
-                unif = [1] * len_unif
 
-                prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, unif, 'same')
+                # prob_action_game_ordered: List[Fraction]
+                # pb = Fraction(1, len(actions_game_ordered))
+                # prob_action_game_ordered = [
+                #     pb if _ in actions_game_ordered else 0 for _ in actions_possible_ordered
+                # ]
+                # _len_unif = math.ceil((1 - beta) * 2 * len(actions_possible_ordered))
+                # len_unif = _len_unif if _len_unif % 2 != 0 else _len_unif - 1
+                # unif = [1] * len_unif
+                #
+                # prob_action_resources_ordered = signal.convolve(prob_action_game_ordered, unif, 'same')
+                #
+                # prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
+                #
+                # mixed_action_resources = [
+                #     _action for _action, _pb in zip(
+                #         actions_possible_ordered, prob_action_resources_ordered
+                #     ) if not math.isclose(_pb, 0)
+                # ]
 
-                prob_action_resources_ordered = prob_action_resources_ordered / sum(prob_action_resources_ordered)
+                # Smooth probabilities according to standard deviation beta specified
+                prob_action_resources_ordered = gaussian_filter1d(
+                    np.array(prob_action_game_ordered), beta, truncate=truncate_filter
+                )
 
+                # get the new mixed actions
                 mixed_action_resources = [
                     _action for _action, _pb in zip(
                         actions_possible_ordered, prob_action_resources_ordered
@@ -699,11 +791,26 @@ def mixed_actions_resources(sc: SolvingContext, va: ValueAndActions, gn: GameNod
     return mixed_actions_res
 
 
-def order_support_actions(actions: Poss[U]) -> List[U]:
-    actions_ordered = list(actions.support())
+# def gauss_kernel(x, beta):
+#     return np.exp(-(x ** 2) / (2 * beta ** 2)) / (math.sqrt(2*math.pi)*beta)
 
-    def _key(elem: U) -> D:
-        return elem.accel
+
+def order_support_actions(actions: Poss[U]) -> List[U]:
+    """
+    Orders the support for different class of mixed actions
+
+    :param actions:
+    :return:
+    """
+    actions_ordered = list(actions.support())  # get the support of the mixed action
+
+    def _key(elem: U) -> D:  # order support based on different classes
+        if hasattr(elem, "accel"):
+            # order support based on acceleration
+            return elem.accel
+        else:
+            raise AttributeError
+
     try:
         actions_ordered.sort(key=_key)
     except AttributeError:
