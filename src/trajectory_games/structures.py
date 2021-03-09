@@ -17,11 +17,11 @@ __all__ = [
 
 @dataclass
 class VehicleGeometry:
-    m: D
+    m: float
     """ Car Mass [kg] """
-    w: D
+    w: float
     """ Car width [m] """
-    l: D
+    l: float
     """ Half length of car - dist from CoG to each axle [m] """
     colour: Tuple[float, float, float]
     """ Car colour """
@@ -31,7 +31,7 @@ class VehicleGeometry:
 
     @classmethod
     def default(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=D("1000"), w=D("1.0"), l=D("2.0"), colour=(1, 1, 1))
+        return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
 
     @classmethod
     def load_colour(cls, name: str) -> Tuple[float, float, float]:
@@ -62,9 +62,9 @@ class VehicleGeometry:
         if name in cls._config.keys():
             config = cls._config[name]
             vg = VehicleGeometry(
-                m=D(config["m"]),
-                w=D(config["w"]),
-                l=D(config["l"]),
+                m=config["m"],
+                w=config["w"],
+                l=config["l"],
                 colour=cls.load_colour(config["colour"]),
             )
         else:
@@ -75,9 +75,9 @@ class VehicleGeometry:
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
-    acc: D
+    acc: float
     """ Acceleration [m/s2] """
-    dst: D
+    dst: float
     """ Steering rate [rad/s] """
 
     def __add__(self, other: "VehicleActions") -> "VehicleActions":
@@ -90,7 +90,7 @@ class VehicleActions:
 
     __radd__ = __add__
 
-    def __mul__(self, factor: D) -> "VehicleActions":
+    def __mul__(self, factor: float) -> "VehicleActions":
         return VehicleActions(acc=self.acc * factor, dst=self.dst * factor)
 
     __rmul__ = __mul__
@@ -98,15 +98,15 @@ class VehicleActions:
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
 class VehicleState:
-    x: D  # [m]
+    x: float
     """ CoG x location [m] """
-    y: D  # [m]
+    y: float
     """ CoG y location [m] """
-    th: D  # [rad]
+    th: float
     """ CoG heading [rad] """
-    v: D
+    v: float
     """ CoG longitudinal velocity [m/s] """
-    st: D
+    st: float
     """ Steering angle [rad] """
     t: D
     """ Time [s] """
@@ -131,14 +131,14 @@ class VehicleState:
 
     __radd__ = __add__
 
-    def __mul__(self, factor: D) -> "VehicleState":
+    def __mul__(self, factor: float) -> "VehicleState":
         return VehicleState(
             x=self.x * factor,
             y=self.y * factor,
             th=self.th * factor,
             v=self.v * factor,
             st=self.st * factor,
-            t=self.t * factor,
+            t=self.t * D(factor),
         )
 
     __rmul__ = __mul__
@@ -150,7 +150,8 @@ class VehicleState:
     def default(cls, lane: LaneSegmentHashable) -> "VehicleState":
         beta0 = lane.beta_from_along_lane(along_lane=0)
         se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
-        state = VehicleState(x=D(se2.p[0]), y=D(se2.p[1]), th=D(se2.theta), v=D("10"), st=D("0"), t=D("0"))
+        state = VehicleState(x=se2.p[0], y=se2.p[1], th=se2.theta,
+                             v=10.0, st=0.0, t=D("0"))
         return state
 
     @classmethod
@@ -168,11 +169,11 @@ class VehicleState:
             beta0 = lane.beta_from_along_lane(along_lane=config["s0"])
             se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
             state = VehicleState(
-                x=D(se2.p[0]),
-                y=D(se2.p[1]),
-                th=D(se2.theta),
-                v=D(config["v0"]),
-                st=D(config["st0"]),
+                x=se2.p[0],
+                y=se2.p[1],
+                th=se2.theta,
+                v=config["v0"],
+                st=config["st0"],
                 t=D(config["t0"]),
             )
         else:
@@ -186,12 +187,12 @@ class TrajectoryParams:
     solve: bool
     max_gen: int
     dt: D
-    u_acc: FrozenSet[D]
-    u_dst: FrozenSet[D]
-    v_max: D
-    v_min: D
-    st_max: D
-    dst_max: D
+    u_acc: FrozenSet[float]
+    u_dst: FrozenSet[float]
+    v_max: float
+    v_min: float
+    st_max: float
+    dst_max: float
     vg: VehicleGeometry
 
     _config: Dict = None
@@ -199,18 +200,18 @@ class TrajectoryParams:
 
     @classmethod
     def default(cls) -> "TrajectoryParams":
-        u_acc = frozenset([D("-1"), D("0"), D("1")])
-        u_dst = frozenset([_ * D("0.2") for _ in u_acc])
+        u_acc = frozenset([-1.0, 0.0, 1.0])
+        u_dst = frozenset([_ * 0.2 for _ in u_acc])
         params = TrajectoryParams(
             solve=False,
             max_gen=1,
             dt=D("1"),
             u_acc=u_acc,
             u_dst=u_dst,
-            v_max=D("15"),
-            v_min=D("0"),
-            st_max=D("0.5"),
-            dst_max=D("1"),
+            v_max=15.0,
+            v_min=0.0,
+            st_max=0.5,
+            dst_max=1.0,
             vg=VehicleGeometry.from_config(""),
         )
         return params
@@ -227,28 +228,20 @@ class TrajectoryParams:
 
         if name in cls._config.keys():
             config = cls._config[name]
-            u_acc = frozenset(
-                [
-                    D(_ * config["step_acc"])
-                    for _ in range(-config["n_acc"] // 2 + 1, config["n_acc"] // 2 + 1)
-                ]
-            )
-            u_dst = frozenset(
-                [
-                    D(_ * config["step_dst"])
-                    for _ in range(-config["n_dst"] // 2 + 1, config["n_dst"] // 2 + 1)
-                ]
-            )
+            n_acc = config["n_acc"] // 2
+            n_dst = config["n_dst"] // 2
+            u_acc = frozenset([_ * config["step_acc"] for _ in range(-n_acc, n_acc + 1)])
+            u_dst = frozenset([_ * config["step_dst"] for _ in range(-n_dst, n_dst + 1)])
             params = TrajectoryParams(
                 solve=config["solve"],
                 max_gen=config["max_gen"],
                 dt=D(config["dt"]),
                 u_acc=u_acc,
                 u_dst=u_dst,
-                v_max=D(config["v_max"]),
-                v_min=D(config["v_min"]),
-                st_max=D(config["st_max"]),
-                dst_max=D(config["dst_max"]),
+                v_max=config["v_max"],
+                v_min=config["v_min"],
+                st_max=config["st_max"],
+                dst_max=config["dst_max"],
                 vg=VehicleGeometry.from_config(vg_name),
             )
         else:

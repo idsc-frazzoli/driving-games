@@ -50,7 +50,7 @@ class WeightedPreference(Preference[PlayerOutcome]):
     def evaluate(self, outcome: PlayerOutcome) -> D:
         w = D("0")
         for metric, weight in self.weights.items():
-            w += outcome[metric].total * weight
+            w += D(outcome[metric].total) * weight
         return w
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:

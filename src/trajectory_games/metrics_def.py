@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, List, Mapping
-from decimal import Decimal as D
 
 from duckietown_world import SE2Transform, LanePose
 
@@ -78,7 +77,7 @@ class MetricEvaluationContext:
 
 
 class EvaluatedMetric:
-    total: D
+    total: float
     description: str
     title: str
     incremental: SampledSequence
@@ -86,7 +85,7 @@ class EvaluatedMetric:
 
     def __init__(
         self,
-        total: D,
+        total: float,
         description: str,
         title: str,
         incremental: SampledSequence,
@@ -99,7 +98,7 @@ class EvaluatedMetric:
         self.description = description
 
     def __repr__(self):
-        return f"{self.title} = {round(float(self.total), 2)}"
+        return f"{self.title} = {self.total:.2f}"
 
 
 class Metric(metaclass=ABCMeta):

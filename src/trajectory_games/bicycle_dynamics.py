@@ -9,22 +9,22 @@ __all__ = ["BicycleDynamics"]
 
 
 class BicycleDynamics:
-    v_max: D
+    v_max: float
     """ Maximum speed [m/s] """
 
-    v_min: D
+    v_min: float
     """ Minimum speed [m/s] """
 
-    st_max: D
+    st_max: float
     """ Maximum steering angle [rad] """
 
     vg: VehicleGeometry
     """ The vehicle's geometry parameters"""
 
-    u_acc: FrozenSet[D]
+    u_acc: FrozenSet[float]
     """ Possible values of acceleration [m/s2] """
 
-    u_dst: FrozenSet[D]
+    u_dst: FrozenSet[float]
     """ Possible values of steering rate [rad/s] """
 
     def __init__(self, params: TrajectoryParams):
@@ -46,7 +46,7 @@ class BicycleDynamics:
         return res
 
     @staticmethod
-    def get_clipped(val: D, lo: D, hi: D) -> D:
+    def get_clipped(val: float, lo: float, hi: float) -> float:
         """ Get value clipped between limits """
         if lo <= val <= hi:
             return val
@@ -54,19 +54,21 @@ class BicycleDynamics:
             return lo
         return hi
 
-    def get_feasible_acc(self, x: VehicleState, dt: D, u0: VehicleActions) -> Set[D]:
+    def get_feasible_acc(self, x: VehicleState, dt: D, u0: VehicleActions) -> Set[float]:
         """ Get feasible accelerations for current state with mean u0 """
+        dt_f = float(dt)
         u_acc = set([self.get_clipped(val=_+u0.acc,
-                                      lo=(self.v_min-x.v)/dt,
-                                      hi=(self.v_max-x.v)/dt)
+                                      lo=(self.v_min-x.v)/dt_f,
+                                      hi=(self.v_max-x.v)/dt_f)
                      for _ in self.u_acc])
         return u_acc
 
-    def get_feasible_dst(self, x: VehicleState, dt: D, u0: VehicleActions) -> Set[D]:
+    def get_feasible_dst(self, x: VehicleState, dt: D, u0: VehicleActions) -> Set[float]:
         """ Get feasible steering rates for current state with mean u0 """
+        dt_f = float(dt)
         u_dst = set([self.get_clipped(val=_+u0.dst,
-                                      lo=(-self.st_max-x.st)/dt,
-                                      hi=(self.st_max-x.st)/dt)
+                                      lo=(-self.st_max-x.st)/dt_f,
+                                      hi=(self.st_max-x.st)/dt_f)
                      for _ in self.u_dst])
         return u_dst
 
@@ -75,7 +77,7 @@ class BicycleDynamics:
         """ For each state, returns a dictionary U -> Possible Xs """
 
         if u0 is None:
-            u0 = VehicleActions(acc=D("0"), dst=D("0"))
+            u0 = VehicleActions(acc=0.0, dst=0.0)
         u_acc = self.get_feasible_acc(x=x, dt=dt, u0=u0)
         u_dst = self.get_feasible_dst(x=x, dt=dt, u0=u0)
 
@@ -89,40 +91,41 @@ class BicycleDynamics:
         """ Perform RK2 integration to propagate state using actions for time dt """
         def clip(value, low, high):
             return max(low, min(high, value))
-
-        vf = clip(x0.v + u.acc * dt, low=self.v_min, high=self.v_max)
-        stf = clip(x0.st + u.dst * dt, low=-self.st_max, high=self.st_max)
-        u_clip = VehicleActions(acc=(vf - x0.v) / dt, dst=(stf - x0.st) / dt)
+        dt_f = float(dt)
+        vf = clip(x0.v + u.acc * dt_f, low=self.v_min, high=self.v_max)
+        stf = clip(x0.st + u.dst * dt_f, low=-self.st_max, high=self.st_max)
+        u_clip = VehicleActions(acc=(vf - x0.v) / dt_f, dst=(stf - x0.st) / dt_f)
 
         k1 = self.dynamics(x0, u_clip)
-        k2 = self.dynamics(x0 + k1 * dt, u_clip)
-        ret = x0 + (k1 + k2) * (dt / D("2"))
+        k2 = self.dynamics(x0 + k1 * dt_f, u_clip)
+        ret = x0 + (k1 + k2) * (dt_f / 2.0)
         return ret
 
     def successor_forward(self, x0: VehicleState, u: VehicleActions, dt: D):
         """ Perform Euler forward integration to propagate state using actions for time dt """
+        dt_f = float(dt)
         v0, st0 = x0.v, x0.st
-        x0.v += u.acc * dt
-        x0.st += u.dst * dt
-        tol = D("1e-3")
+        x0.v += u.acc * dt_f
+        x0.st += u.dst * dt_f
+        tol = 1e-3
         if not self.v_min - tol <= x0.v <= self.v_max + tol:
             print("Velocity outside limits")
         if not -self.st_max - tol <= x0.st <= self.st_max + tol:
             print(f"Steering = {x0.st}, outside limits")
-        u = VehicleActions(acc=D("0"), dst=D("0"))
+        u = VehicleActions(acc=0.0, dst=0.0)
 
         k1 = self.dynamics(x0, u)
-        ret = x0 + k1 * dt
+        ret = x0 + k1 * dt_f
         x0.v, x0.st = v0, st0
         return ret
 
     def dynamics(self, x0: VehicleState, u: VehicleActions) -> VehicleState:
         """ Get rate of change of states for given control inputs """
         dx = x0.v
-        dr = dx * D(math.tan(x0.st)) / (2 * self.vg.l)
+        dr = dx * math.tan(x0.st) / (2.0 * self.vg.l)
         dy = dr * self.vg.l
-        costh = D(math.cos(x0.th + dr / D("2")))
-        sinth = D(math.sin(x0.th + dr / D("2")))
+        costh = math.cos(x0.th + dr / 2.0)
+        sinth = math.sin(x0.th + dr / 2.0)
 
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh

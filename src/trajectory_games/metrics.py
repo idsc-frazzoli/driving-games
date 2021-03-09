@@ -37,26 +37,24 @@ __all__ = [
 ]
 
 
-def integrate(sequence: SampledSequence[Timestamp]) -> SampledSequence[Timestamp]:
+def integrate(sequence: SampledSequence[float]) -> SampledSequence[float]:
     """ Integrates with respect to time - multiplies the value with delta T. """
     if not sequence:
         msg = "Cannot integrate empty sequence."
         raise ValueError(msg)
-    total = D("0")
+    total = 0.0
     timestamps = []
     values = []
     for _ in iterate_with_dt(sequence):
-        v_avg = (D(_.v0) + D(_.v1)) / D("2")
-        dt = _.dt
-        total += D(v_avg * dt)
-
+        v_avg = (_.v0 + _.v1) / 2.0
+        total += v_avg * float(_.dt)
         timestamps.append(Timestamp(_.t0))
         values.append(total)
 
-    return SampledSequence[D](timestamps, values)
+    return SampledSequence[float](timestamps, values)
 
 
-def accumulate(sequence: SampledSequence[D]) -> SampledSequence[D]:
+def accumulate(sequence: SampledSequence[float]) -> SampledSequence[float]:
     """ Accumulates with respect to time - Sums the values along the horizontal. """
     total = 0.0
     timestamps = []
@@ -66,29 +64,29 @@ def accumulate(sequence: SampledSequence[D]) -> SampledSequence[D]:
         timestamps.append(t)
         values.append(total)
 
-    return SampledSequence[D](timestamps, values)
+    return SampledSequence[float](timestamps, values)
 
 
-def differentiate(val: List[D], t: List[D]) -> List[D]:
+def differentiate(val: List[float], t: List[D]) -> List[float]:
     if len(val) != len(t):
         msg = "values and times have different sizes - ({},{})," " can't differentiate".format(
             len(val), len(t)
         )
         raise ValueError(msg)
 
-    def func_diff(i: int) -> D:
+    def func_diff(i: int) -> float:
         dy = val[i + 1] - val[i]
-        dx = t[i + 1] - t[i]
+        dx = float(t[i + 1] - t[i])
         if dx < 1e-8:
             msg = "identical timestamps for func_diff - {}".format(t[i])
             raise ValueError(msg)
         return dy / dx
 
-    ret: List[D] = [D("0")] + [func_diff(i) for i in range(len(t) - 1)]
+    ret: List[float] = [0.0] + [func_diff(i) for i in range(len(t) - 1)]
     return ret
 
 
-def get_integrated(sequence: SampledSequence[Timestamp]) -> Tuple[SampledSequence[Timestamp], D]:
+def get_integrated(sequence: SampledSequence[float]) -> Tuple[SampledSequence[float], float]:
     if len(sequence) <= 1:
         cumulative = 0.0
         dtot = 0.0
@@ -125,7 +123,7 @@ class SurvivalTime(Metric):
                 raise ValueError(traj)
 
             # negative for smaller preferred
-            incremental = traj.transform_values(lambda _: D("-1"), D)
+            incremental = traj.transform_values(lambda _: -1.0, float)
             cumulative = integrate(incremental)
             total = cumulative.values[-1]
 
@@ -155,8 +153,8 @@ class DeviationLateral(Metric):
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
-            abs_n = [D(_.distance_from_center) for _ in traj_sn]
-            sequence = SampledSequence[D](interval, abs_n)
+            abs_n = [_.distance_from_center for _ in traj_sn]
+            sequence = SampledSequence[float](interval, abs_n)
 
             cumulative, dtot = get_integrated(sequence)
             ret = EvaluatedMetric(
@@ -185,9 +183,9 @@ class DeviationHeading(Metric):
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
-            head = [D(abs(_.relative_heading)) for _ in traj_sn]
+            head = [abs(_.relative_heading) for _ in traj_sn]
 
-            sequence = SampledSequence[D](interval, head)
+            sequence = SampledSequence[float](interval, head)
             cumulative, dtot = get_integrated(sequence)
 
             ret = EvaluatedMetric(
@@ -218,17 +216,17 @@ class DrivableAreaViolation(Metric):
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
 
-            def get_violation(curv: LanePose) -> D:
+            def get_violation(curv: LanePose) -> float:
                 diff = 0.0
                 if not curv.lateral_inside:
                     if curv.outside_left:
                         diff = curv.distance_from_left
                     elif curv.outside_right:
                         diff = curv.distance_from_right
-                return D(diff)
+                return diff
 
             values = [get_violation(_) for _ in traj_sn]
-            sequence = SampledSequence[D](interval, values)
+            sequence = SampledSequence[float](interval, values)
             cumulative, dtot = get_integrated(sequence)
 
             ret = EvaluatedMetric(
@@ -258,11 +256,11 @@ class ProgressAlongReference(Metric):
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             # negative for smaller preferred
-            progress = [D(traj_sn[0].along_lane - _.along_lane) for _ in traj_sn]
-            total: D = progress[-1]
-            inc: List[D] = [D("0")] + [j - i for i, j in zip(progress[:-1], progress[1:])]
-            incremental = SampledSequence[D](interval, inc)
-            cumulative = SampledSequence[D](interval, progress)
+            progress = [traj_sn[0].along_lane - _.along_lane for _ in traj_sn]
+            total = progress[-1]
+            inc = [0.0] + [j - i for i, j in zip(progress[:-1], progress[1:])]
+            incremental = SampledSequence[float](interval, inc)
+            cumulative = SampledSequence[float](interval, progress)
 
             ret = EvaluatedMetric(
                 total=total,
@@ -292,9 +290,9 @@ class LongitudinalAcceleration(Metric):
             vel = [x.v for _, x in trajectory]
             acc = differentiate(vel, interval)
             # Final acc, dacc is zero and not first
-            acc_val = [abs(_) for _ in acc[1:]] + [D("0")]
+            acc_val = [abs(_) for _ in acc[1:]] + [0.0]
 
-            acc_seq = SampledSequence[D](interval, acc_val)
+            acc_seq = SampledSequence[float](interval, acc_val)
             cumulative, dtot = get_integrated(acc_seq)
 
             ret = EvaluatedMetric(
@@ -325,12 +323,11 @@ class LongitudinalJerk(Metric):
 
             vel = [x.v for _, x in trajectory]
             acc = differentiate(vel, interval)
-            # TODO[SIR]: Improve dacc calc -> Use initial acc
             dacc = differentiate(acc, interval)
             # Final acc, dacc is zero and not first
-            dacc_val = [abs(_) for _ in dacc[1:]] + [D("0")]
+            dacc_val = [abs(_) for _ in dacc[1:]] + [0.0]
 
-            dacc_seq = SampledSequence[D](interval, dacc_val)
+            dacc_seq = SampledSequence[float](interval, dacc_val)
             cumulative, dtot = get_integrated(dacc_seq)
 
             ret = EvaluatedMetric(
@@ -360,7 +357,7 @@ class LateralComfort(Metric):
             interval = context.get_interval(player)
 
             ay = [abs(x.v * x.st) for _, x in trajectory]
-            ay_seq = SampledSequence[D](interval, ay)
+            ay_seq = SampledSequence[float](interval, ay)
             cumulative, dtot = get_integrated(ay_seq)
 
             ret = EvaluatedMetric(
@@ -391,7 +388,7 @@ class SteeringAngle(Metric):
             st = [x.st for _, x in trajectory]
             st_abs = [abs(_) for _ in st]
 
-            st_seq = SampledSequence[D](interval, st_abs)
+            st_seq = SampledSequence[float](interval, st_abs)
             cumulative, dtot = get_integrated(st_seq)
 
             ret = EvaluatedMetric(
@@ -422,9 +419,9 @@ class SteeringRate(Metric):
             st = [x.st for _, x in trajectory]
             dst = differentiate(st, interval)
             # Final dst is zero and not first
-            dst_val = [abs(_) for _ in dst[1:]] + [D("0")]
+            dst_val = [abs(_) for _ in dst[1:]] + [0.0]
 
-            dst_seq = SampledSequence[D](interval, dst_val)
+            dst_seq = SampledSequence[float](interval, dst_val)
             cumulative, dtot = get_integrated(dst_seq)
 
             ret = EvaluatedMetric(
@@ -441,9 +438,9 @@ class SteeringRate(Metric):
 
 
 class CollisionEnergy(Metric):
-    cache: Dict[JointPureTraj, List[D]] = {}
+    cache: Dict[JointPureTraj, List[float]] = {}
     cache_joint_traj: Dict[JointPureTraj, EvaluatedMetric] = {}
-    COLLISION_MIN_DIST = D("0.2")
+    COLLISION_MIN_DIST = 0.2
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
         description = "This metric computes the energy of collision between agents."
@@ -455,15 +452,15 @@ class CollisionEnergy(Metric):
                 p: world.get_geometry(p) for p in context.get_players()
             }
 
-            def calculate_collision(players: List[PlayerName]) -> List[D]:
+            def calculate_collision(players: List[PlayerName]) -> List[float]:
                 assert len(players) == 2
                 joint_traj: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in players})
                 if joint_traj in self.cache:
                     return self.cache[joint_traj]
 
-                def get_geo(p_name: PlayerName) -> Tuple[VehicleGeometry, D]:
+                def get_geo(p_name: PlayerName) -> Tuple[VehicleGeometry, float]:
                     geo: VehicleGeometry = geometry[p_name]
-                    dist = (geo.l ** 2 + geo.w ** 2).sqrt()
+                    dist = (geo.l ** 2 + geo.w ** 2) ** 0.5
                     return geo, dist
 
                 geo1, l1 = get_geo(players[0])
@@ -478,7 +475,7 @@ class CollisionEnergy(Metric):
                 #         [D(_) for _ in np.linspace(float(min(times1[0], times2[0])),
                 #                                    float(max(times1[-1], times2[-1])),
                 #                                    max(len(times1), len(times2)))]
-                energy: List[D] = []
+                energy: List[float] = []
                 for step in times:
                     state1: VehicleState = joint_traj[players[0]].at(step)
                     state2: VehicleState = joint_traj[players[1]].at(step)
@@ -486,31 +483,31 @@ class CollisionEnergy(Metric):
                     # Coarse collision check
                     dx = state1.x - state2.x
                     dy = state1.y - state2.y
-                    dist = (dx ** 2 + dy ** 2).sqrt()
+                    dist = (dx ** 2 + dy ** 2) ** 0.5
                     if dist > l1 + l2:
-                        energy.append(D("0"))
+                        energy.append(0.0)
                         continue
 
                     # Exact collision check
-                    th_diff = D(math.atan2(dy, dx))
+                    th_diff = math.atan2(dy, dx)
 
-                    def get_projection(state: VehicleState, geo: VehicleGeometry) -> D:
+                    def get_projection(state: VehicleState, geo: VehicleGeometry) -> float:
                         # Get the projected distance of the corner of the car along the line joining both car CoGs
                         th_proj = state.th - th_diff
-                        cos_proj = D(abs(math.cos(th_proj)))
-                        sin_proj = D(abs(math.sin(th_proj)))
+                        cos_proj = abs(math.cos(th_proj))
+                        sin_proj = abs(math.sin(th_proj))
                         return geo.l * cos_proj + geo.w * sin_proj
 
                     # If the sum of both projections is smaller than the distance, cars don't collide
                     proj1 = get_projection(state1, geo1)
                     proj2 = get_projection(state2, geo2)
                     if proj1 + proj2 - dist < self.COLLISION_MIN_DIST:
-                        energy.append(D("0"))
+                        energy.append(0.0)
                     else:
                         # Calculate energy based on relative velocity between both cars
-                        vel_proj = D(math.cos(state1.th - state2.th))
+                        vel_proj = math.cos(state1.th - state2.th)
                         vel_relsq = state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj
-                        energy_coll = D("0.5") * (geo1.m + geo2.m) * vel_relsq
+                        energy_coll = 0.5 * (geo1.m + geo2.m) * vel_relsq
                         energy.append(energy_coll)
 
                 self.cache[joint_traj] = energy
@@ -522,11 +519,11 @@ class CollisionEnergy(Metric):
             if joint_traj_all in self.cache_joint_traj:
                 return self.cache_joint_traj[joint_traj_all]
 
-            collision_energy: List[D] = []
+            collision_energy: List[float] = []
             for player2 in context.get_players():
                 if player1 == player2:
                     timesteps: List[Timestamp] = context.get_interval(player1)
-                    coll_e = [D("0") for _ in timesteps]
+                    coll_e = [0.0 for _ in timesteps]
                 else:
                     coll_e = calculate_collision(players=[player1, player2])
                 if not collision_energy:
@@ -536,7 +533,7 @@ class CollisionEnergy(Metric):
                     collision_energy = [full + val for full, val in zip(collision_energy, coll_e)]
 
             interval = context.get_interval(player1)
-            inc = SampledSequence[D](interval, collision_energy)
+            inc = SampledSequence[float](interval, collision_energy)
 
             cumulative, dtot = get_integrated(inc)
 

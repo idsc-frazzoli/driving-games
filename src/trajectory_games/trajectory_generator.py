@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
 import numpy as np
-from decimal import Decimal as D
 
 import geometry as geo
 from duckietown_world import relative_pose
@@ -93,8 +92,8 @@ class TrajectoryGenerator1(TrajectoryGenerator):
     @staticmethod
     def get_curv(state: VehicleState, lane: LaneSegmentHashable) -> Tuple[float, float, float]:
         """ Calculate curvilinear coordinates for state """
-        p = np.array([float(state.x), float(state.y)])
-        q = geo.SE2_from_translation_angle(t=p, theta=float(state.th))
+        p = np.array([state.x, state.y])
+        q = geo.SE2_from_translation_angle(t=p, theta=state.th)
 
         beta, q0 = lane.find_along_lane_closest_point(p=p)
         along = lane.along_lane_from_beta(beta)
@@ -121,26 +120,26 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         Steers car using kinematic model to reach close to target point
         """
 
-        dt = self.params.dt
-        l = float(self.params.vg.l)
+        dt = float(self.params.dt)
+        l = self.params.vg.l
 
         # Calculate initial pose
-        start_arr = np.array([float(_) for _ in [state.x, state.y]])
-        th_start = float(state.th)
+        start_arr = np.array([state.x, state.y])
+        th_start = state.th
         along_i, n_i, mui = self.get_curv(state=state, lane=lane)
 
         # Calculate real axle translation and rotation
         offset_0, offset_i = np.array([0, 0]), np.array([-l, 0])
         p_i, th_i = self.get_target(lane=lane, progress=along_i, offset_target=offset_0)
-        q_start = geo.SE2_from_translation_angle(t=start_arr, theta=float(state.th))
+        q_start = geo.SE2_from_translation_angle(t=start_arr, theta=state.th)
         p_start = SE2_apply_R2(q_start, offset_i)
 
-        def get_progress(acc: D, K: float) -> float:
+        def get_progress(acc: float, K: float) -> float:
             """ Progress along reference using curvature"""
             vf = state.v + acc * dt
-            return float(vf * dt) / (1 - n_i * K)
+            return (vf * dt) / (1 - n_i * K)
 
-        def get_corrected_distance(acc: D) -> float:
+        def get_corrected_distance(acc: float) -> float:
             """ Progress along reference iteratively corrected using curvature"""
             curv = 0.0
             dist = get_progress(acc=acc, K=curv)
@@ -159,20 +158,20 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
             return dist
 
-        st_max, dst_max = float(self.params.st_max), self.params.dst_max
+        st_max, dst_max = self.params.st_max, self.params.dst_max
         successors: Dict[VehicleActions, VehicleState] = {}
-        u0 = VehicleActions(acc=D("0"), dst=D("0"))
+        u0 = VehicleActions(acc=0.0, dst=0.0)
 
         # Sample progress using acceleration
-        for accel in self._bicycle_dyn.get_feasible_acc(x=state, dt=dt, u0=u0):
+        for accel in self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0):
             distance = get_corrected_distance(acc=accel)
 
             # Sample deviation as a function of dst
             for dst in self._bicycle_dyn.u_dst:
 
                 # Calculate target pose of rear axle
-                nf = n_i * 0.5 + float(dst) * distance / l
-                offset_t = np.array([-float(self.params.vg.l), nf])
+                nf = n_i * 0.5 + dst * distance / l
+                offset_t = np.array([-l, nf])
                 p_t, th_t = self.get_target(lane=lane, progress=along_i+distance, offset_target=offset_t)
 
                 # Steer from initial to final position using kinematic model
@@ -180,12 +179,12 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                 dlb_t = p_t - p_start
                 Lb_t = np.linalg.norm(dlb_t)
                 alpb = math.atan2(dlb_t[1], dlb_t[0]) - th_start
-                st_f = min(max(math.atan(4 * math.sin(alpb) * float(dt) * l / Lb_t), -st_max), st_max)
-                dst_f = min(max((D(st_f) - state.st) / dt, -dst_max), dst_max)
+                st_f = min(max(math.atan(4 * math.sin(alpb) * dt * l / Lb_t), -st_max), st_max)
+                dst_f = min(max((st_f - state.st) / dt, -dst_max), dst_max)
 
                 # Propagate inputs to obtain exact final state
                 u = VehicleActions(acc=accel, dst=dst_f)
-                state_f2 = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=dt)
+                state_f2 = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
                 successors[u] = state_f2
 
         return successors
@@ -199,46 +198,46 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         Propagates states using calculated steering and kinematic model
         """
 
-        dt = self.params.dt
+        dt = float(self.params.dt)
         s_init, n_init, mui = self.get_curv(state=state, lane=lane)
         successors: Dict[VehicleActions, VehicleState] = {}
 
         # Steering rate bounds
         dst_max = self.params.dst_max
-        lb = float(max(-dst_max, (-self.params.st_max - state.st) / dt))
-        ub = float(min(+dst_max, (+self.params.st_max - state.st) / dt))
-        u0 = VehicleActions(acc=D("0"), dst=D("0"))
+        lb = max(-dst_max, (-self.params.st_max - state.st) / dt)
+        ub = min(+dst_max, (+self.params.st_max - state.st) / dt)
+        u0 = VehicleActions(acc=0.0, dst=0.0)
 
-        def equation_forward(vars_in, acc: D) -> Tuple[float, float]:
+        def equation_forward(vars_in, acc: float) -> Tuple[float, float]:
             """ Euler forward integration (cartesian) to obtain curvilinear state """
-            u = VehicleActions(acc=acc, dst=D(vars_in[0]))
-            state_end = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=dt)
+            u = VehicleActions(acc=acc, dst=vars_in[0])
+            state_end = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
             _, n, mu = self.get_curv(state=state_end, lane=lane)
             return n, mu
 
-        def equation_min(vars_in, acc: D, nf: float) -> float:
+        def equation_min(vars_in, acc: float, nfinal: float) -> float:
             """ Function for optimiser """
             n, mu = equation_forward(vars_in, acc=acc)
-            return (n - nf) ** 2 + float(np.abs(mu) > np.pi / 2) * 10000
+            return (n - nfinal) ** 2 + float(np.abs(mu) > np.pi / 2) * 10000
 
         def get_dst_guess() -> float:
             """ Initial guess for optimisation, obtained from target yaw rate """
             p_t, th_t = self.get_target(lane=lane, progress=s_init+distance, offset_target=np.array([0, 0]))
-            d_ang = (th_t - float(state.th))
+            d_ang = (th_t - state.th)
             while d_ang > +np.pi: d_ang -= 2*np.pi
             while d_ang < -np.pi: d_ang += 2*np.pi
-            dst_i = (math.atan(d_ang * 2 * float(self.params.vg.l) / float(state.v*dt)) - float(state.st)) / float(dt)
+            dst_i = (math.atan(d_ang * 2 * self.params.vg.l / state.v*dt) - state.st) / dt
             dst_i = min(max(dst_i, lb), ub)
             return dst_i
 
         # Sample velocities
-        for accel in self._bicycle_dyn.get_feasible_acc(x=state, dt=dt, u0=u0):
+        for accel in self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0):
             vf = state.v + accel * dt
-            distance = float(vf * dt) * math.cos(mui)
+            distance = vf * dt
 
             # Sample deviations
             for dst in self._bicycle_dyn.u_dst:
-                nf = n_init * 0.5 + float(dst/self.params.vg.l) * distance
+                nf = n_init * 0.5 + (dst/self.params.vg.l) * distance
 
                 # Solve boundary value problem to obtain actions
                 dst_g = get_dst_guess()
@@ -255,11 +254,11 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                 if not res.success:
                     print(f"Opt failed: {state}, acc={accel}, nf={nf}")
                     continue
-                dst = D(res.x[0])
+                dst = res.x[0]
 
                 # Propagate inputs to obtain final state
                 u_f = VehicleActions(acc=accel, dst=dst)
-                state_f = self._bicycle_dyn.successor_forward(x0=state, u=u_f, dt=dt)
+                state_f = self._bicycle_dyn.successor_forward(x0=state, u=u_f, dt=self.params.dt)
                 successors[u_f] = state_f
         return successors
 
