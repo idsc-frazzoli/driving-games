@@ -131,6 +131,9 @@ class VehicleState:
 
     __radd__ = __add__
 
+    def __sub__(self, other: "VehicleState") -> "VehicleState":
+        return self + (other * -1.0)
+
     def __mul__(self, factor: float) -> "VehicleState":
         return VehicleState(
             x=self.x * factor,
@@ -138,10 +141,13 @@ class VehicleState:
             th=self.th * factor,
             v=self.v * factor,
             st=self.st * factor,
-            t=self.t * D(factor),
+            t=self.t * D(round(factor, 4)),
         )
 
     __rmul__ = __mul__
+
+    def __truediv__(self, factor: float) -> "VehicleState":
+        return self * (1/factor)
 
     def __repr__(self) -> str:
         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
@@ -193,6 +199,7 @@ class TrajectoryParams:
     v_min: float
     st_max: float
     dst_max: float
+    dt_samp: D
     vg: VehicleGeometry
 
     _config: Dict = None
@@ -212,6 +219,7 @@ class TrajectoryParams:
             v_min=0.0,
             st_max=0.5,
             dst_max=1.0,
+            dt_samp=D("0.1"),
             vg=VehicleGeometry.from_config(""),
         )
         return params
@@ -242,6 +250,7 @@ class TrajectoryParams:
                 v_min=config["v_min"],
                 st_max=config["st_max"],
                 dst_max=config["dst_max"],
+                dt_samp=D(config["dt_samp"]),
                 vg=VehicleGeometry.from_config(vg_name),
             )
         else:

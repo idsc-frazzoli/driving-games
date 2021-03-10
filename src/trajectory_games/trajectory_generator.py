@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
 import numpy as np
+from decimal import Decimal as D
 
 import geometry as geo
 from duckietown_world import relative_pose
@@ -52,7 +53,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         G = self._get_trajectory_graph(state=state, lane=world.get_lane(player=player))
         if isinstance(graph, MultiDiGraph):
             graph.__init__(G)
-        trajectories = self._trajectory_graph_to_list(G=G)
+        trajectories = self._trajectory_graph_to_list(G=G, dt=self.params.dt_samp)
         toc = perf_counter() - tic
         print(f"Trajectory generation time = {toc:.2f} s")
         ret = frozenset(trajectories)
@@ -179,13 +180,14 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                 dlb_t = p_t - p_start
                 Lb_t = np.linalg.norm(dlb_t)
                 alpb = math.atan2(dlb_t[1], dlb_t[0]) - th_start
-                st_f = min(max(math.atan(4 * math.sin(alpb) * dt * l / Lb_t), -st_max), st_max)
+                tan_st = 4 * math.sin(alpb) * dt * l / Lb_t
+                st_f = min(max(math.atan(tan_st), -st_max), st_max)
                 dst_f = min(max((st_f - state.st) / dt, -dst_max), dst_max)
 
                 # Propagate inputs to obtain exact final state
                 u = VehicleActions(acc=accel, dst=dst_f)
-                state_f2 = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
-                successors[u] = state_f2
+                state_f = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
+                successors[u] = state_f
 
         return successors
 
@@ -263,33 +265,31 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         return successors
 
     @staticmethod
-    def _trajectory_graph_to_list(G: MultiDiGraph) -> Set[Trajectory]:
+    def _trajectory_graph_to_list(G: MultiDiGraph, dt: D) -> Set[Trajectory]:
         """ Convert state graph to list of trajectories"""
         expanded = set()
         all_traj: Set[Trajectory] = set()
         for n1 in topological_sort(G):
             traj: List[VehicleState] = [n1]
-            TrajectoryGenerator1._expand_graph(G=G, node=n1, traj=traj, all_traj=all_traj, expanded=expanded)
+            TrajectoryGenerator1._expand_graph(G=G, node=n1, traj=traj,
+                                               all_traj=all_traj,
+                                               expanded=expanded, dt=dt)
         return all_traj
 
     @staticmethod
-    def _expand_graph(
-        G: MultiDiGraph,
-        node: VehicleState,
-        traj: List[VehicleState],
-        all_traj: Set[Trajectory],
-        expanded: Set[VehicleState],
-    ):
+    def _expand_graph(G: MultiDiGraph, node: VehicleState,
+                      traj: List[VehicleState], all_traj: Set[Trajectory],
+                      expanded: Set[VehicleState], dt: D):
         """ Recursively expand graph to obtain states """
         if node in expanded:
             return
         successors = list(G.successors(node))
         if not successors:
-            all_traj.add(Trajectory(traj))
+            all_traj.add(Trajectory(traj=traj, dt_samp=dt))
         else:
             for n2 in successors:
                 traj1: List[VehicleState] = traj + [n2]
-                TrajectoryGenerator1._expand_graph(
-                    G=G, node=n2, traj=traj1, all_traj=all_traj, expanded=expanded
-                )
+                TrajectoryGenerator1._expand_graph(G=G, node=n2, traj=traj1,
+                                                   all_traj=all_traj,
+                                                   expanded=expanded, dt=dt)
         expanded.add(node)
