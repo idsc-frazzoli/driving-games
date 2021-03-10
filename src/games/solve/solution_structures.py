@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M
+from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M, Optional
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
@@ -300,6 +300,9 @@ class GameFactorization(Generic[X]):
 
     ipartitions: Mapping[JointState, FSet[FSet[PlayerName]]]
     """ For each joint state, how can we partition the players? """
+
+    states_to_solution: Optional[Mapping[JointState, "SolvedGameNode"]] = None
+    """ The nodes already solved in game factorization """
 
 
 @dataclass
