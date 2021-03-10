@@ -2,6 +2,7 @@ from os.path import join
 from itertools import product
 from parameterized import parameterized
 from time import perf_counter
+import math
 
 from games import (
     MIX_MNE,
@@ -25,7 +26,11 @@ from preferences import SetPreference1
 
 from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
 from factorization.solve_n_players import preprocess_n_player_game
-from factorization.algos_factorization import get_game_factorization_no_collision_check
+from factorization.algos_factorization import (
+    get_game_factorization_no_collision_check,
+    get_game_factorization_as_create_game_graph,
+    get_game_factorization_n_players_as_create_game_graph
+)
 
 from toy_games.n_player_toy_game import get_toy_car_game
 from toy_games.n_player_toy_game_zoo import (
@@ -44,7 +49,7 @@ uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder
 
 
 uncertainty_params = [
-    [uncertainty_sets, "sets"],
+    # [uncertainty_sets, "sets"],
     [uncertainty_prob, "prob"],
 ]
 
@@ -56,11 +61,11 @@ toy_game_params = [
     toy_params_one_indep_lane,
     toy_params_two_indep_games,
     toy_params_two_x_joint,
-    toy_params_two_x_crossed,
+    # toy_params_two_x_crossed,
 ]
 
 strategies = [
-    PURE_STRATEGIES,
+    # PURE_STRATEGIES,
     # MIX_STRATEGIES
     FINITE_MIX_STRATEGIES
 ]
@@ -72,15 +77,22 @@ nash_strategy = [
 
 use_factorization = [
     # [True, get_game_factorization, "base"],
-    [True, get_game_factorization_no_collision_check, "no_col"],
-    [False, None]
+    # [True, get_game_factorization_no_collision_check, "no_col"],
+    # [True, get_game_factorization_as_create_game_graph, "as_gg"],
+    [True, get_game_factorization_n_players_as_create_game_graph, "n_play_as_gg"],
+    # [False, None]
 ]
 
-params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy, use_factorization))
+betas = [
+    0,
+    # math.inf
+]
+
+params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy, use_factorization, betas))
 
 
 @parameterized(params)
-def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat, use_fact):
+def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat, use_fact, beta):
     """
     N-Player toy game
     """
@@ -89,7 +101,9 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
 
     d = "out/"
     game_name = f"{toy_game_parameters.params_name}"
-    solver_name = f"{strat}-{nash_strat}-{uncert_params[1]}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
+    solver_name = (
+        f"{strat}-{nash_strat}-{uncert_params[1]}{'-fact_' + use_fact[2] + '_beta=' + str(beta) if use_fact[0] else ''}"
+    )
     logger.info(f"Start test: {game_name} with solver params {solver_name}")
     game = get_toy_car_game(toy_games_params=toy_game_parameters, uncertainty_params=uncert_params[0])
 
@@ -103,7 +117,8 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
             strategy_multiple_nash=strategy_multiple_nash,
             dt=dt,
             use_factorization=use_fact[0],
-            get_factorization=get_factorization
+            get_factorization=get_factorization,
+            beta=beta
     )
     solver_spec = FactorizationSolverSpec(solver_name, solve_params)
 
