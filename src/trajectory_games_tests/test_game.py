@@ -16,6 +16,7 @@ from trajectory_games import (
 
 
 def test_trajectory_game():
+    plot_gif = False
     d = "out/tests/"
     game: TrajectoryGame = get_trajectory_game()
     context: StaticSolvingContext = compute_solving_context(sgame=game)
@@ -30,7 +31,7 @@ def test_trajectory_game():
 
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
-    r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq))
+    r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=plot_gif))
     r_game.add_child(report_preferences(game=game))
     r_game.to_html(join(d, "r_animation.html"))
 
