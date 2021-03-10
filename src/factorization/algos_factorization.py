@@ -288,8 +288,10 @@ def get_game_factorization_n_players_as_create_game_graph(
         single_js = frozendict({pname: state})
         return pname, known[pname][single_js].ur
 
-    solved_to_solution = {}
-    # solved_to_solution.update(known)
+    states_to_solution: Dict[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]] = {}
+
+    for single_state_to_solved_game_node in known.values():
+        states_to_solution.update(single_state_to_solved_game_node)
 
     # iterate all combinations
     for jsf in recursive_reachable_state_iterator(game=game, dt=solver_params.dt):
@@ -308,7 +310,7 @@ def get_game_factorization_n_players_as_create_game_graph(
             players_pre,
             ps,
             resources_used,
-            solved_to_solution
+            states_to_solution
         )
 
         # stop timer and collect performance if given
@@ -335,7 +337,11 @@ def get_game_factorization_n_players_as_create_game_graph(
 
     mpartitions = valmap(frozenset, partitions)
     # logger.info("stats", partitions=valmap(lambda _: len(_), partitions))
-    return GameFactorization(mpartitions, ipartitions)
+    return GameFactorization(
+        mpartitions,
+        ipartitions,
+        frozendict(states_to_solution)
+    )
 
 
 def find_dependencies_n_players_no_collision_check(
@@ -440,23 +446,29 @@ def find_dependencies_n_players_no_collision_check(
                 # initial state of those subgame
                 initials_smaller_game = fkeyfilter(lambda _: _ in players, current_js)
 
-                # create the game graph for the merged sub game
-                gg = create_game_graph(
-                    game=smaller_game,
-                    dt=solver_params.dt,
-                    initials=frozenset({initials_smaller_game}),
-                    gf=None
-                )
+                if initials_smaller_game in states_to_solution:
+                    resources_games[players] = states_to_solution[initials_smaller_game].ur
+                else:
+                    # create the game graph for the merged sub game
+                    gg = create_game_graph(
+                        game=smaller_game,
+                        dt=solver_params.dt,
+                        initials=frozenset({initials_smaller_game}),
+                        gf=None
+                    )
 
-                # solve the subgame
-                gs = solve_game2(
-                    game=smaller_game,
-                    solver_params=solver_params,
-                    gg=gg,
-                    jss=frozenset({initials_smaller_game})
-                )
+                    # solve the subgame
+                    gs = solve_game2(
+                        game=smaller_game,
+                        solver_params=solver_params,
+                        gg=gg,
+                        jss=frozenset({initials_smaller_game}),
+                        states_to_solution_fact=frozendict(states_to_solution)
+                    )
 
-                resources_games[players] = gs.states_to_solution[initials_smaller_game].ur
+                    states_to_solution.update(gs.states_to_solution)
+
+                    resources_games[players] = gs.states_to_solution[initials_smaller_game].ur
 
             max_instants = max(max(_.used) if _.used else 0 for _ in resources_games.values())
             for i in range(int(max_instants) + 1):
@@ -548,6 +560,8 @@ def _recursive_reachable_state_iterator(
     """
     if states not in reachable_states:
 
+        reachable_states.add(states)
+
         moves_to_state_everybody = _get_moves(game, states, dt)
         pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
         ps = game.ps
@@ -600,7 +614,6 @@ def _recursive_reachable_state_iterator(
             for p in poutcomes.support():
                 for _, js_ in p.items():
                     yield from _recursive_reachable_state_iterator(game, reachable_states, js_, dt)
-        reachable_states.add(states)
         yield states
 
 
