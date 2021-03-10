@@ -113,6 +113,9 @@ class GamePerformance:
     use_fact: bool
     """Indicates if factorization was used"""
 
+    beta: float
+    """ Indicates the standard deviation of the gaussian kernel during the filtering of the mixed strategy"""
+
     pre_pro_player_pi: PreprocessPlayerPI
     """Contains the performance information for the preprocessing of the players"""
 
@@ -168,6 +171,11 @@ def get_initialized_game_performance(
     adm_strat: AdmissibleStrategies = solver_params.admissible_strategies
     use_fact = solver_params.use_factorization
 
+    if hasattr(solver_params, "beta"):
+        beta = solver_params.beta
+    else:
+        beta = 0
+
     game_perf = GamePerformance(
         nb_players=nb_players,
         size_action_set=size_action_set,
@@ -176,7 +184,8 @@ def get_initialized_game_performance(
         use_fact=use_fact,
         pre_pro_player_pi=pre_pro_pl_pi,
         create_gt_pi=deepcopy(create_gg_pi),
-        solve_game_pi=deepcopy(solve_game_pi)
+        solve_game_pi=deepcopy(solve_game_pi),
+        beta=beta
     )
 
     return game_perf
