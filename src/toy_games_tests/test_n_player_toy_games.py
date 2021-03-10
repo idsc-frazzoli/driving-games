@@ -77,15 +77,15 @@ nash_strategy = [
 
 use_factorization = [
     # [True, get_game_factorization, "base"],
-    # [True, get_game_factorization_no_collision_check, "no_col"],
-    # [True, get_game_factorization_as_create_game_graph, "as_gg"],
+    [True, get_game_factorization_no_collision_check, "no_col"],
+    [True, get_game_factorization_as_create_game_graph, "as_gg"],
     [True, get_game_factorization_n_players_as_create_game_graph, "n_play_as_gg"],
-    # [False, None]
+    [False, None]
 ]
 
 betas = [
-    0,
-    # math.inf
+    # 0,
+    math.inf
 ]
 
 params = list(product(toy_game_params, uncertainty_params, strategies, nash_strategy, use_factorization, betas))

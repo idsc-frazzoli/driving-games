@@ -14,23 +14,9 @@ __all__ = [
     "toy_params_two_x_crossed"
 ]
 
-"""This params are applied to all maps"""
 max_wait = 2
+"""This param is applied to all maps exept the 5 player one"""
 
-""" 
-This map contains 2-lanes. Collision happens at point (4):
-                
-           (6) x           x (1)
-                \         /
-             (7) x       x (2)
-                  \     /
-               (8) x   x (3)
-                    \ /
-                     x (4)
-                    / \ 
-               (5) x   x (9)
-
-"""
 
 toy_lane_x_1 = ToyLane(
     control_points=frozendict({
@@ -63,19 +49,21 @@ toy_params_x = ToyGameParams(
     toy_game_map=toy_map_x,
     max_wait=max_wait
 )
-
 """ 
-This map contains 3-lanes. Collision happens at point (7):
-                 (1) 
-           (2) x  x  x (6)
-                \ | /
-                 \|/
-                  x (7)
-                 /|\ 
-                / | \ 
-           (3) x  x  x (5)
-                 (4)
+This map contains 2-lanes. Collision happens at point (4):
+
+           (6) x           x (1)
+                \         /
+             (7) x       x (2)
+                  \     /
+               (8) x   x (3)
+                    \ /
+                     x (4)
+                    / \ 
+               (5) x   x (9)
+
 """
+
 
 toy_lane_star_1 = ToyLane(
     control_points=frozendict({
@@ -89,7 +77,8 @@ toy_lane_star_2 = ToyLane(
     control_points=frozendict({
         0: 2,
         1: 7,
-        2: 5
+        2: 5,
+        3: 29
     })
 )
 
@@ -97,7 +86,8 @@ toy_lane_star_3 = ToyLane(
     control_points=frozendict({
         0: 3,
         1: 7,
-        2: 6
+        2: 6,
+        3: 22
     })
 )
 
@@ -113,18 +103,17 @@ toy_params_star = ToyGameParams(
     toy_game_map=toy_map_star,
     max_wait=max_wait
 )
-
-"""
-This map contains 3 lanes. Collisions happen at (3), (5) and (6)
-                  
-           (2) x     x (1)
-                \   /
-                 \ /
-                  x (6)
-                 / \ 
-             (3)/   \ (5)
-       (4) x---x-----x----x (7)
-                     
+""" 
+This map contains 3-lanes. Collision happens at point (7):
+                 (1) 
+           (2) x  x  x (6)
+                \ | /
+                 \|/
+                  x (7)
+                 /|\ 
+                / | \ 
+           (3) x  x  x (5)
+                 (4)
 """
 
 toy_lane_x_with_base_1 = ToyLane(
@@ -164,18 +153,19 @@ toy_params_x_with_base = ToyGameParams(
     toy_game_map=toy_map_x_with_base,
     max_wait=max_wait
 )
+"""
+This map contains 3 lanes. Collisions happen at (3), (5) and (6)
+
+           (2) x     x (1)
+                \   /
+                 \ /
+                  x (6)
+                 / \ 
+             (3)/   \ (5)
+       (4) x---x-----x----x (7)
 
 """
-This map contains 3 independent lanes. No collision happened
 
-                (2)    (3)
-       (1) x-----x-----x-----x (4)
-                (6)   (7)
-       (5) x-----x-----x-----x (8)
-                 (10)  (11)
-       (9) x-----x-----x-----x (12)
-
-"""
 
 toy_lane_indep_lanes_1 = ToyLane(
     control_points=frozendict({
@@ -217,19 +207,18 @@ toy_params_indep_lanes = ToyGameParams(
     toy_game_map=toy_map_indep_lanes,
     max_wait=max_wait
 )
+"""
+This map contains 3 independent lanes. No collision happened
 
+                (2)    (3)
+       (1) x-----x-----x-----x (4)
+                (6)   (7)
+       (5) x-----x-----x-----x (8)
+                 (10)  (11)
+       (9) x-----x-----x-----x (12)
 
 """
-This map contains 1 independent lane. Collision at (5)
 
-               x (1)
-          (5) /   
-   (2) x-----x-----x (4)
-            /  
-           x (3)
-  (6) x-----x-----x (8)
-           (7)
-"""
 
 toy_lane_one_indep_lane_1 = ToyLane(
     control_points=frozendict({
@@ -268,20 +257,18 @@ toy_params_one_indep_lane = ToyGameParams(
     toy_game_map=toy_map_one_indep_lane,
     max_wait=max_wait
 )
-
-
 """
-This map contains 2 independent games. Collision at (7) and (13)
+This map contains 1 independent lane. Collision at (5)
 
-    (2) x       x (1)   (9) x       x (8) 
-         \     /             \     /
-      (6) x   x (5)      (13) x   x (12)
-           \ /                 \ /
-            x (7)               x (14)
-           / \                 / \ 
-          /   \               /   \ 
-     (3) x     x (4)     (10) x     x (11)
+               x (1)
+          (5) /   
+   (2) x-----x-----x (4)
+            /  
+           x (3)
+  (6) x-----x-----x (8)
+           (7)
 """
+
 
 toy_lane_two_indep_games_1 = ToyLane(
     control_points=frozendict({
@@ -328,25 +315,25 @@ toy_map_two_indep_games = ToyCarMap(
     ]
 )
 
+
 toy_params_two_indep_games = ToyGameParams(
     params_name="4_player_two_indep_games",
     toy_game_map=toy_map_two_indep_games,
     max_wait=max_wait
 )
+"""
+This map contains 2 independent games. Collision at (7) and (13)
 
+    (2) x       x (1)   (9) x       x (8) 
+         \     /             \     /
+      (6) x   x (5)      (13) x   x (12)
+           \ /                 \ /
+            x (7)               x (14)
+           / \                 / \ 
+          /   \               /   \ 
+     (3) x     x (4)     (10) x     x (11)
 """
-This map contains a joint 4 player game. Collision at (4), (5) and (9)
-             (1) (7)
-    (2) x     x  x     x (6) 
-         \   /    \   /
-          \ /      \ /
-           x (5)    x (9)
-          / \      / \ 
-         /   \    /   \ 
-    (3) x     \  /     x (8)
-               x
-              (4)
-"""
+
 
 toy_lane_two_x_joint_1 = ToyLane(
     control_points=frozendict({
@@ -394,22 +381,20 @@ toy_params_two_x_joint = ToyGameParams(
     toy_game_map=toy_map_two_x_joint,
     max_wait=max_wait
 )
-
-
-
 """
-This map contains a joint 5 player game. Collision at (4), (5) and (9)
-              (1) (7)
-     (2) x     x  x     x (6) 
-          \   /    \   /
-           \ /      \ /
-(10) x------x-(5)----x-(9)-----x (11)
-           / \      / \ 
-          /   \    /   \ 
-     (3) x     \  /     x (8)
-                x
-               (4)
+This map contains a joint 4 player game. Collision at (4), (5) and (9)
+             (1) (7)
+    (2) x     x  x     x (6) 
+         \   /    \   /
+          \ /      \ /
+           x (5)    x (9)
+          / \      / \ 
+         /   \    /   \ 
+    (3) x     \  /     x (8)
+               x
+              (4)
 """
+
 
 max_wait = 6
 
@@ -469,3 +454,16 @@ toy_params_two_x_crossed = ToyGameParams(
     toy_game_map=toy_map_two_x_crossed,
     max_wait=max_wait
 )
+"""
+This map contains a joint 5 player game. Collision at (4), (5) and (9)
+              (1) (7)
+     (2) x     x  x     x (6) 
+          \   /    \   /
+           \ /      \ /
+(10) x------x-(5)----x-(9)-----x (11)
+           / \      / \ 
+          /   \    /   \ 
+     (3) x     \  /     x (8)
+                x
+               (4)
+"""
