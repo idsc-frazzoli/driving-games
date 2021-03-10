@@ -143,7 +143,14 @@ def solve1(
     # start the timer to collect time used for solving
     t1 = perf_counter()
 
-    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials, solve_game_perf=solve_game_perf)
+    game_solution = solve_game2(
+        game=gp.game,
+        gg=gg,
+        solver_params=gp.solver_params,
+        jss=initials,
+        states_to_solution_fact=gf.states_to_solution if gf else None,
+        solve_game_perf=solve_game_perf
+    )
 
     # stop timer and collect performance if given
     t2 = perf_counter()
@@ -255,6 +262,7 @@ def solve_game2(
     solver_params: SolverParams,
     gg: GameGraph[X, U, Y, RP, RJ, SR],
     jss: AbstractSet[JointState],
+    states_to_solution_fact: Optional[M[JointState, SolvedGameNode]] = None,
     solve_game_perf: Optional[SolveGamePI] = None
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
@@ -264,10 +272,16 @@ def solve_game2(
     :param solver_params:
     :param gg:
     :param jss:
+    :param states_to_solution_fact: The states that have already been solved during game factorization
+    :param solve_game_perf:
     :return:
     """
     outcome_preferences = get_outcome_preferences_for_players(game)
     states_to_solution: Dict[JointState, SolvedGameNode] = {}
+
+    if states_to_solution_fact:
+        states_to_solution.update(states_to_solution_fact)
+
     sc = SolvingContext(
         game=game,
         outcome_preferences=outcome_preferences,
@@ -310,6 +324,7 @@ def _solve_game(
 
     :param sc: the solving context that is modified in place
     :param js: the current joint state
+    :param solve_game_perf:
     :return: a solved game node
     """
     check_joint_state(js)
@@ -374,11 +389,11 @@ def _solve_game(
 
     va: ValueAndActions[U, RP, RJ]
 
-    if set(gn.states) == set(gn.joint_final_rewards):  # final costs:
+    if set(gn.states) == set(gn.joint_final_rewards) and len(set(gn.is_final)) == 0:  # final costs:
         # All finish jointly
         va = solve_final_joint(sc, gn)
 
-    elif set(gn.states) == set(gn.is_final):
+    elif set(gn.states) == set(gn.is_final) and len(set(gn.joint_final_rewards)) == 0:
         # All the actives finish independently
         va = solve_final_personal_both(sc, gn)
 
@@ -396,7 +411,11 @@ def _solve_game(
     t1 = perf_counter()
 
     if hasattr(sc.solver_params, "beta"):  # todo make standard for all modules
-        ur = get_resources(sc, va, gn, solved_to_node, beta=sc.solver_params.beta)
+        if sc.solver_params.beta == math.inf and len(sc.game.players) > 1:
+            ur = None
+        else:
+            ur = get_resources(sc, va, gn, solved_to_node, beta=sc.solver_params.beta)
+
     else:
         ur = get_resources(sc, va, gn, solved_to_node, beta=0)
 
