@@ -226,13 +226,16 @@ shared_resources_ds = round(width / D(3), 2)
 initial_progress = [D(1), D(1), D(1)]
 max_paths = [D(20), D(20), D(20)]
 max_speeds = [D(5), D(5), D(5)]
-min_speeds = [D(1), D(1), D(5)]
+min_speeds = [D(1), D(1), D(1)]
 max_waits = [D(1), D(1), D(1)]
 
-# accel = [D(-2), D(-1), D(0), D(0.5), D(+1)]
-accel = [D(-2), D(-1), D(0), D(+1)]
 # accel = [D(-1), D(0), D(+1)]
-# accel = [D(0), D(+3)]
+accel = [D(-2), D(-1), D(0), D(+1)]
+# accel = [D(-2), D(-1), D(0), D(+0.5), D(+1)]
+# accel = [D(-2), D(-1), D(-0.5), D(0), D(+0.5), D(+1)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(0), D(+1.5), D(+1)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(0), D(0.5), D(+1), D(+1.5)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(-0.25), D(0), D(+0.5), D(1), D(+1.5)]
 available_accels = [
     accel,
     accel,
@@ -291,7 +294,7 @@ desc = (
 node_sequences = [
     ['P15', 'P1'],  # go straight
     ['P13', 'P14'],  # turn left
-    ['P6', 'P12']  # go straight
+    ['P6', 'P12'],  # go straight
 ]
 
 

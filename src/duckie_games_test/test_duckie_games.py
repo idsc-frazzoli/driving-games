@@ -1,6 +1,7 @@
 from os.path import join
 from itertools import product
 from time import perf_counter
+import math
 
 from parameterized import parameterized
 
@@ -23,7 +24,11 @@ from games.performance import get_initialized_game_performance, GamePerformance
 
 
 from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
-from factorization.algos_factorization import get_game_factorization_no_collision_check
+from factorization.algos_factorization import (
+    get_game_factorization_no_collision_check,
+    get_game_factorization_as_create_game_graph,
+    get_game_factorization_n_players_as_create_game_graph,
+)
 from factorization.solve_n_players import preprocess_n_player_game
 
 from duckie_games.game_generation import get_duckie_game
@@ -41,15 +46,15 @@ from duckie_games.zoo import (
 
 
 uncertainty_params = [
-    # [uncertainty_sets, "sets"],
-    [uncertainty_prob, "prob"],
+    [uncertainty_sets, "sets"],
+    # [uncertainty_prob, "prob"],
 ]
 
 duckie_game_params = [
     # two_player_4way,
-    # two_player_4way_intersection_only,
+    two_player_4way_intersection_only,
     # three_player_4way,
-    three_player_4way_intersection_only,
+    # three_player_4way_intersection_only,
     # three_player_4way_double,
     # three_player_4way_double_intersection_only,
 ]
@@ -67,15 +72,25 @@ nash_strategy = [
 
 use_factorization = [
     # [True, get_game_factorization, "base"],
-    [True, get_game_factorization_no_collision_check, "no_col"],
-    # [False, None]
+    # [True, get_game_factorization_no_collision_check, "no_col"],
+    [True, get_game_factorization_as_create_game_graph, "as_gg"],
+    [True, get_game_factorization_n_players_as_create_game_graph, "n_play_as_gg"],
+    [False, None]
 ]
 
-params = list(product(duckie_game_params, uncertainty_params, strategies, nash_strategy, use_factorization))
+betas = [
+    0, # resources of game
+    # 0.2,
+    # 1,
+    # 5,
+    math.inf  # forward reachable set
+]
+
+params = list(product(duckie_game_params, uncertainty_params, strategies, nash_strategy, use_factorization, betas))
 
 
 @parameterized(params)
-def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_strat, use_fact):
+def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_strat, use_fact, beta):
     """
     n-player duckie game tests
     """
@@ -86,7 +101,11 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
     d = "out/"
     game_name = _get_game_name(duckie_game_parameters)
 
-    solver_name = f"{strat}-{nash_strat}-{duckie_uncert_params[1]}{'-fact_' + use_fact[2] if use_fact[0] else ''}"
+    solver_name = (
+        f"{strat}-{nash_strat}-{duckie_uncert_params[1]}"
+        f"{'-fact_' + use_fact[2] + '_beta=' + str(beta) if use_fact[0] else ''}"
+    )
+    logger.info(game_name=game_name, solver_name=solver_name)
     game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params[0])
     use_factorization = use_fact[0]
     get_factorization = use_fact[1]  # factorization algo used
@@ -99,7 +118,8 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
             strategy_multiple_nash=strategy_multiple_nash,
             dt=dt,
             use_factorization=use_factorization,
-            get_factorization=get_factorization
+            get_factorization=get_factorization,
+            beta=beta
     )
     solver_spec = FactorizationSolverSpec(solver_name, solve_params)
 
