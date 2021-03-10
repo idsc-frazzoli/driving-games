@@ -6,7 +6,6 @@ import os
 from decorator import contextmanager
 from duckietown_world import DuckietownMap
 from imageio import imread
-from matplotlib import patches
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from networkx import MultiDiGraph, DiGraph, draw_networkx_nodes, draw_networkx_edges, draw_networkx_labels
@@ -62,21 +61,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         yield
         # pylab.grid()
 
-    def plot_player(
-        self,
-        pylab,
-        player_name: PlayerName,
-        state: VehicleState,
-    ):
+    def plot_player(self, pylab, player_name: PlayerName,
+                    state: VehicleState, box=None):
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
-        plot_car(
-            pylab=pylab,
-            player_name=player_name,
-            state=state,
-            vg=vg,
-        )
+        box = plot_car(pylab=pylab, player_name=player_name,
+                       state=state, vg=vg, box=box)
+        return box
 
     def plot_actions(self, pylab, player: StaticGamePlayer):
         G: MultiDiGraph = player.graph
@@ -122,14 +114,13 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         x, y, t = zip(*vals)
         pylab.scatter(x, y, s=10.0, c=t, zorder=10)
 
-    def plot_pref(
-        self, pylab, player: StaticGamePlayer, origin: Tuple[float, float],
-            labels: Mapping[WeightedPreference, str] = None
-    ):
+    def plot_pref(self, pylab, player: StaticGamePlayer,
+                  origin: Tuple[float, float],
+                  labels: Mapping[WeightedPreference, str] = None):
 
-        assert isinstance(
-            player.preference, PosetalPreference
-        ), f"Preference is of type {player.preference.get_type()} and not {PosetalPreference.get_type()}"
+        assert isinstance(player.preference, PosetalPreference),\
+            f"Preference is of type {player.preference.get_type()}" \
+            f" and not {PosetalPreference.get_type()}"
         X, Y = origin
         G: DiGraph = player.preference.graph
 
@@ -145,9 +136,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             text = "_pref"
         else:
             assert len(G.nodes) == len(labels.keys()),\
-                f"Size mismatch between nodes ({len(G.nodes)}) and labels ({len(labels.keys())})"
+                f"Size mismatch between nodes ({len(G.nodes)}) and" \
+                f" labels ({len(labels.keys())})"
             for n in G.nodes:
-                assert n in labels.keys(), f"Node {n} not present in keys - {labels.keys()}"
+                assert n in labels.keys(),\
+                    f"Node {n} not present in keys - {labels.keys()}"
             text = "_outcomes"
         draw_networkx_edges(
             G,
@@ -176,40 +169,24 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         ax.add_collection(lines)
 
 
-def plot_car(
-    pylab,
-    player_name: PlayerName,
-    state: VehicleState,
-    vg: VehicleGeometry,
-):
-    PLOT_VEL = False
+def plot_car(pylab, player_name: PlayerName, state: VehicleState,
+             vg: VehicleGeometry, box):
     L = vg.l
     W = vg.w
     car_color = vg.colour
-    car: Tuple[Tuple[float, float], ...] = ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
+    car: Tuple[Tuple[float, float], ...] = \
+        ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
     xy_theta = (state.x, state.y, state.th)
     q = SE2_from_xytheta(xy_theta)
     x1, y1 = get_transformed_xy(q, car)
-    pylab.fill(x1, y1, color=car_color, alpha=0.3, zorder=10)
-
-    v_size = state.v * 0.2
-    v_vect = ((+L, 0), (+L + v_size, 0))
-    x3, y3 = get_transformed_xy(q, v_vect)
-    arrow = patches.Arrow(
-        x=x3[0], y=y3[0], dx=x3[1] - x3[0], dy=y3[1] - y3[0], facecolor=car_color, edgecolor="k"
-    )
-    if PLOT_VEL:
-        pylab.gca().add_patch(arrow)
-
-    x4, y4 = get_transformed_xy(q, ((0, 0),))
-    pylab.text(
-        x4,
-        y4,
-        player_name,
-        zorder=25,
-        horizontalalignment="center",
-        verticalalignment="center",
-    )
+    if box is None:
+        box, = pylab.fill([], [], color=car_color, alpha=0.3, zorder=10)
+        x4, y4 = get_transformed_xy(q, ((0, 0),))
+        pylab.text(x4, y4, player_name, zorder=25,
+                   horizontalalignment="center",
+                   verticalalignment="center")
+    box.set_xy(np.array(list(zip(x1, y1))))
+    return box
 
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:

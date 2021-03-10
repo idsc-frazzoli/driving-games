@@ -55,7 +55,7 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_player(self, pylab, player_name: PlayerName, state: X):
+    def plot_player(self, pylab, player_name: PlayerName, state: X, **kwargs):
         pass
 
     @abstractmethod
