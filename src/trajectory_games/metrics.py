@@ -105,8 +105,13 @@ def get_evaluated_metric(
     return mer
 
 
-# TODO[SIR]: Compute only incremental metrics for each edge,
-#  cumulative and total only for each trajectory
+def get_values(traj: Trajectory, func: Callable[[VehicleState], float]) \
+        -> Tuple[List[Timestamp], List[float]]:
+    tval = [(t, func(x)) for t, x in traj]
+    interval, val = zip(*tval)
+    return interval, val
+
+
 class SurvivalTime(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
 
@@ -285,9 +290,8 @@ class LongitudinalAcceleration(Metric):
             trajectory: Trajectory = context.get_trajectory(player)
             if trajectory in self.cache:
                 return self.cache[trajectory]
-            interval = context.get_interval(player)
 
-            vel = [x.v for _, x in trajectory]
+            interval, vel = get_values(traj=trajectory, func=get_vel)
             acc = differentiate(vel, interval)
             # Final acc, dacc is zero and not first
             acc_val = [abs(_) for _ in acc[1:]] + [0.0]
@@ -319,9 +323,7 @@ class LongitudinalJerk(Metric):
             if trajectory in self.cache:
                 return self.cache[trajectory]
 
-            interval = context.get_interval(player)
-
-            vel = [x.v for _, x in trajectory]
+            interval, vel = get_values(traj=trajectory, func=get_vel)
             acc = differentiate(vel, interval)
             dacc = differentiate(acc, interval)
             # Final acc, dacc is zero and not first
@@ -354,9 +356,7 @@ class LateralComfort(Metric):
             if trajectory in self.cache:
                 return self.cache[trajectory]
 
-            interval = context.get_interval(player)
-
-            ay = [abs(x.v * x.st) for _, x in trajectory]
+            interval, ay = get_values(traj=trajectory, func=get_lat_comf)
             ay_seq = SampledSequence[float](interval, ay)
             cumulative, dtot = get_integrated(ay_seq)
 
@@ -384,8 +384,7 @@ class SteeringAngle(Metric):
             if trajectory in self.cache:
                 return self.cache[trajectory]
 
-            interval = context.get_interval(player)
-            st = [x.st for _, x in trajectory]
+            interval, st = get_values(traj=trajectory, func=get_st)
             st_abs = [abs(_) for _ in st]
 
             st_seq = SampledSequence[float](interval, st_abs)
@@ -415,8 +414,7 @@ class SteeringRate(Metric):
             if trajectory in self.cache:
                 return self.cache[trajectory]
 
-            interval = context.get_interval(player)
-            st = [x.st for _, x in trajectory]
+            interval, st = get_values(traj=trajectory, func=get_st)
             dst = differentiate(st, interval)
             # Final dst is zero and not first
             dst_val = [abs(_) for _ in dst[1:]] + [0.0]
@@ -466,19 +464,10 @@ class CollisionEnergy(Metric):
                 geo1, l1 = get_geo(players[0])
                 geo2, l2 = get_geo(players[1])
 
-                # TODO[SIR]: This only checks at discrete timesteps, might be a problem for long steps
-                times: List[Timestamp] = context.get_interval(players[0])
-                # times2: List[Timestamp] = context.get_interval(players[1])
-                # if times1 == times2: times = times1
-                # else:
-                #     times: List[Timestamp] =\
-                #         [D(_) for _ in np.linspace(float(min(times1[0], times2[0])),
-                #                                    float(max(times1[-1], times2[-1])),
-                #                                    max(len(times1), len(times2)))]
                 energy: List[float] = []
-                for step in times:
-                    state1: VehicleState = joint_traj[players[0]].at(step)
-                    state2: VehicleState = joint_traj[players[1]].at(step)
+                for (_, state1), (_, state2) in \
+                        zip(joint_traj[players[0]].get_sampled_trajectory(),
+                            joint_traj[players[1]].get_sampled_trajectory()):
 
                     # Coarse collision check
                     dx = state1.x - state2.x
@@ -564,6 +553,18 @@ def get_personal_metrics() -> Set[Metric]:
         SteeringRate(),
     }
     return metrics
+
+
+def get_vel(x: VehicleState) -> float:
+    return x.v
+
+
+def get_lat_comf(x: VehicleState) -> float:
+    return abs(x.v * x.st)
+
+
+def get_st(x: VehicleState) -> float:
+    return x.st
 
 
 def get_joint_metrics() -> Set[Metric]:

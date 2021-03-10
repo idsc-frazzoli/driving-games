@@ -68,16 +68,28 @@ class Trajectory:
         """ Returns sequence of trajectory points """
         return self.traj
 
-    def get_sampling_points(self) -> List[Timestamp]:
-        """ Returns timestamps of trajectory points """
+    def get_raw_sampling_points(self) -> List[Timestamp]:
+        """ Returns timestamps of actual trajectory points """
         return self.traj.get_sampling_points()
+
+    def get_sampling_points(self) -> List[Timestamp]:
+        """ Returns timestamps of upsampled trajectory points """
+        return list(self._cache.keys())
 
     def get_sampled_trajectory(self):
         return self._cache.items().__iter__()
 
     def get_path(self) -> List[SE2Transform]:
         """ Returns cartesian coordinates (SE2) of trajectory """
-        ret = [SE2Transform(p=np.array([x.x, x.y]), theta=x.th) for _, x in self.traj]
+        return self.state_to_se2(self.traj.values)
+
+    def get_path_sampled(self) -> List[SE2Transform]:
+        """ Returns cartesian coordinates (SE2) of trajectory at upsampled points """
+        return self.state_to_se2(list(self._cache.values()))
+
+    @staticmethod
+    def state_to_se2(states: List[VehicleState]) -> List[SE2Transform]:
+        ret = [SE2Transform(p=np.array([x.x, x.y]), theta=x.th) for x in states]
         return ret
 
     def interpolate(self, t: Timestamp, idx: int = None,
@@ -111,7 +123,7 @@ class Trajectory:
         elif t > self.traj.get_end():
             return self.traj.at(self.traj.get_end())
 
-        times = self.get_sampling_points()
+        times = self.get_raw_sampling_points()
         i = bisect_right(times, t)
         return self.interpolate(t=t, idx=i)
 

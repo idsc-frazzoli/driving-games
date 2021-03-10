@@ -6,7 +6,7 @@
 #  t0:     Initial time (s) - string for decimal
 
 state_1:    &state
-  s0:     5.0
+  s0:     1.0
   v0:     10.0
   st0:    0.0
   t0:     "0.0"
