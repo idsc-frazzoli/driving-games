@@ -1,8 +1,14 @@
 from dataclasses import dataclass
-from typing import Dict
-from games.game_def import PlayerName, JointState, Game
+from typing import Dict, TypeVar, Optional
+from games.game_def import PlayerName, Game, Dynamics
 from games.solve.solution_structures import AdmissibleStrategies, StrategyForMultipleNash, SolverParams
 from copy import deepcopy
+from toolz import valmap, valfilter
+from numbers import Number
+
+
+G = TypeVar("G")
+""" Generic variable for a player's geometrie."""
 
 
 @dataclass
@@ -110,6 +116,12 @@ class GamePerformance:
     adm_strat: AdmissibleStrategies
     """What strategies of players are considered while solving the game"""
 
+    player_dynamics: Dict[PlayerName, Dynamics]
+    """The dynamics of the players (only attributes which are numbers are collected)"""
+
+    player_geometries: Dict[PlayerName, Optional[G]]
+    """The geometries of a player if any"""
+
     use_fact: bool
     """Indicates if factorization was used"""
 
@@ -167,6 +179,20 @@ def get_initialized_game_performance(
     )
 
     nb_players = len(game.players)
+    player_dynamics = {pn: gp.dynamics.__dict__ for pn, gp in game.players.items()}
+    player_dynamics_numbers_only = valmap(
+        lambda _: valfilter(lambda _val: isinstance(_val, Number), _),
+        player_dynamics
+    )
+
+    def _get_geometries(_):
+        if hasattr(_.dynamics, "vg"):
+            return _.dynamics.vg.__dict__
+        else:
+            return None
+
+    player_geometries = valmap(_get_geometries, game.players)
+
     strat_mult_nash: StrategyForMultipleNash = solver_params.strategy_multiple_nash
     adm_strat: AdmissibleStrategies = solver_params.admissible_strategies
     use_fact = solver_params.use_factorization
@@ -181,6 +207,8 @@ def get_initialized_game_performance(
         size_action_set=size_action_set,
         strat_mult_nash=strat_mult_nash,
         adm_strat=adm_strat,
+        player_dynamics=player_dynamics_numbers_only,
+        player_geometries=player_geometries,
         use_fact=use_fact,
         pre_pro_player_pi=pre_pro_pl_pi,
         create_gt_pi=deepcopy(create_gg_pi),
@@ -189,4 +217,3 @@ def get_initialized_game_performance(
     )
 
     return game_perf
-
