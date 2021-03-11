@@ -127,9 +127,9 @@ curve_left: &curve_left
         spatial_relations:
             template: {~SE2Transform: {theta_deg: 180}}   
 
-# -----------------
+# --------------------------------------------------------------------------------------------------------------------
 # Double Lanes
-# -----------------
+# --------------------------------------------------------------------------------------------------------------------
 
 go_right_double_right: &go_right_double_left
     ~LaneSegment:
@@ -440,6 +440,216 @@ curve_left_double: &curve_left_double
             template: *3way_left_double          
         spatial_relations:
             template: {~SE2Transform: {theta_deg: 180}} 
+            
+            
+# -------------------------------------------------------------------------------------------------------------
+# single lane tiles, only one direction (eg. for round-abouts)
+# -------------------------------------------------------------------------------------------------------------
+
+go_straight_single_right: &go_straight_single_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, -0.204]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, -0.204]
+            theta_deg: 0
+            
+go_straight_single_left: &go_straight_single_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, 0.204]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, 0.204]
+            theta_deg: 0
+            
+go_straight_single_right_to_left: &go_straight_single_right_to_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, -0.204]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0, 0]
+            theta_deg: 45
+        - ~SE2Transform:
+            p: [0.5, 0.204]
+            theta_deg: 0
+            
+go_straight_single_left_to_right: &go_straight_single_left_to_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, 0.204]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0, 0]
+            theta_deg: -45
+        - ~SE2Transform:
+            p: [0.5, -0.204]
+            theta_deg: 0
+            
+straight_single:
+    ~PlacedObject:
+        children:
+            lane1: *go_straight_single_right
+            lane2: *go_straight_single_left
+            lane3: *go_straight_single_right_to_left
+            lane4: *go_straight_single_left_to_right
+        spatial_relations:
+            lane1: {~SE2Transform:}
+            lane2: {~SE2Transform:}
+            lane3: {~SE2Transform:}
+            lane4: {~SE2Transform:}
+
+stay_in_roundabout_right: &stay_in_roundabout_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, -0.304]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.069, -0.069]
+            theta_deg: 45
+        - ~SE2Transform:
+            p: [0.304, 0.5]
+            theta_deg: 90
+
+stay_in_roundabout_left: &stay_in_roundabout_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, 0.104]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [-0.22, 0.22]
+            theta_deg: 45
+        - ~SE2Transform:
+            p: [-0.104, 0.5]
+            theta_deg: 90
+            
+go_out_roundabout_left: &go_out_roundabout_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, 0.104]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, 0.204]
+            theta_deg: 0
+            
+go_out_roundabout_right: &go_out_roundabout_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, -0.304]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, -0.204]
+            theta_deg: 0
+            
+go_out_roundabout_left_to_right: &go_out_roundabout_left_to_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, 0.104]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, -0.204]
+            theta_deg: 0
+            
+go_out_roundabout_right_to_left: &go_out_roundabout_right_to_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.5, -0.304]
+            theta_deg: 0
+        - ~SE2Transform:
+            p: [0.5, 0.204]
+            theta_deg: 0
+            
+go_in_roundabout_left: &go_in_roundabout_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.204, -0.5]
+            theta_deg: 90
+        - ~SE2Transform:
+            p: [-0.104, 0.5]
+            theta_deg: 90
+            
+go_in_roundabout_right: &go_in_roundabout_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [0.204, -0.5]
+            theta_deg: 90
+        - ~SE2Transform:
+            p: [0.304, 0.5]
+            theta_deg: 90
+
+go_in_roundabout_left_to_right: &go_in_roundabout_left_to_right
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [-0.204, -0.5]
+            theta_deg: 90
+        - ~SE2Transform:
+            p: [0.304, 0.5]
+            theta_deg: 90
+            
+go_in_roundabout_right_to_left: &go_in_roundabout_right_to_left
+    ~LaneSegment:
+      width: *width
+      control_points: 
+        - ~SE2Transform:
+            p: [0.204, -0.5]
+            theta_deg: 90
+        - ~SE2Transform:
+            p: [-0.104, 0.5]
+            theta_deg: 90
+            
+roundabout_east: &roundabout_east
+    ~PlacedObject:
+        children:
+            lane1: *stay_in_roundabout_right
+            lane2: *stay_in_roundabout_left
+            lane3: *go_out_roundabout_right
+            lane4: *go_out_roundabout_left
+            lane5: *go_out_roundabout_right_to_left
+            lane6: *go_out_roundabout_left_to_right
+            lane7: *go_in_roundabout_right
+            lane8: *go_in_roundabout_left
+            lane9: *go_in_roundabout_right_to_left
+            lane10: *go_in_roundabout_left_to_right
+        spatial_relations:
+            lane1: {~SE2Transform:}
+            lane2: {~SE2Transform:}
+            lane3: {~SE2Transform:}
+            lane4: {~SE2Transform:}
+            lane5: {~SE2Transform:}
+            lane6: {~SE2Transform:}
+            lane7: {~SE2Transform:}
+            lane8: {~SE2Transform:}
+            lane9: {~SE2Transform:}
+            lane10: {~SE2Transform:}
+            
 """
 
 
