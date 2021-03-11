@@ -33,6 +33,91 @@ from duckie_games.rectangle import (
 )
 
 
+def spatial_collision_check_binary_resources_no_rectangles(  # faster collision check for debugging
+        states: Mapping[PlayerName, DuckieState],
+        geometries: Mapping[PlayerName, DuckieGeometry],
+        dynamics: Mapping[PlayerName, DuckieDynamics],
+) -> Mapping[PlayerName, Collision]:
+    """
+    Checks for collisions in a n-player game with non-negative speeds along a lane.
+    Checks the shared resources to check for collisions.
+    It does not collect the energy transferred. This function can be used with factorization.
+    """
+
+    players = list(states)
+
+    collision_dict: Dict[PlayerName, Collision] = {}
+
+    for p1, p2 in itertools.combinations(players, 2):
+
+        s1 = states[p1]
+        s2 = states[p2]
+        g1 = geometries[p1]
+        g2 = geometries[p2]
+        d1 = dynamics[p1]
+        d2 = dynamics[p2]
+
+        # first quick check
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+            # no collision
+            continue
+
+        c1 = Collision(
+            location=IMPACT_NONE,
+            angle=D(0),
+            active=True,
+            energy_received=D(0),
+            energy_transmitted=D(0)
+        )
+        c2 = Collision(
+            location=IMPACT_NONE,
+            angle=D(0),
+            active=True,
+            energy_received=D(0),
+            energy_transmitted=D(0)
+        )
+        two_player_col = {p1: c1, p2: c2}
+
+        collision_dict.update(two_player_col)
+
+    return frozendict(collision_dict)
+
+
+def spatial_collision_check_binary_resources_no_rectangles_players_only( # faster collision check for debugging
+        states: Mapping[PlayerName, DuckieState],
+        geometries: Mapping[PlayerName, DuckieGeometry],
+        dynamics: Mapping[PlayerName, DuckieDynamics],
+) -> FrozenSet[PlayerName]:
+    """
+    Checks for collisions in a n-player game with non-negative speeds along a lane.
+    Checks the shared resources to check for collisions. Only returns the players
+    that are in a collision. This function can be used with factorization.
+    """
+
+    players = list(states)
+
+    collision_set: Set[PlayerName] = set()
+
+    for p1, p2 in itertools.combinations(players, 2):
+
+        s1 = states[p1]
+        s2 = states[p2]
+        d1 = dynamics[p1]
+        d2 = dynamics[p2]
+
+        # collision check
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+            # no collision
+            continue
+
+        # Collision
+        two_player_col = {p1, p2}
+
+        collision_set = collision_set | two_player_col
+
+    return frozenset(collision_set)
+
+
 def spatial_collision_check_resources_no_energy(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
