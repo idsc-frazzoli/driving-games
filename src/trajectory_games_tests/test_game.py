@@ -4,8 +4,10 @@ from reprep import Report
 
 from trajectory_games import (
     TrajectoryGame,
-    compute_solving_context,
+    preprocess_full_game,
+    preprocess_player,
     solve_game,
+    iterative_best_response,
     StaticSolvingContext,
     report_game_visualization,
     SolvedTrajectoryGame,
@@ -14,25 +16,39 @@ from trajectory_games import (
     get_trajectory_game,
 )
 
+plot_gif = False
+filename = "r_animation.html"
 
-def test_trajectory_game():
-    plot_gif = False
+
+def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
     d = "out/tests/"
-    game: TrajectoryGame = get_trajectory_game()
-    context: StaticSolvingContext = compute_solving_context(sgame=game)
-
-    nash_eq: Mapping[str, SolvedTrajectoryGame] = solve_game(context=context)
     print(
         f"Weak = {len(nash_eq['weak_nash'])}, "
         f"Indiff = {len(nash_eq['indiff_nash'])}, "
         f"Incomp = {len(nash_eq['incomp_nash'])}, "
         f"Strong = {len(nash_eq['strong_nash'])}."
     )
-
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
     r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=plot_gif))
     r_game.add_child(report_preferences(game=game))
-    r_game.to_html(join(d, "r_animation.html"))
+    r_game.to_html(join(d, folder + filename))
 
-    a = 2
+
+def test_trajectory_game():
+    game: TrajectoryGame = get_trajectory_game()
+    context: StaticSolvingContext = preprocess_full_game(sgame=game)
+
+    nash_eq: Mapping[str, SolvedTrajectoryGame] = solve_game(context=context)
+    create_reports(game=game, nash_eq=nash_eq, folder="brute_force/")
+
+
+def test_trajectory_game_best_response():
+    n_runs = 5      # Number of random runs for best response
+
+    game: TrajectoryGame = get_trajectory_game()
+    context: StaticSolvingContext = preprocess_player(sgame=game)
+
+    nash_eq: Mapping[str, SolvedTrajectoryGame] = \
+        iterative_best_response(context=context, n_runs=n_runs)
+    create_reports(game=game, nash_eq=nash_eq, folder="best_response/")

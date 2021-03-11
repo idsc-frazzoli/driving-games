@@ -104,7 +104,7 @@ class StaticGame(Generic[X, U, W, P, G]):
     """The players"""
     ps: PossibilityMonad
     """The game monad"""
-    get_outcomes: Callable[[JointPureActions, W], JointOutcome]
+    get_outcomes: Callable[[JointPureActions], JointOutcome]
     """The "game dynamics", given a pure action for each player, we have a distribution of outcomes"""
     game_vis: GameVisualization[X, U, W]
     """The game visualization"""
@@ -139,7 +139,9 @@ class StaticSolvingContext(Generic[X, U, W, P]):
     player_actions: Mapping[PlayerName, FrozenSet[U]]
     """ All possible actions for each player"""
 
-    game_outcomes: Mapping[JointPureActions, Poss[JointOutcome]]
+    game_outcomes: Callable[[JointPureActions], JointOutcome]
+    # TODO: Later extend to uncertain outcomes
+    # game_outcomes: Mapping[JointPureActions, Poss[JointOutcome]]
     # TODO: Should we switch from Poss over joint outcomes to poss over outcomes?
     # Mapping[JointPureActions, Poss[Mapping[PlayerName, P]]] -->
     # Mapping[JointPureActions, Mapping[PlayerName, Poss[P]]]

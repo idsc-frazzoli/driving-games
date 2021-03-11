@@ -1,4 +1,5 @@
 import os
+from functools import partial
 from time import perf_counter
 from typing import Dict
 from yaml import safe_load
@@ -10,7 +11,7 @@ from preferences import SetPreference1
 from .config import config_dir
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TrajectoryGenerator1
-from .metrics import evaluate_metrics
+from .metrics import MetricEvaluation
 from .preference import PosetalPreference
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer
 from .trajectory_world import TrajectoryWorld
@@ -57,11 +58,12 @@ def get_trajectory_game() -> TrajectoryGame:
         )
 
     world = TrajectoryWorld(map_name=config["map_name"], geo=geometries, lanes=lanes)
+    get_outcomes = partial(MetricEvaluation.evaluate, world=world)
     game = TrajectoryGame(
         world=world,
         game_players=players,
         ps=ps,
-        get_outcomes=evaluate_metrics,
+        get_outcomes=get_outcomes,
         game_vis=TrajGameVisualization(world=world),
     )
     toc = perf_counter() - tic

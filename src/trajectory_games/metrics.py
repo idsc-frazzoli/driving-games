@@ -33,7 +33,7 @@ __all__ = [
     "SteeringAngle",
     "SteeringRate",
     "CollisionEnergy",
-    "evaluate_metrics",
+    "MetricEvaluation",
 ]
 
 
@@ -455,6 +455,10 @@ class CollisionEnergy(Metric):
                 joint_traj: JointPureTraj = frozendict({p: context.get_trajectory(p) for p in players})
                 if joint_traj in self.cache:
                     return self.cache[joint_traj]
+                if players[0] == players[1]:
+                    energy = [0.0 for _ in context.get_interval(players[0])]
+                    self.cache[joint_traj] = energy
+                    return energy
 
                 def get_geo(p_name: PlayerName) -> Tuple[VehicleGeometry, float]:
                     geo: VehicleGeometry = geometry[p_name]
@@ -510,11 +514,7 @@ class CollisionEnergy(Metric):
 
             collision_energy: List[float] = []
             for player2 in context.get_players():
-                if player1 == player2:
-                    timesteps: List[Timestamp] = context.get_interval(player1)
-                    coll_e = [0.0 for _ in timesteps]
-                else:
-                    coll_e = calculate_collision(players=[player1, player2])
+                coll_e = calculate_collision(players=[player1, player2])
                 if not collision_energy:
                     collision_energy = coll_e
                 else:
@@ -523,7 +523,6 @@ class CollisionEnergy(Metric):
 
             interval = context.get_interval(player1)
             inc = SampledSequence[float](interval, collision_energy)
-
             cumulative, dtot = get_integrated(inc)
 
             ret = EvaluatedMetric(
@@ -580,22 +579,33 @@ def get_metrics_set() -> Set[Metric]:
     return metrics
 
 
-def evaluate_metrics(
-    trajectories: Mapping[PlayerName, Trajectory], world: TrajectoryWorld
-) -> TrajGameOutcome:
-    metrics: Set[Metric] = get_metrics_set()
-    context = MetricEvaluationContext(world=world, trajectories=trajectories)
+class MetricEvaluation:
+    _cache: Dict[JointPureTraj, TrajGameOutcome] = {}
 
-    metric_results: Dict[Metric, MetricEvaluationResult] = {}
-    for metric in metrics:
-        metric_results[metric] = metric.evaluate(context)
+    def __init__(self):
+        raise Exception(f"Don't create instances of {type(self).__name__}!")
 
-    game_outcome: Dict[PlayerName, PlayerOutcome] = {}
-    player_outcome: Dict[Metric, EvaluatedMetric]
-    for player in trajectories.keys():
-        player_outcome = {}
-        for metric, result in metric_results.items():
-            player_outcome[metric] = result[player]
-        game_outcome[player] = frozendict(player_outcome)
+    @staticmethod
+    def evaluate(trajectories: JointPureTraj, world: TrajectoryWorld) -> TrajGameOutcome:
 
-    return frozendict(game_outcome)
+        if trajectories in MetricEvaluation._cache.keys():
+            return MetricEvaluation._cache[trajectories]
+
+        metrics = get_metrics_set()
+        context = MetricEvaluationContext(world=world, trajectories=trajectories)
+
+        metric_results: Dict[Metric, MetricEvaluationResult] = {}
+        for metric in metrics:
+            metric_results[metric] = metric.evaluate(context)
+
+        game_outcome: Dict[PlayerName, PlayerOutcome] = {}
+        player_outcome: Dict[Metric, EvaluatedMetric]
+        for player in trajectories.keys():
+            player_outcome = {}
+            for metric, result in metric_results.items():
+                player_outcome[metric] = result[player]
+            game_outcome[player] = frozendict(player_outcome)
+
+        ret = frozendict(game_outcome)
+        MetricEvaluation._cache[trajectories] = ret
+        return ret

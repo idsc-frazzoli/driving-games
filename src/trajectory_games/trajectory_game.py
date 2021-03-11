@@ -2,9 +2,9 @@ from abc import abstractmethod
 from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
-from networkx import MultiDiGraph
 
-# from multiprocessing import Pool
+from frozendict import frozendict
+from networkx import MultiDiGraph
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
@@ -32,10 +32,10 @@ __all__ = [
     "TrajectoryGame",
     "SolvedTrajectoryGameNode",
     "SolvedTrajectoryGame",
-    "compute_solving_context",
+    "preprocess_full_game",
+    "preprocess_player",
 ]
 
-# JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]  # fixme this seems a bit confusing..
 JointPureTraj = Mapping[PlayerName, Trajectory]
 JointMixedTraj = Mapping[PlayerName, Poss[Trajectory]]
 
@@ -70,12 +70,8 @@ def compute_outcomes(iterable, sgame: StaticGame):
     return key, ps.build(ps.unit(joint_traj_in), f=get_outcomes)
 
 
-def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
-    """
-    Preprocess the game -> Compute all possible actions and outcomes for each combination
-    """
-
-    # Generate the trajectories for each player (i.e. get the available actions)
+def compute_actions(sgame: StaticGame) -> Mapping[PlayerName, FrozenSet[Trajectory]]:
+    """ Generate the trajectories for each player (i.e. get the available actions) """
     available_traj: Dict[PlayerName, FrozenSet[Trajectory]] = {}
     for player_name, game_player in sgame.game_players.items():
         # In the future can be extended to uncertain initial state
@@ -85,33 +81,50 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
         available_traj[player_name] = game_player.actions_generator.get_action_set(
             state=next(iter(states)), world=sgame.world, graph=game_player.graph, player=player_name
         )
+    return available_traj
 
-    # Compute the distribution of outcomes for each joint action
-    outcomes: Dict[JointPureTraj, Poss[TrajGameOutcome]] = {}
 
-    # joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
-    # def outcome_callback(outcomes_list):
-    #     for key, value in outcomes_list:
-    #         outcomes[joint_traj_dict[key]] = value
-    # get_outcomes = partial(compute_outcomes, sgame=sgame)
-    # tic = perf_counter()
-    # pool = Pool()
-    # # TODO[SIR]: Metric cache is not shared between threads now
-    # pool_res = pool.map_async(func=get_outcomes, callback=outcome_callback,
-    #                           iterable=joint_traj_dict.items())
-    # pool_res.get()
-    # print(f"Outcomes Eval Time = {perf_counter() - tic}s")
-    # pool.close()
-    # pool.join()
+def preprocess_player(sgame: StaticGame) -> StaticSolvingContext:
+    """
+    Preprocess the game for each player -> Compute all possible actions and outcomes
+    """
+    from .metrics_def import MetricEvaluationContext
 
+    available_traj = compute_actions(sgame=sgame)
+
+    # Compute the outcomes for each joint action combination
     tic = perf_counter()
-    get_outcomes = partial(sgame.get_outcomes, world=sgame.world)
-    ps = sgame.ps
-    for joint_traj in set(iterate_dict_combinations(available_traj)):
-        outcomes[joint_traj] = ps.build(ps.unit(joint_traj), f=get_outcomes)
-
+    for player, actions in available_traj.items():
+        for traj in actions:
+            sgame.get_outcomes(frozendict({player: traj}))
     toc = perf_counter() - tic
-    print(f"Outcomes evaluation time = {toc:.2f} s")
+    print(f"LanePose time = {MetricEvaluationContext.time:.2f} s")
+    print(f"Preprocess_player: outcomes evaluation time = {toc:.2f} s")
+
+    return get_context(sgame=sgame, actions=available_traj)
+
+
+def preprocess_full_game(sgame: StaticGame) -> StaticSolvingContext:
+    """
+    Preprocess the game -> Compute all possible actions and outcomes for each combination
+    """
+    from .metrics_def import MetricEvaluationContext
+
+    available_traj = compute_actions(sgame=sgame)
+
+    # Compute the outcomes for each joint action combination
+    tic = perf_counter()
+    for joint_traj in set(iterate_dict_combinations(available_traj)):
+        sgame.get_outcomes(joint_traj)  # Outcomes are cached inside get_outcomes
+    toc = perf_counter() - tic
+    print(f"Preprocess_full: outcomes evaluation time = {toc:.2f} s")
+    print(f"LanePose time = {MetricEvaluationContext.time:.2f} s")
+
+    return get_context(sgame=sgame, actions=available_traj)
+
+
+def get_context(sgame: StaticGame, actions: Mapping[PlayerName, FrozenSet[Trajectory]]) \
+        -> StaticSolvingContext:
 
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {
@@ -119,8 +132,8 @@ def compute_solving_context(sgame: StaticGame) -> StaticSolvingContext:
     }
 
     context = StaticSolvingContext(
-        player_actions=available_traj,
-        game_outcomes=outcomes,
+        player_actions=actions,
+        game_outcomes=sgame.get_outcomes,
         outcome_pref=pref,  # todo I fear here it's missing the monadic preferences but it is fine for now
         solver_params=StaticSolverParams(
             admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE  # this is not used for now
