@@ -56,9 +56,9 @@ node_sequences = [
 # ]
 
 mass = D(1000)
-length = D(4.5)
-width = D(1.8)
-height = D(1.8)
+length = D("4.5")
+width = D("1.8")
+height = D("1.8")
 geometries = [
     DuckieGeometry(
         mass=mass,
@@ -137,7 +137,7 @@ two_player_4way = DuckieGameParams(
     shared_resources_ds=shared_resources_ds
 )
 
-#%% 2 player 4 way intersection onyl
+#%% 2 player 4 way intersection only
 desc = (
     """
     Two player game on the map 4way intersection only
@@ -158,6 +158,30 @@ player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
 map_name = "4way-intersection-only"
 
 two_player_4way_intersection_only = replace(
+    obj=two_player_4way,
+    desc=desc,
+    map_name=map_name,
+    node_sequence=player_node_sequence,
+    lanes=None
+)
+
+#%% 2 player roundabout only
+desc = (
+    """
+    Two player game on the map roundabout only
+    """
+)
+
+node_sequences = [
+    ['P18', 'P12', 'P10'],
+    ['P32', 'P17', 'P14', 'P10'],
+]
+
+
+player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+map_name = "roundabout-only"
+
+two_player_roundabout_only = replace(
     obj=two_player_4way,
     desc=desc,
     map_name=map_name,
@@ -194,9 +218,9 @@ node_sequences = [
 ]
 
 mass = D(1000)
-length = D(4.5)
-width = D(1.8)
-height = D(1.8)
+length = D("4.5")
+width = D("1.8")
+height = D("1.8")
 geometries = [
     DuckieGeometry(
         mass=mass,
@@ -332,9 +356,9 @@ node_sequences = [
 ]
 
 mass = D(1000)
-length = D(4.5)
-width = D(1.8)
-height = D(1.8)
+length = D("4.5")
+width = D("1.8")
+height = D("1.8")
 geometries = [
     DuckieGeometry(
         mass=mass,
@@ -361,15 +385,15 @@ geometries = [
 
 shared_resources_ds = round(width / D(3), 2)
 
-initial_progress = [D(5), D(5), D(5)]
-max_paths = [D(35), D(35), D(35)]
-max_speeds = [D(6), D(6), D(6)]
-min_speeds = [D(2), D(2), D(2)]
+initial_progress = [D(10), D(10), D(10)]
+max_paths = [D(30), D(30), D(30)]
+max_speeds = [D(5), D(5), D(5)]
+min_speeds = [D(1), D(1), D(1)]
 max_waits = [D(1), D(1), D(1)]
 
-# accel = [D(-2), D(-1), D(0), D(+1)]
+accel = [D(-2), D(-1), D(0), D(+1)]
 # accel = [D(-1), D(0), D(+1)]
-accel = [D(0), D(+3)]
+# accel = [D(0), D(+3)]
 available_accels = [
     accel,
     accel,
