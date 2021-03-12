@@ -545,6 +545,9 @@ go_out_roundabout_left: &go_out_roundabout_left
             p: [-0.5, 0.104]
             theta_deg: 0
         - ~SE2Transform:
+            p: [0, 0.154]
+            theta_deg: 15
+        - ~SE2Transform:
             p: [0.5, 0.204]
             theta_deg: 0
             
@@ -555,6 +558,9 @@ go_out_roundabout_right: &go_out_roundabout_right
         - ~SE2Transform:
             p: [-0.5, -0.304]
             theta_deg: 0
+        - ~SE2Transform:
+            p: [0, -0.254]
+            theta_deg: 15
         - ~SE2Transform:
             p: [0.5, -0.204]
             theta_deg: 0
@@ -567,6 +573,9 @@ go_out_roundabout_left_to_right: &go_out_roundabout_left_to_right
             p: [-0.5, 0.104]
             theta_deg: 0
         - ~SE2Transform:
+            p: [0, -0.05]
+            theta_deg: -30
+        - ~SE2Transform:
             p: [0.5, -0.204]
             theta_deg: 0
             
@@ -577,6 +586,9 @@ go_out_roundabout_right_to_left: &go_out_roundabout_right_to_left
         - ~SE2Transform:
             p: [-0.5, -0.304]
             theta_deg: 0
+        - ~SE2Transform:
+            p: [0, -0.05]
+            theta_deg: 45
         - ~SE2Transform:
             p: [0.5, 0.204]
             theta_deg: 0
@@ -589,6 +601,9 @@ go_in_roundabout_left: &go_in_roundabout_left
             p: [-0.204, -0.5]
             theta_deg: 90
         - ~SE2Transform:
+            p: [-0.154, 0]
+            theta_deg: 75
+        - ~SE2Transform:
             p: [-0.104, 0.5]
             theta_deg: 90
             
@@ -599,6 +614,9 @@ go_in_roundabout_right: &go_in_roundabout_right
         - ~SE2Transform:
             p: [0.204, -0.5]
             theta_deg: 90
+        - ~SE2Transform:
+            p: [0.254, 0]
+            theta_deg: 75 
         - ~SE2Transform:
             p: [0.304, 0.5]
             theta_deg: 90
@@ -611,6 +629,9 @@ go_in_roundabout_left_to_right: &go_in_roundabout_left_to_right
             p: [-0.204, -0.5]
             theta_deg: 90
         - ~SE2Transform:
+            p: [0.05, 0]
+            theta_deg: 45 
+        - ~SE2Transform:
             p: [0.304, 0.5]
             theta_deg: 90
             
@@ -621,6 +642,9 @@ go_in_roundabout_right_to_left: &go_in_roundabout_right_to_left
         - ~SE2Transform:
             p: [0.204, -0.5]
             theta_deg: 90
+        - ~SE2Transform:
+            p: [0.05, 0]
+            theta_deg: 120
         - ~SE2Transform:
             p: [-0.104, 0.5]
             theta_deg: 90
