@@ -132,8 +132,8 @@ def solve1(
     initial_state = game_tree.states
 
     # solve sequential games equilibria
-    if len(initial_state) == 2:  # todo define sequential games for n>2
-        sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims, gf=gf)
+    # if len(initial_state) == 2:  # todo define sequential games for n>2
+    #     sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims, gf=gf)
 
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
