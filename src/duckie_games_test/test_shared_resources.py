@@ -37,7 +37,7 @@ def test_visualize_resource_grid():
     try:
         img = imread(background_path)
         ax.imshow(img, extent=[0, x_back, 0, y_back])
-    except FileNotFoundError:
+    except (FileNotFoundError, SyntaxError):  # Catch Syntax error in circle ci because PNGs are stored with git lfs
         ax.set_xlim(left=0, right=x_back)
         ax.set_ylim(bottom=0, top=y_back)
 
@@ -105,7 +105,7 @@ def test_resources_visual():
     try:
         img = imread(background_path)
         ax.imshow(img, extent=[0, x_back, 0, y_back])
-    except FileNotFoundError:
+    except (FileNotFoundError, SyntaxError):  # Catch Syntax error in circle ci because PNGs are stored with git lfs
         ax.set_xlim(left=0, right=x_back)
         ax.set_ylim(bottom=0, top=y_back)
 

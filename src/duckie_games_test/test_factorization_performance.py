@@ -144,7 +144,7 @@ def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash
     solver_spec = FactorizationSolverSpec(solver_name, solve_params)
 
     logger.info(f"Starting test: {duckie_game_parameters.desc}")
-    d = "out/fact_perf_test"
+    d = "out/tests/fact_perf_test"  # out tests in order to collect reports in circleci
     game_name = _get_game_name_without_accel(duckie_game_parameters)
     dg = join(d, game_name)
     ds = join(dg, solver_name)

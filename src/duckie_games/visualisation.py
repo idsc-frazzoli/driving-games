@@ -62,7 +62,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
 
         try:
             img = imread(png_path)
-        except FileNotFoundError:
+        except (FileNotFoundError, SyntaxError):  # Catch Syntax error in circle ci because PNGs are stored with git lfs
             outdir = os.path.join(d, "map_drawing", f"{self.map_name}")
             svg_path = os.path.join(outdir, "drawing.svg")
             # todo find converter without the render bug (or display html directly)
