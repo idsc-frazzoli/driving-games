@@ -90,10 +90,16 @@ class VehicleActions:
 
     __radd__ = __add__
 
+    def __sub__(self, other: "VehicleActions") -> "VehicleActions":
+        return self + (other * -1.0)
+
     def __mul__(self, factor: float) -> "VehicleActions":
         return VehicleActions(acc=self.acc * factor, dst=self.dst * factor)
 
     __rmul__ = __mul__
+
+    def __truediv__(self, factor: float) -> "VehicleActions":
+        return self * (1/factor)
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -191,6 +197,7 @@ class VehicleState:
 @dataclass
 class TrajectoryParams:
     solve: bool
+    samp_dyn: bool
     max_gen: int
     dt: D
     u_acc: FrozenSet[float]
@@ -211,6 +218,7 @@ class TrajectoryParams:
         u_dst = frozenset([_ * 0.2 for _ in u_acc])
         params = TrajectoryParams(
             solve=False,
+            samp_dyn=False,
             max_gen=1,
             dt=D("1"),
             u_acc=u_acc,
@@ -242,6 +250,7 @@ class TrajectoryParams:
             u_dst = frozenset([_ * config["step_dst"] for _ in range(-n_dst, n_dst + 1)])
             params = TrajectoryParams(
                 solve=config["solve"],
+                samp_dyn=config["samp_dyn"],
                 max_gen=config["max_gen"],
                 dt=D(config["dt"]),
                 u_acc=u_acc,

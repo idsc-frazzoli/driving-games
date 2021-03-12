@@ -17,21 +17,25 @@ class Trajectory:
     """ Container for trajectory - path + velocities, steering """
 
     traj: SampledSequence[VehicleState]
-    dt_samp: Timestamp
     _cache: Mapping[Timestamp, VehicleState]
-    _lane: LaneSegmentHashable
+    _lane: LaneSegmentHashable = None
 
-    def __init__(self, traj: List[VehicleState], dt_samp: Timestamp):
+    def __init__(self, traj: List[VehicleState], dt_samp: Timestamp = None,
+                 sampled: List[VehicleState] = None):
         times: List[Timestamp] = [t.t for t in traj]
         self.traj = SampledSequence(timestamps=times, values=traj)
-        self.dt_samp = dt_samp
-        self.upsample()
+        if sampled is not None:
+            self._cache = {_.t: _ for _ in sampled}
+        elif dt_samp is not None:
+            self.upsample(dt_samp=dt_samp)
+        else:
+            raise Exception("One of dt_samp, sampled needed from Trajectory!")
 
-    def upsample(self):
+    def upsample(self, dt_samp: Timestamp):
         times: List[Timestamp]
         x: List[VehicleState]
         times, x = zip(*self.__iter__())
-        n_steps = (times[-1] - times[0]) // self.dt_samp
+        n_steps = (times[-1] - times[0]) // dt_samp
         u_acc: List[float] = []
         u_dst: List[float] = []
         for i in range(len(times)-1):
@@ -52,7 +56,7 @@ class Trajectory:
         cache: Dict[Timestamp, VehicleState] = {}
 
         for n in np.arange(0, n_steps + 1, dtype=int):
-            step = times[0] + n * self.dt_samp
+            step = times[0] + n * dt_samp
             if i < len(times) and step > times[i+1]:
                 i += 1
                 t0, dT, s0 = update_vals(idx=i)
@@ -123,6 +127,8 @@ class Trajectory:
         elif t > self.traj.get_end():
             return self.traj.at(self.traj.get_end())
 
+        if self._lane is None:
+            raise NotImplementedError("Interpolate works only for SE2 interpolation!")
         times = self.get_raw_sampling_points()
         i = bisect_right(times, t)
         return self.interpolate(t=t, idx=i)

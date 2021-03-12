@@ -18,12 +18,12 @@ players:
     pref:     "pref_6"
     lane:     "dl2"
     vg:       "yellow_car"
-#  P2:
-#    state:    "state_2"
-#    traj:     "traj_2"
-#    pref:     "pref_2"
-#    lane:     "rl2"
-#    vg:       "blue_car"
+  P2:
+    state:    "state_2"
+    traj:     "traj_2"
+    pref:     "pref_2"
+    lane:     "rl2"
+    vg:       "blue_car"
 #  P3:
 #    state:    "state_1"
 #    traj:     "traj_2"
@@ -41,4 +41,4 @@ players:
     traj:     "traj_2"
     pref:     "pref_4"
     lane:     "ud1"
-    vg:       "blue_truck"
+    vg:       "red_bicycle"

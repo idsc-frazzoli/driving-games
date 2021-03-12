@@ -1,6 +1,7 @@
 
 #trajectory_params:
 #  solve:      Solve Boundary Value problem to grow tree
+#  samp_dyn:   UpSample using dynamics, uses SE2 if False
 #  max_gen:    Number of timesteps (or generations) for tree
 #  dt:         Sampling time (s) - string for decimal
 #  step_acc:   Acceleration step (m/s2)
@@ -15,6 +16,7 @@
 
 traj_1:       &traj_1
   solve:      False
+  samp_dyn:   True
   max_gen:    1
   dt:         "1.0"
   step_acc:   3

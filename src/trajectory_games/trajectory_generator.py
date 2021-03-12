@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
 import numpy as np
-from decimal import Decimal as D
 
 import geometry as geo
 from duckietown_world import relative_pose
@@ -24,7 +23,8 @@ __all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
 
 class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld], ABC):
     @abstractmethod
-    def get_action_set(self, state: VehicleState, player: PlayerName, world: TrajectoryWorld, **kwargs) -> FrozenSet[Trajectory]:
+    def get_action_set(self, state: VehicleState, player: PlayerName, world: TrajectoryWorld, **kwargs) -> FrozenSet[
+        Trajectory]:
         pass
 
 
@@ -53,7 +53,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         G = self._get_trajectory_graph(state=state, lane=world.get_lane(player=player))
         if isinstance(graph, MultiDiGraph):
             graph.__init__(G)
-        trajectories = self._trajectory_graph_to_list(G=G, dt=self.params.dt_samp)
+        trajectories = self._trajectory_graph_to_list(G=G)
         toc = perf_counter() - tic
         print(f"Trajectory generation time = {toc:.2f} s")
         ret = frozenset(trajectories)
@@ -81,12 +81,12 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             expanded.add(s1)
             successors = self.get_successors_solve(state=s1, lane=lane) if self.params.solve \
                 else self.get_successors_approx(state=s1, lane=lane)
-            for u, s2 in successors.items():
+            for u, (s2, samp) in successors.items():
                 if s2 not in G.nodes:
                     add_node(s2, gen=n_gen + 1)
                     if n_gen + 1 < self.params.max_gen:
                         stack.append(s2)
-                G.add_edge(s1, s2, u=u, gen=n_gen)
+                G.add_edge(s1, s2, u=u, gen=n_gen, sampled=samp)
 
         return G
 
@@ -112,8 +112,17 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         pos_f = SE2_apply_R2(q_f, offset_target)
         return pos_f, ang_f
 
+    def get_successor(self, state: VehicleState, u: VehicleActions, samp: bool = True) \
+            -> Tuple[VehicleState, List[VehicleState]]:
+        if self.params.samp_dyn:
+            dt_samp = self.params.dt_samp if samp else self.params.dt
+            return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt,
+                                                   dt_samp=dt_samp)
+        else:
+            return self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
+
     def get_successors_approx(self, state: VehicleState, lane: LaneSegmentHashable) -> \
-            Mapping[VehicleActions, VehicleState]:
+            Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]:
         """
         Approximate method to grow trajectory tree (fast)
         Predicts progress along reference using curvature
@@ -145,14 +154,15 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             curv = 0.0
             dist = get_progress(acc=acc, K=curv)
             for i in range(5):
-                p_f, th_f = self.get_target(lane=lane, progress=along_i+dist, offset_target=offset_0)
+                p_f, th_f = self.get_target(lane=lane, progress=along_i + dist,
+                                            offset_target=offset_0)
                 dlb = p_f - p_i
                 Lb = np.linalg.norm(dlb)
 
                 # Two points with heading average curvature computation
                 curv = 2 * math.sin(th_f - th_i) / Lb
                 dist_new = get_progress(acc=acc, K=curv)
-                if abs(dist-dist_new) < 0.1:
+                if abs(dist - dist_new) < 0.1:
                     dist = dist_new
                     break
                 dist = dist_new
@@ -160,7 +170,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             return dist
 
         st_max, dst_max = self.params.st_max, self.params.dst_max
-        successors: Dict[VehicleActions, VehicleState] = {}
+        successors: Dict[VehicleActions, Tuple[VehicleState, List[VehicleState]]] = {}
         u0 = VehicleActions(acc=0.0, dst=0.0)
 
         # Sample progress using acceleration
@@ -169,11 +179,11 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
             # Sample deviation as a function of dst
             for dst in self._bicycle_dyn.u_dst:
-
                 # Calculate target pose of rear axle
-                nf = n_i * 0.5 + dst * distance / l
+                nf = 0.5 * (n_i + dst * distance)
                 offset_t = np.array([-l, nf])
-                p_t, th_t = self.get_target(lane=lane, progress=along_i+distance, offset_target=offset_t)
+                p_t, th_t = self.get_target(lane=lane, progress=along_i + distance,
+                                            offset_target=offset_t)
 
                 # Steer from initial to final position using kinematic model
                 #  No slip at rear axle assumption --> Rear axle moves along a circle
@@ -186,13 +196,13 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
                 # Propagate inputs to obtain exact final state
                 u = VehicleActions(acc=accel, dst=dst_f)
-                state_f = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
-                successors[u] = state_f
+                state_f, states_t = self.get_successor(state=state, u=u)
+                successors[u] = (state_f, states_t)
 
         return successors
 
     def get_successors_solve(self, state: VehicleState, lane: LaneSegmentHashable) -> \
-            Mapping[VehicleActions, VehicleState]:
+            Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]:
         """
         Accurate method to grow trajectory tree (slow)
         Samples discrete grid of velocity (from acceleration) and deviation
@@ -202,7 +212,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
         dt = float(self.params.dt)
         s_init, n_init, mui = self.get_curv(state=state, lane=lane)
-        successors: Dict[VehicleActions, VehicleState] = {}
+        successors: Dict[VehicleActions, Tuple[VehicleState, List[VehicleState]]] = {}
 
         # Steering rate bounds
         dst_max = self.params.dst_max
@@ -213,7 +223,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         def equation_forward(vars_in, acc: float) -> Tuple[float, float]:
             """ Euler forward integration (cartesian) to obtain curvilinear state """
             u = VehicleActions(acc=acc, dst=vars_in[0])
-            state_end = self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
+            state_end, _ = self.get_successor(state=state, u=u, samp=False)
             _, n, mu = self.get_curv(state=state_end, lane=lane)
             return n, mu
 
@@ -224,11 +234,12 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
         def get_dst_guess() -> float:
             """ Initial guess for optimisation, obtained from target yaw rate """
-            p_t, th_t = self.get_target(lane=lane, progress=s_init+distance, offset_target=np.array([0, 0]))
+            p_t, th_t = self.get_target(lane=lane, progress=s_init + distance,
+                                        offset_target=np.array([0, 0]))
             d_ang = (th_t - state.th)
-            while d_ang > +np.pi: d_ang -= 2*np.pi
-            while d_ang < -np.pi: d_ang += 2*np.pi
-            dst_i = (math.atan(d_ang * 2 * self.params.vg.l / state.v*dt) - state.st) / dt
+            while d_ang > +np.pi: d_ang -= 2 * np.pi
+            while d_ang < -np.pi: d_ang += 2 * np.pi
+            dst_i = (math.atan(d_ang * 2 * self.params.vg.l / state.v * dt) - state.st) / dt
             dst_i = min(max(dst_i, lb), ub)
             return dst_i
 
@@ -239,14 +250,14 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
             # Sample deviations
             for dst in self._bicycle_dyn.u_dst:
-                nf = n_init * 0.5 + (dst/self.params.vg.l) * distance
+                nf = 0.5 * (n_init + dst * distance)
 
                 # Solve boundary value problem to obtain actions
                 dst_g = get_dst_guess()
                 res = minimize(fun=equation_min, x0=np.array([dst_g]),
                                bounds=[[lb, ub]], args=(accel, nf))
                 i = 0
-                dst0 = [0.0, lb/2, ub/2]
+                dst0 = [0.0, lb / 2, ub / 2]
 
                 # Try other initial states if it doesn't converge
                 while not res.success and i <= 2:
@@ -260,36 +271,43 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
                 # Propagate inputs to obtain final state
                 u_f = VehicleActions(acc=accel, dst=dst)
-                state_f = self._bicycle_dyn.successor_forward(x0=state, u=u_f, dt=self.params.dt)
-                successors[u_f] = state_f
+                state_f, states_t = self.get_successor(state=state, u=u_f)
+                successors[u_f] = (state_f, states_t)
         return successors
 
-    @staticmethod
-    def _trajectory_graph_to_list(G: MultiDiGraph, dt: D) -> Set[Trajectory]:
+    def _trajectory_graph_to_list(self, G: MultiDiGraph) -> Set[Trajectory]:
         """ Convert state graph to list of trajectories"""
         expanded = set()
         all_traj: Set[Trajectory] = set()
         for n1 in topological_sort(G):
             traj: List[VehicleState] = [n1]
-            TrajectoryGenerator1._expand_graph(G=G, node=n1, traj=traj,
-                                               all_traj=all_traj,
-                                               expanded=expanded, dt=dt)
+            self._expand_graph(G=G, node=n1, traj=traj,
+                               all_traj=all_traj, expanded=expanded)
         return all_traj
 
-    @staticmethod
-    def _expand_graph(G: MultiDiGraph, node: VehicleState,
+    def _expand_graph(self, G: MultiDiGraph, node: VehicleState,
                       traj: List[VehicleState], all_traj: Set[Trajectory],
-                      expanded: Set[VehicleState], dt: D):
+                      expanded: Set[VehicleState]):
         """ Recursively expand graph to obtain states """
         if node in expanded:
             return
         successors = list(G.successors(node))
         if not successors:
-            all_traj.add(Trajectory(traj=traj, dt_samp=dt))
+            if self.params.samp_dyn:
+                sampled = []
+                for i in range(len(traj) - 1):
+                    points = G[traj[i]][traj[i + 1]][0]['sampled']
+                    if len(sampled) == 0:
+                        sampled = points
+                    else:
+                        sampled.pop()
+                        sampled += points
+                all_traj.add(Trajectory(traj=traj, sampled=sampled))
+            else:
+                all_traj.add(Trajectory(traj=traj, dt_samp=self.params.dt_samp))
         else:
             for n2 in successors:
                 traj1: List[VehicleState] = traj + [n2]
-                TrajectoryGenerator1._expand_graph(G=G, node=n2, traj=traj1,
-                                                   all_traj=all_traj,
-                                                   expanded=expanded, dt=dt)
+                self._expand_graph(G=G, node=n2, traj=traj1,
+                                   all_traj=all_traj, expanded=expanded)
         expanded.add(node)
