@@ -21,7 +21,7 @@ jobs:
       - run:
           name: Pull lfs files
           command: |
-            git lfs pull
+            git lfs install & git lfs pull
 
       - run:
           name: Install deps
