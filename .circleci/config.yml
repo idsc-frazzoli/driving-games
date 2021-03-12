@@ -19,6 +19,11 @@ jobs:
     steps: &steps
       - checkout
       - run:
+          name: Pull lfs files
+          command: |
+            git lfs pull
+
+      - run:
           name: Install deps
           command: |
             echo PATH=$PATH

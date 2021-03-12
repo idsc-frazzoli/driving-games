@@ -173,12 +173,37 @@ desc = (
 )
 
 node_sequences = [
-    ['P18', 'P12', 'P10'],
-    ['P32', 'P17', 'P14', 'P10'],
+    ['P18', 'P14', 'P10', 'P11'],
+    ['P39', 'P33', 'P17', 'P14', 'P10'],
 ]
 
-
 player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
+
+initial_progress = [D(0), D(0)]
+max_paths = [D(20), D(20)]
+max_speeds = [D(6), D(4)]
+min_speeds = [D(0), D(1)]
+max_waits = [D(1), D(1)]
+
+
+# accel = [D(-1), D(0), D(+1)]
+accel = [D(-1), D(0), D(+1), D(+1.5)]
+# accel = [D(-2), D(-1), D(0), D(+0.5), D(+1)]
+# accel = [D(-2), D(-1), D(-0.5), D(0), D(+0.5), D(+1)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(0), D(+1.5), D(+1)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(0), D(0.5), D(+1), D(+1.5)]
+# accel = [D(-2), D(-1.5), D(-1), D(-0.5), D(-0.25), D(0), D(+0.5), D(1), D(+1.5)]
+available_accels = [
+    accel,
+    accel
+]
+player_available_accels = {pn: frozenset(_) for pn, _ in zip(player_names, available_accels)}
+player_initial_progress = {pn: _ for pn, _ in zip(player_names, initial_progress)}
+player_max_paths = {pn: _ for pn, _ in zip(player_names, max_paths)}
+player_max_speeds = {pn: _ for pn, _ in zip(player_names, max_speeds)}
+player_min_speeds = {pn: _ for pn, _ in zip(player_names, min_speeds)}
+player_max_waits = {pn: _ for pn, _ in zip(player_names, max_waits)}
+
 map_name = "roundabout-only"
 
 two_player_roundabout_only = replace(
@@ -186,7 +211,13 @@ two_player_roundabout_only = replace(
     desc=desc,
     map_name=map_name,
     node_sequence=player_node_sequence,
-    lanes=None
+    lanes=None,
+    available_accels=player_available_accels,
+    initial_progress=player_initial_progress,
+    max_path=player_max_paths,
+    max_speed=player_max_speeds,
+    min_speed=player_min_speeds,
+    max_wait=player_max_waits
 )
 
 #%%

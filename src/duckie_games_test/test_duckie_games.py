@@ -52,9 +52,9 @@ uncertainty_params = [
 ]
 
 duckie_game_params = [
-    two_player_4way,
+    # two_player_4way,
     # two_player_4way_intersection_only,
-    # two_player_roundabout_only,
+    two_player_roundabout_only,
     # three_player_4way,
     # three_player_4way_intersection_only,
     # three_player_4way_double,
@@ -81,11 +81,11 @@ use_factorization = [
 ]
 
 betas = [
-    # 0, # resources of game
+    0, # resources of game
     # 0.2,
     # 1,
     # 5,
-    math.inf  # forward reachable set
+    # math.inf  # forward reachable set
 ]
 
 params = list(product(duckie_game_params, uncertainty_params, strategies, nash_strategy, use_factorization, betas))
@@ -94,8 +94,13 @@ params = list(product(duckie_game_params, uncertainty_params, strategies, nash_s
 @parameterized(params)
 def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_strat, use_fact, beta):
     """
-    Test the factorization algos for different size of actions
+    n-player duckie game tests
     """
+
+    if beta is not math.inf and not use_fact[0]:
+        # Only run it for beta=inf when no factorization is used
+        return
+
     runs = 1
     r_run = 0
 

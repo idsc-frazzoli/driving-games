@@ -40,6 +40,7 @@ from duckie_games.game_generation import get_duckie_game
 from duckie_games.zoo import (
     two_player_4way,
     two_player_4way_intersection_only,
+    two_player_roundabout_only,
     three_player_4way,
     three_player_4way_intersection_only,
     three_player_4way_double,
@@ -58,7 +59,7 @@ duckie_game_params = [
     # two_player_4way,
     two_player_4way_intersection_only,
     # three_player_4way,
-    # three_player_4way_intersection_only,
+    three_player_4way_intersection_only,
     # three_player_4way_double,
     # three_player_4way_double_intersection_only,
 ]
@@ -92,20 +93,22 @@ betas = [
 
 accelerations_test ={
     "prob" : [
-      ["0", "+0.5"],
-      ["-1", "0", "+0.5"],
-      ["-1", "0", "+0.5", "+1"],
-      ["-1", "0", "+0.5", "+1", "+2"],
+      # ["0", "+0.5"],
+      # ["-1", "0", "+0.5"],
+      # ["-1", "0", "+0.5", "+1"],
+      # ["-1", "0", "+0.5", "+1", "+2"],
+        ["-1", "+0", "+1", "+1.5"]
       ],
 
     "sets" : [
-      ["0", "+0.5"],
-      ["-1", "0", "+0.5"],
-      ["-1", "0", "+0.5", "+1"],
-      ["-2", "-1", "0", "+0.5", "+1"],
-      ["-2", "-1", "-0.5", "0", "+0.5", "+1"],
-      ["-2", "-1", "-0.5", "0", "+0.5", "+1", "+1.5"],
-      ["-2", "-1.5", "-1", "-0.5", "0", "+0.5", "1", "+1.5"]
+      # ["0", "+0.5"],
+      # ["-1", "0", "+0.5"],
+      # ["-1", "0", "+0.5", "+1"],
+      # ["-2", "-1", "0", "+0.5", "+1"],
+      # ["-2", "-1", "-0.5", "0", "+0.5", "+1"],
+      # ["-2", "-1", "-0.5", "0", "+0.5", "+1", "+1.5"],
+      # ["-2", "-1.5", "-1", "-0.5", "0", "+0.5", "1", "+1.5"],
+        ["-1", "+0", "+1", "+1.5"]
     ]
 }
 
@@ -114,7 +117,7 @@ params = list(product(duckie_game_params, uncertainty_params, strategies, nash_s
 @parameterized(params)
 def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash_strat, use_fact, beta):
     """
-    n-player duckie game tests
+    Test the factorization algos for different size of actions
     """
     if beta is not math.inf and not use_fact[0]:
         # Only run it for beta=inf when no factorization is used
