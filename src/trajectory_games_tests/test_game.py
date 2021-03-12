@@ -16,8 +16,8 @@ from trajectory_games import (
     get_trajectory_game,
 )
 
-plot_gif = False
-filename = "r_animation.html"
+plot_gif = True
+filename = "r_game_all.html"
 
 
 def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
@@ -44,7 +44,7 @@ def test_trajectory_game():
 
 
 def test_trajectory_game_best_response():
-    n_runs = 5      # Number of random runs for best response
+    n_runs = 20      # Number of random runs for best response
 
     game: TrajectoryGame = get_trajectory_game()
     context: StaticSolvingContext = preprocess_player(sgame=game)

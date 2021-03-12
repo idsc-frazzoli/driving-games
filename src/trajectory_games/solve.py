@@ -166,6 +166,7 @@ def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
                                                  player=player, return_best=True)
             if joint_best != update_best:
                 players_rem = set(update_best.keys())
+                players_rem.remove(player)
             joint_best = update_best
 
         out = equilibrium_check(joint_actions=joint_best, context=context)

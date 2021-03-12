@@ -437,13 +437,20 @@ class SteeringRate(Metric):
 
 class CollisionEnergy(Metric):
     cache: Dict[JointPureTraj, List[float]] = {}
-    cache_joint_traj: Dict[JointPureTraj, EvaluatedMetric] = {}
+    cache_joint_traj: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
     COLLISION_MIN_DIST = 0.2
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
         description = "This metric computes the energy of collision between agents."
 
         def calculate_metric(player1: PlayerName) -> EvaluatedMetric:
+
+            joint_traj_all: JointPureTraj = frozendict(
+                {p: context.get_trajectory(p) for p in context.get_players()}
+            )
+            if joint_traj_all in self.cache_joint_traj \
+                    and player1 in self.cache_joint_traj[joint_traj_all]:
+                return self.cache_joint_traj[joint_traj_all][player1]
 
             world: TrajectoryWorld = context.get_world()
             geometry: Mapping[PlayerName, VehicleGeometry] = {
@@ -506,12 +513,6 @@ class CollisionEnergy(Metric):
                 self.cache[joint_traj] = energy
                 return energy
 
-            joint_traj_all: JointPureTraj = frozendict(
-                {p: context.get_trajectory(p) for p in context.get_players()}
-            )
-            if joint_traj_all in self.cache_joint_traj:
-                return self.cache_joint_traj[joint_traj_all]
-
             collision_energy: List[float] = []
             for player2 in context.get_players():
                 coll_e = calculate_collision(players=[player1, player2])
@@ -532,7 +533,9 @@ class CollisionEnergy(Metric):
                 description=description,
                 cumulative=cumulative,
             )
-            self.cache_joint_traj[joint_traj_all] = ret
+            if joint_traj_all not in self.cache_joint_traj:
+                self.cache_joint_traj[joint_traj_all] = {}
+            self.cache_joint_traj[joint_traj_all][player1] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
