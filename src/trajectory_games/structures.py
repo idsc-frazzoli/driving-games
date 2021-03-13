@@ -244,10 +244,15 @@ class TrajectoryParams:
 
         if name in cls._config.keys():
             config = cls._config[name]
-            n_acc = config["n_acc"] // 2
-            n_dst = config["n_dst"] // 2
-            u_acc = frozenset([_ * config["step_acc"] for _ in range(-n_acc, n_acc + 1)])
-            u_dst = frozenset([_ * config["step_dst"] for _ in range(-n_dst, n_dst + 1)])
+
+            def get_set(inp: str):
+                n = config["n_"+inp]
+                start = -(n-1)/2.0
+                u = frozenset([(_+start) * config["step_"+inp] for _ in range(n)])
+                return u
+
+            u_acc = get_set(inp="acc")
+            u_dst = get_set(inp="dst")
             params = TrajectoryParams(
                 solve=config["solve"],
                 samp_dyn=config["samp_dyn"],
