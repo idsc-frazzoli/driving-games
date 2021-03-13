@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import List, Dict, Tuple, Mapping
 import numpy as np
 from duckietown_world import SE2Transform
@@ -85,16 +86,21 @@ class Trajectory:
 
     def get_path(self) -> List[SE2Transform]:
         """ Returns cartesian coordinates (SE2) of trajectory """
-        return self.state_to_se2(self.traj.values)
+        return self.state_to_se2_list(self.traj.values)
 
     def get_path_sampled(self) -> List[SE2Transform]:
         """ Returns cartesian coordinates (SE2) of trajectory at upsampled points """
-        return self.state_to_se2(list(self._cache.values()))
+        return self.state_to_se2_list(list(self._cache.values()))
 
     @staticmethod
-    def state_to_se2(states: List[VehicleState]) -> List[SE2Transform]:
-        ret = [SE2Transform(p=np.array([x.x, x.y]), theta=x.th) for x in states]
+    def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
+        ret = [Trajectory.state_to_se2(x) for x in states]
         return ret
+
+    @staticmethod
+    @lru_cache(None)
+    def state_to_se2(x: VehicleState) -> SE2Transform:
+        return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
 
     def interpolate(self, t: Timestamp, idx: int = None,
                     vx: float = None, st: float = None,

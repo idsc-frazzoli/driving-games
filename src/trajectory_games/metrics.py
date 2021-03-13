@@ -1,13 +1,12 @@
 import math
 from typing import Tuple, List, Dict, Mapping, Callable, Set
-from decimal import Decimal as D
 
 from duckietown_world import LanePose
 from frozendict import frozendict
 
 from games import PlayerName
 from .structures import VehicleGeometry, VehicleState
-from .sequence import Timestamp, SampledSequence, iterate_with_dt
+from .sequence import Timestamp, SampledSequence
 from .metrics_def import (
     Metric,
     MetricEvaluationContext,
@@ -15,6 +14,7 @@ from .metrics_def import (
     MetricEvaluationResult,
     TrajGameOutcome,
     PlayerOutcome,
+    differentiate,
 )
 from .trajectory_world import TrajectoryWorld
 from .paths import Trajectory
@@ -37,65 +37,6 @@ __all__ = [
 ]
 
 
-def integrate(sequence: SampledSequence[float]) -> SampledSequence[float]:
-    """ Integrates with respect to time - multiplies the value with delta T. """
-    if not sequence:
-        msg = "Cannot integrate empty sequence."
-        raise ValueError(msg)
-    total = 0.0
-    timestamps = []
-    values = []
-    for _ in iterate_with_dt(sequence):
-        v_avg = (_.v0 + _.v1) / 2.0
-        total += v_avg * float(_.dt)
-        timestamps.append(Timestamp(_.t0))
-        values.append(total)
-
-    return SampledSequence[float](timestamps, values)
-
-
-def accumulate(sequence: SampledSequence[float]) -> SampledSequence[float]:
-    """ Accumulates with respect to time - Sums the values along the horizontal. """
-    total = 0.0
-    timestamps = []
-    values = []
-    for t, v in sequence:
-        total += v
-        timestamps.append(t)
-        values.append(total)
-
-    return SampledSequence[float](timestamps, values)
-
-
-def differentiate(val: List[float], t: List[D]) -> List[float]:
-    if len(val) != len(t):
-        msg = "values and times have different sizes - ({},{})," " can't differentiate".format(
-            len(val), len(t)
-        )
-        raise ValueError(msg)
-
-    def func_diff(i: int) -> float:
-        dy = val[i + 1] - val[i]
-        dx = float(t[i + 1] - t[i])
-        if dx < 1e-8:
-            msg = "identical timestamps for func_diff - {}".format(t[i])
-            raise ValueError(msg)
-        return dy / dx
-
-    ret: List[float] = [0.0] + [func_diff(i) for i in range(len(t) - 1)]
-    return ret
-
-
-def get_integrated(sequence: SampledSequence[float]) -> Tuple[SampledSequence[float], float]:
-    if len(sequence) <= 1:
-        cumulative = 0.0
-        dtot = 0.0
-    else:
-        cumulative = integrate(sequence)
-        dtot = cumulative.values[-1]
-    return cumulative, dtot
-
-
 def get_evaluated_metric(
     players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]
 ) -> MetricEvaluationResult:
@@ -114,31 +55,19 @@ def get_values(traj: Trajectory, func: Callable[[VehicleState], float]) \
 
 class SurvivalTime(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "Length of the episode (negative for smaller preferred)"
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "Length of the episode (negative for smaller preferred)"
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
             if trajectory in self.cache:
                 return self.cache[trajectory]
 
-            traj = trajectory.get_sequence()
-            if len(traj) < 1:
-                raise ValueError(traj)
-
             # negative for smaller preferred
-            incremental = traj.transform_values(lambda _: -1.0, float)
-            cumulative = integrate(incremental)
-            total = cumulative.values[-1]
-
-            ret = EvaluatedMetric(
-                title=type(self).__name__,
-                description=description,
-                total=total,
-                incremental=incremental,
-                cumulative=cumulative,
-            )
+            interval = context.get_interval(player)
+            val = [-1.0 for _ in interval]
+            ret = self.get_evaluated_metric(interval=interval, val=val)
             self.cache[trajectory] = ret
             return ret
 
@@ -147,9 +76,9 @@ class SurvivalTime(Metric):
 
 class DeviationLateral(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric describes the deviation from reference path. "
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric describes the deviation from reference path. "
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -159,16 +88,7 @@ class DeviationLateral(Metric):
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             abs_n = [_.distance_from_center for _ in traj_sn]
-            sequence = SampledSequence[float](interval, abs_n)
-
-            cumulative, dtot = get_integrated(sequence)
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=sequence,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=abs_n)
             self.cache[trajectory] = ret
             return ret
 
@@ -177,9 +97,9 @@ class DeviationLateral(Metric):
 
 class DeviationHeading(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric describes the heading deviation from reference path."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric describes the heading deviation from reference path."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -189,17 +109,7 @@ class DeviationHeading(Metric):
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             head = [abs(_.relative_heading) for _ in traj_sn]
-
-            sequence = SampledSequence[float](interval, head)
-            cumulative, dtot = get_integrated(sequence)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=sequence,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=head)
             self.cache[trajectory] = ret
             return ret
 
@@ -207,11 +117,10 @@ class DeviationHeading(Metric):
 
 
 class DrivableAreaViolation(Metric):
-    # TODO[SIR]: This only considers CoG and not car edges
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the drivable area violation by the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the drivable area violation by the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -231,16 +140,7 @@ class DrivableAreaViolation(Metric):
                 return diff
 
             values = [get_violation(_) for _ in traj_sn]
-            sequence = SampledSequence[float](interval, values)
-            cumulative, dtot = get_integrated(sequence)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=sequence,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=values)
             self.cache[trajectory] = ret
             return ret
 
@@ -249,9 +149,9 @@ class DrivableAreaViolation(Metric):
 
 class ProgressAlongReference(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -261,19 +161,14 @@ class ProgressAlongReference(Metric):
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             # negative for smaller preferred
+            #  TODO[SIR]: Change inc to progress rate
             progress = [traj_sn[0].along_lane - _.along_lane for _ in traj_sn]
             total = progress[-1]
             inc = [0.0] + [j - i for i, j in zip(progress[:-1], progress[1:])]
             incremental = SampledSequence[float](interval, inc)
             cumulative = SampledSequence[float](interval, progress)
-
-            ret = EvaluatedMetric(
-                total=total,
-                incremental=incremental,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = EvaluatedMetric(title=type(self).__name__, description=self.description,
+                                  total=total, incremental=incremental, cumulative=cumulative)
             self.cache[trajectory] = ret
             return ret
 
@@ -282,9 +177,9 @@ class ProgressAlongReference(Metric):
 
 class LongitudinalAcceleration(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the longitudinal acceleration the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the longitudinal acceleration the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -296,16 +191,7 @@ class LongitudinalAcceleration(Metric):
             # Final acc, dacc is zero and not first
             acc_val = [abs(_) for _ in acc[1:]] + [0.0]
 
-            acc_seq = SampledSequence[float](interval, acc_val)
-            cumulative, dtot = get_integrated(acc_seq)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=acc_seq,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=acc_val)
             self.cache[trajectory] = ret
             return ret
 
@@ -314,9 +200,9 @@ class LongitudinalAcceleration(Metric):
 
 class LongitudinalJerk(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the longitudinal acceleration jerk of the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the longitudinal acceleration jerk of the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -329,16 +215,7 @@ class LongitudinalJerk(Metric):
             # Final acc, dacc is zero and not first
             dacc_val = [abs(_) for _ in dacc[1:]] + [0.0]
 
-            dacc_seq = SampledSequence[float](interval, dacc_val)
-            cumulative, dtot = get_integrated(dacc_seq)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=dacc_seq,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=dacc_val)
             self.cache[trajectory] = ret
             return ret
 
@@ -347,9 +224,9 @@ class LongitudinalJerk(Metric):
 
 class LateralComfort(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the lateral discomfort or lateral acceleration the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the lateral discomfort or lateral acceleration the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -357,16 +234,7 @@ class LateralComfort(Metric):
                 return self.cache[trajectory]
 
             interval, ay = get_values(traj=trajectory, func=get_lat_comf)
-            ay_seq = SampledSequence[float](interval, ay)
-            cumulative, dtot = get_integrated(ay_seq)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=ay_seq,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=ay)
             self.cache[trajectory] = ret
             return ret
 
@@ -375,9 +243,9 @@ class LateralComfort(Metric):
 
 class SteeringAngle(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the steering angle the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the steering angle the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -386,17 +254,7 @@ class SteeringAngle(Metric):
 
             interval, st = get_values(traj=trajectory, func=get_st)
             st_abs = [abs(_) for _ in st]
-
-            st_seq = SampledSequence[float](interval, st_abs)
-            cumulative, dtot = get_integrated(st_seq)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=st_seq,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=st_abs)
             self.cache[trajectory] = ret
             return ret
 
@@ -405,9 +263,9 @@ class SteeringAngle(Metric):
 
 class SteeringRate(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the rate of change of steering angle the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the rate of change of steering angle the robot."
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             trajectory: Trajectory = context.get_trajectory(player)
@@ -418,17 +276,7 @@ class SteeringRate(Metric):
             dst = differentiate(st, interval)
             # Final dst is zero and not first
             dst_val = [abs(_) for _ in dst[1:]] + [0.0]
-
-            dst_seq = SampledSequence[float](interval, dst_val)
-            cumulative, dtot = get_integrated(dst_seq)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=dst_seq,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=dst_val)
             self.cache[trajectory] = ret
             return ret
 
@@ -439,9 +287,9 @@ class CollisionEnergy(Metric):
     cache: Dict[JointPureTraj, List[float]] = {}
     cache_joint_traj: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
     COLLISION_MIN_DIST = 0.2
+    description = "This metric computes the energy of collision between agents."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-        description = "This metric computes the energy of collision between agents."
 
         def calculate_metric(player1: PlayerName) -> EvaluatedMetric:
 
@@ -523,16 +371,7 @@ class CollisionEnergy(Metric):
                     collision_energy = [full + val for full, val in zip(collision_energy, coll_e)]
 
             interval = context.get_interval(player1)
-            inc = SampledSequence[float](interval, collision_energy)
-            cumulative, dtot = get_integrated(inc)
-
-            ret = EvaluatedMetric(
-                total=dtot,
-                incremental=inc,
-                title=type(self).__name__,
-                description=description,
-                cumulative=cumulative,
-            )
+            ret = self.get_evaluated_metric(interval=interval, val=collision_energy)
             if joint_traj_all not in self.cache_joint_traj:
                 self.cache_joint_traj[joint_traj_all] = {}
             self.cache_joint_traj[joint_traj_all][player1] = ret

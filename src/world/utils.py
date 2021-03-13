@@ -1,3 +1,4 @@
+from functools import lru_cache
 from math import isclose
 
 import networkx as nx
@@ -9,7 +10,7 @@ import numpy as np
 import duckietown_world as dw
 from duckietown_world.geo.transforms import SE2Transform
 from duckietown_world.utils import SE2_apply_R2
-from duckietown_world.world_duckietown.lane_segment import LaneSegment
+from duckietown_world.world_duckietown.lane_segment import LaneSegment, LanePose
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
 import geometry as geo
@@ -233,6 +234,10 @@ class LaneSegmentHashable(LaneSegment):
         ctr_as_SE2_disc = it.chain(*[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points])
         to_hash = *ctr_as_SE2_disc, self.width
         return hash(to_hash)
+
+    @lru_cache(None)
+    def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol=0.001) -> LanePose:
+        return LaneSegment.lane_pose_from_SE2Transform(self, qt=qt, tol=tol)
 
     def find_along_lane_closest_point(self, p, tol=0.001) -> Tuple[float, geo.SE2value]:
 

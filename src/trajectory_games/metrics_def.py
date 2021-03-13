@@ -1,12 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Dict, List, Mapping
+from typing import Dict, List, Mapping, Tuple
 
 from duckietown_world import SE2Transform, LanePose
 
 from games import PlayerName
-from .sequence import Timestamp, SampledSequence
+from .sequence import Timestamp, SampledSequence, iterate_with_dt
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 
@@ -17,6 +17,7 @@ __all__ = [
     "PlayerOutcome",
     "MetricEvaluationResult",
     "TrajGameOutcome",
+    "differentiate"
 ]
 
 
@@ -90,24 +91,84 @@ class EvaluatedMetric:
 
     def __init__(
         self,
-        total: float,
-        description: str,
         title: str,
+        description: str,
+        total: float,
         incremental: SampledSequence,
         cumulative: SampledSequence,
     ):
-        self.total = total
         self.title = title
+        self.description = description
+        self.total = total
         self.incremental = incremental
         self.cumulative = cumulative
-        self.description = description
 
     def __repr__(self):
         return f"{self.title} = {self.total:.2f}"
 
 
+def integrate(sequence: SampledSequence[float]) -> SampledSequence[float]:
+    """ Integrates with respect to time - multiplies the value with delta T. """
+    if not sequence:
+        msg = "Cannot integrate empty sequence."
+        raise ValueError(msg)
+    total = 0.0
+    timestamps = []
+    values = []
+    for _ in iterate_with_dt(sequence):
+        v_avg = (_.v0 + _.v1) / 2.0
+        total += v_avg * float(_.dt)
+        timestamps.append(Timestamp(_.t0))
+        values.append(total)
+
+    return SampledSequence[float](timestamps, values)
+
+
+def accumulate(sequence: SampledSequence[float]) -> SampledSequence[float]:
+    """ Accumulates with respect to time - Sums the values along the horizontal. """
+    total = 0.0
+    timestamps = []
+    values = []
+    for t, v in sequence:
+        total += v
+        timestamps.append(t)
+        values.append(total)
+
+    return SampledSequence[float](timestamps, values)
+
+
+def differentiate(val: List[float], t: List[Timestamp]) -> List[float]:
+    if len(val) != len(t):
+        msg = "values and times have different sizes - ({},{})," " can't differentiate".format(
+            len(val), len(t)
+        )
+        raise ValueError(msg)
+
+    def func_diff(i: int) -> float:
+        dy = val[i + 1] - val[i]
+        dx = float(t[i + 1] - t[i])
+        if dx < 1e-8:
+            msg = "identical timestamps for func_diff - {}".format(t[i])
+            raise ValueError(msg)
+        return dy / dx
+
+    ret: List[float] = [0.0] + [func_diff(i) for i in range(len(t) - 1)]
+    return ret
+
+
+def get_integrated(sequence: SampledSequence[float]) -> Tuple[SampledSequence[float], float]:
+    if len(sequence) <= 1:
+        cumulative = 0.0
+        dtot = 0.0
+    else:
+        cumulative = integrate(sequence)
+        dtot = cumulative.values[-1]
+    return cumulative, dtot
+
+
 class Metric(metaclass=ABCMeta):
     _instances = {}
+    description: str
 
     def __new__(cls, *args, **kwargs):
         # Allow creation of only one instance of each subclass (singleton)
@@ -118,6 +179,13 @@ class Metric(metaclass=ABCMeta):
     @abstractmethod
     def evaluate(self, context: MetricEvaluationContext) -> "MetricEvaluationResult":
         """ Evaluates the metric for all players given a context. """
+
+    def get_evaluated_metric(self, interval: List[Timestamp], val: List[float]) -> EvaluatedMetric:
+        incremental = SampledSequence[float](interval, val)
+        cumulative, total = get_integrated(incremental)
+        ret = EvaluatedMetric(title=type(self).__name__, description=self.description,
+                              total=total, incremental=incremental, cumulative=cumulative)
+        return ret
 
 
 MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
