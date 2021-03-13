@@ -68,7 +68,7 @@ duckie_game_params = [
 strategies = [
     PURE_STRATEGIES,
     # MIX_STRATEGIES
-    FINITE_MIX_STRATEGIES
+    # FINITE_MIX_STRATEGIES
 ]
 
 nash_strategy = [
@@ -109,7 +109,7 @@ accelerations_test ={
       # ["-2", "-1", "-0.5", "0", "+0.5", "+1"],
       # ["-2", "-1", "-0.5", "0", "+0.5", "+1", "+1.5"],
       # ["-2", "-1.5", "-1", "-0.5", "0", "+0.5", "1", "+1.5"],
-        ["-1", "+0", "+1", "+1.5"]
+        ["-1", "+0", "+1"]
     ]
 }
 
@@ -124,7 +124,7 @@ def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash
         # Only run it for beta=inf when no factorization is used
         return
 
-    runs = 5
+    runs = 1
     r_run = 0
 
     use_factorization = use_fact[0]
