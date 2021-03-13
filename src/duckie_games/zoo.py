@@ -417,7 +417,7 @@ geometries = [
 shared_resources_ds = round(width / D(3), 2)
 
 initial_progress = [D(10), D(10), D(10)]
-max_paths = [D(30), D(30), D(30)]
+max_paths = [D(32), D(32), D(32)]
 max_speeds = [D(5), D(5), D(5)]
 min_speeds = [D(1), D(1), D(1)]
 max_waits = [D(1), D(1), D(1)]
