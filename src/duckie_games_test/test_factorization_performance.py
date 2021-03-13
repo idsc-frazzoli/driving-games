@@ -59,7 +59,7 @@ duckie_game_params = [
     # two_player_4way,
     two_player_4way_intersection_only,
     # three_player_4way,
-    three_player_4way_intersection_only,
+    # three_player_4way_intersection_only,
     # three_player_4way_double,
     # three_player_4way_double_intersection_only,
 ]
