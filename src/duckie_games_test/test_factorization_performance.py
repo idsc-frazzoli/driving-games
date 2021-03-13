@@ -52,15 +52,15 @@ from duckie_games.zoo import (
 
 uncertainty_params = [
     [uncertainty_sets, "sets"],
-    [uncertainty_prob, "prob"],
+    # [uncertainty_prob, "prob"],
 ]
 
 duckie_game_params = [
     # two_player_4way,
     # two_player_4way_intersection_only,
-    two_player_roundabout_only
+    # two_player_roundabout_only
     # three_player_4way,
-    # three_player_4way_intersection_only,
+    three_player_4way_intersection_only,
     # three_player_4way_double,
     # three_player_4way_double_intersection_only,
 ]
