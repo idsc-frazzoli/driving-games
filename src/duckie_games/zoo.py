@@ -181,8 +181,8 @@ player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
 
 initial_progress = [D(0), D(0)]
 max_paths = [D(20), D(20)]
-max_speeds = [D(6), D(4)]
-min_speeds = [D(0), D(1)]
+max_speeds = [D(4), D(4)]
+min_speeds = [D(1), D(1)]
 max_waits = [D(1), D(1)]
 
 
@@ -278,8 +278,8 @@ geometries = [
 
 shared_resources_ds = round(width / D(3), 2)
 
-initial_progress = [D(1), D(1), D(1)]
-max_paths = [D(20), D(20), D(20)]
+initial_progress = [D(4), D(4), D(4)]
+max_paths = [D(18), D(18), D(18)]
 max_speeds = [D(5), D(5), D(5)]
 min_speeds = [D(1), D(1), D(1)]
 max_waits = [D(1), D(1), D(1)]

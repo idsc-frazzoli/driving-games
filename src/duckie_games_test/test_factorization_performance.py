@@ -66,9 +66,9 @@ duckie_game_params = [
 ]
 
 strategies = [
-    PURE_STRATEGIES,
+    # PURE_STRATEGIES,
     # MIX_STRATEGIES
-    # FINITE_MIX_STRATEGIES
+    FINITE_MIX_STRATEGIES
 ]
 
 nash_strategy = [

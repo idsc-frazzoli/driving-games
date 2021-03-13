@@ -34,7 +34,7 @@ clean:
 
 test: clean
 	mkdir -p  $(tr)
-	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture $(xunitmp)
+	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src/duckie_games_test  -v --nologcapture $(xunitmp)
 
 test-docker: clean
 	mkdir -p  $(tr)
