@@ -60,15 +60,15 @@ duckie_game_params = [
     # two_player_4way_intersection_only,
     # two_player_roundabout_only
     # three_player_4way,
-    # three_player_4way_intersection_only,
+    three_player_4way_intersection_only,
     # three_player_4way_double,
-    three_player_4way_double_intersection_only,
+    # three_player_4way_double_intersection_only,
 ]
 
 strategies = [
-    PURE_STRATEGIES,
+    # PURE_STRATEGIES,
     # MIX_STRATEGIES
-    # FINITE_MIX_STRATEGIES
+    FINITE_MIX_STRATEGIES
 ]
 
 nash_strategy = [
@@ -124,7 +124,7 @@ def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash
         # Only run it for beta=inf when no factorization is used
         return
 
-    runs = 2
+    runs = 1
     r_run = 0
 
     use_factorization = use_fact[0]
