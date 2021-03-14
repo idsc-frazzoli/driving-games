@@ -307,10 +307,10 @@ def get_game_factorization_n_players_as_create_game_graph(
             game,
             solver_params,
             jsf,
-            players_pre,
             ps,
             resources_used,
-            states_to_solution
+            states_to_solution,
+            fact_perf
         )
 
         # stop timer and collect performance if given
@@ -348,10 +348,10 @@ def find_dependencies_n_players_no_collision_check(
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
     current_js: JointState,
-    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
     ps: PossibilityMonad,
     resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],
-    states_to_solution: Dict[JointState, SolvedGameNode]
+    states_to_solution: Dict[JointState, SolvedGameNode],
+    fact_perf: Optional[GetFactorizationPI] = None
 ) -> Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]:
     """
     Returns the dependency structure from the use of shared resources.
@@ -450,14 +450,20 @@ def find_dependencies_n_players_no_collision_check(
                     resources_games[players] = states_to_solution[initials_smaller_game].ur
                 else:
                     # create the game graph for the merged sub game
+                    t1 = perf_counter()
                     gg = create_game_graph(
                         game=smaller_game,
                         dt=solver_params.dt,
                         initials=frozenset({initials_smaller_game}),
                         gf=None
                     )
+                    t2 = perf_counter()
+                    t_tot = t2 - t1
+                    if fact_perf:
+                        fact_perf.total_time_find_dependencies_create_game_graph += t_tot
 
                     # solve the subgame
+                    t1 = perf_counter()
                     gs = solve_game2(
                         game=smaller_game,
                         solver_params=solver_params,
@@ -465,6 +471,11 @@ def find_dependencies_n_players_no_collision_check(
                         jss=frozenset({initials_smaller_game}),
                         states_to_solution_fact=frozendict(states_to_solution)
                     )
+                    t2 = perf_counter()
+                    t_tot = t2 - t1
+
+                    if fact_perf:
+                        fact_perf.total_time_find_dependencies_solve_game += t_tot
 
                     states_to_solution.update(gs.states_to_solution)
 
