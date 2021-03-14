@@ -20,7 +20,7 @@ class VehicleGeometry:
     m: float
     """ Car Mass [kg] """
     w: float
-    """ Car width [m] """
+    """ Half width of car [m] """
     l: float
     """ Half length of car - dist from CoG to each axle [m] """
     colour: Tuple[float, float, float]

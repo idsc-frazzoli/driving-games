@@ -8,8 +8,8 @@
 
 red_car:      &car
   m:      1000
-  w:      1.0
-  l:      2.0
+  w:      0.75
+  l:      1.5
   colour: "red"
 
 blue_car:
@@ -26,8 +26,8 @@ yellow_car:
 
 red_truck:    &truck
   m:      3000
-  w:      2.5
-  l:      4.0
+  w:      2.0
+  l:      3.0
   colour: "red"
 
 blue_truck:
@@ -37,7 +37,7 @@ blue_truck:
 red_bicycle:  &bicycle
   m:      80
   w:      0.25
-  l:      1.0
+  l:      0.5
   colour: "red"
 
 #colours -> [R, G, B]

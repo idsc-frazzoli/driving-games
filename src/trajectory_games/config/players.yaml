@@ -52,7 +52,7 @@ players:
     lane:     "dl2"
     vg:       "yellow_car"
   P2:
-    state:    "state_2"
+    state:    "state_1"
     traj:     "traj_2"
     pref:     "pref_d2"
     lane:     "rl2"

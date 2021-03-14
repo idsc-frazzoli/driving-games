@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from functools import partial, lru_cache
 from time import perf_counter
-from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
+from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Callable
 import numpy as np
 
 import geometry as geo
@@ -25,9 +25,12 @@ __all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
 
 class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld], ABC):
     @abstractmethod
-    def get_action_set(self, state: VehicleState, player: PlayerName, world: TrajectoryWorld, **kwargs) -> FrozenSet[
-        Trajectory]:
+    def get_action_set(self, state: VehicleState, player: PlayerName,
+                       world: TrajectoryWorld, **kwargs) -> FrozenSet[Trajectory]:
         pass
+
+
+Successors = Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]
 
 
 class TrajectoryGenerator1(TrajectoryGenerator):
@@ -89,8 +92,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                 continue
             n_gen = G.nodes[s1]["gen"]
             expanded.add(s1)
-            successors = self.get_successors_solve(state=s1, lane=lane) if self.params.solve \
-                else self.get_successors_approx(state=s1, lane=lane)
+            successors = self.tree_func(state=s1, lane=lane, gen=n_gen)
             for u, (s2, samp) in successors.items():
                 if s2 not in G.nodes:
                     add_node(s2, gen=n_gen + 1)
@@ -136,8 +138,27 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         else:
             return self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
 
-    def get_successors_approx(self, state: VehicleState, lane: LaneSegmentHashable) -> \
-            Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]:
+    def tree_func(self, state: VehicleState, lane: LaneSegmentHashable,
+                  gen: int) -> Successors:
+        if self.params.solve:
+            return self.get_successors_solve(state=state, lane=lane, gen=gen)
+        else:
+            return self.get_successors_approx(state=state, lane=lane, gen=gen)
+
+    def get_acc_dst(self, state: VehicleState, gen: int) -> Tuple[Set[float], Set[float]]:
+        u0 = VehicleActions(acc=0.0, dst=0.0)
+        cond_gen = gen < self.params.max_gen
+        dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0}
+        acc_vals = self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0)
+        if not cond_gen:
+            for acc in list(acc_vals):
+                if acc < 0.0:
+                    acc_vals.remove(acc)
+                    acc_vals.add(0.0)
+        return acc_vals, dst_vals
+
+    def get_successors_approx(self, state: VehicleState, lane: LaneSegmentHashable,
+                              gen: int) -> Successors:
         """
         Approximate method to grow trajectory tree (fast)
         Predicts progress along reference using curvature
@@ -185,15 +206,15 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             return dist
 
         st_max, dst_max = self.params.st_max, self.params.dst_max
+        acc_vals, dst_vals = self.get_acc_dst(state=state, gen=gen)
         successors: Dict[VehicleActions, Tuple[VehicleState, List[VehicleState]]] = {}
-        u0 = VehicleActions(acc=0.0, dst=0.0)
 
         # Sample progress using acceleration
-        for accel in self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0):
+        for accel in acc_vals:
             distance = get_corrected_distance(acc=accel)
 
             # Sample deviation as a function of dst
-            for dst in self._bicycle_dyn.u_dst:
+            for dst in dst_vals:
                 # Calculate target pose of rear axle
                 nf = 0.5 * (n_i + dst * distance)
                 offset_t = np.array([-l, nf])
@@ -216,8 +237,8 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
         return successors
 
-    def get_successors_solve(self, state: VehicleState, lane: LaneSegmentHashable) -> \
-            Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]:
+    def get_successors_solve(self, state: VehicleState, lane: LaneSegmentHashable,
+                             gen: int) -> Successors:
         """
         Accurate method to grow trajectory tree (slow)
         Samples discrete grid of velocity (from acceleration) and deviation
@@ -233,7 +254,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         dst_max = self.params.dst_max
         lb = max(-dst_max, (-self.params.st_max - state.st) / dt)
         ub = min(+dst_max, (+self.params.st_max - state.st) / dt)
-        u0 = VehicleActions(acc=0.0, dst=0.0)
+        acc_vals, dst_vals = self.get_acc_dst(state=state, gen=gen)
 
         def equation_forward(vars_in, acc: float) -> Tuple[float, float]:
             """ Euler forward integration (cartesian) to obtain curvilinear state """
@@ -259,12 +280,12 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             return dst_i
 
         # Sample velocities
-        for accel in self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0):
+        for accel in acc_vals:
             vf = state.v + accel * dt
             distance = vf * dt
 
             # Sample deviations
-            for dst in self._bicycle_dyn.u_dst:
+            for dst in dst_vals:
                 nf = 0.5 * (n_init + dst * distance)
 
                 # Solve boundary value problem to obtain actions
@@ -300,15 +321,15 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         beta_final = lane.beta_from_along_lane(along_lane=s_final)
         center = lane.center_point(beta=beta_final)
         pos_f, ang_f, _ = geo.translation_angle_scale_from_E2(center)
-        while ang_f < -math.pi: ang_f += 2*math.pi
-        while ang_f > +math.pi: ang_f -= 2*math.pi
+        while ang_f < -math.pi: ang_f += 2 * math.pi
+        while ang_f > +math.pi: ang_f -= 2 * math.pi
         if abs(ang_f) < tol:
             p_f = (pos_f[0], None, True)
         elif abs(ang_f - math.pi) < tol or abs(ang_f + math.pi) < tol:
             p_f = (pos_f[0], None, False)
-        elif abs(ang_f - math.pi/2) < tol:
+        elif abs(ang_f - math.pi / 2) < tol:
             p_f = (None, pos_f[1], True)
-        elif abs(ang_f + math.pi/2) < tol:
+        elif abs(ang_f + math.pi / 2) < tol:
             p_f = (None, pos_f[1], False)
         else:
             raise Exception("Final angle is not along axes!")
