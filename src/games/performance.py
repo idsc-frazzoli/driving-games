@@ -29,6 +29,12 @@ class GetFactorizationPI(PerformanceInfo):
     total_time_find_dependencies: float
     """The total time spend to find the dependencies"""
 
+    total_time_find_dependencies_create_game_graph: float
+    """The total time to create the game graphs during factorization for more than 2 players"""
+
+    total_time_find_dependencies_solve_game: float
+    """The total time to solve the game graphs during factorization for more than 2 players"""
+
     total_time_collision_check: float
     """ The total time to check collision """
 
@@ -160,6 +166,8 @@ def get_initialized_game_performance(
     get_fact_pi = GetFactorizationPI(
         total_time=0,
         total_time_find_dependencies=0,
+        total_time_find_dependencies_create_game_graph=0,
+        total_time_find_dependencies_solve_game=0,
         total_time_collision_check=0,
     )
 
