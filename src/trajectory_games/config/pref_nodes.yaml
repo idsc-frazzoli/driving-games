@@ -1,6 +1,6 @@
 
 #weights:                      Weights for all the metrics
-#  SurvivalTime:               weight
+#  EpisodeTime:               weight
 #  DeviationLateral:           weight
 #  DeviationHeading:           weight
 #  DrivableAreaViolation:      weight
@@ -13,8 +13,8 @@
 #  CollisionEnergy:            weight
 
 ## Raw metric nodes
-SurvivalTime:
-  SurvivalTime:             1.0
+EpisodeTime:
+  EpisodeTime:             1.0
 DeviationLateral:
   DeviationLateral:         1.0
 DeviationHeading:
@@ -76,3 +76,8 @@ weights_5:
   DeviationLateral:           0.5
   DeviationHeading:           0.5
   ProgressAlongReference:     2.0
+
+# Time + area violation
+weights_6:
+  EpisodeTime:                1.0
+  DrivableAreaViolation:      0.2

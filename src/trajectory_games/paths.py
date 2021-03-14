@@ -1,5 +1,6 @@
+from copy import deepcopy
 from functools import lru_cache
-from typing import List, Dict, Tuple, Mapping
+from typing import List, Dict, Tuple, Mapping, Optional
 import numpy as np
 from duckietown_world import SE2Transform
 from bisect import bisect_right
@@ -11,28 +12,37 @@ from .structures import VehicleState
 
 __all__ = [
     "Trajectory",
+    "FinalPoint"
 ]
+
+# FinalPoint = (x_f, y_f, increase_flag)
+FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
 
 class Trajectory:
     """ Container for trajectory - path + velocities, steering """
 
     traj: SampledSequence[VehicleState]
+    p_final: FinalPoint
     _cache: Mapping[Timestamp, VehicleState]
     _lane: LaneSegmentHashable = None
 
     def __init__(self, traj: List[VehicleState], dt_samp: Timestamp = None,
-                 sampled: List[VehicleState] = None):
+                 sampled: List[VehicleState] = None, p_final: FinalPoint = None):
         times: List[Timestamp] = [t.t for t in traj]
         self.traj = SampledSequence(timestamps=times, values=traj)
+        self.p_final = p_final
         if sampled is not None:
-            self._cache = {_.t: _ for _ in sampled}
+            cache = {_.t: _ for _ in sampled}
         elif dt_samp is not None:
-            self.upsample(dt_samp=dt_samp)
+            cache = self.upsample(dt_samp=dt_samp)
         else:
             raise Exception("One of dt_samp, sampled needed from Trajectory!")
+        if p_final is not None:
+            self.trim_trajectory(cache=cache, p_final=p_final)
+        self._cache = cache
 
-    def upsample(self, dt_samp: Timestamp):
+    def upsample(self, dt_samp: Timestamp) -> Dict[Timestamp, VehicleState]:
         times: List[Timestamp]
         x: List[VehicleState]
         times, x = zip(*self.__iter__())
@@ -67,7 +77,35 @@ class Trajectory:
             s = dt * (x[i].v + vx) / 2.0
             beta = float(i) + s / s0
             cache[step] = self.interpolate(t=step, vx=vx, st=st, beta=beta)
-        self._cache = cache
+        return cache
+
+    def trim_trajectory(self, cache: Dict[Timestamp, VehicleState],
+                        p_final: FinalPoint):
+        x_f, y_f, increase = p_final
+        assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
+        if x_f is not None:
+            def get_z(state: VehicleState) -> float:
+                return state.x
+            z_f = x_f
+        else:
+            def get_z(state: VehicleState) -> float:
+                return state.y
+            z_f = y_f
+        times = list(cache.keys())
+        z_samp = [get_z(x) for x in cache.values()]
+        if not increase:
+            z0 = z_samp[0]
+            z_samp = [z0 - z for z in z_samp]
+            z_f = z0 - z_f
+        last = bisect_right(z_samp, z_f, lo=times.index(self.traj.timestamps[-2]))
+        try:
+            t_end = times[last]
+        except:
+            print("Shit")
+        for i in range(last+1, len(times)):
+            cache.pop(times[i])
+        self.traj.timestamps[-1] = t_end
+        self.traj.values[-1] = deepcopy(cache[t_end])
 
     def get_sequence(self) -> SampledSequence[VehicleState]:
         """ Returns sequence of trajectory points """
@@ -136,7 +174,7 @@ class Trajectory:
         if self._lane is None:
             raise NotImplementedError("Interpolate works only for SE2 interpolation!")
         times = self.get_raw_sampling_points()
-        i = bisect_right(times, t)
+        i = bisect_right(times, t) - 1
         return self.interpolate(t=t, idx=i)
 
     def __iter__(self):

@@ -11,19 +11,19 @@ map_name: "4way-double-intersection-only"
 #    vg:       Vehicle geometry (from vehicles.yaml)
 #  P2: ...
 
-players:
-  P1:
-    state:    "state_3"
-    traj:     "traj_2"
-    pref:     "pref_6"
-    lane:     "dl2"
-    vg:       "yellow_car"
-  P2:
-    state:    "state_2"
-    traj:     "traj_2"
-    pref:     "pref_2"
-    lane:     "rl2"
-    vg:       "blue_car"
+#players:
+#  P1:
+#    state:    "state_3"
+#    traj:     "traj_2"
+#    pref:     "pref_6"
+#    lane:     "dl2"
+#    vg:       "yellow_car"
+#  P2:
+#    state:    "state_2"
+#    traj:     "traj_2"
+#    pref:     "pref_2"
+#    lane:     "rl2"
+#    vg:       "blue_car"
 #  P3:
 #    state:    "state_1"
 #    traj:     "traj_2"
@@ -36,9 +36,42 @@ players:
 #    pref:     "pref_4"
 #    lane:     "dr1"
 #    vg:       "red_bicycle"
+#  P5:
+#    state:    "state_1"
+#    traj:     "traj_2"
+#    pref:     "pref_4"
+#    lane:     "ud1"
+#    vg:       "red_bicycle"
+
+# Finite distance players
+players:
+  P1:
+    state:    "state_3"
+    traj:     "traj_2"
+    pref:     "pref_d6"
+    lane:     "dl2"
+    vg:       "yellow_car"
+  P2:
+    state:    "state_2"
+    traj:     "traj_2"
+    pref:     "pref_d2"
+    lane:     "rl2"
+    vg:       "blue_car"
+#  P3:
+#    state:    "state_1"
+#    traj:     "traj_2"
+#    pref:     "pref_d3"
+#    lane:     "lu2"
+#    vg:       "green_car"
+#  P4:
+#    state:    "state_1"
+#    traj:     "traj_2"
+#    pref:     "pref_d4"
+#    lane:     "dr1"
+#    vg:       "red_bicycle"
   P5:
     state:    "state_1"
     traj:     "traj_2"
-    pref:     "pref_4"
+    pref:     "pref_d4"
     lane:     "ud1"
     vg:       "red_bicycle"

@@ -8,7 +8,7 @@ from duckietown_world import DuckietownMap
 from imageio import imread
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
-from networkx import MultiDiGraph, DiGraph, draw_networkx_nodes, draw_networkx_edges, draw_networkx_labels
+from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
 from games import PlayerName
 from geometry import SE2_from_xytheta
@@ -71,33 +71,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         return box
 
     def plot_actions(self, pylab, player: StaticGamePlayer):
-        G: MultiDiGraph = player.graph
-
-        def pos_node(n: VehicleState):
-            x = G.nodes[n]["x"]
-            y = G.nodes[n]["y"]
-            return x, y
-
-        def line_width(n: VehicleState):
-            return 1.0 / pow(3.0, G.edges[n]["gen"])
-
-        def node_sizes(n: VehicleState):
-            return 1.0 / pow(4.0, G.nodes[n]["gen"])
-
-        pos = {_: pos_node(_) for _ in G.nodes}
-        # widths = [line_width(_) for _ in G.edges]
-        node_size = [node_sizes(_) for _ in G.nodes]
-        nodes = draw_networkx_nodes(
-            G,
-            pos=pos,
-            nodelist=G.nodes(),
-            node_size=node_size,
-            node_color="grey",
-            alpha=0.5,
-        )
         ax: Axes = pylab.gca()
-        nodes.set_zorder(20)
-        ax.add_collection(nodes)
 
         state = next(iter(player.state.support()))
         trajectories = player.actions_generator.get_action_set(state=state, world=None, player=player.name)

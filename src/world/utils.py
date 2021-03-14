@@ -1,5 +1,6 @@
 from functools import lru_cache
 from math import isclose
+from time import perf_counter
 
 import networkx as nx
 from decimal import Decimal as D
@@ -224,6 +225,7 @@ class LaneSegmentHashable(LaneSegment):
     """
     Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
     """
+    time: float = 0.0
 
     @classmethod
     def initializor(cls, lane_segment: LaneSegment) -> "LaneSegmentHashable":
@@ -237,7 +239,10 @@ class LaneSegmentHashable(LaneSegment):
 
     @lru_cache(None)
     def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol=0.001) -> LanePose:
-        return LaneSegment.lane_pose_from_SE2Transform(self, qt=qt, tol=tol)
+        tic = perf_counter()
+        lane_pose = LaneSegment.lane_pose_from_SE2Transform(self, qt=qt, tol=tol)
+        LaneSegmentHashable.time += perf_counter() - tic
+        return lane_pose
 
     def find_along_lane_closest_point(self, p, tol=0.001) -> Tuple[float, geo.SE2value]:
 

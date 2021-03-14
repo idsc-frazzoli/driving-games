@@ -84,41 +84,38 @@ def compute_actions(sgame: StaticGame) -> Mapping[PlayerName, FrozenSet[Trajecto
     return available_traj
 
 
-def preprocess_player(sgame: StaticGame) -> StaticSolvingContext:
+def preprocess_player(sgame: StaticGame, only_traj: bool = False) -> StaticSolvingContext:
     """
     Preprocess the game for each player -> Compute all possible actions and outcomes
     """
-    from .metrics_def import MetricEvaluationContext
-
     available_traj = compute_actions(sgame=sgame)
 
-    # Compute the outcomes for each joint action combination
-    tic = perf_counter()
-    for player, actions in available_traj.items():
-        for traj in actions:
-            sgame.get_outcomes(frozendict({player: traj}))
-    toc = perf_counter() - tic
-    print(f"LanePose time = {MetricEvaluationContext.time:.2f} s")
-    print(f"Preprocess_player: outcomes evaluation time = {toc:.2f} s")
+    if not only_traj:
+        # Compute the outcomes for each player action
+        tic = perf_counter()
+        for player, actions in available_traj.items():
+            for traj in actions:
+                sgame.get_outcomes(frozendict({player: traj}))
+        toc = perf_counter() - tic
+        print(f"Preprocess_player: outcomes evaluation time = {toc:.2f} s")
 
     return get_context(sgame=sgame, actions=available_traj)
 
 
-def preprocess_full_game(sgame: StaticGame) -> StaticSolvingContext:
+def preprocess_full_game(sgame: StaticGame, only_traj: bool = False) -> StaticSolvingContext:
     """
     Preprocess the game -> Compute all possible actions and outcomes for each combination
     """
-    from .metrics_def import MetricEvaluationContext
 
     available_traj = compute_actions(sgame=sgame)
 
-    # Compute the outcomes for each joint action combination
-    tic = perf_counter()
-    for joint_traj in set(iterate_dict_combinations(available_traj)):
-        sgame.get_outcomes(joint_traj)  # Outcomes are cached inside get_outcomes
-    toc = perf_counter() - tic
-    print(f"Preprocess_full: outcomes evaluation time = {toc:.2f} s")
-    print(f"LanePose time = {MetricEvaluationContext.time:.2f} s")
+    if not only_traj:
+        # Compute the outcomes for each joint action combination
+        tic = perf_counter()
+        for joint_traj in set(iterate_dict_combinations(available_traj)):
+            sgame.get_outcomes(joint_traj)  # Outcomes are cached inside get_outcomes
+        toc = perf_counter() - tic
+        print(f"Preprocess_full: outcomes evaluation time = {toc:.2f} s")
 
     return get_context(sgame=sgame, actions=available_traj)
 

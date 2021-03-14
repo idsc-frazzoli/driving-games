@@ -2,6 +2,7 @@
 #trajectory_params:
 #  solve:      Solve Boundary Value problem to grow tree
 #  samp_dyn:   UpSample using dynamics, uses SE2 if False
+#  s_final:    Finite distance instead of time - % of lane (<0 for finite time)
 #  max_gen:    Number of timesteps (or generations) for tree
 #  dt:         Sampling time (s) - string for decimal
 #  step_acc:   Acceleration step (m/s2)
@@ -17,6 +18,7 @@
 traj_1:       &traj_1
   solve:      False
   samp_dyn:   True
+  s_final:    0.95
   max_gen:    1
   dt:         "1.0"
   step_acc:   3
@@ -24,7 +26,7 @@ traj_1:       &traj_1
   step_dst:   0.15
   n_dst:      3
   v_max:      20.0
-  v_min:      1.0
+  v_min:      4.0
   st_max:     0.5
   dst_max:    1.0
   dt_samp:    "0.1"
@@ -34,7 +36,7 @@ traj_2:       &traj_2
   dt:         "1.0"
   max_gen:    2
   n_acc:      3
-  n_dst:      3
+  n_dst:      1
 
 traj_3:       &traj_3
   <<:         *traj_1

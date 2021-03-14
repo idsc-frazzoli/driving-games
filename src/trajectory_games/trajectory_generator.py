@@ -1,5 +1,7 @@
 import math
 from abc import ABC, abstractmethod
+from copy import deepcopy
+from functools import partial, lru_cache
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
 import numpy as np
@@ -14,7 +16,7 @@ from games import PlayerName
 from world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
 from .static_game import ActionSetGenerator
-from .paths import Trajectory
+from .paths import Trajectory, FinalPoint
 from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
 
@@ -50,12 +52,13 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             return self._cache[(player, state)]
         assert world is not None
         tic = perf_counter()
-        G = self._get_trajectory_graph(state=state, lane=world.get_lane(player=player))
+        lane = world.get_lane(player=player)
+        G = self._get_trajectory_graph(state=state, lane=lane)
         if isinstance(graph, MultiDiGraph):
             graph.__init__(G)
-        trajectories = self._trajectory_graph_to_list(G=G)
+        trajectories = self._trajectory_graph_to_list(G=G, lane=lane)
         toc = perf_counter() - tic
-        print(f"Trajectory generation time = {toc:.2f} s")
+        print(f"Player: {player}\n\tTrajectories generated = {len(trajectories)}\n\ttime = {toc:.2f} s")
         ret = frozenset(trajectories)
         self._cache[(player, state)] = ret
         return ret
@@ -64,6 +67,13 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         """ Construct graph of states """
         stack = list([state])
         G = MultiDiGraph()
+
+        p_final = self.get_p_final(lane=lane)
+        if p_final is not None:
+            x_f, y_f, inc = p_final
+            z_f = x_f if x_f is not None else y_f
+        else:
+            x_f, z_f, inc = None, None, True
 
         def add_node(s, gen):
             G.add_node(s, gen=gen, x=s.x, y=s.y)
@@ -84,7 +94,12 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             for u, (s2, samp) in successors.items():
                 if s2 not in G.nodes:
                     add_node(s2, gen=n_gen + 1)
-                    if n_gen + 1 < self.params.max_gen:
+                    if p_final is not None:
+                        z = s2.x if x_f is not None else s2.y
+                        cond = (inc and (z < z_f)) or (not inc and (z > z_f))
+                    else:
+                        cond = n_gen + 1 < self.params.max_gen
+                    if cond:
                         stack.append(s2)
                 G.add_edge(s1, s2, u=u, gen=n_gen, sampled=samp)
 
@@ -275,39 +290,68 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                 successors[u_f] = (state_f, states_t)
         return successors
 
-    def _trajectory_graph_to_list(self, G: MultiDiGraph) -> Set[Trajectory]:
+    @lru_cache(None)
+    def get_p_final(self, lane: LaneSegmentHashable) -> FinalPoint:
+        if self.params.s_final < 0:
+            return None
+        tol = 1e-1
+        s_max = lane.get_lane_length()
+        s_final = s_max * self.params.s_final
+        beta_final = lane.beta_from_along_lane(along_lane=s_final)
+        center = lane.center_point(beta=beta_final)
+        pos_f, ang_f, _ = geo.translation_angle_scale_from_E2(center)
+        while ang_f < -math.pi: ang_f += 2*math.pi
+        while ang_f > +math.pi: ang_f -= 2*math.pi
+        if abs(ang_f) < tol:
+            p_f = (pos_f[0], None, True)
+        elif abs(ang_f - math.pi) < tol or abs(ang_f + math.pi) < tol:
+            p_f = (pos_f[0], None, False)
+        elif abs(ang_f - math.pi/2) < tol:
+            p_f = (None, pos_f[1], True)
+        elif abs(ang_f + math.pi/2) < tol:
+            p_f = (None, pos_f[1], False)
+        else:
+            raise Exception("Final angle is not along axes!")
+        return p_f
+
+    def _trajectory_graph_to_list(self, G: MultiDiGraph, lane: LaneSegmentHashable) \
+            -> Set[Trajectory]:
         """ Convert state graph to list of trajectories"""
         expanded = set()
         all_traj: Set[Trajectory] = set()
+        p_final = self.get_p_final(lane=lane)
         for n1 in topological_sort(G):
             traj: List[VehicleState] = [n1]
             self._expand_graph(G=G, node=n1, traj=traj,
-                               all_traj=all_traj, expanded=expanded)
+                               all_traj=all_traj, expanded=expanded,
+                               p_final=p_final)
         return all_traj
 
     def _expand_graph(self, G: MultiDiGraph, node: VehicleState,
                       traj: List[VehicleState], all_traj: Set[Trajectory],
-                      expanded: Set[VehicleState]):
+                      expanded: Set[VehicleState], p_final: FinalPoint):
         """ Recursively expand graph to obtain states """
         if node in expanded:
             return
         successors = list(G.successors(node))
         if not successors:
+            traj_init = partial(Trajectory, traj=traj, p_final=p_final)
             if self.params.samp_dyn:
                 sampled = []
                 for i in range(len(traj) - 1):
                     points = G[traj[i]][traj[i + 1]][0]['sampled']
                     if len(sampled) == 0:
-                        sampled = points
+                        sampled = deepcopy(points)
                     else:
                         sampled.pop()
                         sampled += points
-                all_traj.add(Trajectory(traj=traj, sampled=sampled))
+                all_traj.add(traj_init(sampled=sampled))
             else:
-                all_traj.add(Trajectory(traj=traj, dt_samp=self.params.dt_samp))
+                all_traj.add(traj_init(dt_samp=self.params.dt_samp))
         else:
             for n2 in successors:
                 traj1: List[VehicleState] = traj + [n2]
                 self._expand_graph(G=G, node=n2, traj=traj1,
-                                   all_traj=all_traj, expanded=expanded)
+                                   all_traj=all_traj, expanded=expanded,
+                                   p_final=p_final)
         expanded.add(node)

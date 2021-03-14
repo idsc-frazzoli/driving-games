@@ -8,6 +8,7 @@
 #     Parents  -> Any node from pref_nodes.yaml
 
 
+## Finite time preferences
 # Toy game preferences
 pref_1:                       &pref_1
   CollisionEnergy:            []
@@ -53,6 +54,47 @@ pref_6:                       &pref_6
   LongitudinalJerk:           ["weights_5"]
 
 
+## Finite distance preferences
+# Toy game preferences
+pref_d1:                      &pref_d1
+  CollisionEnergy:            []
+  weights_6:                  ["CollisionEnergy"]
+  LateralComfort:             ["weights_6"]
+
+# Trajectory game preference
+pref_d2:                      &pref_d2
+  <<: *pref_d1
+  LongitudinalJerk:           ["weights_6"]
+  DeviationLateral:           ["LateralComfort", "LongitudinalJerk"]
+  DeviationHeading:           ["LateralComfort", "LongitudinalJerk"]
+
+# Comfort Preference
+pref_d3:                      &pref_d3
+  CollisionEnergy:            []
+  LateralComfort:             ["CollisionEnergy"]
+  LongitudinalJerk:           ["LateralComfort"]
+  DeviationLateral:           ["LongitudinalJerk"]
+  DeviationHeading:           ["LongitudinalJerk"]
+  EpisodeTime:                ["LongitudinalJerk"]
+  DrivableAreaViolation:      ["LongitudinalJerk"]
+
+# Racing preference
+pref_d4:                      &pref_d4
+  CollisionEnergy:            []
+  weights_6:                  ["CollisionEnergy"]
+  DeviationLateral:           ["weights_6"]
+  DeviationHeading:           ["weights_6"]
+
+pref_d5:                      &pref_d5
+  <<: *pref_5
+
+pref_d6:                      &pref_d6
+  CollisionEnergy:            []
+  weights_6:                  ["CollisionEnergy"]
+  weights_5:                  ["weights_6"]
+  LateralComfort:             ["weights_5", "weights_6"]
+  LongitudinalJerk:           ["weights_5", "weights_6"]
+
 
 ## Test preferences
 test_1:                       &test_1
@@ -70,6 +112,6 @@ test_2:                       &test_2
 
 test_3:                       &test_3
   <<: *test_2
-  SurvivalTime:               ["LateralComfort"]
-  SteeringRate:               ["DrivableAreaViolation", "SurvivalTime"]
+  EpisodeTime:                ["LateralComfort"]
+  SteeringRate:               ["DrivableAreaViolation", "EpisodeTime"]
   SteeringAngle:              ["ProgressAlongReference", "SteeringRate"]

@@ -38,8 +38,6 @@ class MetricEvaluationContext:
     _cache_curv: Dict[Trajectory, List[LanePose]] = None
     """ Cached trajectories to speed up computation, do not set manually """
 
-    time: float = 0.0
-
     def __post_init__(self):
         if MetricEvaluationContext._cache_cart is None:
             MetricEvaluationContext._cache_cart = {}
@@ -55,9 +53,7 @@ class MetricEvaluationContext:
                 traj_cart = traj.get_path_sampled()
                 cart[player] = traj_cart
                 ref_path = self.world.get_lane(player)
-                tic = perf_counter()
                 curv[player] = [ref_path.lane_pose_from_SE2Transform(xy) for xy in traj_cart]
-                MetricEvaluationContext.time += perf_counter() - tic
                 MetricEvaluationContext._cache_cart[traj] = cart[player]
                 MetricEvaluationContext._cache_curv[traj] = curv[player]
         self._points_cart = cart

@@ -7,7 +7,7 @@ from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, Sampled
 
 from trajectory_games.metrics import (
     get_metrics_set,
-    SurvivalTime,
+    EpisodeTime,
     DeviationLateral,
     DeviationHeading,
     DrivableAreaViolation,
@@ -117,7 +117,7 @@ def test_poset():
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare(p1, p2), INCOMPARABLE)
 
-    p1[SurvivalTime()].total = D("1")
+    p1[EpisodeTime()].total = D("1")
     p2[LongitudinalAcceleration()].total = D("1")
     # DevLat: p1<p2, StAng: p1>p2, Surv: p1<p2, LongAcc: p1>p2
     assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
@@ -131,7 +131,7 @@ def test_poset():
     assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare(p1, p2), INCOMPARABLE)
 
-    p1[SurvivalTime()].total = D("0")
+    p1[EpisodeTime()].total = D("0")
     p2[LongitudinalAcceleration()].total = D("0")
     # p1==p2
     assert_equal(pref1.compare(p1, p2), INDIFFERENT)

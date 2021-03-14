@@ -151,7 +151,10 @@ def create_animation(fn: str, game: StaticGame, node: StaticSolvedGameNode):
                                           state=state, box=box_handle)
         return list(box.values())
 
-    times = list(node.actions.values())[0].get_sampling_points()
+    actions = list(node.actions.values())
+    lens = [_.traj.get_end() for _ in actions]
+    longest = lens.index(max(lens))
+    times = actions[longest].get_sampling_points()
     dt_ms = 2*int((times[1]-times[0])*1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True)

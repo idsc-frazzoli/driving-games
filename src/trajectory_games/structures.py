@@ -198,6 +198,7 @@ class VehicleState:
 class TrajectoryParams:
     solve: bool
     samp_dyn: bool
+    s_final: float
     max_gen: int
     dt: D
     u_acc: FrozenSet[float]
@@ -219,6 +220,7 @@ class TrajectoryParams:
         params = TrajectoryParams(
             solve=False,
             samp_dyn=False,
+            s_final=-1.0,
             max_gen=1,
             dt=D("1"),
             u_acc=u_acc,
@@ -256,6 +258,7 @@ class TrajectoryParams:
             params = TrajectoryParams(
                 solve=config["solve"],
                 samp_dyn=config["samp_dyn"],
+                s_final=config["s_final"],
                 max_gen=config["max_gen"],
                 dt=D(config["dt"]),
                 u_acc=u_acc,
