@@ -54,6 +54,7 @@ jobs:
 
       - run:
           name: Run tests
+          no_output_timeout: 4h
           command: |
             make test
 
