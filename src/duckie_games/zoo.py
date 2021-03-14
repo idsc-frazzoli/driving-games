@@ -482,11 +482,16 @@ desc = (
 )
 
 node_sequences = [
-    ['P30', 'P20', 'P8', 'P9'],  # turn left
+    ['P30', 'P21', 'P8', 'P9'],  # turn left
     ['P27', 'P22', 'P10', 'P11'],  # go straight
-    ['P12', 'P13', 'P0', 'P1']  # turn left
+    ['P14', 'P15', 'P19', 'P25']  # go straight
 ]
 
+initial_progress = [D(13), D(11), D(11)]
+max_paths = [D(33), D(31), D(31)]
+
+player_max_paths = {pn: _ for pn, _ in zip(player_names, max_paths)}
+player_initial_progress = {pn: _ for pn, _ in zip(player_names, initial_progress)}
 
 player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
 map_name = "4way-double-intersection-only"
