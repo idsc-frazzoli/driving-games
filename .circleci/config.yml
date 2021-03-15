@@ -19,6 +19,12 @@ jobs:
     steps: &steps
       - checkout
       - run:
+          name: Pull lfs files
+          command: |
+            curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+            apt-get install git-lfs
+            git lfs install & git lfs pull
+      - run:
           name: Install deps
           command: |
             echo PATH=$PATH
