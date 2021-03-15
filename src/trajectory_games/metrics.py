@@ -338,6 +338,7 @@ class CollisionEnergy(Metric):
                     return geo.l * cos_proj + geo.w * sin_proj
 
                 # If the sum of both projections is smaller than the distance, cars don't collide
+                # TODO[SIR]: This is wrong, fix!
                 proj1 = get_projection(state1, geo1)
                 proj2 = get_projection(state2, geo2)
                 if proj1 + proj2 - dist < self.COLLISION_MIN_DIST:
