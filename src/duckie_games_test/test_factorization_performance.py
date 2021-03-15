@@ -60,9 +60,9 @@ duckie_game_params = [
     # two_player_4way_intersection_only,
     # two_player_roundabout_only
     # three_player_4way,
-    # three_player_4way_intersection_only,
+    three_player_4way_intersection_only,
     # three_player_4way_double,
-    three_player_4way_double_intersection_only,
+    # three_player_4way_double_intersection_only,
 ]
 
 strategies = [
@@ -109,7 +109,7 @@ accelerations_test ={
       # ["-2", "-1", "-0.5", "0", "+0.5", "+1"],
       # ["-2", "-1", "-0.5", "0", "+0.5", "+1", "+1.5"],
       # ["-2", "-1.5", "-1", "-0.5", "0", "+0.5", "1", "+1.5"],
-        ["-1", "+0", "+1"]
+        ["-1", "+0", "+1", "+2"]
     ]
 }
 
