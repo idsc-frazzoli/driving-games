@@ -226,7 +226,7 @@ class TrajectoryGenerator1(TrajectoryGenerator):
                 dlb_t = p_t - p_start
                 Lb_t = np.linalg.norm(dlb_t)
                 alpb = math.atan2(dlb_t[1], dlb_t[0]) - th_start
-                tan_st = 4 * math.sin(alpb) * dt * l / Lb_t
+                tan_st = 4 * math.sin(alpb) * l / Lb_t
                 st_f = min(max(math.atan(tan_st), -st_max), st_max)
                 dst_f = min(max((st_f - state.st) / dt, -dst_max), dst_max)
 

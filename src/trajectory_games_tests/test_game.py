@@ -45,7 +45,10 @@ def test_trajectory_game():
     game: TrajectoryGame = get_trajectory_game()
     context: StaticSolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
-    nash_eq: Mapping[str, SolvedTrajectoryGame] = solve_game(context=context)
+    if only_traj:
+        nash_eq = {}
+    else:
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = solve_game(context=context)
     create_reports(game=game, nash_eq=nash_eq, folder="brute_force/")
 
 
