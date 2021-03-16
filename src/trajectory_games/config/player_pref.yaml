@@ -71,17 +71,18 @@ pref_d2:                      &pref_d2
 # Comfort Preference
 pref_d3:                      &pref_d3
   CollisionEnergy:            []
-  LateralComfort:             ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  LateralComfort:             ["DrivableAreaViolation"]
   LongitudinalJerk:           ["LateralComfort"]
   DeviationLateral:           ["LongitudinalJerk"]
   DeviationHeading:           ["LongitudinalJerk"]
   EpisodeTime:                ["LongitudinalJerk"]
-  DrivableAreaViolation:      ["LongitudinalJerk"]
 
 # Racing preference
 pref_d4:                      &pref_d4
   CollisionEnergy:            []
-  weights_6:                  ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  weights_6:                  ["DrivableAreaViolation"]
   DeviationLateral:           ["weights_6"]
   DeviationHeading:           ["weights_6"]
 
@@ -90,7 +91,8 @@ pref_d5:                      &pref_d5
 
 pref_d6:                      &pref_d6
   CollisionEnergy:            []
-  weights_6:                  ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  weights_6:                  ["DrivableAreaViolation"]
   weights_5:                  ["weights_6"]
   LateralComfort:             ["weights_5", "weights_6"]
   LongitudinalJerk:           ["weights_5", "weights_6"]

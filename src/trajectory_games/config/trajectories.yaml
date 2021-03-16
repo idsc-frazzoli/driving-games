@@ -40,8 +40,8 @@ traj_2:       &traj_2
 
 traj_3:       &traj_3
   <<:         *traj_1
-  dt:         "0.8"
-  max_gen:    3
+  dt:         "1.0"
+  max_gen:    2
   n_acc:      3
   n_dst:      3
 

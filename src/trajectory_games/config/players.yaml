@@ -47,7 +47,7 @@ map_name: "4way-double-intersection-only"
 players:
   P1:
     state:    "state_3"
-    traj:     "traj_2"
+    traj:     "traj_3"
     pref:     "pref_d6"
     lane:     "dl2"
     vg:       "yellow_car"
