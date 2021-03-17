@@ -46,7 +46,7 @@ def test_lanes():
                 print(f"Warning, points aren't equal: \n\tbeta = {beta1, beta2} "
                       f"\n\talong = {along1, along2} \n\tangle = {r1, r2}")
                 good = False
-                break
+                raise Exception("Discontinuities in lane")
         if good:
             print("Lane is good, no discontinuities")
         else:

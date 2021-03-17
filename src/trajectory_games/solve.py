@@ -85,7 +85,7 @@ def check_best_response(joint_actions: JointPureTraj, context: StaticSolvingCont
                 results.add(comp_outcome)
 
             # Keep track of only incomparable actions, others don't need to be checked again
-            if comp_outcome != INCOMPARABLE:
+            if not return_best or comp_outcome != INCOMPARABLE:
                 available_actions.remove(player_action)
 
             # If second option is preferred, current action is not a best response

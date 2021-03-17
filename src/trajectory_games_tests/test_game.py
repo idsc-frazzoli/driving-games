@@ -16,9 +16,9 @@ from trajectory_games import (
     get_trajectory_game,
 )
 
-plot_gif = True                 # gif vs image for viz
+plot_gif = False                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
-filename = "r_game_all.html"
+filename = "r_game_test.html"
 
 
 def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
@@ -38,7 +38,9 @@ def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryG
     r_game.to_html(join(d, folder + filename))
 
     from world import LaneSegmentHashable
+    from trajectory_games.metrics import CollisionEnergy
     print(f"LanePose time = {LaneSegmentHashable.time:.2f} s")
+    print(f"Collision time = {CollisionEnergy.time:.2f} s")
 
 
 def test_trajectory_game():

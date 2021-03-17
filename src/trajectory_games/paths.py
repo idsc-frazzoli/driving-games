@@ -98,10 +98,7 @@ class Trajectory:
             z_samp = [z0 - z for z in z_samp]
             z_f = z0 - z_f
         last = bisect_right(z_samp, z_f, lo=times.index(self.traj.timestamps[-2]))
-        try:
-            t_end = times[last]
-        except:
-            print("Shit")
+        t_end = times[last]
         for i in range(last+1, len(times)):
             cache.pop(times[i])
         self.traj.timestamps[-1] = t_end

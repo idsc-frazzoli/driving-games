@@ -16,7 +16,7 @@ from preferences import (
 from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
-from .metrics_def import PlayerOutcome, TrajGameOutcome
+from .metrics_def import PlayerOutcome
 from .static_game import (
     StaticGame,
     StaticGamePlayer,
@@ -116,6 +116,17 @@ def preprocess_full_game(sgame: StaticGame, only_traj: bool = False) -> StaticSo
             sgame.get_outcomes(joint_traj)  # Outcomes are cached inside get_outcomes
         toc = perf_counter() - tic
         print(f"Preprocess_full: outcomes evaluation time = {toc:.2f} s")
+
+    # from multiprocessing import Pool
+    # joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
+    # tic = perf_counter()
+    # pool = Pool()
+    # # TODO[SIR]: Metric cache is not shared between threads now
+    # pool_res = pool.map_async(func=sgame.get_outcomes, iterable=joint_traj_dict.values())
+    # pool_res.get()
+    # print(f"Outcomes Eval Time = {perf_counter() - tic}s")
+    # pool.close()
+    # pool.join()
 
     return get_context(sgame=sgame, actions=available_traj)
 
