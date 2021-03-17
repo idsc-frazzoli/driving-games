@@ -35,6 +35,8 @@ SteeringRate:
   SteeringRate:             1.0
 CollisionEnergy:
   CollisionEnergy:          1.0
+MinimumClearance:
+  MinimumClearance:         1.0
 
 ## Combination metric nodes
 # pref_1

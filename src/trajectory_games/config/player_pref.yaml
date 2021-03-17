@@ -65,8 +65,9 @@ pref_d1:                      &pref_d1
 pref_d2:                      &pref_d2
   <<: *pref_d1
   LongitudinalJerk:           ["weights_6"]
-  DeviationLateral:           ["LateralComfort", "LongitudinalJerk"]
-  DeviationHeading:           ["LateralComfort", "LongitudinalJerk"]
+  MinimumClearance:           ["weights_6"]
+  DeviationLateral:           ["LateralComfort", "LongitudinalJerk", "MinimumClearance"]
+  DeviationHeading:           ["LateralComfort", "LongitudinalJerk", "MinimumClearance"]
 
 # Comfort Preference
 pref_d3:                      &pref_d3
@@ -74,9 +75,10 @@ pref_d3:                      &pref_d3
   DrivableAreaViolation:      ["CollisionEnergy"]
   LateralComfort:             ["DrivableAreaViolation"]
   LongitudinalJerk:           ["LateralComfort"]
-  DeviationLateral:           ["LongitudinalJerk"]
-  DeviationHeading:           ["LongitudinalJerk"]
-  EpisodeTime:                ["LongitudinalJerk"]
+  MinimumClearance:           ["LateralComfort"]
+  DeviationLateral:           ["LongitudinalJerk", "MinimumClearance"]
+  DeviationHeading:           ["LongitudinalJerk", "MinimumClearance"]
+  EpisodeTime:                ["LongitudinalJerk", "MinimumClearance"]
 
 # Racing preference
 pref_d4:                      &pref_d4
@@ -85,6 +87,7 @@ pref_d4:                      &pref_d4
   weights_6:                  ["DrivableAreaViolation"]
   DeviationLateral:           ["weights_6"]
   DeviationHeading:           ["weights_6"]
+  MinimumClearance:           ["weights_6"]
 
 pref_d5:                      &pref_d5
   <<: *pref_5
@@ -94,8 +97,10 @@ pref_d6:                      &pref_d6
   DrivableAreaViolation:      ["CollisionEnergy"]
   weights_6:                  ["DrivableAreaViolation"]
   weights_5:                  ["weights_6"]
-  LateralComfort:             ["weights_5", "weights_6"]
-  LongitudinalJerk:           ["weights_5", "weights_6"]
+  MinimumClearance:           ["weights_6"]
+  LateralComfort:             ["weights_5", "weights_6", "MinimumClearance"]
+  LongitudinalJerk:           ["weights_5", "weights_6", "MinimumClearance"]
+
 
 
 ## Test preferences
