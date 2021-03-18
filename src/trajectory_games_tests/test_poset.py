@@ -25,9 +25,9 @@ from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFE
 
 def test_poset():
     metrics: Set[Metric] = get_metrics_set()
-    pref1 = PosetalPreference(pref_str="test_1")
-    pref2 = PosetalPreference(pref_str="test_2")
-    pref3 = PosetalPreference(pref_str="test_3")
+    pref1 = PosetalPreference(pref_str="test_1", use_cache=False)
+    pref2 = PosetalPreference(pref_str="test_2", use_cache=False)
+    pref3 = PosetalPreference(pref_str="test_3", use_cache=False)
 
     default: EvaluatedMetric = EvaluatedMetric(
         total=D("0"),

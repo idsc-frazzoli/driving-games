@@ -14,6 +14,7 @@ from .metrics_def import TrajGameOutcome, PlayerOutcome
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
 EqOutcome = Tuple[JointPureTraj, TrajGameOutcome, bool, bool, bool, bool]
+NotEq = None, None, False, False, False, False
 
 
 def get_solved_game_node(act: JointPureTraj, out: TrajGameOutcome) -> SolvedTrajectoryGameNode:
@@ -25,10 +26,10 @@ def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedTrajectoryGame]):
 
     solved_node: SolvedTrajectoryGameNode = get_solved_game_node(act=joint_act, out=outcome) \
         if weak or strong else None
-    eq["indiff_nash"].add(solved_node) if indiff else None
-    eq["incomp_nash"].add(solved_node) if incomp else None
-    eq["weak_nash"].add(solved_node) if weak else None
-    eq["strong_nash"].add(solved_node) if strong else None
+    eq["indiff"].add(solved_node) if indiff else None
+    eq["incomp"].add(solved_node) if incomp else None
+    eq["weak"].add(solved_node) if weak else None
+    eq["strong"].add(solved_node) if strong else None
 
 
 def init_eq_dict() -> Dict[str, SolvedTrajectoryGame]:
@@ -37,17 +38,29 @@ def init_eq_dict() -> Dict[str, SolvedTrajectoryGame]:
     weak_nash: SolvedTrajectoryGame = set()
     strong_nash: SolvedTrajectoryGame = set()
     ret: Dict[str, SolvedTrajectoryGame] = {
-        "indiff_nash": indiff_nash,
-        "incomp_nash": incomp_nash,
-        "weak_nash": weak_nash,
-        "strong_nash": strong_nash,
+        "indiff": indiff_nash,
+        "incomp": incomp_nash,
+        "weak": weak_nash,
+        "strong": strong_nash,
     }
     return ret
 
 
-def check_best_response(joint_actions: JointPureTraj, context: StaticSolvingContext,
-                        player: PlayerName, return_best: bool) \
-        -> Tuple[Set[ComparisonOutcome], JointPureTraj]:
+def check_dominated(joint_actions: JointPureTraj,
+                    done: Mapping[PlayerName, Set[JointPureTraj]]) -> bool:
+    for dominated in done.values():
+        if joint_actions in dominated:
+            return True
+    return False
+
+
+def get_best_responses(joint_actions: JointPureTraj, context: StaticSolvingContext,
+                       player: PlayerName, done_p: Set[JointPureTraj]) \
+        -> Tuple[Set[ComparisonOutcome], Set[Trajectory]]:
+    """
+    Calculates the best responses for the current player
+    Returns best responses and comparison outcomes
+    """
     actions = context.player_actions
     players = joint_actions.keys()
 
@@ -64,62 +77,79 @@ def check_best_response(joint_actions: JointPureTraj, context: StaticSolvingCont
         action_options: JointTrajSet = {_: get_actions(_) for _ in players}
         return action_options
 
-    # Track all actions available - need to compare all incomp with best response at the end
-    available_actions: Set[Trajectory] = set(actions[player])
-    available_actions.remove(joint_actions[player])
+    all_actions: Set[Trajectory] = set(actions[player])
+    all_actions.remove(joint_actions[player])
 
+    # Save antichain of actions
+    best: Set[Trajectory] = {joint_actions[player]}
     results: Set[ComparisonOutcome] = set()
-    converged = False
-    while not converged and len(available_actions) > 0:
-        action_alt: JointTrajSet = get_action_options(joint_act=joint_actions,
-                                                      p_actions=available_actions)
-        player_outcome: PlayerOutcome = context.game_outcomes(joint_actions)[player]
-        results = set()
-        converged = True
-        for joint_act_alt in set(iterate_dict_combinations(action_alt)):
-            player_action = joint_act_alt[player]
-            player_outcome_alt: PlayerOutcome = context.game_outcomes(joint_act_alt)[player]
+    check = False
+    action_alt: JointTrajSet = get_action_options(joint_act=joint_actions,
+                                                  p_actions=all_actions)
+    for joint_act_alt in iterate_dict_combinations(action_alt):
+        if joint_act_alt in done_p:
+            continue
+        check = True
+        alt_action = joint_act_alt[player]
+        outcome_alt: PlayerOutcome = context.game_outcomes(joint_act_alt)[player]
+        joint_best_all = get_action_options(joint_act=joint_actions, p_actions=best)
+        results_alt: Set[ComparisonOutcome] = set()
+
+        for joint_best in set(iterate_dict_combinations(joint_best_all)):
+
+            best_outcome: PlayerOutcome = context.game_outcomes(joint_best)[player]
             comp_outcome: ComparisonOutcome = \
-                context.outcome_pref[player].compare(player_outcome, player_outcome_alt)
-            if comp_outcome != INDIFFERENT:
+                context.outcome_pref[player].compare(best_outcome, outcome_alt)
+            results_alt.add(comp_outcome)
+            if joint_best == joint_actions:
                 results.add(comp_outcome)
 
-            # Keep track of only incomparable actions, others don't need to be checked again
-            if not return_best or comp_outcome != INCOMPARABLE:
-                available_actions.remove(player_action)
+            # If one of best is preferred, alternate is not a best response
+            if comp_outcome == FIRST_PREFERRED:
+                done_p.add(joint_act_alt)
+                break
 
-            # If second option is preferred, current action is not a best response
+            # If second option is preferred, current best action is not a best response
             if comp_outcome == SECOND_PREFERRED:
-                if return_best:
-                    joint_actions = joint_act_alt
-                    player_outcome = player_outcome_alt
-                    results = set()
-                    converged = False
-                else:
-                    return {SECOND_PREFERRED}, joint_actions
+                best.remove(joint_best[player])
+                done_p.add(joint_best)
 
-    return results, joint_actions
+        if FIRST_PREFERRED not in results_alt:
+            best.add(alt_action)
+
+    if not check:
+        results.add(FIRST_PREFERRED)
+    return results, best
 
 
-def equilibrium_check(joint_actions: JointPureTraj, context: StaticSolvingContext) -> EqOutcome:
+def equilibrium_check(joint_actions: JointPureTraj, context: StaticSolvingContext,
+                      done: Dict[PlayerName, Set[JointPureTraj]]) -> EqOutcome:
+    """
+    For each player, check if current action is best response
+    Classify into types of nash eq. based on the outputs
+    """
     # TODO[SIR]: Extend to mixed outcomes and strategies
 
-    # For each player, check if current action is best response
-    # Classify into types of nash eq. based on the outputs
+    if isinstance(joint_actions, dict):
+        joint_actions = frozendict(joint_actions)
+    if check_dominated(joint_actions=joint_actions, done=done):
+        return NotEq
+
+    # Compute best responses for each player, check if joint_actions is dominated
     results: Set[ComparisonOutcome] = set()
     for player in joint_actions.keys():
-        results_player, _ = check_best_response(joint_actions=joint_actions, context=context,
-                                                player=player, return_best=False)
+        results_player, _ = get_best_responses(joint_actions=joint_actions, context=context,
+                                               player=player, done_p=done[player])
         # If second option is preferred for any player, current point is not a nash eq.
         if SECOND_PREFERRED in results_player:
-            return None, None, False, False, False, False
+            return NotEq
         results |= results_player
 
     outcome: TrajGameOutcome = context.game_outcomes(joint_actions)
     strong = results == {FIRST_PREFERRED}
+    indiff = INDIFFERENT in results
     incomp = INCOMPARABLE in results
-    indiff = not (strong or incomp)
-    weak = not strong
+    weak = True     # All equilibria are atleast weak
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
@@ -128,8 +158,10 @@ def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedTrajectoryGa
 
     tic = perf_counter()
     # For each possible action combination, check if it is a nash eq
-    for val in set(iterate_dict_combinations(context.player_actions)):
-        out = equilibrium_check(joint_actions=val, context=context)
+    done: Dict[PlayerName, Set[JointPureTraj]] = \
+        {_: set() for _ in context.player_actions.keys()}
+    for joint_act in set(iterate_dict_combinations(context.player_actions)):
+        out = equilibrium_check(joint_actions=joint_act, context=context, done=done)
         callback_eq(tuple_out=out, eq=eq_dict)
     toc = perf_counter() - tic
     print(f"Nash equilibrium computation time = {toc:.2f} s")
@@ -140,36 +172,49 @@ def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedTrajectoryGa
 def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
         -> Mapping[str, SolvedTrajectoryGame]:
     eq_dict = init_eq_dict()
+    INIT_BEST = False
 
     # Solve single player game for each player to get initial guess
-    tic = perf_counter()
     all_actions = context.player_actions
-    indiv_best: Dict[PlayerName, Trajectory] = {}
-    for player, actions in all_actions.items():
-        joint_actions = frozendict({player: next(iter(actions))})
-        _, best_action = check_best_response(joint_actions=joint_actions, context=context,
-                                             player=player, return_best=True)
-        indiv_best[player] = best_action[player]
-    toc = perf_counter() - tic
-    print(f"Individual best computation time = {toc:.2f} s")
+    init_guess: Dict[PlayerName, Set[Trajectory]] = {}
+    done_p: Set[JointPureTraj] = set()
+    tic = perf_counter()
+    if INIT_BEST:
+        print("Initialising strategies using best personal strategies.\nBest Actions:")
+        for player, actions in all_actions.items():
+            done_p.clear()
+            joint_actions = frozendict({player: next(iter(actions))})
+            _, best_actions = get_best_responses(joint_actions=joint_actions, context=context,
+                                                 player=player, done_p=done_p)
+            print(f"\tPlayer: {player} = {len(best_actions)}")
+            init_guess[player] = best_actions
+        toc = perf_counter() - tic
+        print(f"Individual best computation time = {toc:.2f} s")
+    else:
+        print("Initialising strategies at random")
+        init_guess = {player: actions for player, actions in all_actions.items()}
 
+    done: Dict[PlayerName, Set[JointPureTraj]] = \
+        {_: set() for _ in context.player_actions.keys()}
     for i in range(n_runs):
-        players_rem: Set[PlayerName] = set(indiv_best.keys())
-        joint_best: JointPureTraj = frozendict(indiv_best)
+        players_rem: Set[PlayerName] = set(init_guess.keys())
+        joint_best: Dict[PlayerName, Trajectory] = {}
+        for player, actions in init_guess.items():
+            joint_best[player] = choice(list(actions))
 
-        # Select a player at random and change action to best response
-        # Continue till joint action is best for all players
+        # Select a player at random and change action to one from best response set
+        # Continue till joint action is part of best for all players
         while len(players_rem) > 0:
             player = choice(list(players_rem))
             players_rem.remove(player)
-            _, update_best = check_best_response(joint_actions=joint_best, context=context,
-                                                 player=player, return_best=True)
-            if joint_best != update_best:
-                players_rem = set(update_best.keys())
+            _, best_actions = get_best_responses(joint_actions=joint_best, context=context,
+                                                 player=player, done_p=done[player])
+            if joint_best[player] not in best_actions:
+                players_rem = set(init_guess.keys())
                 players_rem.remove(player)
-            joint_best = update_best
+            joint_best[player] = choice(list(best_actions))
 
-        out = equilibrium_check(joint_actions=joint_best, context=context)
+        out = equilibrium_check(joint_actions=joint_best, context=context, done=done)
         callback_eq(tuple_out=out, eq=eq_dict)
 
     toc = perf_counter() - tic

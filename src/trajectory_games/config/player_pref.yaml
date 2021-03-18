@@ -86,8 +86,9 @@ pref_d4:                      &pref_d4
   DrivableAreaViolation:      ["CollisionEnergy"]
   weights_6:                  ["DrivableAreaViolation"]
   DeviationLateral:           ["weights_6"]
-  DeviationHeading:           ["weights_6"]
   MinimumClearance:           ["weights_6"]
+  DeviationHeading:           ["DeviationLateral"]
+  LongitudinalJerk:           ["DeviationHeading", "MinimumClearance"]
 
 pref_d5:                      &pref_d5
   <<: *pref_5
@@ -98,8 +99,8 @@ pref_d6:                      &pref_d6
   weights_6:                  ["DrivableAreaViolation"]
   weights_5:                  ["weights_6"]
   MinimumClearance:           ["weights_6"]
-  LateralComfort:             ["weights_5", "weights_6", "MinimumClearance"]
-  LongitudinalJerk:           ["weights_5", "weights_6", "MinimumClearance"]
+  LateralComfort:             ["weights_5", "MinimumClearance"]
+  LongitudinalJerk:           ["weights_5", "MinimumClearance"]
 
 
 

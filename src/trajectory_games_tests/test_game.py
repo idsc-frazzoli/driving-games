@@ -18,17 +18,17 @@ from trajectory_games import (
 
 plot_gif = True                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
-filename = "r_game_test.html"
+filename = "r_game_all1.html"
 
 
 def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
     d = "out/tests/"
     if not only_traj:
         print(
-            f"Weak = {len(nash_eq['weak_nash'])}, "
-            f"Indiff = {len(nash_eq['indiff_nash'])}, "
-            f"Incomp = {len(nash_eq['incomp_nash'])}, "
-            f"Strong = {len(nash_eq['strong_nash'])}."
+            f"Weak = {len(nash_eq['weak'])}, "
+            f"Indiff = {len(nash_eq['indiff'])}, "
+            f"Incomp = {len(nash_eq['incomp'])}, "
+            f"Strong = {len(nash_eq['strong'])}."
         )
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
@@ -57,7 +57,7 @@ def test_trajectory_game():
 
 
 def test_trajectory_game_best_response():
-    n_runs = 50      # Number of random runs for best response
+    n_runs = 100      # Number of random runs for best response
 
     game: TrajectoryGame = get_trajectory_game()
     context: StaticSolvingContext = preprocess_player(sgame=game, only_traj=only_traj)

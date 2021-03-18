@@ -1,8 +1,10 @@
 from queue import PriorityQueue
-from typing import Type, Dict, Mapping, Set, NewType
+from typing import Type, Dict, Mapping, Set, NewType, Tuple
 from decimal import Decimal as D
 
 import os
+
+from frozendict import frozendict
 from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
 from yaml import safe_load
 
@@ -73,12 +75,14 @@ metric_type = NewType("metric", WeightedPreference)
 
 class PosetalPreference(Preference[PlayerOutcome]):
     _config: Mapping = None
-
+    _complement = {FIRST_PREFERRED: SECOND_PREFERRED, SECOND_PREFERRED: FIRST_PREFERRED,
+                   INDIFFERENT: INDIFFERENT, INCOMPARABLE: INCOMPARABLE}
+    _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
     graph: DiGraph
     node_dict: Dict[str, metric_type] = {}
     level_nodes: Mapping[int, Set[metric_type]]
 
-    def __init__(self, pref_str: str):
+    def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:
             filename = os.path.join(config_dir, "player_pref.yaml")
             with open(filename) as load_file:
@@ -88,6 +92,8 @@ class PosetalPreference(Preference[PlayerOutcome]):
         self.build_graph(pref_str)
         # Pre-processing to speed up outcome comparisons
         self.calculate_levels()
+        self.use_cache = use_cache
+        self._cache = {}
 
     def add_node(self, name: str) -> metric_type:
         if name not in self.node_dict:
@@ -146,6 +152,13 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
 
+        if self.use_cache:
+            if isinstance(a, dict): a = frozendict(a)
+            if isinstance(b, dict): b = frozendict(a)
+            if (a, b) in self._cache:
+                return self._cache[(a, b)]
+            if (b, a) in self._cache:
+                return self._complement[(self._cache[(b, a)])]
         OPEN = PriorityQueue(self.graph.number_of_nodes())
         DONE: Set[metric_type] = set()
         CLOSED: Set[metric_type] = set()
@@ -156,7 +169,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
         while OPEN.qsize() > 0:
             if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
-                return INCOMPARABLE
+                break
             _, metric = OPEN.get()
             if metric in DONE:
                 continue
@@ -175,11 +188,14 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 OUTCOMES.add(outcome)
                 CLOSED.add(metric)
 
+        ret: ComparisonOutcome = INDIFFERENT
         if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
-            return INCOMPARABLE
-        if FIRST_PREFERRED in OUTCOMES:
-            return FIRST_PREFERRED
-        if SECOND_PREFERRED in OUTCOMES:
-            return SECOND_PREFERRED
+            ret = INCOMPARABLE
+        elif FIRST_PREFERRED in OUTCOMES:
+            ret = FIRST_PREFERRED
+        elif SECOND_PREFERRED in OUTCOMES:
+            ret = SECOND_PREFERRED
 
-        return INDIFFERENT
+        if self.use_cache:
+            self._cache[(a, b)] = ret
+        return ret
