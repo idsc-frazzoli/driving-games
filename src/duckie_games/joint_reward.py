@@ -34,7 +34,7 @@ class DuckieJointReward(JointRewardStructure[DuckieState, DuckieActions, Collisi
 
     # todo find suitable collision function
     # @memoized_reset
-    @lru_cache(None)
+    # @lru_cache(None)
     def is_joint_final_state(self, xs: Mapping[PlayerName, DuckieState]) -> FrozenSet[PlayerName]:
         res = spatial_collision_check_resources_no_energy_players_only(xs, self.geometries, self.dynamics)
 
@@ -43,7 +43,7 @@ class DuckieJointReward(JointRewardStructure[DuckieState, DuckieActions, Collisi
         return frozenset(res)
 
     # @memoized_reset
-    @lru_cache(None)
+    # @lru_cache(None)
     def joint_reward(self, xs: Mapping[PlayerName, DuckieState]) -> Mapping[PlayerName, Collision]:
         res = spatial_collision_check_resources_no_energy(xs, self.geometries, self.dynamics)
 
