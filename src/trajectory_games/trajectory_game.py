@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from functools import partial
 from typing import Dict, Set, FrozenSet, Mapping
 from time import perf_counter
@@ -8,59 +7,47 @@ from networkx import MultiDiGraph
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
-from possibilities import Poss
-from preferences import (
-    Preference,
-)
+from preferences import Preference
 
 from .structures import VehicleState, VehicleGeometry
-from .paths import Trajectory
+from .paths import Transition, Trajectory
 from .trajectory_world import TrajectoryWorld
 from .metrics_def import PlayerOutcome
-from .static_game import (
-    StaticGame,
-    StaticGamePlayer,
-    StaticSolvingContext,
-    StaticSolvedGameNode,
-    ActionSetGenerator,
-    StaticSolverParams,
-)
+from .static_game import StaticGame, StaticGamePlayer, StaticSolvingContext,\
+    StaticSolvedGameNode, StaticSolverParams
 
 __all__ = [
     "JointPureTraj",
-    "TrajectoryGamePlayer",
-    "TrajectoryGame",
-    "SolvedTrajectoryGameNode",
-    "SolvedTrajectoryGame",
+    "JointTrans",
+    "StaticTrajectoryGamePlayer",
+    "StaticTrajectoryGame",
+    "SolvedStaticTrajectoryGameNode",
+    "SolvedStaticTrajectoryGame",
     "preprocess_full_game",
     "preprocess_player",
 ]
 
 JointPureTraj = Mapping[PlayerName, Trajectory]
-JointMixedTraj = Mapping[PlayerName, Poss[Trajectory]]
+JointTrans = Mapping[PlayerName, Transition]
 
 
-class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
-    @abstractmethod
-    def get_actions_set(self, state: Poss[VehicleState], world: TrajectoryWorld) -> FrozenSet[Trajectory]:
-        """ Generate all possible actions for a given state and world. """
-
-
-class TrajectoryGamePlayer(
-    StaticGamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]
-):
+class StaticTrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory,
+                                                  TrajectoryWorld, PlayerOutcome,
+                                                  VehicleGeometry]):
     pass
 
 
-class TrajectoryGame(StaticGame[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
+class StaticTrajectoryGame(StaticGame[VehicleState, Trajectory,
+                                      TrajectoryWorld, PlayerOutcome,
+                                      VehicleGeometry]):
     pass
 
 
-class SolvedTrajectoryGameNode(StaticSolvedGameNode[Trajectory, PlayerOutcome]):
+class SolvedStaticTrajectoryGameNode(StaticSolvedGameNode[Trajectory, PlayerOutcome]):
     pass
 
 
-SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
+SolvedStaticTrajectoryGame = Set[SolvedStaticTrajectoryGameNode]
 
 
 def compute_outcomes(iterable, sgame: StaticGame):
@@ -79,7 +66,7 @@ def compute_actions(sgame: StaticGame) -> Mapping[PlayerName, FrozenSet[Trajecto
         assert len(states) == 1, states
         game_player.graph = MultiDiGraph()
         available_traj[player_name] = game_player.actions_generator.get_action_set(
-            state=next(iter(states)), world=sgame.world, graph=game_player.graph, player=player_name
+            state=next(iter(states)), world=sgame.world, player=player_name
         )
     return available_traj
 

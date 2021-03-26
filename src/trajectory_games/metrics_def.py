@@ -1,13 +1,13 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from time import perf_counter
 from typing import Dict, List, Mapping, Tuple
 
+from cachetools.func import lfu_cache
 from duckietown_world import SE2Transform, LanePose
 
 from games import PlayerName
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
-from .paths import Trajectory
+from .paths import Transition
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
@@ -26,17 +26,17 @@ class MetricEvaluationContext:
     world: TrajectoryWorld
     """ World object. """
 
-    trajectories: Mapping[PlayerName, Trajectory]
-    """ Sampled vehicle trajectory for each player """
+    transitions: Mapping[PlayerName, Transition]
+    """ Sampled vehicle transitions for each player """
 
     _points_cart: Mapping[PlayerName, List[SE2Transform]] = None
     _points_curv: Mapping[PlayerName, List[LanePose]] = None
-    """ Sampled vehicle trajectory for each player 
+    """ Sampled vehicle transitions for each player 
         Cache and reuse for all rules."""
 
-    _cache_cart: Dict[Trajectory, List[SE2Transform]] = None
-    _cache_curv: Dict[Trajectory, List[LanePose]] = None
-    """ Cached trajectories to speed up computation, do not set manually """
+    _cache_cart: Dict[Transition, List[SE2Transform]] = None
+    _cache_curv: Dict[Transition, List[LanePose]] = None
+    """ Cached transitions to speed up computation, do not set manually """
 
     def __post_init__(self):
         if MetricEvaluationContext._cache_cart is None:
@@ -45,31 +45,31 @@ class MetricEvaluationContext:
             MetricEvaluationContext._cache_curv = {}
         cart: Dict[PlayerName, List[SE2Transform]] = {}
         curv: Dict[PlayerName, List[LanePose]] = {}
-        for player, traj in self.trajectories.items():
-            if traj in MetricEvaluationContext._cache_cart.keys():
-                cart[player] = MetricEvaluationContext._cache_cart[traj]
-                curv[player] = MetricEvaluationContext._cache_curv[traj]
+        for player, trans in self.transitions.items():
+            if trans in MetricEvaluationContext._cache_cart.keys():
+                cart[player] = MetricEvaluationContext._cache_cart[trans]
+                curv[player] = MetricEvaluationContext._cache_curv[trans]
             else:
-                traj_cart = traj.get_path_sampled()
+                traj_cart = trans.get_path_sampled()
                 cart[player] = traj_cart
                 ref_path = self.world.get_lane(player)
                 curv[player] = [ref_path.lane_pose_from_SE2Transform(xy) for xy in traj_cart]
-                MetricEvaluationContext._cache_cart[traj] = cart[player]
-                MetricEvaluationContext._cache_curv[traj] = curv[player]
+                MetricEvaluationContext._cache_cart[trans] = cart[player]
+                MetricEvaluationContext._cache_curv[trans] = curv[player]
         self._points_cart = cart
         self._points_curv = curv
 
     def get_interval(self, player: PlayerName) -> List[Timestamp]:
-        return self.trajectories[player].get_sampling_points()
+        return self.transitions[player].get_sampling_points()
 
     def get_world(self) -> TrajectoryWorld:
         return self.world
 
     def get_players(self) -> List[PlayerName]:
-        return list(self.trajectories.keys())
+        return list(self.transitions.keys())
 
-    def get_trajectory(self, player: PlayerName) -> Trajectory:
-        return self.trajectories[player]
+    def get_transition(self, player: PlayerName) -> Transition:
+        return self.transitions[player]
 
     def get_cartesian_points(self, player: PlayerName) -> List[SE2Transform]:
         return self._points_cart[player]
@@ -101,6 +101,39 @@ class EvaluatedMetric:
 
     def __repr__(self):
         return f"{self.title} = {self.total:.2f}"
+
+    def __add__(self, other: "EvaluatedMetric") -> "EvaluatedMetric":
+        return self.add(m1=self, m2=other)
+
+    @staticmethod
+    @lfu_cache(maxsize=10000)
+    def add(m1: "EvaluatedMetric", m2: "EvaluatedMetric") -> "EvaluatedMetric":
+        if m1.title != m2.title:
+            raise NotImplementedError(f"add implemented only for same metric, "
+                                      f"received {m1.title, m2.title}")
+
+        if m1.incremental is None:
+            inc = None
+        else:
+            t_1, t_2 = m1.incremental.timestamps, m2.incremental.timestamps
+            if t_1[-1] != t_2[0]:
+                raise ValueError(f"Timestamps need to be consecutive - {t_1[-1], t_2[0]}")
+            times_i = t_1 + t_2[1:]
+            vals_i = m1.incremental.values + m2.incremental.values[1:]
+            inc = SampledSequence(timestamps=times_i, values=vals_i)
+
+        if m1.cumulative is None:
+            cum = None
+        else:
+            times_c = m1.cumulative.timestamps + m2.cumulative.timestamps
+            c_end = m1.cumulative.values[-1]
+            vals_c = m1.cumulative.values + [v + c_end for v in m2.cumulative.values]
+            cum = SampledSequence(timestamps=times_c, values=vals_c)
+
+        return EvaluatedMetric(title=m1.title, description=m1.description,
+                               total=m1.total + m2.total, incremental=inc, cumulative=cum)
+
+    __radd__ = __add__
 
 
 def integrate(sequence: SampledSequence[float]) -> SampledSequence[float]:
@@ -144,8 +177,7 @@ def differentiate(val: List[float], t: List[Timestamp]) -> List[float]:
         dy = val[i + 1] - val[i]
         dx = float(t[i + 1] - t[i])
         if dx < 1e-8:
-            msg = "identical timestamps for func_diff - {}".format(t[i])
-            raise ValueError(msg)
+            raise ValueError(f"identical timestamps for func_diff - {t[i]}")
         return dy / dx
 
     ret: List[float] = [0.0] + [func_diff(i) for i in range(len(t) - 1)]

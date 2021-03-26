@@ -120,6 +120,10 @@ class VehicleState:
     _config: Dict = None
     """ Cached config, loaded from file """
 
+    @staticmethod
+    def zero():
+        return VehicleState(x=0.0, y=0.0, th=1.57, v=5.0, st=0.0, t=D("0"))
+
     def __add__(self, other: "VehicleState") -> "VehicleState":
         if type(other) == type(self):
             return VehicleState(
@@ -197,7 +201,6 @@ class VehicleState:
 @dataclass
 class TrajectoryParams:
     solve: bool
-    samp_dyn: bool
     s_final: float
     max_gen: int
     dt: D
@@ -219,7 +222,6 @@ class TrajectoryParams:
         u_dst = frozenset([_ * 0.2 for _ in u_acc])
         params = TrajectoryParams(
             solve=False,
-            samp_dyn=False,
             s_final=-1.0,
             max_gen=1,
             dt=D("1"),
@@ -257,7 +259,6 @@ class TrajectoryParams:
             u_dst = get_set(inp="dst")
             params = TrajectoryParams(
                 solve=config["solve"],
-                samp_dyn=config["samp_dyn"],
                 s_final=config["s_final"],
                 max_gen=config["max_gen"],
                 dt=D(config["dt"]),

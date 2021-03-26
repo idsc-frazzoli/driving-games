@@ -15,7 +15,8 @@ from geometry import SE2_from_xytheta
 
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
-from .paths import Trajectory
+from .sequence import Timestamp
+from .paths import Trajectory, Transition
 from .static_game import GameVisualization, StaticGamePlayer
 from .preference import PosetalPreference, WeightedPreference
 from .trajectory_world import TrajectoryWorld
@@ -84,7 +85,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
         self.plot_trajectories(pylab=pylab, trajectories=frozenset([path]),
                                colour=player.vg.colour, width=1.0)
-        vals = [(point.x, point.y, point.t) for time, point in path]
+
+        def get_vals(trans: Transition) -> Tuple[float, float, Timestamp]:
+            xs = trans.states[1]
+            return xs.x, xs.y, xs.t
+        vals = [get_vals(trans=transition) for transition in path]
         x, y, t = zip(*vals)
         pylab.scatter(x, y, s=10.0, c=t, zorder=10)
 
@@ -134,7 +139,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         segments = []
         for traj in trajectories:
             sampled_traj = np.array([np.array([v.x, v.y])
-                                     for _, v in traj.get_sampled_trajectory()])
+                                     for v in traj.get_sampled_trajectory()[1]])
             segments.append(sampled_traj)
 
         lines = LineCollection(segments=segments, colors=colour, linewidths=width)

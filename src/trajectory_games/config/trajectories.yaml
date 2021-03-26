@@ -17,7 +17,6 @@
 
 traj_1:       &traj_1
   solve:      False
-  samp_dyn:   True
   s_final:    0.95
   max_gen:    1
   dt:         "1.0"

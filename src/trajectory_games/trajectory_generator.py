@@ -1,51 +1,54 @@
 import math
 from abc import ABC, abstractmethod
-from copy import deepcopy
-from functools import partial, lru_cache
+from functools import lru_cache
 from time import perf_counter
-from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Callable
+from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
 import numpy as np
 
 import geometry as geo
 from duckietown_world import relative_pose
 from duckietown_world.utils import SE2_apply_R2
-from networkx import MultiDiGraph, topological_sort
 from scipy.optimize import minimize
 
 from games import PlayerName
 from world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
-from .static_game import ActionSetGenerator
-from .paths import Trajectory, FinalPoint
+from .static_game import StaticActionSetGenerator
+from .paths import FinalPoint, Transition, TransitionGraph, Trajectory
 from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
 
-__all__ = ["TrajectoryGenerator", "TrajectoryGenerator1"]
-
-
-class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld], ABC):
-    @abstractmethod
-    def get_action_set(self, state: VehicleState, player: PlayerName,
-                       world: TrajectoryWorld, **kwargs) -> FrozenSet[Trajectory]:
-        pass
-
+__all__ = ["StaticGenerator", "DynamicGenerator", "TransitionGenerator"]
 
 Successors = Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]
 
 
-class TrajectoryGenerator1(TrajectoryGenerator):
+class StaticGenerator(StaticActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld], ABC):
+    @abstractmethod
+    def get_action_set(self, state: VehicleState, player: PlayerName,
+                       world: TrajectoryWorld) -> FrozenSet[Trajectory]:
+        pass
+
+
+class DynamicGenerator(ABC):
+    @abstractmethod
+    def get_action_tree(self, state: VehicleState, player: PlayerName,
+                        world: TrajectoryWorld) -> TransitionGraph:
+        pass
+
+
+class TransitionGenerator(StaticGenerator, DynamicGenerator):
     params: TrajectoryParams
     _bicycle_dyn: BicycleDynamics
-    _cache: Dict[Tuple[PlayerName, VehicleState], FrozenSet[Trajectory]]
+    _cache: Dict[Tuple[PlayerName, VehicleState], TransitionGraph]
 
     def __init__(self, params: TrajectoryParams):
         self.params = params
         self._bicycle_dyn = BicycleDynamics(params=params)
         self._cache = {}
 
-    def get_action_set(self, state: VehicleState, player: PlayerName,
-                       world: TrajectoryWorld = None, graph: MultiDiGraph = None) \
-            -> FrozenSet[Trajectory]:
+    def get_action_tree(self, state: VehicleState, player: PlayerName,
+                        world: TrajectoryWorld = None) -> TransitionGraph:
         """
         Computes many feasible trajectories for given state along reference
         Required world for first instance, returns from cache if already computed
@@ -56,20 +59,27 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         assert world is not None
         tic = perf_counter()
         lane = world.get_lane(player=player)
-        G = self._get_trajectory_graph(state=state, lane=lane)
-        if isinstance(graph, MultiDiGraph):
-            graph.__init__(G)
-        trajectories = self._trajectory_graph_to_list(G=G, lane=lane)
+        graph = TransitionGraph(origin=state)
+        self._get_trajectory_graph(state=state, lane=lane, graph=graph)
         toc = perf_counter() - tic
-        print(f"Player: {player}\n\tTrajectories generated = {len(trajectories)}\n\ttime = {toc:.2f} s")
-        ret = frozenset(trajectories)
-        self._cache[(player, state)] = ret
-        return ret
+        print(f"Player: {player}\ttime = {toc:.2f} s")
+        self._cache[(player, state)] = graph
+        return graph
 
-    def _get_trajectory_graph(self, state: VehicleState, lane: LaneSegmentHashable) -> MultiDiGraph:
+    def get_action_set(self, state: VehicleState, player: PlayerName,
+                       world: TrajectoryWorld) -> FrozenSet[Trajectory]:
+        tic = perf_counter()
+        graph = self.get_action_tree(state=state, player=player, world=world)
+        trajectories = self._trajectory_graph_to_list(graph=graph)
+        toc = perf_counter() - tic
+        if toc > 0.1:
+            print(f"Player: {player}\n\tTrajectories generated = {len(trajectories)}\n\ttime = {toc:.2f} s")
+        return frozenset(trajectories)
+
+    def _get_trajectory_graph(self, state: VehicleState, lane: LaneSegmentHashable, graph: TransitionGraph):
         """ Construct graph of states """
         stack = list([state])
-        G = MultiDiGraph()
+        graph.origin = state
 
         p_final = self.get_p_final(lane=lane)
         if p_final is not None:
@@ -78,34 +88,30 @@ class TrajectoryGenerator1(TrajectoryGenerator):
         else:
             x_f, z_f, inc = None, None, True
 
-        def add_node(s, gen):
-            G.add_node(s, gen=gen, x=s.x, y=s.y)
-
-        add_node(state, gen=0)
-        i: int = 0
+        if state not in graph.nodes:
+            graph.add_node(state=state, gen=0)
         expanded = set()
         while stack:
-            i += 1
             s1 = stack.pop(0)
-            assert s1 in G.nodes
+            assert s1 in graph.nodes
             if s1 in expanded:
                 continue
-            n_gen = G.nodes[s1]["gen"]
+            n_gen = graph.nodes[s1]["gen"]
             expanded.add(s1)
             successors = self.tree_func(state=s1, lane=lane, gen=n_gen)
             for u, (s2, samp) in successors.items():
-                if s2 not in G.nodes:
-                    add_node(s2, gen=n_gen + 1)
-                    if p_final is not None:
-                        z = s2.x if x_f is not None else s2.y
-                        cond = (inc and (z < z_f)) or (not inc and (z > z_f))
-                    else:
-                        cond = n_gen + 1 < self.params.max_gen
-                    if cond:
-                        stack.append(s2)
-                G.add_edge(s1, s2, u=u, gen=n_gen, sampled=samp)
+                if p_final is not None:
+                    z = s2.x if x_f is not None else s2.y
+                    cond = (inc and (z < z_f)) or (not inc and (z > z_f))
+                else:
+                    cond = n_gen + 1 < self.params.max_gen
+                if cond:
+                    stack.append(s2)
+                transition = Transition.create(states=(s1, s2), p_final=p_final,
+                                               sampled=samp)
+                graph.add_edge(transition=transition, u=u)
 
-        return G
+        return graph
 
     @staticmethod
     def get_curv(state: VehicleState, lane: LaneSegmentHashable) -> Tuple[float, float, float]:
@@ -131,12 +137,9 @@ class TrajectoryGenerator1(TrajectoryGenerator):
 
     def get_successor(self, state: VehicleState, u: VehicleActions, samp: bool = True) \
             -> Tuple[VehicleState, List[VehicleState]]:
-        if self.params.samp_dyn:
-            dt_samp = self.params.dt_samp if samp else self.params.dt
-            return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt,
-                                                   dt_samp=dt_samp)
-        else:
-            return self._bicycle_dyn.successor_forward(x0=state, u=u, dt=self.params.dt)
+        dt_samp = self.params.dt_samp if samp else self.params.dt
+        return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt,
+                                               dt_samp=dt_samp)
 
     def tree_func(self, state: VehicleState, lane: LaneSegmentHashable,
                   gen: int) -> Successors:
@@ -335,44 +338,15 @@ class TrajectoryGenerator1(TrajectoryGenerator):
             raise Exception("Final angle is not along axes!")
         return p_f
 
-    def _trajectory_graph_to_list(self, G: MultiDiGraph, lane: LaneSegmentHashable) \
-            -> Set[Trajectory]:
+    @staticmethod
+    def _trajectory_graph_to_list(graph: TransitionGraph) -> Set[Trajectory]:
         """ Convert state graph to list of trajectories"""
-        expanded = set()
-        all_traj: Set[Trajectory] = set()
-        p_final = self.get_p_final(lane=lane)
-        for n1 in topological_sort(G):
-            traj: List[VehicleState] = [n1]
-            self._expand_graph(G=G, node=n1, traj=traj,
-                               all_traj=all_traj, expanded=expanded,
-                               p_final=p_final)
-        return all_traj
+        trajectories: Set[Trajectory] = set()
+        roots = [n for n, d in graph.in_degree() if d == 0]
+        assert len(roots) == 1
+        source = roots[0]
+        leaves = [n for n, d in graph.out_degree() if d == 0]
 
-    def _expand_graph(self, G: MultiDiGraph, node: VehicleState,
-                      traj: List[VehicleState], all_traj: Set[Trajectory],
-                      expanded: Set[VehicleState], p_final: FinalPoint):
-        """ Recursively expand graph to obtain states """
-        if node in expanded:
-            return
-        successors = list(G.successors(node))
-        if not successors:
-            traj_init = partial(Trajectory, traj=traj, p_final=p_final)
-            if self.params.samp_dyn:
-                sampled = []
-                for i in range(len(traj) - 1):
-                    points = G[traj[i]][traj[i + 1]][0]['sampled']
-                    if len(sampled) == 0:
-                        sampled = deepcopy(points)
-                    else:
-                        sampled.pop()
-                        sampled += points
-                all_traj.add(traj_init(sampled=sampled))
-            else:
-                all_traj.add(traj_init(dt_samp=self.params.dt_samp))
-        else:
-            for n2 in successors:
-                traj1: List[VehicleState] = traj + [n2]
-                self._expand_graph(G=G, node=n2, traj=traj1,
-                                   all_traj=all_traj, expanded=expanded,
-                                   p_final=p_final)
-        expanded.add(node)
+        for target in leaves:
+            trajectories.add(graph.get_trajectory(source=source, target=target))
+        return trajectories

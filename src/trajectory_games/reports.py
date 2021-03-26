@@ -9,7 +9,7 @@ from zuper_commons.text import remove_escapes
 from decimal import Decimal as D
 
 from .static_game import StaticGame, StaticSolvedGameNode
-from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode
+from .trajectory_game import SolvedStaticTrajectoryGame, SolvedStaticTrajectoryGameNode
 from .preference import PosetalPreference
 from .paths import Trajectory
 from .visualization import TrajGameVisualization
@@ -32,7 +32,7 @@ def report_game_visualization(game: StaticGame) -> Report:
     return r
 
 
-def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
+def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedStaticTrajectoryGame],
                    plot_gif: bool) -> Report:
     tic = perf_counter()
     viz = game.game_vis
@@ -132,7 +132,7 @@ def report_preferences(game: StaticGame) -> Report:
 def create_animation(fn: str, game: StaticGame, node: StaticSolvedGameNode):
 
     viz = game.game_vis
-    assert isinstance(node, SolvedTrajectoryGameNode)
+    assert isinstance(node, SolvedStaticTrajectoryGameNode)
     assert isinstance(viz, TrajGameVisualization)
 
     fig, ax = plt.subplots()
@@ -162,9 +162,9 @@ def create_animation(fn: str, game: StaticGame, node: StaticSolvedGameNode):
         return list(box.values())
 
     actions = list(node.actions.values())
-    lens = [_.traj.get_end() for _ in actions]
+    lens = [_.get_end() for _ in actions]
     longest = lens.index(max(lens))
-    times = actions[longest].get_sampling_points()
+    times, _ = actions[longest].get_sampled_trajectory()
     dt_ms = 2*int((times[1]-times[0])*1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True)

@@ -48,3 +48,5 @@ decorator~=4.4.2
 matplotlib~=3.3.4
 imageio~=2.9.0
 setuptools~=53.0.0
+
+cachetools~=4.2.1

@@ -22,7 +22,7 @@ from preferences import Preference
 __all__ = [
     "W",
     "G",
-    "ActionSetGenerator",
+    "StaticActionSetGenerator",
     "GameVisualization",
     "StaticGamePlayer",
     "StaticGame",
@@ -39,11 +39,11 @@ G = TypeVar("G")
 JointOutcome = Mapping[PlayerName, P]
 
 
-class ActionSetGenerator(Generic[X, U, W], ABC):
+class StaticActionSetGenerator(Generic[X, U, W], ABC):
     """ A generic getter for the available actions"""
 
     @abstractmethod
-    def get_action_set(self, state: X, player: PlayerName, world: W, **kwargs) -> FrozenSet[U]:
+    def get_action_set(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
         pass
 
 
@@ -81,7 +81,7 @@ class StaticGamePlayer(Generic[X, U, W, P, G]):
     """The player's name"""
     state: Poss[X]
     """The player state in the world"""
-    actions_generator: ActionSetGenerator
+    actions_generator: StaticActionSetGenerator
     """ Player dynamics """
     preference: Preference[JointOutcome]
     """ Its preferences about the outcomes. """

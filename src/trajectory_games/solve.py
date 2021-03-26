@@ -8,7 +8,7 @@ from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMP
 
 from games import PlayerName
 from .static_game import StaticSolvingContext
-from .trajectory_game import JointPureTraj, SolvedTrajectoryGame, SolvedTrajectoryGameNode
+from .trajectory_game import JointPureTraj, SolvedStaticTrajectoryGame, SolvedStaticTrajectoryGameNode
 from .paths import Trajectory
 from .metrics_def import TrajGameOutcome, PlayerOutcome
 
@@ -17,27 +17,27 @@ EqOutcome = Tuple[JointPureTraj, TrajGameOutcome, bool, bool, bool, bool]
 NotEq = None, None, False, False, False, False
 
 
-def get_solved_game_node(act: JointPureTraj, out: TrajGameOutcome) -> SolvedTrajectoryGameNode:
-    return SolvedTrajectoryGameNode(actions=act, outcomes=out)
+def get_solved_game_node(act: JointPureTraj, out: TrajGameOutcome) -> SolvedStaticTrajectoryGameNode:
+    return SolvedStaticTrajectoryGameNode(actions=act, outcomes=out)
 
 
-def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedTrajectoryGame]):
+def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedStaticTrajectoryGame]):
     joint_act, outcome, strong, incomp, indiff, weak = tuple_out
 
-    solved_node: SolvedTrajectoryGameNode = get_solved_game_node(act=joint_act, out=outcome) \
-        if weak or strong else None
+    solved_node: SolvedStaticTrajectoryGameNode = \
+        get_solved_game_node(act=joint_act, out=outcome) if weak else None
     eq["indiff"].add(solved_node) if indiff else None
     eq["incomp"].add(solved_node) if incomp else None
     eq["weak"].add(solved_node) if weak else None
     eq["strong"].add(solved_node) if strong else None
 
 
-def init_eq_dict() -> Dict[str, SolvedTrajectoryGame]:
-    indiff_nash: SolvedTrajectoryGame = set()
-    incomp_nash: SolvedTrajectoryGame = set()
-    weak_nash: SolvedTrajectoryGame = set()
-    strong_nash: SolvedTrajectoryGame = set()
-    ret: Dict[str, SolvedTrajectoryGame] = {
+def init_eq_dict() -> Dict[str, SolvedStaticTrajectoryGame]:
+    indiff_nash: SolvedStaticTrajectoryGame = set()
+    incomp_nash: SolvedStaticTrajectoryGame = set()
+    weak_nash: SolvedStaticTrajectoryGame = set()
+    strong_nash: SolvedStaticTrajectoryGame = set()
+    ret: Dict[str, SolvedStaticTrajectoryGame] = {
         "indiff": indiff_nash,
         "incomp": incomp_nash,
         "weak": weak_nash,
@@ -153,7 +153,7 @@ def equilibrium_check(joint_actions: JointPureTraj, context: StaticSolvingContex
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
-def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedTrajectoryGame]:
+def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedStaticTrajectoryGame]:
     eq_dict = init_eq_dict()
 
     tic = perf_counter()
@@ -170,7 +170,7 @@ def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedTrajectoryGa
 
 
 def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
-        -> Mapping[str, SolvedTrajectoryGame]:
+        -> Mapping[str, SolvedStaticTrajectoryGame]:
     eq_dict = init_eq_dict()
     INIT_BEST = False
 

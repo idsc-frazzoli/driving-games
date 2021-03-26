@@ -86,7 +86,8 @@ class BicycleDynamics:
         res = {}
         for acc, dst in product(u_acc, u_dst):
             u = VehicleActions(acc=acc, dst=dst)
-            res[u] = self.successor_forward(x, u, dt)
+            state, _ = self.successor_forward(x, u, dt)
+            res[u] = state
         return res
 
     def successor(self, x0: VehicleState, u: VehicleActions, dt: D) \
