@@ -164,6 +164,9 @@ class Trajectory:
         i = bisect_right(self.times, t) - 1
         return self.traj[i].at(t=t)
 
+    def __repr__(self) -> str:
+        return str({f"t={round(float(k), 2)}s": v for trans in self.traj for k, v in trans})
+
 
 class TransitionGraph(DiGraph):
     """ Structure for storing all trajectories """
