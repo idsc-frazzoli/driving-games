@@ -51,8 +51,8 @@ from duckie_games.zoo import (
 
 
 uncertainty_params = [
-    # [uncertainty_sets, "sets"],
-    [uncertainty_prob, "prob"],
+    [uncertainty_sets, "sets"],
+    # [uncertainty_prob, "prob"],
 ]
 
 duckie_game_params = [
