@@ -13,11 +13,11 @@ from trajectory_games.metrics import (
     DrivableAreaViolation,
     ProgressAlongReference,
     LongitudinalAcceleration,
-    LongitudinalJerk,
     LateralComfort,
     SteeringAngle,
     SteeringRate,
     CollisionEnergy,
+    MinimumClearance,
 )
 
 from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED
@@ -58,7 +58,7 @@ def test_poset():
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
 
-    p2[LongitudinalJerk()].total = D("1")
+    p2[MinimumClearance()].total = D("1")
     # LongAcc: p1>p2, LatComf: p1<p2, LongJerk: p1>p2
     assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref2.compare(p1, p2), INCOMPARABLE)
@@ -102,7 +102,7 @@ def test_poset():
     assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
 
-    p2[LongitudinalJerk()].total = D("0")
+    p2[MinimumClearance()].total = D("0")
     p1[DrivableAreaViolation()].total = D("0")
     p2[DeviationHeading()].total = D("0")
     p2[CollisionEnergy()].total = D("0")

@@ -162,6 +162,17 @@ class VehicleState:
     def __repr__(self) -> str:
         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
 
+    def is_close(self, other: "VehicleState", tol: float = 1e-3) -> bool:
+        diff = self - other
+
+        def check(val: float) -> bool:
+            return abs(val) < tol
+
+        if check(diff.x) and check(diff.y) and check(diff.th) and \
+                check(diff.v) and check(diff.th) and abs(diff.t) < 1e-3:
+            return True
+        return False
+
     @classmethod
     def default(cls, lane: LaneSegmentHashable) -> "VehicleState":
         beta0 = lane.beta_from_along_lane(along_lane=0)

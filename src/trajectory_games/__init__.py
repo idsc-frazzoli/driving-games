@@ -1,5 +1,5 @@
 from .config import *
-from .static_game import *
+from .game_def import *
 from .sequence import *
 from .paths import *
 from .structures import *

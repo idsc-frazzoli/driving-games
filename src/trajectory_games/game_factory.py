@@ -58,7 +58,7 @@ def get_trajectory_game() -> StaticTrajectoryGame:
         )
 
     world = TrajectoryWorld(map_name=config["map_name"], geo=geometries, lanes=lanes)
-    get_outcomes = partial(MetricEvaluation.evaluate_traj, world=world)
+    get_outcomes = partial(MetricEvaluation.evaluate, world=world)
     game = StaticTrajectoryGame(
         world=world,
         game_players=players,

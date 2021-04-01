@@ -6,11 +6,11 @@
 #  DrivableAreaViolation:      weight
 #  ProgressAlongReference:     weight
 #  LongitudinalAcceleration:   weight
-#  LongitudinalJerk:           weight
 #  LateralComfort:             weight
 #  SteeringAngle:              weight
 #  SteeringRate:               weight
 #  CollisionEnergy:            weight
+#  MinimumClearance:           weight
 
 ## Raw metric nodes
 EpisodeTime:
@@ -25,8 +25,6 @@ ProgressAlongReference:
   ProgressAlongReference:   1.0
 LongitudinalAcceleration:
   LongitudinalAcceleration: 1.0
-LongitudinalJerk:
-  LongitudinalJerk:         1.0
 LateralComfort:
   LateralComfort:           1.0
 SteeringAngle:
@@ -52,7 +50,7 @@ weights_2:
   DeviationHeading:           0.5
   DrivableAreaViolation:      5.0
   ProgressAlongReference:     2.0
-  LongitudinalJerk:           1.0
+  LongitudinalAcceleration:   1.0
   LateralComfort:             2.0
   CollisionEnergy:            10.0
 
@@ -62,7 +60,7 @@ weights_3:
   DeviationHeading:           0.5
   DrivableAreaViolation:      5.0
   ProgressAlongReference:     0.5
-  LongitudinalJerk:           1.0
+  LongitudinalAcceleration:   1.0
   LateralComfort:             2.0
   CollisionEnergy:            10.0
 

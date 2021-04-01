@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from functools import partial
 from time import perf_counter
-from typing import Tuple, List, Dict, Callable, Set, Mapping
+from typing import Tuple, List, Dict, Callable, Set, Mapping, Hashable
 import numpy as np
 import geometry as geo
 
@@ -24,8 +24,8 @@ from .metrics_def import (
     differentiate,
 )
 from .trajectory_world import TrajectoryWorld
-from .paths import Transition
-from .trajectory_game import JointTrans, JointPureTraj
+from .paths import Action, Transition, Trajectory
+from .trajectory_game import JointTrans, JointPureTraj, JointAction
 
 __all__ = [
     "get_metrics_set",
@@ -35,7 +35,6 @@ __all__ = [
     "DrivableAreaViolation",
     "ProgressAlongReference",
     "LongitudinalAcceleration",
-    "LongitudinalJerk",
     "LateralComfort",
     "SteeringAngle",
     "SteeringRate",
@@ -55,86 +54,86 @@ def get_evaluated_metric(
     return mer
 
 
-def get_values(trans: Transition, func: Callable[[VehicleState], float]) \
+def get_values(trans: Action, func: Callable[[VehicleState], float]) \
         -> Tuple[List[Timestamp], List[float]]:
-    tval = [(t, func(x)) for t, x in trans]
+    tval = [(t, func(x)) for t, x in zip(*trans.get_sampled_trajectory())]
     interval, val = zip(*tval)
     return interval, val
 
 
 class EpisodeTime(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "Length of the episode (smaller preferred)"
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
             # negative for smaller preferred
             interval = context.get_interval(player)
             val = [1.0 for _ in interval]
             ret = self.get_evaluated_metric(interval=interval, val=val)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class DeviationLateral(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric describes the deviation from reference path. "
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             abs_n = [_.distance_from_center for _ in traj_sn]
             ret = self.get_evaluated_metric(interval=interval, val=abs_n)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class DeviationHeading(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric describes the heading deviation from reference path."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             head = [abs(_.relative_heading) for _ in traj_sn]
             ret = self.get_evaluated_metric(interval=interval, val=head)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class DrivableAreaViolation(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric computes the drivable area violation by the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
@@ -150,22 +149,22 @@ class DrivableAreaViolation(Metric):
 
             values = [get_violation(_) for _ in traj_sn]
             ret = self.get_evaluated_metric(interval=interval, val=values)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class ProgressAlongReference(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
@@ -173,115 +172,91 @@ class ProgressAlongReference(Metric):
             progress = [traj_sn[0].along_lane - _.along_lane for _ in traj_sn]
             inc = differentiate(val=progress, t=interval)
             ret = self.get_evaluated_metric(interval=interval, val=inc)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class LongitudinalAcceleration(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric computes the longitudinal acceleration the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
-            interval, vel = get_values(trans=transition, func=get_vel)
+            interval, vel = get_values(trans=action, func=get_vel)
             acc = differentiate(vel, interval)
             # Final acc, dacc is zero and not first
             acc_val = [abs(_) for _ in acc[1:]] + [0.0]
 
             ret = self.get_evaluated_metric(interval=interval, val=acc_val)
-            self.cache[transition] = ret
-            return ret
-
-        return get_evaluated_metric(context.get_players(), calculate_metric)
-
-
-class LongitudinalJerk(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
-    description = "This metric computes the longitudinal acceleration jerk of the robot."
-
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
-        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
-
-            interval, vel = get_values(trans=transition, func=get_vel)
-            acc = differentiate(vel, interval)
-            dacc = differentiate(acc, interval)
-            # Final acc, dacc is zero and not first
-            dacc_val = [abs(_) for _ in dacc[1:]] + [0.0]
-
-            ret = self.get_evaluated_metric(interval=interval, val=dacc_val)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class LateralComfort(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric computes the lateral discomfort or lateral acceleration the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
-            interval, ay = get_values(trans=transition, func=get_lat_comf)
+            interval, ay = get_values(trans=action, func=get_lat_comf)
             ret = self.get_evaluated_metric(interval=interval, val=ay)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class SteeringAngle(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric computes the steering angle the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
-            interval, st = get_values(trans=transition, func=get_st)
+            interval, st = get_values(trans=action, func=get_st)
             st_abs = [abs(_) for _ in st]
             ret = self.get_evaluated_metric(interval=interval, val=st_abs)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class SteeringRate(Metric):
-    cache: Dict[Transition, EvaluatedMetric] = {}
+    cache: Dict[Action, EvaluatedMetric] = {}
     description = "This metric computes the rate of change of steering angle the robot."
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            transition: Transition = context.get_transition(player)
-            if transition in self.cache:
-                return self.cache[transition]
+            action: Action = context.get_action(player)
+            if action in self.cache:
+                return self.cache[action]
 
-            interval, st = get_values(trans=transition, func=get_st)
+            interval, st = get_values(trans=action, func=get_st)
             dst = differentiate(st, interval)
             # Final dst is zero and not first
             dst_val = [abs(_) for _ in dst[1:]] + [0.0]
             ret = self.get_evaluated_metric(interval=interval, val=dst_val)
-            self.cache[transition] = ret
+            self.cache[action] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
@@ -343,7 +318,7 @@ class Clearance(Metric, metaclass=ABCMeta):
     def calculate_value(self, context: MetricEvaluationContext,
                         players: List[PlayerName]) -> List[float]:
         assert len(players) == 2
-        joint_trans: JointTrans = frozendict({p: context.get_transition(p) for p in players})
+        joint_trans: JointTrans = frozendict({p: context.get_action(p) for p in players})
         if joint_trans in self.cache_vals:
             return self.cache_vals[joint_trans][players[0]]
         if players[0] == players[1]:
@@ -356,8 +331,8 @@ class Clearance(Metric, metaclass=ABCMeta):
             g = context.get_world().get_geometry(p)
             L += (g.l ** 2 + g.w ** 2) ** 0.5
         values: List[float] = []
-        t1 = list(joint_trans[players[0]].get_sampled_trajectory())
-        t2 = list(joint_trans[players[1]].get_sampled_trajectory())
+        t1 = list(zip(*joint_trans[players[0]].get_sampled_trajectory()))
+        t2 = list(zip(*joint_trans[players[1]].get_sampled_trajectory()))
         len1 = min(len(t1), len(t2))
         len2 = max(len(t1), len(t2))
         if len(t1) == len1:
@@ -374,8 +349,8 @@ class Clearance(Metric, metaclass=ABCMeta):
             if dist > L + self.THRESHOLD:
                 values.append(0.0)
                 continue
-            se2_1 = Transition.state_to_se2(x=state1)
-            se2_2 = Transition.state_to_se2(x=state2)
+            se2_1 = Action.state_to_se2(x=state1)
+            se2_2 = Action.state_to_se2(x=state2)
             geo1 = context.get_world().get_geometry(p1)
             geo2 = context.get_world().get_geometry(p2)
             clear_dict = {p1: (se2_1, geo1), p2: (se2_2, geo2)}
@@ -397,7 +372,7 @@ class Clearance(Metric, metaclass=ABCMeta):
                          context: MetricEvaluationContext) -> EvaluatedMetric:
 
         joint_trans_all: JointTrans = frozendict(
-            {p: context.get_transition(p) for p in context.get_players()}
+            {p: context.get_action(p) for p in context.get_players()}
         )
         if joint_trans_all in self.cache_metrics and player1 in self.cache_metrics[joint_trans_all]:
             return self.cache_metrics[joint_trans_all][player1]
@@ -471,7 +446,6 @@ def get_personal_metrics() -> Set[Metric]:
         DrivableAreaViolation(),
         ProgressAlongReference(),
         LongitudinalAcceleration(),
-        LongitudinalJerk(),
         LateralComfort(),
         SteeringAngle(),
         SteeringRate(),
@@ -506,18 +480,28 @@ def get_metrics_set() -> Set[Metric]:
 
 
 class MetricEvaluation:
-    _cache_trans: Dict[JointTrans, TrajGameOutcome] = {}
-    _cache_traj: Dict[JointPureTraj, TrajGameOutcome] = {}
+    _cache: Dict[JointAction, TrajGameOutcome] = {}
     metrics = get_metrics_set()
 
     def __init__(self):
         raise Exception(f"Don't create instances of {type(self).__name__}!")
 
     @staticmethod
-    def evaluate_trans(transitions: JointTrans, world: TrajectoryWorld) -> TrajGameOutcome:
+    def evaluate(actions: JointAction, world: TrajectoryWorld) -> TrajGameOutcome:
+        if not isinstance(actions, Hashable):
+            actions = frozendict(actions)
+        sample = list(actions.values())[0]
+        if isinstance(sample, Transition):
+            return MetricEvaluation._evaluate_trans(transitions=actions, world=world)
+        if isinstance(sample, Trajectory):
+            return MetricEvaluation._evaluate_traj(trajectories=actions, world=world)
+        raise AssertionError(f"Input type for evaluate metrics is {type(sample).__name__}")
 
-        if transitions in MetricEvaluation._cache_trans.keys():
-            return MetricEvaluation._cache_trans[transitions]
+    @staticmethod
+    def _evaluate_trans(transitions: JointTrans, world: TrajectoryWorld) -> TrajGameOutcome:
+
+        if transitions in MetricEvaluation._cache:
+            return MetricEvaluation._cache[transitions]
 
         context = MetricEvaluationContext(world=world, transitions=transitions)
         metric_results: Dict[Metric, MetricEvaluationResult] = {}
@@ -533,24 +517,23 @@ class MetricEvaluation:
             game_outcome[player] = frozendict(player_outcome)
 
         ret = frozendict(game_outcome)
-        MetricEvaluation._cache_trans[transitions] = ret
+        MetricEvaluation._cache[transitions] = ret
         return ret
 
     @staticmethod
-    def evaluate_traj(trajectories: JointPureTraj, world: TrajectoryWorld) -> TrajGameOutcome:
+    def _evaluate_traj(trajectories: JointPureTraj, world: TrajectoryWorld) -> TrajGameOutcome:
 
-        if trajectories in MetricEvaluation._cache_traj.keys():
-            return MetricEvaluation._cache_traj[trajectories]
+        if trajectories in MetricEvaluation._cache:
+            return MetricEvaluation._cache[trajectories]
 
         outcomes: Dict[PlayerName, Dict[Metric, EvaluatedMetric]] = {}
-
-        trans: Dict[PlayerName, Transition]
+        trans: Dict[PlayerName, Action]
         for i in range(20):
             trans = {}
             for player, traj in trajectories.items():
                 if i < len(traj): trans[player] = traj[i]
             if len(trans) == 0: break
-            step_out = MetricEvaluation.evaluate_trans(transitions=frozendict(trans), world=world)
+            step_out = MetricEvaluation._evaluate_trans(transitions=frozendict(trans), world=world)
             if i == 0:
                 for player, out in step_out.items():
                     outcomes[player] = {k: v for k, v in out.items()}
@@ -559,10 +542,10 @@ class MetricEvaluation:
                     for metric, value in all_out.items():
                         outcomes[player][metric] += value
 
-        ret: Dict[PlayerName, Mapping[Metric, EvaluatedMetric]] = {}
+        ret: Dict[PlayerName, PlayerOutcome] = {}
         for player in outcomes.keys():
             ret[player] = frozendict(outcomes[player])
 
         frozen_ret = frozendict(ret)
-        MetricEvaluation._cache_traj[trajectories] = frozen_ret
+        MetricEvaluation._cache[trajectories] = frozen_ret
         return frozen_ret

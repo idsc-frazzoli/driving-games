@@ -8,14 +8,14 @@ from reprep import Report, MIME_GIF
 from zuper_commons.text import remove_escapes
 from decimal import Decimal as D
 
-from .static_game import StaticGame, StaticSolvedGameNode
-from .trajectory_game import SolvedStaticTrajectoryGame, SolvedStaticTrajectoryGameNode
+from .game_def import Game, SolvedGameNode
+from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode
 from .preference import PosetalPreference
-from .paths import Trajectory
+from .paths import Action
 from .visualization import TrajGameVisualization
 
 
-def report_game_visualization(game: StaticGame) -> Report:
+def report_game_visualization(game: Game) -> Report:
     viz = game.game_vis
     r = Report("Trajectories")
     tic = perf_counter()
@@ -32,7 +32,7 @@ def report_game_visualization(game: StaticGame) -> Report:
     return r
 
 
-def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedStaticTrajectoryGame],
+def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                    plot_gif: bool) -> Report:
     tic = perf_counter()
     viz = game.game_vis
@@ -114,7 +114,7 @@ def report_nash_eq(game: StaticGame, nash_eq: Mapping[str, SolvedStaticTrajector
     return r_all
 
 
-def report_preferences(game: StaticGame) -> Report:
+def report_preferences(game: Game) -> Report:
     tic = perf_counter()
     r = Report("Preference_structures")
     viz = game.game_vis
@@ -129,10 +129,10 @@ def report_preferences(game: StaticGame) -> Report:
     return r
 
 
-def create_animation(fn: str, game: StaticGame, node: StaticSolvedGameNode):
+def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
     viz = game.game_vis
-    assert isinstance(node, SolvedStaticTrajectoryGameNode)
+    assert isinstance(node, SolvedTrajectoryGameNode)
     assert isinstance(viz, TrajGameVisualization)
 
     fig, ax = plt.subplots()
@@ -155,7 +155,7 @@ def create_animation(fn: str, game: StaticGame, node: StaticSolvedGameNode):
 
     def update_plot(t: D):
         for player, box_handle in box.items():
-            action: Trajectory = node.actions[player]
+            action: Action = node.actions[player]
             state = action.at(t=t)
             box[player] = viz.plot_player(pylab=plt, player_name=player,
                                           state=state, box=box_handle)

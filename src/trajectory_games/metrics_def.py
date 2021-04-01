@@ -1,13 +1,13 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Mapping, Tuple
+from typing import Dict, List, Mapping, Tuple, Optional
 
 from cachetools.func import lfu_cache
 from duckietown_world import SE2Transform, LanePose
 
 from games import PlayerName
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
-from .paths import Transition
+from .paths import Action
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
@@ -26,7 +26,7 @@ class MetricEvaluationContext:
     world: TrajectoryWorld
     """ World object. """
 
-    transitions: Mapping[PlayerName, Transition]
+    transitions: Mapping[PlayerName, Action]
     """ Sampled vehicle transitions for each player """
 
     _points_cart: Mapping[PlayerName, List[SE2Transform]] = None
@@ -34,8 +34,8 @@ class MetricEvaluationContext:
     """ Sampled vehicle transitions for each player 
         Cache and reuse for all rules."""
 
-    _cache_cart: Dict[Transition, List[SE2Transform]] = None
-    _cache_curv: Dict[Transition, List[LanePose]] = None
+    _cache_cart: Dict[Action, List[SE2Transform]] = None
+    _cache_curv: Dict[Action, List[LanePose]] = None
     """ Cached transitions to speed up computation, do not set manually """
 
     def __post_init__(self):
@@ -68,7 +68,7 @@ class MetricEvaluationContext:
     def get_players(self) -> List[PlayerName]:
         return list(self.transitions.keys())
 
-    def get_transition(self, player: PlayerName) -> Transition:
+    def get_action(self, player: PlayerName) -> Action:
         return self.transitions[player]
 
     def get_cartesian_points(self, player: PlayerName) -> List[SE2Transform]:
@@ -90,8 +90,8 @@ class EvaluatedMetric:
         title: str,
         description: str,
         total: float,
-        incremental: SampledSequence,
-        cumulative: SampledSequence,
+        incremental: Optional[SampledSequence],
+        cumulative: Optional[SampledSequence],
     ):
         self.title = title
         self.description = description
@@ -103,6 +103,8 @@ class EvaluatedMetric:
         return f"{self.title} = {self.total:.2f}"
 
     def __add__(self, other: "EvaluatedMetric") -> "EvaluatedMetric":
+        if other is None:
+            return self
         return self.add(m1=self, m2=other)
 
     @staticmethod

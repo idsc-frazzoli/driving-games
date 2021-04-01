@@ -1,5 +1,5 @@
 import math
-from abc import ABC, abstractmethod
+from abc import ABC
 from functools import lru_cache
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
@@ -13,7 +13,7 @@ from scipy.optimize import minimize
 from games import PlayerName
 from world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
-from .static_game import StaticActionSetGenerator
+from .game_def import StaticActionSetGenerator, DynamicActionSetGenerator
 from .paths import FinalPoint, Transition, TransitionGraph, Trajectory
 from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
@@ -23,18 +23,14 @@ __all__ = ["StaticGenerator", "DynamicGenerator", "TransitionGenerator"]
 Successors = Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]
 
 
-class StaticGenerator(StaticActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld], ABC):
-    @abstractmethod
-    def get_action_set(self, state: VehicleState, player: PlayerName,
-                       world: TrajectoryWorld) -> FrozenSet[Trajectory]:
-        pass
+class StaticGenerator(StaticActionSetGenerator[VehicleState, Trajectory,
+                                               TrajectoryWorld], ABC):
+    pass
 
 
-class DynamicGenerator(ABC):
-    @abstractmethod
-    def get_action_tree(self, state: VehicleState, player: PlayerName,
-                        world: TrajectoryWorld) -> TransitionGraph:
-        pass
+class DynamicGenerator(DynamicActionSetGenerator[VehicleState, Trajectory,
+                                                 TrajectoryWorld], ABC):
+    pass
 
 
 class TransitionGenerator(StaticGenerator, DynamicGenerator):
@@ -47,12 +43,11 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
         self._bicycle_dyn = BicycleDynamics(params=params)
         self._cache = {}
 
-    def get_action_tree(self, state: VehicleState, player: PlayerName,
-                        world: TrajectoryWorld = None) -> TransitionGraph:
+    def get_actions_dynamic(self, state: VehicleState, player: PlayerName,
+                            world: TrajectoryWorld = None) -> TransitionGraph:
         """
-        Computes many feasible trajectories for given state along reference
-        Required world for first instance, returns from cache if already computed
-        Updates state graph if provided as input
+        Computes dynamic graph of transitions for given state along reference
+        Requires world for first instance, returns from cache if already computed
         """
         if (player, state) in self._cache:
             return self._cache[(player, state)]
@@ -66,10 +61,14 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
         self._cache[(player, state)] = graph
         return graph
 
-    def get_action_set(self, state: VehicleState, player: PlayerName,
-                       world: TrajectoryWorld) -> FrozenSet[Trajectory]:
+    def get_actions_static(self, state: VehicleState, player: PlayerName,
+                           world: TrajectoryWorld = None) -> FrozenSet[Trajectory]:
+        """
+        Computes set of static feasible trajectories for given state along reference
+        Requires world for first instance, returns from cache if already computed
+        """
         tic = perf_counter()
-        graph = self.get_action_tree(state=state, player=player, world=world)
+        graph = self.get_actions_dynamic(state=state, player=player, world=world)
         trajectories = self._trajectory_graph_to_list(graph=graph)
         toc = perf_counter() - tic
         if toc > 0.1:

@@ -15,9 +15,8 @@ from geometry import SE2_from_xytheta
 
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
-from .sequence import Timestamp
-from .paths import Trajectory, Transition
-from .static_game import GameVisualization, StaticGamePlayer
+from .paths import Action
+from .game_def import GameVisualization, GamePlayer
 from .preference import PosetalPreference, WeightedPreference
 from .trajectory_world import TrajectoryWorld
 
@@ -28,7 +27,7 @@ VehicleCosts = None
 Collision = None
 
 
-class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
+class TrajGameVisualization(GameVisualization[VehicleState, Action, TrajectoryWorld]):
     """ Visualization for the trajectory games"""
 
     world: TrajectoryWorld
@@ -60,7 +59,6 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             pylab.fill(x, y, color=self.world.get_geometry(player).colour, alpha=0.1, zorder=1)
 
         yield
-        # pylab.grid()
 
     def plot_player(self, pylab, player_name: PlayerName,
                     state: VehicleState, box=None):
@@ -71,29 +69,26 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                        state=state, vg=vg, box=box)
         return box
 
-    def plot_actions(self, pylab, player: StaticGamePlayer):
+    def plot_actions(self, pylab, player: GamePlayer):
         ax: Axes = pylab.gca()
 
         state = next(iter(player.state.support()))
-        trajectories = player.actions_generator.get_action_set(state=state, world=None, player=player.name)
+        trajectories = player.actions_generator.get_actions_static(state=state, world=None, player=player.name)
         self.plot_trajectories(pylab=pylab, trajectories=trajectories,
                                colour=player.vg.colour, width=0.5)
         ax.yaxis.set_ticks_position("left")
         ax.xaxis.set_ticks_position("bottom")
 
-    def plot_equilibria(self, pylab, path: Trajectory, player: StaticGamePlayer):
+    def plot_equilibria(self, pylab, path: Action, player: GamePlayer):
 
         self.plot_trajectories(pylab=pylab, trajectories=frozenset([path]),
                                colour=player.vg.colour, width=1.0)
 
-        def get_vals(trans: Transition) -> Tuple[float, float, Timestamp]:
-            xs = trans.states[1]
-            return xs.x, xs.y, xs.t
-        vals = [get_vals(trans=transition) for transition in path]
+        vals = [(x.x, x.y, x.t) for _, x in path]
         x, y, t = zip(*vals)
         pylab.scatter(x, y, s=10.0, c=t, zorder=10)
 
-    def plot_pref(self, pylab, player: StaticGamePlayer,
+    def plot_pref(self, pylab, player: GamePlayer,
                   origin: Tuple[float, float],
                   labels: Mapping[WeightedPreference, str] = None):
 
@@ -134,7 +129,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         ax.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
 
     @staticmethod
-    def plot_trajectories(pylab, trajectories: FrozenSet[Trajectory],
+    def plot_trajectories(pylab, trajectories: FrozenSet[Action],
                           colour: Tuple[float, float, float], width: float):
         segments = []
         for traj in trajectories:

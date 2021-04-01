@@ -1,30 +1,33 @@
 from random import choice
 from time import perf_counter
-from typing import Mapping, Dict, FrozenSet, Set, Tuple
+from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
 from frozendict import frozendict
 
 from games.utils import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED
 
 from games import PlayerName
-from .static_game import StaticSolvingContext
-from .trajectory_game import JointPureTraj, SolvedStaticTrajectoryGame, SolvedStaticTrajectoryGameNode
-from .paths import Trajectory
+from .game_def import StaticSolvingContext, DynamicSolvingContext
+from .trajectory_game import JointPureTraj, JointAction, \
+    SolvedTrajectoryGameNode, SolvedTrajectoryGame, SolvedStaticTrajectoryGame, SolvedStaticTrajectoryGameNode, \
+    SubgameSolutions
+from .paths import Trajectory, TransitionGraph, Transition, Action
 from .metrics_def import TrajGameOutcome, PlayerOutcome
 
+JointActionSet = Mapping[PlayerName, FrozenSet[Action]]
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
-EqOutcome = Tuple[JointPureTraj, TrajGameOutcome, bool, bool, bool, bool]
-NotEq = None, None, False, False, False, False
+EqOutcome = Tuple[Optional[JointPureTraj], Optional[TrajGameOutcome], bool, bool, bool, bool]
+NotEq: EqOutcome = None, None, False, False, False, False
 
 
-def get_solved_game_node(act: JointPureTraj, out: TrajGameOutcome) -> SolvedStaticTrajectoryGameNode:
-    return SolvedStaticTrajectoryGameNode(actions=act, outcomes=out)
+def get_solved_game_node(act: JointAction, out: TrajGameOutcome) -> SolvedTrajectoryGameNode:
+    return SolvedTrajectoryGameNode(actions=act, outcomes=out)
 
 
-def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedStaticTrajectoryGame]):
+def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedTrajectoryGame]):
     joint_act, outcome, strong, incomp, indiff, weak = tuple_out
 
-    solved_node: SolvedStaticTrajectoryGameNode = \
+    solved_node: SolvedTrajectoryGameNode = \
         get_solved_game_node(act=joint_act, out=outcome) if weak else None
     eq["indiff"].add(solved_node) if indiff else None
     eq["incomp"].add(solved_node) if incomp else None
@@ -32,29 +35,23 @@ def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedStaticTrajectoryGame])
     eq["strong"].add(solved_node) if strong else None
 
 
-def init_eq_dict() -> Dict[str, SolvedStaticTrajectoryGame]:
-    indiff_nash: SolvedStaticTrajectoryGame = set()
-    incomp_nash: SolvedStaticTrajectoryGame = set()
-    weak_nash: SolvedStaticTrajectoryGame = set()
-    strong_nash: SolvedStaticTrajectoryGame = set()
-    ret: Dict[str, SolvedStaticTrajectoryGame] = {
-        "indiff": indiff_nash,
-        "incomp": incomp_nash,
-        "weak": weak_nash,
-        "strong": strong_nash,
+def init_eq_dict() -> Dict[str, SolvedTrajectoryGame]:
+    ret: Dict[str, SolvedTrajectoryGame] = {
+        "indiff": set(), "incomp": set(),
+        "weak": set(), "strong": set(),
     }
     return ret
 
 
-def check_dominated(joint_actions: JointPureTraj,
-                    done: Mapping[PlayerName, Set[JointPureTraj]]) -> bool:
+def check_dominated(joint_actions: JointAction,
+                    done: Mapping[PlayerName, Set[JointAction]]) -> bool:
     for dominated in done.values():
         if joint_actions in dominated:
             return True
     return False
 
 
-def get_best_responses(joint_actions: JointPureTraj, context: StaticSolvingContext,
+def get_best_responses(joint_actions: JointAction, context: StaticSolvingContext,
                        player: PlayerName, done_p: Set[JointPureTraj]) \
         -> Tuple[Set[ComparisonOutcome], Set[Trajectory]]:
     """
@@ -63,66 +60,82 @@ def get_best_responses(joint_actions: JointPureTraj, context: StaticSolvingConte
     """
     actions = context.player_actions
     players = joint_actions.keys()
+    final = SubgameSolutions()
 
     # All alternate actions (from available set) for the current player
-    def get_action_options(joint_act: JointPureTraj, p_actions: Set[Trajectory]) -> JointTrajSet:
+    def get_action_options(joint_act: JointAction, p_actions: Set[Action]) -> JointActionSet:
         """Returns all possible actions for the player, with other player actions frozen
         Current player action is not included"""
 
-        def get_actions(name: PlayerName) -> FrozenSet[Trajectory]:
+        def get_actions(name: PlayerName) -> FrozenSet[Action]:
             if name == player:
                 return frozenset(p_actions)
             return frozenset({joint_act[name]})
 
-        action_options: JointTrajSet = {_: get_actions(_) for _ in players}
+        action_options: JointActionSet = {_: get_actions(_) for _ in players}
         return action_options
 
-    all_actions: Set[Trajectory] = set(actions[player])
+    # Antichain of outcomes
+    def get_antichain(actions_joint: JointAction) -> Set[Trajectory]:
+        antichain_all = final.get_trajectories(joint_act=actions_joint)
+        # TODO[SIR]: Use full antichain
+        return {next(iter(antichain_all))[player]}
+
+    all_actions: Set[Action] = set(actions[player])
     all_actions.remove(joint_actions[player])
 
     # Save antichain of actions
-    best: Set[Trajectory] = {joint_actions[player]}
+    best = get_antichain(actions_joint=joint_actions)
+    joint_best: Dict[PlayerName, Trajectory] = {k: v + None for k, v in joint_actions.items()}
     results: Set[ComparisonOutcome] = set()
     check = False
-    action_alt: JointTrajSet = get_action_options(joint_act=joint_actions,
-                                                  p_actions=all_actions)
+    action_alt: JointActionSet = get_action_options(joint_act=joint_actions,
+                                                    p_actions=all_actions)
     for joint_act_alt in iterate_dict_combinations(action_alt):
-        if joint_act_alt in done_p:
-            continue
-        check = True
-        alt_action = joint_act_alt[player]
-        outcome_alt: PlayerOutcome = context.game_outcomes(joint_act_alt)[player]
-        joint_best_all = get_action_options(joint_act=joint_actions, p_actions=best)
-        results_alt: Set[ComparisonOutcome] = set()
+        antichain_alt = get_antichain(actions_joint=joint_act_alt)
+        joint_alt: Dict[PlayerName, Trajectory] = {k: v + None for k, v in joint_actions.items()}
 
-        for joint_best in set(iterate_dict_combinations(joint_best_all)):
-
-            best_outcome: PlayerOutcome = context.game_outcomes(joint_best)[player]
-            comp_outcome: ComparisonOutcome = \
-                context.outcome_pref[player].compare(best_outcome, outcome_alt)
-            results_alt.add(comp_outcome)
-            if joint_best == joint_actions:
-                results.add(comp_outcome)
-
-            # If one of best is preferred, alternate is not a best response
-            if comp_outcome == FIRST_PREFERRED:
-                done_p.add(joint_act_alt)
-                break
-
-            # If second option is preferred, current best action is not a best response
-            if comp_outcome == SECOND_PREFERRED:
-                best.remove(joint_best[player])
-                done_p.add(joint_best)
-
-        if FIRST_PREFERRED not in results_alt:
-            best.add(alt_action)
+        # TODO[SIR]: Antichain comparison
+        for alt_action in antichain_alt:
+            joint_alt[player] = alt_action + None
+            joint_alt_f = frozendict(joint_alt)
+            if joint_alt_f in done_p:
+                continue
+            results_alt: Set[ComparisonOutcome] = set()
+            alt_outcome: PlayerOutcome = context.game_outcomes(joint_alt_f)[player]
+            
+            for best_action in list(best):
+                if best_action in antichain_alt:
+                    continue
+                check = True
+                joint_best[player] = best_action
+                joint_best_f = frozendict(joint_best)
+                best_outcome: PlayerOutcome = context.game_outcomes(joint_best_f)[player]
+                comp_outcome: ComparisonOutcome = \
+                    context.outcome_pref[player].compare(best_outcome, alt_outcome)
+                results_alt.add(comp_outcome)
+                if best_action == joint_actions[player]:
+                    results.add(comp_outcome)
+    
+                # If one of best is preferred, alternate is not a best response
+                if comp_outcome == FIRST_PREFERRED:
+                    done_p.add(joint_alt_f)
+                    break
+    
+                # If second option is preferred, current best action is not a best response
+                if comp_outcome == SECOND_PREFERRED:
+                    best.remove(best_action)
+                    done_p.add(joint_best_f)
+    
+            if FIRST_PREFERRED not in results_alt:
+                best.add(alt_action)
 
     if not check:
         results.add(FIRST_PREFERRED)
     return results, best
 
 
-def equilibrium_check(joint_actions: JointPureTraj, context: StaticSolvingContext,
+def equilibrium_check(joint_actions: JointAction, context: StaticSolvingContext,
                       done: Dict[PlayerName, Set[JointPureTraj]]) -> EqOutcome:
     """
     For each player, check if current action is best response
@@ -149,11 +162,11 @@ def equilibrium_check(joint_actions: JointPureTraj, context: StaticSolvingContex
     strong = results == {FIRST_PREFERRED}
     indiff = INDIFFERENT in results
     incomp = INCOMPARABLE in results
-    weak = True     # All equilibria are atleast weak
+    weak = True  # All equilibria are atleast weak
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
-def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedStaticTrajectoryGame]:
+def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedTrajectoryGame]:
     eq_dict = init_eq_dict()
 
     tic = perf_counter()
@@ -169,14 +182,26 @@ def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedStaticTrajec
     return eq_dict
 
 
+def solve_static_game(context: StaticSolvingContext) -> Mapping[str, SolvedStaticTrajectoryGame]:
+    eq_dict = solve_game(context=context)
+    static_eq: Dict[str, SolvedStaticTrajectoryGame] = {}
+
+    for eq_type, node_set in eq_dict.items():
+        static_set = {SolvedStaticTrajectoryGameNode(actions=node.actions, outcomes=node.outcomes)
+                      for node in node_set}
+        static_eq[eq_type] = static_set
+
+    return static_eq
+
+
 def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
-        -> Mapping[str, SolvedStaticTrajectoryGame]:
+        -> Mapping[str, SolvedTrajectoryGame]:
     eq_dict = init_eq_dict()
-    INIT_BEST = False
+    INIT_BEST = True
 
     # Solve single player game for each player to get initial guess
-    all_actions = context.player_actions
-    init_guess: Dict[PlayerName, Set[Trajectory]] = {}
+    all_actions: Mapping[PlayerName, FrozenSet[Action]] = context.player_actions
+    init_guess: Dict[PlayerName, Set[Action]] = {}
     done_p: Set[JointPureTraj] = set()
     tic = perf_counter()
     if INIT_BEST:
@@ -198,7 +223,7 @@ def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
         {_: set() for _ in context.player_actions.keys()}
     for i in range(n_runs):
         players_rem: Set[PlayerName] = set(init_guess.keys())
-        joint_best: Dict[PlayerName, Trajectory] = {}
+        joint_best: Dict[PlayerName, Action] = {}
         for player, actions in init_guess.items():
             joint_best[player] = choice(list(actions))
 
@@ -221,3 +246,17 @@ def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
     print(f"Best response equilibrium computation time = {toc:.2f} s")
 
     return eq_dict
+
+
+def solve_subgame(context: DynamicSolvingContext):
+    all_actions: Mapping[PlayerName, TransitionGraph] = context.player_actions
+    actions: Dict[PlayerName, FrozenSet[Transition]] = {}
+    for player, graph in all_actions.items():
+        actions[player] = graph.get_all_transitions(source=graph.origin)
+
+    static_context = StaticSolvingContext(player_actions=actions,
+                                          game_outcomes=context.game_outcomes,
+                                          outcome_pref=context.outcome_pref,
+                                          solver_params=context.solver_params)
+
+    solve_game(context=static_context)

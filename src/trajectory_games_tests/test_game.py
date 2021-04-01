@@ -10,7 +10,7 @@ from trajectory_games import (
     iterative_best_response,
     StaticSolvingContext,
     report_game_visualization,
-    SolvedStaticTrajectoryGame,
+    SolvedTrajectoryGame,
     report_nash_eq,
     report_preferences,
     get_trajectory_game,
@@ -21,7 +21,7 @@ only_traj = False               # Only trajectory generation vs full game
 filename = "r_game_all1.html"
 
 
-def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedStaticTrajectoryGame], folder: str):
+def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
     d = "out/tests/"
     if not only_traj:
         print(
@@ -52,7 +52,7 @@ def test_trajectory_game():
     if only_traj:
         nash_eq = {}
     else:
-        nash_eq: Mapping[str, SolvedStaticTrajectoryGame] = solve_game(context=context)
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = solve_game(context=context)
     create_reports(game=game, nash_eq=nash_eq, folder="brute_force/")
 
 
@@ -65,6 +65,6 @@ def test_trajectory_game_best_response():
     if only_traj:
         nash_eq = {}
     else:
-        nash_eq: Mapping[str, SolvedStaticTrajectoryGame] = \
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = \
             iterative_best_response(context=context, n_runs=n_runs)
     create_reports(game=game, nash_eq=nash_eq, folder="best_response/")
