@@ -67,3 +67,7 @@ def test_lanes():
     d = "out/tests/"
     r.to_html(join(d, "r_lanes.html"))
 
+
+if __name__ == '__main__':
+    test_lanes()
+

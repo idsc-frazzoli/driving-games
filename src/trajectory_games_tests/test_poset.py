@@ -137,3 +137,7 @@ def test_poset():
     assert_equal(pref1.compare(p1, p2), INDIFFERENT)
     assert_equal(pref2.compare(p1, p2), INDIFFERENT)
     assert_equal(pref3.compare(p1, p2), INDIFFERENT)
+
+
+if __name__ == '__main__':
+    test_poset()

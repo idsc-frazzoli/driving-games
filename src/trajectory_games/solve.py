@@ -1,3 +1,4 @@
+from copy import deepcopy
 from random import choice
 from time import perf_counter
 from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
@@ -170,10 +171,10 @@ class Solution:
     # Cache can be reused between levels
     dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
-    def solve_game(self, context: StaticSolvingContext) \
+    def solve_game(self, context: StaticSolvingContext, cache_dom: bool = True) \
             -> Mapping[str, SolvedTrajectoryGame]:
         eq_dict = init_eq_dict()
-
+        dom_prev = deepcopy(self.dominated) if not cache_dom else {}
         tic = perf_counter()
         # For each possible action combination, check if it is a nash eq
         if self.dominated is None:
@@ -184,6 +185,8 @@ class Solution:
             callback_eq(tuple_out=out, eq=eq_dict)
         toc = perf_counter() - tic
         print(f"Nash equilibrium computation time = {toc:.2f} s")
+        if not cache_dom:
+            self.dominated = dom_prev
         return eq_dict
 
     def reset(self):

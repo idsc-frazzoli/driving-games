@@ -57,3 +57,7 @@ def test_clearance():
 
     assert_almost_equal(calc(pos13, pos14), 0.079, places=2)
     assert_almost_equal(calc(pos14, pos13), 0.079, places=2)
+
+
+if __name__ == '__main__':
+    test_clearance()

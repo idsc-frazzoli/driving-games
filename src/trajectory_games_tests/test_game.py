@@ -94,14 +94,16 @@ def test_trajectory_game_levels():
             player.preference = PosetalPreference(pref_str=f"{pref}_{level}", use_cache=False)
 
     r_levels: List[Report] = []
-    for i in range(2, 7):
+    for i in range(2, 8):
+        print(f"\nLevel = {i}")
         update_prefs(level=i)
         context = preprocess_full_game(sgame=game, only_traj=only_traj)
-        nash_eq = sol.solve_game(context=context)
+        cache_dom = i <= 3  # Preferences are not extra levels of previous after this!
+        nash_eq = sol.solve_game(context=context, cache_dom=cache_dom)
         rep = Report()
         create_reports(game=game, nash_eq=nash_eq, r_game=rep, gif=False)
         node: Report = rep.last()
-        node.nid = f"Level_{i}"
+        node.nid = f"Pref_{i}"
         r_levels.append(node)
 
     r_game = Report()

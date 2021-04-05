@@ -114,11 +114,12 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                                 width=w, alpha=w)
 
     def image_eq(report: Report):
+        eq_viz = report.figure(cols=2)
         nodes_strong = nash_eq["strong"]
         nodes_weak = node_set.difference(nodes_strong)
         actions_strong = save_actions(nodes_strong)
         actions_weak = save_actions(nodes_weak)
-        with report.plot("all_equilibria") as pylab:
+        with eq_viz.plot("all_equilibria") as pylab:
             ax = pylab.gca()
             with viz.plot_arena(pylab, ax):
                 for player_name, player in game.game_players.items():
@@ -127,6 +128,12 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                                         state=state)
                 plot_eq(pylab=pylab, actions_all=actions_strong, w=1.0)
                 plot_eq(pylab=pylab, actions_all=actions_weak, w=0.5)
+
+        with eq_viz.plot("pref") as pylab:
+            player = list(game.game_players.values())[0]
+            viz.plot_pref(pylab, player=player, origin=(0.0, 0.0))
+            ax: Axes = pylab.gca()
+            ax.set_xlim(-150.0, 125.0)
 
     if plot_gif:
         i = 1
