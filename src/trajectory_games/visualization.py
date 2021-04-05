@@ -69,24 +69,18 @@ class TrajGameVisualization(GameVisualization[VehicleState, Action, TrajectoryWo
                        state=state, vg=vg, box=box)
         return box
 
-    def plot_actions(self, pylab, player: GamePlayer):
-        ax: Axes = pylab.gca()
+    def plot_equilibria(self, pylab, actions: FrozenSet[Action],
+                        colour: VehicleGeometry.COLOUR,
+                        width: float = 1.0, alpha: float = 1.0):
 
-        state = next(iter(player.state.support()))
-        trajectories = player.actions_generator.get_actions_static(state=state, world=None, player=player.name)
-        self.plot_trajectories(pylab=pylab, trajectories=trajectories,
-                               colour=player.vg.colour, width=0.5)
-        ax.yaxis.set_ticks_position("left")
-        ax.xaxis.set_ticks_position("bottom")
+        self.plot_actions(pylab=pylab, actions=actions,
+                          colour=colour, width=width, alpha=alpha)
 
-    def plot_equilibria(self, pylab, path: Action, player: GamePlayer):
-
-        self.plot_trajectories(pylab=pylab, trajectories=frozenset([path]),
-                               colour=player.vg.colour, width=1.0)
-
-        vals = [(x.x, x.y, x.t) for _, x in path]
-        x, y, t = zip(*vals)
-        pylab.scatter(x, y, s=10.0, c=t, zorder=10)
+        size = 10.0/len(actions)
+        for path in actions:
+            vals = [(x.x, x.y, x.t) for _, x in path]
+            x, y, t = zip(*vals)
+            pylab.scatter(x, y, s=size, c=t, zorder=10)
 
     def plot_pref(self, pylab, player: GamePlayer,
                   origin: Tuple[float, float],
@@ -128,19 +122,21 @@ class TrajGameVisualization(GameVisualization[VehicleState, Action, TrajectoryWo
         draw_networkx_labels(G, pos=pos, labels=labels, ax=ax, font_size=8, font_color="b")
         ax.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
 
-    @staticmethod
-    def plot_trajectories(pylab, trajectories: FrozenSet[Action],
-                          colour: Tuple[float, float, float], width: float):
+    def plot_actions(self, pylab, actions: FrozenSet[Action],
+                     colour: VehicleGeometry.COLOUR,
+                     width: float = 1.0, alpha: float = 1.0):
         segments = []
-        for traj in trajectories:
+        for traj in actions:
             sampled_traj = np.array([np.array([v.x, v.y])
                                      for v in traj.get_sampled_trajectory()[1]])
             segments.append(sampled_traj)
 
-        lines = LineCollection(segments=segments, colors=colour, linewidths=width)
+        lines = LineCollection(segments=segments, colors=colour, linewidths=width, alpha=alpha)
         lines.set_zorder(5)
         ax: Axes = pylab.gca()
         ax.add_collection(lines)
+        ax.yaxis.set_ticks_position("left")
+        ax.xaxis.set_ticks_position("bottom")
 
 
 def plot_car(pylab, player_name: PlayerName, state: VehicleState,

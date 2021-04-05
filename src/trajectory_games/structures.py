@@ -17,13 +17,14 @@ __all__ = [
 
 @dataclass
 class VehicleGeometry:
+    COLOUR = Tuple[float, float, float]
     m: float
     """ Car Mass [kg] """
     w: float
     """ Half width of car [m] """
     l: float
     """ Half length of car - dist from CoG to each axle [m] """
-    colour: Tuple[float, float, float]
+    colour: COLOUR
     """ Car colour """
 
     _config: Dict = None
@@ -34,7 +35,7 @@ class VehicleGeometry:
         return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
 
     @classmethod
-    def load_colour(cls, name: str) -> Tuple[float, float, float]:
+    def load_colour(cls, name: str) -> COLOUR:
         def default():
             return 1, 1, 1
 

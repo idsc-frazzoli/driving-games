@@ -97,11 +97,13 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_actions(self, pylab, player: "GamePlayer"):
+    def plot_actions(self, pylab, actions: FrozenSet[U],
+                     colour: Tuple[float, float, float], **kwargs):
         pass
 
     @abstractmethod
-    def plot_equilibria(self, pylab, path: U, player: "GamePlayer"):
+    def plot_equilibria(self, pylab, actions: FrozenSet[U],
+                        colour: Tuple[float, float, float], **kwargs):
         pass
 
     @abstractmethod
