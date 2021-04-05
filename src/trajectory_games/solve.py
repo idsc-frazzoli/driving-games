@@ -166,24 +166,33 @@ def equilibrium_check(joint_actions: JointAction, context: StaticSolvingContext,
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
-def solve_game(context: StaticSolvingContext) -> Mapping[str, SolvedTrajectoryGame]:
-    eq_dict = init_eq_dict()
+class Solution:
+    # Cache can be reused between levels
+    dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
-    tic = perf_counter()
-    # For each possible action combination, check if it is a nash eq
-    done: Dict[PlayerName, Set[JointPureTraj]] = \
-        {_: set() for _ in context.player_actions.keys()}
-    for joint_act in set(iterate_dict_combinations(context.player_actions)):
-        out = equilibrium_check(joint_actions=joint_act, context=context, done=done)
-        callback_eq(tuple_out=out, eq=eq_dict)
-    toc = perf_counter() - tic
-    print(f"Nash equilibrium computation time = {toc:.2f} s")
+    def solve_game(self, context: StaticSolvingContext) \
+            -> Mapping[str, SolvedTrajectoryGame]:
+        eq_dict = init_eq_dict()
 
-    return eq_dict
+        tic = perf_counter()
+        # For each possible action combination, check if it is a nash eq
+        if self.dominated is None:
+            self.dominated = {_: set() for _ in context.player_actions.keys()}
+        for joint_act in set(iterate_dict_combinations(context.player_actions)):
+            out = equilibrium_check(joint_actions=joint_act, context=context,
+                                    done=self.dominated)
+            callback_eq(tuple_out=out, eq=eq_dict)
+        toc = perf_counter() - tic
+        print(f"Nash equilibrium computation time = {toc:.2f} s")
+        return eq_dict
+
+    def reset(self):
+        self.dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
 
-def solve_static_game(context: StaticSolvingContext) -> Mapping[str, SolvedStaticTrajectoryGame]:
-    eq_dict = solve_game(context=context)
+def solve_static_game(context: StaticSolvingContext) \
+        -> Mapping[str, SolvedStaticTrajectoryGame]:
+    eq_dict = Solution.solve_game(context=context)
     static_eq: Dict[str, SolvedStaticTrajectoryGame] = {}
 
     for eq_type, node_set in eq_dict.items():
@@ -258,5 +267,5 @@ def solve_subgame(context: DynamicSolvingContext):
                                           game_outcomes=context.game_outcomes,
                                           outcome_pref=context.outcome_pref,
                                           solver_params=context.solver_params)
-
-    solve_game(context=static_context)
+    sol = Solution()
+    sol.solve_game(context=static_context)

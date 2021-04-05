@@ -1,6 +1,6 @@
 
 #weights:                      Weights for all the metrics
-#  EpisodeTime:               weight
+#  EpisodeTime:                weight
 #  DeviationLateral:           weight
 #  DeviationHeading:           weight
 #  DrivableAreaViolation:      weight

@@ -1,28 +1,29 @@
 from os.path import join
-from typing import Mapping
+from typing import Mapping, List
 from reprep import Report
 
 from trajectory_games import (
     StaticTrajectoryGame,
     preprocess_full_game,
     preprocess_player,
-    solve_game,
+    Solution,
     iterative_best_response,
     StaticSolvingContext,
     report_game_visualization,
     SolvedTrajectoryGame,
     report_nash_eq,
     report_preferences,
-    get_trajectory_game,
+    get_trajectory_game, PosetalPreference,
 )
 
 plot_gif = True                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
-filename = "r_game_all1.html"
+d = "out/tests/"
+filename = "r_game_all.html"
 
 
-def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
-    d = "out/tests/"
+def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
+                   r_game: Report, gif: bool = plot_gif):
     if not only_traj:
         print(
             f"Weak = {len(nash_eq['weak'])}, "
@@ -30,13 +31,19 @@ def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTraje
             f"Incomp = {len(nash_eq['incomp'])}, "
             f"Strong = {len(nash_eq['strong'])}."
         )
+        r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=gif))
+
+
+def report_single(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
-    if not only_traj:
-        r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=plot_gif))
-        r_game.add_child(report_preferences(game=game))
+    create_reports(game=game, nash_eq=nash_eq, r_game=r_game)
+    r_game.add_child(report_preferences(game=game))
     r_game.to_html(join(d, folder + filename))
+    report_times()
 
+
+def report_times():
     from world import LaneSegmentHashable
     from trajectory_games.metrics import CollisionEnergy, MinimumClearance
     print(f"LanePose time = {LaneSegmentHashable.time:.2f} s")
@@ -45,18 +52,21 @@ def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTraje
     print(f"Clearance time = {clear.time:.2f} s")
 
 
-def test_trajectory_game():
+def test_trajectory_game_brute_force():
+    folder = "brute_force/"
     game: StaticTrajectoryGame = get_trajectory_game()
     context: StaticSolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
         nash_eq = {}
     else:
-        nash_eq: Mapping[str, SolvedTrajectoryGame] = solve_game(context=context)
-    create_reports(game=game, nash_eq=nash_eq, folder="brute_force/")
+        sol = Solution()
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=context)
+    report_single(game=game, nash_eq=nash_eq, folder=folder)
 
 
 def test_trajectory_game_best_response():
+    folder = "best_response/"
     n_runs = 100      # Number of random runs for best response
 
     game: StaticTrajectoryGame = get_trajectory_game()
@@ -67,4 +77,38 @@ def test_trajectory_game_best_response():
     else:
         nash_eq: Mapping[str, SolvedTrajectoryGame] = \
             iterative_best_response(context=context, n_runs=n_runs)
-    create_reports(game=game, nash_eq=nash_eq, folder="best_response/")
+    report_single(game=game, nash_eq=nash_eq, folder=folder)
+
+
+def test_trajectory_game_levels():
+    folder = "levels/"
+    pref = "pref_d7"
+
+    game = get_trajectory_game()
+    context: StaticSolvingContext
+    nash_eq: Mapping[str, SolvedTrajectoryGame] = {}
+    sol = Solution()
+
+    def update_prefs(level: int):
+        for pname, player in game.game_players.items():
+            player.preference = PosetalPreference(pref_str=f"{pref}_{level}", use_cache=False)
+
+    r_levels: List[Report] = []
+    for i in range(2, 7):
+        update_prefs(level=i)
+        context = preprocess_full_game(sgame=game, only_traj=only_traj)
+        nash_eq = sol.solve_game(context=context)
+        rep = Report()
+        create_reports(game=game, nash_eq=nash_eq, r_game=rep, gif=False)
+        node: Report = rep.last()
+        node.nid = f"Level_{i}"
+        r_levels.append(node)
+
+    r_game = Report()
+    r_game.add_child(report_game_visualization(game=game))
+    create_reports(game=game, nash_eq=nash_eq, r_game=r_game, gif=True)
+    r_game.add_child(report_preferences(game=game))
+    for level in r_levels:
+        r_game.add_child(level)
+    r_game.to_html(join(d, folder + filename))
+    report_times()

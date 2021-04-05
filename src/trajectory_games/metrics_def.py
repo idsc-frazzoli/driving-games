@@ -1,8 +1,8 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Dict, List, Mapping, Tuple, Optional
 
-from cachetools.func import lfu_cache
 from duckietown_world import SE2Transform, LanePose
 
 from games import PlayerName
@@ -108,7 +108,7 @@ class EvaluatedMetric:
         return self.add(m1=self, m2=other)
 
     @staticmethod
-    @lfu_cache(maxsize=10000)
+    @lru_cache(None)
     def add(m1: "EvaluatedMetric", m2: "EvaluatedMetric") -> "EvaluatedMetric":
         if m1.title != m2.title:
             raise NotImplementedError(f"add implemented only for same metric, "

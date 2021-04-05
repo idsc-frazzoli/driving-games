@@ -103,6 +103,33 @@ pref_d6:                      &pref_d6
   LongitudinalAcceleration:   ["weights_5", "MinimumClearance"]
 
 
+pref_d7_1:                    &pref_d7_1
+  CollisionEnergy:            []
+
+pref_d7_2:                    &pref_d7_2
+  <<: *pref_d7_1
+  DrivableAreaViolation:      ["CollisionEnergy"]
+
+pref_d7_3:                    &pref_d7_3
+  <<: *pref_d7_2
+  MinimumClearance:           ["DrivableAreaViolation"]
+
+pref_d7_4:                    &pref_d7_4
+  <<: *pref_d7_3
+  EpisodeTime:                ["MinimumClearance"]
+
+pref_d7_5:                    &pref_d7_5
+  <<: *pref_d7_4
+  LateralComfort:             ["EpisodeTime"]
+  LongitudinalAcceleration:   ["EpisodeTime"]
+
+pref_d7_6:                    &pref_d7_6
+  <<: *pref_d7_5
+  DeviationLateral:           ["LateralComfort", "LongitudinalAcceleration"]
+  DeviationHeading:           ["LateralComfort", "LongitudinalAcceleration"]
+
+pref_d7:                      &pref_d7
+  <<: *pref_d7_6
 
 ## Test preferences
 test_1:                       &test_1

@@ -35,12 +35,33 @@ def report_game_visualization(game: Game) -> Report:
     return r
 
 
+def report_states(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
+    r_st = Report("states")
+    print_all = len(nash_eq["weak"]) <= 10
+    for k, node_set in nash_eq.items():
+        texts = []
+        if not bool(node_set):
+            texts.append("\t No equilibria")
+        elif not print_all or k.startswith("weak"):
+            texts.append(f"\t {len(node_set)} equilibria")
+        else:
+            for node in node_set:
+                for player, action in node.actions.items():
+                    texts.append(
+                        f"\t{player}: action={action},\n"
+                        f"\t\toutcome={list(node.outcomes[player].values())}"
+                    )
+                texts.append("\n")
+        text = "\n".join(texts)
+        r_st.text(f"{k} -", remove_escapes(text))
+    return r_st
+
+
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                    plot_gif: bool) -> Report:
     tic = perf_counter()
     viz = game.game_vis
     r_all = Report("equilibria")
-    r_st = Report("states")
     req = Report("plots")
 
     for player in game.game_players.values():
@@ -48,24 +69,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             f"Preference is of type {player.preference.get_type()} " \
             f"and not {PosetalPreference.get_type()}"
 
-    for k, node_set in nash_eq.items():
-        if k.startswith("weak"):
-            continue
-        texts = []
-        if not bool(node_set):
-            texts.append("\t No equilibria")
-            text = "\n".join(texts)
-            r_st.text(f"{k} -", remove_escapes(text))
-            continue
-        for node in node_set:
-            for player, action in node.actions.items():
-                texts.append(
-                    f"\t{player}: action={action},\n"
-                    f"\t\toutcome={list(node.outcomes[player].values())}"
-                )
-            texts.append("\n")
-        text = "\n".join(texts)
-        r_st.text(f"{k} -", remove_escapes(text))
+    r_all.add_child(report_states(nash_eq=nash_eq))
 
     node_set = nash_eq["weak"]
 
@@ -136,7 +140,6 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
         image_eq(report=rplot)
         req.add_child(rplot)
 
-    r_all.add_child(r_st)
     r_all.add_child(req)
     toc = perf_counter() - tic
     print(f"Nash eq viz time = {toc:.2f} s")
