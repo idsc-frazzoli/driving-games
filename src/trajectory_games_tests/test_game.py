@@ -112,3 +112,10 @@ def test_trajectory_game_levels():
         r_game.add_child(level)
     r_game.to_html(join(d, folder + filename))
     report_times()
+
+
+if __name__ == '__main__':
+    d = 'trajectory_games_tests/' + d
+    # test_trajectory_game_brute_force()
+    # test_trajectory_game_best_response()
+    test_trajectory_game_levels()
