@@ -13,6 +13,7 @@ Welcome to Driving Games's documentation!
    toy_games/index
    bayesian_driving_games/index
    trajectory_games/index
+   world/index
 
 
 
