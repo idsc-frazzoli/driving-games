@@ -15,6 +15,7 @@ Welcome to Driving Games's documentation!
    trajectory_games/index
    world/index
    factorization/index
+   duckie_games/index
 
 
 

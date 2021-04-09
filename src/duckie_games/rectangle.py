@@ -152,6 +152,8 @@ class Rectangle:
         """
         Returns the coordinates of the closed contour of the rectangle
         The orientation of the contour is consistent with the quadrants of the rectangle reference coordinate system
+        """
+        """
                       Y
                       ^
                       |
@@ -174,6 +176,8 @@ class Rectangle:
         """
         Returns the coordinates of the contour of the rectangle.
         The orientation of the contour is consistent with the quadrants of the rectangle reference coordinate system
+        """
+        """
                       Y
                       ^
                       |
@@ -221,6 +225,8 @@ class Rectangle:
     def angles_diagnoals(self) -> Tuple[Angle_Deg, Angle_Deg]:
         """
         Returns the angles between the diagonals
+        """
+        """
                       Y   angle_y
                       ^  /
                       | v
@@ -246,6 +252,8 @@ class Rectangle:
         """
         Returns the coordinates of the closed contour of the rectangle in the rectangle coordinate system
         The orientation of the contour is consistent with the quadrants in the rectangle coordinate system
+        """
+        """
                       Y
                       ^
                       |
@@ -276,6 +284,8 @@ class Rectangle:
         """
         Returns the coordinates of the closed contour of the rectangle in the rectangle coordinate system
         The orientation of the contour is consistent with the quadrants in the rectangle coordinate system
+        """
+        """
                       Y
                       ^
                       |
