@@ -6,6 +6,17 @@ from copy import deepcopy
 from toolz import valmap, valfilter
 from numbers import Number
 
+__all__ = [
+    "GamePerformance",
+    "get_initialized_game_performance",
+    "PerformanceInfo",
+    "GetFactorizationPI",
+    "GetFutResourcesPI",
+    "CreateGameGraphPI",
+    "SolveGamePI",
+    "PreprocessPlayerPI",
+]
+
 
 G = TypeVar("G")
 """ Generic variable for a player's geometrie."""
@@ -147,6 +158,14 @@ class GamePerformance:
 def get_initialized_game_performance(
         game: Game, solver_params: SolverParams
 ) -> GamePerformance:
+    """
+    Returns an initialized game performance class.
+    All times are set to zero and the solver specifications are filled in.
+
+    :param game: The game that gets solved
+    :param solver_params: The solver parameters
+    :return: The initialized game performance class
+    """
 
     create_gg_pi = CreateGameGraphPI(
         total_time=0,
@@ -188,13 +207,13 @@ def get_initialized_game_performance(
 
     nb_players = len(game.players)
     player_dynamics = {pn: gp.dynamics.__dict__ for pn, gp in game.players.items()}
-    player_dynamics_numbers_only = valmap(
+    player_dynamics_numbers_only = valmap(  # only display the objects that are "Numbers"
         lambda _: valfilter(lambda _val: isinstance(_val, Number), _),
         player_dynamics
     )
 
     def _get_geometries(_):
-        if hasattr(_.dynamics, "vg"):
+        if hasattr(_.dynamics, "vg"):  # check if the class has vehicle geometries
             return _.dynamics.vg.__dict__
         else:
             return None
@@ -205,7 +224,7 @@ def get_initialized_game_performance(
     adm_strat: AdmissibleStrategies = solver_params.admissible_strategies
     use_fact = solver_params.use_factorization
 
-    if hasattr(solver_params, "beta"):
+    if hasattr(solver_params, "beta"):  # todo make beta standard for all classes
         beta = solver_params.beta
     else:
         beta = 0

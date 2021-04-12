@@ -77,3 +77,15 @@ structures_solutions
 
 .. automodule:: games.solve.structures_solution
    :members:
+
+
+performance
+---------------------
+
+Contains the classes and functions to collect the time it takes for different steps in the game solving process.
+
+.. automodule:: games.performance
+   :members:
+
+.. automodule:: games.reports_performance
+   :members:
