@@ -18,7 +18,7 @@ module_path = os.path.dirname(__file__)
 
 def test_collision_check_utils():
     """
-    Tests the help functions visually
+    Tests the different functions used in collision checking
     """
     background_path = os.path.join(map_directory, "4way.png")
 

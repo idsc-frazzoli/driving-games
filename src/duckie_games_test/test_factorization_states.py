@@ -1,6 +1,4 @@
-from os.path import join
 from itertools import product
-from time import perf_counter
 import math
 
 from parameterized import parameterized
@@ -11,17 +9,10 @@ from games import (
     MIX_STRATEGIES,
     FINITE_MIX_STRATEGIES,
     PURE_STRATEGIES,
-    report_solutions,
-    create_report_preprocessed,
-    UncertaintyParams,
     logger
 )
 
 from games.access import get_game_factorization
-from games.solve.solution import solve1
-from games.reports_performance import report_performance
-from games.performance import get_initialized_game_performance, GamePerformance
-
 
 from factorization.structures import FactorizationSolverParams, FactorizationSolverSpec
 from factorization.algos_factorization import (
@@ -68,16 +59,18 @@ nash_strategy = [
 
 
 betas = [
-    0, # resources of game
+    0,  # resources of game
     math.inf  # forward reachable set
 ]
 
 params = list(product(duckie_game_params, uncertainty_params, strategies, nash_strategy, betas))
 
+
 @parameterized(params)
 def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_strat, beta):
     """
-    n-player duckie game tests
+    This functions compares the partitioning of players for the different factorization algorithms with the base
+    factorization algorithm. Only for a two player game!
     """
 
     game = get_duckie_game(duckie_game_params=duckie_game_parameters, uncertainty_params=duckie_uncert_params[0])
@@ -121,13 +114,7 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
             for js in game_preprocessed_test.game_factorization.ipartitions:
                 partition_base = game_preprocessed_base.game_factorization.ipartitions[js]
                 partition_test = game_preprocessed_test.game_factorization.ipartitions[js]
-                assert partition_base == partition_test, (
+                assert partition_base == partition_test, (  # check the partitions found in the newer algo with the base
                     f"Partition test {partition_test} is not {partition_base} for state \n"
                     f"{js}"
                 )
-
-
-
-
-
-

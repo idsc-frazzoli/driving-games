@@ -92,6 +92,8 @@ betas = [
     math.inf  # forward reachable set
 ]
 
+# during the test the game is solved for each set of accelerations specified, we differentiate between the set
+# monad and the probability monad
 accelerations_test ={
     "prob" : [
       # ["0", "+0.5"],
@@ -118,14 +120,16 @@ params = list(product(duckie_game_params, uncertainty_params, strategies, nash_s
 @parameterized(params)
 def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash_strat, use_fact, beta):
     """
-    Test the factorization algos for different size of actions
+    Test the factorization algos for different size of action sets
     """
+
     if beta is not math.inf and not use_fact[0]:
-        # Only run it for beta=inf when no factorization is used
+        # When no factorization is used, only run it for beta=inf
         return
 
-    runs = 1
-    r_run = 0
+    runs = 1  # how many times should the game be solved (for the performance info)
+    # fixme for more than 1 run the results for the runs > 1 are different because of caching some functions
+    r_run = 0  # at which run should the report of the simulation be created
 
     use_factorization = use_fact[0]
     get_factorization = use_fact[1]  # factorization algo used
@@ -155,13 +159,15 @@ def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash
 
     logger.info(game_name=game_name, solver_name=solver_name)
 
-    list_game_perf = []
+    list_game_perf = []  # initialize empty list for the game performances of each run
 
+    # take either the set for the probability monad or the set monad
     available_acels = accelerations_test[duckie_uncert_params[1]]
-    for accel_set in available_acels:
+    for accel_set in available_acels:  # iterate through all the sets of accelerations
 
-        accel_set = list(map(D, accel_set))
+        accel_set = list(map(D, accel_set))  # convert to decimals
 
+        # replace the accelerations defined in the zoo module by the new set of accelerations
         old_accelerations = duckie_game_parameters.available_accels
         new_accelerations = valmap(lambda _: accel_set, old_accelerations)
         new_duckie_parameters = replace(duckie_game_parameters, available_accels=new_accelerations, lanes=None)
@@ -174,9 +180,8 @@ def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash
         )
 
         for i in range(runs):
-
+            # initialize an empty game performance info object
             game_performance: GamePerformance = get_initialized_game_performance(game=game, solver_params=solve_params)
-
 
             # start performance counter collect time used for preprocessing
             t1 = perf_counter()
@@ -207,6 +212,9 @@ def test_factorization(duckie_game_parameters, duckie_uncert_params, strat, nash
 
 
 def _get_game_name_without_accel(duckie_game_parameters):
+    """
+    Returns the folder name without the number accelerations per player
+    """
     player_number = duckie_game_parameters.player_number
     m = duckie_game_parameters.map_name
     game_name = f"{player_number}_player_{m}"
@@ -214,6 +222,9 @@ def _get_game_name_without_accel(duckie_game_parameters):
 
 
 def _get_number_of_actions(duckie_game_parameters):
+    """
+    Returns the number of accelerations per player as string
+    """
     accels = duckie_game_parameters.available_accels
     nb_accels = f""
     for i, ac in enumerate(accels.values()):

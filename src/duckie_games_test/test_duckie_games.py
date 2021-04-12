@@ -98,15 +98,16 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
     """
 
     if beta is not math.inf and not use_fact[0]:
-        # Only run it for beta=inf when no factorization is used
+        # When no factorization is used, only run it for beta=inf
         return
 
-    runs = 1
-    r_run = 0
+    runs = 1  # how many times should the game be solved (for the performance info)
+    # fixme for more than 1 run the results for the runs > 1 are different because of caching some functions
+    r_run = 0  # at which run should the report of the simulation be created
 
     logger.info(f"Starting test: {duckie_game_parameters.desc}")
     d = "out/"
-    game_name = _get_game_name(duckie_game_parameters)
+    game_name = _get_game_name(duckie_game_parameters)  # get the name of the folder
 
     solver_name = (
         f"{strat}-{nash_strat}-{duckie_uncert_params[1]}"
@@ -132,9 +133,10 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
 
     dg = join(d, game_name)
     ds = join(dg, solver_name)
-    list_game_perf = []
+    list_game_perf = []  # initialize empty list for the game performances of each run
 
     for i in range(runs):
+        # initialize an empty game performance info object
         game_performance: GamePerformance = get_initialized_game_performance(game=game, solver_params=solve_params)
 
         # start performance counter collect time used for preprocessing
@@ -166,6 +168,9 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
 
 
 def _get_game_name(duckie_game_parameters):
+    """
+    Returns the name of the folder where the test results are stored
+    """
     player_number = duckie_game_parameters.player_number
     m = duckie_game_parameters.map_name
     accels = duckie_game_parameters.available_accels
