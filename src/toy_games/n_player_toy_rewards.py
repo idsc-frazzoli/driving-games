@@ -54,14 +54,13 @@ class ToyCarPersonalRewardStructureCustom(PersonalRewardStructure[ToyCarState, T
 @dataclass(frozen=True)
 class ToyCollision:
     #active: bool
-    active: D # 1 indicates the car was active 0 indicates it was not active
+    active: D # 1 indicates the car was active 0 indicates it was not active, used to have a expected value of active
 
     # Monoid sum of Collision
     def __add__(self, other: "ToyCollision") -> "ToyCollision":
         if other is None:
             return self
         elif isinstance(other, ToyCollision):
-            # fixme how to propagate "active" and "location" ?
             return replace(
                 self,
                 active=self.active + other.active
@@ -128,6 +127,9 @@ class ToyCarJointReward(JointRewardStructure[ToyCarState, ToyCarActions, ToyColl
 
 
 def toy_collision_check(joint_state: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
+    """
+    Stops the game for players that would still need to pass the collision point
+    """
     collision_dict = {}
 
     players = list(joint_state)
@@ -171,6 +173,9 @@ def toy_stop_game_for_players_around(
         colliding_players: Tuple[PlayerName, PlayerName],
         joint_state: Mapping[PlayerName, ToyCarState],
 ) -> Mapping[PlayerName, ToyCollision]:
+    """
+    Stops the game for the players that would still need to pass the collision point.
+    """
 
     col_player1, col_player2 = colliding_players
 
@@ -203,6 +208,10 @@ def toy_stop_game_for_players_around(
 
 
 def toy_collision_check2(joint_state: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
+    """
+    Does not stop the game for players around the collision
+    """
+
     collision_dict = {}
 
     players = list(joint_state)
