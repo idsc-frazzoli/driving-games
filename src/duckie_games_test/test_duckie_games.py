@@ -101,6 +101,8 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
         # When no factorization is used, only run it for beta=inf
         return
 
+    upsample_vis = 2  # divides the timestep used for upsampling in simulation
+
     runs = 1  # how many times should the game be solved (for the performance info)
     # fixme for more than 1 run the results for the runs > 1 are different because of caching some functions
     r_run = 0  # at which run should the report of the simulation be created
@@ -155,7 +157,7 @@ def test_duckie_games(duckie_game_parameters, duckie_uncert_params, strat, nash_
         list_game_perf.append(game_performance)
 
         if r_run == i:
-            r_solutions = report_solutions(game_preprocessed, solutions)
+            r_solutions = report_solutions(game_preprocessed, solutions, upsample_log=upsample_vis)
             r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
 
             r_solutions.to_html(join(ds, "r_solutions.html"))
