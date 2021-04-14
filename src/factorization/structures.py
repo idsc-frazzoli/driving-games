@@ -22,15 +22,9 @@ Player_Preprocessed = Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ
 @dataclass(frozen=True)
 class FactorizationSolverParams(SolverParams):
     get_factorization: Optional[
-        Union[
-            Callable[
-                [Game[X, U, Y, RP, RJ, SR], Player_Preprocessed, Optional[GetFactorizationPI]],
-                GameFactorization
-            ],
-            Callable[
-                [Game[X, U, Y, RP, RJ, SR], SolverParams, Player_Preprocessed, Optional[GetFactorizationPI]],
-                GameFactorization
-            ]
+        Callable[
+            [Game[X, U, Y, RP, RJ, SR], SolverParams, Player_Preprocessed, Optional[GetFactorizationPI]],
+            GameFactorization
         ]
     ]
     """ Contains the factorization algo used """

@@ -72,10 +72,7 @@ def preprocess_n_player_game(
         # start timer to collect time used for factorization
         t1 = perf_counter()
 
-        try:  # there are different factorization algos at the moment with different inputs
-            game_factorization = solver_params.get_factorization(game, solver_params, players_pre, fact_perf)
-        except TypeError:  # todo only use one factorization algo
-            game_factorization = solver_params.get_factorization(game, players_pre, fact_perf)
+        game_factorization = solver_params.get_factorization(game, solver_params, players_pre, fact_perf)
 
         # stop timer and collect performance if given
         t2 = perf_counter()

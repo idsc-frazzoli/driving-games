@@ -358,6 +358,7 @@ def find_dependencies_n_players_no_collision_check(
 
 def get_game_factorization_no_collision_check(
     game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
     fact_perf: Optional[GetFactorizationPI] = None
 ) -> GameFactorization[X]:
@@ -373,6 +374,7 @@ def get_game_factorization_no_collision_check(
     :return:
     """
     ps = game.ps
+    dt = solver_params.dt  # not used
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
     js: JointState
@@ -626,7 +628,7 @@ def _recursive_reachable_state_iterator(
                 f = _.personal_reward_structure.personal_final_reward(player_state)
                 is_final[player_name] = f
 
-        who_exits = frozenset(game.joint_reward.is_joint_final_state(states))
+        who_exits = frozenset(game.joint_reward.is_joint_final_state(states, dt))
         joint_final = who_exits
 
         players_exiting = set(who_exits) | set(is_final)

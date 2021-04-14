@@ -116,11 +116,11 @@ class ToyCarPreferences(Preference[Combined[ToyCollision, ToyCarCosts]]):
 
 class ToyCarJointReward(JointRewardStructure[ToyCarState, ToyCarActions, ToyCollision]):
 
-    def is_joint_final_state(self, xs: Mapping[PlayerName, ToyCarState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, ToyCarState], dt: D) -> FrozenSet[PlayerName]:
         res = toy_collision_check2(joint_state=xs)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, ToyCarState]) -> Mapping[PlayerName, ToyCollision]:
+    def joint_reward(self, xs: Mapping[PlayerName, ToyCarState], dt: D) -> Mapping[PlayerName, ToyCollision]:
 
         res = toy_collision_check2(joint_state=xs)
         return res
