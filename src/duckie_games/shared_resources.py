@@ -73,14 +73,15 @@ class DrivingGameGridMap(DuckietownMap):
         return cls(cell_size=cell_size, **ls_dict)
 
     @memoized_reset
-    def get_resources_used(self, vs: DuckieState, vg: DuckieGeometry) -> FrozenSet[ResourceID]:
+    def get_resources_used(self, vs: DuckieState, vg: DuckieGeometry, dt: D) -> FrozenSet[ResourceID]:
         """
         For a certain state of a player get the resources used by upsampling in front and in the back of the car.
         """
-
-        dt = D(0.5)  # todo other timestep than 1
-        n = 2
-        xs = sample_x(vs.x, vs.v, dt=dt, n=n)  # upsample in front and the back of the car along the lane
+        n = 2  # how many values should be sampled in front and in the back of the car
+        with localcontext() as ctx:
+            ctx.prec = 2
+            dt_smaller = dt / D(n)
+            xs = sample_x(vs.x, vs.v, dt=dt_smaller, n=n)  # upsample in front and the back of the car along the lane
 
         resources_id_used: Set[ResourceID] = set()
         for x in xs:  # get the resource of the footprint for the different positions along the lane

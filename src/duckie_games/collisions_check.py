@@ -58,7 +58,7 @@ def spatial_collision_check_binary_resources_no_rectangles(  # faster collision 
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):  # fixme
             # no collision
             continue
 
@@ -106,7 +106,7 @@ def spatial_collision_check_binary_resources_no_rectangles_players_only( # faste
         d2 = dynamics[p2]
 
         # collision check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):  # fixme
             # no collision
             continue
 
@@ -142,7 +142,7 @@ def spatial_collision_check_resources_no_energy(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, D(1)) & d2.get_shared_resources(s2, D(1)):  # todo timestep
             # no collision
             continue
 
@@ -239,7 +239,7 @@ def spatial_collision_check_resources_no_energy_players_only(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, D(1)) & d2.get_shared_resources(s2, D(1)):  # todo timestep
             # no collision
             continue
 
@@ -513,7 +513,7 @@ def collision_check_resources_no_energy(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):  # fixme
             # no collision
             continue
 
@@ -621,7 +621,7 @@ def collision_check_resources_no_energy_players_only(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):  # fixme
             # no collision
             continue
 

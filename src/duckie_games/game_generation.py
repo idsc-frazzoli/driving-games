@@ -219,7 +219,8 @@ def get_duckie_game(
         duckie_map=duckie_map_grid,
         map_name=duckie_game_params.map_name,
         geometries=duckie_game_params.player_geometries,
-        ds=duckie_game_params.shared_resources_ds
+        ds=duckie_game_params.shared_resources_ds,
+        dt=dt
     )
     game: DuckieGame
 

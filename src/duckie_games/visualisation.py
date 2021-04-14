@@ -38,6 +38,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
     side: D
     geometries: Mapping[PlayerName, DuckieGeometry]
     ds: D
+    dt: D
     pylab: Any
 
     def __init__(
@@ -45,11 +46,13 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
             duckie_map: DrivingGameGridMap,
             map_name: str,
             geometries: Mapping[PlayerName, DuckieGeometry],
-            ds: D
+            ds: D,
+            dt: D
     ):
         self.duckie_map = duckie_map
         self.map_name = map_name
         self.ds = ds
+        self.dt = dt
         self.geometries = geometries
         self.pylab = None
 
@@ -118,7 +121,7 @@ class DuckieGameVisualization(GameVisualization[DuckieState, DuckieActions, Duck
         vg = self.geometries[player_name]
         resources: FrozenSet[ResourceID]
         vcolor = np.array(vg.color) * 0.5 + np.array([0.5, 0.5, 0.5]) * 0.5
-        resources = self.duckie_map.get_resources_used(vs=state, vg=vg)
+        resources = self.duckie_map.get_resources_used(vs=state, vg=vg, dt=self.dt)
 
         for _id in resources:
             center_x, center_y = self.duckie_map.resources[_id]

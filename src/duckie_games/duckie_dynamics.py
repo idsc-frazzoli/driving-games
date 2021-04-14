@@ -146,5 +146,5 @@ class DuckieDynamics(Dynamics[DuckieState, DuckieActions, ResourceID]):
         return ret
 
     @lru_cache(None)
-    def get_shared_resources(self, x: DuckieState) -> FrozenSet[ResourceID]:
-        return self.driving_game_grid_map.get_resources_used(vs=x, vg=self.vg)
+    def get_shared_resources(self, x: DuckieState, dt: D) -> FrozenSet[ResourceID]:
+        return self.driving_game_grid_map.get_resources_used(vs=x, vg=self.vg, dt=dt)
