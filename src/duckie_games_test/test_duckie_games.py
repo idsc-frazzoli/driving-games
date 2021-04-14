@@ -54,7 +54,7 @@ uncertainty_params = [
 duckie_game_params = [
     # two_player_4way,
     two_player_4way_intersection_only,
-    # two_player_roundabout_only,
+    two_player_roundabout_only,
     # three_player_4way,
     # three_player_4way_intersection_only,
     # three_player_4way_double,
@@ -73,9 +73,9 @@ nash_strategy = [
 ]
 
 use_factorization = [
-    # [True, get_game_factorization, "base"],
-    # [True, get_game_factorization_no_collision_check, "no_col"],
-    # [True, get_game_factorization_as_create_game_graph, "as_gg"],
+    [True, get_game_factorization, "base"],
+    [True, get_game_factorization_no_collision_check, "no_col"],
+    [True, get_game_factorization_as_create_game_graph, "as_gg"],
     [True, get_game_factorization_n_players_as_create_game_graph, "n_play_as_gg"],
     [False, None]
 ]

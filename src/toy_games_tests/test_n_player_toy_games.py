@@ -49,19 +49,19 @@ uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder
 
 
 uncertainty_params = [
-    # [uncertainty_sets, "sets"],
+    [uncertainty_sets, "sets"],
     [uncertainty_prob, "prob"],
 ]
 
 toy_game_params = [
     toy_params_x,
-    # toy_params_star,
-    # toy_params_x_with_base,
-    # toy_params_indep_lanes,
-    # toy_params_one_indep_lane,
-    # toy_params_two_indep_games,
-    # toy_params_two_x_joint,
-    # toy_params_two_x_crossed,
+    toy_params_star,
+    toy_params_x_with_base,
+    toy_params_indep_lanes,
+    toy_params_one_indep_lane,
+    toy_params_two_indep_games,
+    toy_params_two_x_joint,
+    toy_params_two_x_crossed,
 ]
 
 strategies = [
@@ -80,11 +80,11 @@ use_factorization = [
     # [True, get_game_factorization_no_collision_check, "no_col"],
     # [True, get_game_factorization_as_create_game_graph, "as_gg"],
     [True, get_game_factorization_n_players_as_create_game_graph, "n_play_as_gg"],
-    # [False, None]
+    [False, None]
 ]
 
 betas = [
-    # 0,
+    0,
     math.inf
 ]
 
