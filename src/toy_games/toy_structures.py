@@ -84,7 +84,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
         else:
             raise ZValueError(x=x, u=u)
 
-    def get_shared_resources(self, x: X) -> FrozenSet[SR]:
+    def get_shared_resources(self, x: X, dt: D) -> FrozenSet[SR]:
         return None
         # raise NotImplementedError("For the toy example the concept of shared resources is not needed")
 

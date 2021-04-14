@@ -253,7 +253,7 @@ def _create_game_graph(
     resources = {}
     for player_name, player_state in states.items():
         dynamics = ic.game.players[player_name].dynamics
-        resources[player_name] = dynamics.get_shared_resources(player_state)
+        resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
 
     # End timer and collect performance if given
     t2 = perf_counter()
