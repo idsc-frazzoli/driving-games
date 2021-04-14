@@ -19,11 +19,11 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         self.geometries = geometries
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState], dt: D) -> FrozenSet[PlayerName]:
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, Collision]:
+    def joint_reward(self, xs: Mapping[PlayerName, VehicleState], dt: D) -> Mapping[PlayerName, Collision]:
         res = collision_check(xs, self.geometries)
         return res
 
@@ -40,7 +40,7 @@ class IndividualJointReward(JointRewardStructure[VehicleState, VehicleActions, C
         self.caring_players = caring_players
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState], dt: D) -> FrozenSet[PlayerName]:
         res = collision_check(xs, self.geometries)
         # filtered_res = set()
         # for player in res:
@@ -51,7 +51,7 @@ class IndividualJointReward(JointRewardStructure[VehicleState, VehicleActions, C
         # res[player] = Collision(col.location, False, D(0), D(0))
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, Collision]:
+    def joint_reward(self, xs: Mapping[PlayerName, VehicleState], dt: D) -> Mapping[PlayerName, Collision]:
         res = collision_check(xs, self.geometries)
         for player, cost in res.items():
             if player in self.caring_players:

@@ -67,7 +67,7 @@ def preprocess_bayesian_game(
         individual_games,
     )
     if solver_params.use_factorization:
-        game_factorization = get_game_factorization(game, players_pre)
+        game_factorization = get_game_factorization(game, solver_params, players_pre)
     # todo BayesianGamePreprocessed
     gp = GamePreprocessed(
         game=game,

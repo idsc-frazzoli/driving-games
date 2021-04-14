@@ -76,7 +76,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         self.p1_types = p1_types
         self.p2_types = p2_types
 
-    def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState], dt: D) -> FrozenSet[PlayerName]:
         # todo BirdState -> BayesianBirdState
         res = set()
         if len(xs.items()) > 1:
@@ -86,7 +86,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         return frozenset(res)
 
     def joint_reward(
-        self, xs: Mapping[PlayerName, BirdState]
+        self, xs: Mapping[PlayerName, BirdState], dt: D
     ) -> Mapping[Set[PlayerType], Mapping[PlayerName, BirdCosts]]:
         # todo BirdState -> BayesianBirdState
         """

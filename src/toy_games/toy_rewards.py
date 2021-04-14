@@ -73,7 +73,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         self.max_stages = max_stages
         self.mat_payoffs = [np.stack([g.A, g.B], axis=-1) for g in subgames]
 
-    def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState], dt: D) -> FrozenSet[PlayerName]:
         res = set()
         if len(xs.items()) > 1:
             for player, x in xs.items():
@@ -81,7 +81,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
                     res.add(player)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
+    def joint_reward(self, xs: Mapping[PlayerName, BirdState], dt: D) -> Mapping[PlayerName, BirdCosts]:
         """
         Each payoff matrix correspond to a specific subgame
 
