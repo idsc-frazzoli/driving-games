@@ -184,7 +184,7 @@ player_node_sequence = {pn: _ for pn, _ in zip(player_names, node_sequences)}
 
 initial_progress = [D(0), D(0)]
 max_paths = [D(20), D(20)]
-max_speeds = [D(4), D(4)]
+max_speeds = [D(6), D(4)]
 min_speeds = [D(1), D(1)]
 max_waits = [D(1), D(1)]
 
@@ -378,7 +378,7 @@ desc = (
 map_name = "4way-double"
 
 player_nb = 3
-dt = D(1)
+dt = D(2)
 collision_threshold = 3
 
 player_names = [PlayerName("Duckie_1"), PlayerName("Duckie_2"), PlayerName("Duckie_3")]
@@ -421,7 +421,7 @@ shared_resources_ds = round(width / D(3), 2)
 
 initial_progress = [D(10), D(10), D(10)]
 max_paths = [D(32), D(32), D(32)]
-max_speeds = [D(5), D(5), D(5)]
+max_speeds = [D(4), D(4), D(4)]
 min_speeds = [D(1), D(1), D(1)]
 max_waits = [D(1), D(1), D(1)]
 

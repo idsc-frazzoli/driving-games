@@ -97,7 +97,9 @@ def test_resources_visual():
         height=D(2)
     )
 
-    resources = driving_game_grid_map.get_resources_used(vs=duckie_x, vg=duck_g)
+    dt = D(1)
+
+    resources = driving_game_grid_map.get_resources_used(vs=duckie_x, vg=duck_g, dt=dt)
 
     fig, ax = plt.subplots()
     ax.set_title("Resources Test")

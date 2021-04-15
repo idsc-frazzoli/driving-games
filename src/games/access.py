@@ -84,7 +84,7 @@ def preprocess_game(
         individual_games,
     )
     if solver_params.use_factorization:
-        game_factorization = get_game_factorization(game, players_pre)
+        game_factorization = get_game_factorization(game, solver_params, players_pre)
 
     gp = GamePreprocessed(
         game=game,
@@ -99,16 +99,19 @@ def preprocess_game(
 
 def get_game_factorization(
     game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
     fact_perf: Optional[GetFactorizationPI] = None
 ) -> GameFactorization[X]:
     """
 
     :param game:
+    :param solver_params:
     :param players_pre:
     :param fact_perf:
     :return:
     """
+    dt = solver_params.dt
     ps = game.ps
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
@@ -138,7 +141,7 @@ def get_game_factorization(
         # start timer to collect the time for the collision check
         t1 = perf_counter()
 
-        players_colliding = game.joint_reward.is_joint_final_state(jsf)
+        players_colliding = game.joint_reward.is_joint_final_state(jsf, dt)
 
         # stop timer and collect performance if given
         t2 = perf_counter()
@@ -169,7 +172,7 @@ def get_game_factorization(
             for nplayers in range(2, n):
                 for players_subset in itertools.combinations(players_colliding, nplayers):
                     jsf_subset = fkeyfilter(players_subset.__contains__, jsf)
-                    if game.joint_reward.is_joint_final_state(jsf_subset):
+                    if game.joint_reward.is_joint_final_state(jsf_subset, dt):
                         partition = frozenset({frozenset(players_subset)})
                         partitions[partition].add(jsf_subset)
                         ipartitions[jsf_subset] = partition
@@ -448,7 +451,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
 
                     in_game = "AB" if (s1 and s2) else ("A" if s1 else "B")
                     if s1 and s2:
-                        is_joint_final = len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2})) > 0
+                        is_joint_final = len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2}, dt)) > 0
                     else:
                         is_joint_final = False
                     G.add_node(

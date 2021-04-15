@@ -49,7 +49,7 @@ uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder
 
 
 uncertainty_params = [
-    # [uncertainty_sets, "sets"],
+    [uncertainty_sets, "sets"],
     [uncertainty_prob, "prob"],
 ]
 
@@ -61,7 +61,7 @@ toy_game_params = [
     toy_params_one_indep_lane,
     toy_params_two_indep_games,
     toy_params_two_x_joint,
-    # toy_params_two_x_crossed,
+    toy_params_two_x_crossed,
 ]
 
 strategies = [
@@ -77,14 +77,14 @@ nash_strategy = [
 
 use_factorization = [
     # [True, get_game_factorization, "base"],
-    [True, get_game_factorization_no_collision_check, "no_col"],
-    [True, get_game_factorization_as_create_game_graph, "as_gg"],
+    # [True, get_game_factorization_no_collision_check, "no_col"],
+    # [True, get_game_factorization_as_create_game_graph, "as_gg"],
     [True, get_game_factorization_n_players_as_create_game_graph, "n_play_as_gg"],
     [False, None]
 ]
 
 betas = [
-    # 0,
+    0,
     math.inf
 ]
 
@@ -96,8 +96,8 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
     """
     N-Player toy game
     """
-    runs = 1
-    r_run = 0
+    runs = 1  # how many times should the game be solved (for the performance info)
+    r_run = 0  # at which run should the report of the simulation be created
 
     d = "out/"
     game_name = f"{toy_game_parameters.params_name}"
@@ -127,6 +127,7 @@ def test_n_player_toy_game(toy_game_parameters, uncert_params, strat, nash_strat
 
     list_game_perf = []
     for i in range(runs):
+        # initialize an empty game performance info object
         game_performance: GamePerformance = get_initialized_game_performance(game=game, solver_params=solve_params)
 
         # start performance counter collect time used for preprocessing

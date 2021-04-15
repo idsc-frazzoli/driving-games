@@ -37,6 +37,7 @@ def spatial_collision_check_binary_resources_no_rectangles(  # faster collision 
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
         dynamics: Mapping[PlayerName, DuckieDynamics],
+        dt: D
 ) -> Mapping[PlayerName, Collision]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane.
@@ -58,7 +59,7 @@ def spatial_collision_check_binary_resources_no_rectangles(  # faster collision 
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, dt) & d2.get_shared_resources(s2, dt):
             # no collision
             continue
 
@@ -87,6 +88,7 @@ def spatial_collision_check_binary_resources_no_rectangles_players_only( # faste
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
         dynamics: Mapping[PlayerName, DuckieDynamics],
+        dt: D
 ) -> FrozenSet[PlayerName]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane.
@@ -106,7 +108,7 @@ def spatial_collision_check_binary_resources_no_rectangles_players_only( # faste
         d2 = dynamics[p2]
 
         # collision check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, dt) & d2.get_shared_resources(s2, dt):
             # no collision
             continue
 
@@ -122,6 +124,7 @@ def spatial_collision_check_resources_no_energy(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
         dynamics: Mapping[PlayerName, DuckieDynamics],
+        dt: D
 ) -> Mapping[PlayerName, Collision]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane. It does not collect the energy
@@ -142,7 +145,7 @@ def spatial_collision_check_resources_no_energy(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, dt) & d2.get_shared_resources(s2, dt):
             # no collision
             continue
 
@@ -153,10 +156,12 @@ def spatial_collision_check_resources_no_energy(
         # x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
         # x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
 
-        dt = D(0.5) # todo change for timesteps not equal 1
-        n = 2
-        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+        n = 2 # how many values should be sampled in front and in the back of the car
+        with localcontext() as ctx:
+            ctx.prec = 2
+            dt_smaller = dt / D(n)
+            x1s = sample_x(s1.x, s1.v, dt=dt_smaller, n=n)
+            x2s = sample_x(s2.x, s2.v, dt=dt_smaller, n=n)
 
         # check the sampled positions for collisions
         for x1, x2 in zip(x1s, x2s):
@@ -219,6 +224,7 @@ def spatial_collision_check_resources_no_energy_players_only(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
         dynamics: Mapping[PlayerName, DuckieDynamics],
+        dt: D
 ) -> FrozenSet[PlayerName]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane. Only returns the players
@@ -239,21 +245,22 @@ def spatial_collision_check_resources_no_energy_players_only(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, dt) & d2.get_shared_resources(s2, dt):
             # no collision
             continue
 
         # samples in front and in the back of the car along the lane to account for the large time step
-        # dt = D(1)  # todo change for timesteps not equal 1
         # n_min = 2
         # n_max = 3
         # x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
         # x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
 
-        dt = D(0.5)
-        n = 2
-        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+        n = 2  # how many values should be sampled in front and in the back of the car
+        with localcontext() as ctx:
+            ctx.prec = 2
+            dt_smaller = dt / D(n)
+            x1s = sample_x(s1.x, s1.v, dt=dt_smaller, n=n)
+            x2s = sample_x(s2.x, s2.v, dt=dt_smaller, n=n)
 
         # check the sampled positions for collisions
         for x1, x2 in zip(x1s, x2s):
@@ -281,6 +288,7 @@ def spatial_collision_check_resources_no_energy_players_only(
 def collision_check_rectangle_energy(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
+        dt: D
 ) -> Mapping[PlayerName, Collision]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane.
@@ -305,16 +313,17 @@ def collision_check_rectangle_energy(
         g2 = geometries[p2]
 
         # samples in front and in the back of the car along the lane to account for the large time step
-        dt = D(1)  # todo change for timesteps not equal 1
         n_min = 2
         n_max = 3
         x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
         x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
 
-        # dt = D(0.5)
-        # n = 2
-        # x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-        # x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+        # n = 2  # how many values should be sampled in front and in the back of the car
+        # with localcontext() as ctx:
+        #     ctx.prec = 2
+        #     dt_smaller = dt / D(n)
+        #     x1s = sample_x(s1.x, s1.v, dt=dt_smaller, n=n)
+        #     x2s = sample_x(s2.x, s2.v, dt=dt_smaller, n=n)
 
         # check the sampled positions for collisions
         for x1, x2 in zip(x1s, x2s):
@@ -487,6 +496,7 @@ def collision_check_resources_no_energy(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
         dynamics: Mapping[PlayerName, DuckieDynamics],
+        dt: D
 ) -> Mapping[PlayerName, Collision]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane.
@@ -513,21 +523,22 @@ def collision_check_resources_no_energy(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, dt) & d2.get_shared_resources(s2, dt):
             # no collision
             continue
 
         # samples in front and in the back of the car along the lane to account for the large time step
-        # dt = D(1)  # todo change for timesteps not equal 1
         # n_min = 2
         # n_max = 3
         # x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
         # x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
 
-        dt = D(0.5)
-        n = 2
-        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+        n = 2  # how many values should be sampled in front and in the back of the car
+        with localcontext() as ctx:
+            ctx.prec = 2
+            dt_smaller = dt / D(n)
+            x1s = sample_x(s1.x, s1.v, dt=dt_smaller, n=n)
+            x2s = sample_x(s2.x, s2.v, dt=dt_smaller, n=n)
 
         # check the sampled positions for collisions
         for x1, x2 in zip(x1s, x2s):
@@ -595,6 +606,7 @@ def collision_check_resources_no_energy_players_only(
         states: Mapping[PlayerName, DuckieState],
         geometries: Mapping[PlayerName, DuckieGeometry],
         dynamics: Mapping[PlayerName, DuckieDynamics],
+        dt: D
 ) -> FrozenSet[PlayerName]:
     """
     Checks for collisions in a n-player game with non-negative speeds along a lane.
@@ -621,21 +633,22 @@ def collision_check_resources_no_energy_players_only(
         d2 = dynamics[p2]
 
         # first quick check
-        if not d1.get_shared_resources(s1) & d2.get_shared_resources(s2):
+        if not d1.get_shared_resources(s1, dt) & d2.get_shared_resources(s2, dt):
             # no collision
             continue
 
         # samples in front and in the back of the car along the lane to account for the large time step
-        # dt = D(1)  # todo change for timesteps not equal 1
         # n_min = 2
         # n_max = 3
         # x1s = sample_x_speed_dep(s1.x, s1.v, dt=dt, n_min=n_min, n_max=n_max)
         # x2s = sample_x_speed_dep(s2.x, s2.v, dt=dt, n_min=n_min, n_max=n_max)
 
-        dt = D(0.5)
-        n = 2
-        x1s = sample_x(s1.x, s1.v, dt=dt, n=n)
-        x2s = sample_x(s2.x, s2.v, dt=dt, n=n)
+        n = 2  # how many values should be sampled in front and in the back of the car
+        with localcontext() as ctx:
+            ctx.prec = 2
+            dt_smaller = dt / D(n)
+            x1s = sample_x(s1.x, s1.v, dt=dt_smaller, n=n)
+            x2s = sample_x(s2.x, s2.v, dt=dt_smaller, n=n)
 
         # check the sampled positions for collisions
         for x1, x2 in zip(x1s, x2s):
@@ -669,6 +682,8 @@ def collision_check_resources_no_energy_players_only(
 def who_at_fault_line_of_sight(a: ProjectedCar, b: ProjectedCar) -> Tuple[bool, bool]:
     """
     Defines who is at fault, as who sees the other car at impact
+    """
+    """
 
                      Y
                      ^                     If there is any point
@@ -701,7 +716,8 @@ def get_angle_of_collision(a: ProjectedCar, b: ProjectedCar) -> Tuple[Angle_Deg,
     Returns at which angle the collision happened.
     Defined as the difference between the orientations of the two cars.
     Returns the values for both cars such that the angles follow the right hand rule.
-
+    """
+    """
 
                         x_car_2
                          ^
@@ -746,7 +762,8 @@ def get_impact_location(a: ProjectedCar, b: ProjectedCar) -> Tuple[ImpactLocatio
     E.g. for impact location for car 1. Sample points of car 2. Check how many points lie in the different cones
     generated by the diagonals of car 1. For the impact location take the side of the car that lies in the cone
     with the most points inside.
-
+    """
+    """
      points    x x x x    X
        of  ->   x x\ x x  ^      /
       car 2      x x\ x x |     /
@@ -853,7 +870,7 @@ def stop_game_for_players_around(
     """
     Stops the game for players around a certain radius around the accident.
     radius_factor: Used in the calculation for the radius. Will multiply the sum of the two lengths
-     of the colliding cars, to give the final radius.
+    of the colliding cars, to give the final radius.
     """
 
     # no need if only two players are around

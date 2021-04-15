@@ -47,7 +47,8 @@ def test_visualisation():
         duckie_map=duckie_map_grid,
         map_name=map_name,
         geometries=duckie_geometries,
-        ds=duckie_game_params.shared_resources_ds
+        ds=duckie_game_params.shared_resources_ds,
+        dt=D(1)
     )
     fig, ax = plt.subplots()
     fig.set_tight_layout(True)

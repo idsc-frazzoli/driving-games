@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 max_wait = 2
-"""This param is applied to all maps exept the 5 player one"""
+"""This param is applied to all maps except the 5 player one"""
 
 
 toy_lane_x_1 = ToyLane(

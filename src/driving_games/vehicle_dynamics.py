@@ -141,5 +141,5 @@ class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
             raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
 
-    def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:
+    def get_shared_resources(self, x: VehicleState, dt: D) -> FrozenSet[Rectangle]:
         return get_resources_used(vs=x, vg=self.vg, ds=self.shared_resources_ds)

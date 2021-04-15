@@ -82,5 +82,5 @@ def test_3() -> None:
     game = get_asym().game
     p1, p2 = list(game.players)
     s1 = list(game.players[p1].initial.support())[0]
-    sr = game.players[p1].dynamics.get_shared_resources(s1)
+    sr = game.players[p1].dynamics.get_shared_resources(s1, dt=D(1))
     logger.info(sr=sr)

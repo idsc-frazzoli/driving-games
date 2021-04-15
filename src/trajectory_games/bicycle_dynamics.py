@@ -87,7 +87,7 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
         ret = VehicleState(x=xdot, y=ydot, th=dr, v=u.acc, st=u.dst, t=D("1"))
         return ret
 
-    def get_shared_resources(self, x: VehicleState) -> FrozenSet[Rectangle]:
+    def get_shared_resources(self, x: VehicleState, dt) -> FrozenSet[Rectangle]:
         # TODO[SIR]: Rectangle assumes heading is along one axis,
         #  change this to generalise for any random heading
         center = x.x, x.y

@@ -171,10 +171,10 @@ def _create_game_graph(
     # start timer to collect the time for the collision checks
     t1 = perf_counter()
 
-    who_exits = frozenset(ic.game.joint_reward.is_joint_final_state(states))
+    who_exits = frozenset(ic.game.joint_reward.is_joint_final_state(states, ic.dt))
     joint_final = who_exits
     if joint_final:
-        joint_final_rewards = ic.game.joint_reward.joint_reward(states)
+        joint_final_rewards = ic.game.joint_reward.joint_reward(states, ic.dt)
     else:
         joint_final_rewards = {}
 
@@ -253,7 +253,7 @@ def _create_game_graph(
     resources = {}
     for player_name, player_state in states.items():
         dynamics = ic.game.players[player_name].dynamics
-        resources[player_name] = dynamics.get_shared_resources(player_state)
+        resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
 
     # End timer and collect performance if given
     t2 = perf_counter()

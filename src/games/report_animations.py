@@ -17,7 +17,11 @@ __all__ = ["report_solutions"]
 #     return s
 
 
-def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, U, Y, RP, RJ, SR]):
+def report_solutions(
+        gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
+        s: Solutions[X, U, Y, RP, RJ, SR],
+        upsample_log: int = None
+):
     r = Report()
 
     sims = dict(s.sims)
@@ -28,7 +32,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
             continue
         logger.info(f"drawing episode {k!r}")
         with f.data_file((k), MIME_GIF) as fn:
-            create_log_animation(gp, sim, fn=fn, upsample_log=None)
+            create_log_animation(gp, sim, fn=fn, upsample_log=upsample_log)
         write_states(r, k, sim)
         sims.pop(k)
 
@@ -39,7 +43,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
             continue
         logger.info(f"drawing episode {k!r}")
         with f.data_file((k), MIME_GIF) as fn:
-            create_log_animation(gp, sim, fn=fn, upsample_log=None)
+            create_log_animation(gp, sim, fn=fn, upsample_log=upsample_log)
         write_states(r, k, sim)
         sims.pop(k)
     js: JointState
@@ -114,6 +118,10 @@ def upsample(gp, states0, actions0, n: int):
 
 def get_next_state(gp, s0, actions, dt2):
     next_state = {}
+
+    seed = 0  # fixme does it make sense to sample, and which seed?
+    sampler = gp.game.ps.get_sampler(seed)
+
     for player_name, action in actions.items():
         player_state = s0[player_name]
         dynamics = gp.game.players[player_name].dynamics
@@ -125,7 +133,8 @@ def get_next_state(gp, s0, actions, dt2):
         else:
             successors = suc[action]
 
-            next_state[player_name] = list(successors)[0]
+            # next_state[player_name] = list(successors)[0]
+            next_state[player_name] = sampler.sample(successors)  # sample a possible next state
     return next_state
 
 

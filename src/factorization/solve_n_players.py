@@ -38,7 +38,8 @@ def preprocess_n_player_game(
     game_perf: Optional[GamePerformance] = None
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    1. Preprocesses the game computing the general game graph for only two players (MultiDiGraph used for visualisation)
+    This function is a fork of preprocess_game found in in games.access.py
+    1. The game graph used for visualization is NOT computed at the moment
     2. Computes the solutions for the single players
     3. If factorization is selected, computes the corresponding game factorization
 
@@ -55,7 +56,7 @@ def preprocess_n_player_game(
 
     # preprocess each single player game, collect performance for each player
     players_pre = itemmap(
-        lambda _item: [_item[0], preprocess_player(
+        lambda _item: [_item[0], preprocess_player(  # solve the single player games
             solver_params=solver_params,
             individual_game=_item[1],
             create_gt_perf=game_perf.pre_pro_player_pi.create_game_tree_pre_pi[_item[0]] if game_perf else None,
@@ -71,10 +72,7 @@ def preprocess_n_player_game(
         # start timer to collect time used for factorization
         t1 = perf_counter()
 
-        try:  # there are different factorization algos at the moment
-            game_factorization = solver_params.get_factorization(game, solver_params, players_pre, fact_perf)
-        except TypeError:
-            game_factorization = solver_params.get_factorization(game, players_pre, fact_perf)
+        game_factorization = solver_params.get_factorization(game, solver_params, players_pre, fact_perf)
 
         # stop timer and collect performance if given
         t2 = perf_counter()
@@ -95,7 +93,10 @@ def preprocess_n_player_game(
 
 
 def get_n_player_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
-    """ Returns the game for the first two players"""
+    """
+    Only return a graph with one node corresponding to the initial state of first two players present in the game
+    """
+    # todo write a version that works for more than two players
     players = game.players
     # assert len(players) == 2
 
@@ -122,6 +123,9 @@ def get_n_player_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGr
         )
         stack.append(S)
     logger.info(stack=stack)
+    """
+    This part has been commented out, as it does not work for more than two players
+    """
     # # all the rest of the tree
     # i = 0
     # S: JointState

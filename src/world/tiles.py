@@ -675,10 +675,20 @@ roundabout_east: &roundabout_east
             lane10: {~SE2Transform:}
             
 """
+"""
+It contains all the tiles which can be used to build maps. Each tile contains lane segments
+which are parametrized by control points (with orientation). This is an extension of the tiles available 
+in duckietown_world.world_duckietown.tile_template.py
+"""
 
-
-@memoized_reset
+@memoized_reset  # Wrapper to cache the results such that they will not be recomputed when run a second time
 def load_driving_games_tile_types():
+    """
+    This functions converts the tiles from the yaml file to serializable python objects.
+    This is a forked version of the function load_tile_types found in duckietown_world.world_duckietown.tile_template.py
+
+    :return: Tiles as python objects (classes defined in the duckietown-world module)
+    """
     s = yaml.load(data, Loader=yaml.SafeLoader)
     templates = Serializable.from_json_dict(s)
     return templates

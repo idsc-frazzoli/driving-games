@@ -146,7 +146,7 @@ class ToyCarDynamics(Dynamics[ToyCarState, ToyCarActions, ToyResources]):
 
         return xnew
 
-    def get_shared_resources(self, x: ToyCarState) -> FrozenSet[ToyResources]:
+    def get_shared_resources(self, x: ToyCarState, dt: D) -> FrozenSet[ToyResources]:
         # resources = [ToyResources(time=x.time, point_in_map=x.point_in_map)]
         resources = [ToyResources(point_in_map=x.point_in_map)]
         return frozenset(resources)
