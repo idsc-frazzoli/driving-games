@@ -51,8 +51,8 @@ from duckie_games.zoo import (
 
 
 uncertainty_params = [
-    [uncertainty_sets, "sets"],
-    # [uncertainty_prob, "prob"],
+    # [uncertainty_sets, "sets"],
+    [uncertainty_prob, "prob"],
 ]
 
 duckie_game_params = [
@@ -96,8 +96,8 @@ betas = [
 # monad and the probability monad
 accelerations_test ={
     "prob" : [
-      ["-1", "+1"],
-      #["-1", "0", "+1"],
+      # ["-1", "+1"],
+       ["-1", "0", "+1"],
       # ["-1", "0", "+0.5", "+1"],
       # ["-1", "0", "+0.5", "+1", "+2"],
       # ["-1", "+0", "+1", "+2"]
