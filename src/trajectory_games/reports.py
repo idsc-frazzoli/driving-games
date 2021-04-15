@@ -12,7 +12,7 @@ from games import PlayerName
 from .game_def import Game, SolvedGameNode
 from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode
 from .preference import PosetalPreference
-from .paths import Action
+from .paths import Trajectory
 from .visualization import TrajGameVisualization
 
 
@@ -98,14 +98,14 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             ax: Axes = pylab.gca()
             ax.set_xlim(-150.0, n - 100.0)
 
-    def save_actions(nodes_all: Set[SolvedTrajectoryGameNode]) -> Mapping[PlayerName, Set[Action]]:
-        actions: Dict[PlayerName, Set[Action]] = {p: set() for p in game.game_players.keys()}
+    def save_actions(nodes_all: Set[SolvedTrajectoryGameNode]) -> Mapping[PlayerName, Set[Trajectory]]:
+        actions: Dict[PlayerName, Set[Trajectory]] = {p: set() for p in game.game_players.keys()}
         for node_eq in nodes_all:
             for player_eq, action in node_eq.actions.items():
                 actions[player_eq].add(action)
         return actions
 
-    def plot_eq(pylab, actions_all: Mapping[PlayerName, Set[Action]], w: float):
+    def plot_eq(pylab, actions_all: Mapping[PlayerName, Set[Trajectory]], w: float):
         for pname, actions in actions_all.items():
             if len(actions) == 0:
                 continue
@@ -138,7 +138,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
     if plot_gif:
         i = 1
         # players = game.game_players.keys()
-        # actions: Dict[PlayerName, Set[Action]] = {p: set() for p in players}
+        # actions: Dict[PlayerName, Set[Trajectory]] = {p: set() for p in players}
         # for node in nash_eq["strong"]:
         #     for p in players:
         #         actions[p].add(node.actions[p])
@@ -208,7 +208,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
     def update_plot(t: D):
         for player, box_handle in box.items():
-            action: Action = node.actions[player]
+            action: Trajectory = node.actions[player]
             state = action.at(t=t)
             box[player] = viz.plot_player(pylab=plt, player_name=player,
                                           state=state, box=box_handle)
@@ -217,7 +217,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     actions = list(node.actions.values())
     lens = [_.get_end() for _ in actions]
     longest = lens.index(max(lens))
-    times, _ = actions[longest].get_sampled_trajectory()
+    times = actions[longest].get_sampling_points()
     dt_ms = 2*int((times[1]-times[0])*1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True)

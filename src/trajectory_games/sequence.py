@@ -104,7 +104,8 @@ class SampledSequence(Generic[X]):
             return self.at(self.get_end())
         else:
             i = bisect_right(self.timestamps, t)
-            scale = (t - self.timestamps[i - 1]) / (self.timestamps[i] - self.timestamps[i - 1])
+            scale = float((t - self.timestamps[i - 1]) /
+                          (self.timestamps[i] - self.timestamps[i - 1]))
             return self.values[i - 1] * (1 - scale) + self.values[i] * scale
 
     def __iter__(self):

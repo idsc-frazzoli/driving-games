@@ -9,33 +9,26 @@ from games.utils import iterate_dict_combinations
 from preferences import Preference
 
 from .structures import VehicleState, VehicleGeometry
-from .paths import Transition, Trajectory, Action
+from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 from .metrics_def import PlayerOutcome, TrajGameOutcome
 from .game_def import Game, StaticGamePlayer, StaticSolvingContext, \
     SolvedGameNode, StaticSolverParams, DynamicGamePlayer
 
 __all__ = [
-    "JointAction",
     "JointPureTraj",
-    "JointTrans",
     "StaticTrajectoryGamePlayer",
     "DynamicTrajectoryGamePlayer",
     "StaticTrajectoryGame",
     "DynamicTrajectoryGame",
     "SolvedTrajectoryGameNode",
-    "SolvedStaticTrajectoryGameNode",
-    "SolvedDynamicTrajectoryGameNode",
     "SolvedTrajectoryGame",
-    "SolvedStaticTrajectoryGame",
     "SubgameSolutions",
     "preprocess_full_game",
     "preprocess_player",
 ]
 
-JointAction = Mapping[PlayerName, Action]
 JointPureTraj = Mapping[PlayerName, Trajectory]
-JointTrans = Mapping[PlayerName, Transition]
 
 
 class StaticTrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory,
@@ -44,7 +37,7 @@ class StaticTrajectoryGamePlayer(StaticGamePlayer[VehicleState, Trajectory,
     pass
 
 
-class DynamicTrajectoryGamePlayer(DynamicGamePlayer[VehicleState, Transition,
+class DynamicTrajectoryGamePlayer(DynamicGamePlayer[VehicleState, Trajectory,
                                                     TrajectoryWorld, PlayerOutcome,
                                                     VehicleGeometry]):
     pass
@@ -56,30 +49,21 @@ class StaticTrajectoryGame(Game[VehicleState, Trajectory,
     pass
 
 
-class DynamicTrajectoryGame(Game[VehicleState, Transition,
+class DynamicTrajectoryGame(Game[VehicleState, Trajectory,
                                  TrajectoryWorld, PlayerOutcome,
                                  VehicleGeometry]):
     pass
 
 
-class SolvedTrajectoryGameNode(SolvedGameNode[Action, PlayerOutcome]):
-    pass
-
-
-class SolvedStaticTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerOutcome]):
-    pass
-
-
-class SolvedDynamicTrajectoryGameNode(SolvedGameNode[Transition, PlayerOutcome]):
+class SolvedTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerOutcome]):
     pass
 
 
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
-SolvedStaticTrajectoryGame = Set[SolvedStaticTrajectoryGameNode]
 
 
 class SubgameSolutions:
-    Action_outcome = Tuple[JointAction, TrajGameOutcome]
+    Traj_outcome = Tuple[JointPureTraj, TrajGameOutcome]
     Anti_chain = FrozenSet[JointPureTraj]
     Traj_dict = Dict[JointState, Anti_chain]
     best_traj: Traj_dict
@@ -94,22 +78,22 @@ class SubgameSolutions:
             return self.best_traj[item]
         return None
 
-    def get_trajectories(self, joint_act: JointAction) -> Anti_chain:
+    def get_trajectories(self, joint_traj: JointPureTraj) -> Anti_chain:
         joint_state: Mapping[PlayerName, VehicleState] = \
-            {p: trans.at(trans.get_end()) for p, trans in joint_act.items()}
-        return self.append(joint_act=joint_act, best=self[joint_state])
+            {p: trans.at(trans.get_end()) for p, trans in joint_traj.items()}
+        return self.append(joint_traj=joint_traj, best=self[joint_state])
 
     @staticmethod
-    def append(joint_act: JointAction, best: Anti_chain) -> Anti_chain:
+    def append(joint_traj: JointPureTraj, best: Anti_chain) -> Anti_chain:
         ret: Set[JointPureTraj] = set()
         if best is None:
-            joint_traj: JointPureTraj = frozendict({p: trans + None for p, trans in joint_act.items()})
+            joint_traj: JointPureTraj = frozendict({p: trans + None for p, trans in joint_traj.items()})
             ret.add(joint_traj)
             return frozenset(ret)
 
         for joint_best in best:
             joint_traj: JointPureTraj = \
-                frozendict({player: joint_act[player] + joint_best[player] for player in joint_best.keys()})
+                frozendict({player: joint_traj[player] + joint_best[player] for player in joint_best.keys()})
             ret.add(joint_traj)
         return frozenset(ret)
 

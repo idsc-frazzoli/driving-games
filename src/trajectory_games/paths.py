@@ -1,23 +1,19 @@
-from abc import ABC, abstractmethod
-from copy import deepcopy
 import cachetools
 from cachetools import cached
 from functools import lru_cache
-from typing import List, Dict, Tuple, Mapping, Optional, FrozenSet, Set, Iterator
+from typing import List, Dict, Tuple, Optional, FrozenSet, Iterator, Union
 import numpy as np
 from duckietown_world import SE2Transform
 from bisect import bisect_right
 from networkx import DiGraph, has_path, shortest_path
 
-from .sequence import Timestamp
+from .sequence import Timestamp, SampledSequence
 from .structures import VehicleState
 from .game_def import ActionGraph
 
 __all__ = [
-    "Action",
-    "Transition",
     "Trajectory",
-    "TransitionGraph",
+    "TrajectoryGraph",
     "FinalPoint"
 ]
 
@@ -25,10 +21,40 @@ __all__ = [
 FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
 
-class Action(ABC):
+class Trajectory:
+    """ Container for trajectory - sequence of vehicle states """
+    traj: List["Trajectory"]
+    states: SampledSequence[VehicleState]
+
+    def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
+                 p_final: Optional[FinalPoint] = None,
+                 states: Optional[Tuple[VehicleState, VehicleState]] = None):
+        assert len(values) > 0
+        if all(isinstance(val, Trajectory) for val in values):
+            self.traj = values
+            x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
+            self.states = SampledSequence(timestamps=list(x_t.keys()), values=list(x_t.values()))
+        elif all(isinstance(val, VehicleState) for val in values):
+            if states is not None:
+                values[0] = states[0]
+                values[-1] = states[-1]
+            if p_final is not None:
+                self._trim_trajectory(states=values, p_final=p_final)
+            times: List[Timestamp] = [x.t for x in values]
+            self.states = SampledSequence(timestamps=times, values=values)
+            self.traj = []
+        else:
+            raise TypeError(f"Input is of wrong type - {type(values[0])}!")
+
+    @staticmethod
+    @cached(cache={}, key=lambda states, values, p_final: cachetools.keys.hashkey(states))
+    def create(states: Tuple[VehicleState, VehicleState],
+               values: List[VehicleState], p_final: FinalPoint = None):
+        return Trajectory(values=values, p_final=p_final, states=states)
+
     @staticmethod
     def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
-        ret = [Action.state_to_se2(x) for x in states]
+        ret = [Trajectory.state_to_se2(x) for x in states]
         return ret
 
     @staticmethod
@@ -36,58 +62,8 @@ class Action(ABC):
     def state_to_se2(x: VehicleState) -> SE2Transform:
         return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
 
-    @abstractmethod
-    def __add__(self, other: Optional["Action"]) -> "Trajectory":
-        pass
-
-    @abstractmethod
-    def at(self, t: Timestamp) -> VehicleState:
-        pass
-
-    @abstractmethod
-    def get_end(self) -> Timestamp:
-        pass
-
-    @abstractmethod
-    def get_sampling_points(self) -> List[Timestamp]:
-        pass
-
-    @abstractmethod
-    def get_sampled_trajectory(self) -> Tuple[List[Timestamp], List[VehicleState]]:
-        pass
-
-    @abstractmethod
-    def get_path_sampled(self) -> List[SE2Transform]:
-        pass
-
-    @abstractmethod
-    def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
-        pass
-
-
-class Transition(Action):
-    """ Container for individual transitions that make up trajectory"""
-
-    states: Tuple[VehicleState, VehicleState]
-    _cache: Mapping[Timestamp, VehicleState]
-
-    def __init__(self, states: Tuple[VehicleState, VehicleState],
-                 sampled: List[VehicleState], p_final: FinalPoint):
-        self.states = states
-        cache = {_.t: _ for _ in sampled}
-        cache[states[0].t] = states[0]
-        if p_final is not None:
-            self._trim_transition(cache=cache, p_final=p_final)
-        self._cache = cache
-
     @staticmethod
-    @cached(cache={}, key=lambda states, sampled, p_final: cachetools.keys.hashkey(states))
-    def create(states: Tuple[VehicleState, VehicleState],
-               sampled: List[VehicleState] = None, p_final: FinalPoint = None):
-        return Transition(states=states, sampled=sampled, p_final=p_final)
-
-    def _trim_transition(self, cache: Dict[Timestamp, VehicleState],
-                         p_final: FinalPoint):
+    def _trim_trajectory(states: List[VehicleState], p_final: FinalPoint):
         x_f, y_f, increase = p_final
         assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
         if x_f is not None:
@@ -100,191 +76,103 @@ class Transition(Action):
                 return state.y
 
             z_f = y_f
-        times = list(cache.keys())
-        z_samp = [get_z(x) for x in cache.values()]
+        times = [x.t for x in states]
+        z_samp = [get_z(x) for x in states]
         if not increase:
             z0 = z_samp[0]
             z_samp = [z0 - z for z in z_samp]
             z_f = z0 - z_f
         if z_f < z_samp[0] or z_f > z_samp[-1]:
-            return
+            return states
         last = bisect_right(z_samp, z_f)
-        t_end = times[last]
-        for i in range(last + 1, len(times)):
-            cache.pop(times[i])
-        start, _ = self.states
-        finish = deepcopy(cache[t_end])
-        self.states = (start, finish)
-
-    def get_raw_sampling_points(self) -> List[Timestamp]:
-        """ Returns timestamps of actual transition points """
-        return [t for t, x in self]
-
-    def get_sampling_points(self) -> List[Timestamp]:
-        """ Returns timestamps of upsampled transition points """
-        return list(self._cache.keys())
-
-    def get_sampled_trajectory(self) -> Tuple[List[Timestamp], List[VehicleState]]:
-        return list(self._cache.keys()), list(self._cache.values())
-
-    def get_path(self) -> List[SE2Transform]:
-        """ Returns cartesian coordinates (SE2) of transition """
-        return self.state_to_se2_list([x for x in self.states])
-
-    def get_path_sampled(self) -> List[SE2Transform]:
-        """ Returns cartesian coordinates (SE2) of transition at upsampled points """
-        return self.state_to_se2_list(list(self._cache.values()))
-
-    def at(self, t: Timestamp) -> VehicleState:
-        """ Returns value at requested timestamp, Interpolates between timestamps """
-        if t in self._cache.keys():
-            return self._cache[t]
-        start, finish = self.states
-        if t < start.t or t > finish.t:
-            raise ValueError(f"{t} doesn't lie within {start.t, finish.t}!")
-
-        raise NotImplementedError("Interpolate not implemented!")
+        for _ in range(last + 1, len(times)):
+            states.pop()
 
     def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
-        for state in self.states:
-            yield state.t, state
+        return self.states.__iter__()
+
+    def __len__(self):
+        return len(self.states)
+
+    def get_trajectories(self) -> List["Trajectory"]:
+        if len(self.traj) == 0:
+            return [self]
+        return self.traj
+
+    def get_sampling_points(self) -> List[Timestamp]:
+        """ Returns timestamps of trajectory points """
+        return self.states.get_sampling_points()
+
+    def get_path_sampled(self) -> List[SE2Transform]:
+        """ Returns cartesian coordinates (SE2) of transition states """
+        return self.state_to_se2_list(self.states.values)
+
+    def get_start(self) -> Timestamp:
+        return self.states.get_start()
+
+    def get_end(self) -> Timestamp:
+        return self.states.get_end()
+
+    def at(self, t: Timestamp) -> VehicleState:
+        return self.states.get_interp(t)
 
     def __repr__(self) -> str:
         return str({f"t={round(float(k), 2)}s": v for k, v in self})
 
-    def __add__(self, other: Optional[Action]) -> "Trajectory":
-        if other is None:
-            return Trajectory(traj=[self])
-        return Trajectory(traj=[self]) + other
-
-    def get_end(self) -> Timestamp:
-        return self.states[1].t
-
-
-class Trajectory(Action):
-    """ Container for trajectory - sequence of transitions """
-    traj: List[Transition]
-    times: List[Timestamp]
-
-    def __init__(self, traj: List[Transition]):
-        assert len(traj) > 0
-        self.traj = traj
-        start, _ = traj[0].states
-        self.times = [start.t] + [tran.states[1].t for tran in traj]
-
-    def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
-        states = [(Timestamp("0"), VehicleState.zero())]
-        for trans in self.traj:
-            states = states[:-1] + list(trans)
-        return iter(states)
-
-    def __len__(self):
-        return len(self.traj)
-
-    def __getitem__(self, item: int):
-        if item < 0 or item > len(self):
-            raise ValueError(f"Index {item} out of range - {0, len(self)}")
-        return self.traj[item]
-
-    def get_sampling_points(self) -> List[Timestamp]:
-        """ Returns timestamps of upsampled trajectory points """
-        samp_points: List[Timestamp] = [Timestamp("0")]
-        for trans in self.traj:
-            samp_points = samp_points[:-1] + trans.get_sampling_points()
-        return samp_points
-
-    @lru_cache(None)
-    def get_sampled_trajectory(self) -> Tuple[List[Timestamp], List[VehicleState]]:
-        times: List[Timestamp] = [Timestamp("0")]
-        states: List[VehicleState] = [VehicleState.zero()]
-        for trans in self.traj:
-            t, x = trans.get_sampled_trajectory()
-            times = times[:-1] + t
-            states = states[:-1] + x
-        return times, states
-
-    def get_path_sampled(self) -> List[SE2Transform]:
-        """ Returns cartesian coordinates (SE2) of transition at upsampled points """
-        path: List[SE2Transform] = [SE2Transform.identity()]
-        for trans in self.traj:
-            path = path[:-1] + trans.get_path_sampled()
-        return path
-
-    def get_end(self) -> Timestamp:
-        return self.times[-1]
-
-    def at(self, t: Timestamp) -> VehicleState:
-        if t <= self.times[0]:
-            start, _ = self.traj[0].states
-            return start
-        if t >= self.times[-1]:
-            _, finish = self.traj[-1].states
-            return finish
-        i = bisect_right(self.times, t) - 1
-        return self.traj[i].at(t=t)
-
-    def __repr__(self) -> str:
-        return str({f"t={round(float(k), 2)}s": v for trans in self.traj for k, v in trans})
-
-    def __add__(self, other: Optional[Action]) -> "Trajectory":
+    def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
         if other is None:
             return self
-        trans_other = other.traj if isinstance(other, Trajectory) else [other]
-        x1, x2 = self.traj[-1].states[1], trans_other[0].states[0]
+        x1, x2 = self.at(self.get_end()), other.at(other.get_start())
         if not x1.is_close(x2):
             raise ValueError(f"Transitions not continuous - {x1, x2}")
-        return Trajectory(traj=self.traj + trans_other)
+        return Trajectory(values=self.traj+other.traj)
 
-    def starts_with(self, start: Action) -> bool:
-        if isinstance(start, Transition):
-            return self.traj[0] == start
-        if isinstance(start, Trajectory):
-            if len(start) > len(self): return False
-            for i in range(len(start)):
-                if start.traj[i] != self.traj[i]: return False
-            return True
-        raise AssertionError(f"Input action is of type {type(start).__name__}")
+    def starts_with(self, start: "Trajectory") -> bool:
+        if len(start) > len(self): return False
+        for t in start.get_sampling_points():
+            if start.at(t) != self.at(t): return False
+        return True
 
 
-class TransitionGraph(ActionGraph[Transition], DiGraph):
+class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
     """ Structure for storing all trajectories """
     origin: VehicleState
-    transitions: Dict[Tuple[VehicleState, VehicleState], Transition]
+    trajectories: Dict[Tuple[VehicleState, VehicleState], Trajectory]
 
     def __init__(self, origin: VehicleState, **attr):
         super().__init__(**attr)
         self.origin = origin
-        self.transitions = {}
+        self.trajectories = {}
 
     def add_node(self, state: VehicleState, **attr):
-        super(TransitionGraph, self).add_node(node_for_adding=state, **attr)
+        super(TrajectoryGraph, self).add_node(node_for_adding=state, **attr)
 
     def check_node(self, node: VehicleState):
         if node not in self.nodes:
             raise ValueError(f"{node} not in graph!")
 
-    def add_edge(self, transition: Transition, **attr):
-        source, target = transition.states
-        attr["transition"] = transition
+    def add_edge(self, trajectory: Trajectory, **attr):
+        source, target = trajectory.at(trajectory.get_start()), trajectory.at(trajectory.get_end())
+        attr["transition"] = trajectory
         if target not in self.nodes:
             self.add_node(state=target, gen=self.nodes[source]["gen"] + 1)
 
-        super(TransitionGraph, self).add_edge(u_of_edge=source, v_of_edge=target, **attr)
-        self.transitions[transition.states] = transition
+        super(TrajectoryGraph, self).add_edge(u_of_edge=source, v_of_edge=target, **attr)
+        self.trajectories[(source, target)] = trajectory
 
-    def get_all_transitions(self, source: VehicleState) -> FrozenSet[Transition]:
+    def get_all_trajectories(self, source: VehicleState) -> FrozenSet[Trajectory]:
         if source not in self.nodes:
             raise ValueError(f"Source node ({source}) not in graph!")
 
-        successors = [self.get_transition(source=source, target=target)
+        successors = [self.get_trajectory_edge(source=source, target=target)
                       for target in self.successors(source)]
         return frozenset(successors)
 
-    def get_transition(self, source: VehicleState, target: VehicleState) -> Transition:
+    def get_trajectory_edge(self, source: VehicleState, target: VehicleState) -> Trajectory:
         states = (source, target)
-        if states not in self.transitions:
+        if states not in self.trajectories:
             raise ValueError(f"{states} not found in transitions!")
-        return self.transitions[(source, target)]
+        return self.trajectories[(source, target)]
 
     @lru_cache(None)
     def get_trajectory(self, source: VehicleState, target: VehicleState) -> Trajectory:
@@ -294,7 +182,7 @@ class TransitionGraph(ActionGraph[Transition], DiGraph):
             raise ValueError(f"No path exists between {source, target}!")
 
         nodes = shortest_path(G=self, source=source, target=target)
-        traj: List[Transition] = []
+        traj: List[Trajectory] = []
         for node1, node2 in zip(nodes[:-1], nodes[1:]):
-            traj.append(self.get_transition(source=node1, target=node2))
-        return Trajectory(traj=traj)
+            traj.append(self.get_trajectory_edge(source=node1, target=node2))
+        return Trajectory(values=traj)

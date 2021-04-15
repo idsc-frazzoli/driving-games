@@ -2,7 +2,7 @@ import math
 from abc import ABC
 from functools import lru_cache
 from time import perf_counter
-from typing import FrozenSet, Set, List, Dict, Tuple, Mapping
+from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Optional
 import numpy as np
 
 import geometry as geo
@@ -14,7 +14,7 @@ from games import PlayerName
 from world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
 from .game_def import StaticActionSetGenerator, DynamicActionSetGenerator
-from .paths import FinalPoint, Transition, TransitionGraph, Trajectory
+from .paths import FinalPoint, Trajectory, TrajectoryGraph
 from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
 
@@ -36,7 +36,7 @@ class DynamicGenerator(DynamicActionSetGenerator[VehicleState, Trajectory,
 class TransitionGenerator(StaticGenerator, DynamicGenerator):
     params: TrajectoryParams
     _bicycle_dyn: BicycleDynamics
-    _cache: Dict[Tuple[PlayerName, VehicleState], TransitionGraph]
+    _cache: Dict[Tuple[PlayerName, VehicleState], TrajectoryGraph]
 
     def __init__(self, params: TrajectoryParams):
         self.params = params
@@ -44,7 +44,7 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
         self._cache = {}
 
     def get_actions_dynamic(self, state: VehicleState, player: PlayerName,
-                            world: TrajectoryWorld = None) -> TransitionGraph:
+                            world: TrajectoryWorld = None) -> TrajectoryGraph:
         """
         Computes dynamic graph of transitions for given state along reference
         Requires world for first instance, returns from cache if already computed
@@ -54,7 +54,7 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
         assert world is not None
         tic = perf_counter()
         lane = world.get_lane(player=player)
-        graph = TransitionGraph(origin=state)
+        graph = TrajectoryGraph(origin=state)
         self._get_trajectory_graph(state=state, lane=lane, graph=graph)
         toc = perf_counter() - tic
         print(f"Player: {player}\ttime = {toc:.2f} s")
@@ -75,7 +75,7 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
             print(f"Player: {player}\n\tTrajectories generated = {len(trajectories)}\n\ttime = {toc:.2f} s")
         return frozenset(trajectories)
 
-    def _get_trajectory_graph(self, state: VehicleState, lane: LaneSegmentHashable, graph: TransitionGraph):
+    def _get_trajectory_graph(self, state: VehicleState, lane: LaneSegmentHashable, graph: TrajectoryGraph):
         """ Construct graph of states """
         stack = list([state])
         graph.origin = state
@@ -106,9 +106,8 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
                     cond = n_gen + 1 < self.params.max_gen
                 if cond:
                     stack.append(s2)
-                transition = Transition.create(states=(s1, s2), p_final=p_final,
-                                               sampled=samp)
-                graph.add_edge(transition=transition, u=u)
+                transition = Trajectory.create(values=samp, p_final=p_final, states=(s1, s2))
+                graph.add_edge(trajectory=transition, u=u)
 
         return graph
 
@@ -314,7 +313,7 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
         return successors
 
     @lru_cache(None)
-    def get_p_final(self, lane: LaneSegmentHashable) -> FinalPoint:
+    def get_p_final(self, lane: LaneSegmentHashable) -> Optional[FinalPoint]:
         if self.params.s_final < 0:
             return None
         tol = 1e-1
@@ -338,7 +337,7 @@ class TransitionGenerator(StaticGenerator, DynamicGenerator):
         return p_f
 
     @staticmethod
-    def _trajectory_graph_to_list(graph: TransitionGraph) -> Set[Trajectory]:
+    def _trajectory_graph_to_list(graph: TrajectoryGraph) -> Set[Trajectory]:
         """ Convert state graph to list of trajectories"""
         trajectories: Set[Trajectory] = set()
         roots = [n for n, d in graph.in_degree() if d == 0]

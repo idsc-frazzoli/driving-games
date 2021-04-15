@@ -7,7 +7,7 @@ from duckietown_world import SE2Transform, LanePose
 
 from games import PlayerName
 from .sequence import Timestamp, SampledSequence, iterate_with_dt
-from .paths import Action
+from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
@@ -26,7 +26,7 @@ class MetricEvaluationContext:
     world: TrajectoryWorld
     """ World object. """
 
-    transitions: Mapping[PlayerName, Action]
+    transitions: Mapping[PlayerName, Trajectory]
     """ Sampled vehicle transitions for each player """
 
     _points_cart: Mapping[PlayerName, List[SE2Transform]] = None
@@ -34,8 +34,8 @@ class MetricEvaluationContext:
     """ Sampled vehicle transitions for each player 
         Cache and reuse for all rules."""
 
-    _cache_cart: Dict[Action, List[SE2Transform]] = None
-    _cache_curv: Dict[Action, List[LanePose]] = None
+    _cache_cart: Dict[Trajectory, List[SE2Transform]] = None
+    _cache_curv: Dict[Trajectory, List[LanePose]] = None
     """ Cached transitions to speed up computation, do not set manually """
 
     def __post_init__(self):
@@ -68,7 +68,7 @@ class MetricEvaluationContext:
     def get_players(self) -> List[PlayerName]:
         return list(self.transitions.keys())
 
-    def get_action(self, player: PlayerName) -> Action:
+    def get_action(self, player: PlayerName) -> Trajectory:
         return self.transitions[player]
 
     def get_cartesian_points(self, player: PlayerName) -> List[SE2Transform]:

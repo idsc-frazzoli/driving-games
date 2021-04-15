@@ -15,7 +15,7 @@ from geometry import SE2_from_xytheta
 
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
-from .paths import Action
+from .paths import Trajectory
 from .game_def import GameVisualization, GamePlayer
 from .preference import PosetalPreference, WeightedPreference
 from .trajectory_world import TrajectoryWorld
@@ -27,7 +27,7 @@ VehicleCosts = None
 Collision = None
 
 
-class TrajGameVisualization(GameVisualization[VehicleState, Action, TrajectoryWorld]):
+class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
     """ Visualization for the trajectory games"""
 
     world: TrajectoryWorld
@@ -69,14 +69,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Action, TrajectoryWo
                        state=state, vg=vg, box=box)
         return box
 
-    def plot_equilibria(self, pylab, actions: FrozenSet[Action],
+    def plot_equilibria(self, pylab, actions: FrozenSet[Trajectory],
                         colour: VehicleGeometry.COLOUR,
                         width: float = 1.0, alpha: float = 1.0):
 
         self.plot_actions(pylab=pylab, actions=actions,
                           colour=colour, width=width, alpha=alpha)
 
-        size = 10.0/len(actions)
+        size = 2.0/len(actions)
         for path in actions:
             vals = [(x.x, x.y, x.t) for _, x in path]
             x, y, t = zip(*vals)
@@ -122,13 +122,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Action, TrajectoryWo
         draw_networkx_labels(G, pos=pos, labels=labels, ax=ax, font_size=8, font_color="b")
         ax.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
 
-    def plot_actions(self, pylab, actions: FrozenSet[Action],
+    def plot_actions(self, pylab, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR,
                      width: float = 1.0, alpha: float = 1.0):
         segments = []
         for traj in actions:
-            sampled_traj = np.array([np.array([v.x, v.y])
-                                     for v in traj.get_sampled_trajectory()[1]])
+            sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
             segments.append(sampled_traj)
 
         lines = LineCollection(segments=segments, colors=colour, linewidths=width, alpha=alpha)
