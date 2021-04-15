@@ -73,36 +73,36 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
 
     node_set = nash_eq["weak"]
 
-    def gif_eq(report: Report):
+    def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode):
         eq_viz = report.figure(cols=2)
         nodes: str = ""
         for k, node_set_alt in nash_eq.items():
             if k == "weak":
                 continue
-            if node in node_set_alt:
+            if node_eq in node_set_alt:
                 nodes += f"{k}, "
         title = f"Equilibrium: ({nodes[:-2]})"
 
         with eq_viz.data_file(title, MIME_GIF) as fn:
-            create_animation(fn=fn, game=game, node=node)
+            create_animation(fn=fn, game=game, node=node_eq)
 
         with eq_viz.plot("outcomes") as pylab:
             n: float = 0.0
-            for player_name, player in game.game_players.items():
+            for player_name, player_eq in game.game_players.items():
                 metrics: Dict[str, str] = {}
-                outcomes = node.outcomes[player_name]
-                for pref in player.preference.graph.nodes:
+                outcomes = node_eq.outcomes[player_name]
+                for pref in player_eq.preference.graph.nodes:
                     metrics[pref] = str(round(float(pref.evaluate(outcomes)), 2))
-                viz.plot_pref(pylab, player=player, origin=(n, 0.0), labels=metrics)
+                viz.plot_pref(pylab, player=player_eq, origin=(n, 0.0), labels=metrics)
                 n = n + 200
             ax: Axes = pylab.gca()
             ax.set_xlim(-150.0, n - 100.0)
 
     def save_actions(nodes_all: Set[SolvedTrajectoryGameNode]) -> Mapping[PlayerName, Set[Action]]:
         actions: Dict[PlayerName, Set[Action]] = {p: set() for p in game.game_players.keys()}
-        for node in nodes_all:
-            for player, action in node.actions.items():
-                actions[player].add(action)
+        for node_eq in nodes_all:
+            for player_eq, action in node_eq.actions.items():
+                actions[player_eq].add(action)
         return actions
 
     def plot_eq(pylab, actions_all: Mapping[PlayerName, Set[Action]], w: float):
@@ -137,9 +137,22 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
 
     if plot_gif:
         i = 1
+        # players = game.game_players.keys()
+        # actions: Dict[PlayerName, Set[Action]] = {p: set() for p in players}
+        # for node in nash_eq["strong"]:
+        #     for p in players:
+        #         actions[p].add(node.actions[p])
+        # from games.utils import iterate_dict_combinations
+        # node = list(nash_eq["strong"])[0]
+        # for act in iterate_dict_combinations(actions):
+        #     node_new = SolvedTrajectoryGameNode(actions=act, outcomes=node.outcomes)
+        #     rplot = Report(f"Eq_{i}")
+        #     gif_eq(report=rplot, node_eq=node_new)
+        #     req.add_child(rplot)
+        #     i += 1
         for node in node_set:
             rplot = Report(f"Eq_{i}")
-            gif_eq(report=rplot)
+            gif_eq(report=rplot, node_eq=node)
             req.add_child(rplot)
             i += 1
     else:

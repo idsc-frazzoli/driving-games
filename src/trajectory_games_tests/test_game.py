@@ -13,7 +13,8 @@ from trajectory_games import (
     SolvedTrajectoryGame,
     report_nash_eq,
     report_preferences,
-    get_trajectory_game, PosetalPreference,
+    get_trajectory_game,
+    PosetalPreference,
 )
 
 plot_gif = True                 # gif vs image for viz

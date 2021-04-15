@@ -81,3 +81,8 @@ weights_5:
 weights_6:
   EpisodeTime:                1.0
   DrivableAreaViolation:      0.4
+
+weights_7:
+  ProgressAlongReference:     0.05
+#  EpisodeTime:                0.1
+  DrivableAreaViolation:      1.0

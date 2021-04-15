@@ -143,6 +143,28 @@ pref_d7_7:                    &pref_d7_7
 pref_d7:                      &pref_d7
   <<: *pref_d7_7
 
+pref_8:
+  weights_7:                  []
+
+pref_9:
+  DrivableAreaViolation:      []
+  ProgressAlongReference:     ["DrivableAreaViolation"]
+
+pref_10_i:
+  CollisionEnergy:            []
+  ProgressAlongReference:     ["CollisionEnergy"]
+  LongitudinalAcceleration:   ["CollisionEnergy"]
+
+pref_10_1:
+  CollisionEnergy:            []
+  ProgressAlongReference:     ["CollisionEnergy"]
+  LongitudinalAcceleration:   ["ProgressAlongReference"]
+
+pref_10_2:
+  CollisionEnergy:            []
+  LongitudinalAcceleration:   ["CollisionEnergy"]
+  ProgressAlongReference:     ["LongitudinalAcceleration"]
+
 ## Test preferences
 test_1:                       &test_1
   CollisionEnergy:            []

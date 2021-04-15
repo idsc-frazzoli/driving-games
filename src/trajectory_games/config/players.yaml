@@ -58,9 +58,9 @@ players:
     lane:     "rl2"
     vg:       "blue_car"
 #  P3:
-#    state:    "state_1"
+#    state:    "state_3"
 #    traj:     "traj_2"
-#    pref:     "pref_d3"
+#    pref:     "pref_9"
 #    lane:     "lu2"
 #    vg:       "green_car"
 #  P4:
@@ -75,3 +75,15 @@ players:
     pref:     "pref_d4"
     lane:     "ud1"
     vg:       "red_bicycle"
+#  P1:
+#    state:    "state_1"
+#    traj:     "traj_2"
+#    pref:     "pref_10_1"
+#    lane:     "rl2"
+#    vg:       "blue_car"
+#  P2:
+#    state:    "state_2"
+#    traj:     "traj_2"
+#    pref:     "pref_10_i"
+#    lane:     "ud2"
+#    vg:       "red_car"

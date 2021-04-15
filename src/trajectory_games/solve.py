@@ -171,7 +171,7 @@ class Solution:
     # Cache can be reused between levels
     dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
-    def solve_game(self, context: StaticSolvingContext, cache_dom: bool = True) \
+    def solve_game(self, context: StaticSolvingContext, cache_dom: bool = False) \
             -> Mapping[str, SolvedTrajectoryGame]:
         eq_dict = init_eq_dict()
         dom_prev = deepcopy(self.dominated) if not cache_dom else {}
