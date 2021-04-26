@@ -13,7 +13,7 @@ from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
-from .trajectory_game import StaticTrajectoryGame, StaticTrajectoryGamePlayer
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
 from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 
-def get_trajectory_game() -> StaticTrajectoryGame:
+def get_trajectory_game() -> TrajectoryGame:
 
     tic = perf_counter()
     players_file = os.path.join(config_dir, "players.yaml")
@@ -34,7 +34,7 @@ def get_trajectory_game() -> StaticTrajectoryGame:
         config_lanes = safe_load(load_file)[config["map_name"]]
     lanes: Dict[PlayerName, LaneSegmentHashable] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
-    players: Dict[PlayerName, StaticTrajectoryGamePlayer] = {}
+    players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     duckie_map = load_driving_game_map(config["map_name"])
 
     ps = PossibilitySet()
@@ -48,7 +48,7 @@ def get_trajectory_game() -> StaticTrajectoryGame:
         traj_gen = TransitionGenerator(params=param)
         pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
         state = VehicleState.from_config(name=pconfig["state"], lane=lanes[pname])
-        players[pname] = StaticTrajectoryGamePlayer(
+        players[pname] = TrajectoryGamePlayer(
             name=pname,
             state=ps.unit(state),
             actions_generator=traj_gen,
@@ -59,7 +59,7 @@ def get_trajectory_game() -> StaticTrajectoryGame:
 
     world = TrajectoryWorld(map_name=config["map_name"], geo=geometries, lanes=lanes)
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
-    game = StaticTrajectoryGame(
+    game = TrajectoryGame(
         world=world,
         game_players=players,
         ps=ps,

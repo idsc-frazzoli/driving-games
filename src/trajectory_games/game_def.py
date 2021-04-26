@@ -23,18 +23,12 @@ __all__ = [
     "U_all",
     "ActionGraph",
     "ActionSetGenerator",
-    "StaticActionSetGenerator",
-    "DynamicActionSetGenerator",
     "GameVisualization",
     "GamePlayer",
-    "StaticGamePlayer",
-    "DynamicGamePlayer",
     "Game",
     "SolvedGameNode",
     "StaticSolverParams",
     "SolvingContext",
-    "StaticSolvingContext",
-    "DynamicSolvingContext",
 ]
 
 W = TypeVar("W")
@@ -51,38 +45,12 @@ class ActionGraph(Generic[U], ABC):
     """ Dynamic action graph"""
 
 
-class ActionSetGenerator(Generic[X, U, U_all, W], ABC):
+class ActionSetGenerator(Generic[X, U, W], ABC):
     """ A generic getter for the available actions """
 
     @abstractmethod
-    def get_actions_static(self, state: X, player: PlayerName, world: W) -> U_all:
-        pass
-
-    @abstractmethod
-    def get_actions_dynamic(self, state: X, player: PlayerName, world: W) -> U_all:
-        pass
-
-
-class StaticActionSetGenerator(Generic[X, U, W], ActionSetGenerator[X, U, FrozenSet[U], W], ABC):
-    """ A generic getter for the available static actions """
-
-    @abstractmethod
     def get_actions_static(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
         pass
-
-    def get_actions_dynamic(self, state: X, player: PlayerName, world: W) -> U_all:
-        raise NotImplementedError("Dynamic actions called for static generator")
-
-
-class DynamicActionSetGenerator(Generic[X, U, W], ActionSetGenerator[X, U, ActionGraph[U], W], ABC):
-    """ A generic getter for the dynamic action graph """
-
-    @abstractmethod
-    def get_actions_dynamic(self, state: X, player: PlayerName, world: W) -> ActionGraph[U]:
-        pass
-
-    def get_actions_static(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
-        raise NotImplementedError("Static actions called for dynamic generator")
 
 
 class GameVisualization(Generic[X, U, W], ABC):
@@ -132,20 +100,6 @@ class GamePlayer(Generic[X, U, W, P, G]):
 
 
 @dataclass
-class StaticGamePlayer(GamePlayer[X, U, W, P, G]):
-    """ One player for static game. """
-
-    actions_generator: StaticActionSetGenerator
-
-
-@dataclass
-class DynamicGamePlayer(GamePlayer[X, U, W, P, G]):
-    """ One player for dynamic game. """
-
-    actions_generator: DynamicActionSetGenerator
-
-
-@dataclass
 class Game(Generic[X, U, W, P, G]):
     """A game is a single/ multi stage game.
     The agents live in a common world."""
@@ -184,10 +138,10 @@ class StaticSolverParams(SolverParams):
 
 
 @dataclass
-class SolvingContext(Generic[X, U, U_all, W, P]):
+class SolvingContext(Generic[X, U, W, P]):
     """ Context for the solution of the game"""
 
-    player_actions: Mapping[PlayerName, U_all]
+    player_actions: Mapping[PlayerName, FrozenSet[U]]
     """ All possible actions for each player"""
 
     game_outcomes: Callable[[JointPureActions], JointOutcome]
@@ -198,14 +152,4 @@ class SolvingContext(Generic[X, U, U_all, W, P]):
 
     solver_params: StaticSolverParams
     """Solver parameters"""
-
-
-@dataclass
-class StaticSolvingContext(SolvingContext[X, U, FrozenSet[U], W, P]):
-    """ Context for the solution of the static game"""
-
-
-@dataclass
-class DynamicSolvingContext(SolvingContext[X, U, ActionGraph[U], W, P]):
-    """ Context for the solution of the dynamic game"""
 

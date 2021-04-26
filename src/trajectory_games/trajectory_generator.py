@@ -1,5 +1,4 @@
 import math
-from abc import ABC
 from functools import lru_cache
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Optional
@@ -13,27 +12,17 @@ from scipy.optimize import minimize
 from games import PlayerName
 from world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
-from .game_def import StaticActionSetGenerator, DynamicActionSetGenerator
+from .game_def import ActionSetGenerator
 from .paths import FinalPoint, Trajectory, TrajectoryGraph
 from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
 
-__all__ = ["StaticGenerator", "DynamicGenerator", "TransitionGenerator"]
+__all__ = ["TransitionGenerator"]
 
 Successors = Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]
 
 
-class StaticGenerator(StaticActionSetGenerator[VehicleState, Trajectory,
-                                               TrajectoryWorld], ABC):
-    pass
-
-
-class DynamicGenerator(DynamicActionSetGenerator[VehicleState, Trajectory,
-                                                 TrajectoryWorld], ABC):
-    pass
-
-
-class TransitionGenerator(StaticGenerator, DynamicGenerator):
+class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
     params: TrajectoryParams
     _bicycle_dyn: BicycleDynamics
     _cache: Dict[Tuple[PlayerName, VehicleState], TrajectoryGraph]

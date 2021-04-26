@@ -3,12 +3,12 @@ from typing import Mapping, List
 from reprep import Report
 
 from trajectory_games import (
-    StaticTrajectoryGame,
+    TrajectoryGame,
     preprocess_full_game,
     preprocess_player,
     Solution,
     iterative_best_response,
-    StaticSolvingContext,
+    SolvingContext,
     report_game_visualization,
     SolvedTrajectoryGame,
     report_nash_eq,
@@ -23,7 +23,7 @@ d = "out/tests/"
 filename = "r_game_all.html"
 
 
-def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
+def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
                    r_game: Report, gif: bool = plot_gif):
     if not only_traj:
         print(
@@ -35,7 +35,7 @@ def create_reports(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTraje
         r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=gif))
 
 
-def report_single(game: StaticTrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
+def report_single(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], folder: str):
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
     create_reports(game=game, nash_eq=nash_eq, r_game=r_game)
@@ -55,8 +55,8 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: StaticTrajectoryGame = get_trajectory_game()
-    context: StaticSolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
+    game: TrajectoryGame = get_trajectory_game()
+    context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
         nash_eq = {}
@@ -70,8 +70,8 @@ def test_trajectory_game_best_response():
     folder = "best_response/"
     n_runs = 100      # Number of random runs for best response
 
-    game: StaticTrajectoryGame = get_trajectory_game()
-    context: StaticSolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
+    game: TrajectoryGame = get_trajectory_game()
+    context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
 
     if only_traj:
         nash_eq = {}
@@ -86,7 +86,7 @@ def test_trajectory_game_levels():
     pref = "pref_d7"
 
     game = get_trajectory_game()
-    context: StaticSolvingContext
+    context: SolvingContext
     nash_eq: Mapping[str, SolvedTrajectoryGame] = {}
     sol = Solution()
 

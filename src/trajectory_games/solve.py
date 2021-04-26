@@ -8,10 +8,9 @@ from games.utils import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED
 
 from games import PlayerName
-from .game_def import StaticSolvingContext, DynamicSolvingContext
-from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
-    SubgameSolutions
-from .paths import Trajectory, TrajectoryGraph
+from .game_def import SolvingContext
+from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame
+from .paths import Trajectory
 from .metrics_def import TrajGameOutcome, PlayerOutcome
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
@@ -50,7 +49,7 @@ def check_dominated(joint_actions: JointPureTraj,
     return False
 
 
-def get_best_responses(joint_actions: JointPureTraj, context: StaticSolvingContext,
+def get_best_responses(joint_actions: JointPureTraj, context: SolvingContext,
                        player: PlayerName, done_p: Set[JointPureTraj]) \
         -> Tuple[Set[ComparisonOutcome], Set[Trajectory]]:
     """
@@ -59,7 +58,6 @@ def get_best_responses(joint_actions: JointPureTraj, context: StaticSolvingConte
     """
     actions = context.player_actions
     players = joint_actions.keys()
-    final = SubgameSolutions()
 
     # All alternate actions (from available set) for the current player
     def get_action_options(joint_act: JointPureTraj, p_actions: Set[Trajectory]) -> JointTrajSet:
@@ -74,67 +72,51 @@ def get_best_responses(joint_actions: JointPureTraj, context: StaticSolvingConte
         action_options: JointTrajSet = {_: get_actions(_) for _ in players}
         return action_options
 
-    # Antichain of outcomes
-    def get_antichain(actions_joint: JointPureTraj) -> Set[Trajectory]:
-        antichain_all = final.get_trajectories(joint_traj=actions_joint)
-        # TODO[SIR]: Use full antichain
-        return {next(iter(antichain_all))[player]}
-
     all_actions: Set[Trajectory] = set(actions[player])
     all_actions.remove(joint_actions[player])
 
     # Save antichain of actions
-    best = get_antichain(actions_joint=joint_actions)
-    joint_best: Dict[PlayerName, Trajectory] = {k: v + None for k, v in joint_actions.items()}
+    best: Set[Trajectory] = {joint_actions[player]}
     results: Set[ComparisonOutcome] = set()
     check = False
     action_alt: JointTrajSet = get_action_options(joint_act=joint_actions,
                                                   p_actions=all_actions)
     for joint_act_alt in iterate_dict_combinations(action_alt):
-        antichain_alt = get_antichain(actions_joint=joint_act_alt)
-        joint_alt: Dict[PlayerName, Trajectory] = {k: v + None for k, v in joint_actions.items()}
+        if joint_act_alt in done_p:
+            continue
+        check = True
+        alt_action: Trajectory = joint_act_alt[player]
+        alt_outcome: PlayerOutcome = context.game_outcomes(joint_act_alt)[player]
+        joint_best_all = get_action_options(joint_act=joint_actions, p_actions=best)
+        results_alt: Set[ComparisonOutcome] = set()
 
-        # TODO[SIR]: Antichain comparison
-        for alt_action in antichain_alt:
-            joint_alt[player] = alt_action + None
-            joint_alt_f = frozendict(joint_alt)
-            if joint_alt_f in done_p:
-                continue
-            results_alt: Set[ComparisonOutcome] = set()
-            alt_outcome: PlayerOutcome = context.game_outcomes(joint_alt_f)[player]
+        for joint_best in set(iterate_dict_combinations(joint_best_all)):
+            best_outcome: PlayerOutcome = context.game_outcomes(joint_best)[player]
+            comp_outcome: ComparisonOutcome = \
+                context.outcome_pref[player].compare(best_outcome, alt_outcome)
+            results_alt.add(comp_outcome)
+            if joint_best == joint_actions:
+                results.add(comp_outcome)
 
-            for best_action in list(best):
-                if best_action in antichain_alt:
-                    continue
-                check = True
-                joint_best[player] = best_action
-                joint_best_f = frozendict(joint_best)
-                best_outcome: PlayerOutcome = context.game_outcomes(joint_best_f)[player]
-                comp_outcome: ComparisonOutcome = \
-                    context.outcome_pref[player].compare(best_outcome, alt_outcome)
-                results_alt.add(comp_outcome)
-                if best_action == joint_actions[player]:
-                    results.add(comp_outcome)
+            # If one of best is preferred, alternate is not a best response
+            if comp_outcome == FIRST_PREFERRED:
+                done_p.add(joint_act_alt)
+                break
 
-                # If one of best is preferred, alternate is not a best response
-                if comp_outcome == FIRST_PREFERRED:
-                    done_p.add(joint_alt_f)
-                    break
+            # If second option is preferred, current best action is not a best response
+            if comp_outcome == SECOND_PREFERRED:
+                best.remove(joint_best[player])
+                done_p.add(joint_best)
 
-                # If second option is preferred, current best action is not a best response
-                if comp_outcome == SECOND_PREFERRED:
-                    best.remove(best_action)
-                    done_p.add(joint_best_f)
-
-            if FIRST_PREFERRED not in results_alt:
-                best.add(alt_action)
+        if FIRST_PREFERRED not in results_alt:
+            best.add(alt_action)
 
     if not check:
         results.add(FIRST_PREFERRED)
     return results, best
 
 
-def equilibrium_check(joint_actions: JointPureTraj, context: StaticSolvingContext,
+def equilibrium_check(joint_actions: JointPureTraj, context: SolvingContext,
                       done: Dict[PlayerName, Set[JointPureTraj]]) -> EqOutcome:
     """
     For each player, check if current action is best response
@@ -169,7 +151,7 @@ class Solution:
     # Cache can be reused between levels
     dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
-    def solve_game(self, context: StaticSolvingContext, cache_dom: bool = False) \
+    def solve_game(self, context: SolvingContext, cache_dom: bool = False) \
             -> Mapping[str, SolvedTrajectoryGame]:
         eq_dict = init_eq_dict()
         dom_prev = deepcopy(self.dominated) if not cache_dom else {}
@@ -191,7 +173,7 @@ class Solution:
         self.dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
 
-def solve_static_game(context: StaticSolvingContext) \
+def solve_static_game(context: SolvingContext) \
         -> Mapping[str, SolvedTrajectoryGame]:
     sol = Solution()
     eq_dict = sol.solve_game(context=context)
@@ -205,7 +187,7 @@ def solve_static_game(context: StaticSolvingContext) \
     return static_eq
 
 
-def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
+def iterative_best_response(context: SolvingContext, n_runs: int) \
         -> Mapping[str, SolvedTrajectoryGame]:
     eq_dict = init_eq_dict()
     INIT_BEST = True
@@ -257,17 +239,3 @@ def iterative_best_response(context: StaticSolvingContext, n_runs: int) \
     print(f"Best response equilibrium computation time = {toc:.2f} s")
 
     return eq_dict
-
-
-def solve_subgame(context: DynamicSolvingContext):
-    all_actions: Mapping[PlayerName, TrajectoryGraph] = context.player_actions
-    actions: Dict[PlayerName, FrozenSet[Trajectory]] = {}
-    for player, graph in all_actions.items():
-        actions[player] = graph.get_all_trajectories(source=graph.origin)
-
-    static_context = StaticSolvingContext(player_actions=actions,
-                                          game_outcomes=context.game_outcomes,
-                                          outcome_pref=context.outcome_pref,
-                                          solver_params=context.solver_params)
-    sol = Solution()
-    sol.solve_game(context=static_context)
