@@ -117,7 +117,16 @@ class Trajectory:
         return self.states.get_interp(t)
 
     def __repr__(self) -> str:
-        return str({f"t={round(float(k), 2)}s": v for k, v in self})
+        states: Dict[str, VehicleState] = {}
+
+        def add_entry(t_stamp):
+            states[f"t={round(float(t_stamp), 2)}s"] = self.at(t_stamp)
+        t = self.get_start()
+        while t <= self.get_end():
+            add_entry(t_stamp=t)
+            t += Timestamp("1")
+        add_entry(t_stamp=self.get_end())
+        return str(states)
 
     def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
         if other is None:
