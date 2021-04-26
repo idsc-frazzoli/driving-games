@@ -1,17 +1,13 @@
 from collections import defaultdict
-from dataclasses import dataclass
-from typing import cast, Dict, Optional, Set, Tuple
+from typing import cast, Dict
 
-import geometry as geo
 import networkx as nx
-import numpy as np
-from networkx import DiGraph, MultiDiGraph
 from zuper_commons.types import ZException
 
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 from duckietown_world.world_duckietown.lane_segment import LaneSegment
 from duckietown_world.world_duckietown.tile_coords import TileCoords
-from duckietown_world.geo import iterate_by_class, Matrix2D, PlacedObject, SE2Transform
+from duckietown_world.geo import iterate_by_class, PlacedObject, SE2Transform
 from duckietown_world.world_duckietown.segmentify import (
     SkeletonGraphResult,
     PointLabel,
@@ -24,8 +20,14 @@ from duckietown_world.world_duckietown.segmentify import (
 
 def get_skeleton_graph(po: DuckietownMap) -> SkeletonGraphResult:
     """
-    Returns a graph with the lane segments of the map
-    This function is forked from duckietown world. It has been changed to support maps with open paths.
+    Returns a graph with the lane segments of the map.
+    This function is forked from duckietown-world. It has been changed to support maps with open paths,
+    i.e. the assembled tiles can have paths that do not have loops (roads "leaving" the map).
+    For reference see get_skeleton_graph in duckietown_world.world_duckietwon.segmentify.py
+
+    :param po: A Duckietown map
+    :return: The lane segments of the duckietown map,
+     as well as a graph containing the connections between the lane segments in the map.
     """
 
     root = PlacedObject()
@@ -82,7 +84,8 @@ def get_skeleton_graph(po: DuckietownMap) -> SkeletonGraphResult:
         meeting_points[p1].from_tile = ij
 
     """
-    This part has been removed in order to support "open" maps
+    The part below has been removed in order to support "open" maps, i.e. the assembled tiles can have
+    paths that do not have loops (roads "leaving" the map)
     """
     # for k, mp in meeting_points.items():
     #     if (len(mp.incoming) == 0) or (len(mp.outcoming) == 0):

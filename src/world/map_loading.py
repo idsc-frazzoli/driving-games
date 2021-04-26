@@ -14,16 +14,21 @@ from duckietown_world.geo.measurements_utils import iterate_by_class
 
 from world.tiles import load_driving_games_tile_types
 
+
 __all__ = ["load_driving_game_map", "load_driving_game_map_from_yaml", "map_directory"]
 
 module_path = os.path.dirname(__file__)
 
-map_directory = os.path.join(module_path, "maps")
+map_directory = os.path.join(module_path, 'maps')
+"""Directory where the pictures of the maps are stored"""
 
 
 def load_driving_game_map(name: str) -> DuckietownMap:
     """
-    Loads a Driving Game map out of the maps folder
+    Loads a Duckietwon map out of the maps folder
+
+    :param name: The name of the yaml file without extension corresponding to a map in the maps folder.
+    :return: A Duckietwon map
     """
     yml_path = os.path.join(map_directory, f"{name}.yaml")
     return load_driving_game_map_from_yaml(yml_path)
@@ -31,7 +36,10 @@ def load_driving_game_map(name: str) -> DuckietownMap:
 
 def load_driving_game_map_from_yaml(path: str) -> DuckietownMap:
     """
-    Loads Driving Game Map out of a yaml file
+    Loads Duckietown Map out of a yaml file
+
+    :param path: The path to the yaml file containing the assembled tiles
+    :return: A Duckietown map
     """
     with open(path) as yml_file:
         driving_game_yaml_parsed = yaml.load(yml_file, Loader=yaml.SafeLoader)
@@ -41,7 +49,11 @@ def load_driving_game_map_from_yaml(path: str) -> DuckietownMap:
 
 def construct_driving_game_map(yaml_data: dict) -> DuckietownMap:
     """
-    Function forked from of the duckietown world module
+    Function forked from of the duckietown-world module. For reference see function construct_map in
+    duckietown_world.world_duckietown.map_loading.py
+
+    :param yaml_data:  A parsed yaml file containing the assembled tiles
+    :return: A Duckietown map
     """
     tile_size = yaml_data["tile_size"]
     dm = DuckietownMap(tile_size)
