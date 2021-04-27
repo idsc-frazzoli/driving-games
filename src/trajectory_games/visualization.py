@@ -1,5 +1,5 @@
 from numbers import Number
-from typing import Sequence, Tuple, Mapping, FrozenSet
+from typing import Sequence, Tuple, Mapping, FrozenSet, Set
 
 import numpy as np
 import os
@@ -12,6 +12,7 @@ from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 from games import PlayerName
 from geometry import SE2_from_xytheta
 
+from world import LaneSegmentHashable
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
 from .paths import Trajectory
@@ -50,13 +51,6 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         axis.set_xlim(left=0, right=x_size)
         axis.set_ylim(bottom=0, top=y_size)
 
-        for player, lane in self.world.lanes.items():
-            points = lane.lane_profile()
-            xp, yp = zip(*points)
-            x = np.array(xp)
-            y = np.array(yp)
-            axis.fill(x, y, color=self.world.get_geometry(player).colour, alpha=0.1, zorder=1)
-
         yield
 
     def plot_player(self, axis, player_name: PlayerName,
@@ -76,7 +70,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                           colour=colour, width=width,
                           alpha=alpha, ticks=ticks)
 
-        size = 2.0/len(actions)
+        size = (axis.bbox.height/400.0)**2
         for path in actions:
             vals = [(x.x, x.y, x.t) for _, x in path]
             x, y, t = zip(*vals)
@@ -125,9 +119,18 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                      colour: VehicleGeometry.COLOUR,
                      width: float = 1.0, alpha: float = 1.0, ticks: bool = True):
         segments = []
+        lanes: Set[LaneSegmentHashable] = set()
         for traj in actions:
             sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
             segments.append(sampled_traj)
+            lanes.add(traj.get_lane())
+
+        for lane in lanes:
+            points = lane.lane_profile()
+            xp, yp = zip(*points)
+            x = np.array(xp)
+            y = np.array(yp)
+            axis.fill(x, y, color=colour, alpha=0.1, zorder=1)
 
         lines = LineCollection(segments=segments, colors=colour, linewidths=width, alpha=alpha)
         lines.set_zorder(5)

@@ -37,6 +37,10 @@ traj_2:       &traj_2
   n_acc:      3
   n_dst:      3
 
+traj_2_t:     &traj_2_t
+  <<:         *traj_2
+  step_dst:   0.1
+
 traj_3:       &traj_3
   <<:         *traj_1
   dt:         "1.0"

@@ -8,8 +8,8 @@
 
 red_car:      &car
   m:      1000
-  w:      0.75
-  l:      1.5
+  w:      0.5
+  l:      1.0
   colour: "red"
 
 blue_car:

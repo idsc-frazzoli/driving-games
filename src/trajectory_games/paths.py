@@ -7,6 +7,7 @@ from duckietown_world import SE2Transform
 from bisect import bisect_right
 from networkx import DiGraph, has_path, shortest_path
 
+from world import LaneSegmentHashable
 from .sequence import Timestamp, SampledSequence
 from .structures import VehicleState
 from .game_def import ActionGraph
@@ -25,11 +26,14 @@ class Trajectory:
     """ Container for trajectory - sequence of vehicle states """
     traj: List["Trajectory"]
     states: SampledSequence[VehicleState]
+    lane: LaneSegmentHashable
 
     def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
+                 lane: LaneSegmentHashable,
                  p_final: Optional[FinalPoint] = None,
                  states: Optional[Tuple[VehicleState, VehicleState]] = None):
         assert len(values) > 0
+        self.lane = lane
         if all(isinstance(val, Trajectory) for val in values):
             self.traj = values
             x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
@@ -47,10 +51,10 @@ class Trajectory:
             raise TypeError(f"Input is of wrong type - {type(values[0])}!")
 
     @staticmethod
-    @cached(cache={}, key=lambda states, values, p_final: cachetools.keys.hashkey(states))
-    def create(states: Tuple[VehicleState, VehicleState],
+    @cached(cache={}, key=lambda states, lane, values, p_final: cachetools.keys.hashkey((states, lane)))
+    def create(states: Tuple[VehicleState, VehicleState], lane: LaneSegmentHashable,
                values: List[VehicleState], p_final: FinalPoint = None):
-        return Trajectory(values=values, p_final=p_final, states=states)
+        return Trajectory(values=values, lane=lane, p_final=p_final, states=states)
 
     @staticmethod
     def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
@@ -93,6 +97,9 @@ class Trajectory:
 
     def __len__(self):
         return len(self.states)
+
+    def get_lane(self) -> LaneSegmentHashable:
+        return self.lane
 
     def get_trajectories(self) -> List["Trajectory"]:
         if len(self.traj) == 0:
@@ -146,11 +153,13 @@ class Trajectory:
 class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
     """ Structure for storing all trajectories """
     origin: VehicleState
+    lane: LaneSegmentHashable
     trajectories: Dict[Tuple[VehicleState, VehicleState], Trajectory]
 
-    def __init__(self, origin: VehicleState, **attr):
+    def __init__(self, origin: VehicleState, lane: LaneSegmentHashable, **attr):
         super().__init__(**attr)
         self.origin = origin
+        self.lane = lane
         self.trajectories = {}
 
     def add_node(self, state: VehicleState, **attr):
@@ -194,4 +203,4 @@ class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
         traj: List[Trajectory] = []
         for node1, node2 in zip(nodes[:-1], nodes[1:]):
             traj.append(self.get_trajectory_edge(source=node1, target=node2))
-        return Trajectory(values=traj)
+        return Trajectory(values=traj, lane=self.lane)

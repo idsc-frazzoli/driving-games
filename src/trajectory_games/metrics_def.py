@@ -52,7 +52,7 @@ class MetricEvaluationContext:
             else:
                 traj_cart = trans.get_path_sampled()
                 cart[player] = traj_cart
-                ref_path = self.world.get_lane(player)
+                ref_path = trans.get_lane()
                 curv[player] = [ref_path.lane_pose_from_SE2Transform(xy) for xy in traj_cart]
                 MetricEvaluationContext._cache_cart[trans] = cart[player]
                 MetricEvaluationContext._cache_curv[trans] = curv[player]

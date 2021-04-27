@@ -25,7 +25,7 @@ Successors = Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]
 class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
     params: TrajectoryParams
     _bicycle_dyn: BicycleDynamics
-    _cache: Dict[Tuple[PlayerName, VehicleState], TrajectoryGraph]
+    _cache: Dict[Tuple[PlayerName, VehicleState], Set[TrajectoryGraph]]
 
     def __init__(self, params: TrajectoryParams):
         self.params = params
@@ -33,7 +33,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         self._cache = {}
 
     def get_actions_dynamic(self, state: VehicleState, player: PlayerName,
-                            world: TrajectoryWorld = None) -> TrajectoryGraph:
+                            world: TrajectoryWorld = None) -> Set[TrajectoryGraph]:
         """
         Computes dynamic graph of transitions for given state along reference
         Requires world for first instance, returns from cache if already computed
@@ -42,27 +42,32 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
             return self._cache[(player, state)]
         assert world is not None
         tic = perf_counter()
-        lane = world.get_lane(player=player)
-        graph = TrajectoryGraph(origin=state)
-        self._get_trajectory_graph(state=state, lane=lane, graph=graph)
+        all_graphs: Set[TrajectoryGraph] = set()
+        for lane in world.get_lanes(player=player):
+            graph = TrajectoryGraph(origin=state, lane=lane)
+            self._get_trajectory_graph(state=state, lane=lane, graph=graph)
+            all_graphs.add(graph)
         toc = perf_counter() - tic
         print(f"Player: {player}\ttime = {toc:.2f} s")
-        self._cache[(player, state)] = graph
-        return graph
+        self._cache[(player, state)] = all_graphs
+        return all_graphs
 
     def get_actions_static(self, state: VehicleState, player: PlayerName,
                            world: TrajectoryWorld = None) -> FrozenSet[Trajectory]:
         """
-        Computes set of static feasible trajectories for given state along reference
+        Computes set of static feasible trajectories for given state along reference lanes
         Requires world for first instance, returns from cache if already computed
         """
         tic = perf_counter()
-        graph = self.get_actions_dynamic(state=state, player=player, world=world)
-        trajectories = self._trajectory_graph_to_list(graph=graph)
+        lane_graphs = self.get_actions_dynamic(state=state, player=player, world=world)
+        all_traj: Set[Trajectory] = set()
+        for graph in lane_graphs:
+            all_traj |= self._trajectory_graph_to_list(graph=graph)
         toc = perf_counter() - tic
         if toc > 0.1:
-            print(f"Player: {player}\n\tTrajectories generated = {len(trajectories)}\n\ttime = {toc:.2f} s")
-        return frozenset(trajectories)
+            print(f"Player: {player}\n\tLanes = {len(lane_graphs)}"
+                  f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s")
+        return frozenset(all_traj)
 
     def _get_trajectory_graph(self, state: VehicleState, lane: LaneSegmentHashable, graph: TrajectoryGraph):
         """ Construct graph of states """
@@ -95,7 +100,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                     cond = n_gen + 1 < self.params.max_gen
                 if cond:
                     stack.append(s2)
-                transition = Trajectory.create(values=samp, p_final=p_final, states=(s1, s2))
+                transition = Trajectory.create(values=samp, lane=lane, p_final=p_final, states=(s1, s2))
                 graph.add_edge(trajectory=transition, u=u)
 
         return graph

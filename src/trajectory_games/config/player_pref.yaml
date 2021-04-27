@@ -184,3 +184,6 @@ test_3:                       &test_3
   EpisodeTime:                ["LateralComfort"]
   SteeringRate:               ["DrivableAreaViolation", "EpisodeTime"]
   SteeringAngle:              ["ProgressAlongReference", "SteeringRate"]
+
+pref_vio:
+  DrivableAreaViolation:      []

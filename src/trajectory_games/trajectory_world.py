@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Mapping, List
+from typing import Mapping, List, Set
 
 from games import PlayerName
 from world import LaneSegmentHashable
@@ -18,7 +18,7 @@ class TrajectoryWorld:
     geo: Mapping[PlayerName, VehicleGeometry]
     """ Geometry of each player """
 
-    lanes: Mapping[PlayerName, LaneSegmentHashable]
+    lanes: Mapping[PlayerName, Set[LaneSegmentHashable]]
     """ Reference lanes for each player """
 
     def __post_init__(self):
@@ -29,7 +29,7 @@ class TrajectoryWorld:
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())
 
-    def get_lane(self, player: PlayerName) -> LaneSegmentHashable:
+    def get_lanes(self, player: PlayerName) -> Set[LaneSegmentHashable]:
         return self.lanes[player]
 
     def get_geometry(self, player: PlayerName) -> VehicleGeometry:

@@ -1,7 +1,7 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict
+from typing import Dict, Set
 from yaml import safe_load
 
 from games import PlayerName, MonadicPreferenceBuilder
@@ -32,7 +32,7 @@ def get_trajectory_game() -> TrajectoryGame:
         config = safe_load(load_file)
     with open(lanes_file) as load_file:
         config_lanes = safe_load(load_file)[config["map_name"]]
-    lanes: Dict[PlayerName, LaneSegmentHashable] = {}
+    lanes: Dict[PlayerName, Set[LaneSegmentHashable]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     duckie_map = load_driving_game_map(config["map_name"])
@@ -41,13 +41,17 @@ def get_trajectory_game() -> TrajectoryGame:
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
     for pname, pconfig in config["players"].items():
-        lane_seg = get_lane_from_node_sequence(m=duckie_map, node_sequence=config_lanes[pconfig["lane"]])
-        lanes[pname] = LaneSegmentHashable.initializor(lane_seg)
+        lanes[pname] = set()
+        # TODO[SIR]: Check that all lanes start at the same node
+        for lane_id in pconfig["lane"]:
+            lane = config_lanes[lane_id]
+            lane_seg = get_lane_from_node_sequence(m=duckie_map, node_sequence=lane)
+            lanes[pname].add(LaneSegmentHashable.initializor(lane_seg))
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TransitionGenerator(params=param)
         pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
-        state = VehicleState.from_config(name=pconfig["state"], lane=lanes[pname])
+        state = VehicleState.from_config(name=pconfig["state"], lane=next(iter(lanes[pname])))
         players[pname] = TrajectoryGamePlayer(
             name=pname,
             state=ps.unit(state),
