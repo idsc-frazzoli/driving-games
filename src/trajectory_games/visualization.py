@@ -6,7 +6,6 @@ import os
 from decorator import contextmanager
 from duckietown_world import DuckietownMap
 from imageio import imread
-from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
@@ -38,7 +37,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         self.grid = load_driving_game_map(name=world.map_name)
 
     @contextmanager
-    def plot_arena(self, pylab, ax):
+    def plot_arena(self, axis):
 
         png_path = os.path.join(map_directory, f"{self.world.map_name}.png")
         img = imread(png_path)
@@ -47,42 +46,43 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         W = self.grid["tilemap"].W
         x_size = tile_size * W
         y_size = tile_size * H
-        pylab.imshow(img, extent=[0, x_size, 0, y_size])
-        ax.set_xlim(left=0, right=x_size)
-        ax.set_ylim(bottom=0, top=y_size)
+        axis.imshow(img, extent=[0, x_size, 0, y_size])
+        axis.set_xlim(left=0, right=x_size)
+        axis.set_ylim(bottom=0, top=y_size)
 
         for player, lane in self.world.lanes.items():
             points = lane.lane_profile()
             xp, yp = zip(*points)
             x = np.array(xp)
             y = np.array(yp)
-            pylab.fill(x, y, color=self.world.get_geometry(player).colour, alpha=0.1, zorder=1)
+            axis.fill(x, y, color=self.world.get_geometry(player).colour, alpha=0.1, zorder=1)
 
         yield
 
-    def plot_player(self, pylab, player_name: PlayerName,
+    def plot_player(self, axis, player_name: PlayerName,
                     state: VehicleState, box=None):
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
-        box = plot_car(pylab=pylab, player_name=player_name,
+        box = plot_car(axis=axis, player_name=player_name,
                        state=state, vg=vg, box=box)
         return box
 
-    def plot_equilibria(self, pylab, actions: FrozenSet[Trajectory],
+    def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
                         colour: VehicleGeometry.COLOUR,
-                        width: float = 1.0, alpha: float = 1.0):
+                        width: float = 1.0, alpha: float = 1.0, ticks: bool = True):
 
-        self.plot_actions(pylab=pylab, actions=actions,
-                          colour=colour, width=width, alpha=alpha)
+        self.plot_actions(axis=axis, actions=actions,
+                          colour=colour, width=width,
+                          alpha=alpha, ticks=ticks)
 
         size = 2.0/len(actions)
         for path in actions:
             vals = [(x.x, x.y, x.t) for _, x in path]
             x, y, t = zip(*vals)
-            pylab.scatter(x, y, s=size, c=t, zorder=10)
+            axis.scatter(x, y, s=size, c=t, zorder=10)
 
-    def plot_pref(self, pylab, player: GamePlayer,
+    def plot_pref(self, axis, player: GamePlayer,
                   origin: Tuple[float, float],
                   labels: Mapping[WeightedPreference, str] = None):
 
@@ -118,13 +118,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             arrowstyle="-",
         )
 
-        ax: Axes = pylab.gca()
-        draw_networkx_labels(G, pos=pos, labels=labels, ax=ax, font_size=8, font_color="b")
-        ax.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
+        draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
+        axis.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
 
-    def plot_actions(self, pylab, actions: FrozenSet[Trajectory],
+    def plot_actions(self, axis, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR,
-                     width: float = 1.0, alpha: float = 1.0):
+                     width: float = 1.0, alpha: float = 1.0, ticks: bool = True):
         segments = []
         for traj in actions:
             sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
@@ -132,13 +131,16 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
         lines = LineCollection(segments=segments, colors=colour, linewidths=width, alpha=alpha)
         lines.set_zorder(5)
-        ax: Axes = pylab.gca()
-        ax.add_collection(lines)
-        ax.yaxis.set_ticks_position("left")
-        ax.xaxis.set_ticks_position("bottom")
+        axis.add_collection(lines)
+        if ticks:
+            axis.yaxis.set_ticks_position("left")
+            axis.xaxis.set_ticks_position("bottom")
+        else:
+            axis.yaxis.set_visible(False)
+            axis.xaxis.set_visible(False)
 
 
-def plot_car(pylab, player_name: PlayerName, state: VehicleState,
+def plot_car(axis, player_name: PlayerName, state: VehicleState,
              vg: VehicleGeometry, box):
     L = vg.l
     W = vg.w
@@ -149,11 +151,11 @@ def plot_car(pylab, player_name: PlayerName, state: VehicleState,
     q = SE2_from_xytheta(xy_theta)
     x1, y1 = get_transformed_xy(q, car)
     if box is None:
-        box, = pylab.fill([], [], color=car_color, alpha=0.3, zorder=10)
+        box, = axis.fill([], [], color=car_color, alpha=0.3, zorder=10)
         x4, y4 = get_transformed_xy(q, ((0, 0),))
-        pylab.text(x4, y4, player_name, zorder=25,
-                   horizontalalignment="center",
-                   verticalalignment="center")
+        axis.text(x4, y4, player_name, zorder=25,
+                  horizontalalignment="center",
+                  verticalalignment="center")
     box.set_xy(np.array(list(zip(x1, y1))))
     return box
 

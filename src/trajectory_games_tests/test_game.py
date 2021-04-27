@@ -17,10 +17,10 @@ from trajectory_games import (
     PosetalPreference,
 )
 
-plot_gif = True                 # gif vs image for viz
+plot_gif = False                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
 d = "out/tests/"
-filename = "r_game_all.html"
+filename = "r_game_red.html"
 
 
 def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
@@ -63,6 +63,7 @@ def test_trajectory_game_brute_force():
     else:
         sol = Solution()
         nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=context)
+        game.game_vis.init_plot_dict(values=nash_eq["weak"])
     report_single(game=game, nash_eq=nash_eq, folder=folder)
 
 
@@ -78,6 +79,7 @@ def test_trajectory_game_best_response():
     else:
         nash_eq: Mapping[str, SolvedTrajectoryGame] = \
             iterative_best_response(context=context, n_runs=n_runs)
+        game.game_vis.init_plot_dict(values=nash_eq["weak"])
     report_single(game=game, nash_eq=nash_eq, folder=folder)
 
 
@@ -101,6 +103,8 @@ def test_trajectory_game_levels():
         context = preprocess_full_game(sgame=game, only_traj=only_traj)
         cache_dom = i <= 3  # Preferences are not extra levels of previous after this!
         nash_eq = sol.solve_game(context=context, cache_dom=cache_dom)
+        if game.game_vis.plot_dict is None and len(nash_eq["weak"]) <= 100:
+            game.game_vis.init_plot_dict(values=nash_eq["weak"])
         rep = Report()
         create_reports(game=game, nash_eq=nash_eq, r_game=rep, gif=False)
         node: Report = rep.last()

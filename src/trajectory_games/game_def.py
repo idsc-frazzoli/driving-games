@@ -1,7 +1,8 @@
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple
+from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set
 
 from games import (
     PlayerName,
@@ -53,32 +54,73 @@ class ActionSetGenerator(Generic[X, U, W], ABC):
         pass
 
 
+Key = TypeVar("Key")
+
+
+class PlotStackDictionary(Generic[Key]):
+    rows: int
+    cols: int
+    next_idx: int
+    indices: Dict[Key, Tuple[int, int]]
+
+    def __init__(self, values: Set[Key]):
+        n_nodes = len(values)
+        assert n_nodes > 0
+        self.cols = math.ceil(n_nodes ** 0.5)
+        self.rows = math.ceil(n_nodes / self.cols)
+        self.next_idx = 0
+        self.indices: Dict[Key, Tuple[int, int]] = {}
+
+    def get_size(self) -> Tuple[int, int]:
+        return self.rows, self.cols
+
+    def __getitem__(self, item: Key) -> Tuple[int, int]:
+        if item in self.indices:
+            return self.indices[item]
+        if self.next_idx >= self.rows * self.cols:
+            raise ValueError(f"Next idx = {self.next_idx}; rows,cols = {self.rows, self.cols}!")
+        row = self.next_idx // self.cols
+        col = self.next_idx % self.cols
+        self.indices[item] = (row, col)
+        self.next_idx += 1
+        return row, col
+
+
 class GameVisualization(Generic[X, U, W], ABC):
     """ A generic game visualization interface """
+    plot_dict: Optional[PlotStackDictionary] = None
 
     @abstractmethod
-    def plot_arena(self, pylab, ax):
+    def plot_arena(self, axis):
         pass
 
     @abstractmethod
-    def plot_player(self, pylab, player_name: PlayerName, state: X, **kwargs):
+    def plot_player(self, axis, player_name: PlayerName, state: X, **kwargs):
         pass
 
     @abstractmethod
-    def plot_actions(self, pylab, actions: FrozenSet[U],
+    def plot_actions(self, axis, actions: FrozenSet[U],
                      colour: Tuple[float, float, float], **kwargs):
         pass
 
     @abstractmethod
-    def plot_equilibria(self, pylab, actions: FrozenSet[U],
+    def plot_equilibria(self, axis, actions: FrozenSet[U],
                         colour: Tuple[float, float, float], **kwargs):
         pass
 
     @abstractmethod
-    def plot_pref(self, pylab, player: "GamePlayer",
+    def plot_pref(self, axis, player: "GamePlayer",
                   origin: Tuple[float, float],
                   labels: Mapping[str, str] = None):
         pass
+
+    def init_plot_dict(self, values: Set[Key]):
+        self.plot_dict = PlotStackDictionary[Key](values=values)
+
+    def get_plot_dict(self) -> PlotStackDictionary:
+        if self.plot_dict is None:
+            raise ValueError(f"Initialise plot_dict first!")
+        return self.plot_dict
 
 
 @dataclass

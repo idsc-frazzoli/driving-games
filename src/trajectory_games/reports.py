@@ -1,10 +1,12 @@
+import itertools
 from time import perf_counter
 from typing import Mapping, Dict, Set
 
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
-from reprep import Report, MIME_GIF
+from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults
 from zuper_commons.text import remove_escapes
 from decimal import Decimal as D
 
@@ -22,13 +24,13 @@ def report_game_visualization(game: Game) -> Report:
     tic = perf_counter()
     with r.plot("actions") as pylab:
         ax = pylab.gca()
-        with viz.plot_arena(pylab, ax):
+        with viz.plot_arena(axis=ax):
             for player_name, player in game.game_players.items():
                 for state in player.state.support():
-                    viz.plot_player(pylab=pylab, player_name=player_name, state=state)
+                    viz.plot_player(axis=ax, player_name=player_name, state=state)
                     actions = player.actions_generator.get_actions_static(state=state, world=game.world,
                                                                           player=player.name)
-                    viz.plot_actions(pylab=pylab, actions=actions, colour=player.vg.colour, width=0.5)
+                    viz.plot_actions(axis=ax, actions=actions, colour=player.vg.colour, width=0.5)
 
     toc = perf_counter() - tic
     print(f"Report game viz time = {toc:.2f} s")
@@ -88,14 +90,14 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
 
         with eq_viz.plot("outcomes") as pylab:
             n: float = 0.0
+            ax: Axes = pylab.gca()
             for player_name, player_eq in game.game_players.items():
                 metrics: Dict[str, str] = {}
                 outcomes = node_eq.outcomes[player_name]
                 for pref in player_eq.preference.graph.nodes:
                     metrics[pref] = str(round(float(pref.evaluate(outcomes)), 2))
-                viz.plot_pref(pylab, player=player_eq, origin=(n, 0.0), labels=metrics)
+                viz.plot_pref(axis=ax, player=player_eq, origin=(n, 0.0), labels=metrics)
                 n = n + 200
-            ax: Axes = pylab.gca()
             ax.set_xlim(-150.0, n - 100.0)
 
     def save_actions(nodes_all: Set[SolvedTrajectoryGameNode]) -> Mapping[PlayerName, Set[Trajectory]]:
@@ -105,13 +107,19 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                 actions[player_eq].add(action)
         return actions
 
-    def plot_eq(pylab, actions_all: Mapping[PlayerName, Set[Trajectory]], w: float):
+    def plot_eq_all(axis, actions_all: Mapping[PlayerName, Set[Trajectory]], w: float):
         for pname, actions in actions_all.items():
             if len(actions) == 0:
                 continue
-            viz.plot_equilibria(pylab, actions=frozenset(actions),
+            viz.plot_equilibria(axis=axis, actions=frozenset(actions),
                                 colour=game.game_players[pname].vg.colour,
                                 width=w, alpha=w)
+
+    def plot_pref(pylab):
+        player = list(game.game_players.values())[0]
+        ax: Axes = pylab.gca()
+        viz.plot_pref(axis=ax, player=player, origin=(0.0, 0.0))
+        ax.set_xlim(-150.0, 125.0)
 
     def image_eq(report: Report):
         eq_viz = report.figure(cols=2)
@@ -121,19 +129,52 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
         actions_weak = save_actions(nodes_weak)
         with eq_viz.plot("all_equilibria") as pylab:
             ax = pylab.gca()
-            with viz.plot_arena(pylab, ax):
+            with viz.plot_arena(axis=ax):
                 for player_name, player in game.game_players.items():
                     for state in player.state.support():
-                        viz.plot_player(pylab=pylab, player_name=player_name,
+                        viz.plot_player(axis=ax, player_name=player_name,
                                         state=state)
-                plot_eq(pylab=pylab, actions_all=actions_strong, w=1.0)
-                plot_eq(pylab=pylab, actions_all=actions_weak, w=0.5)
+                plot_eq_all(axis=ax, actions_all=actions_weak, w=0.5)
+                plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0)
 
         with eq_viz.plot("pref") as pylab:
-            player = list(game.game_players.values())[0]
-            viz.plot_pref(pylab, player=player, origin=(0.0, 0.0))
-            ax: Axes = pylab.gca()
-            ax.set_xlim(-150.0, 125.0)
+            plot_pref(pylab=pylab)
+
+    def stack_eq(report: Report):
+        eq_viz = report.figure(cols=2)
+
+        with eq_viz.data_file("all_equilibria", MIME_PNG) as fn:
+            plot_dict = viz.get_plot_dict()
+            rows, cols = plot_dict.get_size()
+            all_idx = set(itertools.product(range(rows), range(cols)))
+            fig, axs = plt.subplots(rows, cols)
+            if rows == 1:
+                if cols == 1:
+                    axs = np.array([[axs]])
+                else:
+                    axs = np.expand_dims(axs, axis=0)
+            for node in node_set:
+                w: float = 1.0 if node in nash_eq["strong"] else 0.5
+                idx = plot_dict[node]
+                ax = axs[idx]
+                all_idx.remove(idx)
+                with viz.plot_arena(ax):
+                    for player_name, player in game.game_players.items():
+                        for state in player.state.support():
+                            viz.plot_player(axis=ax, player_name=player_name,
+                                            state=state)
+                    for pname, actions in node.actions.items():
+                        viz.plot_equilibria(axis=ax, actions=frozenset([actions]),
+                                            colour=game.game_players[pname].vg.colour,
+                                            width=w, alpha=w, ticks=False)
+            for idx in all_idx:
+                axs[idx].axis('off')
+            fig.subplots_adjust(hspace=0.0, wspace=0.0)
+            fig.savefig(fn, **RepRepDefaults.savefig_params)
+            plt.close(fig=fig)
+
+        with eq_viz.plot("pref") as pylab:
+            plot_pref(pylab=pylab)
 
     if plot_gif:
         i = 1
@@ -157,7 +198,10 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             i += 1
     else:
         rplot = Report(f"Equilibria")
-        image_eq(report=rplot)
+        if len(node_set) > 100:
+            image_eq(report=rplot)
+        else:
+            stack_eq(report=rplot)
         req.add_child(rplot)
 
     r_all.add_child(req)
@@ -173,8 +217,8 @@ def report_preferences(game: Game) -> Report:
 
     for player in game.game_players.values():
         with r.plot(player.name) as pylab:
-            viz.plot_pref(pylab, player=player, origin=(0.0, 0.0))
             ax: Axes = pylab.gca()
+            viz.plot_pref(axis=ax, player=player, origin=(0.0, 0.0))
             ax.set_xlim(-150.0, 125.0)
     toc = perf_counter() - tic
     print(f"Preference viz time = {toc:.2f} s")
@@ -194,14 +238,14 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
     def init_plot():
         ax.clear()
-        with viz.plot_arena(plt, ax):
+        with viz.plot_arena(axis=ax):
             for player_name, player in game.game_players.items():
                 for state in player.state.support():
                     box[player_name] = \
-                        viz.plot_player(pylab=plt, player_name=player_name,
+                        viz.plot_player(axis=ax, player_name=player_name,
                                         state=state)
             for player, action in node.actions.items():
-                viz.plot_equilibria(plt, actions=frozenset([action]),
+                viz.plot_equilibria(axis=ax, actions=frozenset([action]),
                                     colour=game.game_players[player].vg.colour,
                                     width=1.0)
         return list(box.values())
@@ -210,7 +254,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
         for player, box_handle in box.items():
             action: Trajectory = node.actions[player]
             state = action.at(t=t)
-            box[player] = viz.plot_player(pylab=plt, player_name=player,
+            box[player] = viz.plot_player(axis=ax, player_name=player,
                                           state=state, box=box_handle)
         return list(box.values())
 

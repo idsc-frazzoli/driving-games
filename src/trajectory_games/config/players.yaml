@@ -51,12 +51,12 @@ players:
     pref:     "pref_d6"
     lane:     "dl2"
     vg:       "yellow_car"
-  P2:
-    state:    "state_1"
-    traj:     "traj_2"
-    pref:     "pref_d2"
-    lane:     "rl2"
-    vg:       "blue_car"
+#  P2:
+#    state:    "state_1"
+#    traj:     "traj_2"
+#    pref:     "pref_d2"
+#    lane:     "rl2"
+#    vg:       "blue_car"
 #  P3:
 #    state:    "state_3"
 #    traj:     "traj_2"
