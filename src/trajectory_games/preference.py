@@ -30,6 +30,7 @@ __all__ = [
 class WeightedPreference(Preference[PlayerOutcome]):
     """Compare the total weighted values between evaluated metrics"""
 
+    name: str
     weights: Mapping[Metric, D]
 
     _pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
@@ -43,6 +44,7 @@ class WeightedPreference(Preference[PlayerOutcome]):
                 WeightedPreference._config = safe_load(load_file)
             WeightedPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
 
+        self.name = weights_str
         self.weights = {self._metric_dict[k]: D(v) for k, v in self._config[weights_str].items()}
 
     @staticmethod
@@ -79,7 +81,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
                    INDIFFERENT: INDIFFERENT, INCOMPARABLE: INCOMPARABLE}
     _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
     graph: DiGraph
-    node_dict: Dict[str, metric_type] = {}
+    _node_dict: Dict[str, metric_type] = {}
     level_nodes: Mapping[int, Set[metric_type]]
 
     def __init__(self, pref_str: str, use_cache: bool = False):
@@ -96,14 +98,18 @@ class PosetalPreference(Preference[PlayerOutcome]):
         self._cache = {}
 
     def add_node(self, name: str) -> metric_type:
-        if name not in self.node_dict:
+        if name not in PosetalPreference._node_dict:
             node = WeightedPreference(weights_str=name)
-            self.graph.add_node(node)
-            self.node_dict[name] = node
-        return self.node_dict[name]
+            PosetalPreference._node_dict[name] = node
+        else:
+            node = PosetalPreference._node_dict[name]
+        self.graph.add_node(node)
+        return node
 
     def build_graph(self, pref_str: str):
         self.graph = DiGraph()
+        if pref_str not in self._config:
+            return
         for key, parents in self._config[pref_str].items():
             node = self.add_node(name=key)
             for p in parents:
@@ -126,9 +132,9 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 continue
             level = 0
             for root in roots:
-                new_deg = (len(max(all_simple_paths(self.graph, source=root, target=node),
-                                   key=lambda x: len(x))) - 1)
-                level = max(level, new_deg)
+                all_lens = [len(x) for x in all_simple_paths(self.graph, source=root, target=node)]
+                if len(all_lens) > 0:
+                    level = max(level, max(all_lens))
             if level not in level_nodes:
                 level_nodes[level] = set()
             level_nodes[level].add(node)

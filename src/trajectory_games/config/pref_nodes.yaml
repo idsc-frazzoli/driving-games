@@ -86,3 +86,7 @@ weights_7:
   ProgressAlongReference:     0.05
 #  EpisodeTime:                0.1
   DrivableAreaViolation:      1.0
+
+weight_sp_comf:
+  EpisodeTime:                1.0
+  LateralComfort:             1.0

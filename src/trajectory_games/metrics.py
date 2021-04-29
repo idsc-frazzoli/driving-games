@@ -427,7 +427,7 @@ class CollisionEnergy(Clearance):
 class MinimumClearance(Clearance):
     description = "This metric computes the cost when minimum clearance not available between agents."
     time = 0.0
-    THRESHOLD = 1.0
+    THRESHOLD = 2.5
     cache_vals: Dict[JointPureTraj, Dict[PlayerName, List[float]]] = {}
     cache_metrics: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
 

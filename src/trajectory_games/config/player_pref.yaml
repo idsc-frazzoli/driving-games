@@ -165,6 +165,9 @@ pref_10_2:
   LongitudinalAcceleration:   ["CollisionEnergy"]
   ProgressAlongReference:     ["LongitudinalAcceleration"]
 
+pref_vio:
+  DrivableAreaViolation:      []
+
 ## Test preferences
 test_1:                       &test_1
   CollisionEnergy:            []
@@ -185,5 +188,60 @@ test_3:                       &test_3
   SteeringRate:               ["DrivableAreaViolation", "EpisodeTime"]
   SteeringAngle:              ["ProgressAlongReference", "SteeringRate"]
 
-pref_vio:
-  DrivableAreaViolation:      []
+comp_1:                       &comp_1
+  CollisionEnergy:            []
+
+comp_2:                       &comp_2
+  <<: *comp_1
+  EpisodeTime:                []
+
+comp_3:                       &comp_3
+  <<: *comp_1
+  EpisodeTime:                ["CollisionEnergy"]
+
+comp_4:                       &comp_4
+  <<: *comp_2
+  LateralComfort:             []
+
+comp_5:                       &comp_5
+  <<: *comp_2
+  LateralComfort:             ["CollisionEnergy"]
+
+comp_6:                       &comp_6
+  <<: *comp_2
+  LateralComfort:             ["CollisionEnergy", "EpisodeTime"]
+
+comp_7:                       &comp_7
+  <<: *comp_3
+  LateralComfort:             ["CollisionEnergy"]
+
+comp_8:                       &comp_8
+  <<: *comp_1
+  weight_sp_comf:             ["CollisionEnergy"]
+
+comp_9:                       &comp_9
+  <<: *comp_3
+  LateralComfort:             ["EpisodeTime"]
+  DeviationLateral:           ["LateralComfort"]
+
+comp_10:                       &comp_10
+  <<: *comp_3
+  DeviationLateral:           ["EpisodeTime"]
+  LateralComfort:             ["DeviationLateral"]
+
+comp_11:                       &comp_11
+  <<: *comp_7
+  DeviationLateral:           ["EpisodeTime"]
+
+comp_12:                       &comp_12
+  <<: *comp_7
+  DeviationLateral:           ["EpisodeTime", "LateralComfort"]
+
+comp_13:                       &comp_13
+  <<: *comp_8
+  DeviationLateral:           ["weight_sp_comf"]
+
+comp_14:                       &comp_14
+  <<: *comp_3
+  DeviationLateral:           ["EpisodeTime"]
+  LateralComfort:             ["EpisodeTime", "DeviationLateral"]
