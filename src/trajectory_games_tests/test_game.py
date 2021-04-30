@@ -1,5 +1,5 @@
 from os.path import join
-from typing import Mapping, List
+from typing import Mapping, Dict
 from reprep import Report
 
 from trajectory_games import (
@@ -17,10 +17,10 @@ from trajectory_games import (
     PosetalPreference,
 )
 
-plot_gif = False                 # gif vs image for viz
+plot_gif = True                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
 d = "out/tests/"
-filename = "r_game_red.html"
+filename = "r_game_all.html"
 
 
 def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
@@ -88,34 +88,41 @@ def test_trajectory_game_levels():
     pref = "pref_d7"
 
     game = get_trajectory_game()
-    context: SolvingContext
-    nash_eq: Mapping[str, SolvedTrajectoryGame] = {}
     sol = Solution()
 
-    def update_prefs(level: int):
+    def update_prefs(suffix: str):
         for pname, player in game.game_players.items():
-            player.preference = PosetalPreference(pref_str=f"{pref}_{level}", use_cache=False)
+            player.preference = PosetalPreference(pref_str=f"{pref}_{suffix}", use_cache=False)
 
-    r_levels: List[Report] = []
-    for i in range(2, 8):
-        print(f"\nLevel = {i}")
-        update_prefs(level=i)
+    r_levels: Dict[int, Report] = {}
+
+    def play_stage(stage: int) -> Mapping[str, SolvedTrajectoryGame]:
+        print(f"\nLevel = {stage}")
+        name = str(stage) if stage <= 7 else f"w{stage-7}"
+        update_prefs(suffix=name)
         context = preprocess_full_game(sgame=game, only_traj=only_traj)
-        cache_dom = i <= 3  # Preferences are not extra levels of previous after this!
-        nash_eq = sol.solve_game(context=context, cache_dom=cache_dom)
-        if game.game_vis.plot_dict is None and len(nash_eq["weak"]) <= 100:
-            game.game_vis.init_plot_dict(values=nash_eq["weak"])
-        rep = Report()
-        create_reports(game=game, nash_eq=nash_eq, r_game=rep, gif=False)
-        node: Report = rep.last()
-        node.nid = f"Pref_{i}"
-        r_levels.append(node)
+        cache_dom = stage <= 3  # Preferences are not extra levels of previous after this!
+        stage_eq = sol.solve_game(context=context, cache_dom=cache_dom)
+        if game.game_vis.plot_dict is None and len(stage_eq["weak"]) <= 100:
+            game.game_vis.init_plot_dict(values=stage_eq["weak"])
+        if stage not in r_levels:
+            rep = Report()
+            create_reports(game=game, nash_eq=stage_eq, r_game=rep, gif=False)
+            node: Report = rep.last()
+            node.nid = f"Pref_{name}"
+            r_levels[stage] = node
+        return stage_eq
+
+    for i in range(3, 18):
+        _ = play_stage(stage=i)
+
+    nash_eqf = play_stage(stage=7)
 
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
-    create_reports(game=game, nash_eq=nash_eq, r_game=r_game, gif=True)
+    create_reports(game=game, nash_eq=nash_eqf, r_game=r_game, gif=True)
     r_game.add_child(report_preferences(game=game))
-    for level in r_levels:
+    for level in r_levels.values():
         r_game.add_child(level)
     r_game.to_html(join(d, folder + filename))
     report_times()

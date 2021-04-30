@@ -75,7 +75,7 @@ weights_4:
 weights_5:
   DeviationLateral:           0.5
   DeviationHeading:           0.5
-  ProgressAlongReference:     2.0
+#  ProgressAlongReference:     2.0
 
 # Time + area violation
 weights_6:
@@ -90,3 +90,54 @@ weights_7:
 weight_sp_comf:
   EpisodeTime:                1.0
   LateralComfort:             1.0
+
+# Time + long / lat comfort metrics
+weights_conv222:
+  EpisodeTime:                2.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv422:
+  EpisodeTime:                4.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv421:
+  EpisodeTime:                4.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   1.0
+
+weights_conv412:
+  EpisodeTime:                4.0
+  LateralComfort:             1.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv242:
+  EpisodeTime:                2.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv142:
+  EpisodeTime:                1.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv241:
+  EpisodeTime:                2.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   1.0
+
+weights_conv224:
+  EpisodeTime:                2.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   4.0
+
+weights_conv124:
+  EpisodeTime:                1.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   4.0
+
+weights_conv214:
+  EpisodeTime:                2.0
+  LateralComfort:             1.0
+  LongitudinalAcceleration:   4.0

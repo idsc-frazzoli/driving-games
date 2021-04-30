@@ -96,11 +96,11 @@ pref_d5:                      &pref_d5
 pref_d6:                      &pref_d6
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
-  weights_6:                  ["DrivableAreaViolation"]
-  weights_5:                  ["weights_6"]
-  MinimumClearance:           ["weights_6"]
-  LateralComfort:             ["weights_5", "MinimumClearance"]
-  LongitudinalAcceleration:   ["weights_5", "MinimumClearance"]
+  EpisodeTime:                ["DrivableAreaViolation"]
+  MinimumClearance:           ["DrivableAreaViolation"]
+  weights_5:                  ["EpisodeTime", "MinimumClearance"]
+  LateralComfort:             ["weights_5"]
+  LongitudinalAcceleration:   ["weights_5"]
 
 
 pref_d7_1:                    &pref_d7_1
@@ -142,6 +142,46 @@ pref_d7_7:                    &pref_d7_7
 
 pref_d7:                      &pref_d7
   <<: *pref_d7_7
+
+pref_d7_w1:                    &pref_d7_w1
+  <<: *pref_d7_2
+  weights_conv222:             ["MinimumClearance"]
+
+pref_d7_w2:                    &pref_d7_w2
+  <<: *pref_d7_2
+  weights_conv422:             ["MinimumClearance"]
+
+pref_d7_w3:                    &pref_d7_w3
+  <<: *pref_d7_2
+  weights_conv421:             ["MinimumClearance"]
+
+pref_d7_w4:                    &pref_d7_w4
+  <<: *pref_d7_2
+  weights_conv412:             ["MinimumClearance"]
+
+pref_d7_w5:                    &pref_d7_w5
+  <<: *pref_d7_2
+  weights_conv242:             ["MinimumClearance"]
+
+pref_d7_w6:                    &pref_d7_w6
+  <<: *pref_d7_2
+  weights_conv142:             ["MinimumClearance"]
+
+pref_d7_w7:                    &pref_d7_w7
+  <<: *pref_d7_2
+  weights_conv241:             ["MinimumClearance"]
+
+pref_d7_w8:                    &pref_d7_w8
+  <<: *pref_d7_2
+  weights_conv224:             ["MinimumClearance"]
+
+pref_d7_w9:                    &pref_d7_w9
+  <<: *pref_d7_2
+  weights_conv214:             ["MinimumClearance"]
+
+pref_d7_w10:                   &pref_d7_w10
+  <<: *pref_d7_2
+  weights_conv124:             ["MinimumClearance"]
 
 pref_8:
   weights_7:                  []

@@ -72,7 +72,6 @@ class EpisodeTime(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            # negative for smaller preferred
             interval = context.get_interval(player)
             val = [1.0 for _ in interval]
             ret = self.get_evaluated_metric(interval=interval, val=val)
@@ -192,7 +191,7 @@ class LongitudinalAcceleration(Metric):
             interval, vel = get_values(traj=traj, func=get_vel)
             acc = differentiate(vel, interval)
             # Final acc, dacc is zero and not first
-            acc_val = [abs(_) for _ in acc[1:]] + [0.0]
+            acc_val = [abs(_)/2.0 for _ in acc[1:]] + [0.0]     # Downscale to normalise
 
             ret = self.get_evaluated_metric(interval=interval, val=acc_val)
             self.cache[traj] = ret
@@ -315,6 +314,11 @@ class Clearance(Metric, metaclass=ABCMeta):
                  geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:
         """"Calculate cost for given state"""
 
+    @abstractmethod
+    def check_threshold(self, dist: float, states: Tuple[VehicleState, VehicleState],
+                        geos: Tuple[VehicleGeometry, VehicleGeometry]) -> bool:
+        """"Check if value is greater than threshold for given state"""
+
     def calculate_value(self, context: MetricEvaluationContext,
                         players: List[PlayerName]) -> List[float]:
         assert len(players) == 2
@@ -337,26 +341,24 @@ class Clearance(Metric, metaclass=ABCMeta):
             p1, p2 = players[0], players[1]
         else:
             p2, p1 = players[0], players[1]
+        geo1, geo2 = context.get_world().get_geometry(p1), context.get_world().get_geometry(p2)
+        geos = (geo1, geo2)
         for i in range(len1):
             _, state1 = t1[i]
             _, state2 = t2[i]
+            states = (state1, state2)
             # Coarse check
             dx = state1.x - state2.x
             dy = state1.y - state2.y
             dist = (dx ** 2 + dy ** 2) ** 0.5
-            if dist > L + self.THRESHOLD:
+            if self.check_threshold(dist=dist-L, states=states, geos=geos):
                 values.append(0.0)
                 continue
             se2_1 = Trajectory.state_to_se2(x=state1)
             se2_2 = Trajectory.state_to_se2(x=state2)
-            geo1 = context.get_world().get_geometry(p1)
-            geo2 = context.get_world().get_geometry(p2)
             clear_dict = {p1: (se2_1, geo1), p2: (se2_2, geo2)}
             dist = self.get_clearance(players=clear_dict)
-            if dist > self.THRESHOLD:
-                values.append(0.0)
-            else:
-                values.append(self.get_cost(dist=dist, states=(state1, state2), geos=(geo1, geo2)))
+            values.append(self.get_cost(dist=dist, states=states, geos=geos))
 
         if joint_traj not in self.cache_vals:
             self.cache_vals[joint_traj] = {}
@@ -415,6 +417,8 @@ class CollisionEnergy(Clearance):
 
     def get_cost(self, dist: float, states: Tuple[VehicleState, VehicleState],
                  geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:
+        if self.check_threshold(dist=dist, states=states, geos=geos):
+            return 0.0
         # Calculate values based on relative velocity between both vehicles
         state1, state2 = states
         geo1, geo2 = geos
@@ -423,17 +427,27 @@ class CollisionEnergy(Clearance):
         energy_coll = 0.5 * (geo1.m + geo2.m) * vel_relsq
         return energy_coll
 
+    def check_threshold(self, dist: float, states: Tuple[VehicleState, VehicleState],
+                        geos: Tuple[VehicleGeometry, VehicleGeometry]) -> bool:
+        return dist > self.THRESHOLD
+
 
 class MinimumClearance(Clearance):
     description = "This metric computes the cost when minimum clearance not available between agents."
     time = 0.0
-    THRESHOLD = 2.5
+    THRESHOLD = 0.25    # Time between vehicles
     cache_vals: Dict[JointPureTraj, Dict[PlayerName, List[float]]] = {}
     cache_metrics: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
 
     def get_cost(self, dist: float, states: Tuple[VehicleState, VehicleState],
                  geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:
-        return self.THRESHOLD - dist
+        if self.check_threshold(dist=dist, states=states, geos=geos):
+            return 0.0
+        return self.THRESHOLD * max(x.v for x in states) - dist
+
+    def check_threshold(self, dist: float, states: Tuple[VehicleState, VehicleState],
+                        geos: Tuple[VehicleGeometry, VehicleGeometry]) -> bool:
+        return dist > self.THRESHOLD * max(x.v for x in states)
 
 
 def get_personal_metrics() -> Set[Metric]:

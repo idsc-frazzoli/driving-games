@@ -198,6 +198,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             i += 1
     else:
         rplot = Report(f"Equilibria")
+        # image_eq(report=rplot)
         if len(node_set) > 100:
             image_eq(report=rplot)
         else:

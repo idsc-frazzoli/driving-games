@@ -199,7 +199,7 @@ class VehicleState:
             state = VehicleState(
                 x=se2.p[0],
                 y=se2.p[1],
-                th=se2.theta,
+                th=se2.theta+config["th0"],
                 v=config["v0"],
                 st=config["st0"],
                 t=D(config["t0"]),
