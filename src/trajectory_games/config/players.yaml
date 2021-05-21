@@ -24,7 +24,8 @@ players:
     traj:     "traj_2"
     pref:     "pref_d6"
 #    pref:     "pref_vio"
-    lane:     ["rl2", "rl4"]
+    lane:     ["rl2"]
+#    lane:     ["rl2", "rl4"]
     vg:       "blue_car"
 #  P3:
 #    state:    "state_3"

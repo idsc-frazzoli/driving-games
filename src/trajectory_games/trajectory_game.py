@@ -1,10 +1,11 @@
 from functools import partial
-from typing import Dict, Set, FrozenSet, Mapping
+from typing import Dict, Set, FrozenSet, Mapping, Generic, Tuple, TypeVar
 from time import perf_counter
 
+from dataclasses import dataclass
 from frozendict import frozendict
 
-from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
+from games import PlayerName, PURE_STRATEGIES, BAIL_MNE, P
 from games.utils import iterate_dict_combinations
 from preferences import Preference
 
@@ -12,7 +13,7 @@ from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 from .metrics_def import PlayerOutcome
-from .game_def import Game, GamePlayer, SolvingContext, SolvedGameNode, StaticSolverParams
+from .game_def import Game, GamePlayer, SolvingContext, SolvedGameNode, StaticSolverParams, EXP_ACCOMP
 
 __all__ = [
     "JointPureTraj",
@@ -20,6 +21,9 @@ __all__ = [
     "TrajectoryGame",
     "SolvedTrajectoryGameNode",
     "SolvedTrajectoryGame",
+    "LeaderFollowerNode",
+    "SolvedLeaderFollowerGameNode",
+    "SolvedLeaderFollowerGame",
     "preprocess_full_game",
     "preprocess_player",
 ]
@@ -44,6 +48,32 @@ class SolvedTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerOutcome]):
 
 
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
+
+
+X = TypeVar("X")
+
+
+@dataclass(unsafe_hash=True)
+class LeaderFollowerNode(Generic[X]):
+    predicted: X
+    """ Predicted by leader """
+    simulated: X
+    """ Calculated by follower """
+
+
+@dataclass(unsafe_hash=True)
+class SolvedLeaderFollowerGameNode(Generic[P]):
+    players: Tuple[PlayerName, PlayerName]
+    """ Leader and Follower """
+    games: LeaderFollowerNode[SolvedTrajectoryGame]
+    """ All possible game results for both players - Predicted, Simulated (P,S) """
+    leader_game: LeaderFollowerNode[SolvedTrajectoryGameNode]
+    """ Aggregated game solution for leader (P,S) """
+    player_pref: LeaderFollowerNode[Mapping[PlayerName, Preference[P]]]
+    """ Player preferences (P,S) """
+
+
+SolvedLeaderFollowerGame = Set[SolvedLeaderFollowerGameNode]
 
 
 def compute_outcomes(iterable, sgame: Game):
@@ -124,7 +154,8 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
         game_outcomes=sgame.get_outcomes,
         outcome_pref=pref,  # todo I fear here it's missing the monadic preferences but it is fine for now
         solver_params=StaticSolverParams(
-            admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE  # this is not used for now
+            admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE,
+            antichain_comparison=EXP_ACCOMP, use_best_response=True
         ),
     )
     return context

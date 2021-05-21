@@ -15,9 +15,11 @@ from trajectory_games import (
     report_preferences,
     get_trajectory_game,
     PosetalPreference,
+    solve_leader_follower,
+    report_leader_follower_solution,
 )
 
-plot_gif = True                 # gif vs image for viz
+plot_gif = False                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"
@@ -126,6 +128,21 @@ def test_trajectory_game_levels():
         r_game.add_child(level)
     r_game.to_html(join(d, folder + filename))
     report_times()
+
+
+def test_leader_follower():
+    folder = "LF/"
+    game: TrajectoryGame = get_trajectory_game()
+    context: SolvingContext = preprocess_full_game(sgame=game, only_traj=False)
+    all_players = list(game.game_players.keys())
+    assert len(all_players) == 2
+    players = (all_players[0], all_players[1])  # P1 is leader and P2 is follower
+    solutions = solve_leader_follower(context=context, players=players)
+    r_game = Report()
+    r_game.add_child(report_game_visualization(game=game))
+    r_game.add_child(report_leader_follower_solution(game=game, solution=solutions))
+    r_game.add_child(report_preferences(game=game))
+    r_game.to_html(join(d, folder + filename))
 
 
 if __name__ == '__main__':

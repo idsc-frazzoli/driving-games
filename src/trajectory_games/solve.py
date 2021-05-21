@@ -1,17 +1,18 @@
 from copy import deepcopy
 from random import choice
 from time import perf_counter
-from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
+from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional, List
 from frozendict import frozendict
 
 from games.utils import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED
 
 from games import PlayerName
-from .game_def import SolvingContext
-from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame
+from .game_def import SolvingContext, EXP_ACCOMP
+from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
+    SolvedLeaderFollowerGameNode, SolvedLeaderFollowerGame, LeaderFollowerNode
 from .paths import Trajectory
-from .metrics_def import TrajGameOutcome, PlayerOutcome
+from .metrics_def import TrajGameOutcome, PlayerOutcome, Metric, EvaluatedMetric
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
 EqOutcome = Tuple[Optional[JointPureTraj], Optional[TrajGameOutcome], bool, bool, bool, bool]
@@ -147,6 +148,80 @@ def equilibrium_check(joint_actions: JointPureTraj, context: SolvingContext,
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
+def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
+    n_out = len(outcomes)
+    if n_out == 0:
+        raise AssertionError("Received empty input for calculate_expectation!")
+    if n_out == 1:
+        return frozendict({m: em for m, em in outcomes[0].items()})
+
+    def init_eval_metric(evalm: EvaluatedMetric) -> EvaluatedMetric:
+        return EvaluatedMetric(title=evalm.title, description=evalm.description, total=0.0,
+                               incremental=None, cumulative=None)
+
+    total: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em) for m, em in outcomes[0].items()}
+    for out in outcomes:
+        for m, em in out.items():
+            total[m].total += em.total
+    for m in outcomes[0]:
+        total[m].total /= n_out
+    return frozendict(total)
+
+
+def calculate_join(outcomes: Mapping[Trajectory, PlayerOutcome]) -> PlayerOutcome:
+    # TODO[SIR]: Implement this after testing expectation
+    pass
+
+
+def get_security_strategies(players: Tuple[PlayerName, PlayerName], context: SolvingContext) \
+        -> Mapping[Trajectory, Tuple[SolvedTrajectoryGame, PlayerOutcome]]:
+    """
+    Calculates the security strategies of the leader
+    """
+    lead, foll = players
+    all_actions: Dict[Trajectory, PlayerOutcome] = {}
+    all_games: Dict[Trajectory, SolvedTrajectoryGame] = {}
+    use_best_resp: bool = context.solver_params.use_best_response
+    lead_actions = context.player_actions[lead]
+    foll_actions = {_ for _ in context.player_actions[foll]}
+    foll_act_1 = next(iter(foll_actions))
+    for l_act in lead_actions:
+        best_resp: Set[Trajectory]
+        if use_best_resp:
+            joint_act: Dict[PlayerName, Trajectory] = {lead: l_act, foll: foll_act_1}
+            _, best_resp = get_best_responses(joint_actions=joint_act, context=context,
+                                              player=foll, done_p=set())
+        else:
+            best_resp = foll_actions
+
+        outcomes: List[PlayerOutcome] = []
+        game_nodes: SolvedTrajectoryGame = set()
+        for f_act in best_resp:
+            joint_act = {lead: l_act, foll: f_act}
+            out = frozendict(context.game_outcomes(joint_act))
+            outcomes.append(out[lead])
+            game_nodes.add(SolvedTrajectoryGameNode(actions=frozendict(joint_act), outcomes=out))
+        if context.solver_params.antichain_comparison == EXP_ACCOMP:
+            all_actions[l_act] = calculate_expectation(outcomes=outcomes)
+        else:
+            raise NotImplementedError("Join antichain comparison not yet implemented")
+        all_games[l_act] = game_nodes
+
+    for act in set(all_actions.keys()):
+        if act not in all_actions:
+            continue
+        for act_alt in set(all_actions.keys()):
+            comp = context.outcome_pref[lead].compare(all_actions[act], all_actions[act_alt])
+            if comp == SECOND_PREFERRED:
+                all_actions.pop(act)
+                break
+            elif comp == FIRST_PREFERRED:
+                all_actions.pop(act_alt)
+    solved_games: Dict[Trajectory, Tuple[SolvedTrajectoryGame, PlayerOutcome]] =\
+        {node: (all_games[node], frozendict(all_actions[node])) for node in all_actions.keys()}
+    return solved_games
+
+
 class Solution:
     # Cache can be reused between levels
     dominated: Dict[PlayerName, Set[JointPureTraj]] = None
@@ -171,6 +246,43 @@ class Solution:
 
     def reset(self):
         self.dominated: Dict[PlayerName, Set[JointPureTraj]] = None
+
+
+def solve_leader_follower(context: SolvingContext, players: Tuple[PlayerName, PlayerName]) \
+        -> SolvedLeaderFollowerGame:
+    lead, foll = players
+    # TODO[SIR]: Different actual and estimated preference structures for players
+    leader_games = get_security_strategies(players=players, context=context)
+    all_games: SolvedLeaderFollowerGame = set()
+
+    def get_lead_node(act: Trajectory, out: PlayerOutcome) -> SolvedTrajectoryGameNode:
+        return SolvedTrajectoryGameNode(actions=frozendict({lead: act}),
+                                        outcomes=frozendict({lead: out}))
+
+    for l_action in leader_games.keys():
+        sim_games: SolvedTrajectoryGame = set()
+        joint_act = {lead: l_action,
+                     foll: next(iter(context.player_actions[foll]))}
+        _, best_resp = get_best_responses(joint_actions=joint_act, context=context,
+                                          player=foll, done_p=set())
+        lead_sim_out: List[PlayerOutcome] = []
+        for act_foll in best_resp:
+            joint_act[foll] = act_foll
+            outcomes = context.game_outcomes(joint_act)
+            lead_sim_out.append(outcomes[lead])
+            sim_games.add(SolvedTrajectoryGameNode(actions=frozendict(joint_act), outcomes=outcomes))
+
+        lead_sim_exp = calculate_expectation(outcomes=lead_sim_out)
+        pred_game, lead_out = leader_games[l_action]
+        games = LeaderFollowerNode(predicted=frozenset(pred_game), simulated=frozenset(sim_games))
+        lead_game = LeaderFollowerNode(predicted=get_lead_node(act=l_action, out=lead_out),
+                                       simulated=get_lead_node(act=l_action, out=lead_sim_exp))
+        prefs = LeaderFollowerNode(predicted=frozendict(context.outcome_pref),
+                                   simulated=frozendict(context.outcome_pref))
+        all_games.add(SolvedLeaderFollowerGameNode(players=players, games=games,
+                                                   leader_game=lead_game, player_pref=prefs))
+
+    return all_games
 
 
 def solve_static_game(context: SolvingContext) \

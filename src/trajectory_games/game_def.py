@@ -2,7 +2,7 @@ import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set
+from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set, NewType
 
 from games import (
     PlayerName,
@@ -30,6 +30,9 @@ __all__ = [
     "SolvedGameNode",
     "StaticSolverParams",
     "SolvingContext",
+    "AntichainComparison",
+    "EXP_ACCOMP",
+    "JOIN_ACCOMP"
 ]
 
 W = TypeVar("W")
@@ -109,7 +112,7 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_pref(self, axis, player: "GamePlayer",
+    def plot_pref(self, axis, pref: Preference[P], pname: PlayerName,
                   origin: Tuple[float, float],
                   labels: Mapping[str, str] = None):
         pass
@@ -169,14 +172,24 @@ class SolvedGameNode(Generic[U, P]):
     """ Outcomes for each player """
 
 
+AntichainComparison = NewType("AntichainComparison", str)
+""" How to compare antichains. """
+JOIN_ACCOMP = AntichainComparison("join_accomp")
+EXP_ACCOMP = AntichainComparison("exp_accomp")
+
+
 @dataclass(frozen=True)
 class StaticSolverParams(SolverParams):
     admissible_strategies: AdmissibleStrategies
     """ Allowed search space of strategies"""
     strategy_multiple_nash: StrategyForMultipleNash
     """ How to deal with multiple Nash equilibria """
+    antichain_comparison: AntichainComparison = EXP_ACCOMP
+    """ How to compare antichains. """
     dt: Optional[Decimal] = None
     use_factorization: Optional[bool] = None
+    use_best_response: bool = False
+    """ Only use best responses for leader - follower game or all possible actions"""
 
 
 @dataclass

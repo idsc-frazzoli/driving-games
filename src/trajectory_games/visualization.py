@@ -76,15 +76,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             x, y, t = zip(*vals)
             axis.scatter(x, y, s=size, c=t, zorder=10)
 
-    def plot_pref(self, axis, player: GamePlayer,
-                  origin: Tuple[float, float],
+    def plot_pref(self, axis, pref: PosetalPreference,
+                  pname: PlayerName, origin: Tuple[float, float],
                   labels: Mapping[WeightedPreference, str] = None):
 
-        assert isinstance(player.preference, PosetalPreference),\
-            f"Preference is of type {player.preference.get_type()}" \
-            f" and not {PosetalPreference.get_type()}"
         X, Y = origin
-        G: DiGraph = player.preference.graph
+        G: DiGraph = pref.graph
 
         def pos_node(n: WeightedPreference):
             x = G.nodes[n]["x"]
@@ -104,16 +101,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                 assert n in labels.keys(),\
                     f"Node {n} not present in keys - {labels.keys()}"
             text = "_outcomes"
-        draw_networkx_edges(
-            G,
-            pos=pos,
-            edgelist=G.edges(),
-            arrows=True,
-            arrowstyle="-",
-        )
+        draw_networkx_edges(G, pos=pos, edgelist=G.edges(),
+                            ax=axis, arrows=True, arrowstyle="-")
 
         draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
-        axis.text(x=X, y=Y+10.0, s=player.name+text, ha="center", va="center")
+        axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
 
     def plot_actions(self, axis, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR,
