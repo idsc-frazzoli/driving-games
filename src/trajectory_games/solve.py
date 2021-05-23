@@ -9,7 +9,7 @@ from games.utils import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
 
 from games import PlayerName
-from .game_def import SolvingContext, EXP_ACCOMP
+from .game_def import SolvingContext, EXP_ACCOMP, JOIN_ACCOMP
 from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
     SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, PrefsTup, LeaderFollowerGameNode
 from .paths import Trajectory
@@ -151,16 +151,17 @@ def equilibrium_check(joint_actions: JointPureTraj, context: SolvingContext,
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
+def init_eval_metric(evalm: EvaluatedMetric) -> EvaluatedMetric:
+    return EvaluatedMetric(title=evalm.title, description=evalm.description, total=0.0,
+                           incremental=None, cumulative=None)
+
+
 def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
     n_out = len(outcomes)
     if n_out == 0:
         raise AssertionError("Received empty input for calculate_expectation!")
     if n_out == 1:
         return frozendict({m: em for m, em in outcomes[0].items()})
-
-    def init_eval_metric(evalm: EvaluatedMetric) -> EvaluatedMetric:
-        return EvaluatedMetric(title=evalm.title, description=evalm.description, total=0.0,
-                               incremental=None, cumulative=None)
 
     total: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em) for m, em in outcomes[0].items()}
     for out in outcomes:
@@ -171,58 +172,27 @@ def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
     return frozendict(total)
 
 
-def calculate_join(outcomes: Mapping[Trajectory, PlayerOutcome]) -> PlayerOutcome:
-    # TODO[SIR]: Implement this after testing expectation
-    pass
+def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOutcome:
 
-
-def get_security_strategies(players: Tuple[PlayerName, PlayerName], context: SolvingContext) \
-        -> Mapping[Trajectory, Tuple[SolvedTrajectoryGame, PlayerOutcome]]:
-    """
-    Calculates the security strategies of the leader
-    """
-    lead, foll = players
-    all_actions: Dict[Trajectory, PlayerOutcome] = {}
-    all_games: Dict[Trajectory, SolvedTrajectoryGame] = {}
-    use_best_resp: bool = context.solver_params.use_best_response
-    lead_actions = context.player_actions[lead]
-    foll_actions = {_ for _ in context.player_actions[foll]}
-    foll_act_1 = next(iter(foll_actions))
-    for l_act in lead_actions:
-        best_resp: Set[Trajectory]
-        if use_best_resp:
-            joint_act: Dict[PlayerName, Trajectory] = {lead: l_act, foll: foll_act_1}
-            _, best_resp = get_best_responses(joint_actions=joint_act, context=context,
-                                              player=foll, done_p=set())
-        else:
-            best_resp = foll_actions
-
-        outcomes: List[PlayerOutcome] = []
-        game_nodes: SolvedTrajectoryGame = set()
-        for f_act in best_resp:
-            joint_act = {lead: l_act, foll: f_act}
-            out = frozendict(context.game_outcomes(joint_act))
-            outcomes.append(out[lead])
-            game_nodes.add(SolvedTrajectoryGameNode(actions=frozendict(joint_act), outcomes=out))
-        if context.solver_params.antichain_comparison == EXP_ACCOMP:
-            all_actions[l_act] = calculate_expectation(outcomes=outcomes)
-        else:
-            raise NotImplementedError("Join antichain comparison not yet implemented")
-        all_games[l_act] = game_nodes
-
-    for act in set(all_actions.keys()):
-        if act not in all_actions:
+    ac_worst = set(outcomes)
+    for out1 in frozenset(ac_worst):
+        if out1 not in ac_worst:
             continue
-        for act_alt in set(all_actions.keys()):
-            comp = context.outcome_pref[lead].compare(all_actions[act], all_actions[act_alt])
-            if comp == SECOND_PREFERRED:
-                all_actions.pop(act)
+        for out2 in frozenset(ac_worst):
+            comp = pref.compare(out1, out2)
+            if comp == FIRST_PREFERRED:
+                ac_worst.remove(out1)
                 break
-            elif comp == FIRST_PREFERRED:
-                all_actions.pop(act_alt)
-    solved_games: Dict[Trajectory, Tuple[SolvedTrajectoryGame, PlayerOutcome]] = \
-        {node: (all_games[node], frozendict(all_actions[node])) for node in all_actions.keys()}
-    return solved_games
+            elif comp == SECOND_PREFERRED:
+                ac_worst.remove(out2)
+
+    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em) for m, em in outcomes[0].items()}
+    # TODO[SIR]: This can be improved to calc more accurate joins
+    for out in ac_worst:
+        for m, em in out.items():
+            if join[m].total < em.total:
+                join[m].total = em.total
+    return frozendict(join)
 
 
 class Solution:
@@ -289,15 +259,19 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
 
     # Calculate aggregated leader outcomes
     # -> for each leader action and prefs of both players
+    ac_comp = context.solver_params.antichain_comparison
     tic = perf_counter()
     agg_out_l: Dict[Trajectory, Dict[PrefsTup, PlayerOutcome]] = {}
     for l_act in lead_actions:
         agg_out_l_act = {}
         for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
-            if context.solver_params.antichain_comparison == EXP_ACCOMP:
-                agg_out_l_act[(p_l, p_f)] = calculate_expectation(outcomes=out_l[l_act][p_f])
+            if ac_comp == EXP_ACCOMP:
+                agg_out = calculate_expectation(outcomes=out_l[l_act][p_f])
+            elif ac_comp == JOIN_ACCOMP:
+                agg_out = calculate_join(outcomes=out_l[l_act][p_f], pref=p_l)
             else:
-                raise NotImplementedError("Join antichain comparison not yet implemented")
+                raise NotImplementedError(f"Antichain comparison - {ac_comp} not in implemented categories")
+            agg_out_l_act[(p_l, p_f)] = agg_out
         agg_out_l[l_act] = agg_out_l_act
     toc = perf_counter() - tic
     print(f"Agg outcomes time = {toc:.2f} s")

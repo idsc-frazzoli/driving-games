@@ -9,6 +9,7 @@ from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
 
+from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
@@ -78,6 +79,9 @@ def get_trajectory_game() -> TrajectoryGame:
     return game
 
 
+ac_comp = {"JOIN_ACCOMP": JOIN_ACCOMP, "EXP_ACCOMP": EXP_ACCOMP}
+
+
 def get_leader_follower_game() -> LeaderFollowerGame:
 
     game = get_trajectory_game()
@@ -86,9 +90,13 @@ def get_leader_follower_game() -> LeaderFollowerGame:
     def get_prefs(names: List[str]) -> List[PosetalPreference]:
         return [PosetalPreference(pref_str=p, use_cache=False) for p in names]
 
+    ac_cfg = cfg["antichain_comparison"]
+    if ac_cfg not in ac_comp:
+        raise ValueError(f"ac_comp - {ac_cfg} not in {ac_comp.keys()}")
     lf = LeaderFollowerPrefs(leader=PlayerName(cfg["leader"]), follower=PlayerName(cfg["follower"]),
                              prefs_leader=get_prefs(cfg["prefs_leader"]),
-                             prefs_follower=get_prefs(cfg["prefs_follower"]))
+                             prefs_follower=get_prefs(cfg["prefs_follower"]),
+                             antichain_comparison=ac_comp[ac_cfg])
     game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,
                                  ps=game.ps, get_outcomes=game.get_outcomes,
                                  game_vis=game.game_vis, lf=lf)

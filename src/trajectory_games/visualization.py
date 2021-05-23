@@ -78,7 +78,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
     def plot_pref(self, axis, pref: PosetalPreference,
                   pname: PlayerName, origin: Tuple[float, float],
-                  labels: Mapping[WeightedPreference, str] = None):
+                  labels: Mapping[WeightedPreference, str] = None,
+                  add_title: bool = True):
 
         X, Y = origin
         G: DiGraph = pref.graph
@@ -105,7 +106,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                             ax=axis, arrows=True, arrowstyle="-")
 
         draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
-        axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
+        if add_title:
+            axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
 
     def plot_actions(self, axis, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR,

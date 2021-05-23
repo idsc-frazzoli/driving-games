@@ -44,9 +44,10 @@ players:
 # Leader follower game config
 # Players should be defined above
 leader_follower:
-  leader:             "P1"
-  follower:           "P2"
-  prefs_leader:       ["pref_d7_3", "pref_d7_4", "pref_d7_5", "pref_d7_6", "pref_d7_w1",]
-  prefs_follower:     ["pref_d7_3", "pref_d7_4", "pref_d7_5", "pref_d7_6", "pref_d7_w1",]
-#  prefs_leader:       ["pref_d7_3", "pref_d7_4", "pref_d7_5", "pref_d7_6", "pref_d7_w1", "pref_d7_w2", "pref_d7_w5"]
-#  prefs_follower:     ["pref_d7_3", "pref_d7_4", "pref_d7_5", "pref_d7_6", "pref_d7_w1", "pref_d7_w2", "pref_d7_w5"]
+  leader:                 "P1"
+  follower:               "P2"
+  prefs_leader:           ["pref_lf1"]
+  prefs_follower:         ["pref_lf1", "pref_lf2", "pref_lf3", "pref_lfi"]
+#  prefs_leader:          ["pref_d7_3", "pref_d7_4", "pref_d7_5", "pref_d7_6", "pref_d7_w1", "pref_d7_w2", "pref_d7_w5"]
+#  prefs_follower:        ["pref_d7_3", "pref_d7_4", "pref_d7_5", "pref_d7_6", "pref_d7_w1", "pref_d7_w2", "pref_d7_w5"]
+  antichain_comparison:   "JOIN_ACCOMP"  # EXP_ACCOMP or JOIN_ACCOMP

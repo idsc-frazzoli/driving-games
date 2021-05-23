@@ -114,7 +114,8 @@ class GameVisualization(Generic[X, U, W], ABC):
     @abstractmethod
     def plot_pref(self, axis, pref: Preference[P], pname: PlayerName,
                   origin: Tuple[float, float],
-                  labels: Mapping[str, str] = None):
+                  labels: Mapping[str, str] = None,
+                  **kwargs):
         pass
 
     def init_plot_dict(self, values: Set[Key]):

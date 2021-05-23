@@ -62,12 +62,14 @@ def report_states(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
 
 
 def plot_outcomes_pref(viz: GameVisualization, axis, outcomes: PlayerOutcome,
-                       pref: Preference, pname: PlayerName):
+                       pref: Preference, pname: PlayerName, add_title: bool = True):
     assert isinstance(pref, PosetalPreference)
     metrics: Dict[str, str] = {}
     for met in pref.graph.nodes:
         metrics[met] = str(round(float(met.evaluate(outcomes)), 2))
-    viz.plot_pref(axis=axis, pref=pref, pname=pname, origin=(0.0, 0.0), labels=metrics)
+    viz.plot_pref(axis=axis, pref=pref, pname=pname,
+                  origin=(0.0, 0.0), labels=metrics,
+                  add_title=add_title)
     axis.set_xlim(-150.0, 100.0)
     axis.set_ylim(auto=True)
 
@@ -112,7 +114,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
             if plot_lead_outcomes:
                 lead, pref = leader
                 plot_outcomes_pref(viz=viz, axis=ax, outcomes=node.outcomes[lead],
-                                   pref=pref, pname=lead)
+                                   pref=pref, pname=lead, add_title=False)
             else:
                 w: float = 1.0 if node in nodes_strong else 0.5
                 plot_actions(axis=ax, sol_node=node, width=w)
@@ -232,13 +234,14 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
 
 def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame) -> Report:
 
-    PLOT_ALL_OUT = False
+    PLOT_ALL_OUT = True
 
     tic = perf_counter()
     report_all = Report("Leader - follower game solutions")
     lf = solution.lf
     p_l_0 = lf.prefs_leader[0]
     report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
+    report_all.text("Antichain_Comparison:", lf.antichain_comparison)
 
     # Create dictionary for leader actions
     i_act = 1
@@ -259,7 +262,8 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         for pref in prefs:
             with pviz.plot(f"{pname}:Pref_{idx}") as pylab:
                 ax: Axes = pylab.gca()
-                game.game_vis.plot_pref(axis=ax, pref=pref, pname=pname, origin=(0.0, 0.0))
+                game.game_vis.plot_pref(axis=ax, pref=pref, pname=pname,
+                                        origin=(0.0, 0.0), add_title=False)
                 ax.set_xlim(-150.0, 125.0)
             idx += 1
 
@@ -325,7 +329,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
                 with lead_viz.plot(f"{lf.leader}_agg_outcomes") as pylab:
                     plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
                                        outcomes=node_sols.agg_lead_outcome,
-                                       pref=p_l, pname=lf.leader)
+                                       pref=p_l, pname=lf.leader, add_title=False)
                 toc_out += perf_counter() - tic_out
                 i_pl += 1
             rep_act.add_child(rep)

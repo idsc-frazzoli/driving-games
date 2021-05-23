@@ -13,7 +13,8 @@ from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 from .metrics_def import PlayerOutcome
-from .game_def import Game, GamePlayer, SolvingContext, SolvedGameNode, StaticSolverParams, EXP_ACCOMP
+from .game_def import Game, GamePlayer, SolvingContext, SolvedGameNode, StaticSolverParams, EXP_ACCOMP, \
+    AntichainComparison
 
 __all__ = [
     "JointPureTraj",
@@ -54,6 +55,7 @@ class LeaderFollowerPrefs:
     follower: PlayerName
     prefs_leader: List[Preference]
     prefs_follower: List[Preference]
+    antichain_comparison: AntichainComparison
 
 
 @dataclass
@@ -161,9 +163,14 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
     pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {
         name: player.preference for name, player in sgame.game_players.items()
     }
+    if isinstance(sgame, LeaderFollowerGame):
+        ac_comp = sgame.lf.antichain_comparison
+    else:
+        ac_comp = EXP_ACCOMP
 
-    solver_params = StaticSolverParams(admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE,
-                                       antichain_comparison=EXP_ACCOMP, use_best_response=True)
+    solver_params = StaticSolverParams(admissible_strategies=PURE_STRATEGIES,
+                                       strategy_multiple_nash=BAIL_MNE,
+                                       antichain_comparison=ac_comp, use_best_response=True)
     kwargs = {
         "player_actions": actions, "game_outcomes": sgame.get_outcomes,
         "outcome_pref": pref, "solver_params": solver_params

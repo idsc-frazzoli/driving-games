@@ -285,3 +285,32 @@ comp_14:                       &comp_14
   <<: *comp_3
   DeviationLateral:           ["EpisodeTime"]
   LateralComfort:             ["EpisodeTime", "DeviationLateral"]
+
+# Leader - follower prefs
+pref_lf1:                     &pref_lf1
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  MinimumClearance:           ["DrivableAreaViolation"]
+  EpisodeTime:                ["MinimumClearance"]
+  weights_comf:               ["EpisodeTime"]
+
+pref_lf2:                     &pref_lf2
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  EpisodeTime:                ["DrivableAreaViolation"]
+  weights_comf:               ["EpisodeTime"]
+  MinimumClearance:           ["weights_comf"]
+
+pref_lf3:                     &pref_lf3
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  weights_comf:               ["DrivableAreaViolation"]
+  EpisodeTime:                ["weights_comf"]
+  MinimumClearance:           ["EpisodeTime"]
+
+pref_lfi:                     &pref_lfi
+  CollisionEnergy:            []
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  MinimumClearance:           ["DrivableAreaViolation"]
+  EpisodeTime:                ["DrivableAreaViolation"]
+  weights_comf:               ["DrivableAreaViolation"]

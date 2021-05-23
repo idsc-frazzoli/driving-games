@@ -141,3 +141,7 @@ weights_conv214:
   EpisodeTime:                2.0
   LateralComfort:             1.0
   LongitudinalAcceleration:   4.0
+
+weights_comf:
+  LateralComfort:             1.0
+  LongitudinalAcceleration:   4.0
