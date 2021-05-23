@@ -1,6 +1,6 @@
 import itertools
 from time import perf_counter
-from typing import Mapping, Dict, Set, Tuple
+from typing import Mapping, Dict, Set, Tuple, List
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,8 +13,7 @@ from decimal import Decimal as D
 from games import PlayerName
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
-from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
-    SolvedLeaderFollowerGameNode
+from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame
 from .preference import PosetalPreference
 from .paths import Trajectory
 from .visualization import TrajGameVisualization
@@ -233,63 +232,121 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
 
 def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame) -> Report:
 
+    PLOT_ALL_OUT = False
+
     tic = perf_counter()
     report_all = Report("Leader - follower game solutions")
-    lead, foll = next(iter(solution)).players
-    report_all.text("Players:", f"Leader = {lead}, Follower = {foll}")
-    strings = {False: "Simulated", True: "Predicted"}
+    lf = solution.lf
+    p_l_0 = lf.prefs_leader[0]
+    report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
 
-    def plot_common(report: Report, sol_node: SolvedLeaderFollowerGameNode, pred: bool):
-        pref_all = sol_node.player_pref.predicted if pred else sol_node.player_pref.simulated
-        with report.plot(f"Leader_agg_outcomes") as pylab:
-            ax: Axes = pylab.gca()
-            lead_game = sol_node.leader_game
-            outcomes = (lead_game.predicted if pred else lead_game.simulated).outcomes[lead]
-            plot_outcomes_pref(viz=game.game_vis, axis=ax, outcomes=outcomes,
-                               pref=pref_all[lead], pname=lead)
+    # Create dictionary for leader actions
+    i_act = 1
+    act_dict: Dict[Trajectory, int] = {}
+    for act in solution.games.keys():
+        act_dict[act] = i_act
+        i_act += 1
 
-        with report.plot(f"Follower_preference") as pylab:
-            ax: Axes = pylab.gca()
-            game.game_vis.plot_pref(axis=ax, pref=pref_all[foll], pname=foll, origin=(0.0, 0.0))
-            ax.set_xlim(-150.0, 125.0)
+    actions_text = "All leader best actions:\n" + \
+                   "\n".join([f"A_{idx}: {str(act)}" for act, idx in act_dict.items()])
+    report_all.text("Leader_actions:", actions_text)
+    r_pref = Report("Player_Preferences")
 
-    print(f"Total leader actions = {len(solution)}")
-    i = 1
-    for sol in solution:
-        rep_sol = Report(f"Action_{i}")
-        rep_sol.text("Action", f"Leader Trajectory = {sol.leader_game.predicted.actions[lead]}")
-        nodes: Set[SolvedTrajectoryGameNode] = (sol.games.predicted | sol.games.simulated)
-        game.game_vis.init_plot_dict(values=nodes)
-        for pred in [True, False]:
-            rep = Report(strings[pred])
-            rep_nodes = sol.games.predicted if pred else sol.games.simulated
-            plot_common(report=rep, sol_node=sol, pred=pred)
-            stack_viz = rep.figure("Solutions", cols=1)
+    def stack_prefs(pname: PlayerName, prefs: List[Preference]):
+        # Plot all prefs for all players as a grid
+        pviz = r_pref.figure(f"Preferences_{pname}", cols=len(prefs))
+        idx = 1
+        for pref in prefs:
+            with pviz.plot(f"{pname}:Pref_{idx}") as pylab:
+                ax: Axes = pylab.gca()
+                game.game_vis.plot_pref(axis=ax, pref=pref, pname=pname, origin=(0.0, 0.0))
+                ax.set_xlim(-150.0, 125.0)
+            idx += 1
+
+    tic1 = perf_counter()
+    stack_prefs(pname=lf.leader, prefs=lf.prefs_leader)
+    stack_prefs(pname=lf.follower, prefs=lf.prefs_follower)
+    report_all.add_child(r_pref)
+    toc1 = perf_counter() - tic1
+    print(f"Player prefs viz time = {toc1:.2f} s")
+
+    # Print best leader actions for each comb of prefs
+    i_l = 1
+    rep_act = Report("Best_Leader_Actions")
+    for p_l in lf.prefs_leader:
+        i_f = 1
+        for p_f in lf.prefs_follower:
+            actions = solution.best_leader_actions[(p_l, p_f)]
+            text = f"{lf.leader}:Pref_{i_l}, {lf.follower}:Pref_{i_f}\n\t" + "{" +\
+                   ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
+            rep_act.text(f"Act_{i_l}_{i_f}", text)
+            i_f += 1
+        i_l += 1
+    report_all.add_child(rep_act)
+
+    toc_br, toc_out = 0.0, 0.0
+    # Group plots based on leader action
+    print(f"Total leader actions = {len(solution.games)}")
+    for act, sol in solution.games.items():
+
+        # Aggregate all nodes for all prefs of follower to create grid
+        # BR is not a function of p_l, so we can use any one p_l
+        all_nodes: SolvedTrajectoryGame = set()
+        for p_f in lf.prefs_follower:
+            all_nodes |= sol[(p_l_0, p_f)].nodes
+        game.game_vis.init_plot_dict(values=all_nodes)
+
+        rep_act = Report(f"Action_{act_dict[act]}")
+        rep_act.text("Action", f"Leader Trajectory = {act}")
+
+        i_pf = 1
+        for p_f in lf.prefs_follower:
+
+            tic_br = perf_counter()
+            # For each pref of follower, plot grid of best responses
+            rep = Report(f"{lf.follower}:Pref_{i_pf}")
+            rep_nodes = sol[(p_l_0, p_f)].nodes
+            stack_viz = rep.figure("Best_Responses", cols=1)
             stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
                         players=game.game_players, nodes=rep_nodes)
-            lead_pref = (sol.player_pref.predicted if pred else sol.player_pref.simulated)[lead]
-            stack_viz = rep.figure("Outcomes", cols=1)
-            stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Lead_outcomes",
-                        players=game.game_players, nodes=rep_nodes,
-                        plot_lead_outcomes=True, leader=(lead, lead_pref))
-            rep_sol.add_child(rep)
-        report_all.add_child(rep_sol)
-        i += 1
+            toc_br += perf_counter() - tic_br
 
+            i_pl = 1
+            for p_l in lf.prefs_leader:
+
+                tic_out = perf_counter()
+                # For each pref of leader, plot grid of leader outcomes and aggregated outcome
+                node_sols = sol[(p_l, p_f)]
+                lead_viz = rep.figure(f"{lf.leader}:Pref_{i_pl}", cols=1+int(PLOT_ALL_OUT))
+                if PLOT_ALL_OUT:
+                    stack_nodes(report=lead_viz, viz=game.game_vis, title=f"{lf.leader}_outcomes",
+                                players=game.game_players, nodes=rep_nodes,
+                                plot_lead_outcomes=True, leader=(lf.leader, p_l))
+                with lead_viz.plot(f"{lf.leader}_agg_outcomes") as pylab:
+                    plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
+                                       outcomes=node_sols.agg_lead_outcome,
+                                       pref=p_l, pname=lf.leader)
+                toc_out += perf_counter() - tic_out
+                i_pl += 1
+            rep_act.add_child(rep)
+            i_pf += 1
+        report_all.add_child(rep_act)
+
+    print(f"Best response viz time = {toc_br:.2f} s")
+    print(f"Outcomes viz time = {toc_out:.2f} s")
     toc = perf_counter() - tic
     print(f"Solutions viz time = {toc:.2f} s")
     return report_all
 
 
-def report_preferences(game: Game) -> Report:
+def report_preferences(viz: GameVisualization, players: Mapping[PlayerName, Preference]) -> Report:
     tic = perf_counter()
     r = Report("Preference_structures")
-    viz = game.game_vis
 
-    for player in game.game_players.values():
-        with r.plot(player.name) as pylab:
+    for player, pref in players.items():
+        with r.plot(player) as pylab:
             ax: Axes = pylab.gca()
-            viz.plot_pref(axis=ax, pref=player.preference, pname=player.name, origin=(0.0, 0.0))
+            viz.plot_pref(axis=ax, pref=pref, pname=player, origin=(0.0, 0.0))
             ax.set_xlim(-150.0, 125.0)
     toc = perf_counter() - tic
     print(f"Preference viz time = {toc:.2f} s")

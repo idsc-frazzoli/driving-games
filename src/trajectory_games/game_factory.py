@@ -1,7 +1,8 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict, Set
+from typing import Dict, Set, List
+
 from yaml import safe_load
 
 from games import PlayerName, MonadicPreferenceBuilder
@@ -13,25 +14,27 @@ from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
-from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerPrefs
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
 from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",
+    "get_leader_follower_game",
 ]
+
+players_file = os.path.join(config_dir, "players.yaml")
+lanes_file = os.path.join(config_dir, "lanes.yaml")
+with open(players_file) as load_file:
+    config = safe_load(load_file)
+with open(lanes_file) as load_file:
+    config_lanes = safe_load(load_file)[config["map_name"]]
 
 
 def get_trajectory_game() -> TrajectoryGame:
 
     tic = perf_counter()
-    players_file = os.path.join(config_dir, "players.yaml")
-    lanes_file = os.path.join(config_dir, "lanes.yaml")
-    with open(players_file) as load_file:
-        config = safe_load(load_file)
-    with open(lanes_file) as load_file:
-        config_lanes = safe_load(load_file)[config["map_name"]]
     lanes: Dict[PlayerName, Set[LaneSegmentHashable]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
@@ -73,3 +76,20 @@ def get_trajectory_game() -> TrajectoryGame:
     toc = perf_counter() - tic
     print(f"Game creation time = {toc:.2f} s")
     return game
+
+
+def get_leader_follower_game() -> LeaderFollowerGame:
+
+    game = get_trajectory_game()
+    cfg = config["leader_follower"]
+
+    def get_prefs(names: List[str]) -> List[PosetalPreference]:
+        return [PosetalPreference(pref_str=p, use_cache=False) for p in names]
+
+    lf = LeaderFollowerPrefs(leader=PlayerName(cfg["leader"]), follower=PlayerName(cfg["follower"]),
+                             prefs_leader=get_prefs(cfg["prefs_leader"]),
+                             prefs_follower=get_prefs(cfg["prefs_follower"]))
+    game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,
+                                 ps=game.ps, get_outcomes=game.get_outcomes,
+                                 game_vis=game.game_vis, lf=lf)
+    return game_lf

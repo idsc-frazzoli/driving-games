@@ -1,16 +1,17 @@
 from copy import deepcopy
+from itertools import product
 from random import choice
 from time import perf_counter
 from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional, List
 from frozendict import frozendict
 
 from games.utils import iterate_dict_combinations
-from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED
+from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
 
 from games import PlayerName
 from .game_def import SolvingContext, EXP_ACCOMP
 from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
-    SolvedLeaderFollowerGameNode, SolvedLeaderFollowerGame, LeaderFollowerNode
+    SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, PrefsTup, LeaderFollowerGameNode
 from .paths import Trajectory
 from .metrics_def import TrajGameOutcome, PlayerOutcome, Metric, EvaluatedMetric
 
@@ -51,7 +52,8 @@ def check_dominated(joint_actions: JointPureTraj,
 
 
 def get_best_responses(joint_actions: JointPureTraj, context: SolvingContext,
-                       player: PlayerName, done_p: Set[JointPureTraj]) \
+                       player: PlayerName, done_p: Set[JointPureTraj],
+                       player_pref: Preference = None) \
         -> Tuple[Set[ComparisonOutcome], Set[Trajectory]]:
     """
     Calculates the best responses for the current player
@@ -59,6 +61,8 @@ def get_best_responses(joint_actions: JointPureTraj, context: SolvingContext,
     """
     actions = context.player_actions
     players = joint_actions.keys()
+    if player_pref is None:
+        player_pref = context.outcome_pref[player]
 
     # All alternate actions (from available set) for the current player
     def get_action_options(joint_act: JointPureTraj, p_actions: Set[Trajectory]) -> JointTrajSet:
@@ -93,8 +97,7 @@ def get_best_responses(joint_actions: JointPureTraj, context: SolvingContext,
 
         for joint_best in set(iterate_dict_combinations(joint_best_all)):
             best_outcome: PlayerOutcome = context.game_outcomes(joint_best)[player]
-            comp_outcome: ComparisonOutcome = \
-                context.outcome_pref[player].compare(best_outcome, alt_outcome)
+            comp_outcome: ComparisonOutcome = player_pref.compare(best_outcome, alt_outcome)
             results_alt.add(comp_outcome)
             if joint_best == joint_actions:
                 results.add(comp_outcome)
@@ -217,7 +220,7 @@ def get_security_strategies(players: Tuple[PlayerName, PlayerName], context: Sol
                 break
             elif comp == FIRST_PREFERRED:
                 all_actions.pop(act_alt)
-    solved_games: Dict[Trajectory, Tuple[SolvedTrajectoryGame, PlayerOutcome]] =\
+    solved_games: Dict[Trajectory, Tuple[SolvedTrajectoryGame, PlayerOutcome]] = \
         {node: (all_games[node], frozendict(all_actions[node])) for node in all_actions.keys()}
     return solved_games
 
@@ -248,41 +251,99 @@ class Solution:
         self.dominated: Dict[PlayerName, Set[JointPureTraj]] = None
 
 
-def solve_leader_follower(context: SolvingContext, players: Tuple[PlayerName, PlayerName]) \
+def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
         -> SolvedLeaderFollowerGame:
-    lead, foll = players
-    # TODO[SIR]: Different actual and estimated preference structures for players
-    leader_games = get_security_strategies(players=players, context=context)
-    all_games: SolvedLeaderFollowerGame = set()
+    lf = context.lf
 
-    def get_lead_node(act: Trajectory, out: PlayerOutcome) -> SolvedTrajectoryGameNode:
-        return SolvedTrajectoryGameNode(actions=frozendict({lead: act}),
-                                        outcomes=frozendict({lead: out}))
+    if not context.solver_params.use_best_response:
+        raise NotImplementedError("Leader follower assumes follower best response!")
 
-    for l_action in leader_games.keys():
-        sim_games: SolvedTrajectoryGame = set()
-        joint_act = {lead: l_action,
-                     foll: next(iter(context.player_actions[foll]))}
-        _, best_resp = get_best_responses(joint_actions=joint_act, context=context,
-                                          player=foll, done_p=set())
-        lead_sim_out: List[PlayerOutcome] = []
-        for act_foll in best_resp:
-            joint_act[foll] = act_foll
-            outcomes = context.game_outcomes(joint_act)
-            lead_sim_out.append(outcomes[lead])
-            sim_games.add(SolvedTrajectoryGameNode(actions=frozendict(joint_act), outcomes=outcomes))
+    tic1 = perf_counter()
+    # Collect all possible actions for players
+    lead_actions = set(context.player_actions[lf.leader])
+    foll_actions = set(context.player_actions[lf.follower])
+    foll_act_1 = next(iter(foll_actions))
 
-        lead_sim_exp = calculate_expectation(outcomes=lead_sim_out)
-        pred_game, lead_out = leader_games[l_action]
-        games = LeaderFollowerNode(predicted=frozenset(pred_game), simulated=frozenset(sim_games))
-        lead_game = LeaderFollowerNode(predicted=get_lead_node(act=l_action, out=lead_out),
-                                       simulated=get_lead_node(act=l_action, out=lead_sim_exp))
-        prefs = LeaderFollowerNode(predicted=frozendict(context.outcome_pref),
-                                   simulated=frozendict(context.outcome_pref))
-        all_games.add(SolvedLeaderFollowerGameNode(players=players, games=games,
-                                                   leader_game=lead_game, player_pref=prefs))
+    tic = perf_counter()
+    # Calculate best responses and corresponding leader outcomes
+    # -> for every leader action and follower preference
+    br_pref: Dict[Trajectory, Dict[Preference, Set[Trajectory]]] = {}
+    out_l: Dict[Trajectory, Dict[Preference, List[PlayerOutcome]]] = {}
+    for l_act in lead_actions:
+        br_pref[l_act], out_l[l_act] = {}, {}
+        joint_act: Dict[PlayerName, Trajectory] = {lf.leader: l_act, lf.follower: foll_act_1}
+        for p_f in lf.prefs_follower:
+            _, br = get_best_responses(joint_actions=joint_act, context=context,
+                                       player=lf.follower, done_p=set(),
+                                       player_pref=p_f)
 
-    return all_games
+            outcomes_l: List[PlayerOutcome] = []
+            for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br}):
+                out = frozendict(context.game_outcomes(act))
+                outcomes_l.append(out[lf.leader])
+            br_pref[l_act][p_f] = br
+            out_l[l_act][p_f] = outcomes_l
+
+    toc = perf_counter() - tic
+    print(f"Best response time = {toc:.2f} s")
+
+    # Calculate aggregated leader outcomes
+    # -> for each leader action and prefs of both players
+    tic = perf_counter()
+    agg_out_l: Dict[Trajectory, Dict[PrefsTup, PlayerOutcome]] = {}
+    for l_act in lead_actions:
+        agg_out_l_act = {}
+        for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
+            if context.solver_params.antichain_comparison == EXP_ACCOMP:
+                agg_out_l_act[(p_l, p_f)] = calculate_expectation(outcomes=out_l[l_act][p_f])
+            else:
+                raise NotImplementedError("Join antichain comparison not yet implemented")
+        agg_out_l[l_act] = agg_out_l_act
+    toc = perf_counter() - tic
+    print(f"Agg outcomes time = {toc:.2f} s")
+
+    # Calculate best actions of leader and all possible best actions
+    # For every pref combination, compare all agg lead outcomes and select non-dominated ones
+    tic = perf_counter()
+    best_actions: Dict[PrefsTup, Set[Trajectory]] = {}
+    all_actions: Set[Trajectory] = set()
+    for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
+        ba_pref: Set[Trajectory] = set(lead_actions)
+        for act_1 in frozenset(ba_pref):
+            if act_1 not in ba_pref:
+                continue
+            for act_2 in frozenset(ba_pref):
+                if act_1 == act_2:
+                    continue
+                comp = p_l.compare(agg_out_l[act_1][(p_l, p_f)], agg_out_l[act_2][(p_l, p_f)])
+                if comp == SECOND_PREFERRED:
+                    ba_pref.remove(act_1)
+                    break
+                elif comp == FIRST_PREFERRED:
+                    ba_pref.remove(act_2)
+        best_actions[(p_l, p_f)] = ba_pref
+        all_actions |= ba_pref
+
+    toc = perf_counter() - tic
+    print(f"Best leader actions time = {toc:.2f} s")
+
+    # Calculate final outcomes and post-process for data structure
+    game_nodes: Dict[Trajectory, Dict[PrefsTup, LeaderFollowerGameNode]] = {}
+    for l_act in all_actions:
+        pref_nodes: Dict[PrefsTup, LeaderFollowerGameNode] = {}
+        for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
+            solved_game: SolvedTrajectoryGame = set()
+            for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br_pref[l_act][p_f]}):
+                out = context.game_outcomes(act)
+                solved_game.add(SolvedTrajectoryGameNode(actions=act, outcomes=out))
+            pref_nodes[(p_l, p_f)] = LeaderFollowerGameNode(nodes=solved_game,
+                                                            agg_lead_outcome=agg_out_l[l_act][(p_l, p_f)])
+        game_nodes[l_act] = pref_nodes
+
+    toc = perf_counter() - tic1
+    print(f"Game solving time = {toc:.2f} s")
+
+    return SolvedLeaderFollowerGame(lf=lf, games=game_nodes, best_leader_actions=best_actions)
 
 
 def solve_static_game(context: SolvingContext) \

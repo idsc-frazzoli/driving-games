@@ -1,11 +1,11 @@
 from functools import partial
-from typing import Dict, Set, FrozenSet, Mapping, Generic, Tuple, TypeVar
+from typing import Dict, Set, FrozenSet, Mapping, Tuple, List
 from time import perf_counter
 
 from dataclasses import dataclass
 from frozendict import frozendict
 
-from games import PlayerName, PURE_STRATEGIES, BAIL_MNE, P
+from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
 from preferences import Preference
 
@@ -19,10 +19,13 @@ __all__ = [
     "JointPureTraj",
     "TrajectoryGamePlayer",
     "TrajectoryGame",
+    "LeaderFollowerPrefs",
+    "LeaderFollowerGameSolvingContext",
+    "LeaderFollowerGame",
     "SolvedTrajectoryGameNode",
     "SolvedTrajectoryGame",
-    "LeaderFollowerNode",
-    "SolvedLeaderFollowerGameNode",
+    "PrefsTup",
+    "LeaderFollowerGameNode",
     "SolvedLeaderFollowerGame",
     "preprocess_full_game",
     "preprocess_player",
@@ -31,49 +34,59 @@ __all__ = [
 JointPureTraj = Mapping[PlayerName, Trajectory]
 
 
+@dataclass
 class TrajectoryGamePlayer(GamePlayer[VehicleState, Trajectory,
                                       TrajectoryWorld, PlayerOutcome,
                                       VehicleGeometry]):
     pass
 
 
+@dataclass
 class TrajectoryGame(Game[VehicleState, Trajectory,
                           TrajectoryWorld, PlayerOutcome,
                           VehicleGeometry]):
     pass
 
 
+@dataclass
+class LeaderFollowerPrefs:
+    leader: PlayerName
+    follower: PlayerName
+    prefs_leader: List[Preference]
+    prefs_follower: List[Preference]
+
+
+@dataclass
+class LeaderFollowerGameSolvingContext(SolvingContext):
+    lf: LeaderFollowerPrefs
+
+
+@dataclass
+class LeaderFollowerGame(TrajectoryGame):
+    lf: LeaderFollowerPrefs
+
+
+@dataclass(frozen=True, unsafe_hash=True)
 class SolvedTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerOutcome]):
     pass
 
 
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
-
-
-X = TypeVar("X")
-
-
-@dataclass(unsafe_hash=True)
-class LeaderFollowerNode(Generic[X]):
-    predicted: X
-    """ Predicted by leader """
-    simulated: X
-    """ Calculated by follower """
+PrefsTup = Tuple[Preference, Preference]
 
 
 @dataclass(unsafe_hash=True)
-class SolvedLeaderFollowerGameNode(Generic[P]):
-    players: Tuple[PlayerName, PlayerName]
-    """ Leader and Follower """
-    games: LeaderFollowerNode[SolvedTrajectoryGame]
-    """ All possible game results for both players - Predicted, Simulated (P,S) """
-    leader_game: LeaderFollowerNode[SolvedTrajectoryGameNode]
-    """ Aggregated game solution for leader (P,S) """
-    player_pref: LeaderFollowerNode[Mapping[PlayerName, Preference[P]]]
-    """ Player preferences (P,S) """
+class LeaderFollowerGameNode:
+    nodes: SolvedTrajectoryGame
+    agg_lead_outcome: PlayerOutcome
 
 
-SolvedLeaderFollowerGame = Set[SolvedLeaderFollowerGameNode]
+@dataclass(unsafe_hash=True)
+class SolvedLeaderFollowerGame:
+    lf: LeaderFollowerPrefs
+    games: Mapping[Trajectory, Mapping[PrefsTup, LeaderFollowerGameNode]]
+    """ All possible game results for both players """
+    best_leader_actions: Mapping[PrefsTup, Set[Trajectory]]
 
 
 def compute_outcomes(iterable, sgame: Game):
@@ -149,13 +162,14 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
         name: player.preference for name, player in sgame.game_players.items()
     }
 
-    context = SolvingContext(
-        player_actions=actions,
-        game_outcomes=sgame.get_outcomes,
-        outcome_pref=pref,  # todo I fear here it's missing the monadic preferences but it is fine for now
-        solver_params=StaticSolverParams(
-            admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE,
-            antichain_comparison=EXP_ACCOMP, use_best_response=True
-        ),
-    )
+    solver_params = StaticSolverParams(admissible_strategies=PURE_STRATEGIES, strategy_multiple_nash=BAIL_MNE,
+                                       antichain_comparison=EXP_ACCOMP, use_best_response=True)
+    kwargs = {
+        "player_actions": actions, "game_outcomes": sgame.get_outcomes,
+        "outcome_pref": pref, "solver_params": solver_params
+    }
+    if isinstance(sgame, LeaderFollowerGame):
+        context = LeaderFollowerGameSolvingContext(**kwargs, lf=sgame.lf)
+    else:
+        context = SolvingContext(**kwargs)
     return context

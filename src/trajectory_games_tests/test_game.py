@@ -14,10 +14,12 @@ from trajectory_games import (
     report_nash_eq,
     report_preferences,
     get_trajectory_game,
+    get_leader_follower_game,
     PosetalPreference,
     solve_leader_follower,
     report_leader_follower_solution,
 )
+from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
 plot_gif = False                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
@@ -41,7 +43,8 @@ def report_single(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGa
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
     create_reports(game=game, nash_eq=nash_eq, r_game=r_game)
-    r_game.add_child(report_preferences(game=game))
+    prefs = {p.name: p.preference for p in game.game_players.values()}
+    r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))
     r_game.to_html(join(d, folder + filename))
     report_times()
 
@@ -123,7 +126,8 @@ def test_trajectory_game_levels():
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
     create_reports(game=game, nash_eq=nash_eqf, r_game=r_game, gif=True)
-    r_game.add_child(report_preferences(game=game))
+    prefs = {p.name: p.preference for p in game.game_players.values()}
+    r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))
     for level in r_levels.values():
         r_game.add_child(level)
     r_game.to_html(join(d, folder + filename))
@@ -132,16 +136,13 @@ def test_trajectory_game_levels():
 
 def test_leader_follower():
     folder = "LF/"
-    game: TrajectoryGame = get_trajectory_game()
+    game: LeaderFollowerGame = get_leader_follower_game()
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=False)
-    all_players = list(game.game_players.keys())
-    assert len(all_players) == 2
-    players = (all_players[0], all_players[1])  # P1 is leader and P2 is follower
-    solutions = solve_leader_follower(context=context, players=players)
+    assert isinstance(context, LeaderFollowerGameSolvingContext)
+    solutions = solve_leader_follower(context=context)
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
     r_game.add_child(report_leader_follower_solution(game=game, solution=solutions))
-    r_game.add_child(report_preferences(game=game))
     r_game.to_html(join(d, folder + filename))
 
 
