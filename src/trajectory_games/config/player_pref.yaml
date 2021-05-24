@@ -314,3 +314,21 @@ pref_lfi:                     &pref_lfi
   MinimumClearance:           ["DrivableAreaViolation"]
   EpisodeTime:                ["DrivableAreaViolation"]
   weights_comf:               ["DrivableAreaViolation"]
+
+pref_lf_c1:                   &pref_lf_c1
+  DrivableAreaViolation:      []
+  CollisionEnergy:            ["DrivableAreaViolation"]
+  EpisodeTime:                ["CollisionEnergy"]
+  weights_comf:               ["EpisodeTime"]
+
+pref_lf_c2:                   &pref_lf_c2
+  DrivableAreaViolation:      []
+  weights_comf:               ["DrivableAreaViolation"]
+  EpisodeTime:                ["weights_comf"]
+  CollisionEnergy:            ["EpisodeTime"]
+
+pref_lf_ci:                   &pref_lf_ci
+  DrivableAreaViolation:      []
+  CollisionEnergy:            ["DrivableAreaViolation"]
+  EpisodeTime:                ["DrivableAreaViolation"]
+  weights_comf:               ["DrivableAreaViolation"]

@@ -143,5 +143,5 @@ weights_conv214:
   LongitudinalAcceleration:   4.0
 
 weights_comf:
-  LateralComfort:             1.0
-  LongitudinalAcceleration:   4.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   1.0
