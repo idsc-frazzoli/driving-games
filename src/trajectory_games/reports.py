@@ -139,13 +139,13 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
     if nash_eq is None:
         title = "Actions"
     else:
-        nodes: str = ""
+        nodes: List[str] = []
         for k, node_set_alt in nash_eq.items():
             if k == "weak":
                 continue
             if node_eq in node_set_alt:
-                nodes += f"{k}, "
-        title = f"Equilibrium: ({nodes[:-2]})"
+                nodes.append(k)
+        title = ", ".join(nodes)
 
     with eq_viz.data_file(title, MIME_GIF) as fn:
         create_animation(fn=fn, game=game, node=node_eq)
@@ -256,12 +256,18 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
     report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
     report_all.text("Antichain_Comparison:", lf.antichain_comparison)
 
-    # Create dictionary for leader actions
+    # Create dictionary for leader actions and follower prefs
     i_act = 1
     act_dict: Dict[Trajectory, int] = {}
     for act in solution.games.keys():
         act_dict[act] = i_act
         i_act += 1
+    p_f_dict: Dict[Preference, int] = {}
+    i_pf = 1
+    for p_f in lf.prefs_follower:
+        p_f_dict[p_f] = i_pf
+        i_pf += 1
+    no_pref = PosetalPreference(pref_str="NoPreference")
 
     actions_text = "All leader best actions:\n" + \
                    "\n".join([f"A_{idx}: {str(act)}" for act, idx in act_dict.items()])
@@ -301,7 +307,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         i_l += 1
     report_all.add_child(rep_act)
 
-    toc_br, toc_out = 0.0, 0.0
+    toc_br, toc_out, toc_gif = 0.0, 0.0, 0.0
     # Group plots based on leader action
     print(f"Report Params:\n\tTotal leader actions = {len(solution.games)},"
           f"\n\tTotal preference combinations = {len(lf.prefs_leader)*len(lf.prefs_follower)},"
@@ -311,12 +317,26 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         # Aggregate all nodes for all prefs of follower to create grid
         # BR is not a function of p_l, so we can use any one p_l
         all_nodes: SolvedTrajectoryGame = set()
+        pf_nodes: Dict[str, SolvedTrajectoryGame] = {}
         for p_f in lf.prefs_follower:
-            all_nodes |= sol[(p_l_0, p_f)].nodes
+            nodes = sol[(p_l_0, p_f)].nodes
+            all_nodes |= nodes
+            pf_nodes[f"Pref_{p_f_dict[p_f]}"] = nodes
         game.game_vis.init_plot_dict(values=all_nodes)
 
         rep_act = Report(f"Action_{act_dict[act]}")
         rep_act.text("Action", f"Leader Trajectory = {act}")
+
+        tic_gif = perf_counter()
+        if plot_gif:
+            prefs = {lf.leader: p_l_0, lf.follower: no_pref}
+            i_gif = 1
+            for node in all_nodes:
+                rplot = Report(f"BR_{i_gif}")
+                gif_eq(report=rplot, node_eq=node, game=game, prefs=prefs, nash_eq=pf_nodes)
+                rep_act.add_child(rplot)
+                i_gif += 1
+        toc_gif += perf_counter() - tic_gif
 
         i_pf = 1
         for p_f in lf.prefs_follower:
@@ -325,15 +345,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
             # For each pref of follower, plot grid of best responses
             rep = Report(f"{lf.follower}:Pref_{i_pf}")
             rep_nodes = sol[(p_l_0, p_f)].nodes
-            if plot_gif:
-                prefs = {lf.leader: p_l_0, lf.follower: p_f}
-                i_gif = 1
-                for node in rep_nodes:
-                    rplot = Report(f"BR_{i_gif}")
-                    gif_eq(report=rplot, node_eq=node, game=game, prefs=prefs)
-                    rep.add_child(rplot)
-                    i_gif += 1
-            else:
+            if not plot_gif:
                 stack_viz = rep.figure("Best_Responses", cols=1)
                 stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
                             players=game.game_players, nodes=rep_nodes)
@@ -360,10 +372,11 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
             i_pf += 1
         report_all.add_child(rep_act)
 
-    print(f"Best response viz time = {toc_br:.2f} s")
-    print(f"Outcomes viz time = {toc_out:.2f} s")
     toc = perf_counter() - tic
-    print(f"Solutions viz time = {toc:.2f} s")
+    print(f"Times:\n\tBest response viz time = {toc_br:.2f} s"
+          f"\n\tGif viz time = {toc_gif:.2f} s"
+          f"\n\tOutcomes viz time = {toc_out:.2f} s"
+          f"\n\tSolutions viz time = {toc:.2f} s")
     return report_all
 
 

@@ -83,6 +83,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
     graph: DiGraph
     _node_dict: Dict[str, metric_type] = {}
     level_nodes: Mapping[int, Set[metric_type]]
+    no_pref: bool = False
 
     def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:
@@ -108,6 +109,9 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def build_graph(self, pref_str: str):
         self.graph = DiGraph()
+        if pref_str == "NoPreference":
+            self.no_pref = True
+            return
         if pref_str not in self._config:
             return
         for key, parents in self._config[pref_str].items():
@@ -158,6 +162,8 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
 
+        if self.no_pref:
+            return INDIFFERENT
         if self.use_cache:
             if isinstance(a, dict): a = frozendict(a)
             if isinstance(b, dict): b = frozendict(a)
