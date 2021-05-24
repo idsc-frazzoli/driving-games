@@ -126,6 +126,44 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
         plt.close(fig=fig)
 
 
+def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
+           game: Game, prefs: Mapping[PlayerName, Preference] = None,
+           nash_eq: Mapping[str, SolvedTrajectoryGame] = None):
+    if prefs is None:
+        prefs = {pname: peq.preference for pname, peq in game.game_players.items()}
+    for pref in prefs.values():
+        if not isinstance(pref, PosetalPreference):
+            raise NotImplementedError(f"Preferences must be PosetalPreferences,"
+                                      f" found type {pref.get_type()}")
+    eq_viz = report.figure(cols=2)
+    if nash_eq is None:
+        title = "Actions"
+    else:
+        nodes: str = ""
+        for k, node_set_alt in nash_eq.items():
+            if k == "weak":
+                continue
+            if node_eq in node_set_alt:
+                nodes += f"{k}, "
+        title = f"Equilibrium: ({nodes[:-2]})"
+
+    with eq_viz.data_file(title, MIME_GIF) as fn:
+        create_animation(fn=fn, game=game, node=node_eq)
+
+    with eq_viz.plot("outcomes") as pylab:
+        n: float = 0.0
+        ax: Axes = pylab.gca()
+        for pname, pref in prefs.items():
+            metrics: Dict[str, str] = {}
+            outcomes = node_eq.outcomes[pname]
+            for met in pref.graph.nodes:
+                metrics[met] = str(round(float(met.evaluate(outcomes)), 2))
+            game.game_vis.plot_pref(axis=ax, pref=pref,
+                                    pname=pname, origin=(n, 0.0), labels=metrics)
+            n = n + 200
+        ax.set_xlim(-150.0, n - 100.0)
+
+
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                    plot_gif: bool) -> Report:
     tic = perf_counter()
@@ -141,32 +179,6 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
     r_all.add_child(report_states(nash_eq=nash_eq))
 
     node_set = nash_eq["weak"]
-
-    def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode):
-        eq_viz = report.figure(cols=2)
-        nodes: str = ""
-        for k, node_set_alt in nash_eq.items():
-            if k == "weak":
-                continue
-            if node_eq in node_set_alt:
-                nodes += f"{k}, "
-        title = f"Equilibrium: ({nodes[:-2]})"
-
-        with eq_viz.data_file(title, MIME_GIF) as fn:
-            create_animation(fn=fn, game=game, node=node_eq)
-
-        with eq_viz.plot("outcomes") as pylab:
-            n: float = 0.0
-            ax: Axes = pylab.gca()
-            for player_name, player_eq in game.game_players.items():
-                metrics: Dict[str, str] = {}
-                outcomes = node_eq.outcomes[player_name]
-                for pref in player_eq.preference.graph.nodes:
-                    metrics[pref] = str(round(float(pref.evaluate(outcomes)), 2))
-                viz.plot_pref(axis=ax, pref=player_eq.preference,
-                              pname=player_eq.name, origin=(n, 0.0), labels=metrics)
-                n = n + 200
-            ax.set_xlim(-150.0, n - 100.0)
 
     def save_actions(nodes_all: Set[SolvedTrajectoryGameNode]) -> Mapping[PlayerName, Set[Trajectory]]:
         actions: Dict[PlayerName, Set[Trajectory]] = {p: set() for p in game.game_players.keys()}
@@ -212,7 +224,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
         i = 1
         for node in node_set:
             rplot = Report(f"Eq_{i}")
-            gif_eq(report=rplot, node_eq=node)
+            gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq)
             req.add_child(rplot)
             i += 1
     else:
@@ -232,7 +244,8 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
     return r_all
 
 
-def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame) -> Report:
+def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame,
+                                    plot_gif: bool) -> Report:
 
     PLOT_ALL_OUT = True
 
@@ -290,7 +303,9 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
 
     toc_br, toc_out = 0.0, 0.0
     # Group plots based on leader action
-    print(f"Total leader actions = {len(solution.games)}")
+    print(f"Report Params:\n\tTotal leader actions = {len(solution.games)},"
+          f"\n\tTotal preference combinations = {len(lf.prefs_leader)*len(lf.prefs_follower)},"
+          f"\n\tPlotting gifs = {plot_gif}")
     for act, sol in solution.games.items():
 
         # Aggregate all nodes for all prefs of follower to create grid
@@ -310,9 +325,18 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
             # For each pref of follower, plot grid of best responses
             rep = Report(f"{lf.follower}:Pref_{i_pf}")
             rep_nodes = sol[(p_l_0, p_f)].nodes
-            stack_viz = rep.figure("Best_Responses", cols=1)
-            stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
-                        players=game.game_players, nodes=rep_nodes)
+            if plot_gif:
+                prefs = {lf.leader: p_l_0, lf.follower: p_f}
+                i_gif = 1
+                for node in rep_nodes:
+                    rplot = Report(f"BR_{i_gif}")
+                    gif_eq(report=rplot, node_eq=node, game=game, prefs=prefs)
+                    rep.add_child(rplot)
+                    i_gif += 1
+            else:
+                stack_viz = rep.figure("Best_Responses", cols=1)
+                stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
+                            players=game.game_players, nodes=rep_nodes)
             toc_br += perf_counter() - tic_br
 
             i_pl = 1
