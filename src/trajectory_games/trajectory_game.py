@@ -7,6 +7,7 @@ from frozendict import frozendict
 
 from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
+from possibilities import Poss
 from preferences import Preference
 
 from .structures import VehicleState, VehicleGeometry
@@ -25,7 +26,6 @@ __all__ = [
     "LeaderFollowerGame",
     "SolvedTrajectoryGameNode",
     "SolvedTrajectoryGame",
-    "PrefsTup",
     "LeaderFollowerGameNode",
     "SolvedLeaderFollowerGame",
     "preprocess_full_game",
@@ -53,8 +53,8 @@ class TrajectoryGame(Game[VehicleState, Trajectory,
 class LeaderFollowerPrefs:
     leader: PlayerName
     follower: PlayerName
-    prefs_leader: List[Preference]
-    prefs_follower: List[Preference]
+    pref_leader: Preference
+    prefs_follower: Poss[Preference]
     antichain_comparison: AntichainComparison
 
 
@@ -74,7 +74,6 @@ class SolvedTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerOutcome]):
 
 
 SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
-PrefsTup = Tuple[Preference, Preference]
 
 
 @dataclass(unsafe_hash=True)
@@ -86,9 +85,9 @@ class LeaderFollowerGameNode:
 @dataclass(unsafe_hash=True)
 class SolvedLeaderFollowerGame:
     lf: LeaderFollowerPrefs
-    games: Mapping[Trajectory, Mapping[PrefsTup, LeaderFollowerGameNode]]
+    games: Mapping[Trajectory, Mapping[Preference, LeaderFollowerGameNode]]
     """ All possible game results for both players """
-    best_leader_actions: Mapping[PrefsTup, Set[Trajectory]]
+    best_leader_actions: Mapping[Preference, Set[Trajectory]]
 
 
 def compute_outcomes(iterable, sgame: Game):

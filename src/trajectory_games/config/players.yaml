@@ -46,7 +46,7 @@ players:
 leader_follower:
   leader:                 "P1"
   follower:               "P2"
-  prefs_leader:           ["pref_lf1"]
+  pref_leader:            "pref_lf1"
 #  prefs_follower:         ["pref_lf1", "pref_lf3", "pref_lfi"]
   prefs_follower:         ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci"]
 #  prefs_follower:         ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci", "NoPreference"]

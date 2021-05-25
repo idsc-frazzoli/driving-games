@@ -6,7 +6,7 @@ from typing import Dict, Set, List
 from yaml import safe_load
 
 from games import PlayerName, MonadicPreferenceBuilder
-from possibilities import PossibilitySet
+from possibilities import PossibilitySet, Poss
 from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
@@ -87,14 +87,14 @@ def get_leader_follower_game() -> LeaderFollowerGame:
     game = get_trajectory_game()
     cfg = config["leader_follower"]
 
-    def get_prefs(names: List[str]) -> List[PosetalPreference]:
-        return [PosetalPreference(pref_str=p, use_cache=False) for p in names]
+    def get_prefs(names: List[str]) -> Poss[PosetalPreference]:
+        return game.ps.lift_many([PosetalPreference(pref_str=p, use_cache=False) for p in names])
 
     ac_cfg = cfg["antichain_comparison"]
     if ac_cfg not in ac_comp:
         raise ValueError(f"ac_comp - {ac_cfg} not in {ac_comp.keys()}")
     lf = LeaderFollowerPrefs(leader=PlayerName(cfg["leader"]), follower=PlayerName(cfg["follower"]),
-                             prefs_leader=get_prefs(cfg["prefs_leader"]),
+                             pref_leader=PosetalPreference(pref_str=cfg["pref_leader"], use_cache=False),
                              prefs_follower=get_prefs(cfg["prefs_follower"]),
                              antichain_comparison=ac_comp[ac_cfg])
     game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,

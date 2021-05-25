@@ -11,7 +11,7 @@ from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMP
 from games import PlayerName
 from .game_def import SolvingContext, EXP_ACCOMP, JOIN_ACCOMP
 from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
-    SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, PrefsTup, LeaderFollowerGameNode
+    SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, LeaderFollowerGameNode
 from .paths import Trajectory
 from .metrics_def import TrajGameOutcome, PlayerOutcome, Metric, EvaluatedMetric
 
@@ -235,14 +235,15 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
     foll_act_1 = next(iter(foll_actions))
 
     tic = perf_counter()
-    # Calculate best responses and corresponding leader outcomes
+    # Calculate best responses, corresponding leader outcomes and aggregated leader outcomes
     # -> for every leader action and follower preference
+    ac_comp = context.solver_params.antichain_comparison
     br_pref: Dict[Trajectory, Dict[Preference, Set[Trajectory]]] = {}
-    out_l: Dict[Trajectory, Dict[Preference, List[PlayerOutcome]]] = {}
+    agg_out_l: Dict[Trajectory, Dict[Preference, PlayerOutcome]] = {}
     for l_act in lead_actions:
-        br_pref[l_act], out_l[l_act] = {}, {}
+        br_pref[l_act], agg_out_l[l_act] = {}, {}
         joint_act: Dict[PlayerName, Trajectory] = {lf.leader: l_act, lf.follower: foll_act_1}
-        for p_f in lf.prefs_follower:
+        for p_f in lf.prefs_follower.support():
             _, br = get_best_responses(joint_actions=joint_act, context=context,
                                        player=lf.follower, done_p=set(),
                                        player_pref=p_f)
@@ -251,37 +252,24 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
             for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br}):
                 out = frozendict(context.game_outcomes(act))
                 outcomes_l.append(out[lf.leader])
+            if ac_comp == EXP_ACCOMP:
+                agg_out = calculate_expectation(outcomes=outcomes_l)
+            elif ac_comp == JOIN_ACCOMP:
+                agg_out = calculate_join(outcomes=outcomes_l, pref=lf.pref_leader)
+            else:
+                raise NotImplementedError(f"Antichain comparison - {ac_comp} not in implemented categories")
+            agg_out_l[l_act][p_f] = agg_out
             br_pref[l_act][p_f] = br
-            out_l[l_act][p_f] = outcomes_l
 
     toc = perf_counter() - tic
     print(f"Best response time = {toc:.2f} s")
 
-    # Calculate aggregated leader outcomes
-    # -> for each leader action and prefs of both players
-    ac_comp = context.solver_params.antichain_comparison
-    tic = perf_counter()
-    agg_out_l: Dict[Trajectory, Dict[PrefsTup, PlayerOutcome]] = {}
-    for l_act in lead_actions:
-        agg_out_l_act = {}
-        for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
-            if ac_comp == EXP_ACCOMP:
-                agg_out = calculate_expectation(outcomes=out_l[l_act][p_f])
-            elif ac_comp == JOIN_ACCOMP:
-                agg_out = calculate_join(outcomes=out_l[l_act][p_f], pref=p_l)
-            else:
-                raise NotImplementedError(f"Antichain comparison - {ac_comp} not in implemented categories")
-            agg_out_l_act[(p_l, p_f)] = agg_out
-        agg_out_l[l_act] = agg_out_l_act
-    toc = perf_counter() - tic
-    print(f"Agg outcomes time = {toc:.2f} s")
-
     # Calculate best actions of leader and all possible best actions
     # For every pref combination, compare all agg lead outcomes and select non-dominated ones
     tic = perf_counter()
-    best_actions: Dict[PrefsTup, Set[Trajectory]] = {}
+    best_actions: Dict[Preference, Set[Trajectory]] = {}
     all_actions: Set[Trajectory] = set()
-    for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
+    for p_f in lf.prefs_follower.support():
         ba_pref: Set[Trajectory] = set(lead_actions)
         for act_1 in frozenset(ba_pref):
             if act_1 not in ba_pref:
@@ -289,29 +277,29 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
             for act_2 in frozenset(ba_pref):
                 if act_1 == act_2:
                     continue
-                comp = p_l.compare(agg_out_l[act_1][(p_l, p_f)], agg_out_l[act_2][(p_l, p_f)])
+                comp = lf.pref_leader.compare(agg_out_l[act_1][p_f], agg_out_l[act_2][p_f])
                 if comp == SECOND_PREFERRED:
                     ba_pref.remove(act_1)
                     break
                 elif comp == FIRST_PREFERRED:
                     ba_pref.remove(act_2)
-        best_actions[(p_l, p_f)] = ba_pref
+        best_actions[p_f] = ba_pref
         all_actions |= ba_pref
 
     toc = perf_counter() - tic
     print(f"Best leader actions time = {toc:.2f} s")
 
     # Calculate final outcomes and post-process for data structure
-    game_nodes: Dict[Trajectory, Dict[PrefsTup, LeaderFollowerGameNode]] = {}
+    game_nodes: Dict[Trajectory, Dict[Preference, LeaderFollowerGameNode]] = {}
     for l_act in all_actions:
-        pref_nodes: Dict[PrefsTup, LeaderFollowerGameNode] = {}
-        for p_l, p_f in product(lf.prefs_leader, lf.prefs_follower):
+        pref_nodes: Dict[Preference, LeaderFollowerGameNode] = {}
+        for p_f in lf.prefs_follower.support():
             solved_game: SolvedTrajectoryGame = set()
             for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br_pref[l_act][p_f]}):
                 out = context.game_outcomes(act)
                 solved_game.add(SolvedTrajectoryGameNode(actions=act, outcomes=out))
-            pref_nodes[(p_l, p_f)] = LeaderFollowerGameNode(nodes=solved_game,
-                                                            agg_lead_outcome=agg_out_l[l_act][(p_l, p_f)])
+            pref_nodes[p_f] = LeaderFollowerGameNode(nodes=solved_game,
+                                                     agg_lead_outcome=agg_out_l[l_act][p_f])
         game_nodes[l_act] = pref_nodes
 
     toc = perf_counter() - tic1

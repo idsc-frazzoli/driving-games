@@ -252,7 +252,6 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
     tic = perf_counter()
     report_all = Report("Leader - follower game solutions")
     lf = solution.lf
-    p_l_0 = lf.prefs_leader[0]
     report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
     report_all.text("Antichain_Comparison:", lf.antichain_comparison)
 
@@ -263,8 +262,9 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         act_dict[act] = i_act
         i_act += 1
     p_f_dict: Dict[Preference, int] = {}
+    p_f_list = list(lf.prefs_follower.support())
     i_pf = 1
-    for p_f in lf.prefs_follower:
+    for p_f in p_f_list:
         p_f_dict[p_f] = i_pf
         i_pf += 1
     no_pref = PosetalPreference(pref_str="NoPreference")
@@ -287,30 +287,27 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
             idx += 1
 
     tic1 = perf_counter()
-    stack_prefs(pname=lf.leader, prefs=lf.prefs_leader)
-    stack_prefs(pname=lf.follower, prefs=lf.prefs_follower)
+    stack_prefs(pname=lf.leader, prefs=[lf.pref_leader])
+    stack_prefs(pname=lf.follower, prefs=p_f_list)
     report_all.add_child(r_pref)
     toc1 = perf_counter() - tic1
     print(f"Player prefs viz time = {toc1:.2f} s")
 
     # Print best leader actions for each comb of prefs
-    i_l = 1
     rep_act = Report("Best_Leader_Actions")
-    for p_l in lf.prefs_leader:
-        i_f = 1
-        for p_f in lf.prefs_follower:
-            actions = solution.best_leader_actions[(p_l, p_f)]
-            text = f"{lf.leader}:Pref_{i_l}, {lf.follower}:Pref_{i_f}\n\t" + "{" +\
-                   ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
-            rep_act.text(f"Act_{i_l}_{i_f}", text)
-            i_f += 1
-        i_l += 1
+    i_f = 1
+    for p_f in p_f_list:
+        actions = solution.best_leader_actions[p_f]
+        text = f"{lf.follower}:Pref_{i_f}\n\t" + "{" +\
+               ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
+        rep_act.text(f"Act_{i_f}", text)
+        i_f += 1
     report_all.add_child(rep_act)
 
     toc_br, toc_out, toc_gif = 0.0, 0.0, 0.0
     # Group plots based on leader action
     print(f"Report Params:\n\tTotal leader actions = {len(solution.games)},"
-          f"\n\tTotal preference combinations = {len(lf.prefs_leader)*len(lf.prefs_follower)},"
+          f"\n\tTotal follower preferences = {len(p_f_list)},"
           f"\n\tPlotting gifs = {plot_gif}")
     for act, sol in solution.games.items():
 
@@ -318,8 +315,8 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         # BR is not a function of p_l, so we can use any one p_l
         all_nodes: SolvedTrajectoryGame = set()
         pf_nodes: Dict[str, SolvedTrajectoryGame] = {}
-        for p_f in lf.prefs_follower:
-            nodes = sol[(p_l_0, p_f)].nodes
+        for p_f in p_f_list:
+            nodes = sol[p_f].nodes
             all_nodes |= nodes
             pf_nodes[f"Pref_{p_f_dict[p_f]}"] = nodes
         game.game_vis.init_plot_dict(values=all_nodes)
@@ -329,7 +326,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
 
         tic_gif = perf_counter()
         if plot_gif:
-            prefs = {lf.leader: p_l_0, lf.follower: no_pref}
+            prefs = {lf.leader: lf.pref_leader, lf.follower: no_pref}
             i_gif = 1
             for node in all_nodes:
                 rplot = Report(f"BR_{i_gif}")
@@ -339,35 +336,31 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         toc_gif += perf_counter() - tic_gif
 
         i_pf = 1
-        for p_f in lf.prefs_follower:
+        for p_f in p_f_list:
 
             tic_br = perf_counter()
             # For each pref of follower, plot grid of best responses
             rep = Report(f"{lf.follower}:Pref_{i_pf}")
-            rep_nodes = sol[(p_l_0, p_f)].nodes
+            rep_nodes = sol[p_f].nodes
             if not plot_gif:
                 stack_viz = rep.figure("Best_Responses", cols=1)
                 stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
                             players=game.game_players, nodes=rep_nodes)
             toc_br += perf_counter() - tic_br
 
-            i_pl = 1
-            for p_l in lf.prefs_leader:
-
-                tic_out = perf_counter()
-                # For each pref of leader, plot grid of leader outcomes and aggregated outcome
-                node_sols = sol[(p_l, p_f)]
-                lead_viz = rep.figure(f"{lf.leader}:Pref_{i_pl}", cols=1+int(PLOT_ALL_OUT))
-                if PLOT_ALL_OUT:
-                    stack_nodes(report=lead_viz, viz=game.game_vis, title=f"{lf.leader}_outcomes",
-                                players=game.game_players, nodes=rep_nodes,
-                                plot_lead_outcomes=True, leader=(lf.leader, p_l))
-                with lead_viz.plot(f"{lf.leader}_agg_outcomes") as pylab:
-                    plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
-                                       outcomes=node_sols.agg_lead_outcome,
-                                       pref=p_l, pname=lf.leader, add_title=False)
-                toc_out += perf_counter() - tic_out
-                i_pl += 1
+            tic_out = perf_counter()
+            # Plot grid of leader outcomes and aggregated outcome
+            node_sols = sol[p_f]
+            lead_viz = rep.figure(f"Leader_Outcomes", cols=1+int(PLOT_ALL_OUT))
+            if PLOT_ALL_OUT:
+                stack_nodes(report=lead_viz, viz=game.game_vis, title=f"{lf.leader}_outcomes",
+                            players=game.game_players, nodes=rep_nodes,
+                            plot_lead_outcomes=True, leader=(lf.leader, lf.pref_leader))
+            with lead_viz.plot(f"{lf.leader}_agg_outcomes") as pylab:
+                plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
+                                   outcomes=node_sols.agg_lead_outcome,
+                                   pref=lf.pref_leader, pname=lf.leader, add_title=False)
+            toc_out += perf_counter() - tic_out
             rep_act.add_child(rep)
             i_pf += 1
         report_all.add_child(rep_act)
