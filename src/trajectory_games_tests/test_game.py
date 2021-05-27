@@ -1,3 +1,4 @@
+from copy import deepcopy
 from os.path import join
 from typing import Mapping, Dict
 from reprep import Report
@@ -18,6 +19,8 @@ from trajectory_games import (
     PosetalPreference,
     solve_leader_follower,
     report_leader_follower_solution,
+    solve_recursive_game,
+    report_leader_follower_recursive,
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
@@ -143,6 +146,17 @@ def test_leader_follower():
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
     r_game.add_child(report_leader_follower_solution(game=game, solution=solutions, plot_gif=plot_gif))
+    r_game.to_html(join(d, folder + filename))
+
+
+def test_leader_follower_recursive():
+    folder = "LF_recursive/"
+    game: LeaderFollowerGame = get_leader_follower_game()
+    game_init = deepcopy(game)
+    result = solve_recursive_game(game=game)
+    r_game = Report()
+    r_game.add_child(report_game_visualization(game=game_init))
+    r_game.add_child(report_leader_follower_recursive(game=game_init, result=result, plot_gif=plot_gif))
     r_game.to_html(join(d, folder + filename))
 
 

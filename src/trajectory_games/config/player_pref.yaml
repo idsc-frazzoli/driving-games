@@ -292,44 +292,44 @@ pref_lf1:                     &pref_lf1
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
   MinimumClearance:           ["DrivableAreaViolation"]
-  EpisodeTime:                ["MinimumClearance"]
-  weights_comf:               ["EpisodeTime"]
+  ProgressAlongReference:     ["MinimumClearance"]
+  weights_comf:               ["ProgressAlongReference"]
 
 pref_lf2:                     &pref_lf2
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
-  EpisodeTime:                ["DrivableAreaViolation"]
-  weights_comf:               ["EpisodeTime"]
+  ProgressAlongReference:     ["DrivableAreaViolation"]
+  weights_comf:               ["ProgressAlongReference"]
   MinimumClearance:           ["weights_comf"]
 
 pref_lf3:                     &pref_lf3
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
   weights_comf:               ["DrivableAreaViolation"]
-  EpisodeTime:                ["weights_comf"]
-  MinimumClearance:           ["EpisodeTime"]
+  ProgressAlongReference:     ["weights_comf"]
+  MinimumClearance:           ["ProgressAlongReference"]
 
 pref_lfi:                     &pref_lfi
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
   MinimumClearance:           ["DrivableAreaViolation"]
-  EpisodeTime:                ["DrivableAreaViolation"]
+  ProgressAlongReference:     ["DrivableAreaViolation"]
   weights_comf:               ["DrivableAreaViolation"]
 
 pref_lf_c1:                   &pref_lf_c1
   DrivableAreaViolation:      []
   CollisionEnergy:            ["DrivableAreaViolation"]
-  EpisodeTime:                ["CollisionEnergy"]
-  weights_comf:               ["EpisodeTime"]
+  ProgressAlongReference:     ["CollisionEnergy"]
+  weights_comf:               ["ProgressAlongReference"]
 
 pref_lf_c2:                   &pref_lf_c2
   DrivableAreaViolation:      []
   weights_comf:               ["DrivableAreaViolation"]
-  EpisodeTime:                ["weights_comf"]
-  CollisionEnergy:            ["EpisodeTime"]
+  ProgressAlongReference:     ["weights_comf"]
+  CollisionEnergy:            ["ProgressAlongReference"]
 
 pref_lf_ci:                   &pref_lf_ci
   DrivableAreaViolation:      []
   CollisionEnergy:            ["DrivableAreaViolation"]
-  EpisodeTime:                ["DrivableAreaViolation"]
+  ProgressAlongReference:     ["DrivableAreaViolation"]
   weights_comf:               ["DrivableAreaViolation"]

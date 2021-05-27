@@ -1,19 +1,17 @@
 from copy import deepcopy
-from itertools import product
 from random import choice
 from time import perf_counter
-from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional, List
+from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
 from frozendict import frozendict
 
 from games.utils import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
 
 from games import PlayerName
-from .game_def import SolvingContext, EXP_ACCOMP, JOIN_ACCOMP
-from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
-    SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, LeaderFollowerGameNode
+from .game_def import SolvingContext
+from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame
 from .paths import Trajectory
-from .metrics_def import TrajGameOutcome, PlayerOutcome, Metric, EvaluatedMetric
+from .metrics_def import TrajGameOutcome, PlayerOutcome, EvaluatedMetric
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
 EqOutcome = Tuple[Optional[JointPureTraj], Optional[TrajGameOutcome], bool, bool, bool, bool]
@@ -156,45 +154,6 @@ def init_eval_metric(evalm: EvaluatedMetric) -> EvaluatedMetric:
                            incremental=None, cumulative=None)
 
 
-def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
-    n_out = len(outcomes)
-    if n_out == 0:
-        raise AssertionError("Received empty input for calculate_expectation!")
-    if n_out == 1:
-        return frozendict({m: em for m, em in outcomes[0].items()})
-
-    total: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em) for m, em in outcomes[0].items()}
-    for out in outcomes:
-        for m, em in out.items():
-            total[m].total += em.total
-    for m in outcomes[0]:
-        total[m].total /= n_out
-    return frozendict(total)
-
-
-def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOutcome:
-
-    ac_worst = set(outcomes)
-    for out1 in frozenset(ac_worst):
-        if out1 not in ac_worst:
-            continue
-        for out2 in frozenset(ac_worst):
-            comp = pref.compare(out1, out2)
-            if comp == FIRST_PREFERRED:
-                ac_worst.remove(out1)
-                break
-            elif comp == SECOND_PREFERRED:
-                ac_worst.remove(out2)
-
-    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em) for m, em in outcomes[0].items()}
-    # TODO[SIR]: This can be improved to calc more accurate joins
-    for out in ac_worst:
-        for m, em in out.items():
-            if join[m].total < em.total:
-                join[m].total = em.total
-    return frozendict(join)
-
-
 class Solution:
     # Cache can be reused between levels
     dominated: Dict[PlayerName, Set[JointPureTraj]] = None
@@ -219,93 +178,6 @@ class Solution:
 
     def reset(self):
         self.dominated: Dict[PlayerName, Set[JointPureTraj]] = None
-
-
-def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
-        -> SolvedLeaderFollowerGame:
-    lf = context.lf
-
-    if not context.solver_params.use_best_response:
-        raise NotImplementedError("Leader follower assumes follower best response!")
-
-    tic1 = perf_counter()
-    # Collect all possible actions for players
-    lead_actions = set(context.player_actions[lf.leader])
-    foll_actions = set(context.player_actions[lf.follower])
-    foll_act_1 = next(iter(foll_actions))
-
-    tic = perf_counter()
-    # Calculate best responses, corresponding leader outcomes and aggregated leader outcomes
-    # -> for every leader action and follower preference
-    ac_comp = context.solver_params.antichain_comparison
-    br_pref: Dict[Trajectory, Dict[Preference, Set[Trajectory]]] = {}
-    agg_out_l: Dict[Trajectory, Dict[Preference, PlayerOutcome]] = {}
-    for l_act in lead_actions:
-        br_pref[l_act], agg_out_l[l_act] = {}, {}
-        joint_act: Dict[PlayerName, Trajectory] = {lf.leader: l_act, lf.follower: foll_act_1}
-        for p_f in lf.prefs_follower.support():
-            _, br = get_best_responses(joint_actions=joint_act, context=context,
-                                       player=lf.follower, done_p=set(),
-                                       player_pref=p_f)
-
-            outcomes_l: List[PlayerOutcome] = []
-            for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br}):
-                out = frozendict(context.game_outcomes(act))
-                outcomes_l.append(out[lf.leader])
-            if ac_comp == EXP_ACCOMP:
-                agg_out = calculate_expectation(outcomes=outcomes_l)
-            elif ac_comp == JOIN_ACCOMP:
-                agg_out = calculate_join(outcomes=outcomes_l, pref=lf.pref_leader)
-            else:
-                raise NotImplementedError(f"Antichain comparison - {ac_comp} not in implemented categories")
-            agg_out_l[l_act][p_f] = agg_out
-            br_pref[l_act][p_f] = br
-
-    toc = perf_counter() - tic
-    print(f"Best response time = {toc:.2f} s")
-
-    # Calculate best actions of leader and all possible best actions
-    # For every pref combination, compare all agg lead outcomes and select non-dominated ones
-    tic = perf_counter()
-    best_actions: Dict[Preference, Set[Trajectory]] = {}
-    all_actions: Set[Trajectory] = set()
-    for p_f in lf.prefs_follower.support():
-        ba_pref: Set[Trajectory] = set(lead_actions)
-        for act_1 in frozenset(ba_pref):
-            if act_1 not in ba_pref:
-                continue
-            for act_2 in frozenset(ba_pref):
-                if act_1 == act_2:
-                    continue
-                comp = lf.pref_leader.compare(agg_out_l[act_1][p_f], agg_out_l[act_2][p_f])
-                if comp == SECOND_PREFERRED:
-                    ba_pref.remove(act_1)
-                    break
-                elif comp == FIRST_PREFERRED:
-                    ba_pref.remove(act_2)
-        best_actions[p_f] = ba_pref
-        all_actions |= ba_pref
-
-    toc = perf_counter() - tic
-    print(f"Best leader actions time = {toc:.2f} s")
-
-    # Calculate final outcomes and post-process for data structure
-    game_nodes: Dict[Trajectory, Dict[Preference, LeaderFollowerGameNode]] = {}
-    for l_act in all_actions:
-        pref_nodes: Dict[Preference, LeaderFollowerGameNode] = {}
-        for p_f in lf.prefs_follower.support():
-            solved_game: SolvedTrajectoryGame = set()
-            for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br_pref[l_act][p_f]}):
-                out = context.game_outcomes(act)
-                solved_game.add(SolvedTrajectoryGameNode(actions=act, outcomes=out))
-            pref_nodes[p_f] = LeaderFollowerGameNode(nodes=solved_game,
-                                                     agg_lead_outcome=agg_out_l[l_act][p_f])
-        game_nodes[l_act] = pref_nodes
-
-    toc = perf_counter() - tic1
-    print(f"Game solving time = {toc:.2f} s")
-
-    return SolvedLeaderFollowerGame(lf=lf, games=game_nodes, best_leader_actions=best_actions)
 
 
 def solve_static_game(context: SolvingContext) \

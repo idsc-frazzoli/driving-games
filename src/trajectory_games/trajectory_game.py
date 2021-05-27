@@ -1,5 +1,6 @@
+from copy import deepcopy
 from functools import partial
-from typing import Dict, Set, FrozenSet, Mapping, Tuple, List
+from typing import Dict, Set, FrozenSet, Mapping, Optional
 from time import perf_counter
 
 from dataclasses import dataclass
@@ -10,6 +11,7 @@ from games.utils import iterate_dict_combinations
 from possibilities import Poss
 from preferences import Preference
 
+from .sequence import Timestamp, SampledSequence
 from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
@@ -28,6 +30,8 @@ __all__ = [
     "SolvedTrajectoryGame",
     "LeaderFollowerGameNode",
     "SolvedLeaderFollowerGame",
+    "LeaderFollowerGameStage",
+    "SolvedRecursiveLeaderFollowerGame",
     "preprocess_full_game",
     "preprocess_player",
 ]
@@ -54,8 +58,9 @@ class LeaderFollowerPrefs:
     leader: PlayerName
     follower: PlayerName
     pref_leader: Preference
-    prefs_follower: Poss[Preference]
+    prefs_follower_est: Poss[Preference]
     antichain_comparison: AntichainComparison
+    pref_follower_real: Optional[Preference] = None
 
 
 @dataclass
@@ -88,6 +93,25 @@ class SolvedLeaderFollowerGame:
     games: Mapping[Trajectory, Mapping[Preference, LeaderFollowerGameNode]]
     """ All possible game results for both players """
     best_leader_actions: Mapping[Preference, Set[Trajectory]]
+    meet_leader_actions: Set[Trajectory]
+
+
+@dataclass
+class LeaderFollowerGameStage:
+    lf: LeaderFollowerPrefs
+    context: LeaderFollowerGameSolvingContext
+    lf_game: SolvedLeaderFollowerGame
+    game_node: SolvedTrajectoryGameNode
+    best_responses_pred: Set[Trajectory]
+    states: Mapping[PlayerName, Poss[VehicleState]]
+    time: Timestamp
+
+
+@dataclass
+class SolvedRecursiveLeaderFollowerGame:
+    lf: LeaderFollowerPrefs
+    stages: SampledSequence[LeaderFollowerGameStage]
+    trajectories: Mapping[PlayerName, Trajectory]
 
 
 def compute_outcomes(iterable, sgame: Game):
@@ -99,6 +123,7 @@ def compute_outcomes(iterable, sgame: Game):
 
 def compute_actions(sgame: Game) -> Mapping[PlayerName, FrozenSet[Trajectory]]:
     """ Generate the trajectories for each player (i.e. get the available actions) """
+    print("\nGenerating Trajectories:")
     available_traj: Dict[PlayerName, FrozenSet[Trajectory]] = {}
     for player_name, game_player in sgame.game_players.items():
         # In the future can be extended to uncertain initial state
@@ -175,7 +200,7 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
         "outcome_pref": pref, "solver_params": solver_params
     }
     if isinstance(sgame, LeaderFollowerGame):
-        context = LeaderFollowerGameSolvingContext(**kwargs, lf=sgame.lf)
+        context = LeaderFollowerGameSolvingContext(**kwargs, lf=deepcopy(sgame.lf))
     else:
         context = SolvingContext(**kwargs)
     return context

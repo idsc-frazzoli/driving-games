@@ -16,7 +16,7 @@ from world import LaneSegmentHashable
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
 from .paths import Trajectory
-from .game_def import GameVisualization, GamePlayer
+from .game_def import GameVisualization
 from .preference import PosetalPreference, WeightedPreference
 from .trajectory_world import TrajectoryWorld
 
@@ -110,8 +110,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
 
     def plot_actions(self, axis, actions: FrozenSet[Trajectory],
-                     colour: VehicleGeometry.COLOUR,
-                     width: float = 1.0, alpha: float = 1.0, ticks: bool = True):
+                     colour: VehicleGeometry.COLOUR = None,
+                     width: float = 1.0, alpha: float = 1.0,
+                     ticks: bool = True, lines=None) -> LineCollection:
         segments = []
         lanes: Set[LaneSegmentHashable] = set()
         for traj in actions:
@@ -124,17 +125,24 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             xp, yp = zip(*points)
             x = np.array(xp)
             y = np.array(yp)
-            axis.fill(x, y, color=colour, alpha=0.1, zorder=1)
+            if colour is not None:
+                axis.fill(x, y, color=colour, alpha=0.2, zorder=1)
 
-        lines = LineCollection(segments=segments, colors=colour, linewidths=width, alpha=alpha)
-        lines.set_zorder(5)
-        axis.add_collection(lines)
-        if ticks:
-            axis.yaxis.set_ticks_position("left")
-            axis.xaxis.set_ticks_position("bottom")
-        else:
-            axis.yaxis.set_visible(False)
-            axis.xaxis.set_visible(False)
+        if lines is None:
+            if colour is None:
+                colour = (0.0, 0.0, 0.0)    # Black
+            lines = LineCollection(segments=[], colors=colour,
+                                   linewidths=width, alpha=alpha)
+            lines.set_zorder(5)
+            axis.add_collection(lines)
+            if ticks:
+                axis.yaxis.set_ticks_position("left")
+                axis.xaxis.set_ticks_position("bottom")
+            else:
+                axis.yaxis.set_visible(False)
+                axis.xaxis.set_visible(False)
+        lines.set_segments(segments=segments)
+        return lines
 
 
 def plot_car(axis, player_name: PlayerName, state: VehicleState,

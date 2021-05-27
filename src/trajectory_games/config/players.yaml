@@ -18,7 +18,7 @@ players:
     pref:     "pref_d6"
 #    pref:     "pref_vio"
     lane:     ["dl2"]
-    vg:       "yellow_car"
+    vg:       "green_car"
   P2:
     state:    "state_1"
     traj:     "traj_2"
@@ -32,7 +32,7 @@ players:
 #    traj:     "traj_2"
 #    pref:     "pref_9"
 #    lane:     ["lu2"]
-#    vg:       "green_car"
+#    vg:       "yellow_car"
 #  P4:
 #    state:    "state_3"
 #    traj:     "traj_2"
@@ -40,14 +40,3 @@ players:
 ##    lane:     ["ud1", "ud3"]
 #    lane:     ["ud1"]
 #    vg:       "red_bicycle"
-
-# Leader follower game config
-# Players should be defined above
-leader_follower:
-  leader:                 "P1"
-  follower:               "P2"
-  pref_leader:            "pref_lf1"
-#  prefs_follower:         ["pref_lf1", "pref_lf3", "pref_lfi"]
-  prefs_follower:         ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci"]
-#  prefs_follower:         ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci", "NoPreference"]
-  antichain_comparison:   "JOIN_ACCOMP"  # EXP_ACCOMP or JOIN_ACCOMP

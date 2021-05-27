@@ -83,6 +83,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
     graph: DiGraph
     _node_dict: Dict[str, metric_type] = {}
     level_nodes: Mapping[int, Set[metric_type]]
+    pref_str: str
     no_pref: bool = False
 
     def __init__(self, pref_str: str, use_cache: bool = False):
@@ -97,6 +98,15 @@ class PosetalPreference(Preference[PlayerOutcome]):
         self.calculate_levels()
         self.use_cache = use_cache
         self._cache = {}
+        self.pref_str = pref_str
+
+    def __eq__(self, other: "PosetalPreference"):
+        if not isinstance(other, PosetalPreference):
+            return False
+        return self.pref_str == other.pref_str
+
+    def __hash__(self):
+        return hash(self.pref_str)
 
     def add_node(self, name: str) -> metric_type:
         if name not in PosetalPreference._node_dict:
@@ -113,7 +123,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
             self.no_pref = True
             return
         if pref_str not in self._config:
-            return
+            raise ValueError(f"{pref_str} not found in keys = {self._config.keys()}")
         for key, parents in self._config[pref_str].items():
             node = self.add_node(name=key)
             for p in parents:

@@ -13,7 +13,8 @@ from decimal import Decimal as D
 from games import PlayerName
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
-from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame
+from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
+    SolvedRecursiveLeaderFollowerGame
 from .preference import PosetalPreference
 from .paths import Trajectory
 from .visualization import TrajGameVisualization
@@ -70,8 +71,27 @@ def plot_outcomes_pref(viz: GameVisualization, axis, outcomes: PlayerOutcome,
     viz.plot_pref(axis=axis, pref=pref, pname=pname,
                   origin=(0.0, 0.0), labels=metrics,
                   add_title=add_title)
-    axis.set_xlim(-150.0, 100.0)
+    axis.set_xlim(-125.0, 125.0)
     axis.set_ylim(auto=True)
+
+
+def get_stack_figure(size: Tuple[int, int]):
+    rows, cols = size
+    fig, axs = plt.subplots(nrows=rows, ncols=cols, figsize=(cols*4, rows*4))
+    if rows == 1:
+        if cols == 1:
+            axs = np.array([[axs]])
+        else:
+            axs = np.expand_dims(axs, axis=0)
+    return fig, axs, set(itertools.product(range(rows), range(cols)))
+
+
+def save_stack_figure(fn, fig, axs, all_idx: Set):
+    for idx in all_idx:
+        axs[idx].axis('off')
+    fig.subplots_adjust(hspace=0.0, wspace=0.0)
+    fig.savefig(fn, **RepRepDefaults.savefig_params)
+    plt.close(fig=fig)
 
 
 def stack_nodes(report: Report, viz: GameVisualization, title: str,
@@ -99,14 +119,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
         nodes_strong = set()
     with report.data_file(title, MIME_PNG) as fn:
         plot_dict = viz.get_plot_dict()
-        rows, cols = plot_dict.get_size()
-        all_idx = set(itertools.product(range(rows), range(cols)))
-        fig, axs = plt.subplots(rows, cols)
-        if rows == 1:
-            if cols == 1:
-                axs = np.array([[axs]])
-            else:
-                axs = np.expand_dims(axs, axis=0)
+        fig, axs, all_idx = get_stack_figure((plot_dict.get_size()))
         for node in nodes:
             idx = plot_dict[node]
             ax = axs[idx]
@@ -119,11 +132,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
                 w: float = 1.0 if node in nodes_strong else 0.5
                 plot_actions(axis=ax, sol_node=node, width=w)
 
-        for idx in all_idx:
-            axs[idx].axis('off')
-        fig.subplots_adjust(hspace=0.0, wspace=0.0)
-        fig.savefig(fn, **RepRepDefaults.savefig_params)
-        plt.close(fig=fig)
+        save_stack_figure(fn=fn, fig=fig, axs=axs, all_idx=all_idx)
 
 
 def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
@@ -161,7 +170,7 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
             game.game_vis.plot_pref(axis=ax, pref=pref,
                                     pname=pname, origin=(n, 0.0), labels=metrics)
             n = n + 200
-        ax.set_xlim(-150.0, n - 100.0)
+        ax.set_xlim(-125.0, n - 125.0)
 
 
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
@@ -200,7 +209,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             player = list(game.game_players.values())[0]
             ax: Axes = pylab.gca()
             viz.plot_pref(axis=ax, pref=player.preference, pname=player.name, origin=(0.0, 0.0))
-            ax.set_xlim(-150.0, 125.0)
+            ax.set_xlim(-125.0, 125.0)
 
     def image_eq(report: Report):
         eq_viz = report.figure(cols=2)
@@ -232,145 +241,15 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
         if len(node_set) > 100:
             image_eq(report=rplot)
         else:
-            eq_viz = rplot.figure(cols=2)
+            eq_viz = rplot.figure(cols=1)
             stack_nodes(report=eq_viz, viz=viz, title="all_equilibria", players=game.game_players,
                         nodes=node_set, nodes_strong=nash_eq["strong"])
-            plot_pref(rep=eq_viz)
         req.add_child(rplot)
 
     r_all.add_child(req)
     toc = perf_counter() - tic
     print(f"Nash eq viz time = {toc:.2f} s")
     return r_all
-
-
-def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame,
-                                    plot_gif: bool) -> Report:
-
-    PLOT_ALL_OUT = True
-
-    tic = perf_counter()
-    report_all = Report("Leader - follower game solutions")
-    lf = solution.lf
-    report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
-    report_all.text("Antichain_Comparison:", lf.antichain_comparison)
-
-    # Create dictionary for leader actions and follower prefs
-    i_act = 1
-    act_dict: Dict[Trajectory, int] = {}
-    for act in solution.games.keys():
-        act_dict[act] = i_act
-        i_act += 1
-    p_f_dict: Dict[Preference, int] = {}
-    p_f_list = list(lf.prefs_follower.support())
-    i_pf = 1
-    for p_f in p_f_list:
-        p_f_dict[p_f] = i_pf
-        i_pf += 1
-    no_pref = PosetalPreference(pref_str="NoPreference")
-
-    actions_text = "All leader best actions:\n" + \
-                   "\n".join([f"A_{idx}: {str(act)}" for act, idx in act_dict.items()])
-    report_all.text("Leader_actions:", actions_text)
-    r_pref = Report("Player_Preferences")
-
-    def stack_prefs(pname: PlayerName, prefs: List[Preference]):
-        # Plot all prefs for all players as a grid
-        pviz = r_pref.figure(f"Preferences_{pname}", cols=len(prefs))
-        idx = 1
-        for pref in prefs:
-            with pviz.plot(f"{pname}:Pref_{idx}") as pylab:
-                ax: Axes = pylab.gca()
-                game.game_vis.plot_pref(axis=ax, pref=pref, pname=pname,
-                                        origin=(0.0, 0.0), add_title=False)
-                ax.set_xlim(-150.0, 125.0)
-            idx += 1
-
-    tic1 = perf_counter()
-    stack_prefs(pname=lf.leader, prefs=[lf.pref_leader])
-    stack_prefs(pname=lf.follower, prefs=p_f_list)
-    report_all.add_child(r_pref)
-    toc1 = perf_counter() - tic1
-    print(f"Player prefs viz time = {toc1:.2f} s")
-
-    # Print best leader actions for each comb of prefs
-    rep_act = Report("Best_Leader_Actions")
-    i_f = 1
-    for p_f in p_f_list:
-        actions = solution.best_leader_actions[p_f]
-        text = f"{lf.follower}:Pref_{i_f}\n\t" + "{" +\
-               ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
-        rep_act.text(f"Act_{i_f}", text)
-        i_f += 1
-    report_all.add_child(rep_act)
-
-    toc_br, toc_out, toc_gif = 0.0, 0.0, 0.0
-    # Group plots based on leader action
-    print(f"Report Params:\n\tTotal leader actions = {len(solution.games)},"
-          f"\n\tTotal follower preferences = {len(p_f_list)},"
-          f"\n\tPlotting gifs = {plot_gif}")
-    for act, sol in solution.games.items():
-
-        # Aggregate all nodes for all prefs of follower to create grid
-        # BR is not a function of p_l, so we can use any one p_l
-        all_nodes: SolvedTrajectoryGame = set()
-        pf_nodes: Dict[str, SolvedTrajectoryGame] = {}
-        for p_f in p_f_list:
-            nodes = sol[p_f].nodes
-            all_nodes |= nodes
-            pf_nodes[f"Pref_{p_f_dict[p_f]}"] = nodes
-        game.game_vis.init_plot_dict(values=all_nodes)
-
-        rep_act = Report(f"Action_{act_dict[act]}")
-        rep_act.text("Action", f"Leader Trajectory = {act}")
-
-        tic_gif = perf_counter()
-        if plot_gif:
-            prefs = {lf.leader: lf.pref_leader, lf.follower: no_pref}
-            i_gif = 1
-            for node in all_nodes:
-                rplot = Report(f"BR_{i_gif}")
-                gif_eq(report=rplot, node_eq=node, game=game, prefs=prefs, nash_eq=pf_nodes)
-                rep_act.add_child(rplot)
-                i_gif += 1
-        toc_gif += perf_counter() - tic_gif
-
-        i_pf = 1
-        for p_f in p_f_list:
-
-            tic_br = perf_counter()
-            # For each pref of follower, plot grid of best responses
-            rep = Report(f"{lf.follower}:Pref_{i_pf}")
-            rep_nodes = sol[p_f].nodes
-            if not plot_gif:
-                stack_viz = rep.figure("Best_Responses", cols=1)
-                stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
-                            players=game.game_players, nodes=rep_nodes)
-            toc_br += perf_counter() - tic_br
-
-            tic_out = perf_counter()
-            # Plot grid of leader outcomes and aggregated outcome
-            node_sols = sol[p_f]
-            lead_viz = rep.figure(f"Leader_Outcomes", cols=1+int(PLOT_ALL_OUT))
-            if PLOT_ALL_OUT:
-                stack_nodes(report=lead_viz, viz=game.game_vis, title=f"{lf.leader}_outcomes",
-                            players=game.game_players, nodes=rep_nodes,
-                            plot_lead_outcomes=True, leader=(lf.leader, lf.pref_leader))
-            with lead_viz.plot(f"{lf.leader}_agg_outcomes") as pylab:
-                plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
-                                   outcomes=node_sols.agg_lead_outcome,
-                                   pref=lf.pref_leader, pname=lf.leader, add_title=False)
-            toc_out += perf_counter() - tic_out
-            rep_act.add_child(rep)
-            i_pf += 1
-        report_all.add_child(rep_act)
-
-    toc = perf_counter() - tic
-    print(f"Times:\n\tBest response viz time = {toc_br:.2f} s"
-          f"\n\tGif viz time = {toc_gif:.2f} s"
-          f"\n\tOutcomes viz time = {toc_out:.2f} s"
-          f"\n\tSolutions viz time = {toc:.2f} s")
-    return report_all
 
 
 def report_preferences(viz: GameVisualization, players: Mapping[PlayerName, Preference]) -> Report:
@@ -381,7 +260,7 @@ def report_preferences(viz: GameVisualization, players: Mapping[PlayerName, Pref
         with r.plot(player) as pylab:
             ax: Axes = pylab.gca()
             viz.plot_pref(axis=ax, pref=pref, pname=player, origin=(0.0, 0.0))
-            ax.set_xlim(-150.0, 125.0)
+            ax.set_xlim(-125.0, 125.0)
     toc = perf_counter() - tic
     print(f"Preference viz time = {toc:.2f} s")
     return r
@@ -393,7 +272,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     assert isinstance(node, SolvedTrajectoryGameNode)
     assert isinstance(viz, TrajGameVisualization)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(5, 5))
     fig.set_tight_layout(True)
     ax.set_aspect(1)
     box = {}
@@ -424,6 +303,237 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     lens = [_.get_end() for _ in actions]
     longest = lens.index(max(lens))
     times = actions[longest].get_sampling_points()
+    dt_ms = 2*int((times[1]-times[0])*1000)
+    anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
+                         frames=times, interval=dt_ms, blit=True)
+    anim.save(fn, dpi=80, writer="imagemagick")
+
+
+def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame,
+                                    plot_gif: bool, stage: int = 0) -> Report:
+
+    PLOT_ALL_OUT = True
+
+    tic = perf_counter()
+    title = f"Leader - follower game solutions (Stage = {stage})"
+    report_all = Report(title)
+    lf = solution.lf
+    if stage == 0:
+        report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
+        report_all.text("Antichain_Comparison:", lf.antichain_comparison)
+        all_prefs: Dict[PlayerName, Set[Preference]] = {
+            lf.leader: {lf.pref_leader},
+            lf.follower: lf.prefs_follower_est.support()
+        }
+        game.game_vis.init_pref_dict(values=all_prefs)
+
+    # Create dictionary for leader actions and follower prefs
+    i_act = 1
+    act_dict: Dict[Trajectory, int] = {}
+    for act in solution.games.keys():
+        act_dict[act] = i_act
+        i_act += 1
+    pref_dict_f = game.game_vis.get_pref_dict(player=lf.follower)
+    p_f_dict: Dict[Preference, int] = {}
+    rows, cols = pref_dict_f.get_size()
+    for p_f in lf.prefs_follower_est.support():
+        r, c = pref_dict_f[p_f]
+        p_f_dict[p_f] = r * cols + c + 1
+    no_pref = PosetalPreference(pref_str="NoPreference")
+
+    actions_text = "All leader best actions:\n" + \
+                   "\n".join([f"A_{idx}: {str(act)}" for act, idx in act_dict.items()])
+    report_all.text("Leader_actions:", actions_text)
+    r_pref = Report("Player_Preferences")
+
+    def stack_prefs(pname: PlayerName, pprefs: List[Preference]):
+        # Plot all prefs for all players as a grid
+        pviz = r_pref.figure(f"Preferences_{pname}", cols=1)
+        with pviz.data_file(f"Preferences_{pname}", MIME_PNG) as fn:
+            pref_dict = game.game_vis.get_pref_dict(player=pname)
+            fig, axs, all_idx = get_stack_figure(size=pref_dict.get_size())
+            for pref in pprefs:
+                idx = pref_dict[pref]
+                ax = axs[idx]
+                all_idx.remove(idx)
+                game.game_vis.plot_pref(axis=ax, pref=pref, pname=pname,
+                                        origin=(0.0, 0.0), add_title=False)
+                ax.set_xlim(-125.0, 125.0)
+                ax.set_ylim(auto=True)
+            save_stack_figure(fn=fn, fig=fig, axs=axs, all_idx=all_idx)
+
+    tic1 = perf_counter()
+    stack_prefs(pname=lf.leader, pprefs=[lf.pref_leader])
+    stack_prefs(pname=lf.follower, pprefs=list(p_f_dict.keys()))
+    report_all.add_child(r_pref)
+    toc1 = perf_counter() - tic1
+
+    # Print best leader actions for each comb of prefs
+    rep_act = Report("Best_Leader_Actions")
+    for p_f, i_f in p_f_dict.items():
+        actions = solution.best_leader_actions[p_f]
+        text = f"{lf.follower}:Pref_{i_f}\n\t" + "{" +\
+               ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
+        rep_act.text(f"Act_{i_f}", text)
+    report_all.add_child(rep_act)
+
+    toc_br, toc_out, toc_gif = 0.0, 0.0, 0.0
+    # Group plots based on leader action
+    if stage == 0:
+        print(f"Report Params:\n\tTotal leader actions = {len(solution.games)},"
+              f"\n\tTotal follower preferences = {len(p_f_dict)},"
+              f"\n\tPlotting gifs = {plot_gif}")
+    for act, sol in solution.games.items():
+
+        # Aggregate all nodes for all prefs of follower to create grid
+        # BR is not a function of p_l, so we can use any one p_l
+        all_nodes: SolvedTrajectoryGame = set()
+        pf_nodes: Dict[str, SolvedTrajectoryGame] = {}
+        for p_f, i_f in p_f_dict.items():
+            nodes = sol[p_f].nodes
+            all_nodes |= nodes
+            pf_nodes[f"Pref_{i_f}"] = nodes
+        game.game_vis.init_plot_dict(values=all_nodes)
+
+        rep_act = Report(f"Action_{act_dict[act]}")
+        rep_act.text("Action", f"Leader Trajectory = {act}")
+
+        tic_gif = perf_counter()
+        if plot_gif:
+            pref_f = no_pref if lf.pref_follower_real is None else lf.pref_follower_real
+            prefs = {lf.leader: lf.pref_leader, lf.follower: pref_f}
+            i_gif = 1
+            for node in all_nodes:
+                rplot = Report(f"BR_{i_gif}")
+                gif_eq(report=rplot, node_eq=node, game=game, prefs=prefs, nash_eq=pf_nodes)
+                rep_act.add_child(rplot)
+                i_gif += 1
+        toc_gif += perf_counter() - tic_gif
+
+        for p_f, i_f in p_f_dict.items():
+
+            tic_br = perf_counter()
+            # For each pref of follower, plot grid of best responses
+            rep = Report(f"{lf.follower}:Pref_{i_f}")
+            rep_nodes = sol[p_f].nodes
+            if not plot_gif:
+                stack_viz = rep.figure("Best_Responses", cols=1)
+                stack_nodes(report=stack_viz, viz=game.game_vis, title=f"Solutions",
+                            players=game.game_players, nodes=rep_nodes)
+            toc_br += perf_counter() - tic_br
+
+            tic_out = perf_counter()
+            # Plot grid of leader outcomes and aggregated outcome
+            node_sols = sol[p_f]
+            lead_viz = rep.figure(f"Leader_Outcomes", cols=1+int(PLOT_ALL_OUT))
+            if PLOT_ALL_OUT:
+                stack_nodes(report=lead_viz, viz=game.game_vis, title=f"{lf.leader}_outcomes",
+                            players=game.game_players, nodes=rep_nodes,
+                            plot_lead_outcomes=True, leader=(lf.leader, lf.pref_leader))
+            with lead_viz.plot(f"{lf.leader}_agg_outcomes") as pylab:
+                plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
+                                   outcomes=node_sols.agg_lead_outcome,
+                                   pref=lf.pref_leader, pname=lf.leader, add_title=False)
+            toc_out += perf_counter() - tic_out
+            rep_act.add_child(rep)
+        report_all.add_child(rep_act)
+
+    toc = perf_counter() - tic
+    if stage == 0:
+        print(f"Times:\n\tPlayer prefs viz time = {toc1:.2f} s"
+              f"\n\tBest response viz time = {toc_br:.2f} s"
+              f"\n\tGif viz time = {toc_gif:.2f} s"
+              f"\n\tOutcomes viz time = {toc_out:.2f} s"
+              f"\n\tSolutions viz time = {toc:.2f} s")
+    return report_all
+
+
+def report_leader_follower_recursive(game: Game,
+                                     result: SolvedRecursiveLeaderFollowerGame,
+                                     plot_gif: bool) -> Report:
+    rep = Report("Leader-Follower")
+    viz = rep.figure(cols=1)
+    with viz.data_file("Solution", MIME_GIF) as fn:
+        create_animation_recursive(fn=fn, game=game, result=result)
+
+    times = result.stages.get_sampling_points()
+    for stage in range(len(times)):
+        stage_sol = result.stages.at(times[stage]).lf_game
+        rep.add_child(report_leader_follower_solution(game=game, solution=stage_sol, plot_gif=False, stage=stage))
+    return rep
+
+
+def create_animation_recursive(fn: str, game: Game,
+                               result: SolvedRecursiveLeaderFollowerGame):
+    class Counter:
+        value: int
+
+        def __init__(self):
+            self.value = -1
+
+        def inc(self):
+            self.value += 1
+
+        def get(self):
+            return self.value
+
+    viz = game.game_vis
+    assert isinstance(viz, TrajGameVisualization)
+
+    solve_times = result.stages.get_sampling_points()
+    fig, ax = plt.subplots(figsize=(5, 5))
+    fig.set_tight_layout(True)
+    ax.set_aspect(1)
+    states, actions, opt_actions = {}, {}, {}
+    i_plot = Counter()
+
+    def get_list() -> List:
+        return list(states.values()) + list(actions.values()) + list(opt_actions.values())
+
+    def init_plot():
+        ax.clear()
+        with viz.plot_arena(axis=ax):
+            for player_name, player in game.game_players.items():
+                for state in player.state.support():
+                    states[player_name] = viz.plot_player(axis=ax, state=state,
+                                                          player_name=player_name)
+            for pname, player in game.game_players.items():
+                actions[pname] = viz.plot_actions(axis=ax, actions=frozenset([]),
+                                                  colour=player.vg.colour, width=0.75)
+                opt_actions[pname] = viz.plot_actions(axis=ax, actions=frozenset([]),
+                                                      width=1.5)
+        return get_list()
+
+    def update_actions():
+        i_plot.inc()
+        i = i_plot.get()
+        sol_i = result.stages.at(solve_times[i])
+        for pname, player in game.game_players.items():
+            colour = player.vg.colour if i == 0 else None
+            p_act = sol_i.context.player_actions[pname]
+            actions[pname] = viz.plot_actions(axis=ax, actions=p_act,
+                                              colour=colour, lines=actions[pname])
+        lead, foll = sol_i.lf.leader, sol_i.lf.follower
+        l_act = frozenset([sol_i.game_node.actions[lead]])
+        f_act = frozenset(sol_i.best_responses_pred)
+        opt_actions[lead] = viz.plot_actions(axis=ax, actions=l_act,
+                                             lines=opt_actions[lead])
+        opt_actions[foll] = viz.plot_actions(axis=ax, actions=f_act,
+                                             lines=opt_actions[foll])
+
+    def update_plot(t: D):
+        i = i_plot.get()
+        if i < 0 or (i+1 < len(solve_times) and t >= solve_times[i+1]):
+            update_actions()
+        sol_i = result.stages.at(solve_times[i])
+        for pname, box_handle in states.items():
+            action: Trajectory = sol_i.game_node.actions[pname]
+            state = action.at(t=t)
+            states[pname] = viz.plot_player(axis=ax, player_name=pname,
+                                            state=state, box=box_handle)
+        return get_list()
+
+    times = result.trajectories[result.lf.leader].get_sampling_points()
     dt_ms = 2*int((times[1]-times[0])*1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True)

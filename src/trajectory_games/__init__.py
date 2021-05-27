@@ -11,6 +11,7 @@ from .trajectory_generator import *
 from .trajectory_game import *
 from .preference import *
 from .solve import *
+from .solve_lf_game import *
 from .visualization import *
 from .reports import *
 from .game_factory import *

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set, NewType
 
+from matplotlib.collections import LineCollection
+
 from games import (
     PlayerName,
     U,
@@ -66,10 +68,10 @@ class PlotStackDictionary(Generic[Key]):
     next_idx: int
     indices: Dict[Key, Tuple[int, int]]
 
-    def __init__(self, values: Set[Key]):
+    def __init__(self, values: Set[Key], row: bool = False):
         n_nodes = len(values)
         assert n_nodes > 0
-        self.cols = math.ceil(n_nodes ** 0.5)
+        self.cols = math.ceil(n_nodes ** 0.5) if not row else n_nodes
         self.rows = math.ceil(n_nodes / self.cols)
         self.next_idx = 0
         self.indices: Dict[Key, Tuple[int, int]] = {}
@@ -92,6 +94,7 @@ class PlotStackDictionary(Generic[Key]):
 class GameVisualization(Generic[X, U, W], ABC):
     """ A generic game visualization interface """
     plot_dict: Optional[PlotStackDictionary] = None
+    pref_dict: Optional[Mapping[PlayerName, PlotStackDictionary]] = None
 
     @abstractmethod
     def plot_arena(self, axis):
@@ -102,8 +105,7 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_actions(self, axis, actions: FrozenSet[U],
-                     colour: Tuple[float, float, float], **kwargs):
+    def plot_actions(self, axis, actions: FrozenSet[U], **kwargs) -> LineCollection:
         pass
 
     @abstractmethod
@@ -125,6 +127,17 @@ class GameVisualization(Generic[X, U, W], ABC):
         if self.plot_dict is None:
             raise ValueError(f"Initialise plot_dict first!")
         return self.plot_dict
+
+    def init_pref_dict(self, values: Mapping[PlayerName, Set[Key]]):
+        self.pref_dict = {pname: PlotStackDictionary[Key](values=vals, row=True)
+                          for pname, vals in values.items()}
+
+    def get_pref_dict(self, player: PlayerName) -> PlotStackDictionary:
+        if self.pref_dict is None:
+            raise ValueError(f"Initialise pref_dict first!")
+        if player not in self.pref_dict:
+            raise ValueError(f"{player} doesn't exist in keys - {self.pref_dict.keys()}")
+        return self.pref_dict[player]
 
 
 @dataclass

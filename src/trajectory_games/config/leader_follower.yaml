@@ -1,0 +1,12 @@
+
+# Leader follower game config
+# Players should be defined in players.yaml
+leader_follower:
+  leader:                 "P1"
+  follower:               "P2"
+  pref_leader:            "pref_lf1"
+#  prefs_follower_est:     ["pref_lf1", "pref_lf3", "pref_lfi"]
+  prefs_follower_est:     ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci"]
+#  prefs_follower_est:     ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci", "NoPreference"]
+  pref_follower_real:     "pref_lf_c2"
+  antichain_comparison:   "JOIN_ACCOMP"  # EXP_ACCOMP or JOIN_ACCOMP

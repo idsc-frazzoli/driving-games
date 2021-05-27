@@ -17,7 +17,7 @@
 
 traj_1:       &traj_1
   solve:      False
-  s_final:    0.95
+  s_final:    -1.0
   max_gen:    1
   dt:         "2.0"
   step_acc:   2.0

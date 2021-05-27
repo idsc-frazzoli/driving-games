@@ -27,10 +27,13 @@ __all__ = [
 
 players_file = os.path.join(config_dir, "players.yaml")
 lanes_file = os.path.join(config_dir, "lanes.yaml")
+leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
 with open(lanes_file) as load_file:
     config_lanes = safe_load(load_file)[config["map_name"]]
+with open(leader_follower_file) as load_file:
+    config_lf = safe_load(load_file)["leader_follower"]
 
 
 def get_trajectory_game() -> TrajectoryGame:
@@ -85,17 +88,21 @@ ac_comp = {"JOIN_ACCOMP": JOIN_ACCOMP, "EXP_ACCOMP": EXP_ACCOMP}
 def get_leader_follower_game() -> LeaderFollowerGame:
 
     game = get_trajectory_game()
-    cfg = config["leader_follower"]
+
+    def get_pref1(name: str) -> PosetalPreference:
+        return PosetalPreference(pref_str=name, use_cache=False)
 
     def get_prefs(names: List[str]) -> Poss[PosetalPreference]:
-        return game.ps.lift_many([PosetalPreference(pref_str=p, use_cache=False) for p in names])
+        return game.ps.lift_many([get_pref1(name=p) for p in names])
 
-    ac_cfg = cfg["antichain_comparison"]
+    ac_cfg = config_lf["antichain_comparison"]
     if ac_cfg not in ac_comp:
         raise ValueError(f"ac_comp - {ac_cfg} not in {ac_comp.keys()}")
-    lf = LeaderFollowerPrefs(leader=PlayerName(cfg["leader"]), follower=PlayerName(cfg["follower"]),
-                             pref_leader=PosetalPreference(pref_str=cfg["pref_leader"], use_cache=False),
-                             prefs_follower=get_prefs(cfg["prefs_follower"]),
+    lf = LeaderFollowerPrefs(leader=PlayerName(config_lf["leader"]),
+                             follower=PlayerName(config_lf["follower"]),
+                             pref_leader=get_pref1(name=config_lf["pref_leader"]),
+                             prefs_follower_est=get_prefs(config_lf["prefs_follower_est"]),
+                             pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
                              antichain_comparison=ac_comp[ac_cfg])
     game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,
                                  ps=game.ps, get_outcomes=game.get_outcomes,
