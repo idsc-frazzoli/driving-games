@@ -14,7 +14,7 @@ from games import PlayerName
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
-    SolvedRecursiveLeaderFollowerGame
+    SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame
 from .preference import PosetalPreference
 from .paths import Trajectory
 from .visualization import TrajGameVisualization
@@ -77,7 +77,7 @@ def plot_outcomes_pref(viz: GameVisualization, axis, outcomes: PlayerOutcome,
 
 def get_stack_figure(size: Tuple[int, int]):
     rows, cols = size
-    fig, axs = plt.subplots(nrows=rows, ncols=cols, figsize=(cols*4, rows*4))
+    fig, axs = plt.subplots(nrows=rows, ncols=cols, figsize=(cols * 4, rows * 4))
     if rows == 1:
         if cols == 1:
             axs = np.array([[axs]])
@@ -100,7 +100,6 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
                 nodes_strong: Set[SolvedTrajectoryGameNode] = None,
                 plot_lead_outcomes: bool = False,
                 leader: Tuple[PlayerName, Preference] = None):
-
     if plot_lead_outcomes:
         assert leader is not None
 
@@ -267,7 +266,6 @@ def report_preferences(viz: GameVisualization, players: Mapping[PlayerName, Pref
 
 
 def create_animation(fn: str, game: Game, node: SolvedGameNode):
-
     viz = game.game_vis
     assert isinstance(node, SolvedTrajectoryGameNode)
     assert isinstance(viz, TrajGameVisualization)
@@ -303,7 +301,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     lens = [_.get_end() for _ in actions]
     longest = lens.index(max(lens))
     times = actions[longest].get_sampling_points()
-    dt_ms = 2*int((times[1]-times[0])*1000)
+    dt_ms = 2 * int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True)
     anim.save(fn, dpi=80, writer="imagemagick")
@@ -311,7 +309,6 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
 def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame,
                                     plot_gif: bool, stage: int = 0) -> Report:
-
     PLOT_ALL_OUT = True
 
     tic = perf_counter()
@@ -372,7 +369,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
     rep_act = Report("Best_Leader_Actions")
     for p_f, i_f in p_f_dict.items():
         actions = solution.best_leader_actions[p_f]
-        text = f"{lf.follower}:Pref_{i_f}\n\t" + "{" +\
+        text = f"{lf.follower}:Pref_{i_f}\n\t" + "{" + \
                ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
         rep_act.text(f"Act_{i_f}", text)
     report_all.add_child(rep_act)
@@ -425,7 +422,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
             tic_out = perf_counter()
             # Plot grid of leader outcomes and aggregated outcome
             node_sols = sol[p_f]
-            lead_viz = rep.figure(f"Leader_Outcomes", cols=1+int(PLOT_ALL_OUT))
+            lead_viz = rep.figure(f"Leader_Outcomes", cols=1 + int(PLOT_ALL_OUT))
             if PLOT_ALL_OUT:
                 stack_nodes(report=lead_viz, viz=game.game_vis, title=f"{lf.leader}_outcomes",
                             players=game.game_players, nodes=rep_nodes,
@@ -448,13 +445,43 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
     return report_all
 
 
-def report_leader_follower_recursive(game: Game,
+def report_leader_follower_recursive(game: LeaderFollowerGame,
                                      result: SolvedRecursiveLeaderFollowerGame,
                                      plot_gif: bool) -> Report:
     rep = Report("Leader-Follower")
-    viz = rep.figure(cols=1)
-    with viz.data_file("Solution", MIME_GIF) as fn:
+    gif_viz = rep.figure(cols=1)
+    with gif_viz.data_file("Solution", MIME_GIF) as fn:
         create_animation_recursive(fn=fn, game=game, result=result)
+
+    def plot_out_player(pname: PlayerName, pref: Preference):
+        with outcome_viz.plot(f"{pname}_agg_outcomes") as pylab:
+            plot_outcomes_pref(viz=game.game_vis, axis=pylab.gca(),
+                               outcomes=result.aggregated_node.outcomes[pname],
+                               pref=pref, pname=pname, add_title=False)
+
+    def plot_traj_players():
+        with act_viz.plot("Driven trajectories") as pylab:
+            ax = pylab.gca()
+            with game.game_vis.plot_arena(axis=ax):
+                for pname, player in game.game_players.items():
+                    for state in player.state.support():
+                        game.game_vis.plot_player(axis=ax, player_name=pname,
+                                                  state=state)
+                    p_act = frozenset([result.aggregated_node.actions[pname]])
+                    game.game_vis.plot_equilibria(axis=ax, actions=p_act,
+                                                  colour=game.game_players[pname].vg.colour,
+                                                  width=1.0, alpha=1.0)
+
+    prefs = {game.lf.leader: game.lf.pref_leader,
+             game.lf.follower: game.lf.pref_follower_real}
+    rep.add_child(report_preferences(viz=game.game_vis, players=prefs))
+
+    act_viz = rep.figure(cols=1)
+    plot_traj_players()
+
+    outcome_viz = rep.figure(f"Overall Player Outcomes", cols=2)
+    plot_out_player(pname=game.lf.leader, pref=game.lf.pref_leader)
+    plot_out_player(pname=game.lf.follower, pref=game.lf.pref_follower_real)
 
     times = result.stages.get_sampling_points()
     for stage in range(len(times)):
@@ -523,7 +550,7 @@ def create_animation_recursive(fn: str, game: Game,
 
     def update_plot(t: D):
         i = i_plot.get()
-        if i < 0 or (i+1 < len(solve_times) and t >= solve_times[i+1]):
+        if i < 0 or (i + 1 < len(solve_times) and t >= solve_times[i + 1]):
             update_actions()
         sol_i = result.stages.at(solve_times[i])
         for pname, box_handle in states.items():
@@ -533,8 +560,8 @@ def create_animation_recursive(fn: str, game: Game,
                                             state=state, box=box_handle)
         return get_list()
 
-    times = result.trajectories[result.lf.leader].get_sampling_points()
-    dt_ms = 2*int((times[1]-times[0])*1000)
+    times = result.aggregated_node.actions[result.lf.leader].get_sampling_points()
+    dt_ms = 2 * int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
-                         frames=times, interval=dt_ms, blit=True, repeat_delay=2*dt_ms)
+                         frames=times, interval=dt_ms, blit=True, repeat_delay=2 * dt_ms)
     anim.save(fn, dpi=80, writer="imagemagick")

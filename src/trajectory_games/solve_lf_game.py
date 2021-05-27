@@ -251,12 +251,15 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
 
     tic = perf_counter()
     stage_seq: List[LeaderFollowerGameStage] = []
+    # Solve all stages of LF game
     for i in range(int(game.lf.solve_time // game.lf.simulation_step)):
         print(f"\n\nRecursive Game: Stage = {i}")
         context: SolvingContext = preprocess_full_game(sgame=game, only_traj=False)
         assert isinstance(context, LeaderFollowerGameSolvingContext)
         stage_seq.append(solve_recursive_game_stage(game=game, context=context))
 
+    print(f"\n\nCalculating aggregate trajectories and outcomes")
+    # Concatenate simulated sections of trajectories to get overall driven trajectories
     times: List[Timestamp] = [stage.time for stage in stage_seq]
 
     traj_all: Mapping[PlayerName, List[Trajectory]] = {pname: [] for pname in game.game_players.keys()}
@@ -266,14 +269,20 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
             pact = sol.game_node.actions[pname]
             states: List[VehicleState] = []
             for step in pact.get_sampling_points():
-                if Timestamp("0") <= step - times[i] < game.lf.simulation_step:
+                if Timestamp("0") <= step - times[i] <= game.lf.simulation_step:
                     states.append(pact.at(step))
             traj_all[pname].append(Trajectory(values=states, lane=pact.get_lane()))
 
     traj: Mapping[PlayerName, Trajectory] =\
         {pname: Trajectory(values=all_traj, lane=all_traj[-1].get_lane())
          for pname, all_traj in traj_all.items()}
+
+    # Calculate aggregated outcomes for the driven trajectories
+    agg_outcomes = game.get_outcomes(traj)
+    agg_node = SolvedTrajectoryGameNode(actions=traj, outcomes=agg_outcomes)
+
     toc = perf_counter() - tic
     print(f"Recursive solution complete. Total time = {toc:.2f} s\n\n")
-    return SolvedRecursiveLeaderFollowerGame(lf=deepcopy(game.lf), trajectories=traj,
+
+    return SolvedRecursiveLeaderFollowerGame(lf=deepcopy(game.lf), aggregated_node=agg_node,
                                              stages=SampledSequence(timestamps=times, values=stage_seq))

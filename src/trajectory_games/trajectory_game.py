@@ -113,7 +113,7 @@ class LeaderFollowerGameStage:
 class SolvedRecursiveLeaderFollowerGame:
     lf: LeaderFollowerParams
     stages: SampledSequence[LeaderFollowerGameStage]
-    trajectories: Mapping[PlayerName, Trajectory]
+    aggregated_node: SolvedTrajectoryGameNode
 
 
 def compute_outcomes(iterable, sgame: Game):
