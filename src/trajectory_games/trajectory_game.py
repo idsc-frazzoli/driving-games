@@ -23,7 +23,7 @@ __all__ = [
     "JointPureTraj",
     "TrajectoryGamePlayer",
     "TrajectoryGame",
-    "LeaderFollowerPrefs",
+    "LeaderFollowerParams",
     "LeaderFollowerGameSolvingContext",
     "LeaderFollowerGame",
     "SolvedTrajectoryGameNode",
@@ -54,23 +54,25 @@ class TrajectoryGame(Game[VehicleState, Trajectory,
 
 
 @dataclass
-class LeaderFollowerPrefs:
+class LeaderFollowerParams:
     leader: PlayerName
     follower: PlayerName
     pref_leader: Preference
     prefs_follower_est: Poss[Preference]
     antichain_comparison: AntichainComparison
+    solve_time: Timestamp
+    simulation_step: Timestamp
     pref_follower_real: Optional[Preference] = None
 
 
 @dataclass
 class LeaderFollowerGameSolvingContext(SolvingContext):
-    lf: LeaderFollowerPrefs
+    lf: LeaderFollowerParams
 
 
 @dataclass
 class LeaderFollowerGame(TrajectoryGame):
-    lf: LeaderFollowerPrefs
+    lf: LeaderFollowerParams
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -89,7 +91,7 @@ class LeaderFollowerGameNode:
 
 @dataclass(unsafe_hash=True)
 class SolvedLeaderFollowerGame:
-    lf: LeaderFollowerPrefs
+    lf: LeaderFollowerParams
     games: Mapping[Trajectory, Mapping[Preference, LeaderFollowerGameNode]]
     """ All possible game results for both players """
     best_leader_actions: Mapping[Preference, Set[Trajectory]]
@@ -98,7 +100,7 @@ class SolvedLeaderFollowerGame:
 
 @dataclass
 class LeaderFollowerGameStage:
-    lf: LeaderFollowerPrefs
+    lf: LeaderFollowerParams
     context: LeaderFollowerGameSolvingContext
     lf_game: SolvedLeaderFollowerGame
     game_node: SolvedTrajectoryGameNode
@@ -109,7 +111,7 @@ class LeaderFollowerGameStage:
 
 @dataclass
 class SolvedRecursiveLeaderFollowerGame:
-    lf: LeaderFollowerPrefs
+    lf: LeaderFollowerParams
     stages: SampledSequence[LeaderFollowerGameStage]
     trajectories: Mapping[PlayerName, Trajectory]
 

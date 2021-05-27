@@ -11,11 +11,12 @@ from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
+from .sequence import Timestamp
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
-from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerPrefs
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
 from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
@@ -98,12 +99,14 @@ def get_leader_follower_game() -> LeaderFollowerGame:
     ac_cfg = config_lf["antichain_comparison"]
     if ac_cfg not in ac_comp:
         raise ValueError(f"ac_comp - {ac_cfg} not in {ac_comp.keys()}")
-    lf = LeaderFollowerPrefs(leader=PlayerName(config_lf["leader"]),
-                             follower=PlayerName(config_lf["follower"]),
-                             pref_leader=get_pref1(name=config_lf["pref_leader"]),
-                             prefs_follower_est=get_prefs(config_lf["prefs_follower_est"]),
-                             pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
-                             antichain_comparison=ac_comp[ac_cfg])
+    lf = LeaderFollowerParams(leader=PlayerName(config_lf["leader"]),
+                              follower=PlayerName(config_lf["follower"]),
+                              pref_leader=get_pref1(name=config_lf["pref_leader"]),
+                              prefs_follower_est=get_prefs(config_lf["prefs_follower_est"]),
+                              pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
+                              antichain_comparison=ac_comp[ac_cfg],
+                              solve_time=Timestamp(config_lf["solve_time"]),
+                              simulation_step=Timestamp(config_lf["simulation_step"]))
     game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,
                                  ps=game.ps, get_outcomes=game.get_outcomes,
                                  game_vis=game.game_vis, lf=lf)

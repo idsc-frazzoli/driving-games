@@ -19,9 +19,6 @@ from .paths import Trajectory
 from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
 from .solve import init_eval_metric, get_best_responses
 
-SIM_STEP = Timestamp("1")
-SOLVE_TIME = Timestamp("3")
-
 
 def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
     n_out = len(outcomes)
@@ -245,7 +242,7 @@ def simulate_recursive_game_stage(game: LeaderFollowerGame,
     states: Dict[PlayerName, Poss[VehicleState]] = {}
     for pname, player in game.game_players.items():
         act = stage.game_node.actions[pname]
-        states[pname] = game.ps.unit(act.at(stage.time + SIM_STEP))
+        states[pname] = game.ps.unit(act.at(stage.time + game.lf.simulation_step))
 
     return states
 
@@ -254,7 +251,7 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
 
     tic = perf_counter()
     stage_seq: List[LeaderFollowerGameStage] = []
-    for i in range(int(SOLVE_TIME // SIM_STEP)):
+    for i in range(int(game.lf.solve_time // game.lf.simulation_step)):
         print(f"\n\nRecursive Game: Stage = {i}")
         context: SolvingContext = preprocess_full_game(sgame=game, only_traj=False)
         assert isinstance(context, LeaderFollowerGameSolvingContext)
@@ -263,14 +260,13 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
     times: List[Timestamp] = [stage.time for stage in stage_seq]
 
     traj_all: Mapping[PlayerName, List[Trajectory]] = {pname: [] for pname in game.game_players.keys()}
-    dT = times[1] - times[0]
     for i in range(len(stage_seq)):
         sol = stage_seq[i]
         for pname in game.game_players.keys():
             pact = sol.game_node.actions[pname]
             states: List[VehicleState] = []
             for step in pact.get_sampling_points():
-                if Timestamp("0") <= step - times[i] < dT:
+                if Timestamp("0") <= step - times[i] < game.lf.simulation_step:
                     states.append(pact.at(step))
             traj_all[pname].append(Trajectory(values=states, lane=pact.get_lane()))
 

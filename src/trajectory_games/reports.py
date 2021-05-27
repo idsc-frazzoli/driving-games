@@ -536,5 +536,5 @@ def create_animation_recursive(fn: str, game: Game,
     times = result.trajectories[result.lf.leader].get_sampling_points()
     dt_ms = 2*int((times[1]-times[0])*1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
-                         frames=times, interval=dt_ms, blit=True)
+                         frames=times, interval=dt_ms, blit=True, repeat_delay=2*dt_ms)
     anim.save(fn, dpi=80, writer="imagemagick")

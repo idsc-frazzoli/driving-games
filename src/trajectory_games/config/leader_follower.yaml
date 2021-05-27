@@ -9,4 +9,6 @@ leader_follower:
   prefs_follower_est:     ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci"]
 #  prefs_follower_est:     ["pref_lf_c1", "pref_lf_c2", "pref_lf_ci", "NoPreference"]
   pref_follower_real:     "pref_lf_c2"
-  antichain_comparison:   "JOIN_ACCOMP"  # EXP_ACCOMP or JOIN_ACCOMP
+  antichain_comparison:   "JOIN_ACCOMP"   # EXP_ACCOMP or JOIN_ACCOMP
+  solve_time:             "5.0"           # Total time to simulate game
+  simulation_step:        "1.0"           # Step for game simulation
