@@ -129,7 +129,7 @@ class DeviationHeading(Metric):
 class DrivableAreaViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the drivable area violation by the robot."
-    scale: float = 1.0
+    scale: float = 2.0
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
 
@@ -448,7 +448,7 @@ class MinimumClearance(Clearance):
     THRESHOLD = 0.25    # Time between vehicles
     cache_vals: Dict[JointPureTraj, Dict[PlayerName, List[float]]] = {}
     cache_metrics: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
-    scale: float = 2.0
+    scale: float = 1.0
 
     def get_cost(self, dist: float, states: Tuple[VehicleState, VehicleState],
                  geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:

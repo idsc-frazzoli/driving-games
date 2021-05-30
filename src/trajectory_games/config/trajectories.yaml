@@ -43,10 +43,10 @@ traj_1_r:     &traj_1_r
   s_final:    -1.0
   max_gen:    1
   dt:         "2.0"
-  step_acc:   1.0
+  step_acc:   0.8
   n_acc:      5
-  step_dst:   0.3
-  n_dst:      5
+  step_dst:   0.8
+  n_dst:      7
   v_max:      10.0
   v_min:      2.0
   st_max:     0.5
@@ -56,7 +56,10 @@ traj_1_r:     &traj_1_r
 
 traj_1_rs:    &traj_1_rs
   <<:         *traj_1_r
+  step_acc:   1.0
+  n_acc:      5
   step_dst:   0.05
+  n_dst:      5
   dst_scale:  True
 
 traj_1_rsolve:    &traj_1_rsolve

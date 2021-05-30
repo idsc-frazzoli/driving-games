@@ -14,7 +14,7 @@ map_name: "4way-double-intersection-only"
 players:
   P1:
     state:    "state_1"
-    traj:     "traj_1_rs"
+    traj:     "traj_1_r"
 #    traj:     "traj_1_rssolve"
     pref:     "pref_d6"
 #    pref:     "pref_vio"
