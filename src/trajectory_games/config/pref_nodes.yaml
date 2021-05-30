@@ -142,6 +142,40 @@ weights_conv214:
   LateralComfort:             1.0
   LongitudinalAcceleration:   4.0
 
+weights_speed:
+  EpisodeTime:                1.0
+  ProgressAlongReference:     1.0
+
 weights_comf:
-  LateralComfort:             4.0
+  LateralComfort:             1.0
   LongitudinalAcceleration:   1.0
+
+weights_lf1:
+  CollisionEnergy:            4.0
+  weights_speed:              2.0
+  weights_comf:               1.0
+
+weights_lf2:
+  CollisionEnergy:            4.0
+  weights_speed:              1.0
+  weights_comf:               2.0
+
+weights_lf3:
+  CollisionEnergy:            2.0
+  weights_speed:              4.0
+  weights_comf:               1.0
+
+weights_lf4:
+  CollisionEnergy:            1.0
+  weights_speed:              4.0
+  weights_comf:               2.0
+
+weights_lf5:
+  CollisionEnergy:            2.0
+  weights_speed:              1.0
+  weights_comf:               4.0
+
+weights_lf6:
+  CollisionEnergy:            1.0
+  weights_speed:              2.0
+  weights_comf:               4.0

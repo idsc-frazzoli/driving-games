@@ -1,6 +1,6 @@
 import itertools
 from time import perf_counter
-from typing import Mapping, Dict, Set, Tuple, List
+from typing import Mapping, Dict, Set, Tuple, List, Optional
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ from games import PlayerName
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
-    SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame
+    SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame, LeaderFollowerGameStage
 from .preference import PosetalPreference
 from .paths import Trajectory
 from .visualization import TrajGameVisualization
@@ -309,7 +309,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
 def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame,
                                     plot_gif: bool, stage: int = 0) -> Report:
-    PLOT_ALL_OUT = True
+    PLOT_ALL_OUT = False
 
     tic = perf_counter()
     title = f"Leader - follower game solutions (Stage = {stage})"
@@ -318,11 +318,6 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
     if stage == 0:
         report_all.text("Players:", f"Leader = {lf.leader}, Follower = {lf.follower}")
         report_all.text("Antichain_Comparison:", lf.antichain_comparison)
-        all_prefs: Dict[PlayerName, Set[Preference]] = {
-            lf.leader: {lf.pref_leader},
-            lf.follower: lf.prefs_follower_est.support()
-        }
-        game.game_vis.init_pref_dict(values=all_prefs)
 
     # Create dictionary for leader actions and follower prefs
     i_act = 1
@@ -332,10 +327,13 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         i_act += 1
     pref_dict_f = game.game_vis.get_pref_dict(player=lf.follower)
     p_f_dict: Dict[Preference, int] = {}
+    p_f_list: List[Optional[Preference]] = [None for _ in range(len(pref_dict_f))]
     rows, cols = pref_dict_f.get_size()
     for p_f in lf.prefs_follower_est.support():
         r, c = pref_dict_f[p_f]
-        p_f_dict[p_f] = r * cols + c + 1
+        index = r * cols + c
+        p_f_dict[p_f] = index + 1
+        p_f_list[index] = p_f
     no_pref = PosetalPreference(pref_str="NoPreference")
 
     actions_text = "All leader best actions:\n" + \
@@ -350,6 +348,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
             pref_dict = game.game_vis.get_pref_dict(player=pname)
             fig, axs, all_idx = get_stack_figure(size=pref_dict.get_size())
             for pref in pprefs:
+                if pref is None: continue
                 idx = pref_dict[pref]
                 ax = axs[idx]
                 all_idx.remove(idx)
@@ -361,17 +360,18 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
 
     tic1 = perf_counter()
     stack_prefs(pname=lf.leader, pprefs=[lf.pref_leader])
-    stack_prefs(pname=lf.follower, pprefs=list(p_f_dict.keys()))
+    stack_prefs(pname=lf.follower, pprefs=p_f_list)
     report_all.add_child(r_pref)
     toc1 = perf_counter() - tic1
 
     # Print best leader actions for each comb of prefs
     rep_act = Report("Best_Leader_Actions")
-    for p_f, i_f in p_f_dict.items():
+    for p_f in p_f_list:
+        if p_f is None: continue
+        i_f = p_f_dict[p_f]
         actions = solution.best_leader_actions[p_f]
-        text = f"{lf.follower}:Pref_{i_f}\n\t" + "{" + \
-               ", ".join([f"A_{act_dict[act]}" for act in actions]) + "}"
-        rep_act.text(f"Act_{i_f}", text)
+        text = ", ".join([f"Action_{act_dict[act]}" for act in actions])
+        rep_act.text(f"{lf.follower}:Pref_{i_f}", text)
     report_all.add_child(rep_act)
 
     toc_br, toc_out, toc_gif = 0.0, 0.0, 0.0
@@ -386,7 +386,9 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
         # BR is not a function of p_l, so we can use any one p_l
         all_nodes: SolvedTrajectoryGame = set()
         pf_nodes: Dict[str, SolvedTrajectoryGame] = {}
-        for p_f, i_f in p_f_dict.items():
+        for p_f in p_f_list:
+            if p_f is None: continue
+            i_f = p_f_dict[p_f]
             nodes = sol[p_f].nodes
             all_nodes |= nodes
             pf_nodes[f"Pref_{i_f}"] = nodes
@@ -407,7 +409,9 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
                 i_gif += 1
         toc_gif += perf_counter() - tic_gif
 
-        for p_f, i_f in p_f_dict.items():
+        for p_f in p_f_list:
+            if p_f is None: continue
+            i_f = p_f_dict[p_f]
 
             tic_br = perf_counter()
             # For each pref of follower, plot grid of best responses
@@ -476,17 +480,23 @@ def report_leader_follower_recursive(game: LeaderFollowerGame,
              game.lf.follower: game.lf.pref_follower_real}
     rep.add_child(report_preferences(viz=game.game_vis, players=prefs))
 
-    act_viz = rep.figure(cols=1)
-    plot_traj_players()
-
     outcome_viz = rep.figure(f"Overall Player Outcomes", cols=2)
     plot_out_player(pname=game.lf.leader, pref=game.lf.pref_leader)
     plot_out_player(pname=game.lf.follower, pref=game.lf.pref_follower_real)
 
+    act_viz = rep.figure(cols=1)
+    plot_traj_players()
+
+    def update_states(sol: LeaderFollowerGameStage):
+        for pname, player in game.game_players.items():
+            player.state = sol.states[pname]
+
     times = result.stages.get_sampling_points()
     for stage in range(len(times)):
-        stage_sol = result.stages.at(times[stage]).lf_game
-        rep.add_child(report_leader_follower_solution(game=game, solution=stage_sol, plot_gif=False, stage=stage))
+        stage_sol = result.stages.at(times[stage])
+        update_states(sol=stage_sol)
+        rep.add_child(report_leader_follower_solution(game=game, solution=stage_sol.lf_game,
+                                                      plot_gif=False, stage=stage))
     return rep
 
 
@@ -508,6 +518,7 @@ def create_animation_recursive(fn: str, game: Game,
     assert isinstance(viz, TrajGameVisualization)
 
     solve_times = result.stages.get_sampling_points()
+    agg_actions = result.aggregated_node.actions
     fig, ax = plt.subplots(figsize=(5, 5))
     fig.set_tight_layout(True)
     ax.set_aspect(1)
@@ -520,15 +531,17 @@ def create_animation_recursive(fn: str, game: Game,
     def init_plot():
         ax.clear()
         with viz.plot_arena(axis=ax):
-            for player_name, player in game.game_players.items():
-                for state in player.state.support():
-                    states[player_name] = viz.plot_player(axis=ax, state=state,
-                                                          player_name=player_name)
+            sol_0 = result.stages.at(solve_times[0])
             for pname, player in game.game_players.items():
+                action: Trajectory = sol_0.game_node.actions[pname]
+                state = action.at(t=solve_times[0])
+                states[pname] = viz.plot_player(axis=ax, state=state,
+                                                player_name=pname,
+                                                alpha=0.7)
                 actions[pname] = viz.plot_actions(axis=ax, actions=frozenset([]),
-                                                  colour=player.vg.colour, width=0.75)
+                                                  colour=player.vg.colour, width=0.3)
                 opt_actions[pname] = viz.plot_actions(axis=ax, actions=frozenset([]),
-                                                      width=1.5)
+                                                      width=0.75)
         return get_list()
 
     def update_actions():
@@ -552,15 +565,13 @@ def create_animation_recursive(fn: str, game: Game,
         i = i_plot.get()
         if i < 0 or (i + 1 < len(solve_times) and t >= solve_times[i + 1]):
             update_actions()
-        sol_i = result.stages.at(solve_times[i])
         for pname, box_handle in states.items():
-            action: Trajectory = sol_i.game_node.actions[pname]
-            state = action.at(t=t)
+            state = agg_actions[pname].at(t=t)
             states[pname] = viz.plot_player(axis=ax, player_name=pname,
                                             state=state, box=box_handle)
         return get_list()
 
-    times = result.aggregated_node.actions[result.lf.leader].get_sampling_points()
+    times = agg_actions[result.lf.leader].get_sampling_points()
     dt_ms = 2 * int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True, repeat_delay=2 * dt_ms)

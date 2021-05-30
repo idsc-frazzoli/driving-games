@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-from typing import Type, Dict, Mapping, Set, NewType, Tuple
+from typing import Type, Dict, Mapping, Set, NewType, Tuple, Union
 from decimal import Decimal as D
 
 import os
@@ -26,16 +26,18 @@ __all__ = [
     "PosetalPreference",
 ]
 
+AllMetrics = Union[Metric, "WeightedPreference"]
+
 
 class WeightedPreference(Preference[PlayerOutcome]):
     """Compare the total weighted values between evaluated metrics"""
 
     name: str
-    weights: Mapping[Metric, D]
+    weights: Mapping[AllMetrics, D]
 
     _pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
     _config: Mapping = None
-    _metric_dict: Mapping[str, Metric] = None
+    _metric_dict: Dict[str, AllMetrics] = None
 
     def __init__(self, weights_str: str):
         if WeightedPreference._config is None:
@@ -45,7 +47,16 @@ class WeightedPreference(Preference[PlayerOutcome]):
             WeightedPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
 
         self.name = weights_str
-        self.weights = {self._metric_dict[k]: D(v) for k, v in self._config[weights_str].items()}
+        weights: Dict[AllMetrics, D] = {}
+        for k, v in WeightedPreference._config[weights_str].items():
+            if k not in WeightedPreference._metric_dict:
+                try:
+                    w_metric = WeightedPreference(weights_str=k)
+                except:
+                    raise ValueError(f"Key {k} not found in metrics or weighted metrics!")
+                WeightedPreference._metric_dict[k] = w_metric
+            weights[WeightedPreference._metric_dict[k]] = D(v)
+        self.weights = weights
 
     @staticmethod
     def get_type() -> Type[PlayerOutcome]:
@@ -54,7 +65,10 @@ class WeightedPreference(Preference[PlayerOutcome]):
     def evaluate(self, outcome: PlayerOutcome) -> D:
         w = D("0")
         for metric, weight in self.weights.items():
-            w += D(outcome[metric].total) * weight
+            value = metric.evaluate(outcome=outcome) \
+                if isinstance(metric, WeightedPreference) \
+                else D(outcome[metric].total)
+            w += value * weight
         return w
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
@@ -65,7 +79,8 @@ class WeightedPreference(Preference[PlayerOutcome]):
         for metric, weight in self.weights.items():
             if len(ret) > 0:
                 ret += "\n"
-            ret += f"{round(float(weight), 2)}*{type(metric).__name__}"
+            met_str = metric.name if isinstance(metric, WeightedPreference) else type(metric).__name__
+            ret += f"{round(float(weight), 2)}*{met_str}"
         return ret
 
     def __lt__(self, other: "WeightedPreference") -> bool:

@@ -292,44 +292,99 @@ pref_lf1:                     &pref_lf1
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
   MinimumClearance:           ["DrivableAreaViolation"]
-  ProgressAlongReference:     ["MinimumClearance"]
-  weights_comf:               ["ProgressAlongReference"]
+  weights_speed:              ["MinimumClearance"]
+  weights_comf:               ["weights_speed"]
 
 pref_lf2:                     &pref_lf2
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
-  ProgressAlongReference:     ["DrivableAreaViolation"]
-  weights_comf:               ["ProgressAlongReference"]
+  weights_speed:              ["DrivableAreaViolation"]
+  weights_comf:               ["weights_speed"]
   MinimumClearance:           ["weights_comf"]
 
 pref_lf3:                     &pref_lf3
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
   weights_comf:               ["DrivableAreaViolation"]
-  ProgressAlongReference:     ["weights_comf"]
-  MinimumClearance:           ["ProgressAlongReference"]
+  weights_speed:              ["weights_comf"]
+  MinimumClearance:           ["weights_speed"]
 
 pref_lfi:                     &pref_lfi
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
   MinimumClearance:           ["DrivableAreaViolation"]
-  ProgressAlongReference:     ["DrivableAreaViolation"]
+  weights_speed:              ["DrivableAreaViolation"]
   weights_comf:               ["DrivableAreaViolation"]
+
+pref_lf4:                     &pref_lf4
+  CollisionEnergy:            []
+  MinimumClearance:           ["CollisionEnergy"]
+  DrivableAreaViolation:      ["MinimumClearance"]
+  weights_speed:              ["DrivableAreaViolation"]
+  weights_comf:               ["weights_speed"]
 
 pref_lf_c1:                   &pref_lf_c1
   DrivableAreaViolation:      []
   CollisionEnergy:            ["DrivableAreaViolation"]
-  ProgressAlongReference:     ["CollisionEnergy"]
-  weights_comf:               ["ProgressAlongReference"]
+  weights_speed:              ["CollisionEnergy"]
+  weights_comf:               ["weights_speed"]
 
 pref_lf_c2:                   &pref_lf_c2
   DrivableAreaViolation:      []
+  CollisionEnergy:            ["DrivableAreaViolation"]
+  weights_comf:               ["CollisionEnergy"]
+  weights_speed:              ["weights_comf"]
+
+pref_lf_c3:                   &pref_lf_c3
+  DrivableAreaViolation:      []
+  weights_speed:              ["DrivableAreaViolation"]
+  CollisionEnergy:            ["weights_speed"]
+  weights_comf:               ["CollisionEnergy"]
+
+pref_lf_c4:                   &pref_lf_c4
+  DrivableAreaViolation:      []
+  weights_speed:              ["DrivableAreaViolation"]
+  weights_comf:               ["weights_speed"]
+  CollisionEnergy:            ["weights_comf"]
+
+pref_lf_c5:                   &pref_lf_c5
+  DrivableAreaViolation:      []
   weights_comf:               ["DrivableAreaViolation"]
-  ProgressAlongReference:     ["weights_comf"]
-  CollisionEnergy:            ["ProgressAlongReference"]
+  CollisionEnergy:            ["weights_comf"]
+  weights_speed:              ["CollisionEnergy"]
+
+pref_lf_c6:                   &pref_lf_c6
+  DrivableAreaViolation:      []
+  weights_comf:               ["DrivableAreaViolation"]
+  weights_speed:              ["weights_comf"]
+  CollisionEnergy:            ["weights_speed"]
+
+pref_lf_cw1:                  &pref_lf_cw1
+  DrivableAreaViolation:      []
+  weights_lf1:                ["DrivableAreaViolation"]
+
+pref_lf_cw2:                  &pref_lf_cw2
+  DrivableAreaViolation:      []
+  weights_lf2:                ["DrivableAreaViolation"]
+
+pref_lf_cw3:                  &pref_lf_cw3
+  DrivableAreaViolation:      []
+  weights_lf3:                ["DrivableAreaViolation"]
+
+pref_lf_cw4:                  &pref_lf_cw4
+  DrivableAreaViolation:      []
+  weights_lf4:                ["DrivableAreaViolation"]
+
+pref_lf_cw5:                  &pref_lf_cw5
+  DrivableAreaViolation:      []
+  weights_lf5:                ["DrivableAreaViolation"]
+
+pref_lf_cw6:                  &pref_lf_cw6
+  DrivableAreaViolation:      []
+  weights_lf6:                ["DrivableAreaViolation"]
 
 pref_lf_ci:                   &pref_lf_ci
   DrivableAreaViolation:      []
   CollisionEnergy:            ["DrivableAreaViolation"]
-  ProgressAlongReference:     ["DrivableAreaViolation"]
+  weights_speed:              ["DrivableAreaViolation"]
   weights_comf:               ["DrivableAreaViolation"]

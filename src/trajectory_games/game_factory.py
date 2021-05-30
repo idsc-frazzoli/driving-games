@@ -1,12 +1,12 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict, Set, List
+from typing import Dict, Set
 
 from yaml import safe_load
 
 from games import PlayerName, MonadicPreferenceBuilder
-from possibilities import PossibilitySet, Poss
+from possibilities import PossibilitySet
 from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
@@ -38,7 +38,6 @@ with open(leader_follower_file) as load_file:
 
 
 def get_trajectory_game() -> TrajectoryGame:
-
     tic = perf_counter()
     lanes: Dict[PlayerName, Set[LaneSegmentHashable]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
@@ -87,26 +86,40 @@ ac_comp = {"JOIN_ACCOMP": JOIN_ACCOMP, "EXP_ACCOMP": EXP_ACCOMP}
 
 
 def get_leader_follower_game() -> LeaderFollowerGame:
-
     game = get_trajectory_game()
 
     def get_pref1(name: str) -> PosetalPreference:
         return PosetalPreference(pref_str=name, use_cache=False)
 
-    def get_prefs(names: List[str]) -> Poss[PosetalPreference]:
-        return game.ps.lift_many([get_pref1(name=p) for p in names])
-
     ac_cfg = config_lf["antichain_comparison"]
     if ac_cfg not in ac_comp:
         raise ValueError(f"ac_comp - {ac_cfg} not in {ac_comp.keys()}")
+
+    pref_leader = get_pref1(name=config_lf["pref_leader"])
+    prefs_follower = [get_pref1(name=p) for p in config_lf["prefs_follower_est"]]
+    prefs_follower_est = game.ps.lift_many(prefs_follower)
+
     lf = LeaderFollowerParams(leader=PlayerName(config_lf["leader"]),
                               follower=PlayerName(config_lf["follower"]),
-                              pref_leader=get_pref1(name=config_lf["pref_leader"]),
-                              prefs_follower_est=get_prefs(config_lf["prefs_follower_est"]),
+                              pref_leader=pref_leader,
+                              prefs_follower_est=prefs_follower_est,
                               pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
                               antichain_comparison=ac_comp[ac_cfg],
                               solve_time=Timestamp(config_lf["solve_time"]),
-                              simulation_step=Timestamp(config_lf["simulation_step"]))
+                              simulation_step=Timestamp(config_lf["simulation_step"]),
+                              terminal_progress=config_lf["terminal_progress"],
+                              update_prefs=config_lf["update_prefs"])
+
+    # Init pref dict with the correct order of follower prefs from list instead of set
+    all_prefs: Dict[PlayerName, Set[PosetalPreference]] = {
+        lf.leader: {pref_leader},
+        lf.follower: set(prefs_follower)
+    }
+    game.game_vis.init_pref_dict(values=all_prefs)
+    pref_dict_f = game.game_vis.get_pref_dict(player=lf.follower)
+    for p_f in prefs_follower:
+        _ = pref_dict_f[p_f]
+
     game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,
                                  ps=game.ps, get_outcomes=game.get_outcomes,
                                  game_vis=game.game_vis, lf=lf)

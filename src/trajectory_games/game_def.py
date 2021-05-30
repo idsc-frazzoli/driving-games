@@ -71,7 +71,7 @@ class PlotStackDictionary(Generic[Key]):
     def __init__(self, values: Set[Key], row: bool = False):
         n_nodes = len(values)
         assert n_nodes > 0
-        self.cols = math.ceil(n_nodes ** 0.5) if not row else n_nodes
+        self.cols = math.ceil(n_nodes ** 0.5) if not row else min(n_nodes, 6)
         self.rows = math.ceil(n_nodes / self.cols)
         self.next_idx = 0
         self.indices: Dict[Key, Tuple[int, int]] = {}
@@ -89,6 +89,9 @@ class PlotStackDictionary(Generic[Key]):
         self.indices[item] = (row, col)
         self.next_idx += 1
         return row, col
+
+    def __len__(self):
+        return self.next_idx
 
 
 class GameVisualization(Generic[X, U, W], ABC):

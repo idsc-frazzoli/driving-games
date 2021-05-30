@@ -62,6 +62,8 @@ class LeaderFollowerParams:
     antichain_comparison: AntichainComparison
     solve_time: Timestamp
     simulation_step: Timestamp
+    terminal_progress: float
+    update_prefs: bool
     pref_follower_real: Optional[Preference] = None
 
 

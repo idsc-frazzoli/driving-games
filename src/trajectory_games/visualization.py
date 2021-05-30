@@ -54,12 +54,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         yield
 
     def plot_player(self, axis, player_name: PlayerName,
-                    state: VehicleState, box=None):
+                    state: VehicleState, alpha: float = 0.3, box=None):
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
         box = plot_car(axis=axis, player_name=player_name,
-                       state=state, vg=vg, box=box)
+                       state=state, vg=vg, alpha=alpha, box=box)
         return box
 
     def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
@@ -146,7 +146,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
 
 def plot_car(axis, player_name: PlayerName, state: VehicleState,
-             vg: VehicleGeometry, box):
+             vg: VehicleGeometry, alpha: float, box):
     L = vg.l
     W = vg.w
     car_color = vg.colour
@@ -156,7 +156,7 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     q = SE2_from_xytheta(xy_theta)
     x1, y1 = get_transformed_xy(q, car)
     if box is None:
-        box, = axis.fill([], [], color=car_color, alpha=0.3, zorder=10)
+        box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=10)
         x4, y4 = get_transformed_xy(q, ((0, 0),))
         axis.text(x4, y4, player_name, zorder=25,
                   horizontalalignment="center",

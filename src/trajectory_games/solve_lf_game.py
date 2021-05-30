@@ -1,7 +1,10 @@
+import math
 from copy import deepcopy
 from random import choice
 from time import perf_counter
-from typing import Mapping, Dict, Set, List, Callable
+from typing import Mapping, Dict, Set, List, Callable, Tuple
+
+from duckietown_world import SE2Transform
 from frozendict import frozendict
 
 from games.utils import iterate_dict_combinations
@@ -9,15 +12,23 @@ from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
 
 from games import PlayerName
+from world import LaneSegmentHashable
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
-from .structures import VehicleState
+from .structures import VehicleState, VehicleGeometry
 from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
     SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, LeaderFollowerGameNode, LeaderFollowerGameStage, \
     LeaderFollowerGame, preprocess_full_game, SolvedRecursiveLeaderFollowerGame
 from .sequence import Timestamp, SampledSequence
 from .paths import Trajectory
+from .trajectory_generator import TransitionGenerator
 from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
-from .solve import init_eval_metric, get_best_responses
+from .metrics import Clearance
+from .solve import get_best_responses
+
+
+def init_eval_metric(evalm: EvaluatedMetric, total: float = 0.0) -> EvaluatedMetric:
+    return EvaluatedMetric(title=evalm.title, description=evalm.description, total=total,
+                           incremental=None, cumulative=None)
 
 
 def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
@@ -49,7 +60,7 @@ def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOut
             elif comp == SECOND_PREFERRED:
                 ac_worst.remove(out2)
 
-    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em) for m, em in outcomes[0].items()}
+    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em, total=-math.inf) for m, em in outcomes[0].items()}
     # TODO[SIR]: This can be improved to calc more accurate joins
     for out in ac_worst:
         for m, em in out.items():
@@ -116,9 +127,13 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
                                        player_pref=p_f)
 
             outcomes_l: List[PlayerOutcome] = []
+            # outcomes_f: List[PlayerOutcome] = []
+            # act_f: List[Trajectory] = []
             for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br}):
                 out = frozendict(context.game_outcomes(act))
                 outcomes_l.append(out[lf.leader])
+                # outcomes_f.append(out[lf.follower])
+                # act_f.append(act[lf.follower])
             agg_out_l[l_act][p_f] = agg_func(outcomes=outcomes_l)
             br_pref[l_act][p_f] = br
 
@@ -205,13 +220,20 @@ def solve_recursive_game_stage(game: LeaderFollowerGame,
 
     br_all: Set[Trajectory] = set()
     br: Set[Trajectory] = set()
-    for p_f in context.lf.prefs_follower_est.support():
-        _, br_pf = get_best_responses(joint_actions=joint_act, context=context,
+
+    def get_br(pref: Preference):
+        _, br_pref = get_best_responses(joint_actions=joint_act, context=context,
                                       player=game.lf.follower, done_p=set(),
-                                      player_pref=p_f)
+                                      player_pref=pref)
+        return br_pref
+
+    for p_f in context.lf.prefs_follower_est.support():
+        br_pf = get_br(p_f)
         br_all |= br_pf
         if p_f == game.lf.pref_follower_real:
             br = br_pf
+    if len(br) == 0:
+        br = get_br(game.lf.pref_follower_real)
     act_follower = choice(list(br))
 
     # Compute outcomes for both players and save
@@ -230,8 +252,10 @@ def solve_recursive_game_stage(game: LeaderFollowerGame,
         game.game_players[pname].state = state
 
     # Update estimate of follower prefs using action as measurement
-    game.lf.prefs_follower_est = update_follower_prefs(stage=stage, ps=game.ps)
-    print(f"Updated Estimated Preferences - remaining = {len(game.lf.prefs_follower_est.support())} options")
+    if game.lf.update_prefs:
+        game.lf.prefs_follower_est = update_follower_prefs(stage=stage, ps=game.ps)
+        print(f"Updated Estimated Preferences - remaining = "
+              f"{len(game.lf.prefs_follower_est.support())} types")
 
     return stage
 
@@ -251,34 +275,68 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
 
     tic = perf_counter()
     stage_seq: List[LeaderFollowerGameStage] = []
+
+    done: bool = False
+    clearance_dict: Dict[PlayerName, Tuple[SE2Transform, VehicleGeometry]] = {}
+    states: Dict[PlayerName, VehicleState] = {}
+    for pname, player in game.game_players.items():
+        state_p = next(iter(player.state.support()))
+        states[pname] = state_p
+        clearance_dict[pname] = (Trajectory.state_to_se2(x=state_p), player.vg)
+
     # Solve all stages of LF game
     for i in range(int(game.lf.solve_time // game.lf.simulation_step)):
         print(f"\n\nRecursive Game: Stage = {i}")
         context: SolvingContext = preprocess_full_game(sgame=game, only_traj=False)
         assert isinstance(context, LeaderFollowerGameSolvingContext)
-        stage_seq.append(solve_recursive_game_stage(game=game, context=context))
+        stage = solve_recursive_game_stage(game=game, context=context)
+        stage_seq.append(stage)
+        for pname, player in game.game_players.items():
+            for state in game.game_players[pname].state.support():
+                clearance_dict[pname] = (Trajectory.state_to_se2(state), player.vg)
+                states_p = [states[pname], state]
+                if pname == game.lf.leader:
+                    for lane in game.world.get_lanes(pname):
+                        p_final = TransitionGenerator.get_p_final(lane=lane, s_final=game.lf.terminal_progress)
+                        if Trajectory.trim_trajectory(states=states_p, p_final=p_final):
+                            done = True
+                states[pname] = state
+        if Clearance.get_clearance(players=clearance_dict) < 1e-3:
+            print(f"\n\nCollision detected !!! Stopping")
+            break
+        if done:
+            print(f"\n\nReached terminal progress of lane for leader, stopping.")
+            break
 
     print(f"\n\nCalculating aggregate trajectories and outcomes")
     # Concatenate simulated sections of trajectories to get overall driven trajectories
     times: List[Timestamp] = [stage.time for stage in stage_seq]
-
-    traj_all: Mapping[PlayerName, List[Trajectory]] = {pname: [] for pname in game.game_players.keys()}
+    states_traj: Mapping[PlayerName, Dict[Timestamp, VehicleState]] = \
+        {pname: {} for pname in game.game_players.keys()}
+    lanes: Dict[PlayerName, LaneSegmentHashable] = {}
     for i in range(len(stage_seq)):
         sol = stage_seq[i]
         for pname in game.game_players.keys():
             pact = sol.game_node.actions[pname]
-            states: List[VehicleState] = []
             for step in pact.get_sampling_points():
                 if Timestamp("0") <= step - times[i] <= game.lf.simulation_step:
-                    states.append(pact.at(step))
-            traj_all[pname].append(Trajectory(values=states, lane=pact.get_lane()))
+                    states_traj[pname][step] = pact.at(step)
+            lanes[pname] = pact.get_lane()
 
-    traj: Mapping[PlayerName, Trajectory] =\
-        {pname: Trajectory(values=all_traj, lane=all_traj[-1].get_lane())
-         for pname, all_traj in traj_all.items()}
+    # Trim trajectory of leader till terminal progress and follower till same time
+    p_final = TransitionGenerator.get_p_final(lane=lanes[game.lf.leader],
+                                              s_final=game.lf.terminal_progress)
+    traj_lead = Trajectory(values=list(states_traj[game.lf.leader].values()),
+                           lane=lanes[game.lf.leader], p_final=p_final)
+    traj_foll = Trajectory(values=list(states_traj[game.lf.follower].values())[:len(traj_lead)],
+                           lane=lanes[game.lf.follower])
+    traj: Mapping[PlayerName, Trajectory] = \
+        {game.lf.leader: traj_lead, game.lf.follower: traj_foll}
 
     # Calculate aggregated outcomes for the driven trajectories
     agg_outcomes = game.get_outcomes(traj)
+    l_out = "\n\t".join([str(met) for met in agg_outcomes[game.lf.leader].values()])
+    print(f"\nAggregate Outcomes: \n\t{l_out}")
     agg_node = SolvedTrajectoryGameNode(actions=traj, outcomes=agg_outcomes)
 
     toc = perf_counter() - tic

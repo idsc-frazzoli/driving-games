@@ -149,11 +149,6 @@ def equilibrium_check(joint_actions: JointPureTraj, context: SolvingContext,
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 
-def init_eval_metric(evalm: EvaluatedMetric) -> EvaluatedMetric:
-    return EvaluatedMetric(title=evalm.title, description=evalm.description, total=0.0,
-                           incremental=None, cumulative=None)
-
-
 class Solution:
     # Cache can be reused between levels
     dominated: Dict[PlayerName, Set[JointPureTraj]] = None

@@ -199,6 +199,7 @@ def get_integrated(sequence: SampledSequence[float]) -> Tuple[SampledSequence[fl
 class Metric(metaclass=ABCMeta):
     _instances = {}
     description: str
+    scale: float
 
     def __new__(cls, *args, **kwargs):
         # Allow creation of only one instance of each subclass (singleton)

@@ -43,7 +43,7 @@ class Trajectory:
                 values[0] = states[0]
                 values[-1] = states[-1]
             if p_final is not None:
-                self._trim_trajectory(states=values, p_final=p_final)
+                self.trim_trajectory(states=values, p_final=p_final)
             times: List[Timestamp] = [x.t for x in values]
             self.states = SampledSequence(timestamps=times, values=values)
             self.traj = []
@@ -67,7 +67,8 @@ class Trajectory:
         return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
 
     @staticmethod
-    def _trim_trajectory(states: List[VehicleState], p_final: FinalPoint):
+    def trim_trajectory(states: List[VehicleState], p_final: FinalPoint) -> bool:
+        """ Trims trajectory till p_final and returns if it trimmed or not """
         x_f, y_f, increase = p_final
         assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
         if x_f is not None:
@@ -87,10 +88,11 @@ class Trajectory:
             z_samp = [z0 - z for z in z_samp]
             z_f = z0 - z_f
         if z_f < z_samp[0] or z_f > z_samp[-1]:
-            return states
+            return False
         last = bisect_right(z_samp, z_f)
         for _ in range(last + 1, len(times)):
             states.pop()
+        return True
 
     def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
         return self.states.__iter__()

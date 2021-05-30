@@ -223,6 +223,7 @@ class TrajectoryParams:
     st_max: float
     dst_max: float
     dt_samp: D
+    dst_scale: bool
     vg: VehicleGeometry
 
     _config: Dict = None
@@ -244,6 +245,7 @@ class TrajectoryParams:
             st_max=0.5,
             dst_max=1.0,
             dt_samp=D("0.1"),
+            dst_scale=False,
             vg=VehicleGeometry.from_config(""),
         )
         return params
@@ -281,6 +283,7 @@ class TrajectoryParams:
                 st_max=config["st_max"],
                 dst_max=config["dst_max"],
                 dt_samp=D(config["dt_samp"]),
+                dst_scale=config["dst_scale"],
                 vg=VehicleGeometry.from_config(vg_name),
             )
         else:

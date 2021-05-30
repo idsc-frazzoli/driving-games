@@ -20,6 +20,7 @@ from .bicycle_dynamics import BicycleDynamics
 __all__ = ["TransitionGenerator"]
 
 Successors = Mapping[VehicleActions, Tuple[VehicleState, List[VehicleState]]]
+Solve_Tolerance = 1e-3
 
 
 class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
@@ -33,13 +34,13 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         self._cache = {}
 
     def get_actions_dynamic(self, state: VehicleState, player: PlayerName,
-                            world: TrajectoryWorld = None) -> Set[TrajectoryGraph]:
+                            world: TrajectoryWorld = None) -> Tuple[bool, Set[TrajectoryGraph]]:
         """
         Computes dynamic graph of transitions for given state along reference
         Requires world for first instance, returns from cache if already computed
         """
         if (player, state) in self._cache:
-            return self._cache[(player, state)]
+            return True, self._cache[(player, state)]
         assert world is not None
         tic = perf_counter()
         all_graphs: Set[TrajectoryGraph] = set()
@@ -48,9 +49,9 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
             self._get_trajectory_graph(state=state, lane=lane, graph=graph)
             all_graphs.add(graph)
         toc = perf_counter() - tic
-        print(f"Player: {player}\ttime = {toc:.2f} s")
+        # print(f"Player: {player}\ttime = {toc:.2f} s")
         self._cache[(player, state)] = all_graphs
-        return all_graphs
+        return False, all_graphs
 
     def get_actions_static(self, state: VehicleState, player: PlayerName,
                            world: TrajectoryWorld = None) -> FrozenSet[Trajectory]:
@@ -59,12 +60,12 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         Requires world for first instance, returns from cache if already computed
         """
         tic = perf_counter()
-        lane_graphs = self.get_actions_dynamic(state=state, player=player, world=world)
+        cache, lane_graphs = self.get_actions_dynamic(state=state, player=player, world=world)
         all_traj: Set[Trajectory] = set()
         for graph in lane_graphs:
             all_traj |= self._trajectory_graph_to_list(graph=graph)
         toc = perf_counter() - tic
-        if toc > 0.1:
+        if not cache:
             print(f"Player: {player}\n\tLanes = {len(lane_graphs)}"
                   f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s")
         return frozenset(all_traj)
@@ -74,7 +75,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         stack = list([state])
         graph.origin = state
 
-        p_final = self.get_p_final(lane=lane)
+        p_final = self.get_p_final(lane=lane, s_final=self.params.s_final)
         if p_final is not None:
             x_f, y_f, inc = p_final
             z_f = x_f if x_f is not None else y_f
@@ -119,7 +120,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
     @staticmethod
     def get_target(lane: LaneSegmentHashable, progress: float,
-                   offset_target: np.array) -> Tuple[np.array, float]:
+                   offset_target: np.array) -> Optional[Tuple[np.array, float]]:
         """ Calculate target pose ([x, y], theta) at requested progress with additional offset """
         beta_f = lane.beta_from_along_lane(along_lane=progress)
         q_f = lane.center_point(beta=beta_f)
@@ -207,11 +208,12 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         # Sample progress using acceleration
         for accel in acc_vals:
             distance = get_corrected_distance(acc=accel)
+            n_scale = distance if self.params.dst_scale else 1.0
 
             # Sample deviation as a function of dst
             for dst in dst_vals:
                 # Calculate target pose of rear axle
-                nf = 0.5 * (n_i + dst * distance)
+                nf = 0.9 * n_i + dst * n_scale
                 offset_t = np.array([-l, nf])
                 p_t, th_t = self.get_target(lane=lane, progress=along_i + distance,
                                             offset_target=offset_t)
@@ -278,42 +280,42 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         for accel in acc_vals:
             vf = state.v + accel * dt
             distance = vf * dt
+            n_scale = distance if self.params.dst_scale else 1.0
 
             # Sample deviations
             for dst in dst_vals:
-                nf = 0.5 * (n_init + dst * distance)
+                nf = 0.9 * n_init + dst * n_scale
 
                 # Solve boundary value problem to obtain actions
-                dst_g = get_dst_guess()
-                res = minimize(fun=equation_min, x0=np.array([dst_g]),
-                               bounds=[[lb, ub]], args=(accel, nf))
-                i = 0
-                dst0 = [0.0, lb / 2, ub / 2]
+                residual, dst_f = 100.0, 0.0
+                # Solution is sensitive to init guess, so try a few values and give up if it doesn't converge
+                for dst_g in [0.0, lb / 2, ub / 2, get_dst_guess()]:
+                    result = minimize(fun=equation_min, x0=np.array([dst_g]),
+                                      bounds=[[lb, ub]], args=(accel, nf))
+                    if result.success and result.fun < residual:
+                        residual = result.fun
+                        dst_f = result.x[0]
+                    if residual < Solve_Tolerance:
+                        break
 
-                # Try other initial states if it doesn't converge
-                while not res.success and i <= 2:
-                    res = minimize(fun=equation_min, x0=np.array([dst0[i]]),
-                                   bounds=[[lb, ub]], args=(accel, nf))
-                    i += 1
-                if not res.success:
-                    print(f"Opt failed: {state}, acc={accel}, nf={nf}")
+                if residual >= Solve_Tolerance:
+                    # print(f"Opt failed: {state}, acc={accel}, nf={nf}")
                     continue
-                dst = res.x[0]
 
                 # Propagate inputs to obtain final state
-                u_f = VehicleActions(acc=accel, dst=dst)
+                u_f = VehicleActions(acc=accel, dst=dst_f)
                 state_f, states_t = self.get_successor(state=state, u=u_f)
                 successors[u_f] = (state_f, states_t)
         return successors
 
+    @staticmethod
     @lru_cache(None)
-    def get_p_final(self, lane: LaneSegmentHashable) -> Optional[FinalPoint]:
-        if self.params.s_final < 0:
+    def get_p_final(lane: LaneSegmentHashable, s_final: float) -> Optional[FinalPoint]:
+        if s_final < 0:
             return None
         tol = 1e-1
         s_max = lane.get_lane_length()
-        s_final = s_max * self.params.s_final
-        beta_final = lane.beta_from_along_lane(along_lane=s_final)
+        beta_final = lane.beta_from_along_lane(along_lane=s_max * s_final)
         center = lane.center_point(beta=beta_final)
         pos_f, ang_f, _ = geo.translation_angle_scale_from_E2(center)
         while ang_f < -math.pi: ang_f += 2 * math.pi

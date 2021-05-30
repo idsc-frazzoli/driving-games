@@ -17,36 +17,52 @@
 
 traj_1:       &traj_1
   solve:      False
-  s_final:    -1.0
+  s_final:    0.95
   max_gen:    1
   dt:         "2.0"
   step_acc:   2.0
   n_acc:      3
-  step_dst:   0.15
+  step_dst:   0.075
   n_dst:      3
   v_max:      10.0
   v_min:      2.0
   st_max:     0.5
   dst_max:    1.0
+  dst_scale:  True
   dt_samp:    "0.2"
 
-traj_2:       &traj_2
+traj_1_3:     &traj_1_3
   <<:         *traj_1
   dt:         "2.0"
   max_gen:    1
   n_acc:      3
   n_dst:      3
 
-traj_3:       &traj_3
-  <<:         *traj_1
-  dt:         "1.0"
-  max_gen:    2
-  n_acc:      3
-  n_dst:      3
+traj_1_r:     &traj_1_r
+  solve:      False
+  s_final:    -1.0
+  max_gen:    1
+  dt:         "2.0"
+  step_acc:   1.0
+  n_acc:      5
+  step_dst:   0.3
+  n_dst:      5
+  v_max:      10.0
+  v_min:      2.0
+  st_max:     0.5
+  dst_max:    1.0
+  dst_scale:  False
+  dt_samp:    "0.1"
 
-traj_4:       &traj_4
-  <<:         *traj_2
-  dt:         "0.5"
-  max_gen:    4
-  n_acc:      1
-  n_dst:      3
+traj_1_rs:    &traj_1_rs
+  <<:         *traj_1_r
+  step_dst:   0.05
+  dst_scale:  True
+
+traj_1_rsolve:    &traj_1_rsolve
+  <<:         *traj_1_r
+  solve:      True
+
+traj_1_rssolve:    &traj_1_rssolve
+  <<:         *traj_1_rs
+  solve:      True
