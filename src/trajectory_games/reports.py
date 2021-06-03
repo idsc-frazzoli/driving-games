@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
-from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults
+from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG
 from zuper_commons.text import remove_escapes
 from decimal import Decimal as D
 
@@ -19,6 +19,10 @@ from .preference import PosetalPreference
 from .paths import Trajectory
 from .visualization import TrajGameVisualization
 from .metrics_def import PlayerOutcome
+
+
+STACK_JPG = False
+MIME = MIME_JPG if STACK_JPG else MIME_PNG
 
 
 def report_game_visualization(game: Game) -> Report:
@@ -116,7 +120,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
 
     if nodes_strong is None:
         nodes_strong = set()
-    with report.data_file(title, MIME_PNG) as fn:
+    with report.data_file(title, MIME) as fn:
         plot_dict = viz.get_plot_dict()
         fig, axs, all_idx = get_stack_figure((plot_dict.get_size()))
         for node in nodes:
@@ -344,7 +348,7 @@ def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGa
     def stack_prefs(pname: PlayerName, pprefs: List[Preference]):
         # Plot all prefs for all players as a grid
         pviz = r_pref.figure(f"Preferences_{pname}", cols=1)
-        with pviz.data_file(f"Preferences_{pname}", MIME_PNG) as fn:
+        with pviz.data_file(f"Preferences_{pname}", MIME) as fn:
             pref_dict = game.game_vis.get_pref_dict(player=pname)
             fig, axs, all_idx = get_stack_figure(size=pref_dict.get_size())
             for pref in pprefs:
@@ -572,7 +576,7 @@ def create_animation_recursive(fn: str, game: Game,
         return get_list()
 
     times = agg_actions[result.lf.leader].get_sampling_points()
-    dt_ms = 2 * int((times[1] - times[0]) * 1000)
+    dt_ms = int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
-                         frames=times, interval=dt_ms, blit=True, repeat_delay=2 * dt_ms)
+                         frames=times, interval=dt_ms, blit=True, repeat_delay=0)
     anim.save(fn, dpi=80, writer="imagemagick")

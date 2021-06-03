@@ -72,9 +72,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
         size = (axis.bbox.height/400.0)**2
         for path in actions:
-            vals = [(x.x, x.y, x.t) for _, x in path]
-            x, y, t = zip(*vals)
-            axis.scatter(x, y, s=size, c=t, zorder=10)
+            vals = [(x.x, x.y, x.v) for _, x in path]
+            x, y, vel = zip(*vals)
+            axis.scatter(x, y, s=size, c=vel, zorder=10)
 
     def plot_pref(self, axis, pref: PosetalPreference,
                   pname: PlayerName, origin: Tuple[float, float],
