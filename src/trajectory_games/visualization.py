@@ -64,17 +64,19 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
     def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
                         colour: VehicleGeometry.COLOUR,
-                        width: float = 1.0, alpha: float = 1.0, ticks: bool = True):
+                        width: float = 1.0, alpha: float = 1.0,
+                        ticks: bool = True, scatter: bool = True):
 
         self.plot_actions(axis=axis, actions=actions,
                           colour=colour, width=width,
                           alpha=alpha, ticks=ticks)
 
-        size = (axis.bbox.height/400.0)**2
-        for path in actions:
-            vals = [(x.x, x.y, x.v) for _, x in path]
-            x, y, vel = zip(*vals)
-            axis.scatter(x, y, s=size, c=vel, zorder=10)
+        if scatter:
+            size = (axis.bbox.height/400.0)**2
+            for path in actions:
+                vals = [(x.x, x.y, x.v) for _, x in path]
+                x, y, vel = zip(*vals)
+                axis.scatter(x, y, s=size, c=vel, zorder=10)
 
     def plot_pref(self, axis, pref: PosetalPreference,
                   pname: PlayerName, origin: Tuple[float, float],
@@ -108,6 +110,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
         if add_title:
             axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
+            axis.set_ylim(top=Y+15.0)
 
     def plot_actions(self, axis, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR = None,

@@ -73,8 +73,8 @@ weights_4:
   CollisionEnergy:            10.0
 
 weights_5:
-  DeviationLateral:           0.5
-  DeviationHeading:           0.5
+  DeviationLateral:           1.0
+  DeviationHeading:           1.0
 #  ProgressAlongReference:     2.0
 
 # Time + area violation
@@ -83,8 +83,7 @@ weights_6:
   DrivableAreaViolation:      0.4
 
 weights_7:
-  ProgressAlongReference:     0.05
-#  EpisodeTime:                0.1
+  ProgressAlongReference:     1.0
   DrivableAreaViolation:      1.0
 
 weight_sp_comf:

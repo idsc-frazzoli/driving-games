@@ -1,7 +1,10 @@
 from copy import deepcopy
 from os.path import join
 from typing import Mapping, Dict
+
+import os
 from reprep import Report
+from yaml import safe_load
 
 from trajectory_games import (
     TrajectoryGame,
@@ -21,10 +24,12 @@ from trajectory_games import (
     report_leader_follower_solution,
     solve_recursive_game,
     report_leader_follower_recursive,
+    config_dir,
+    VehicleState,
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
-plot_gif = False                 # gif vs image for viz
+plot_gif = True                 # gif vs image for viz
 only_traj = False               # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"
@@ -91,9 +96,44 @@ def test_trajectory_game_best_response():
     report_single(game=game, nash_eq=nash_eq, folder=folder)
 
 
+def test_trajectory_game_lexi():
+    folder = "presentation/"
+
+    players_file = os.path.join(config_dir, "players.yaml")
+    with open(players_file) as load_file:
+        config = safe_load(load_file)
+    states = config["states"]
+    prefs = config["prefs"]
+
+    game: TrajectoryGame = get_trajectory_game()
+    report = Report()
+
+    pname = next(iter(game.game_players.keys()))
+    player = game.game_players[pname]
+    for i in range(len(states)):
+        player.state = game.ps.unit(VehicleState.from_config(name=states[i], lane=next(iter(game.world.get_lanes(pname)))))
+        for j in range(len(prefs)):
+            try:
+                player.preference = PosetalPreference(pref_str=prefs[j], use_cache=False)
+            except:
+                a = 2
+
+            context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
+            nash_eq: Mapping[str, SolvedTrajectoryGame] = \
+                iterative_best_response(context=context, n_runs=1)
+            game.game_vis.init_plot_dict(values=nash_eq["weak"])
+            r_game = Report(f"State={i+1}, Pref={j+1}")
+            r_game.add_child(report_game_visualization(game=game))
+            create_reports(game=game, nash_eq=nash_eq, r_game=r_game)
+            player_prefs = {p.name: p.preference for p in game.game_players.values()}
+            r_game.add_child(report_preferences(viz=game.game_vis, players=player_prefs))
+            report.add_child(r_game)
+    report.to_html(join(d, folder + filename))
+
+
 def test_trajectory_game_levels():
-    folder = "levels/"
-    pref = "pref_d7"
+    folder = "levels_cases/"
+    pref = "pref_level"
 
     game = get_trajectory_game()
     sol = Solution()
@@ -106,12 +146,11 @@ def test_trajectory_game_levels():
 
     def play_stage(stage: int) -> Mapping[str, SolvedTrajectoryGame]:
         print(f"\nLevel = {stage}")
-        name = str(stage) if stage <= 7 else f"w{stage-7}"
+        name = str(stage)
         update_prefs(suffix=name)
         context = preprocess_full_game(sgame=game, only_traj=only_traj)
-        cache_dom = stage <= 3  # Preferences are not extra levels of previous after this!
-        stage_eq = sol.solve_game(context=context, cache_dom=cache_dom)
-        if game.game_vis.plot_dict is None and len(stage_eq["weak"]) <= 100:
+        stage_eq = sol.solve_game(context=context, cache_dom=True)
+        if game.game_vis.plot_dict is None and len(stage_eq["weak"]) <= 200:
             game.game_vis.init_plot_dict(values=stage_eq["weak"])
         if stage not in r_levels:
             rep = Report()
@@ -121,10 +160,9 @@ def test_trajectory_game_levels():
             r_levels[stage] = node
         return stage_eq
 
-    for i in range(3, 18):
-        _ = play_stage(stage=i)
-
-    nash_eqf = play_stage(stage=7)
+    nash_eqf: Mapping[str, SolvedTrajectoryGame] = None
+    for i in range(1, 5):
+        nash_eqf = play_stage(stage=i+1)
 
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))

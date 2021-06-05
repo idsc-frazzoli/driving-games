@@ -69,3 +69,9 @@ traj_1_rsolve:    &traj_1_rsolve
 traj_1_rssolve:    &traj_1_rssolve
   <<:         *traj_1_rs
   solve:      True
+
+traj_2:            &traj_2
+  <<:         *traj_1_rs
+  max_gen:    2
+  n_acc:      3
+  n_dst:      3

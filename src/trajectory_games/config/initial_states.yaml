@@ -26,3 +26,13 @@ state_4:
   <<: *state
   s0:     12.0
   v0:     3.0
+
+state_5:
+  <<: *state
+  s0:     8.0
+  v0:     5.0
+
+state_6:
+  <<: *state
+  s0:     8.0
+  v0:     6.0

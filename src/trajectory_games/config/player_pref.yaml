@@ -388,3 +388,30 @@ pref_lf_ci:                   &pref_lf_ci
   CollisionEnergy:            ["DrivableAreaViolation"]
   weights_speed:              ["DrivableAreaViolation"]
   weights_comf:               ["DrivableAreaViolation"]
+
+# Pref for levels
+pref_level_1:                 &pref_level_1
+  CollisionEnergy:            [ ]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  MinimumClearance:           ["DrivableAreaViolation"]
+
+pref_level_2:                 &pref_level_2
+  <<: *pref_level_1
+  EpisodeTime:                ["MinimumClearance"]
+  LateralComfort:             ["MinimumClearance"]
+  LongitudinalAcceleration:   ["MinimumClearance"]
+
+pref_level_3:                 &pref_level_3
+  <<: *pref_level_1
+  EpisodeTime:                ["MinimumClearance"]
+  LateralComfort:             ["EpisodeTime"]
+  LongitudinalAcceleration:   ["EpisodeTime"]
+
+pref_level_4:                 &pref_level_4
+  <<: *pref_level_1
+  EpisodeTime:                ["MinimumClearance"]
+  weights_comf:               ["EpisodeTime"]
+
+pref_level_5:                 &pref_level_5
+  <<: *pref_level_4
+  weights_5:                  ["weights_comf"]

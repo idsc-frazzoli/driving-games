@@ -205,14 +205,17 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                 continue
             viz.plot_equilibria(axis=axis, actions=frozenset(actions),
                                 colour=game.game_players[pname].vg.colour,
-                                width=w, alpha=w)
+                                width=w, alpha=w, scatter=False)
 
     def plot_pref(rep: Report):
-        with rep.plot("pref") as pylab:
+        with rep.data_file("Pref", MIME) as fn:
             player = list(game.game_players.values())[0]
-            ax: Axes = pylab.gca()
-            viz.plot_pref(axis=ax, pref=player.preference, pname=player.name, origin=(0.0, 0.0))
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 8))
+            viz.plot_pref(axis=ax, pref=player.preference, pname=player.name,
+                          origin=(0.0, 0.0), add_title=False)
             ax.set_xlim(-125.0, 125.0)
+            fig.savefig(fn, **RepRepDefaults.savefig_params)
+            plt.close(fig=fig)
 
     def image_eq(report: Report):
         eq_viz = report.figure(cols=2)
@@ -230,7 +233,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                 plot_eq_all(axis=ax, actions_all=actions_weak, w=0.5)
                 plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0)
 
-            plot_pref(rep=eq_viz)
+        plot_pref(rep=eq_viz)
 
     if plot_gif:
         i = 1
@@ -241,12 +244,13 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             i += 1
     else:
         rplot = Report(f"Equilibria")
-        if len(node_set) > 100:
+        if len(node_set) > 200:
             image_eq(report=rplot)
         else:
-            eq_viz = rplot.figure(cols=1)
+            eq_viz = rplot.figure(cols=2)
             stack_nodes(report=eq_viz, viz=viz, title="all_equilibria", players=game.game_players,
                         nodes=node_set, nodes_strong=nash_eq["strong"])
+            plot_pref(rep=eq_viz)
         req.add_child(rplot)
 
     r_all.add_child(req)
@@ -305,9 +309,9 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     lens = [_.get_end() for _ in actions]
     longest = lens.index(max(lens))
     times = actions[longest].get_sampling_points()
-    dt_ms = 2 * int((times[1] - times[0]) * 1000)
+    dt_ms = int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
-                         frames=times, interval=dt_ms, blit=True)
+                         frames=times, interval=dt_ms, blit=True, repeat_delay=0)
     anim.save(fn, dpi=80, writer="imagemagick")
 
 

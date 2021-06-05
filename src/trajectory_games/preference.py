@@ -163,7 +163,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
             for root in roots:
                 all_lens = [len(x) for x in all_simple_paths(self.graph, source=root, target=node)]
                 if len(all_lens) > 0:
-                    level = max(level, max(all_lens))
+                    level = max(level, max(all_lens)-1)
             if level not in level_nodes:
                 level_nodes[level] = set()
             level_nodes[level].add(node)
@@ -173,7 +173,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
         scale = 40.0
         for deg, nodes in level_nodes.items():
             n_nodes = len(nodes)
-            start = -(n_nodes - 1) / 2 - (0.0 if n_nodes % 2 == 1 else 0.2)
+            start = -(n_nodes - 1) / 2
             i = 0
             for node in nodes:
                 self.graph.nodes[node]["x"] = (start + i) * scale * 2.0
