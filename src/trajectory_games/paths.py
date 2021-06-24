@@ -23,10 +23,17 @@ FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
 
 class Trajectory:
-    """ Container for trajectory - sequence of vehicle states """
+    """ Container for a trajectory - sequence of vehicle states """
+
     traj: List["Trajectory"]
+    """ A trajectory can also be made up of multiple smaller trajectories.
+        This is used for evaluation of trajectory metrics where the 
+        outcomes are cached using the trajectory as the key """
+
     states: SampledSequence[VehicleState]
+    """ The upsampled sequence of vehicle states """
     lane: LaneSegmentHashable
+    """ The reference lane used to generate the trajectory """
 
     def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
                  lane: LaneSegmentHashable,
@@ -68,7 +75,7 @@ class Trajectory:
 
     @staticmethod
     def trim_trajectory(states: List[VehicleState], p_final: FinalPoint) -> bool:
-        """ Trims trajectory till p_final and returns if it trimmed or not """
+        """ Trims trajectory till p_final (if longer) and returns if trimming was performed or not """
         x_f, y_f, increase = p_final
         assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
         if x_f is not None:
@@ -138,12 +145,13 @@ class Trajectory:
         return str(states)
 
     def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
+        """ Combines trajectories into a bigger trajectory """
         if other is None:
             return self
         x1, x2 = self.at(self.get_end()), other.at(other.get_start())
         if not x1.is_close(x2):
             raise ValueError(f"Transitions not continuous - {x1, x2}")
-        return Trajectory(values=self.traj+other.traj)
+        return Trajectory(values=self.traj+other.traj, lane=other.get_lane())
 
     def starts_with(self, start: "Trajectory") -> bool:
         if len(start) > len(self): return False
@@ -153,10 +161,13 @@ class Trajectory:
 
 
 class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
-    """ Structure for storing all trajectories """
+    """ Structure for storing a graph of trajectory states """
     origin: VehicleState
+    """ Origin of the graph of states """
     lane: LaneSegmentHashable
+    """ Reference lane used to generate trajectories """
     trajectories: Dict[Tuple[VehicleState, VehicleState], Trajectory]
+    """ Store trajectories based on terminal states """
 
     def __init__(self, origin: VehicleState, lane: LaneSegmentHashable, **attr):
         super().__init__(**attr)

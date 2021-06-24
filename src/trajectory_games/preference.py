@@ -34,7 +34,10 @@ class WeightedPreference(Preference[PlayerOutcome]):
 
     name: str
     weights: Mapping[AllMetrics, D]
+    """ Weights of the different nodes. 
+    Each node can either be a metric or a weighted preference """
 
+    """ Internal parameters """
     _pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
     _config: Mapping = None
     _metric_dict: Dict[str, AllMetrics] = None
@@ -91,15 +94,25 @@ metric_type = NewType("metric", WeightedPreference)
 
 
 class PosetalPreference(Preference[PlayerOutcome]):
+    """ A preference specified over the various nodes.
+    Each node is a metric or a weighted combination of metrics (or weighted nodes) """
+
+    """ Internal parameters """
     _config: Mapping = None
     _complement = {FIRST_PREFERRED: SECOND_PREFERRED, SECOND_PREFERRED: FIRST_PREFERRED,
                    INDIFFERENT: INDIFFERENT, INCOMPARABLE: INCOMPARABLE}
     _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
+
     graph: DiGraph
+    """ Preference graph """
     _node_dict: Dict[str, metric_type] = {}
     level_nodes: Mapping[int, Set[metric_type]]
+    """ All nodes used, and sorted by level """
+
     pref_str: str
+    """ Name of preference """
     no_pref: bool = False
+    """ No preference over all the outcomes? """
 
     def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:

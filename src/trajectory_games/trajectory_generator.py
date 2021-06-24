@@ -24,7 +24,11 @@ Solve_Tolerance = 1e-3
 
 
 class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
+    """ Generate feasible trajectories for each player """
+
     params: TrajectoryParams
+
+    """ Internal data """
     _bicycle_dyn: BicycleDynamics
     _cache: Dict[Tuple[PlayerName, VehicleState], Set[TrajectoryGraph]]
 

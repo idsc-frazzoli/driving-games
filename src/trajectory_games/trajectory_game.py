@@ -37,6 +37,7 @@ __all__ = [
 ]
 
 JointPureTraj = Mapping[PlayerName, Trajectory]
+""" Joint action of all players in the game """
 
 
 @dataclass
@@ -57,14 +58,27 @@ class TrajectoryGame(Game[VehicleState, Trajectory,
 class LeaderFollowerParams:
     leader: PlayerName
     follower: PlayerName
+    """ Names of the player """
+
     pref_leader: Preference
     prefs_follower_est: Poss[Preference]
+    """ Pref of leader and all possible prefs of follower to solve the game """
+
     antichain_comparison: AntichainComparison
+    """ Antichain comparison method """
+
     solve_time: Timestamp
     simulation_step: Timestamp
+    """ Timestep for each solution and simulation [s]"""
+
     terminal_progress: float
+    """ Fraction of leader lane to finish game """
+
     update_prefs: bool
+    """ Update estimated preferences of follower online or not """
+
     pref_follower_real: Optional[Preference] = None
+    """ Real preference of follower used to simulate the game """
 
 
 @dataclass
@@ -93,29 +107,47 @@ class LeaderFollowerGameNode:
 
 @dataclass(unsafe_hash=True)
 class SolvedLeaderFollowerGame:
+    """ Single stage solution of the game """
+
     lf: LeaderFollowerParams
+    """ Game params"""
     games: Mapping[Trajectory, Mapping[Preference, LeaderFollowerGameNode]]
     """ All possible game results for both players """
     best_leader_actions: Mapping[Preference, Set[Trajectory]]
+    """ Best actions of leader for each estimated preference of follower """
     meet_leader_actions: Set[Trajectory]
+    """ Best actions of leader for meet of estimated prefs of follower """
 
 
 @dataclass
 class LeaderFollowerGameStage:
+    """ Single stage of the game """
+
     lf: LeaderFollowerParams
+    """ Game params """
     context: LeaderFollowerGameSolvingContext
+    """ Current context to solve the game """
+
     lf_game: SolvedLeaderFollowerGame
     game_node: SolvedTrajectoryGameNode
+    """ Game solution """
+
     best_responses_pred: Set[Trajectory]
+    """ Predicted best responses of follower """
     states: Mapping[PlayerName, Poss[VehicleState]]
+    """ Initial states of both players """
     time: Timestamp
+    """ Time of the stage solved [s] """
 
 
 @dataclass
 class SolvedRecursiveLeaderFollowerGame:
+    """ Entire recursive multistage game as a sequence of stages """
+
     lf: LeaderFollowerParams
     stages: SampledSequence[LeaderFollowerGameStage]
     aggregated_node: SolvedTrajectoryGameNode
+    """ Final aggregated actions and outcomes of players """
 
 
 def compute_outcomes(iterable, sgame: Game):
@@ -171,17 +203,6 @@ def preprocess_full_game(sgame: Game, only_traj: bool = False) -> SolvingContext
             sgame.get_outcomes(joint_traj)  # Outcomes are cached inside get_outcomes
         toc = perf_counter() - tic
         print(f"Preprocess_full: outcomes evaluation time = {toc:.2f} s")
-
-    # from multiprocessing import Pool
-    # joint_traj_dict = {k: v for k, v in enumerate(set(iterate_dict_combinations(available_traj)))}
-    # tic = perf_counter()
-    # pool = Pool()
-    # # TODO[SIR]: Metric cache is not shared between threads now
-    # pool_res = pool.map_async(func=sgame.get_outcomes, iterable=joint_traj_dict.values())
-    # pool_res.get()
-    # print(f"Outcomes Eval Time = {perf_counter() - tic}s")
-    # pool.close()
-    # pool.join()
 
     return get_context(sgame=sgame, actions=available_traj)
 

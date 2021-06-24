@@ -45,6 +45,7 @@ U_all = TypeVar("U_all")
 """Generic variable for all possible actions"""
 
 JointOutcome = Mapping[PlayerName, P]
+""" Type for joint outcome of all players """
 
 
 class ActionGraph(Generic[U], ABC):
@@ -52,7 +53,7 @@ class ActionGraph(Generic[U], ABC):
 
 
 class ActionSetGenerator(Generic[X, U, W], ABC):
-    """ A generic getter for the available actions """
+    """ A generic generator for the possible actions """
 
     @abstractmethod
     def get_actions_static(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
@@ -63,12 +64,17 @@ Key = TypeVar("Key")
 
 
 class PlotStackDictionary(Generic[Key]):
+    """ Dictionary to stack plots together at fixed places """
     rows: int
     cols: int
     next_idx: int
     indices: Dict[Key, Tuple[int, int]]
 
     def __init__(self, values: Set[Key], row: bool = False):
+        """
+            Construct a dictionary using all possible keys and bool for fixed row size
+            Requires only the type of key to typeset and the number of keys
+        """
         n_nodes = len(values)
         assert n_nodes > 0
         self.cols = math.ceil(n_nodes ** 0.5) if not row else min(n_nodes, 6)
@@ -80,6 +86,7 @@ class PlotStackDictionary(Generic[Key]):
         return self.rows, self.cols
 
     def __getitem__(self, item: Key) -> Tuple[int, int]:
+        """ Returns the index of a key if available, else sets a new position and returns """
         if item in self.indices:
             return self.indices[item]
         if self.next_idx >= self.rows * self.cols:
@@ -97,7 +104,10 @@ class PlotStackDictionary(Generic[Key]):
 class GameVisualization(Generic[X, U, W], ABC):
     """ A generic game visualization interface """
     plot_dict: Optional[PlotStackDictionary] = None
+    """ Dictionary for stacking game plots together """
+
     pref_dict: Optional[Mapping[PlayerName, PlotStackDictionary]] = None
+    """ Dictionaries for stacking preference plots together for each player """
 
     @abstractmethod
     def plot_arena(self, axis):
@@ -173,7 +183,7 @@ class Game(Generic[X, U, W, P, G]):
     ps: PossibilityMonad
     """The game monad"""
     get_outcomes: Callable[[JointPureActions], JointOutcome]
-    """The "game dynamics", given a pure action for each player, we have a distribution of outcomes"""
+    """The "game dynamics", given a pure action for each player, we have outcomes for each player"""
     game_vis: GameVisualization[X, U, W]
     """The game visualization"""
 
@@ -206,7 +216,7 @@ class StaticSolverParams(SolverParams):
     dt: Optional[Decimal] = None
     use_factorization: Optional[bool] = None
     use_best_response: bool = False
-    """ Only use best responses for leader - follower game or all possible actions"""
+    """ Only use best responses for leader - follower game or all possible actions """
 
 
 @dataclass

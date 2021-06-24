@@ -12,10 +12,8 @@ __all__ = ["BicycleDynamics"]
 
 class BicycleDynamics:
     v_max: float
-    """ Maximum speed [m/s] """
-
     v_min: float
-    """ Minimum speed [m/s] """
+    """ Maximum and Minimum velocities [m/s] """
 
     st_max: float
     """ Maximum steering angle [rad] """

@@ -27,11 +27,12 @@ class MetricEvaluationContext:
     """ World object. """
 
     transitions: Mapping[PlayerName, Trajectory]
-    """ Sampled vehicle transitions for each player """
+    """ Trajectory for each player """
 
+    """ Internal data """
     _points_cart: Mapping[PlayerName, List[SE2Transform]] = None
     _points_curv: Mapping[PlayerName, List[LanePose]] = None
-    """ Sampled vehicle transitions for each player 
+    """ Sampled vehicle states for each player 
         Cache and reuse for all rules."""
 
     _cache_cart: Dict[Trajectory, List[SE2Transform]] = None

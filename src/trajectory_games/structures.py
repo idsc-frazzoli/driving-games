@@ -17,7 +17,11 @@ __all__ = [
 
 @dataclass
 class VehicleGeometry:
+    """ Geometry parameters of the vehicle"""
+
     COLOUR = Tuple[float, float, float]
+    """ An alias to store the RGB values of a colour """
+
     m: float
     """ Car Mass [kg] """
     w: float
@@ -31,20 +35,26 @@ class VehicleGeometry:
     """ Cached config, loaded from file """
 
     @classmethod
+    def _load_all_configs(cls):
+        if cls._config is None:
+            filename = os.path.join(config_dir, "vehicles.yaml")
+            with open(filename) as load_file:
+                cls._config = safe_load(load_file)
+
+    @classmethod
     def default(cls) -> "VehicleGeometry":
         return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
 
     @classmethod
     def load_colour(cls, name: str) -> COLOUR:
+        """ Load the colour name from the possible colour configs"""
+
         def default():
             return 1, 1, 1
 
         if len(name) == 0:
             return default()
-        if cls._config is None:
-            filename = os.path.join(config_dir, "vehicles.yaml")
-            with open(filename) as load_file:
-                cls._config = safe_load(load_file)
+        cls._load_all_configs()
         if name in cls._config["colours"].keys():
             colour = tuple(_ for _ in cls._config["colours"][name])
         else:
@@ -54,12 +64,10 @@ class VehicleGeometry:
 
     @classmethod
     def from_config(cls, name: str) -> "VehicleGeometry":
+        """ Load the vehicle geometry from the possible vehicle configs"""
         if len(name) == 0:
             return cls.default()
-        if cls._config is None:
-            filename = os.path.join(config_dir, "vehicles.yaml")
-            with open(filename) as load_file:
-                cls._config = safe_load(load_file)
+        cls._load_all_configs()
         if name in cls._config.keys():
             config = cls._config[name]
             vg = VehicleGeometry(
@@ -213,18 +221,32 @@ class VehicleState:
 @dataclass
 class TrajectoryParams:
     solve: bool
+    """ Generate trajectory by solving BVP at every stage or not """
     s_final: float
+    """ Fraction of reference to generate trajectories - negative for finite time """
     max_gen: int
+    """ Number of stages for trajectory generation """
     dt: D
+    """ Sampling time [s] """
+
     u_acc: FrozenSet[float]
     u_dst: FrozenSet[float]
+    """ Possible accelerations and steering rates to be sampled [m/s2] """
+
     v_max: float
     v_min: float
+    """ Velocity hard limits [m/s] """
+
     st_max: float
     dst_max: float
+    """ Steering angle and rate hard limits [rad],[rad/s] """
+
     dt_samp: D
+    """ Timestamp for upsampling trajectories [s] """
     dst_scale: bool
+    """ Scale target lateral deviation with velocity or not """
     vg: VehicleGeometry
+    """ Vehicle geometry parameters """
 
     _config: Dict = None
     """ Cached config, loaded from file """
