@@ -37,7 +37,7 @@ with open(leader_follower_file) as load_file:
     config_lf = safe_load(load_file)["leader_follower"]
 
 
-def get_trajectory_game() -> TrajectoryGame:
+def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     tic = perf_counter()
     lanes: Dict[PlayerName, Set[LaneSegmentHashable]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
@@ -47,7 +47,7 @@ def get_trajectory_game() -> TrajectoryGame:
     ps = PossibilitySet()
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
-    for pname, pconfig in config["players"].items():
+    for pname, pconfig in config[config_str]["players"].items():
         lanes[pname] = set()
         # TODO[SIR]: Check that all lanes start at the same node
         for lane_id in pconfig["lane"]:
@@ -86,7 +86,7 @@ ac_comp = {"JOIN_ACCOMP": JOIN_ACCOMP, "EXP_ACCOMP": EXP_ACCOMP}
 
 
 def get_leader_follower_game() -> LeaderFollowerGame:
-    game = get_trajectory_game()
+    game = get_trajectory_game(config_str="lf")
 
     def get_pref1(name: str) -> PosetalPreference:
         return PosetalPreference(pref_str=name, use_cache=False)

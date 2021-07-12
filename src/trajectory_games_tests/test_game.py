@@ -68,7 +68,7 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: TrajectoryGame = get_trajectory_game()
+    game: TrajectoryGame = get_trajectory_game(config_str="basic")
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
@@ -84,7 +84,7 @@ def test_trajectory_game_best_response():
     folder = "best_response/"
     n_runs = 100      # Number of random runs for best response
 
-    game: TrajectoryGame = get_trajectory_game()
+    game: TrajectoryGame = get_trajectory_game(config_str="basic")
     context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
 
     if only_traj:
@@ -97,15 +97,15 @@ def test_trajectory_game_best_response():
 
 
 def test_trajectory_game_lexi():
-    folder = "presentation/"
+    folder = "lexi/"
 
     players_file = os.path.join(config_dir, "players.yaml")
     with open(players_file) as load_file:
-        config = safe_load(load_file)
+        config = safe_load(load_file)["lexi"]
     states = config["states"]
     prefs = config["prefs"]
 
-    game: TrajectoryGame = get_trajectory_game()
+    game: TrajectoryGame = get_trajectory_game(config_str="lexi")
     report = Report()
 
     pname = next(iter(game.game_players.keys()))
@@ -135,7 +135,7 @@ def test_trajectory_game_levels():
     folder = "levels_cases/"
     pref = "pref_level"
 
-    game = get_trajectory_game()
+    game = get_trajectory_game(config_str="basic")
     sol = Solution()
 
     def update_prefs(suffix: str):

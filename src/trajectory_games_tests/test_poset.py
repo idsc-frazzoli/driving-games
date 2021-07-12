@@ -220,7 +220,8 @@ def check_subset(A: PosetalPreference, B: PosetalPreference) -> bool:
 def test_compare_posets():
 
     # Initialise prefs (pref[0] is empty)
-    prefs = [PosetalPreference(pref_str=f"comp_{i}", use_cache=False) for i in range(15)]
+    prefs = [PosetalPreference(pref_str="NoPreference", use_cache=False)] +\
+            [PosetalPreference(pref_str=f"comp_{i}", use_cache=False) for i in range(1, 15)]
 
     results: Dict[Tuple[int, int], ComparisonOutcome] = {
         (1, 2): INCOMPARABLE,

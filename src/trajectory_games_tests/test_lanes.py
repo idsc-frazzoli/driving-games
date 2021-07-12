@@ -1,12 +1,11 @@
 import os
 from os.path import join
-from typing import Dict
+from typing import Dict, Set
 
 from reprep import Report
 from yaml import safe_load
 import numpy as np
 import geometry as geo
-from decimal import Decimal as D
 
 from games import PlayerName
 from trajectory_games import config_dir, TrajGameVisualization, TrajectoryWorld, VehicleGeometry
@@ -22,7 +21,7 @@ def test_lanes():
 
     duckie_map = load_driving_game_map(map_name)
 
-    lanes: Dict[PlayerName, LaneSegmentHashable] = {}
+    lanes: Dict[PlayerName, Set[LaneSegmentHashable]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
 
     def wrap(ang: float) -> float:
@@ -51,8 +50,8 @@ def test_lanes():
             print("Lane is good, no discontinuities")
         else:
             player = PlayerName(f"P_{i}")
-            lanes[player] = lane
-            geometries[player] = VehicleGeometry(m=D("100"), w=D("1"), l=D("1"), colour=(1, 0, 0))
+            lanes[player] = set(lane)
+            geometries[player] = VehicleGeometry(m=100.0, w=1.0, l=1.0, colour=(1, 0, 0))
             i += 1
 
     print(f"\n\nTotal bad lanes = {i-1}")
@@ -62,7 +61,7 @@ def test_lanes():
     r = Report("Trajectories")
     with r.plot("actions") as pylab:
         ax = pylab.gca()
-        with viz.plot_arena(pylab, ax):
+        with viz.plot_arena(axis=ax):
             pass
     d = "out/tests/"
     r.to_html(join(d, "r_lanes.html"))
