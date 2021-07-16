@@ -1,0 +1,180 @@
+
+#weights:                      Weights for all the metrics
+#  EpisodeTime:                weight
+#  DeviationLateral:           weight
+#  DeviationHeading:           weight
+#  DrivableAreaViolation:      weight
+#  ProgressAlongReference:     weight
+#  LongitudinalAcceleration:   weight
+#  LateralComfort:             weight
+#  SteeringAngle:              weight
+#  SteeringRate:               weight
+#  CollisionEnergy:            weight
+#  MinimumClearance:           weight
+
+## Raw metric nodes
+EpisodeTime:
+  EpisodeTime:             1.0
+DeviationLateral:
+  DeviationLateral:         1.0
+DeviationHeading:
+  DeviationHeading:         1.0
+DrivableAreaViolation:
+  DrivableAreaViolation:    1.0
+ProgressAlongReference:
+  ProgressAlongReference:   1.0
+LongitudinalAcceleration:
+  LongitudinalAcceleration: 1.0
+LateralComfort:
+  LateralComfort:           1.0
+SteeringAngle:
+  SteeringAngle:            1.0
+SteeringRate:
+  SteeringRate:             1.0
+CollisionEnergy:
+  CollisionEnergy:          1.0
+MinimumClearance:
+  MinimumClearance:         1.0
+
+## Combination metric nodes
+# pref_1
+weights_1:
+  DrivableAreaViolation:      5.0
+  ProgressAlongReference:     2.0
+  LateralComfort:             2.0
+  CollisionEnergy:            10.0
+
+# pref_2
+weights_2:
+  DeviationLateral:           0.5
+  DeviationHeading:           0.5
+  DrivableAreaViolation:      5.0
+  ProgressAlongReference:     2.0
+  LongitudinalAcceleration:   1.0
+  LateralComfort:             2.0
+  CollisionEnergy:            10.0
+
+# pref_3
+weights_3:
+  DeviationLateral:           0.5
+  DeviationHeading:           0.5
+  DrivableAreaViolation:      5.0
+  ProgressAlongReference:     0.5
+  LongitudinalAcceleration:   1.0
+  LateralComfort:             2.0
+  CollisionEnergy:            10.0
+
+# pref_4
+weights_4:
+  DeviationLateral:           0.5
+  DeviationHeading:           0.5
+  DrivableAreaViolation:      5.0
+  ProgressAlongReference:     2.0
+  CollisionEnergy:            10.0
+
+weights_5:
+  DeviationLateral:           1.0
+  DeviationHeading:           1.0
+#  ProgressAlongReference:     2.0
+
+# Time + area violation
+weights_6:
+  EpisodeTime:                1.0
+  DrivableAreaViolation:      0.4
+
+weights_7:
+  ProgressAlongReference:     1.0
+  DrivableAreaViolation:      1.0
+
+weight_sp_comf:
+  EpisodeTime:                1.0
+  LateralComfort:             1.0
+
+# Time + long / lat comfort metrics
+weights_conv222:
+  EpisodeTime:                2.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv422:
+  EpisodeTime:                4.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv421:
+  EpisodeTime:                4.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   1.0
+
+weights_conv412:
+  EpisodeTime:                4.0
+  LateralComfort:             1.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv242:
+  EpisodeTime:                2.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv142:
+  EpisodeTime:                1.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   2.0
+
+weights_conv241:
+  EpisodeTime:                2.0
+  LateralComfort:             4.0
+  LongitudinalAcceleration:   1.0
+
+weights_conv224:
+  EpisodeTime:                2.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   4.0
+
+weights_conv124:
+  EpisodeTime:                1.0
+  LateralComfort:             2.0
+  LongitudinalAcceleration:   4.0
+
+weights_conv214:
+  EpisodeTime:                2.0
+  LateralComfort:             1.0
+  LongitudinalAcceleration:   4.0
+
+weights_speed:
+  EpisodeTime:                1.0
+  ProgressAlongReference:     1.0
+
+weights_comf:
+  LateralComfort:             1.0
+  LongitudinalAcceleration:   1.0
+
+weights_lf1:
+  CollisionEnergy:            4.0
+  weights_speed:              2.0
+  weights_comf:               1.0
+
+weights_lf2:
+  CollisionEnergy:            4.0
+  weights_speed:              1.0
+  weights_comf:               2.0
+
+weights_lf3:
+  CollisionEnergy:            2.0
+  weights_speed:              4.0
+  weights_comf:               1.0
+
+weights_lf4:
+  CollisionEnergy:            1.0
+  weights_speed:              4.0
+  weights_comf:               2.0
+
+weights_lf5:
+  CollisionEnergy:            2.0
+  weights_speed:              1.0
+  weights_comf:               4.0
+
+weights_lf6:
+  CollisionEnergy:            1.0
+  weights_speed:              2.0
+  weights_comf:               4.0

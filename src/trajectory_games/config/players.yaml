@@ -1,0 +1,69 @@
+
+#map_name: Map to load (from worlds)
+map_name: "4way-double-intersection-only"
+
+#players:    List of players in the game
+#  P1:        Player Name
+#    state:    Initial state (from initial_states.yaml)
+#    traj:     Trajectory params (from trajectories.yaml)
+#    pref:     Player preference (from player_pref.yaml)
+#    lane:     Lane to follow (from lanes.yaml for current map)
+#    vg:       Vehicle geometry (from vehicles.yaml)
+#  P2: ...
+
+basic:
+  players:
+    P1:
+      state:    "state_1"
+      traj:     "traj_1_3"
+      pref:     "pref_d6"
+      lane:     ["rl2"]
+      vg:       "green_car"
+    P2:
+      state:    "state_2"
+      traj:     "traj_1_3"
+      pref:     "pref_d6"
+      lane:     ["dl2"]
+      vg:       "blue_car"
+  #  P3:
+  #    state:    "state_3"
+  #    traj:     "traj_1_3"
+  #    pref:     "pref_d4"
+  ##    lane:     ["ud1", "ud3"]
+  #    lane:     ["ud1"]
+  #    vg:       "red_bicycle"
+  #  P4:
+  #    state:    "state_3"
+  #    traj:     "traj_1_3"
+  #    pref:     "pref_9"
+  #    lane:     ["lu2"]
+  #    vg:       "yellow_car"
+
+## Lexi config
+lexi:
+  players:
+    P1:
+      state:    "state_3"
+      traj:     "traj_2"
+      pref:     "NoPreference"
+      lane:     ["lu2"]
+      vg:       "red_bicycle"
+
+  states:       ["state_5", "state_6"]
+  prefs:        ["pref_8", "pref_9"]
+
+## LF Players
+lf:
+  players:
+    P1:
+      state:    "state_1"
+      traj:     "traj_1_r"
+      pref:     "pref_d6"
+      lane:     ["rl2"]
+      vg:       "green_car"
+    P2:
+      state:    "state_2"
+      traj:     "traj_1_rs"
+      pref:     "pref_d6"
+      lane:     ["dl2"]
+      vg:       "blue_car"

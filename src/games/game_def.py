@@ -19,6 +19,7 @@ __all__ = [
     "RP",
     "RJ",
     "SR",
+    "P",
     "Observations",
     "JointState",
     "JointPureActions",
