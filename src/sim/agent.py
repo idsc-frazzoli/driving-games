@@ -1,21 +1,10 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from decimal import Decimal
 from typing import Mapping, Callable
 
-from crash.simulate import SimTime, SimObservations
 from games import U, PlayerName, X
+from sim.simulator_structures import SimObservations, SimTime
 
-
-@dataclass
-class AgentState:
-    pass
-
-
-@dataclass
-class AgentAction:
-    x: float
-    y: str
+__all__ = ["Agent", "NPAgent", "PolicyAgent"]
 
 
 class Agent(ABC):

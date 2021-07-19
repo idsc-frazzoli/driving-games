@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
-from typing import Mapping, MutableMapping
+from typing import MutableMapping
 
 from dataclasses import dataclass
 
-from crash.agent import Agent
 from games import PlayerName, X, U
+
+__all__ = ["SimTime", "SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
 
 SimTime = Decimal
 
@@ -13,6 +14,7 @@ SimTime = Decimal
 @dataclass
 class SimParameters:
     dt: Decimal
+    """Simulation step in seconds"""
 
 
 @dataclass
@@ -40,17 +42,3 @@ class SimModel(ABC):
     @abstractmethod
     def get_footprint(self):
         pass
-
-
-@dataclass
-class SimContext:
-    models: Mapping[PlayerName, SimModel]
-    players: Mapping[PlayerName, Agent]
-    time: SimTime
-    log: SimulationLog
-    param: SimParameters
-    sim_terminated: bool
-    seed: int
-
-    def __post_init__(self):
-        assert all([player in self.models for player in self.players])
