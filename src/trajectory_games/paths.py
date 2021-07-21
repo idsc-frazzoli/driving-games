@@ -1,279 +1,219 @@
-import math
-from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, TypeVar, Generic, ClassVar, Type, Iterable, Union
-from decimal import Decimal as D
-from math import atan2
+import cachetools
+from cachetools import cached
+from functools import lru_cache
+from typing import List, Dict, Tuple, Optional, FrozenSet, Iterator, Union
 import numpy as np
-from scipy import interpolate
+from duckietown_world import SE2Transform
+from bisect import bisect_right
+from networkx import DiGraph, has_path, shortest_path
 
-from .sequence import SampledSequence, Timestamp
+from world import LaneSegmentHashable
+from .sequence import Timestamp, SampledSequence
 from .structures import VehicleState
+from .game_def import ActionGraph
 
 __all__ = [
-    "Curve",
-    "SplineCurve",
-    "Path",
-    "PathWithBounds",
-    "SplinePath",
-    "SplinePathWithBounds",
     "Trajectory",
+    "TrajectoryGraph",
+    "FinalPoint"
 ]
 
-X = TypeVar("X")
-ArrayLike = Union[np.ndarray, Iterable]
-
-
-class Curve(Generic[X], metaclass=ABCMeta):
-    """ Base class for 1d curves. """
-
-    XT: ClassVar[Type[X]] = object
-
-    @abstractmethod
-    def value_at_s(self, s: ArrayLike) -> List[X]:
-        """ Calculate value of curve at requested coordinates """
-
-    @abstractmethod
-    def derivative_at_s(self, s: ArrayLike) -> List[X]:
-        """ Calculate derivatives of curve at requested coordinates """
-
-
-class SplineCurve(Curve[X]):
-    """ Line class for linear interpolation of a curve. """
-
-    s: List[D]
-    """ Abscissa for interpolation of the curve. """
-    z: List[X]
-    """ Values of the curve at abscissa points """
-    _tck: Tuple[np.ndarray, np.ndarray, int]
-    """ Spline coefficients - generated automatically. """
-
-    def __init__(self, s: List[D], z: List[X], order: int):
-        if len(s) != len(z):
-            msg = "InterpCurve Length mismatch"
-            raise ValueError(msg)
-
-        for i in range(len(s) - 1):
-            ds = s[i + 1] - s[i]
-            if ds <= 0:
-                msg = "Invalid ds = %s at i = %s; ts= %s" % (ds, i, s)
-                raise ValueError(msg)
-
-        self.s = s
-        self.z = z
-        self._tck = interpolate.splrep(x=s, y=z, k=order)
-
-    def value_at_s(self, s: ArrayLike) -> List[X]:
-        """ Calculate value of curve at requested values """
-        s_np = np.array(s, dtype=float)
-        values = interpolate.splev(x=s_np, tck=self._tck, der=0, ext=2)
-        return [D(_) for _ in values]
-
-    def derivative_at_s(self, s: ArrayLike, order: int = 1) -> List[X]:
-        """Calculate derivatives of curve at requested values
-        Default is first derivative, but any order (<k) can be calculated"""
-        if order >= self._tck[-1]:
-            msg = "Max order for derivative is {}, requested {}".format(self._tck[-1] - 1, order)
-            raise ValueError(msg)
-        if order <= 0:
-            msg = "Derivative order needs to be positive, requested {}".format(order)
-            raise ValueError(msg)
-        s_np = np.array(s, dtype=float)
-        ret = interpolate.splev(x=s_np, tck=self._tck, der=order, ext=2)
-        return [D(_) for _ in ret]
-
-    def get_end(self) -> Timestamp:
-        return self.s[-1]
-
-
-class Path(Generic[X], metaclass=ABCMeta):
-    """ Base class for all 2d transitions. """
-
-    @abstractmethod
-    def get_s_limits(self) -> Tuple[D, D]:
-        """ Returns progress limits of reference """
-
-    @abstractmethod
-    def value_at_s(self, s: ArrayLike) -> List[Tuple[X, X]]:
-        """ Calculate [x,y] of transition at progress values """
-
-    @abstractmethod
-    def heading_at_s(self, s: ArrayLike) -> List[X]:
-        """ Calculate heading of transition at progress values """
-
-    @abstractmethod
-    def cartesian_to_curvilinear(self, xy: List[Tuple[X, X]]) -> List[Tuple[D, X]]:
-        """ Converts cartesian coordinates [x,y] to curvilinear [s,n] """
-
-    @abstractmethod
-    def curvilinear_to_cartesian(self, sn: List[Tuple[D, X]]) -> List[Tuple[X, X]]:
-        """ Converts curvilinear coordinates [s,n] to cartesian [x,y] """
-
-
-class PathWithBounds(Path[X], metaclass=ABCMeta):
-    """ Base class for reference paths with lane bounds """
-
-    @abstractmethod
-    def get_bounds_at_s(self, s: ArrayLike) -> List[Tuple[D, D]]:
-        """ Return left and right boundaries in curvilinear coordinates at progress """
-
-
-class SplinePath(Path[X]):
-    """ Path defined by splines. """
-
-    s: List[D]
-    """ Abscissa for interpolation of the curve. """
-    x: SplineCurve[X]
-    """ Curve for x-coordinate. """
-    y: SplineCurve[X]
-    """ Curve for y-coordinate. """
-    points: SampledSequence[Tuple[X, X]]
-    """ Sampled [x,y] points vs progress. """
-    deriv: SampledSequence[Tuple[X, X]]
-    """ Sampled [x,y] derivatives at points vs progress. """
-
-    def __init__(self, s: List[D], x: List[X], y: List[X], order: int):
-        self.x = SplineCurve(s=s, z=x, order=order)
-        self.y = SplineCurve(s=s, z=y, order=order)
-        self.s = s
-
-        # TODO[SIR]: Any better way than casting and recasting for numpy?
-        def cast_list(inp: ArrayLike) -> List[D]:
-            return [D(_) for _ in inp]
-
-        step: float = 0.1
-        p_s: ArrayLike = np.arange(float(s[0]), float(s[-1]), step)
-        p_x = self.x.value_at_s(p_s)
-        p_y = self.y.value_at_s(p_s)
-        p_xy = list(zip(cast_list(p_x), cast_list(p_y)))
-        p_s_D: List[D] = cast_list(p_s)
-        self.points = SampledSequence(timestamps=p_s_D, values=p_xy)
-        d_x = self.x.derivative_at_s(p_s, order=1)
-        d_y = self.y.derivative_at_s(p_s, order=1)
-        d_xy = list(zip(cast_list(d_x), cast_list(d_y)))
-        self.deriv = SampledSequence(timestamps=p_s_D, values=d_xy)
-
-    def get_s_limits(self) -> Tuple[D, D]:
-        return self.s[0], self.s[-1]
-
-    def value_at_s(self, s: ArrayLike) -> List[Tuple[X, X]]:
-        x = self.x.value_at_s(s)
-        y = self.y.value_at_s(s)
-        ret = list(zip(x, y))
-        return ret
-
-    def heading_at_s(self, s: ArrayLike) -> List[X]:
-        dx = self.x.derivative_at_s(s, order=1)
-        dy = self.y.derivative_at_s(s, order=1)
-
-        def calc_heading(x: X, y: X) -> D:
-            return D(atan2(y, x))
-
-        ret = [calc_heading(x, y) for x, y in zip(dx, dy)]
-        return ret
-
-    def cartesian_to_curvilinear(self, xy: List[Tuple[X, X]]) -> List[Tuple[D, X]]:
-        ret = []
-
-        def get_n(p1: Tuple[X, X], p2: Tuple[X, X]) -> X:
-            return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2).sqrt()
-
-        def get_n_sign(s_p: D, xy_p: Tuple[X, X]) -> int:
-            p_s = self.points.at(s_p)
-            d_s = self.deriv.at(s_p)
-            dx = xy_p[0] - p_s[0]
-            dy = xy_p[1] - p_s[1]
-            sign: int = -1 + 2 * ((d_s[0] * dy - d_s[1] * dx) > 0)
-            return sign
-
-        for p_xy in xy:
-            best_s: D = D("0")
-            best_n: D = D("1000")
-            for s, p in self.points:
-                n = get_n(p_xy, p)
-                if n < best_n:
-                    best_s = s
-                    best_n = n
-            ret.append((best_s, best_n * get_n_sign(best_s, p_xy)))
-
-        return ret
-
-    def curvilinear_to_cartesian(self, sn: List[Tuple[D, X]]) -> List[Tuple[X, X]]:
-        """ Converts curvilinear coordinates [s,n] to cartesian [x,y] """
-        s, n = zip(*sn)
-        heading = self.heading_at_s(s)
-        ref_points = self.value_at_s(s)
-        ret: List[X, X] = []
-        for head, (x_s, y_s), p_n in zip(heading, ref_points, n):
-            x = x_s - p_n * D(math.sin(head))
-            y = y_s + p_n * D(math.cos(head))
-            ret.append((x, y))
-        return ret
-
-
-class SplinePathWithBounds(PathWithBounds[X], SplinePath[X]):
-    """ Spline reference path with lane bounds """
-
-    left: Curve[D]
-    """ Left lane boundary """
-    right: Curve[D]
-    """ Right lane boundary """
-
-    # TODO[SIR]: Calculate s internally and don't force input
-    def __init__(
-        self,
-        s: List[D],
-        p_ref: List[Tuple[D, D]],
-        p_left: List[Tuple[D, D]],
-        p_right: List[Tuple[D, D]],
-        bounds_sn: bool = False,
-    ):
-        x, y = zip(*p_ref)
-        super().__init__(s, x, y, order=3)
-
-        def fit_curve(p: List[Tuple[D, D]]) -> Curve[D]:
-            sn: List[Tuple[D, D]] = p if bounds_sn else self.cartesian_to_curvilinear(p)
-            p_s, n = list(zip(*sn))
-            curve = SplineCurve(s=p_s, z=n, order=3)
-            return curve
-
-        self.left = fit_curve(p_left)
-        self.right = fit_curve(p_right)
-
-    def get_bounds_at_s(self, s: ArrayLike) -> List[Tuple[D, D]]:
-        """ Return left and right boundaries in curvilinear coordinates at progress """
-        left = self.left.value_at_s(s)
-        right = self.right.value_at_s(s)
-        ret = list(zip(right, left))
-        return ret
+# FinalPoint = (x_f, y_f, increase_flag)
+FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
 
 class Trajectory:
-    """ Container for trajectory - path + velocities, steering """
+    """ Container for a trajectory - sequence of vehicle states """
 
-    traj: SampledSequence[VehicleState]
+    traj: List["Trajectory"]
+    """ A trajectory can also be made up of multiple smaller trajectories.
+        This is used for evaluation of trajectory metrics where the 
+        outcomes are cached using the trajectory as the key """
 
-    def __init__(self, traj: List[VehicleState]):
-        times: List[Timestamp] = [t.t for t in traj]
-        self.traj = SampledSequence(timestamps=times, values=traj)
+    states: SampledSequence[VehicleState]
+    """ The upsampled sequence of vehicle states """
+    lane: LaneSegmentHashable
+    """ The reference lane used to generate the trajectory """
 
-    def get_sequence(self) -> SampledSequence[VehicleState]:
-        """ Returns sequence of trajectory points """
+    def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
+                 lane: LaneSegmentHashable,
+                 p_final: Optional[FinalPoint] = None,
+                 states: Optional[Tuple[VehicleState, VehicleState]] = None):
+        assert len(values) > 0
+        self.lane = lane
+        if all(isinstance(val, Trajectory) for val in values):
+            self.traj = values
+            x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
+            self.states = SampledSequence(timestamps=list(x_t.keys()), values=list(x_t.values()))
+        elif all(isinstance(val, VehicleState) for val in values):
+            if states is not None:
+                values[0] = states[0]
+                values[-1] = states[-1]
+            if p_final is not None:
+                self.trim_trajectory(states=values, p_final=p_final)
+            times: List[Timestamp] = [x.t for x in values]
+            self.states = SampledSequence(timestamps=times, values=values)
+            self.traj = []
+        else:
+            raise TypeError(f"Input is of wrong type - {type(values[0])}!")
+
+    @staticmethod
+    @cached(cache={}, key=lambda states, lane, values, p_final: cachetools.keys.hashkey((states, lane)))
+    def create(states: Tuple[VehicleState, VehicleState], lane: LaneSegmentHashable,
+               values: List[VehicleState], p_final: FinalPoint = None):
+        return Trajectory(values=values, lane=lane, p_final=p_final, states=states)
+
+    @staticmethod
+    def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
+        ret = [Trajectory.state_to_se2(x) for x in states]
+        return ret
+
+    @staticmethod
+    @lru_cache(None)
+    def state_to_se2(x: VehicleState) -> SE2Transform:
+        return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
+
+    @staticmethod
+    def trim_trajectory(states: List[VehicleState], p_final: FinalPoint) -> bool:
+        """ Trims trajectory till p_final (if longer) and returns if trimming was performed or not """
+        x_f, y_f, increase = p_final
+        assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
+        if x_f is not None:
+            def get_z(state: VehicleState) -> float:
+                return state.x
+
+            z_f = x_f
+        else:
+            def get_z(state: VehicleState) -> float:
+                return state.y
+
+            z_f = y_f
+        times = [x.t for x in states]
+        z_samp = [get_z(x) for x in states]
+        if not increase:
+            z0 = z_samp[0]
+            z_samp = [z0 - z for z in z_samp]
+            z_f = z0 - z_f
+        if z_f < z_samp[0] or z_f > z_samp[-1]:
+            return False
+        last = bisect_right(z_samp, z_f)
+        for _ in range(last + 1, len(times)):
+            states.pop()
+        return True
+
+    def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
+        return self.states.__iter__()
+
+    def __len__(self):
+        return len(self.states)
+
+    def get_lane(self) -> LaneSegmentHashable:
+        return self.lane
+
+    def get_trajectories(self) -> List["Trajectory"]:
+        if len(self.traj) == 0:
+            return [self]
         return self.traj
 
     def get_sampling_points(self) -> List[Timestamp]:
         """ Returns timestamps of trajectory points """
-        return self.traj.get_sampling_points()
+        return self.states.get_sampling_points()
 
-    def get_path(self) -> List[Tuple[D, D]]:
-        """ Returns cartesian coordinates [x,y] of trajectory """
-        ret = [(x.x, x.y) for _, x in self.traj]
-        return ret
+    def get_path_sampled(self) -> List[SE2Transform]:
+        """ Returns cartesian coordinates (SE2) of transition states """
+        return self.state_to_se2_list(self.states.values)
+
+    def get_start(self) -> Timestamp:
+        return self.states.get_start()
+
+    def get_end(self) -> Timestamp:
+        return self.states.get_end()
 
     def at(self, t: Timestamp) -> VehicleState:
-        return self.traj.at(t)
-
-    def __iter__(self):
-        return self.traj.__iter__()
+        return self.states.get_interp(t)
 
     def __repr__(self) -> str:
-        return str({f"t={round(float(k), 2)}s": v for k, v in self.traj})
+        states: Dict[str, VehicleState] = {}
+
+        def add_entry(t_stamp):
+            states[f"t={round(float(t_stamp), 2)}s"] = self.at(t_stamp)
+        t = self.get_start()
+        while t <= self.get_end():
+            add_entry(t_stamp=t)
+            t += Timestamp("1")
+        add_entry(t_stamp=self.get_end())
+        return str(states)
+
+    def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
+        """ Combines trajectories into a bigger trajectory """
+        if other is None:
+            return self
+        x1, x2 = self.at(self.get_end()), other.at(other.get_start())
+        if not x1.is_close(x2):
+            raise ValueError(f"Transitions not continuous - {x1, x2}")
+        return Trajectory(values=self.traj+other.traj, lane=other.get_lane())
+
+    def starts_with(self, start: "Trajectory") -> bool:
+        if len(start) > len(self): return False
+        for t in start.get_sampling_points():
+            if start.at(t) != self.at(t): return False
+        return True
+
+
+class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
+    """ Structure for storing a graph of trajectory states """
+    origin: VehicleState
+    """ Origin of the graph of states """
+    lane: LaneSegmentHashable
+    """ Reference lane used to generate trajectories """
+    trajectories: Dict[Tuple[VehicleState, VehicleState], Trajectory]
+    """ Store trajectories based on terminal states """
+
+    def __init__(self, origin: VehicleState, lane: LaneSegmentHashable, **attr):
+        super().__init__(**attr)
+        self.origin = origin
+        self.lane = lane
+        self.trajectories = {}
+
+    def add_node(self, state: VehicleState, **attr):
+        super(TrajectoryGraph, self).add_node(node_for_adding=state, **attr)
+
+    def check_node(self, node: VehicleState):
+        if node not in self.nodes:
+            raise ValueError(f"{node} not in graph!")
+
+    def add_edge(self, trajectory: Trajectory, **attr):
+        source, target = trajectory.at(trajectory.get_start()), trajectory.at(trajectory.get_end())
+        attr["transition"] = trajectory
+        if target not in self.nodes:
+            self.add_node(state=target, gen=self.nodes[source]["gen"] + 1)
+
+        super(TrajectoryGraph, self).add_edge(u_of_edge=source, v_of_edge=target, **attr)
+        self.trajectories[(source, target)] = trajectory
+
+    def get_all_trajectories(self, source: VehicleState) -> FrozenSet[Trajectory]:
+        if source not in self.nodes:
+            raise ValueError(f"Source node ({source}) not in graph!")
+
+        successors = [self.get_trajectory_edge(source=source, target=target)
+                      for target in self.successors(source)]
+        return frozenset(successors)
+
+    def get_trajectory_edge(self, source: VehicleState, target: VehicleState) -> Trajectory:
+        states = (source, target)
+        if states not in self.trajectories:
+            raise ValueError(f"{states} not found in transitions!")
+        return self.trajectories[(source, target)]
+
+    @lru_cache(None)
+    def get_trajectory(self, source: VehicleState, target: VehicleState) -> Trajectory:
+        self.check_node(source)
+        self.check_node(target)
+        if not has_path(G=self, source=source, target=target):
+            raise ValueError(f"No path exists between {source, target}!")
+
+        nodes = shortest_path(G=self, source=source, target=target)
+        traj: List[Trajectory] = []
+        for node1, node2 in zip(nodes[:-1], nodes[1:]):
+            traj.append(self.get_trajectory_edge(source=node1, target=node2))
+        return Trajectory(values=traj, lane=self.lane)

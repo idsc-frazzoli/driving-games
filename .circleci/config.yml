@@ -3,10 +3,11 @@ workflows:
   version: 2
   test:
     jobs:
-      # - test-3.7 Duckietown World not compatible
+      - test-3.7
       - test-3.8
+      - test-3.9
 jobs:
-  test-3.7: &test-template
+  test-3.8: &test-template
     resource_class: large
     environment:
       CODECOV_TOKEN: "82512efc-b166-4477-b755-7763d56f261c"
@@ -14,17 +15,10 @@ jobs:
       # default is /usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       PATH: /root/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     docker:
-      - image: python:3.7
+      - image: python:3.8
     working_directory: ~/repo
     steps: &steps
       - checkout
-      - run:
-          name: Pull lfs files
-          command: |
-            curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-            apt-get install git-lfs
-            git lfs install & git lfs pull
-
       - run:
           name: Install deps
           command: |
@@ -87,7 +81,7 @@ jobs:
             codecov
 
 
-  test-3.8:
+  test-3.9:
     <<: *test-template
     docker:
-      - image: python:3.8
+      - image: python:3.9

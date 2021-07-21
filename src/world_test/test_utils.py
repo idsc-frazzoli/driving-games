@@ -17,7 +17,7 @@ from world.utils import (
     merge_lanes,
     get_lane_segments,
     LaneSegmentHashable,
-    get_lane_from_node_sequence
+    get_lane_from_node_sequence,
 )
 import pickle
 
@@ -38,11 +38,12 @@ def test_transformations():
 
     q_SE2Transform = from_SE2_disc_to_SE2Transform(q_SE2_disc_ref)
 
-    assert all(map(isclose, q_SE2_disc, q_SE2_disc_ref)), f"SE2_disc {q_SE2_disc} is not equal ref {q_SE2_disc_ref}"
+    assert all(
+        map(isclose, q_SE2_disc, q_SE2_disc_ref)
+    ), f"SE2_disc {q_SE2_disc} is not equal ref {q_SE2_disc_ref}"
 
-    statement = (
-            isclose(q_SE2Transform.theta, q_SE2Transform_ref.theta) and
-            all(map(isclose, q_SE2Transform.p, q_SE2Transform_ref.p))
+    statement = isclose(q_SE2Transform.theta, q_SE2Transform_ref.theta) and all(
+        map(isclose, q_SE2Transform.p, q_SE2Transform_ref.p)
     )
     assert statement, f"SE2transform {q_SE2Transform} is not equal ref {q_SE2Transform_ref}"
 
@@ -51,8 +52,8 @@ def test_lane_extracting_merging():
     """ Test lane extraction from a duckietown map and their merging"""
 
     d = "out/"
-    duckie_map = dw.load_map('4way')
-    lane_names = ['ls051', 'ls031', 'ls040', 'ls044', 'L7', 'ls005', 'ls017']
+    duckie_map = dw.load_map("4way")
+    lane_names = ["ls051", "ls031", "ls040", "ls044", "L7", "ls005", "ls017"]
     lane_segments = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names)
     merged_lane = merge_lanes(lane_segments)
 
@@ -83,8 +84,8 @@ def test_lane_extraction_from_node():
     Visually test if the lane extraction from nodes work
     """
     d = "out/"
-    duckie_map = dw.load_map('4way')
-    node_sequence = ['P27', 'P14', 'P7', 'P1', 'P3']
+    duckie_map = dw.load_map("4way")
+    node_sequence = ["P27", "P14", "P7", "P1", "P3"]
     lane = get_lane_from_node_sequence(m=duckie_map, node_sequence=node_sequence)
     lane_obj = dw.PlacedObject()
     lane_obj.set_object("lane", lane, ground_truth=dw.SE2Transform.identity())
@@ -97,8 +98,8 @@ def test_interpolation():
     """ Test for the interpolation functions"""
 
     d = "out/"
-    duckie_map = dw.load_map('4way')
-    lane_names = ['ls051', 'ls031', 'ls040', 'ls044', 'L7', 'ls005', 'ls017']
+    duckie_map = dw.load_map("4way")
+    lane_names = ["ls051", "ls031", "ls040", "ls044", "L7", "ls005", "ls017"]
     lane_segments = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names)
     merged_lane = merge_lanes(lane_segments)
 
@@ -125,8 +126,7 @@ def test_interpolation():
     points_along_lane = np.linspace(start, end, nb_points)
 
     transforms_seq_0_max_length = interpolate_along_lane_n_points(
-        lane=merged_lane,
-        positions_along_lane=points_along_lane
+        lane=merged_lane, positions_along_lane=points_along_lane
     )
 
     # Draw the interpolation sequence (0 to length lane)
@@ -145,10 +145,10 @@ def test_hashable_lane():
     Tests the hash function of the wrapper class
     """
 
-    duckie_map = dw.load_map('4way')
+    duckie_map = dw.load_map("4way")
 
-    lane_names1 = ['ls051', 'ls031', 'ls040']
-    lane_names2 = ['ls044', 'L7', 'ls005', 'ls017']
+    lane_names1 = ["ls051", "ls031", "ls040"]
+    lane_names2 = ["ls044", "L7", "ls005", "ls017"]
     lane_segments1 = get_lane_segments(duckie_map=duckie_map, lane_names=lane_names1)
     lane1 = merge_lanes(lane_segments1)
 
@@ -168,14 +168,16 @@ def test_hashable_lane():
     print(lane2_hash.get_lane_length())
     print(hash(lane2_hash))
 
-    assert isclose(lane1.get_lane_length(), lane1_hash.get_lane_length()), "Lane 1 has not same length as hashed lane 1"
-    assert isclose(lane2.get_lane_length(), lane2_hash.get_lane_length()), "Lane 2 has not same length as hashed lane 2"
+    assert isclose(
+        lane1.get_lane_length(), lane1_hash.get_lane_length()
+    ), "Lane 1 has not same length as hashed lane 1"
+    assert isclose(
+        lane2.get_lane_length(), lane2_hash.get_lane_length()
+    ), "Lane 2 has not same length as hashed lane 2"
 
     pickled_version = pickle.dumps(lane1_hash)
-    
+
     lane1_hash_unpickled = pickle.loads(pickled_version)
-    assert isclose(lane1.get_lane_length(), lane1_hash_unpickled.get_lane_length()), (
-        "Lane 1 has not same length as hashed lane 1"
-    )
-
-
+    assert isclose(
+        lane1.get_lane_length(), lane1_hash_unpickled.get_lane_length()
+    ), "Lane 1 has not same length as hashed lane 1"

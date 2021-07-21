@@ -1,18 +1,24 @@
 from numbers import Number
-from typing import Any, Sequence, Tuple, Dict
+from typing import Sequence, Tuple, Mapping, FrozenSet, Set
 
 import numpy as np
+import os
 from decorator import contextmanager
-from matplotlib import patches
-from matplotlib.axes import Axes
-from networkx import MultiDiGraph, draw_networkx_nodes, draw_networkx_edges
+from duckietown_world import DuckietownMap
+from imageio import imread
+from matplotlib.collections import LineCollection
+from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
 from games import PlayerName
 from geometry import SE2_from_xytheta
-from .structures import VehicleActions, VehicleGeometry, VehicleState
-from .static_game import GameVisualization, StaticGamePlayer
-from .world import World
-from .paths import PathWithBounds
+
+from world import LaneSegmentHashable
+from world.map_loading import map_directory, load_driving_game_map
+from .structures import VehicleGeometry, VehicleState
+from .paths import Trajectory
+from .game_def import GameVisualization
+from .preference import PosetalPreference, WeightedPreference
+from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TrajGameVisualization"]
 
@@ -21,159 +27,145 @@ VehicleCosts = None
 Collision = None
 
 
-class TrajGameVisualization(GameVisualization[VehicleState, VehicleActions, World]):
+class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
     """ Visualization for the trajectory games"""
 
-    world: World
-    pylab: Any
+    world: TrajectoryWorld
+    grid: DuckietownMap
 
-    def __init__(self, world: World):
+    def __init__(self, world: TrajectoryWorld):
         self.world = world
-        self.pylab = None
+        self.grid = load_driving_game_map(name=world.map_name)
 
     @contextmanager
-    def plot_arena(self, pylab, ax):
+    def plot_arena(self, axis):
 
-        side: float = 0.1  # Additional space on sides (scale of length)
-        disc: float = 1.0  # discretisation (m)
-
-        x_max, x_min, y_max, y_min = -1000., 1000., -1000., 1000.
-        paths: Dict[PlayerName, PathWithBounds] = {}
-        path_patches = {}
-        for player in self.world.get_players():
-            path = self.world.get_reference(player=player)
-            s_min, s_max = path.get_s_limits()
-            s_min, s_max = float(s_min), float(s_max)
-            ds = int(s_max - s_min // disc)
-            s = np.linspace(s_min, s_max, ds)
-            n_min, n_max = zip(*path.get_bounds_at_s(s))
-            sn_min = list(zip(s, n_min))
-            sn_max = list(zip(s, n_max))
-            xy_min = np.float_(path.curvilinear_to_cartesian(sn_min))
-            xy_max = np.float_(path.curvilinear_to_cartesian(sn_max))
-            poly_points = np.vstack([xy_min, np.flipud(xy_max)])
-            x_min = min(x_min, np.min(poly_points[:, 0]))
-            x_max = max(x_max, np.max(poly_points[:, 0]))
-            y_min = min(y_min, np.min(poly_points[:, 1]))
-            y_max = max(y_max, np.max(poly_points[:, 1]))
-            # colour = self.world.get_geometry(player).colour
-            path_patches[player] = patches.Polygon(poly_points, linewidth=0, edgecolor="r",
-                                                   facecolor="lightgray")
-            paths[player] = path
-
-        points = ((x_min, y_min), (x_max, y_min), (x_max, y_max),
-                  (x_min, y_max), (x_min, y_min))
-        px, py = zip(*points)
-        pylab.plot(px, py, "k-")
-        self.pylab = pylab
-
-        x_lim, y_lim = x_max - x_min, y_max - y_min
-        side *= max(x_lim, y_lim)
-        grass = patches.Rectangle((x_min - side, y_min - side),
-                                  x_lim + 2 * side, y_lim + 2 * side,
-                                  linewidth=0, edgecolor="r", facecolor="green")
-        ax.add_patch(grass)
-        for _, patch in path_patches.items():
-            ax.add_patch(patch)
-            pass
+        png_path = os.path.join(map_directory, f"{self.world.map_name}.png")
+        img = imread(png_path)
+        tile_size = self.grid.tile_size
+        H = self.grid["tilemap"].H
+        W = self.grid["tilemap"].W
+        x_size = tile_size * W
+        y_size = tile_size * H
+        axis.imshow(img, extent=[0, x_size, 0, y_size])
+        axis.set_xlim(left=0, right=x_size)
+        axis.set_ylim(bottom=0, top=y_size)
 
         yield
-        pylab.axis((x_min - 2 * side, x_max + 2 * side, y_min - 2 * side, y_max + 2 * side))
-        # pylab.axis("off")
-        # pylab.xlabel("x")
-        # pylab.ylabel("y")
-        ax.set_aspect("equal")
 
-    def plot_player(
-            self,
-            player_name: PlayerName,
-            state: VehicleState,
-    ):
+    def plot_player(self, axis, player_name: PlayerName,
+                    state: VehicleState, alpha: float = 0.3, box=None):
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
-        plot_car(
-            pylab=self.pylab,
-            player_name=player_name,
-            state=state,
-            vg=vg,
-        )
+        box = plot_car(axis=axis, player_name=player_name,
+                       state=state, vg=vg, alpha=alpha, box=box)
+        return box
 
-    def plot_actions(self, player: StaticGamePlayer):
-        G: MultiDiGraph = player.graph
-        colour = player.vg.colour
+    def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
+                        colour: VehicleGeometry.COLOUR,
+                        width: float = 1.0, alpha: float = 1.0,
+                        ticks: bool = True, scatter: bool = True):
 
-        def pos_node(n: VehicleState):
+        self.plot_actions(axis=axis, actions=actions,
+                          colour=colour, width=width,
+                          alpha=alpha, ticks=ticks)
+
+        if scatter:
+            size = (axis.bbox.height/400.0)**2
+            for path in actions:
+                vals = [(x.x, x.y, x.v) for _, x in path]
+                x, y, vel = zip(*vals)
+                axis.scatter(x, y, s=size, c=vel, zorder=10)
+
+    def plot_pref(self, axis, pref: PosetalPreference,
+                  pname: PlayerName, origin: Tuple[float, float],
+                  labels: Mapping[WeightedPreference, str] = None,
+                  add_title: bool = True):
+
+        X, Y = origin
+        G: DiGraph = pref.graph
+
+        def pos_node(n: WeightedPreference):
             x = G.nodes[n]["x"]
             y = G.nodes[n]["y"]
-            return float(x), float(y)
-
-        def line_width(n: VehicleState):
-            return float(1.0 / pow(2.0, G.edges[n]["gen"]))
-
-        def node_sizes(n: VehicleState):
-            return float(1.0 / pow(2.0, G.nodes[n]["gen"]))
+            return x + X, y + Y
 
         pos = {_: pos_node(_) for _ in G.nodes}
-        widths = [line_width(_) for _ in G.edges]
-        node_size = [node_sizes(_) for _ in G.nodes]
-        nodes = draw_networkx_nodes(
-            G,
-            pos=pos,
-            nodelist=G.nodes(),
-            node_size=node_size,
-            node_color='grey',
-            alpha=0.5,
-        )
-        edges = draw_networkx_edges(
-            G,
-            pos=pos,
-            edgelist=G.edges(),
-            alpha=0.5,
-            arrows=False,
-            width=widths,
-            edge_color=colour,
-        )
-        ax: Axes = self.pylab.gca()
-        nodes.set_zorder(20)
-        edges.set_zorder(15)
-        ax.add_collection(nodes)
-        ax.add_collection(edges)
+        text: str
+        if labels is None:
+            labels = {n: str(n) for n in G.nodes}
+            text = "_pref"
+        else:
+            assert len(G.nodes) == len(labels.keys()),\
+                f"Size mismatch between nodes ({len(G.nodes)}) and" \
+                f" labels ({len(labels.keys())})"
+            for n in G.nodes:
+                assert n in labels.keys(),\
+                    f"Node {n} not present in keys - {labels.keys()}"
+            text = "_outcomes"
+        draw_networkx_edges(G, pos=pos, edgelist=G.edges(),
+                            ax=axis, arrows=True, arrowstyle="-")
+
+        draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
+        if add_title:
+            axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
+            axis.set_ylim(top=Y+15.0)
+
+    def plot_actions(self, axis, actions: FrozenSet[Trajectory],
+                     colour: VehicleGeometry.COLOUR = None,
+                     width: float = 1.0, alpha: float = 1.0,
+                     ticks: bool = True, lines=None) -> LineCollection:
+        segments = []
+        lanes: Set[LaneSegmentHashable] = set()
+        for traj in actions:
+            sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
+            segments.append(sampled_traj)
+            lanes.add(traj.get_lane())
+
+        for lane in lanes:
+            points = lane.lane_profile()
+            xp, yp = zip(*points)
+            x = np.array(xp)
+            y = np.array(yp)
+            if colour is not None:
+                axis.fill(x, y, color=colour, alpha=0.2, zorder=1)
+
+        if lines is None:
+            if colour is None:
+                colour = (0.0, 0.0, 0.0)    # Black
+            lines = LineCollection(segments=[], colors=colour,
+                                   linewidths=width, alpha=alpha)
+            lines.set_zorder(5)
+            axis.add_collection(lines)
+            if ticks:
+                axis.yaxis.set_ticks_position("left")
+                axis.xaxis.set_ticks_position("bottom")
+            else:
+                axis.yaxis.set_visible(False)
+                axis.xaxis.set_visible(False)
+        lines.set_segments(segments=segments)
+        return lines
 
 
-def plot_car(
-        pylab,
-        player_name: PlayerName,
-        state: VehicleState,
-        vg: VehicleGeometry,
-):
-    PLOT_VEL = False
-    L = float(vg.l)
-    W = float(vg.w)
+def plot_car(axis, player_name: PlayerName, state: VehicleState,
+             vg: VehicleGeometry, alpha: float, box):
+    L = vg.l
+    W = vg.w
     car_color = vg.colour
     car: Tuple[Tuple[float, float], ...] = \
         ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
-    xy_theta = tuple(float(_) for _ in (state.x, state.y, state.th))
+    xy_theta = (state.x, state.y, state.th)
     q = SE2_from_xytheta(xy_theta)
     x1, y1 = get_transformed_xy(q, car)
-    pylab.fill(x1, y1, color=car_color, alpha=.3, zorder=10)
-
-    v_size = float(state.v) * 0.2
-    v_vect = ((+L, 0), (+L + v_size, 0))
-    x3, y3 = get_transformed_xy(q, v_vect)
-    arrow = patches.Arrow(x=x3[0], y=y3[0], dx=x3[1] - x3[0], dy=y3[1] - y3[0], facecolor=car_color, edgecolor='k')
-    if PLOT_VEL:
-        pylab.gca().add_patch(arrow)
-
-    x4, y4 = get_transformed_xy(q, ((0, 0),))
-    pylab.text(
-        x4,
-        y4,
-        player_name,
-        zorder=25,
-        horizontalalignment="center",
-        verticalalignment="center",
-    )
+    if box is None:
+        box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=10)
+        x4, y4 = get_transformed_xy(q, ((0, 0),))
+        axis.text(x4, y4, player_name, zorder=25,
+                  horizontalalignment="center",
+                  verticalalignment="center")
+    box.set_xy(np.array(list(zip(x1, y1))))
+    return box
 
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:

@@ -1,21 +1,24 @@
+from functools import lru_cache
 from math import isclose
+from time import perf_counter
 
 import networkx as nx
 from decimal import Decimal as D
 import itertools as it
-from typing import List, cast
+from typing import List, cast, Tuple
 import numpy as np
-
 
 import duckietown_world as dw
 from duckietown_world.geo.transforms import SE2Transform
-from duckietown_world.world_duckietown.lane_segment import LaneSegment
+from duckietown_world.utils import SE2_apply_R2
+from duckietown_world.world_duckietown.lane_segment import LaneSegment, LanePose
 from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 
 import geometry as geo
+from scipy.optimize import minimize_scalar
+
 from driving_games.structures import SE2_disc
 from world.skeleton_graph import get_skeleton_graph
-
 
 """
 Collection of functions that handle the module DuckietownWorld
@@ -35,8 +38,8 @@ def interpolate(lane: dw.LaneSegment, beta: float) -> dw.SE2Transform:
     :param beta: Parameter of interpolation, beta=0 means start of the lane, beta=1 means end of the lane
     :return: The SE2Transform representing the pose along the centerline
     """
-    lane_length = lane.get_lane_length() # get the length of the lane
-    along_lane = beta * lane_length # get the corresponding position along the lane
+    lane_length = lane.get_lane_length()  # get the length of the lane
+    along_lane = beta * lane_length  # get the corresponding position along the lane
     transform = interpolate_along_lane(lane=lane, along_lane=along_lane)
     return transform
 
@@ -292,6 +295,8 @@ class LaneSegmentHashable(LaneSegment):
     """
         Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
     """
+    time: float = 0.0
+
     @classmethod
     def initializor(cls, lane_segment: LaneSegment) -> "LaneSegmentHashable":
         """
@@ -313,5 +318,33 @@ class LaneSegmentHashable(LaneSegment):
         to_hash = *ctr_as_SE2_disc, self.width
         return hash(to_hash)
 
-    # def __eq__(self, other):
-    #     return hash(self) == hash(other)
+    @lru_cache(None)
+    def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol=0.001) -> LanePose:
+        tic = perf_counter()
+        lane_pose = LaneSegment.lane_pose_from_SE2Transform(self, qt=qt, tol=tol)
+        LaneSegmentHashable.time += perf_counter() - tic
+        return lane_pose
+
+    def find_along_lane_closest_point(self, p, tol=0.001) -> Tuple[float, geo.SE2value]:
+
+        def get_delta(beta):
+            q0 = self.center_point(beta)
+            t0, _ = geo.translation_angle_from_SE2(q0)
+            d = np.linalg.norm(p - t0)
+
+            d1 = np.array([0, -d])
+            p1 = SE2_apply_R2(q0, d1)
+
+            d2 = np.array([0, +d])
+            p2 = SE2_apply_R2(q0, d2)
+
+            D2 = np.linalg.norm(p2 - p)
+            D1 = np.linalg.norm(p1 - p)
+            res = np.maximum(D1, D2)
+            return res
+
+        bracket = (-1.0, len(self.control_points))
+        res0 = minimize_scalar(get_delta, bracket=bracket, tol=tol)
+        beta0 = res0.x
+        q = self.center_point(beta0)
+        return beta0, q

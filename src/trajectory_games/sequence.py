@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import Generic, TypeVar, List, Callable, Type, ClassVar, Iterator
+from bisect import bisect_right
 
 __all__ = ["Timestamp", "SampledSequence", "IterateDT", "iterate_with_dt", "UndefinedAtTime"]
 
@@ -93,6 +94,19 @@ class SampledSequence(Generic[X]):
                 timestamps.append(t)
 
         return SampledSequence[YT](timestamps, values)
+
+    def get_interp(self, t: Timestamp) -> Generic[X]:
+        """Returns value at requested timestamp,
+        Interpolates between timestamps, holds at the extremes"""
+        if t <= self.get_start():
+            return self.at(self.get_start())
+        elif t >= self.get_end():
+            return self.at(self.get_end())
+        else:
+            i = bisect_right(self.timestamps, t)
+            scale = float((t - self.timestamps[i - 1]) /
+                          (self.timestamps[i] - self.timestamps[i - 1]))
+            return self.values[i - 1] * (1 - scale) + self.values[i] * scale
 
     def __iter__(self):
         return zip(self.timestamps, self.values).__iter__()

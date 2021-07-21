@@ -1,0 +1,77 @@
+
+#trajectory_params:
+#  solve:      Solve Boundary Value problem to grow tree
+#  samp_dyn:   UpSample using dynamics, uses SE2 if False
+#  s_final:    Finite distance instead of time - % of lane (<0 for finite time)
+#  max_gen:    Number of timesteps (or generations) for tree
+#  dt:         Sampling time (s) - string for decimal
+#  step_acc:   Acceleration step (m/s2)
+#  n_acc:      Number of acceleration steps
+#  step_dst:   Lateral rate step (m)
+#  n_dst:      Number of lateral steps
+#  v_max:      Maximum velocity (m/s)
+#  v_min:      Minimum velocity (m/s)
+#  st_max:     Maximum steering angle (rad)
+#  dst_max:    Maximum steering rate (rad/s)
+#  dt_samp:    Re-Sampling time for metrics (s) - string for decimal
+
+traj_1:       &traj_1
+  solve:      False
+  s_final:    0.95
+  max_gen:    1
+  dt:         "2.0"
+  step_acc:   2.0
+  n_acc:      3
+  step_dst:   0.075
+  n_dst:      3
+  v_max:      10.0
+  v_min:      2.0
+  st_max:     0.5
+  dst_max:    1.0
+  dst_scale:  True
+  dt_samp:    "0.2"
+
+traj_1_3:     &traj_1_3
+  <<:         *traj_1
+  dt:         "2.0"
+  max_gen:    1
+  n_acc:      3
+  n_dst:      3
+
+traj_1_r:     &traj_1_r
+  solve:      False
+  s_final:    -1.0
+  max_gen:    1
+  dt:         "2.0"
+  step_acc:   0.8
+  n_acc:      5
+  step_dst:   0.8
+  n_dst:      7
+  v_max:      10.0
+  v_min:      2.0
+  st_max:     0.5
+  dst_max:    1.0
+  dst_scale:  False
+  dt_samp:    "0.1"
+
+traj_1_rs:    &traj_1_rs
+  <<:         *traj_1_r
+  step_acc:   1.0
+  n_acc:      5
+  step_dst:   0.05
+  n_dst:      5
+  dst_scale:  True
+
+traj_1_rsolve:    &traj_1_rsolve
+  <<:         *traj_1_r
+  solve:      True
+
+traj_1_rssolve:    &traj_1_rssolve
+  <<:         *traj_1_rs
+  solve:      True
+
+traj_2:            &traj_2
+  <<:         *traj_1_rs
+  max_gen:    2
+  n_acc:      3
+  n_dst:      3

@@ -14,7 +14,7 @@ from duckietown_world.world_duckietown.segmentify import (
     MeetingPoint,
     transform_lane_segment,
     discretize,
-    graph_for_meeting_points
+    graph_for_meeting_points,
 )
 
 
@@ -51,11 +51,21 @@ def get_skeleton_graph(po: DuckietownMap) -> SkeletonGraphResult:
 
         if not p0 in meeting_points:
             meeting_points[p0] = MeetingPoint(
-                set(), set(), set(), lane_segment_transformed.control_points[0], None, None,
+                set(),
+                set(),
+                set(),
+                lane_segment_transformed.control_points[0],
+                None,
+                None,
             )
         if not p1 in meeting_points:
             meeting_points[p1] = MeetingPoint(
-                set(), set(), set(), lane_segment_transformed.control_points[-1], None, None,
+                set(),
+                set(),
+                set(),
+                lane_segment_transformed.control_points[-1],
+                None,
+                None,
             )
 
         # meeting_points[p0].point = lane_segment_transformed.control_points[0]

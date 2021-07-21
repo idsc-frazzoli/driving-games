@@ -1,0 +1,23 @@
+
+# Leader follower game config
+# Players should be defined in players.yaml
+leader_follower:
+  leader:                 "P1"
+  follower:               "P2"
+  pref_leader:            "pref_lf4"
+  pref_follower_real:     "pref_lf_cw5"
+  antichain_comparison:   "JOIN_ACCOMP"   # EXP_ACCOMP or JOIN_ACCOMP
+  solve_time:             "15.0"          # Total time to simulate game
+  simulation_step:        "1.0"           # Step for game simulation
+  terminal_progress:      0.8             # Final progress of agent to terminate simulation
+  update_prefs:           False           # Update estimate of follower prefs or not
+#  update_prefs:           True           # Update estimate of follower prefs or not
+
+  prefs_follower_est:     [
+#      "NoPreference",
+      "pref_lf_ci",
+#      "pref_lf_cw3"
+#      "pref_lf_cw5"
+#      "pref_lf_c1", "pref_lf_c2", "pref_lf_c3", "pref_lf_c4", "pref_lf_c5", "pref_lf_c6",
+#      "pref_lf_cw1", "pref_lf_cw2", "pref_lf_cw3", "pref_lf_cw4", "pref_lf_cw5", "pref_lf_cw6"
+  ]
