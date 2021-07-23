@@ -9,7 +9,7 @@ def test_vehicle_state_01():
     np.testing.assert_array_equal(npstate, vstate.as_ndarray())
 
 
-def test_vehicle_commnads_01():
+def test_vehicle_commands_01():
     npcmds = np.array([1, 2])
     vcommands = VehicleCommands.from_array(npcmds)
     print(vcommands)

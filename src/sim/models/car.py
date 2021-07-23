@@ -2,31 +2,47 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 
 import math
+from functools import cached_property
+
 import numpy as np
+from commonroad_dc.pycrcc import RectOBB
 
 from frozendict import frozendict
+from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
 
 from sim.models.structures import Colour
 from sim.simulator_structures import SimModel
 
 
-@dataclass
+@dataclass(frozen=True, unsafe_hash=True)
 class VehicleGeometry:
     """ Geometry parameters of the vehicle"""
 
     m: float
-    """ Car Mass [kg] """
+    """ Vehicle Mass [kg] """
     w: float
-    """ Half width of car [m] """
+    """ Half width of vehicle [m] """
     l: float
-    """ Half length of car - dist from CoG to each axle [m] """
+    """ Half length of vehicle - dist from CoG to each axle [m] """
     colour: Colour
     """ Car colour """
 
     @classmethod
-    def default(cls) -> "VehicleGeometry":
+    def default_car(cls) -> "VehicleGeometry":
         return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
+
+    @classmethod
+    def default_bicycle(cls) -> "VehicleGeometry":
+        return VehicleGeometry(m=80.0, w=0.25, l=1.0, colour=(1, 1, 1))
+
+    @cached_property
+    def width(self):
+        return self.w * 2
+
+    @cached_property
+    def length(self):
+        return self.l * 2
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -155,13 +171,25 @@ class CarParameters:
     """ Maximum steering angle [rad] """
 
 
-class CarModel(SimModel):
-    # fixme better to move it to object instance
+class VehicleModel(SimModel[VehicleState, VehicleCommands]):
+    # fixme make sure class attributes don't mess with instance once
     vg: VehicleGeometry
     """ The vehicle's geometry parameters"""
-    state: VehicleState
+    _state: VehicleState
 
-    def update(self, action: VehicleCommands, dt: Decimal):
+    def __init__(self, x0: VehicleState, vg: VehicleGeometry):
+        self._state = x0
+        self.vg = vg
+
+    @classmethod
+    def default_bicycle(cls, x0: VehicleState):
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_bicycle())
+
+    @classmethod
+    def default_car(cls, x0: VehicleState):
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_car())
+
+    def update(self, commands: VehicleCommands, dt: Decimal):
         """
         Perform initial value problem integration
         to propagate state using actions for time dt
@@ -180,16 +208,16 @@ class CarModel(SimModel):
             du = np.zeros([len(VehicleCommands.idx)])
             return np.concatenate([dx.as_ndarray(), du])
 
-        state_np = self.state.as_ndarray()
-        action_np = action.as_ndarray()
+        state_np = self._state.as_ndarray()
+        action_np = commands.as_ndarray()
         y0 = np.concatenate([state_np, action_np])
         result = solve_ivp(fun=_dynamics, t_span=(0.0, float(dt)), y0=y0)
 
         if not result.success:
             raise RuntimeError("Failed to integrate ivp!")
-        new_state, _ = _stateactions_from_array(result.y)
-        self.state = new_state
-        return new_state
+        new_state, _ = _stateactions_from_array(result.y[:, -1])
+        self._state = new_state
+        return
 
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
         """ Get rate of change of states for given control inputs """
@@ -203,3 +231,10 @@ class CarModel(SimModel):
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh
         return VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)
+
+    def get_footprint(self) -> RectOBB:
+        # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
+        return RectOBB(self.vg.w, self.vg.l, self._state.theta, self._state.x, self._state.y)
+
+    def get_xytheta_pose(self) -> SE2value:
+        return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])

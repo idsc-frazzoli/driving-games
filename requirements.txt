@@ -1,10 +1,10 @@
 # libraries
-frozendict==1.2
+frozendict>=1.2
 pytz==2019.3 # this might not be needed?!
-numpy==1.20.1
+numpy>=1.20.1
 scipy
-typing_extensions==3.7.4.1
-toolz==0.11.1
+typing_extensions>=3.7.4.1
+toolz>=0.11.1
 
 PyGeometry-z6>=2.0
 zuper-commons-z6>=6.1.5
@@ -15,8 +15,9 @@ networkx>=2.4
 zuper-typing-z6>=6.1.0
 seaborn
 nashpy==0.0.19
-duckietown-world-daffy==6.2.7
+duckietown-world-daffy==6.2.24
 
+commonroad-io==2021.2
 # extra
 jupyter
 

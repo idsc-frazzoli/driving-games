@@ -26,9 +26,9 @@ class NPAgent(Agent):
         t: SimTime = sim_obs.time
         command = None
         for instant in self.commands_plan:
-            if t > instant:
+            if instant > t:
                 command = self.commands_plan[instant]
-            break
+                break
         if command is None:
             raise RuntimeError(f"Undefined command for instant {t}")
         return command
