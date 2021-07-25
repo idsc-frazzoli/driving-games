@@ -11,7 +11,7 @@ from frozendict import frozendict
 from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
 
-from sim.models.structures import Colour
+from sim.models.utils import kmh2ms
 from sim.simulator_structures import SimModel
 
 
@@ -21,28 +21,43 @@ class VehicleGeometry:
 
     m: float
     """ Vehicle Mass [kg] """
-    w: float
+    w_half: float
     """ Half width of vehicle [m] """
-    l: float
+    l_half: float
     """ Half length of vehicle - dist from CoG to each axle [m] """
-    colour: Colour
-    """ Car colour """
 
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
+        return VehicleGeometry(m=1000.0, w_half=1.0, l_half=2.0)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=80.0, w=0.25, l=1.0, colour=(1, 1, 1))
+        return VehicleGeometry(m=80.0, w_half=0.25, l_half=1.0)
 
     @cached_property
     def width(self):
-        return self.w * 2
+        return self.w_half * 2
 
     @cached_property
     def length(self):
-        return self.l * 2
+        return self.l_half * 2
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class VehicleParameters:
+    vx_max: float
+    vx_min: float
+    """ Maximum and Minimum velocities [m/s] """
+    delta_max: float
+    """ Maximum steering angle [rad] """
+
+    @classmethod
+    def default_car(cls) -> "VehicleParameters":
+        return VehicleParameters(vx_max=kmh2ms(130), vx_min=kmh2ms(-10), delta_max=math.pi)
+
+    @classmethod
+    def default_bicycle(cls) -> "VehicleParameters":
+        return VehicleParameters(vx_max=kmh2ms(50), vx_min=kmh2ms(-1), delta_max=math.pi)
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -162,32 +177,27 @@ class VehicleState:
                             delta=z[cls.idx["delta"]])
 
 
-@dataclass
-class CarParameters:
-    vx_max: float
-    vx_min: float
-    """ Maximum and Minimum velocities [m/s] """
-    delta_max: float
-    """ Maximum steering angle [rad] """
-
-
 class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     # fixme make sure class attributes don't mess with instance once
     vg: VehicleGeometry
     """ The vehicle's geometry parameters"""
+    vp: VehicleParameters
+    """ The vehicle parameters"""
     _state: VehicleState
+    """ Current state of the model"""
 
-    def __init__(self, x0: VehicleState, vg: VehicleGeometry):
+    def __init__(self, x0: VehicleState, vg: VehicleGeometry, vp: VehicleParameters):
         self._state = x0
         self.vg = vg
+        self.vp = vp
 
     @classmethod
     def default_bicycle(cls, x0: VehicleState):
-        return VehicleModel(x0=x0, vg=VehicleGeometry.default_bicycle())
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_bicycle(), vp=VehicleParameters.default_bicycle())
 
     @classmethod
     def default_car(cls, x0: VehicleState):
-        return VehicleModel(x0=x0, vg=VehicleGeometry.default_car())
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParameters.default_car())
 
     def update(self, commands: VehicleCommands, dt: Decimal):
         """
@@ -222,8 +232,8 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
         """ Get rate of change of states for given control inputs """
         dx = x0.vx
-        dr = dx * math.tan(x0.delta) / (2.0 * self.vg.l)
-        dy = dr * self.vg.l
+        dr = dx * math.tan(x0.delta) / (2.0 * self.vg.l_half)
+        dy = dr * self.vg.l_half
         th_eq = x0.theta + dr / 2.0 if mean else x0.theta
         costh = math.cos(th_eq)
         sinth = math.sin(th_eq)
@@ -234,7 +244,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_footprint(self) -> RectOBB:
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-        return RectOBB(self.vg.w, self.vg.l, self._state.theta, self._state.x, self._state.y)
+        return RectOBB(self.vg.w_half, self.vg.l_half, self._state.theta, self._state.x, self._state.y)
 
     def get_xytheta_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])

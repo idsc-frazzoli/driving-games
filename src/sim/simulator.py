@@ -45,7 +45,7 @@ class Simulator:
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
             self.last_observations.players.update({player_name: model.get_state()})
-        logger.debug(f"Pre update function, sim time {sim_context.time}")
+        logger.debug(f"Pre update function, sim time {sim_context.time:.2f}")
         logger.debug(f"Last observations:\n{self.last_observations}")
 
     def update(self, sim_context: SimContext):
@@ -55,7 +55,7 @@ class Simulator:
             actions = sim_context.players[player_name].get_commands(self.last_observations)
             model.update(actions, dt=sim_context.param.dt)
             log_entry = LogEntry(state=model.get_state(), actions=actions)
-            logger.debug_print(f"Update function, sim time {sim_context.time}, player: {player_name}")
+            logger.debug_print(f"Update function, sim time {sim_context.time:.2f}, player: {player_name}")
             logger.debug_print(f"New state {model.get_state()} reached applying {actions}")
             sim_context.log[sim_context.time].update({player_name: log_entry})
         # todo check if sim context gets updates properly or it needs to be returned

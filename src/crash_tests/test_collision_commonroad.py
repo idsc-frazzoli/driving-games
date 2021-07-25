@@ -1,6 +1,6 @@
-import matplotlib.pyplot as plt
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
+
 
 def test_main():
     aabb = pycrcc.RectAABB(2.0, 3.0, 3.0, 2.0)

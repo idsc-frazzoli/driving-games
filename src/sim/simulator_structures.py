@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from decimal import Decimal
-from typing import MutableMapping, Generic
+from typing import MutableMapping, Generic, Optional, Any
 
 from dataclasses import dataclass
 
@@ -33,6 +33,7 @@ class SimObservations:
 class LogEntry:
     state: X
     actions: U
+    extra: Optional[Any] = None
 
 
 SimulationLog = MutableMapping[SimTime, MutableMapping[PlayerName, LogEntry]]
