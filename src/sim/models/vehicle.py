@@ -94,7 +94,9 @@ class VehicleCommands:
 
     def __add__(self, other: "VehicleCommands") -> "VehicleCommands":
         if type(other) == type(self):
-            return replace(acc=self.acc + other.acc, dst=self.ddelta + other.ddelta)
+            return replace(self,
+                           acc=self.acc + other.acc,
+                           ddelta=self.ddelta + other.ddelta)
         else:
             raise NotImplementedError
 
@@ -104,7 +106,7 @@ class VehicleCommands:
         return self + (other * -1.0)
 
     def __mul__(self, val: float) -> "VehicleCommands":
-        return replace(acc=self.acc * val, dst=self.ddelta * val)
+        return replace(self, acc=self.acc * val, ddelta=self.ddelta * val)
 
     __rmul__ = __mul__
 
@@ -145,13 +147,13 @@ class VehicleState:
 
     def __add__(self, other: "VehicleState") -> "VehicleState":
         if type(other) == type(self):
-            return replace(
-                x=self.x + other.x,
-                y=self.y + other.y,
-                th=self.theta + other.theta,
-                vx=self.vx + other.vx,
-                delta=self.delta + other.delta
-            )
+            return replace(self,
+                           x=self.x + other.x,
+                           y=self.y + other.y,
+                           theta=self.theta + other.theta,
+                           vx=self.vx + other.vx,
+                           delta=self.delta + other.delta
+                           )
         else:
             raise NotImplementedError
 
@@ -161,13 +163,13 @@ class VehicleState:
         return self + (other * -1.0)
 
     def __mul__(self, val: float) -> "VehicleState":
-        return replace(
-            x=self.x * val,
-            y=self.y * val,
-            th=self.theta * val,
-            vx=self.vx * val,
-            delta=self.delta * val,
-        )
+        return replace(self,
+                       x=self.x * val,
+                       y=self.y * val,
+                       theta=self.theta * val,
+                       vx=self.vx * val,
+                       delta=self.delta * val,
+                       )
 
     __rmul__ = __mul__
 

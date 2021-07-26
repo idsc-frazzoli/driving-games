@@ -20,7 +20,7 @@ from sim.simulator import SimContext
 from sim.typing import Color
 from world.map_loading import map_directory
 
-__all__ = ["SimVisualization"]
+__all__ = ["SimVisualisation"]
 
 
 class SimVisualisationABC(Generic[X, U, Y], ABC):
@@ -44,7 +44,7 @@ class SimVisualisationABC(Generic[X, U, Y], ABC):
         pass
 
 
-class SimVisualization(SimVisualisationABC):
+class SimVisualisation(SimVisualisationABC):
     """ Visualization for the trajectory games"""
 
     def __init__(self, sim_context: SimContext):

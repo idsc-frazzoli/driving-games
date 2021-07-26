@@ -2,7 +2,7 @@ from decimal import Decimal
 from itertools import combinations
 from typing import Mapping, Optional
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from duckietown_world import DuckietownMap
 
@@ -10,12 +10,13 @@ from games import PlayerName
 from sim import logger
 from sim.agent import Agent
 from sim.simulator_structures import *
+from world import load_driving_game_map
 
 
 @dataclass
 class SimContext:
-    map: Optional[DuckietownMap]
-    map_name: Optional[str]
+    map_name: str
+    map: DuckietownMap = field(init=False)
     models: Mapping[PlayerName, SimModel]
     players: Mapping[PlayerName, Agent]
     log: SimulationLog
@@ -26,6 +27,7 @@ class SimContext:
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
+        self.map = load_driving_game_map(self.map_name)
 
 
 # todo for now just a bool in the future we want more detailed info
