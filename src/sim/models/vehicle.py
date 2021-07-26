@@ -1,8 +1,10 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from decimal import Decimal
 
 import math
 from functools import cached_property
+from typing import Tuple
 
 import numpy as np
 from commonroad_dc.pycrcc import RectOBB
@@ -13,11 +15,21 @@ from scipy.integrate import solve_ivp
 
 from sim.models.utils import kmh2ms
 from sim.simulator_structures import SimModel
+from sim.typing import Color
 
 
 @dataclass(frozen=True, unsafe_hash=True)
-class VehicleGeometry:
-    """ Geometry parameters of the vehicle"""
+class ModelGeometry(ABC):
+
+    @property
+    @abstractmethod
+    def outline(self):
+        pass
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class VehicleGeometry(ModelGeometry):
+    """ Geometry parameters of the vehicle (and colour)"""
 
     m: float
     """ Vehicle Mass [kg] """
@@ -25,6 +37,8 @@ class VehicleGeometry:
     """ Half width of vehicle [m] """
     l_half: float
     """ Half length of vehicle - dist from CoG to each axle [m] """
+    color: Color = (1, 1, 1)
+    """ Color """
 
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
@@ -41,6 +55,11 @@ class VehicleGeometry:
     @cached_property
     def length(self):
         return self.l_half * 2
+
+    @cached_property
+    def outline(self) -> Tuple[Tuple[float, float], ...]:
+        return ((-self.l_half, -self.w_half), (-self.l_half, +self.w_half),
+                (+self.l_half, +self.w_half), (+self.l_half, -self.w_half), (-self.l_half, -self.w_half))
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -248,3 +267,6 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_xytheta_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
+
+    def get_geometry(self) -> VehicleGeometry:
+        return self.vg

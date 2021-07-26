@@ -15,6 +15,7 @@ from sim.simulator_structures import *
 @dataclass
 class SimContext:
     map: Optional[DuckietownMap]
+    map_name: Optional[str]
     models: Mapping[PlayerName, SimModel]
     players: Mapping[PlayerName, Agent]
     log: SimulationLog

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from decimal import Decimal
-from typing import MutableMapping, Generic, Optional, Any
+from typing import MutableMapping, Generic, Optional, Any, Dict, Union
 
 from dataclasses import dataclass
 
@@ -9,6 +9,7 @@ from commonroad_dc.pycrcc import Shape
 from geometry import SE2value
 
 from games import PlayerName, X, U
+from sim.models.vehicle import VehicleGeometry
 
 __all__ = ["SimTime", "SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
 
@@ -36,11 +37,44 @@ class LogEntry:
     extra: Optional[Any] = None
 
 
-SimulationLog = MutableMapping[SimTime, MutableMapping[PlayerName, LogEntry]]
+class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
+    def get_init_time(self) -> SimTime:
+        return next(iter(self))
+
+    def get_last_time(self) -> SimTime:
+        return next(reversed(self))
+
+    def get_entry_before(self, t: SimTime) -> (SimTime, MutableMapping[PlayerName, LogEntry]):
+        sim_time = self.get_last_time()
+        while sim_time > t:
+            sim_time = next(reversed(self))
+        return sim_time, self[sim_time]
+
+    def get_entry_after(self, t: SimTime) -> (SimTime, MutableMapping[PlayerName, LogEntry]):
+        sim_time = self.get_init_time()
+        while sim_time < t:
+            sim_time = next(iter(self))
+        return sim_time, self[sim_time]
+
+    def at(self, t: Union[SimTime, float]) -> MutableMapping[PlayerName, LogEntry]:
+        if t < self.get_init_time() or t > self.get_last_time():
+            raise ValueError(f"Requested simulation log {t} is out of bounds")
+        t0, entry_before = self.get_entry_before(t)
+        t1, entry_after = self.get_entry_after(t)
+        alpha = (t - t0) / (t1 - t0)
+        interpolated_entry: Dict[PlayerName, LogEntry] = {}
+        for player in entry_before:
+            interpolated_entry[player] = LogEntry(
+                state=alpha * entry_after[player].state + (1 - alpha) * entry_before[player].state,
+                actions=entry_before[player].actions,
+                extra=entry_before[player].extra)
+
+        return interpolated_entry
 
 
 class SimModel(ABC, Generic[X, U]):
     _state: X
+    """State of the model"""
 
     @abstractmethod
     def update(self, commands: U, dt: SimTime) -> X:
@@ -57,3 +91,7 @@ class SimModel(ABC, Generic[X, U]):
 
     def get_state(self) -> X:
         return deepcopy(self._state)
+
+    @abstractmethod
+    def get_geometry(self) -> VehicleGeometry:
+        pass
