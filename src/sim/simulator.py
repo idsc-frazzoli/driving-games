@@ -32,7 +32,7 @@ class SimContext:
 
 # todo for now just a bool in the future we want more detailed info
 CollisionReport = bool
-
+ImpactReport    = (bool, str)
 
 class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
@@ -84,3 +84,32 @@ class Simulator:
             if collision:
                 logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
         return collision
+
+    @staticmethod
+    def _check_collisions_location(sim_context: SimContext) -> ImpactReport:
+        """
+        This checks only collision location at the current step, tunneling effects and similar are ignored
+        :param sim_context:
+        :return:
+        """
+        collision = False
+        for a, b in combinations(sim_context.models, 2):
+            a_shape = sim_context.models[a].get_state()  # {'x': CoG x [m], 'y': CoG y [m], 'theta': CoG heading [rad], 'vx': CoG longitudinal velocity [m/s], 'delta': Steering angle [rad]}
+            b_shape = sim_context.models[b].get_state()
+
+            # IDEA FOR ALGORITHM:
+            # 1) Start diving car into 4 polygons based on diagonals (this can then be extended with 'interesting' paper)
+            # 2) If there's a collision between two cars:
+            #       2.1) Check the collision of "car a" with each of the 4 polygons from "car b"
+            #       2.2) Based on this, assign the impact location (Front, Rear, Side)
+            #       2.3) Output a tuple indicating: (bool: was there a collision?, str: where?) {Refine this}
+            # 3) Later, with the velocity, we can also compute the energy
+            '''
+            collision = a_shape.collide(b_shape) or collision
+            if collision:
+                logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
+                # todo: check impact location of the collision here
+
+        return (collision, 'None')
+            '''
+            pass

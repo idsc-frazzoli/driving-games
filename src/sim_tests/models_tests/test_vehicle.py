@@ -1,4 +1,4 @@
-from sim.models.car import VehicleState, VehicleCommands
+from sim.models.vehicle import VehicleState, VehicleCommands
 import numpy as np
 
 
