@@ -30,25 +30,7 @@ def test_main():
     print('Collision between Circle and OBB:  ', circ.collide(obb))
 
 
-'''
-class VehicleZones:
-    front: pycrcc.Triangle
-    left: pycrcc.Triangle
-    right: pycrcc.Triangle
-    rear: pycrcc.Triangle
-
-    def __init__(self, car: pycrcc.RectOBB):
-        # todo -> get RectOBB vertex and divide in 4 triangles
-
-        # self.front = pycrcc.Triangle(car.getAABB().min_x,)
-        # self.left
-        # self.right
-        # self.rear
-        pass
-'''
-
-
-def get_vertices(car: pycrcc.RectOBB) -> List[Tuple]:
+def get_vertices_global(car: pycrcc.RectOBB) -> List[Tuple]:
     """
     This returns all the vertices of a rectangle in the global reference frame
     :param car:
@@ -56,9 +38,11 @@ def get_vertices(car: pycrcc.RectOBB) -> List[Tuple]:
     """
     x_c = car.center()[0]
     y_c = car.center()[1]
+
+    theta = car.orientation()
+
     x_l = [car.r_x(), -car.r_x(), -car.r_x(), car.r_x()]
     y_l = [car.r_y(), car.r_y(), -car.r_y(), -car.r_y()]
-    theta = car.orientation()
 
     vertices = []
 
@@ -72,50 +56,90 @@ def get_vertices(car: pycrcc.RectOBB) -> List[Tuple]:
     return vertices
 
 
+def get_vertices_local(car: pycrcc.RectOBB) -> List[Tuple]:
+    x_l = [car.r_x(), -car.r_x(), -car.r_x(), car.r_x(), 0]
+    y_l = [car.r_y(), car.r_y(), -car.r_y(), -car.r_y(), 0]
+
+    vertices = [(x, y) for x, y in zip(x_l, y_l)]
+    return vertices
+
+
 def triangulate_car(vertices: List[Tuple]) -> List[pycrcc.Triangle]:
     # triangulate the polygon
     number_of_vertices = len(vertices)
     segments = list(zip(range(0, number_of_vertices - 1), range(1, number_of_vertices)))
     segments.append((0, number_of_vertices - 1))
-    triangles = triangle.triangulate({'vertices': vertices, 'segments': segments}, opts='pqS2.4')
+    triangles = triangle.triangulate({'vertices': vertices, 'segments': segments})
     # convert all triangles to pycrcc.Triangle
-    car_triangulated = list()
+    car_mesh = list()
     for t in triangles['triangles']:
         v0 = triangles['vertices'][t[0]]
         v1 = triangles['vertices'][t[1]]
         v2 = triangles['vertices'][t[2]]
-        car_triangulated.append(pycrcc.Triangle(v0[0], v0[1],
-                                    v1[0], v1[1],
-                                    v2[0], v2[1]))
-    return car_triangulated
+        car_mesh.append(pycrcc.Triangle(v0[0], v0[1],
+                                        v1[0], v1[1],
+                                        v2[0], v2[1]))
+    return car_mesh
 
-# fixme: there is one triangle missing!! Fix this
+
+def transform_mesh(car_mesh_l: List[pycrcc.Triangle], car: pycrcc.RectOBB) -> List[pycrcc.Triangle]:
+    x_c = car.center()[0]
+    y_c = car.center()[1]
+    theta = car.orientation()
+    cos = np.cos(theta)
+    sin = np.sin(theta)
+
+    vertices_num = len(car_mesh_l)
+
+    car_mesh_g = list()
+    for count, triangle_l in enumerate(car_mesh_l):
+
+        vertices_g = list()
+        for vertex in triangle_l.vertices():
+            x_g = (vertex[0] * cos - vertex[1] * sin) + x_c
+            y_g = (vertex[0] * sin + vertex[1] * cos) + y_c
+            vertices_g.extend([x_g, y_g])
+
+        car_mesh_g.append(pycrcc.Triangle(*vertices_g))
+
+    return car_mesh_g
+
+
+def generate_mesh(car: pycrcc.RectOBB) -> List[pycrcc.Triangle]:
+    vertices = get_vertices_local(car)
+    car_mesh_local = triangulate_car(vertices)
+    car_mesh_global = transform_mesh(car_mesh_local, car)
+    return car_mesh_global
+
 
 def test_ugly_impact():
     # Create two rectangles
-    car_a = pycrcc.RectOBB(1.0, 2.0, 0.3, 9.0, 8.0)  # green
-    car_b = pycrcc.RectOBB(1.0, 2.0, 0.3, 8.0, 10.0)  # red
+    # car_a = pycrcc.RectOBB(1.0, 2.0, 1.2, 5.0, 9.0)  # green left
+    car_a = pycrcc.RectOBB(1.0, 2.0, 1.2, 10.0, 9.0)  # green left
+    car_b = pycrcc.RectOBB(1.0, 2.0, 0, 8.0, 10.0)  # red
 
-    rnd = MPRenderer(figsize=(10, 10))
-    car_a.draw(rnd, draw_params={'facecolor': 'green'})
-    car_b.draw(rnd, draw_params={'facecolor': 'red'})
-    rnd.render(show=True)
-
-    vertices_a = get_vertices(car_a)
-    vertices_b = get_vertices(car_b)
-
-    car_a_t = triangulate_car(vertices_a)
-    car_b_t = triangulate_car(vertices_b)
+    car_a_mesh = generate_mesh(car_a)
+    car_b_mesh = generate_mesh(car_b)
 
     rnd2 = MPRenderer(figsize=(10, 10))
-    rnd2.draw_list(car_a_t, draw_params={'facecolor': 'orange', 'draw_mesh': False})
-    rnd2.draw_list(car_b_t, draw_params={'facecolor': 'orange', 'draw_mesh': False})
+    rnd2.draw_list(car_a_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
+    rnd2.draw_list(car_b_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
     rnd2.render(show=True)
+
+    impact_loc = {0: "left", 1: "right", 2: "rear", 3: "front"}
 
     collision = car_a.collide(car_b)  # this implies car_a moving towards car_b
     if collision:
         print(f"Detected a collision")
 
-        # if car_a.collide(car_b.front)
+        count = 0
+        for area in car_b_mesh:
+            tmp = car_a.collide(area)
+            if tmp:
+                print(f"A collided with B-{impact_loc[count]}")
 
-    print('Collision between car_a and car_b: ', car_a.collide(car_b))
+            count += 1
+
+            # if car_a.collide(car_b.front)
+
+    print('Collision between A and B: ', car_a.collide(car_b))
