@@ -32,7 +32,7 @@ def test_main():
 
 def get_vertices_global(car: pycrcc.RectOBB) -> List[Tuple]:
     """
-    This returns all the vertices of a rectangle in the global reference frame
+    This returns all the vertices of a rectangle in the global reference frame of the map (a bit useless for now)
     :param car:
     :return:
     """
@@ -57,6 +57,12 @@ def get_vertices_global(car: pycrcc.RectOBB) -> List[Tuple]:
 
 
 def get_vertices_local(car: pycrcc.RectOBB) -> List[Tuple]:
+    """
+    This returns all the vertices of a rectangle in the local reference frame of the car.
+    The list starts on the top-right corner and moves anti-clockwise
+    :param car:
+    :return:
+    """
     x_l = [car.r_x(), -car.r_x(), -car.r_x(), car.r_x(), 0]
     y_l = [car.r_y(), car.r_y(), -car.r_y(), -car.r_y(), 0]
 
@@ -65,6 +71,11 @@ def get_vertices_local(car: pycrcc.RectOBB) -> List[Tuple]:
 
 
 def triangulate_car(vertices: List[Tuple]) -> List[pycrcc.Triangle]:
+    """
+    This triangulates the car in 4 triangles based on its diagonals and returns them in a list
+    :param vertices:
+    :return:
+    """
     # triangulate the polygon
     number_of_vertices = len(vertices)
     segments = list(zip(range(0, number_of_vertices - 1), range(1, number_of_vertices)))
@@ -83,13 +94,17 @@ def triangulate_car(vertices: List[Tuple]) -> List[pycrcc.Triangle]:
 
 
 def transform_mesh(car_mesh_l: List[pycrcc.Triangle], car: pycrcc.RectOBB) -> List[pycrcc.Triangle]:
+    """
+    This rotates and translates a list of triangles in the local RF of the car to the global RF of the map
+    :param car_mesh_l:
+    :param car:
+    :return:
+    """
     x_c = car.center()[0]
     y_c = car.center()[1]
     theta = car.orientation()
     cos = np.cos(theta)
     sin = np.sin(theta)
-
-    vertices_num = len(car_mesh_l)
 
     car_mesh_g = list()
     for count, triangle_l in enumerate(car_mesh_l):
@@ -106,13 +121,24 @@ def transform_mesh(car_mesh_l: List[pycrcc.Triangle], car: pycrcc.RectOBB) -> Li
 
 
 def generate_mesh(car: pycrcc.RectOBB) -> List[pycrcc.Triangle]:
+    """
+    This function:
+        1) Gets the vertices of the car in the local RF
+        2) Triangulates the car
+        3) Transforms the triangles mesh to global RF and returns this list of global triangles
+    :param car:
+    :return:
+    """
     vertices = get_vertices_local(car)
     car_mesh_local = triangulate_car(vertices)
     car_mesh_global = transform_mesh(car_mesh_local, car)
     return car_mesh_global
 
 
-def test_ugly_impact():
+def test_impact_location():
+    """
+    Test that prints location of impact when there is a collision
+    """
     # Create two rectangles
     # car_a = pycrcc.RectOBB(1.0, 2.0, 1.2, 5.0, 9.0)  # green left
     car_a = pycrcc.RectOBB(1.0, 2.0, 1.2, 10.0, 9.0)  # green left
