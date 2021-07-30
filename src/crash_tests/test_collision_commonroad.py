@@ -23,7 +23,7 @@ def test_main():
     obb.draw(rnd, draw_params={'facecolor': 'red'})
     circ.draw(rnd, draw_params={'facecolor': 'yellow'})
     tri.draw(rnd, draw_params={'facecolor': 'blue'})
-    rnd.render(show=True, filename='hola.png')
+    rnd.render(show=True)
 
     print('Collision between OBB and AABB: ', obb.collide(aabb))
     print('Collision between AABB and Circle: ', aabb.collide(circ))
@@ -148,8 +148,8 @@ def test_impact_location():
     car_b_mesh = generate_mesh(car_b)
 
     rnd2 = MPRenderer(figsize=(10, 10))
-    rnd2.draw_list(car_a_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
     rnd2.draw_list(car_b_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
+    rnd2.draw_list(car_a_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
     rnd2.render(show=True)
 
     impact_loc = {0: "left", 1: "right", 2: "rear", 3: "front"}

@@ -1,0 +1,41 @@
+# import Point, Polygon
+from sympy import Point, Polygon
+from sympy import Triangle
+import commonroad_dc.pycrcc as pycrcc
+from commonroad.visualization.mp_renderer import MPRenderer
+
+def test_polygons():
+    '''
+    Test interesting library sympy! (Better than pycrcc)
+    Allows to easily compute many metrics from any polygon
+    '''
+    # creating points using Point()
+    p1, p2, p3 = map(Point, [(0, 0), (1, 0),  (5, 1)])
+    #p1, p2, p3 = map(Point, [(10, 10), (11, 11), (12, 12)])
+    p4, p5, p6 = map(Point, [(3, 2), (1, -1), (0, 2)])
+
+    # creating polygons using Polygon()
+    poly1 = Polygon(p1, p2, p3)
+    poly2 = Polygon(p4, p5, p6)
+
+    triangle1 = Triangle(p1, p2, p3)
+    triangle2 = Triangle(p4, p5, p6)
+
+    is_intersection_triangle = triangle1.intersection(triangle2)
+    print(is_intersection_triangle)
+
+    if len(is_intersection_triangle):
+        intersection_area = Polygon(*is_intersection_triangle).area
+        print(float(intersection_area))
+
+    # Triangle with vertices (x1, y1), (x2, y2), and (x3, y3)
+    tri1 = pycrcc.Triangle(0, 0, 1, 0, 5, 1)
+    tri2 = pycrcc.Triangle(3, 2, 1, -1, 0, 2)
+
+    rnd = MPRenderer(figsize=(10, 10))
+    tri1.draw(rnd, draw_params={'facecolor': 'blue'})
+    tri2.draw(rnd, draw_params={'facecolor': 'green'})
+    rnd.render(show=True)
+
+    # using intersection()
+    isIntersection_poly = poly1.intersection(poly2)
