@@ -1,9 +1,10 @@
-from typing import List, Tuple
+from typing import List, Tuple, Mapping, NewType
 
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
 import numpy as np
 import triangle
+from geometry import SE2value, SE2_from_xytheta
 
 
 def test_main():
@@ -54,6 +55,39 @@ def get_vertices_global(car: pycrcc.RectOBB) -> List[Tuple]:
     vertices.append((x_c, y_c))
 
     return vertices
+
+
+ImpactLocation = NewType("ImpactLocation", str)
+IMPACT_FRONT = ImpactLocation("front")
+IMPACT_BACK = ImpactLocation("back")
+IMPACT_LEFT = ImpactLocation("left")
+IMPACT_RIGHT = ImpactLocation('right')
+
+
+def get_vertices_gale(car: pycrcc.RectOBB) -> Mapping[ImpactLocation, pycrcc.Triangle]:
+    """
+    This returns all the vertices of a rectangle in the global reference frame of the map (a bit useless for now)
+    :param car:
+    :return:
+    """
+    l2g: SE2value = SE2_from_xytheta((car.center()[0], car.center()[1], car.orientation()))
+
+    vertices = np.array([[car.r_x(), -car.r_x(), -car.r_x(), car.r_x()],
+                         [car.r_y(), car.r_y(), -car.r_y(), -car.r_y()],
+                         [1, 1, 1, 1]])
+
+    vertices = l2g @ vertices
+
+    vertices = vertices[:-1, :]  # Remove last row
+
+    impactlocations: Mapping[ImpactLocation, pycrcc.Triangle] = {
+        IMPACT_FRONT: pycrcc.Triangle(*vertices[:, 0], *vertices[:, 1], *car.center()),
+        IMPACT_BACK: pycrcc.Triangle(*vertices[:, 2], *vertices[:, 3], *car.center()),
+        IMPACT_LEFT: pycrcc.Triangle(*vertices[:, 1], *vertices[:, 2], *car.center()),
+        IMPACT_RIGHT: pycrcc.Triangle(*vertices[:, 3], *vertices[:, 0], *car.center()),
+    }
+
+    return impactlocations
 
 
 def get_vertices_local(car: pycrcc.RectOBB) -> List[Tuple]:
@@ -167,5 +201,7 @@ def test_impact_location():
             count += 1
 
             # if car_a.collide(car_b.front)
+
+    test = get_vertices_gale(car_a)
 
     print('Collision between A and B: ', car_a.collide(car_b))

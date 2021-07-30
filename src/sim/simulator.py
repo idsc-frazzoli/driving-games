@@ -9,6 +9,7 @@ from duckietown_world import DuckietownMap
 from games import PlayerName
 from sim import logger
 from sim.agent import Agent
+from sim.collision import compute_collision_report, CollisionReport
 from sim.simulator_structures import *
 from world import load_driving_game_map
 
@@ -31,8 +32,8 @@ class SimContext:
 
 
 # todo for now just a bool in the future we want more detailed info
-CollisionReport = bool
-ImpactReport    = (bool, str)
+CollisionBool = bool
+
 
 class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
@@ -64,13 +65,14 @@ class Simulator:
         # todo check if sim context gets updates properly or it needs to be returned
 
     def post_update(self, sim_context: SimContext):
-        collision_report = self._check_collisions(sim_context)
+        collision_report = self._check_collisions_location(sim_context)
         sim_context.time += sim_context.param.dt
-        if sim_context.time > sim_context.param.max_sim_time or collision_report:
+        if sim_context.time > sim_context.param.max_sim_time or collision_report.collision:
             sim_context.sim_terminated = True
+            # fixme -> simulation not stopping even when colliding
 
     @staticmethod
-    def _check_collisions(sim_context: SimContext) -> CollisionReport:
+    def _check_collisions(sim_context: SimContext) -> CollisionBool:
         """
         This checks only collision at the current step, tunneling effects and similar are ignored
         :param sim_context:
@@ -86,30 +88,19 @@ class Simulator:
         return collision
 
     @staticmethod
-    def _check_collisions_location(sim_context: SimContext) -> ImpactReport:
+    def _check_collisions_location(sim_context: SimContext) -> CollisionReport:
         """
         This checks only collision location at the current step, tunneling effects and similar are ignored
         :param sim_context:
         :return:
         """
         collision = False
+        report = CollisionReport()
         for a, b in combinations(sim_context.models, 2):
-            a_shape = sim_context.models[a].get_state()  # {'x': CoG x [m], 'y': CoG y [m], 'theta': CoG heading [rad], 'vx': CoG longitudinal velocity [m/s], 'delta': Steering angle [rad]}
-            b_shape = sim_context.models[b].get_state()
-
-            # IDEA FOR ALGORITHM:
-            # 1) Start diving car into 4 polygons based on diagonals (this can then be extended with 'interesting' paper)
-            # 2) If there's a collision between two cars:
-            #       2.1) Check the collision of "car a" with each of the 4 polygons from "car b"
-            #       2.2) Based on this, assign the impact location (Front, Rear, Side)
-            #       2.3) Output a tuple indicating: (bool: was there a collision?, str: where?) {Refine this}
-            # 3) Later, with the velocity, we can also compute the energy
-            '''
+            a_shape = sim_context.models[a].get_footprint()  # {'x': CoG x [m], 'y': CoG y [m], 'theta': CoG heading [rad], 'vx': CoG longitudinal velocity [m/s], 'delta': Steering angle [rad]}
+            b_shape = sim_context.models[b].get_footprint()
             collision = a_shape.collide(b_shape) or collision
             if collision:
                 logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
-                # todo: check impact location of the collision here
-
-        return (collision, 'None')
-            '''
-            pass
+                report = compute_collision_report(a_shape, b_shape)
+        return report

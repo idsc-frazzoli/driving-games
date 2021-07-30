@@ -190,3 +190,9 @@ def test_impact_location():
                     impact_zone[count] = 0.0
 
     print('Collision between A and B: ', car_a.intersection(car_b))
+
+class CollisionReport:
+    impact_location: Mapping[ImpactLocation, pycrcc.Triangle]
+
+    def __init__(self):
+        self.impact_location = {}
