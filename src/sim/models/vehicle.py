@@ -33,6 +33,8 @@ class VehicleGeometry(ModelGeometry):
 
     m: float
     """ Vehicle Mass [kg] """
+    Iz: float
+    """ Rotational inertia (used only in the dynamic model) """
     w_half: float
     """ Half width of vehicle [m] """
     l_half: float
@@ -40,13 +42,14 @@ class VehicleGeometry(ModelGeometry):
     color: Color = (1, 1, 1)
     """ Color """
 
+    # todo fix default rotational inertia
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=1000.0, w_half=1.0, l_half=2.0)
+        return VehicleGeometry(m=1000.0, Iz=0, w_half=1.0, l_half=2.0)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=80.0, w_half=0.25, l_half=1.0)
+        return VehicleGeometry(m=80.0, Iz=0, w_half=0.25, l_half=1.0)
 
     @cached_property
     def width(self):
@@ -64,19 +67,21 @@ class VehicleGeometry(ModelGeometry):
 
 @dataclass(frozen=True, unsafe_hash=True)
 class VehicleParameters:
-    vx_max: float
-    vx_min: float
-    """ Maximum and Minimum velocities [m/s] """
+    vx_limits: Tuple[float, float]
+    """ Minimum and Maximum velocities [m/s] """
     delta_max: float
     """ Maximum steering angle [rad] """
 
     @classmethod
     def default_car(cls) -> "VehicleParameters":
-        return VehicleParameters(vx_max=kmh2ms(130), vx_min=kmh2ms(-10), delta_max=math.pi)
+        return VehicleParameters(vx_limits=(kmh2ms(-10), kmh2ms(130)), delta_max=math.pi)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleParameters":
-        return VehicleParameters(vx_max=kmh2ms(50), vx_min=kmh2ms(-1), delta_max=math.pi)
+        return VehicleParameters(vx_limits=(kmh2ms(-1), kmh2ms(50)), delta_max=math.pi)
+
+    def __post_init__(self):
+        assert self.vx_limits[0] < self.vx_limits[1]
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -199,18 +204,14 @@ class VehicleState:
 
 
 class VehicleModel(SimModel[VehicleState, VehicleCommands]):
-    # fixme make sure class attributes don't mess with instance once
-    vg: VehicleGeometry
-    """ The vehicle's geometry parameters"""
-    vp: VehicleParameters
-    """ The vehicle parameters"""
-    _state: VehicleState
-    """ Current state of the model"""
 
     def __init__(self, x0: VehicleState, vg: VehicleGeometry, vp: VehicleParameters):
-        self._state = x0
-        self.vg = vg
+        self._state: VehicleState = x0
+        """ Current state of the model"""
+        self.vg: VehicleGeometry = vg
+        """ The vehicle's geometry parameters"""
         self.vp = vp
+        """ The vehicle parameters"""
 
     @classmethod
     def default_bicycle(cls, x0: VehicleState):
@@ -251,17 +252,17 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         return
 
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
-        """ Get rate of change of states for given control inputs """
+        """ returns state derivative for given control inputs """
         dx = x0.vx
-        dr = dx * math.tan(x0.delta) / (2.0 * self.vg.l_half)
-        dy = dr * self.vg.l_half
-        th_eq = x0.theta + dr / 2.0 if mean else x0.theta
+        dtheta = dx * math.tan(x0.delta) / (2.0 * self.vg.l_half)
+        dy = dtheta * self.vg.l_half
+        th_eq = x0.theta + dtheta / 2.0 if mean else x0.theta
         costh = math.cos(th_eq)
         sinth = math.sin(th_eq)
 
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh
-        return VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)
+        return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=u.acc, delta=u.ddelta)
 
     def get_footprint(self) -> RectOBB:
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position

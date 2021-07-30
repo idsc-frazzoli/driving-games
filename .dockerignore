@@ -4,5 +4,6 @@
 src/*.egg-info
 !Makefile*
 !docker
+!dependencies-apt.txt
 !requirements*
 !.compmake.rc

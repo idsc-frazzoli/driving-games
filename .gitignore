@@ -13,7 +13,7 @@ test-results/
 errors
 evaluator.log
 trace-cover
-out
+out/
 out-docker
 .coverage.dorothy.*
 .coverage.thinkpad-p51s.*

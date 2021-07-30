@@ -79,7 +79,7 @@ class SimModel(ABC, Generic[X, U]):
     """State of the model"""
 
     @abstractmethod
-    def update(self, commands: U, dt: SimTime) -> X:
+    def update(self, commands: U, dt: SimTime):
         pass
 
     @abstractmethod
