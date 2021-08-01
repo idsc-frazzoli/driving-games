@@ -1,4 +1,5 @@
 import math
+from itertools import chain
 from typing import MutableMapping, Mapping, List, Union
 
 from matplotlib import pyplot as plt
@@ -45,7 +46,7 @@ def create_animation(file_path: str,
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
         # fixme this is supposed to be an iterable of artists
-        return list(states.values()) + list(actions.values()) + list(opt_actions.values())
+        return list(chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values())
 
     def init_plot():
         ax.clear()
@@ -82,7 +83,7 @@ def create_animation(file_path: str,
     # Interval determines the duration of each frame in ms
     anim = FuncAnimation(
         fig=fig, func=update_plot, init_func=init_plot,
-        frames=frame_count, blit=False, interval=dt)
+        frames=frame_count, blit=True, interval=dt)
 
     if not any([file_path.endswith('.mp4'), file_path.endswith('.gif'), file_path.endswith('.avi')]):
         file_path += '.mp4'

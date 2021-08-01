@@ -58,6 +58,7 @@ class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
         return sim_time, self[sim_time]
 
     def at(self, t: Union[SimTime, float]) -> MutableMapping[PlayerName, LogEntry]:
+        # todo enhancement bisect_right and used SampledSequence
         t = Decimal(t)
         if t < self.get_init_time() or t > self.get_last_time():
             raise ValueError(f"Requested simulation log {t} is out of bounds")

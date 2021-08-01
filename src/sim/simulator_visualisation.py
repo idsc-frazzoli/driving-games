@@ -8,6 +8,8 @@ from decorator import contextmanager
 from geometry import SE2_from_xytheta
 from imageio import imread
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
+from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
 from games import PlayerName, X, U, Y
@@ -106,9 +108,20 @@ def plot_vehicle(ax: Axes,
         wheels_outlines = vg.get_rotated_wheels_outlines(state.delta)
         wheels_outlines = [q @ w_outline for w_outline in wheels_outlines]
         for w_idx, wheel in enumerate(boxes[1:]):
-            xy_poly = wheels_outlines[w_idx][:2,:].T
+            xy_poly = wheels_outlines[w_idx][:2, :].T
             wheel.set_xy(xy_poly)
     return boxes
+
+
+def plot_history(ax: Axes,
+                 state: VehicleState,
+                 vg: VehicleGeometry,
+                 traces: Optional[Line2D]=None
+                 ):
+    if traces is None:
+        trace, = ax.plot([], [], ',-', lw=1)
+    # todo similar to https://matplotlib.org/stable/gallery/animation/double_pendulum.html#sphx-glr-gallery-animation-double-pendulum-py
+
 
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:

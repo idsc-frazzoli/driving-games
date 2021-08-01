@@ -11,7 +11,8 @@ from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
 
 from sim.models.utils import kmh2ms
-from sim.models.vehicle import VehicleCommands, VehicleGeometry, VehicleParameters
+from sim.models.vehicle import VehicleCommands
+from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
 from sim.simulator_structures import SimModel
 
 

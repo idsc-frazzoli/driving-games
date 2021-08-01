@@ -1,9 +1,6 @@
 import math
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from decimal import Decimal
-from functools import cached_property
-from typing import Tuple, NewType, List
 
 import numpy as np
 from commonroad_dc.pycrcc import RectOBB
@@ -11,135 +8,9 @@ from frozendict import frozendict
 from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
 
-from sim.models.utils import kmh2ms
+from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
+from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
 from sim.simulator_structures import SimModel
-from sim.typing import Color
-
-VehicleType = NewType("VehicleType", str)
-CAR = VehicleType("car")
-MOTORCYCLE = VehicleType("motorcycle")
-BICYCLE = VehicleType("bicycle")
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class ModelGeometry(ABC):
-
-    @property
-    @abstractmethod
-    def outline(self):
-        pass
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class VehicleGeometry(ModelGeometry):
-    """ Geometry parameters of the vehicle (and colour)"""
-
-    vehicle_type: VehicleType
-    """Type of the vehicle"""
-    m: float
-    """ Vehicle Mass [kg] """
-    Iz: float
-    """ Rotational inertia (used only in the dynamic model) """
-    w_half: float
-    """ Half width of vehicle [m] """
-    lf: float
-    """ Front length of vehicle - dist from CoG to front [m] """
-    lr: float
-    """ Rear length of vehicle - dist from CoG to back [m] """
-    color: Color = (1, 1, 1)
-    """ Color """
-
-    # todo fix default rotational inertia
-    @classmethod
-    def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=CAR, m=1000.0, Iz=0, w_half=1.0, lf=2.0, lr=2.0)
-
-    @classmethod
-    def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=0, w_half=0.25, lf=1.0, lr=1.0)
-
-    @cached_property
-    def width(self):
-        return self.w_half * 2
-
-    @cached_property
-    def length(self):
-        return self.lf + self.lr
-
-    @cached_property
-    def outline(self) -> Tuple[Tuple[float, float], ...]:
-        return ((-self.lr, -self.w_half), (-self.lr, +self.w_half),
-                (+self.lf, +self.w_half), (+self.lf, -self.w_half), (-self.lr, -self.w_half))
-
-    @cached_property
-    def wheel_shape(self):
-        if self.vehicle_type == CAR:
-            _halfwidth, _radius = 0.1, 0.3  # size of the wheels
-        elif self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE:
-            _halfwidth, _radius = 0.05, 0.3  # size of the wheels
-        else:
-            raise ValueError("Unrecognised vehicle type while trying to get weels outline")
-        return _halfwidth, _radius
-
-    @cached_property
-    def wheel_outline(self):
-        _halfwidth, _radius = self.wheel_shape
-        return np.array([[_radius, -_radius, -_radius, _radius, _radius],
-                         [-_halfwidth, -_halfwidth, _halfwidth, _halfwidth, -_halfwidth],
-                         [1, 1, 1, 1, 1]])
-
-    @cached_property
-    def wheels_position(self) -> np.ndarray:
-        _halfwidth, _radius = self.wheel_shape
-        if self.vehicle_type == CAR:
-            # return 4 wheels position (always the first half are the front ones)
-            positions = np.array([[self.lf - _radius, self.lf - _radius, -self.lr + _radius, -self.lr + _radius],
-                                  [self.w_half - _halfwidth, -self.w_half + _halfwidth, self.w_half - _halfwidth,
-                                   -self.w_half + _halfwidth], [1, 1, 1, 1]])
-
-        else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
-            positions = np.array([[self.lf - _radius, -self.lr + _radius], [0, 0], [1, 1]])
-        return positions
-
-    @cached_property
-    def n_wheels(self) -> int:
-        return self.wheels_position.shape[1]
-
-    def get_rotated_wheels_outlines(self, delta: float) -> List[np.ndarray]:
-        """
-
-        :param delta: Steering angle of front wheels
-        :return:
-        """
-        wheels_position = self.wheels_position
-        assert self.n_wheels in (2, 4), self.n_wheels
-        transformed_wheels_outlines = []
-        for i in range(self.n_wheels):
-            if i < self.n_wheels / 2:
-                transform = SE2_from_xytheta((wheels_position[0, i], wheels_position[1, i], delta))
-            else:
-                transform = SE2_from_xytheta((wheels_position[0, i], wheels_position[1, i], 0))
-            transformed_wheels_outlines.append(transform @ self.wheel_outline)
-        return transformed_wheels_outlines
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class VehicleParameters:
-    vx_limits: Tuple[float, float]
-    """ Minimum and Maximum velocities [m/s] """
-    delta_max: float
-    """ Maximum steering angle [rad] """
-
-    @classmethod
-    def default_car(cls) -> "VehicleParameters":
-        return VehicleParameters(vx_limits=(kmh2ms(-10), kmh2ms(130)), delta_max=math.pi)
-
-    @classmethod
-    def default_bicycle(cls) -> "VehicleParameters":
-        return VehicleParameters(vx_limits=(kmh2ms(-1), kmh2ms(50)), delta_max=math.pi)
-
-    def __post_init__(self):
-        assert self.vx_limits[0] < self.vx_limits[1]
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -294,7 +165,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
         def _dynamics(t, y):
             state0, actions = _stateactions_from_array(y=y)
-            dx = self.dynamics(x0=state0, u=actions, mean=False)
+            dx = self.dynamics(x0=state0, u=actions)
             du = np.zeros([len(VehicleCommands.idx)])
             return np.concatenate([dx.as_ndarray(), du])
 
@@ -309,18 +180,21 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         self._state = new_state
         return
 
-    def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
+    def dynamics(self, x0: VehicleState, u: VehicleCommands) -> VehicleState:
         """ returns state derivative for given control inputs """
-        dx = x0.vx
-        dtheta = dx * math.tan(x0.delta) / self.vg.length
-        dy = dtheta * self.vg.lf
-        th_eq = x0.theta + dtheta / 2.0 if mean else x0.theta
-        costh = math.cos(th_eq)
-        sinth = math.sin(th_eq)
+        # todo check this model
+        vx = x0.vx
+        dtheta = vx * math.tan(x0.delta) / self.vg.length
+        vy = dtheta * self.vg.lf
+        costh = math.cos(x0.theta)
+        sinth = math.sin(x0.theta)
 
-        xdot = dx * costh - dy * sinth
-        ydot = dx * sinth + dy * costh
-        return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=u.acc, delta=u.ddelta)
+        xdot = vx * costh - vy * sinth
+        ydot = vx * sinth + vy * costh
+
+        ddelta = steering_constraint(x0.delta, u.ddelta, self.vp)
+        acc = acceleration_constraint(x0.vx, u.acc, self.vp)
+        return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=acc, delta=ddelta)
 
     def get_footprint(self) -> RectOBB:
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position

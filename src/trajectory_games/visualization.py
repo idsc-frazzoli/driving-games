@@ -12,6 +12,7 @@ from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 from games import PlayerName
 from geometry import SE2_from_xytheta
 
+from sim.simulator_visualisation import get_transformed_xy
 from world import LaneSegmentHashable
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
@@ -168,10 +169,4 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     return box
 
 
-def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
-    car = tuple((x, y, 1) for x, y in points)
-    car = np.float_(car).T
-    points = q @ car
-    x = points[0, :]
-    y = points[1, :]
-    return x, y
+

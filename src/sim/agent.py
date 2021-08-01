@@ -16,7 +16,7 @@ class Agent(ABC):
 
 class NPAgent(Agent):
     """
-    Non=playing character which returns commands based purely on the sim time
+    Non-playing character which returns commands based purely on the sim time
     """
 
     def __init__(self, commands_plan: Mapping[SimTime, U]):
