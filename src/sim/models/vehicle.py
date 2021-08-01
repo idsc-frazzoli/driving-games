@@ -1,14 +1,12 @@
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from decimal import Decimal
-
-import math
 from functools import cached_property
-from typing import Tuple
+from typing import Tuple, NewType, List
 
 import numpy as np
 from commonroad_dc.pycrcc import RectOBB
-
 from frozendict import frozendict
 from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
@@ -16,6 +14,11 @@ from scipy.integrate import solve_ivp
 from sim.models.utils import kmh2ms
 from sim.simulator_structures import SimModel
 from sim.typing import Color
+
+VehicleType = NewType("VehicleType", str)
+CAR = VehicleType("car")
+MOTORCYCLE = VehicleType("motorcycle")
+BICYCLE = VehicleType("bicycle")
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -31,25 +34,29 @@ class ModelGeometry(ABC):
 class VehicleGeometry(ModelGeometry):
     """ Geometry parameters of the vehicle (and colour)"""
 
+    vehicle_type: VehicleType
+    """Type of the vehicle"""
     m: float
     """ Vehicle Mass [kg] """
     Iz: float
     """ Rotational inertia (used only in the dynamic model) """
     w_half: float
     """ Half width of vehicle [m] """
-    l_half: float
-    """ Half length of vehicle - dist from CoG to each axle [m] """
+    lf: float
+    """ Front length of vehicle - dist from CoG to front [m] """
+    lr: float
+    """ Rear length of vehicle - dist from CoG to back [m] """
     color: Color = (1, 1, 1)
     """ Color """
 
     # todo fix default rotational inertia
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=1000.0, Iz=0, w_half=1.0, l_half=2.0)
+        return VehicleGeometry(vehicle_type=CAR, m=1000.0, Iz=0, w_half=1.0, lf=2.0, lr=2.0)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=80.0, Iz=0, w_half=0.25, l_half=1.0)
+        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=0, w_half=0.25, lf=1.0, lr=1.0)
 
     @cached_property
     def width(self):
@@ -57,12 +64,63 @@ class VehicleGeometry(ModelGeometry):
 
     @cached_property
     def length(self):
-        return self.l_half * 2
+        return self.lf + self.lr
 
     @cached_property
     def outline(self) -> Tuple[Tuple[float, float], ...]:
-        return ((-self.l_half, -self.w_half), (-self.l_half, +self.w_half),
-                (+self.l_half, +self.w_half), (+self.l_half, -self.w_half), (-self.l_half, -self.w_half))
+        return ((-self.lr, -self.w_half), (-self.lr, +self.w_half),
+                (+self.lf, +self.w_half), (+self.lf, -self.w_half), (-self.lr, -self.w_half))
+
+    @cached_property
+    def wheel_shape(self):
+        if self.vehicle_type == CAR:
+            _halfwidth, _radius = 0.1, 0.3  # size of the wheels
+        elif self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE:
+            _halfwidth, _radius = 0.05, 0.3  # size of the wheels
+        else:
+            raise ValueError("Unrecognised vehicle type while trying to get weels outline")
+        return _halfwidth, _radius
+
+    @cached_property
+    def wheel_outline(self):
+        _halfwidth, _radius = self.wheel_shape
+        return np.array([[_radius, -_radius, -_radius, _radius, _radius],
+                         [-_halfwidth, -_halfwidth, _halfwidth, _halfwidth, -_halfwidth],
+                         [1, 1, 1, 1, 1]])
+
+    @cached_property
+    def wheels_position(self) -> np.ndarray:
+        _halfwidth, _radius = self.wheel_shape
+        if self.vehicle_type == CAR:
+            # return 4 wheels position (always the first half are the front ones)
+            positions = np.array([[self.lf - _radius, self.lf - _radius, -self.lr + _radius, -self.lr + _radius],
+                                  [self.w_half - _halfwidth, -self.w_half + _halfwidth, self.w_half - _halfwidth,
+                                   -self.w_half + _halfwidth], [1, 1, 1, 1]])
+
+        else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
+            positions = np.array([[self.lf - _radius, -self.lr + _radius], [0, 0], [1, 1]])
+        return positions
+
+    @cached_property
+    def n_wheels(self) -> int:
+        return self.wheels_position.shape[1]
+
+    def get_rotated_wheels_outlines(self, delta: float) -> List[np.ndarray]:
+        """
+
+        :param delta: Steering angle of front wheels
+        :return:
+        """
+        wheels_position = self.wheels_position
+        assert self.n_wheels in (2, 4), self.n_wheels
+        transformed_wheels_outlines = []
+        for i in range(self.n_wheels):
+            if i < self.n_wheels / 2:
+                transform = SE2_from_xytheta((wheels_position[0, i], wheels_position[1, i], delta))
+            else:
+                transform = SE2_from_xytheta((wheels_position[0, i], wheels_position[1, i], 0))
+            transformed_wheels_outlines.append(transform @ self.wheel_outline)
+        return transformed_wheels_outlines
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -182,7 +240,7 @@ class VehicleState:
         return self * (1 / val)
 
     def __repr__(self) -> str:
-        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
+        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("idx")})
 
     def as_ndarray(self) -> np.ndarray:
         return np.array([
@@ -254,8 +312,8 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
         """ returns state derivative for given control inputs """
         dx = x0.vx
-        dtheta = dx * math.tan(x0.delta) / (2.0 * self.vg.l_half)
-        dy = dtheta * self.vg.l_half
+        dtheta = dx * math.tan(x0.delta) / self.vg.length
+        dy = dtheta * self.vg.lf
         th_eq = x0.theta + dtheta / 2.0 if mean else x0.theta
         costh = math.cos(th_eq)
         sinth = math.sin(th_eq)
@@ -266,7 +324,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_footprint(self) -> RectOBB:
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-        return RectOBB(self.vg.w_half, self.vg.l_half, self._state.theta, self._state.x, self._state.y)
+        return RectOBB(self.vg.w_half, self.vg.length / 2, self._state.theta, self._state.x, self._state.y)
 
     def get_xytheta_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])

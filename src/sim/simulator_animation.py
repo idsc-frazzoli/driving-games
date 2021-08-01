@@ -1,8 +1,8 @@
 import math
 from typing import MutableMapping, Mapping, List, Union
 
-from matplotlib.animation import FuncAnimation
 from matplotlib import pyplot as plt
+from matplotlib.animation import FuncAnimation
 
 from games import PlayerName
 from sim import logger
@@ -37,7 +37,10 @@ def create_animation(file_path: str,
     fig, ax = plt.subplots(figsize=fig_size)
     fig.set_tight_layout(True)
     ax.set_aspect('equal')
+    # dictionaries with the handles of the plotting stuff
     states, actions, opt_actions = {}, {}, {}
+    # some parameters
+    plot_wheels: bool = True
 
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
@@ -54,19 +57,21 @@ def create_animation(file_path: str,
                     ax=ax,
                     state=player.state,
                     player_name=pname,
-                    alpha=0.7)
+                    alpha=0.7,
+                    plot_wheels=plot_wheels)
         return _get_list()
 
     def update_plot(frame: int = 0):
         t: float = (frame * dt / 1000.0)
-        logger.debug(f"Plotting t = {t}")
+        logger.info(f"Plotting t = {t}")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at(t)
         for pname, box_handle in states.items():
             states[pname] = sim_viz.plot_player(
                 ax=ax,
                 player_name=pname,
                 state=log_at_t[pname].state,
-                box=box_handle)
+                polygons=box_handle,
+                plot_wheels=plot_wheels)
 
         return _get_list()
 
