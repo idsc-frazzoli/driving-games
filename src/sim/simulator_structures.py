@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import MutableMapping, Generic, Optional, Any, Dict, Union
-
-from dataclasses import dataclass
 
 from commonroad_dc.pycrcc import Shape
 from geometry import SE2value
@@ -97,8 +96,4 @@ class SimModel(ABC, Generic[X, U]):
 
     @abstractmethod
     def get_geometry(self) -> Any:
-        pass
-
-    @abstractmethod
-    def get_vehicle_model(self) -> Any:
         pass

@@ -1,3 +1,5 @@
+from geometry import T2value
+
 from sim.models.vehicle import VehicleState, VehicleCommands
 import numpy as np
 
@@ -14,3 +16,6 @@ def test_vehicle_commands_01():
     vcommands = VehicleCommands.from_array(npcmds)
     print(vcommands)
     np.testing.assert_array_equal(npcmds, vcommands.as_ndarray())
+
+def test_vehicle_speed():
+    v:T2value

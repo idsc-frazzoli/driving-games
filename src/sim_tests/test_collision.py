@@ -1,10 +1,10 @@
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
 
-from sim.collision import get_rectangle_mesh, compute_collision_report
+from sim.collision import get_rectangle_mesh, get_impact_locations
 
 
-def test_main():
+def test_commonroad_dc():
     aabb = pycrcc.RectAABB(2.0, 3.0, 3.0, 2.0)
 
     # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
@@ -40,7 +40,6 @@ def test_impact_location():
     print(car_a.r_x())
     print(car_a.r_y())
 
-
     car_a_mesh = list(get_rectangle_mesh(car_a).values())
     car_b_mesh = list(get_rectangle_mesh(car_b).values())
 
@@ -49,10 +48,7 @@ def test_impact_location():
     rnd2.draw_list(car_b_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
     rnd2.render(show=True)
 
-    col_repA = compute_collision_report(car_a, car_b)
-    col_repB = compute_collision_report(car_b, car_a)
+    col_repA = get_impact_locations(car_a, car_b)
+    col_repB = get_impact_locations(car_b, car_a)
     print(f'Collision report A: {col_repA}')
     print(f'Collision report B: {col_repB}')
-
-
-

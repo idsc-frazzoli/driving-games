@@ -1,14 +1,13 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
-from itertools import combinations, permutations
+from itertools import permutations
 from typing import Mapping, Optional, Dict
 
 from duckietown_world import DuckietownMap
 
 from games import PlayerName
-from sim import logger
+from sim import logger, CollisionReport
 from sim.agent import Agent
-from sim.collision import compute_collision_report, CollisionReport, CollisionBool
 from sim.simulator_structures import *
 from world import load_driving_game_map
 
@@ -41,6 +40,7 @@ class Simulator:
             self.post_update(sim_context)
 
     def pre_update(self, sim_context: SimContext):
+        """Prior to stepping the simulation we compute the observations for each agent"""
         self.last_observations.time = sim_context.time
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
@@ -50,6 +50,7 @@ class Simulator:
         return
 
     def update(self, sim_context: SimContext):
+        """ The real step of the simulation """
         sim_context.log[sim_context.time] = {}
         # fixme this can be parallelized later
         for player_name, model in sim_context.models.items():
@@ -62,28 +63,35 @@ class Simulator:
         return
 
     def post_update(self, sim_context: SimContext):
-        collison_detected = self._check_collisions(sim_context)
-        sim_context.time += sim_context.param.dt
-        if sim_context.time > sim_context.param.max_sim_time or collison_detected:
-            sim_context.sim_terminated = True
-            # fixme -> simulation not stopping even when colliding
-        return
-
-    @staticmethod
-    def _check_collisions(sim_context: SimContext) -> CollisionBool:
         """
-        This checks only collision location at the current step, tunneling effects and similar are ignored
+        Here all the operations that happen after we have stepped the simulation, e.g. collision checking
         :param sim_context:
         :return:
         """
+        collison_detected = self._check_collisions(sim_context)
+        # after all the computations advance simulation time
+        sim_context.time += sim_context.param.dt
+        if sim_context.time > sim_context.param.max_sim_time or collison_detected:
+            sim_context.sim_terminated = True
+            # fixme simulation not stopping even when colliding
+        return
+
+    @staticmethod
+    def _check_collisions(sim_context: SimContext) -> bool:
+        """
+        This checks only collision location at the current step, tunneling effects and similar are ignored
+        :param sim_context:
+        :return: True if at least one collision happened, False otherwise
+        """
         collision = False
+        # this way solves the permutations asymetrically
         for a, b in permutations(sim_context.models, 2):
             a_shape = sim_context.models[a].get_footprint()
             b_shape = sim_context.models[b].get_footprint()
             if a_shape.collide(b_shape):
-                collision = True
                 logger.info(f"Detected a collision between {a} and {b}")
-                report: CollisionReport = compute_collision_report(a_shape, b_shape)
+                from sim.collision import compute_collision_report # import here to avoid circular imports
+                collision = True
+                report: CollisionReport = compute_collision_report(a, b, sim_context)
                 sim_context.collision_reports[a] = report
         return collision
-

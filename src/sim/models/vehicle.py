@@ -7,7 +7,6 @@ from commonroad_dc.pycrcc import RectOBB
 from frozendict import frozendict
 from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
-from shapely.geometry import Polygon
 
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
@@ -206,6 +205,3 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_geometry(self) -> VehicleGeometry:
         return self.vg
-
-    def get_vehicle_model(self):
-        return self
