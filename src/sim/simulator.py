@@ -1,15 +1,14 @@
+from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import combinations
-from typing import Mapping, Optional
-
-from dataclasses import dataclass, field
+from typing import Mapping, Optional, Dict
 
 from duckietown_world import DuckietownMap
 
 from games import PlayerName
 from sim import logger
 from sim.agent import Agent
-from sim.collision import compute_collision_report, CollisionReport
+from sim.collision import compute_collision_report, CollisionReport, CollisionBool
 from sim.simulator_structures import *
 from world import load_driving_game_map
 
@@ -25,15 +24,11 @@ class SimContext:
     time: SimTime = Decimal(0)
     seed: int = 0
     sim_terminated: bool = False
-    collision_reports: Optional[Mapping[PlayerName, CollisionReport]] = None
+    collision_reports: Dict[PlayerName, CollisionReport] = field(default_factory=dict)
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
         self.map = load_driving_game_map(self.map_name)
-
-
-# todo for now just a bool in the future we want more detailed info
-CollisionBool = bool
 
 
 class Simulator:
@@ -67,9 +62,9 @@ class Simulator:
         return
 
     def post_update(self, sim_context: SimContext):
-        collision_report = self._check_collisions_location(sim_context)
+        collison_detected = self._check_collisions_location(sim_context)
         sim_context.time += sim_context.param.dt
-        if sim_context.time > sim_context.param.max_sim_time or collision_report.collision:
+        if sim_context.time > sim_context.param.max_sim_time or collison_detected:
             sim_context.sim_terminated = True
             # fixme -> simulation not stopping even when colliding
         return
@@ -85,25 +80,26 @@ class Simulator:
         for a, b in combinations(sim_context.models, 2):
             a_shape = sim_context.models[a].get_footprint()
             b_shape = sim_context.models[b].get_footprint()
-            collision = a_shape.collide(b_shape) or collision
+            collision = a_shape.collide(b_shape)
             if collision:
                 logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
         return collision
 
     @staticmethod
-    def _check_collisions_location(sim_context: SimContext) -> CollisionReport:
+    def _check_collisions_location(sim_context: SimContext) -> CollisionBool:
         """
         This checks only collision location at the current step, tunneling effects and similar are ignored
         :param sim_context:
         :return:
         """
-        report = CollisionReport() # todo: add some values here
+        collision = False
         for a, b in combinations(sim_context.models, 2):
+            a_shape = sim_context.models[a].get_footprint()
+            b_shape = sim_context.models[b].get_footprint()
+            if a_shape.collide(b_shape):
+                collision = True
+                logger.info(f"Detected a collision between {a} and {b}")
+                report: CollisionReport = compute_collision_report(a_shape, b_shape)
+                sim_context.collision_reports[a] = report
 
-            a_vehicle = sim_context.models[a].get_vehicle_model()
-            b_vehicle = sim_context.models[b].get_vehicle_model()
-
-            if a_vehicle.get_footprint().collide(b_vehicle.get_footprint()):
-                logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
-                report = compute_collision_report(a_vehicle, b_vehicle)
-        return report
+        return collision

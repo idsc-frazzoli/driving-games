@@ -201,23 +201,6 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
         return RectOBB(self.vg.w_half, self.vg.length / 2, self._state.theta, self._state.x, self._state.y)
 
-    def get_vertices(self) -> np.ndarray:
-        """
-        This gets the car vertices in the global reference frame (RF)
-        """
-        l2g: SE2value = SE2_from_xytheta((self._state.x, self._state.y, self._state.theta))
-        vertices = np.array([[self._state.x, -self._state.x, -self._state.x, self._state.x],
-                             [self._state.y, self._state.y, -self._state.y, -self._state.y],
-                             [1, 1, 1, 1]])
-        vertices = l2g @ vertices
-        vertices = vertices[:-1, :]  # Remove last row
-        return vertices
-
-    def get_shapely(self) -> Polygon:
-        vertices = self.get_vertices()
-        rectangle = Polygon([*vertices[:, 0], *vertices[:, 1], *vertices[:, 2], *vertices[:, 3]])
-        return rectangle
-
     def get_xytheta_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
 
