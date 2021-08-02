@@ -16,7 +16,7 @@ def generete_report(sim_context: SimContext) -> Report:
                          fig_size=None,
                          dt=20,
                          dpi=120)
-    r = r.add_child(get_collsion_reports(sim_context))
+    r.add_child(get_collsion_reports(sim_context))
     return r
 
 

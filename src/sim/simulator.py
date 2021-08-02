@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
-from itertools import combinations
+from itertools import combinations, permutations
 from typing import Mapping, Optional, Dict
 
 from duckietown_world import DuckietownMap
@@ -62,7 +62,7 @@ class Simulator:
         return
 
     def post_update(self, sim_context: SimContext):
-        collison_detected = self._check_collisions_location(sim_context)
+        collison_detected = self._check_collisions(sim_context)
         sim_context.time += sim_context.param.dt
         if sim_context.time > sim_context.param.max_sim_time or collison_detected:
             sim_context.sim_terminated = True
@@ -72,28 +72,12 @@ class Simulator:
     @staticmethod
     def _check_collisions(sim_context: SimContext) -> CollisionBool:
         """
-        This checks only collision at the current step, tunneling effects and similar are ignored
-        :param sim_context:
-        :return:
-        """
-        collision = False
-        for a, b in combinations(sim_context.models, 2):
-            a_shape = sim_context.models[a].get_footprint()
-            b_shape = sim_context.models[b].get_footprint()
-            collision = a_shape.collide(b_shape)
-            if collision:
-                logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
-        return collision
-
-    @staticmethod
-    def _check_collisions_location(sim_context: SimContext) -> CollisionBool:
-        """
         This checks only collision location at the current step, tunneling effects and similar are ignored
         :param sim_context:
         :return:
         """
         collision = False
-        for a, b in combinations(sim_context.models, 2):
+        for a, b in permutations(sim_context.models, 2):
             a_shape = sim_context.models[a].get_footprint()
             b_shape = sim_context.models[b].get_footprint()
             if a_shape.collide(b_shape):
@@ -101,5 +85,5 @@ class Simulator:
                 logger.info(f"Detected a collision between {a} and {b}")
                 report: CollisionReport = compute_collision_report(a_shape, b_shape)
                 sim_context.collision_reports[a] = report
-
         return collision
+

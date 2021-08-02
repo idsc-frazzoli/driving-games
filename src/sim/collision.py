@@ -29,13 +29,16 @@ class CollisionReport:
 
 def get_vertices_g(rect: pycrcc.RectOBB) -> List[List[float]]:
     """This gets the car vertices in the global reference frame (RF)
+    1---------0
+    |         |-----> x
+    2---------3
     :param rect:
     :return:"""
 
     l2g: SE2value = SE2_from_xytheta((rect.center()[0], rect.center()[1], rect.orientation()))
     # vertices of the rectangle
-    vertices = np.array([[rect.r_x(), -rect.r_x(), -rect.r_x(), rect.r_x()],
-                         [rect.r_y(), rect.r_y(), -rect.r_y(), -rect.r_y()],
+    vertices = np.array([[rect.r_y(), -rect.r_y(), -rect.r_y(), rect.r_y()],
+                         [rect.r_x(), rect.r_x(), -rect.r_x(), -rect.r_x()],
                          [1, 1, 1, 1]])
 
     vertices = l2g @ vertices
@@ -53,10 +56,10 @@ def get_rectangle_mesh(footprint: pycrcc.RectOBB) -> Mapping[ImpactLocation, pyc
     rect_cx, rect_cy = footprint.center()
 
     impactlocations: Mapping[ImpactLocation, pycrcc.Triangle] = {
-        IMPACT_FRONT: pycrcc.Triangle(*vertices[0], *vertices[1], *(rect_cx, rect_cy)),
-        IMPACT_BACK: pycrcc.Triangle(*vertices[2], *vertices[3], *(rect_cx, rect_cy)),
-        IMPACT_LEFT: pycrcc.Triangle(*vertices[1], *vertices[2], *(rect_cx, rect_cy)),
-        IMPACT_RIGHT: pycrcc.Triangle(*vertices[3], *vertices[0], *(rect_cx, rect_cy)),
+        IMPACT_FRONT: pycrcc.Triangle(*vertices[0], *vertices[3], *(rect_cx, rect_cy)),
+        IMPACT_BACK: pycrcc.Triangle(*vertices[1], *vertices[2], *(rect_cx, rect_cy)),
+        IMPACT_LEFT: pycrcc.Triangle(*vertices[0], *vertices[1], *(rect_cx, rect_cy)),
+        IMPACT_RIGHT: pycrcc.Triangle(*vertices[2], *vertices[3], *(rect_cx, rect_cy)),
     }
     return impactlocations
 
@@ -77,7 +80,7 @@ def compute_collision_report(a: pycrcc.RectOBB, b: pycrcc.RectOBB) -> CollisionR
         if b.collide(zone):
             locations.append(loc)
     if not locations:
-        raise RuntimeWarning("Detected a collision but unable to fint the impact location")
+        raise RuntimeWarning("Detected a collision but unable to find the impact location")
     at_fault: bool = is_a_at_fault(a, b)
     # todo compute all the rest
     return CollisionReport(location=locations,
