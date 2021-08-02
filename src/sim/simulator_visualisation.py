@@ -1,21 +1,19 @@
+import os
 from abc import ABC, abstractmethod
-
-from matplotlib.axes import Axes
-from matplotlib.axis import Axis
-
-from sim.models.vehicle import VehicleState, VehicleGeometry, ModelGeometry
-
 from numbers import Number
-from typing import Sequence, Tuple, Generic, Optional, Union
+from typing import Sequence, Tuple, Generic, Optional, List
 
 import numpy as np
-import os
 from decorator import contextmanager
+from geometry import SE2_from_xytheta
 from imageio import imread
+from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
+from matplotlib.lines import Line2D
+from matplotlib.patches import Polygon
 
 from games import PlayerName, X, U, Y
-from geometry import SE2_from_xytheta
-
+from sim.models.vehicle import VehicleState, VehicleGeometry
 from sim.simulator import SimContext
 from sim.typing import Color
 from world.map_loading import map_directory
@@ -69,17 +67,19 @@ class SimVisualisation(SimVisualisationABC):
                     player_name: PlayerName,
                     state: VehicleState,
                     alpha: float = 0.3,
-                    box=None):
+                    polygons: Optional[List[Polygon]] = None,
+                    plot_wheels: bool = False) -> List[Polygon]:
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.sim_context.models[player_name].get_geometry()
-        box = plot_vehicle(ax=ax,
-                           player_name=player_name,
-                           state=state,
-                           vg=vg,
-                           alpha=alpha,
-                           box=box)
-        return box
+        polygons = plot_vehicle(ax=ax,
+                                player_name=player_name,
+                                state=state,
+                                vg=vg,
+                                alpha=alpha,
+                                boxes=polygons,
+                                plot_wheels=plot_wheels)
+        return polygons
 
 
 def plot_vehicle(ax: Axes,
@@ -87,19 +87,41 @@ def plot_vehicle(ax: Axes,
                  state: VehicleState,
                  vg: VehicleGeometry,
                  alpha: float,
-                 box):
+                 boxes: Optional[List[Polygon]],
+                 plot_wheels: bool = False) -> List[Polygon]:
     vehicle_outline: Tuple[Tuple[float, float], ...] = vg.outline
     vehicle_color: Color = vg.color
     q = SE2_from_xytheta((state.x, state.y, state.theta))
-    x1, y1 = get_transformed_xy(q, vehicle_outline)
-    if box is None:
-        box, = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=10)
+    if boxes is None:
+        vehicle_box = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=10)[0]
+        boxes = [vehicle_box, ]
         x4, y4 = get_transformed_xy(q, ((0, 0),))
-        ax.text(x4, y4, player_name, zorder=25,
+        ax.text(x4, y4, player_name, zorder=30,
                 horizontalalignment="center",
                 verticalalignment="center")
-    box.set_xy(np.array(list(zip(x1, y1))))
-    return box
+        if plot_wheels:
+            wheels_boxes = [ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=15)[0] for _ in range(vg.n_wheels)]
+            boxes.extend(wheels_boxes)
+    x1, y1 = get_transformed_xy(q, vehicle_outline)
+    boxes[0].set_xy(np.array(list(zip(x1, y1))))
+    if plot_wheels:
+        wheels_outlines = vg.get_rotated_wheels_outlines(state.delta)
+        wheels_outlines = [q @ w_outline for w_outline in wheels_outlines]
+        for w_idx, wheel in enumerate(boxes[1:]):
+            xy_poly = wheels_outlines[w_idx][:2, :].T
+            wheel.set_xy(xy_poly)
+    return boxes
+
+
+def plot_history(ax: Axes,
+                 state: VehicleState,
+                 vg: VehicleGeometry,
+                 traces: Optional[Line2D]=None
+                 ):
+    if traces is None:
+        trace, = ax.plot([], [], ',-', lw=1)
+    # todo similar to https://matplotlib.org/stable/gallery/animation/double_pendulum.html#sphx-glr-gallery-animation-double-pendulum-py
+
 
 
 def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:

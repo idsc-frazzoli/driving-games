@@ -1,83 +1,17 @@
-from abc import ABC, abstractmethod
+import math
 from dataclasses import dataclass, replace
 from decimal import Decimal
 
-import math
-from functools import cached_property
-from typing import Tuple
-
 import numpy as np
 from commonroad_dc.pycrcc import RectOBB
-
 from frozendict import frozendict
 from geometry import SE2value, SE2_from_xytheta
 from scipy.integrate import solve_ivp
 from shapely.geometry import Polygon
 
-from sim.models.utils import kmh2ms
+from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
+from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
 from sim.simulator_structures import SimModel
-from sim.typing import Color
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class ModelGeometry(ABC):
-
-    @property
-    @abstractmethod
-    def outline(self):
-        pass
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class VehicleGeometry(ModelGeometry):
-    """ Geometry parameters of the vehicle (and colour)"""
-
-    m: float
-    """ Vehicle Mass [kg] """
-    w_half: float
-    """ Half width of vehicle [m] """
-    l_half: float
-    """ Half length of vehicle - dist from CoG to each axle [m] """
-    color: Color = (1, 1, 1)
-    """ Color """
-
-    @classmethod
-    def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=1000.0, w_half=1.0, l_half=2.0)
-
-    @classmethod
-    def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=80.0, w_half=0.25, l_half=1.0)
-
-    @cached_property
-    def width(self):
-        return self.w_half * 2
-
-    @cached_property
-    def length(self):
-        return self.l_half * 2
-
-    @cached_property
-    def outline(self) -> Tuple[Tuple[float, float], ...]:
-        return ((-self.l_half, -self.w_half), (-self.l_half, +self.w_half),
-                (+self.l_half, +self.w_half), (+self.l_half, -self.w_half), (-self.l_half, -self.w_half))
-
-
-@dataclass(frozen=True, unsafe_hash=True)
-class VehicleParameters:
-    vx_max: float
-    vx_min: float
-    """ Maximum and Minimum velocities [m/s] """
-    delta_max: float
-    """ Maximum steering angle [rad] """
-
-    @classmethod
-    def default_car(cls) -> "VehicleParameters":
-        return VehicleParameters(vx_max=kmh2ms(130), vx_min=kmh2ms(-10), delta_max=math.pi)
-
-    @classmethod
-    def default_bicycle(cls) -> "VehicleParameters":
-        return VehicleParameters(vx_max=kmh2ms(50), vx_min=kmh2ms(-1), delta_max=math.pi)
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -178,7 +112,7 @@ class VehicleState:
         return self * (1 / val)
 
     def __repr__(self) -> str:
-        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
+        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("idx")})
 
     def as_ndarray(self) -> np.ndarray:
         return np.array([
@@ -200,18 +134,14 @@ class VehicleState:
 
 
 class VehicleModel(SimModel[VehicleState, VehicleCommands]):
-    # fixme make sure class attributes don't mess with instance once
-    vg: VehicleGeometry
-    """ The vehicle's geometry parameters"""
-    vp: VehicleParameters
-    """ The vehicle parameters"""
-    _state: VehicleState
-    """ Current state of the model"""
 
     def __init__(self, x0: VehicleState, vg: VehicleGeometry, vp: VehicleParameters):
-        self._state = x0
-        self.vg = vg
+        self._state: VehicleState = x0
+        """ Current state of the model"""
+        self.vg: VehicleGeometry = vg
+        """ The vehicle's geometry parameters"""
         self.vp = vp
+        """ The vehicle parameters"""
 
     @classmethod
     def default_bicycle(cls, x0: VehicleState):
@@ -236,7 +166,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
         def _dynamics(t, y):
             state0, actions = _stateactions_from_array(y=y)
-            dx = self.dynamics(x0=state0, u=actions, mean=False)
+            dx = self.dynamics(x0=state0, u=actions)
             du = np.zeros([len(VehicleCommands.idx)])
             return np.concatenate([dx.as_ndarray(), du])
 
@@ -251,22 +181,25 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         self._state = new_state
         return
 
-    def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
-        """ Get rate of change of states for given control inputs """
-        dx = x0.vx
-        dr = dx * math.tan(x0.delta) / (2.0 * self.vg.l_half)
-        dy = dr * self.vg.l_half
-        th_eq = x0.theta + dr / 2.0 if mean else x0.theta
-        costh = math.cos(th_eq)
-        sinth = math.sin(th_eq)
+    def dynamics(self, x0: VehicleState, u: VehicleCommands) -> VehicleState:
+        """ returns state derivative for given control inputs """
+        # todo check this model
+        vx = x0.vx
+        dtheta = vx * math.tan(x0.delta) / self.vg.length
+        vy = dtheta * self.vg.lf
+        costh = math.cos(x0.theta)
+        sinth = math.sin(x0.theta)
 
-        xdot = dx * costh - dy * sinth
-        ydot = dx * sinth + dy * costh
-        return VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)
+        xdot = vx * costh - vy * sinth
+        ydot = vx * sinth + vy * costh
+
+        ddelta = steering_constraint(x0.delta, u.ddelta, self.vp)
+        acc = acceleration_constraint(x0.vx, u.acc, self.vp)
+        return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=acc, delta=ddelta)
 
     def get_footprint(self) -> RectOBB:
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-        return RectOBB(self.vg.w_half, self.vg.l_half, self._state.theta, self._state.x, self._state.y)
+        return RectOBB(self.vg.w_half, self.vg.length / 2, self._state.theta, self._state.x, self._state.y)
 
     def get_vertices(self) -> np.ndarray:
         """

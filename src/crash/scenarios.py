@@ -18,7 +18,7 @@ def get_scenario_01() -> SimContext:
     x0_p2 = VehicleState(x=22, y=6, theta=deg2rad(90), vx=6, delta=0)
     x0_p3 = VehicleState(x=45, y=22, theta=deg2rad(180), vx=4, delta=0)
     models = {P1: VehicleModel.default_car(x0_p1),
-              P2: VehicleModel.default_car(x0_p2),
+              P2: VehicleModel.default_bicycle(x0_p2),
               P3: VehicleModel.default_car(x0_p3)}
 
     commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
@@ -28,7 +28,7 @@ def get_scenario_01() -> SimContext:
     commands_input_2: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
                                                            D(1): VehicleCommands(acc=1, ddelta=0.1),
                                                            D(2): VehicleCommands(acc=-1, ddelta=-0.1),
-                                                           D(99): VehicleCommands(acc=0, ddelta=0)}
+                                                           D(99): VehicleCommands(acc=0, ddelta=0.2)}
     players = {P1: NPAgent(commands_input),
                P2: NPAgent(commands_input),
                P3: NPAgent(commands_input_2)}

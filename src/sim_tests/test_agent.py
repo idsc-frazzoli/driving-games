@@ -1,3 +1,5 @@
+from dataclasses import dataclass, field
+
 from sim.agent import NPAgent
 from decimal import Decimal as D
 import numpy as np
@@ -12,3 +14,16 @@ def test_npagent():
         sim_obs.time = ts
         cmds = agent.get_commands(sim_obs=sim_obs)
         print(f"At {ts:.2f} agent cmds: {cmds}")
+
+
+def test():
+    @dataclass(frozen=True)
+    class Test:
+        s: float
+        p: float = field(init=False)
+
+        def __post_init__(self):
+            self.__dict__["p"] = self.s/2
+
+    t =Test(2.3)
+    print(t)
