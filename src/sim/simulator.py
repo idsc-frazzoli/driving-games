@@ -25,6 +25,7 @@ class SimContext:
     time: SimTime = Decimal(0)
     seed: int = 0
     sim_terminated: bool = False
+    collision_reports: Optional[Mapping[PlayerName, CollisionReport]] = None
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
@@ -94,19 +95,13 @@ class Simulator:
         :param sim_context:
         :return:
         """
-        collision = False
         report = CollisionReport()
         for a, b in combinations(sim_context.models, 2):
-            a_shape = sim_context.models[a].get_footprint()  # {'x': CoG x [m], 'y': CoG y [m], 'theta': CoG heading [rad], 'vx': CoG longitudinal velocity [m/s], 'delta': Steering angle [rad]}
-            a_state = sim_context.models[a].get_state()
-            a_geom = sim_context.models[a].get_geometry()
 
-            b_shape = sim_context.models[b].get_footprint()
-            b_state = sim_context.models[b].get_state()
-            b_geom = sim_context.models[b].get_geometry()
+            a_vehicle = sim_context.models[a].get_vehicle_model()
+            b_vehicle = sim_context.models[b].get_vehicle_model()
 
-            collision = a_shape.collide(b_shape) or collision
-            if collision:
+            if a_vehicle.get_footprint().collide(b_vehicle.get_footprint()):
                 logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
-                report = compute_collision_report(a_shape, a_state, a_geom, b_shape, b_state, b_geom)
+                report = compute_collision_report(a_vehicle, b_vehicle)
         return report

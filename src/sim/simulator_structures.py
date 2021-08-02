@@ -97,3 +97,7 @@ class SimModel(ABC, Generic[X, U]):
     @abstractmethod
     def get_geometry(self) -> Any:
         pass
+
+    @abstractmethod
+    def get_vehicle_model(self) -> Any:
+        pass
