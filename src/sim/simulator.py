@@ -1,13 +1,12 @@
-from decimal import Decimal
-from itertools import combinations
-from typing import Mapping, Optional
-
 from dataclasses import dataclass, field
+from decimal import Decimal
+from itertools import permutations
+from typing import Mapping, Optional, Dict
 
 from duckietown_world import DuckietownMap
 
 from games import PlayerName
-from sim import logger
+from sim import logger, CollisionReport
 from sim.agent import Agent
 from sim.simulator_structures import *
 from world import load_driving_game_map
@@ -24,14 +23,11 @@ class SimContext:
     time: SimTime = Decimal(0)
     seed: int = 0
     sim_terminated: bool = False
+    collision_reports: Dict[PlayerName, CollisionReport] = field(default_factory=dict)
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
         self.map = load_driving_game_map(self.map_name)
-
-
-# todo for now just a bool in the future we want more detailed info
-CollisionReport = bool
 
 
 class Simulator:
@@ -44,6 +40,7 @@ class Simulator:
             self.post_update(sim_context)
 
     def pre_update(self, sim_context: SimContext):
+        """Prior to stepping the simulation we compute the observations for each agent"""
         self.last_observations.time = sim_context.time
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
@@ -53,6 +50,7 @@ class Simulator:
         return
 
     def update(self, sim_context: SimContext):
+        """ The real step of the simulation """
         sim_context.log[sim_context.time] = {}
         # fixme this can be parallelized later
         for player_name, model in sim_context.models.items():
@@ -65,24 +63,35 @@ class Simulator:
         return
 
     def post_update(self, sim_context: SimContext):
-        collision_report = self._check_collisions(sim_context)
-        sim_context.time += sim_context.param.dt
-        if sim_context.time > sim_context.param.max_sim_time or collision_report:
-            sim_context.sim_terminated = True
-        return
-
-    @staticmethod
-    def _check_collisions(sim_context: SimContext) -> CollisionReport:
         """
-        This checks only collision at the current step, tunneling effects and similar are ignored
+        Here all the operations that happen after we have stepped the simulation, e.g. collision checking
         :param sim_context:
         :return:
         """
+        collison_detected = self._check_collisions(sim_context)
+        # after all the computations advance simulation time
+        sim_context.time += sim_context.param.dt
+        if sim_context.time > sim_context.param.max_sim_time or collison_detected:
+            sim_context.sim_terminated = True
+            # fixme simulation not stopping even when colliding
+        return
+
+    @staticmethod
+    def _check_collisions(sim_context: SimContext) -> bool:
+        """
+        This checks only collision location at the current step, tunneling effects and similar are ignored
+        :param sim_context:
+        :return: True if at least one collision happened, False otherwise
+        """
         collision = False
-        for a, b in combinations(sim_context.models, 2):
+        # this way solves the permutations asymetrically
+        for a, b in permutations(sim_context.models, 2):
             a_shape = sim_context.models[a].get_footprint()
             b_shape = sim_context.models[b].get_footprint()
-            collision = a_shape.collide(b_shape) or collision
-            if collision:
-                logger.info(f"Detected a collision between {a} and {b}, Terminating simulation")
+            if a_shape.collide(b_shape):
+                logger.info(f"Detected a collision between {a} and {b}")
+                from sim.collision import compute_collision_report # import here to avoid circular imports
+                collision = True
+                report: CollisionReport = compute_collision_report(a, b, sim_context)
+                sim_context.collision_reports[a] = report
         return collision

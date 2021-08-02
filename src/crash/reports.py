@@ -16,4 +16,12 @@ def generete_report(sim_context: SimContext) -> Report:
                          fig_size=None,
                          dt=20,
                          dpi=120)
+    r.add_child(get_collsion_reports(sim_context))
+    return r
+
+
+def get_collsion_reports(sim_context: SimContext) -> Report:
+    r = Report("Collison report")
+    for player in sim_context.collision_reports:
+        r.text(player, text=sim_context.collision_reports[player].__str__())
     return r
