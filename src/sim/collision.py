@@ -17,11 +17,13 @@ IMPACT_RIGHT = ImpactLocation('right')
 
 
 class CollisionReport:
-    collision: bool = False
-    location: Mapping[ImpactLocation, pycrcc.Triangle]
-    active: bool
-    rel_velocity: float
-    energy_transfer: float
+
+    def __init__(self):
+        self.collision: bool = False
+        self.location: Mapping[ImpactLocation, pycrcc.Triangle]
+        self.active: bool
+        self.rel_velocity: float
+        self.energy_transfer: float
 
     def set_impact_location(self, impact_location: Mapping[ImpactLocation, pycrcc.Triangle]):
         self.location = impact_location
@@ -36,6 +38,7 @@ class CollisionReport:
         self.energy_transfer = 0.0
 
 
+
 def get_mesh(vehicle: VehicleModel) -> Mapping[ImpactLocation, pycrcc.Triangle]:
     """
     This returns all the vertices of a rectangle in the global reference frame of the map (a bit useless for now)
@@ -44,12 +47,13 @@ def get_mesh(vehicle: VehicleModel) -> Mapping[ImpactLocation, pycrcc.Triangle]:
     """
 
     vertices = vehicle.get_vertices()
+    state    = vehicle.get_state()
 
     impactlocations: Mapping[ImpactLocation, pycrcc.Triangle] = {
-        IMPACT_FRONT: pycrcc.Triangle(*vertices[:, 0], *vertices[:, 1], *rect.center()),
-        IMPACT_BACK: pycrcc.Triangle(*vertices[:, 2], *vertices[:, 3], *rect.center()),
-        IMPACT_LEFT: pycrcc.Triangle(*vertices[:, 1], *vertices[:, 2], *rect.center()),
-        IMPACT_RIGHT: pycrcc.Triangle(*vertices[:, 3], *vertices[:, 0], *rect.center()),
+        IMPACT_FRONT: pycrcc.Triangle(*vertices[:, 0], *vertices[:, 1], (state.x, state.y)),
+        IMPACT_BACK:  pycrcc.Triangle(*vertices[:, 2], *vertices[:, 3], (state.x, state.y)),
+        IMPACT_LEFT:  pycrcc.Triangle(*vertices[:, 1], *vertices[:, 2], (state.x, state.y)),
+        IMPACT_RIGHT: pycrcc.Triangle(*vertices[:, 3], *vertices[:, 0], (state.x, state.y)),
     }
 
     return impactlocations

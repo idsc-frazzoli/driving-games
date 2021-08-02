@@ -97,7 +97,7 @@ class Simulator:
         :param sim_context:
         :return:
         """
-        report = CollisionReport()
+        report = CollisionReport() # todo: add some values here
         for a, b in combinations(sim_context.models, 2):
 
             a_vehicle = sim_context.models[a].get_vehicle_model()
