@@ -8,6 +8,7 @@ from shapely.ops import nearest_points
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
 from sim.models.vehicle import VehicleState
+from sim.models.vehicle_structures import VehicleGeometry
 
 
 def get_vertices_as_list(rect: pycrcc.RectOBB) -> List[List[float]]:
@@ -74,3 +75,25 @@ def get_normal_of_impact(vehicle_a: pycrcc.RectOBB, vehicle_b: pycrcc.RectOBB) -
     n /= np.linalg.norm(n)               # Make it a unitary vector
     return n
 
+
+def get_impulse_scalar(e: float, rel_v_along_n: float, a_m: float, b_m: float) -> float:
+    j = -(1 + e) * rel_v_along_n
+    j /= 1 / a_m + 1 / b_m
+    return j
+
+
+def get_velocity_after_collision(n: np.ndarray, v_initial: np.ndarray, m: float, j: float) -> np.ndarray:
+    return v_initial + (j*n)/m
+
+
+def get_kinetic_energy_delta(v_initial: np.ndarray, v_final: np.ndarray, m: float) -> float:
+    return 0.5*m*(np.linalg.norm(v_final)**2 - np.linalg.norm(v_initial)**2)
+
+
+def get_absorption_coefficient() -> float:
+    # todo : properly implement this (based on impact location, etc.)
+    return 0.5
+
+
+def get_energy_absorbed(kinetic_energy_delta: float, absorption_coefficient: float) -> float:
+    return kinetic_energy_delta * absorption_coefficient

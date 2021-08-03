@@ -5,7 +5,8 @@ from commonroad_dc.pycrcc import RectOBB
 
 from games import PlayerName
 from sim import ImpactLocation, CollisionReport
-from sim.collision_utils import get_rectangle_mesh, get_normal_of_impact
+from sim.collision_utils import get_rectangle_mesh, get_normal_of_impact, get_impulse_scalar, \
+    get_velocity_after_collision, get_kinetic_energy_delta, get_energy_absorbed, get_absorption_coefficient
 from sim.simulator import SimContext
 
 
@@ -38,26 +39,42 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
     a_shape = sim_context.models[a].get_footprint()
     b_shape = sim_context.models[b].get_footprint()
     # Velocity in global RF
-    a_vel = sim_context.models[a].get_velocity()
-    b_vel = sim_context.models[b].get_velocity()
+    a_vel_init = sim_context.models[a].get_velocity()
+    b_vel_init = sim_context.models[b].get_velocity()
+    # Geometry
+    a_geom = sim_context.models[a].get_geometry()
+    b_geom = sim_context.models[b].get_geometry()
 
-    # First we get the collision locations
+    # Collision locations
     locations: List[ImpactLocation] = get_impact_locations(a_shape, b_shape)
+    abs_coefficient = get_absorption_coefficient()
+
     # Check if A is at fault
     at_fault: bool = is_a_at_fault()
-    # todo relative velocity
-    # rel_velocity = np.array([0, 0])
-    rel_velocity = get_relative_velocity(a_vel, b_vel)
-    # todo relative velocity along normal
+
+    # Relative velocity in global RF
+    rel_velocity = get_relative_velocity(a_vel_init, b_vel_init)
+
+    # Relative velocity along normal of impact
     n = get_normal_of_impact(a_shape, b_shape)
     rel_velocity_along_n = np.dot(rel_velocity, n)
     rel_velocity_along_n = np.linalg.norm(rel_velocity_along_n)
-    # todo energy transferred
-    energy = 0
+
+    # Energy absorbed by passengers
+    # todo if rel_velocity_along_n > 0 -> raise value error as objects would be separating
+    # energy = 0
+    e = min(a_geom.e, b_geom.e)  # Restitution coefficient
+    j = get_impulse_scalar(e, rel_velocity_along_n, a_geom.m, b_geom.m)
+    # todo: check if next lines should be done for a or for b
+    vel_final = get_velocity_after_collision(n, a_vel_init, a_geom.m, j)
+    kenergy_delta = get_kinetic_energy_delta(a_vel_init, vel_final, a_geom.m)
+    energy_passengers = get_energy_absorbed(kenergy_delta, abs_coefficient)
+
     return CollisionReport(location=locations,
                            at_fault=at_fault,
                            rel_velocity=rel_velocity,
                            rel_velocity_along_n = rel_velocity_along_n,
-                           energy_transfer=energy,
+                           energy_delta = kenergy_delta,
+                           energy_passengers=energy_passengers,
                            at_time=sim_context.time
                            )

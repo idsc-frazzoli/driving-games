@@ -30,7 +30,9 @@ class CollisionReport:
     """ Relative velocity defined as v_a-v_b in global RF"""
     rel_velocity_along_n: float
     """ Relative velocity defined as dot(v_a,n)-dot(v_b,n), with n the normal of impact"""
-    energy_transfer: float
+    energy_delta: float
+    """ """
+    energy_passengers: float
     """ """
     at_time: float #SimTime
 
