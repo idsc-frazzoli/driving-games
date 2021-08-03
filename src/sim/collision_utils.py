@@ -16,8 +16,8 @@ def get_vertices_as_list(rect: pycrcc.RectOBB) -> List[List[float]]:
     1---------0
     |         |-----> x
     2---------3
-    :param rect:
-    :return:
+    :param rect: RectOBB object
+    :return: [[v0.x, v0.y], [v1.x, v1.y], ..., [vN.x, vN.y]]
     """
     l2g: SE2value = SE2_from_xytheta((rect.center()[0], rect.center()[1], rect.orientation()))
     # vertices of the rectangle
@@ -35,8 +35,8 @@ def get_vertices_as_tuple(rect: pycrcc.RectOBB) -> Tuple[Tuple[float, ...], ...]
     1---------0
     |         |-----> x
     2---------3
-    :param rect:
-    :return:
+    :param rect: RectOBB object
+    :return vertices: ((v0.x, v0.y), (v1.x, v1.y), ..., (vN.x, vN.y))
     """
     vertices = get_vertices_as_list(rect)
     return tuple([tuple(row) for row in vertices])
@@ -45,6 +45,7 @@ def get_vertices_as_tuple(rect: pycrcc.RectOBB) -> Tuple[Tuple[float, ...], ...]
 def get_rectangle_mesh(footprint: pycrcc.RectOBB) -> Mapping[ImpactLocation, pycrcc.Triangle]:
     """
     This returns all the vertices of a rectangle in the global reference frame of the map (a bit useless for now)
+    :param footprint: RectOBB object
     :return:
     """
 
@@ -60,40 +61,86 @@ def get_rectangle_mesh(footprint: pycrcc.RectOBB) -> Mapping[ImpactLocation, pyc
     return impact_locations
 
 
-def get_nearest_collision_points(vehicle_a: pycrcc.RectOBB, vehicle_b: pycrcc.RectOBB) -> np.ndarray:
-    center = Point(vehicle_a.center()[0], vehicle_a.center()[1])
-    vertices_b = get_vertices_as_tuple(vehicle_b)
+def get_nearest_collision_points(a: pycrcc.RectOBB, b: pycrcc.RectOBB) -> np.ndarray:
+    """
+    This computes the closes vertex from vehicle b to the center of a
+    :param a: RectOBB object
+    :param b: RectOBB object
+    :return:
+    """
+    # todo: important -> this should compute the closes POINT and not VERTEX
+    center = Point(a.center()[0], a.center()[1])
+    vertices_b = get_vertices_as_tuple(b)
     vertices_b += (vertices_b[0],)
     rect = Polygon(vertices_b)
     nearest_pts = nearest_points(center, rect)
     return np.array([[nearest_pts[0].x, nearest_pts[0].y], [nearest_pts[1].x, nearest_pts[1].y]])
 
 
-def get_normal_of_impact(vehicle_a: pycrcc.RectOBB, vehicle_b: pycrcc.RectOBB) -> np.ndarray:
-    nearest_pts = get_nearest_collision_points(vehicle_a, vehicle_b)
+def get_normal_of_impact(a: pycrcc.RectOBB, b: pycrcc.RectOBB) -> np.ndarray:
+    """
+    This computes the normal of impact between vehicles a and b
+    :param a: RectOBB object
+    :param b: RectOBB object
+    :return:
+    """
+    # todo: important -> fix this making sure that n is the same wrt a and wrt b
+    nearest_pts = get_nearest_collision_points(a, b)
     n = nearest_pts[1] - nearest_pts[0]  # Subtract nearest_point_b - center_of_a
     n /= np.linalg.norm(n)               # Make it a unitary vector
     return n
 
 
 def get_impulse_scalar(e: float, rel_v_along_n: float, a_m: float, b_m: float) -> float:
+    """
+    This computes the impulse scalar
+    :param e:               Restitution coefficient -> represents the "bounciness" of the vehicle
+    :param rel_v_along_n:   Relative velocity along the normal of impact during collision
+    :param a_m:             mass of vehicle a
+    :param b_m:             mass of vehicle b
+    :return:
+    """
     j = -(1 + e) * rel_v_along_n
     j /= 1 / a_m + 1 / b_m
     return j
 
 
 def get_velocity_after_collision(n: np.ndarray, v_initial: np.ndarray, m: float, j: float) -> np.ndarray:
+    """
+    This computes the velocity after the collision based on the impulse resolution method
+    :param n:           normal of impact
+    :param v_initial:   velocity right before the collision
+    :param m:           vehicle mass
+    :param j:           impulse scalar
+    :return:
+    """
     return v_initial + (j*n)/m
 
 
 def get_kinetic_energy_delta(v_initial: np.ndarray, v_final: np.ndarray, m: float) -> float:
+    """
+    This computes the kinetic energy lost in the collision as 1/2*m*(vf^2-vi^2)
+    :param v_initial:   velocity right before the collision
+    :param v_final:     velocity right after the collision
+    :return:
+    """
     return 0.5*m*(np.linalg.norm(v_final)**2 - np.linalg.norm(v_initial)**2)
 
 
 def get_absorption_coefficient() -> float:
+    """
+    This computes the absorption coefficient based on the impact location
+    :return:
+    """
     # todo : properly implement this (based on impact location, etc.)
     return 0.5
 
 
 def get_energy_absorbed(kinetic_energy_delta: float, absorption_coefficient: float) -> float:
+    """
+    This computes the total energy absorbed by the passengers during the collision
+    :param kinetic_energy_delta:      kinetic energy lost in collision
+    :param absorption_coefficient:    absorption coefficient based on impact location
+    :return:
+    """
     return kinetic_energy_delta * absorption_coefficient

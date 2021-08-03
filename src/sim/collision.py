@@ -62,7 +62,6 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
 
     # Energy absorbed by passengers
     # todo if rel_velocity_along_n > 0 -> raise value error as objects would be separating
-    # energy = 0
     e = min(a_geom.e, b_geom.e)  # Restitution coefficient
     j = get_impulse_scalar(e, rel_velocity_along_n, a_geom.m, b_geom.m)
     # todo: check if next lines should be done for a or for b
