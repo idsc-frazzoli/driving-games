@@ -11,6 +11,8 @@ __all__ = ["ImpactLocation",
            "CollisionReport"
            ]
 
+import numpy as np
+
 ImpactLocation = NewType("ImpactLocation", str)
 IMPACT_FRONT = ImpactLocation("front")
 IMPACT_BACK = ImpactLocation("back")
@@ -24,8 +26,10 @@ class CollisionReport:
     """ Location of the impact """
     at_fault: bool
     """ At fault is defined as...."""
-    rel_velocity: float
-    """ Relative velocity defined as... """
+    rel_velocity: np.ndarray
+    """ Relative velocity defined as v_b-v_a in global RF"""
+    rel_velocity_along_n: float
+    """ Relative velocity defined as dot(v_b,n)-dot(v_a,n), with n the normal of impact"""
     energy_transfer: float
     """ """
     at_time: float #SimTime

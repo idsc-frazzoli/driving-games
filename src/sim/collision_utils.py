@@ -5,6 +5,7 @@ from commonroad_dc import pycrcc
 from geometry import SE2_from_xytheta, SE2value
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
+from sim.models.vehicle import VehicleState
 
 
 def get_vertices_from_rectangle(rect: pycrcc.RectOBB) -> List[List[float]]:
