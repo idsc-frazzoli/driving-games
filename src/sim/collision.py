@@ -5,7 +5,7 @@ from commonroad_dc.pycrcc import RectOBB
 
 from games import PlayerName
 from sim import ImpactLocation, CollisionReport
-from sim.collision_utils import get_rectangle_mesh
+from sim.collision_utils import get_rectangle_mesh, get_normal_of_impact
 from sim.simulator import SimContext
 
 
@@ -49,7 +49,9 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
     # rel_velocity = np.array([0, 0])
     rel_velocity = get_relative_velocity(a_vel, b_vel)
     # todo relative velocity along normal
-    rel_velocity_along_n = 0
+    n = get_normal_of_impact(a_shape, b_shape)
+    rel_velocity_along_n = np.dot(rel_velocity, n)
+    rel_velocity_along_n = np.linalg.norm(rel_velocity_along_n)
     # todo energy transferred
     energy = 0
     return CollisionReport(location=locations,

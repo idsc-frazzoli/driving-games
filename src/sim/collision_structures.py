@@ -27,9 +27,9 @@ class CollisionReport:
     at_fault: bool
     """ At fault is defined as...."""
     rel_velocity: np.ndarray
-    """ Relative velocity defined as v_b-v_a in global RF"""
+    """ Relative velocity defined as v_a-v_b in global RF"""
     rel_velocity_along_n: float
-    """ Relative velocity defined as dot(v_b,n)-dot(v_a,n), with n the normal of impact"""
+    """ Relative velocity defined as dot(v_a,n)-dot(v_b,n), with n the normal of impact"""
     energy_transfer: float
     """ """
     at_time: float #SimTime

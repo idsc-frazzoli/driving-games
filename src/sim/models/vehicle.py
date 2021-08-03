@@ -5,7 +5,7 @@ from decimal import Decimal
 import numpy as np
 from commonroad_dc.pycrcc import RectOBB
 from frozendict import frozendict
-from geometry import SE2value, SE2_from_xytheta, SO2_from_angle, SO2
+from geometry import SE2value, SE2_from_xytheta, SO2_from_angle, SO2, SO2value
 from scipy.integrate import solve_ivp
 
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
@@ -207,10 +207,11 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         return self.vg
 
     def get_velocity(self) -> np.ndarray:
+        # todo double check this!!!
         vx = self._state.vx
         dtheta = vx * math.tan(self._state.delta) / self.vg.length
         vy = dtheta * self.vg.lf
         v_l = np.array([[vx], [vy]])                    # Velocity in local RF
-        l2g: SO2 = SO2_from_angle(self._state.theta)  # Rotation matrix
+        l2g: SO2value = SO2_from_angle(self._state.theta)  # Rotation matrix
         v_g = l2g @ v_l                               # Velocity in global RF
-        return v_g
+        return v_g.T[0] # array([vx, vy])

@@ -1,8 +1,11 @@
 # import Point, Polygon
+import numpy as np
 from sympy import Point, Polygon
 from sympy import Triangle
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
+from shapely.ops import nearest_points
+from shapely.geometry import Point, Polygon
 
 def test_polygons():
     '''
@@ -39,3 +42,30 @@ def test_polygons():
 
     # using intersection()
     isIntersection_poly = poly1.intersection(poly2)
+
+
+def test_shapely_nearest_point():
+    point = Point(0, 0)
+    square = Polygon(((0, 2), (1, 2), (1, 3), (0, 3), (0, 2)))
+    nearest = nearest_points(point, square)
+    print(f'x: {nearest[1].x}')
+    print(f'y: {nearest[1].y}')
+    a = [o.wkt for o in nearest]
+    print(a)
+
+
+def test_numpy_to_listtuple():
+    arr = [[1, 1], [2, 2]]
+    lst = tuple([tuple(col) for col in zip(*arr)])
+    print(lst)
+
+
+def test_tuples():
+    a = ((0, 0), (1, 1))
+    print(a)
+    b = ((2, 2),)
+    print(b)
+    b = a+b
+    print(b)
+    a = a + (a[0],)
+    print(a)

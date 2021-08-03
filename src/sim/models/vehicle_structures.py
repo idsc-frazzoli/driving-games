@@ -41,17 +41,19 @@ class VehicleGeometry(ModelGeometry):
     """ Front length of vehicle - dist from CoG to front [m] """
     lr: float
     """ Rear length of vehicle - dist from CoG to back [m] """
+    e: float  # Ratio of the differences in vehicle speeds before and after the collision -> 0 < e < 1
+    """ Restitution coefficient (used only in collisions energy transfer)"""
     color: Color = (1, 1, 1)
     """ Color """
 
     # todo fix default rotational inertia
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=CAR, m=1000.0, Iz=0, w_half=1.0, lf=2.0, lr=2.0)
+        return VehicleGeometry(vehicle_type=CAR, m=1000.0, Iz=0, w_half=1.0, lf=2.0, lr=2.0, e=0.5)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=0, w_half=0.25, lf=1.0, lr=1.0)
+        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=0, w_half=0.25, lf=1.0, lr=1.0, e=0.0)
 
     @cached_property
     def width(self):
