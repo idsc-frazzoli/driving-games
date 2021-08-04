@@ -1,12 +1,13 @@
-from typing import List
+from typing import List, Mapping, Tuple, MutableMapping
 
 import numpy as np
 from commonroad_dc.pycrcc import RectOBB
 
 from games import PlayerName
 from sim import ImpactLocation, CollisionReport
-from sim.collision_utils import get_rectangle_mesh, get_normal_of_impact, get_impulse_scalar, \
-    get_velocity_after_collision, get_kinetic_energy_delta, get_energy_absorbed, get_absorption_coefficient
+from sim.collision_utils import get_rectangle_mesh, get_normal_of_impact, \
+    get_velocity_after_collision, get_kinetic_energy_delta, get_energy_absorbed, get_absorption_coefficient, \
+    get_j_scalar_linear
 from sim.simulator import SimContext
 
 
@@ -15,12 +16,20 @@ def is_a_at_fault():
     return False
 
 
-def get_impact_locations(a_shape: RectOBB, b_shape: RectOBB) -> List[ImpactLocation]:
-    locations: List[ImpactLocation] = []
+def get_impact_locations(a_shape: RectOBB, b_shape: RectOBB) -> MutableMapping[ImpactLocation, List]:
+    """
+    This returns a dictionary with key: impact_location and value: [[x0,y0],[x1,y1]], points defining that vehicle
+    segment
+    :param a_shape: RectOBB object
+    :param b_shape: RectOBB object
+    :return:
+    """
+    locations: MutableMapping[ImpactLocation, List] = {}
     a_mesh = get_rectangle_mesh(a_shape)
     for loc, loc_shape in a_mesh.items():
         if b_shape.collide(loc_shape):
-            locations.append(loc)
+            segment = loc_shape.vertices()[0:-1]
+            locations[loc] = segment
     if not locations:
         raise RuntimeWarning("Detected a collision but unable to find the impact location")
     return locations
@@ -46,7 +55,7 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
     b_geom = sim_context.models[b].get_geometry()
 
     # Collision locations
-    locations: List[ImpactLocation] = get_impact_locations(a_shape, b_shape)
+    locations: MutableMapping[ImpactLocation, List] = get_impact_locations(a_shape, b_shape)
     abs_coefficient = get_absorption_coefficient()
 
     # Check if A is at fault
@@ -57,22 +66,19 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
 
     # Relative velocity along normal of impact
     n = get_normal_of_impact(a_shape, b_shape)
-    rel_velocity_along_n = np.dot(rel_velocity, n)
-    rel_velocity_along_n = np.linalg.norm(rel_velocity_along_n)
 
     # Energy absorbed by passengers
     # todo if rel_velocity_along_n > 0 -> raise value error as objects would be separating
     e = min(a_geom.e, b_geom.e)  # Restitution coefficient
-    j = get_impulse_scalar(e, rel_velocity_along_n, a_geom.m, b_geom.m)
+    j_n = get_j_scalar_linear(e, n, rel_velocity, a_geom.m, b_geom.m)
     # todo: check if next lines should be done for a or for b
-    vel_final = get_velocity_after_collision(n, a_vel_init, a_geom.m, j)
+    vel_final = get_velocity_after_collision(n, a_vel_init, a_geom.m, j_n)
     kenergy_delta = get_kinetic_energy_delta(a_vel_init, vel_final, a_geom.m)
     energy_passengers = get_energy_absorbed(kenergy_delta, abs_coefficient)
 
     return CollisionReport(location=locations,
                            at_fault=at_fault,
                            rel_velocity=rel_velocity,
-                           rel_velocity_along_n = rel_velocity_along_n,
                            energy_delta = kenergy_delta,
                            energy_passengers=energy_passengers,
                            at_time=sim_context.time

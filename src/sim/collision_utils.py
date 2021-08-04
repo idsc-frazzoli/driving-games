@@ -91,17 +91,52 @@ def get_normal_of_impact(a: pycrcc.RectOBB, b: pycrcc.RectOBB) -> np.ndarray:
     return n
 
 
-def get_impulse_scalar(e: float, rel_v_along_n: float, a_m: float, b_m: float) -> float:
+def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:
     """
-    This computes the impulse scalar
+    This computes the tangent of impact between vehicles a and b
+    :param n: Normal of impact
+    :param rel_v: Relative velocity between a and b
+    :return:
+    """
+    t = rel_v - np.dot(rel_v, n) * n
+    t /= np.linalg.norm(t)
+    return t
+
+
+def get_j_scalar_linear(e: float, vec: np.ndarray, rel_v: np.ndarray, a_m: float, b_m: float) -> float:
+    """
+    This computes the impulse scalar "linear" -> not taking into account rotations
     :param e:               Restitution coefficient -> represents the "bounciness" of the vehicle
-    :param rel_v_along_n:   Relative velocity along the normal of impact during collision
+    :param vec:             Vector onto which to project rel_v (normally, n or t)
+    :param rel_v:           Relative velocity between a and b
     :param a_m:             mass of vehicle a
     :param b_m:             mass of vehicle b
     :return:
     """
-    j = -(1 + e) * rel_v_along_n
+    rel_v_along_vec = np.dot(rel_v, vec)
+    rel_v_along_vec = np.linalg.norm(rel_v_along_vec)
+    j = -(1 + e) * rel_v_along_vec
     j /= 1 / a_m + 1 / b_m
+    return j
+
+
+def get_j_scalar_angular(e: float, vec: np.ndarray, rel_v: np.ndarray, r_ap: np.ndarray, r_bp: np.ndarray, a_geom: VehicleGeometry, b_geom: VehicleGeometry) -> float:
+    """
+    This computes the impulse scalar "angular" -> taking into account rotations
+    :param e:               Restitution coefficient -> represents the "bounciness" of the vehicle
+    :param vec:             Vector onto which to project rel_v (normally, n or t)
+    :param rel_v:           Relative velocity between a and b
+    :param r_ap:            Vector from CG of a to collision point P
+    :param r_bp:            Vector from CG of b to collision point P
+    :param a_geom:          Geometry of vehicle a
+    :param b_geom:          Geometry of vehicle b
+    :return:
+    """
+    rel_v_along_vec = np.dot(rel_v, vec)
+    rel_v_along_vec = np.linalg.norm(rel_v_along_vec)
+    j = -(1 + e) * rel_v_along_vec
+    tmp = (np.dot(r_ap, vec)**2 / a_geom.Iz) + (np.dot(r_bp, vec)**2 / b_geom.Iz)
+    j /= (1 / a_geom.m + 1 / b_geom.m + tmp)
     return j
 
 

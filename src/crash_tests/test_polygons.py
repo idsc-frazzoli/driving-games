@@ -54,6 +54,23 @@ def test_shapely_nearest_point():
     print(a)
 
 
+def test_shapely_collision():
+    rect_a = Polygon(((0, 0), (2, 0), (2, 2), (0, 2), (0, 0)))
+    rect_b = Polygon(((2, 1), (3, 0), (5, 1), (3, 2), (2, 1)))
+    rect_c = Polygon(((1, 1), (2, 0), (4, 1), (2, 2), (1, 1)))
+
+    intersection = rect_a.intersection(rect_b)
+    print(rect_a.touches(rect_b))  # True if they touch just on one Point
+    print(intersection.coords.xy)  # Here intersection is a Point
+
+
+    intersection = rect_a.intersection(rect_c)
+    print(rect_a.touches(rect_c))
+    print(list(intersection.exterior.coords[:]))  # Here intersection is a Polygon
+
+
+
+
 def test_numpy_to_listtuple():
     arr = [[1, 1], [2, 2]]
     lst = tuple([tuple(col) for col in zip(*arr)])
