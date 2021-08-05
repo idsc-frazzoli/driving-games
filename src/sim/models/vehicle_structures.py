@@ -18,10 +18,17 @@ BICYCLE = VehicleType("bicycle")
 
 @dataclass(frozen=True, unsafe_hash=True)
 class ModelGeometry(ABC):
+    m: float
+    """ Vehicle Mass [kg] """
+    Iz: float
+    """ Rotational inertia (used only in the dynamic model) """
+    e: float
+    """ Restitution coefficient (used only in collisions energy transfer). 
+    Ratio of the differences in vehicle speeds before and after the collision -> 0 < e < 1"""
 
     @property
     @abstractmethod
-    def outline(self):
+    def outline(self) -> Tuple[Tuple[float, float], ...]:
         pass
 
 
@@ -32,17 +39,14 @@ class VehicleGeometry(ModelGeometry):
     vehicle_type: VehicleType
     """Type of the vehicle"""
     m: float
-    """ Vehicle Mass [kg] """
     Iz: float
-    """ Rotational inertia (used only in the dynamic model) """
+    e: float
     w_half: float
     """ Half width of vehicle [m] """
     lf: float
     """ Front length of vehicle - dist from CoG to front [m] """
     lr: float
     """ Rear length of vehicle - dist from CoG to back [m] """
-    e: float  # Ratio of the differences in vehicle speeds before and after the collision -> 0 < e < 1
-    """ Restitution coefficient (used only in collisions energy transfer)"""
     color: Color = (1, 1, 1)
     """ Color """
 

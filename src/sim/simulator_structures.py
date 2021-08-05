@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import MutableMapping, Generic, Optional, Any, Dict, Union
 
-from commonroad_dc.pycrcc import Shape
-from geometry import SE2value
+from geometry import SE2value, T2value
+from shapely.geometry import Polygon
 
 from games import PlayerName, X, U
 
@@ -16,10 +16,12 @@ SimTime = Decimal
 
 @dataclass(frozen=True, unsafe_hash=True)
 class SimParameters:
-    dt: Decimal = Decimal(0.2)
-    """Simulation step in seconds"""
+    dt: Decimal = Decimal(0.1)
+    """Simulation step [s]"""
     max_sim_time: Decimal = Decimal(6)
-    """Max Simulation time in seconds"""
+    """Max Simulation time overall [s]"""
+    sim_time_after_collision: Decimal = Decimal(0)
+    """The simulation time for which to continue after the first collision is detected [s]"""
 
 
 @dataclass
@@ -83,12 +85,12 @@ class SimModel(ABC, Generic[X, U]):
         pass
 
     @abstractmethod
-    def get_footprint(self) -> Shape:
+    def get_footprint(self) -> Polygon:
         """ This returns the footprint of the model that is used for collision checking"""
         pass
 
     @abstractmethod
-    def get_xytheta_pose(self) -> SE2value:
+    def get_pose(self) -> SE2value:
         pass
 
     def get_state(self) -> X:
@@ -99,5 +101,5 @@ class SimModel(ABC, Generic[X, U]):
         pass
 
     @abstractmethod
-    def get_velocity(self) -> Any:
+    def get_velocity(self) -> T2value:
         pass

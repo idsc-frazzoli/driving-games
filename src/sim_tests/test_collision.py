@@ -1,7 +1,7 @@
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
 
-from sim.collision import get_rectangle_mesh, get_impact_locations
+from sim.collision import get_rectangle_mesh, impact_locations_from_polygons
 
 
 def test_commonroad_dc():
@@ -48,7 +48,7 @@ def test_impact_location():
     rnd2.draw_list(car_b_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
     rnd2.render(show=True)
 
-    col_repA = get_impact_locations(car_a, car_b)
-    col_repB = get_impact_locations(car_b, car_a)
+    col_repA = impact_locations_from_polygons(car_a, car_b)
+    col_repB = impact_locations_from_polygons(car_b, car_a)
     print(f'Collision report A: {col_repA}')
     print(f'Collision report B: {col_repB}')

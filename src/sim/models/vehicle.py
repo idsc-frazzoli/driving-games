@@ -3,10 +3,11 @@ from dataclasses import dataclass, replace
 from decimal import Decimal
 
 import numpy as np
-from commonroad_dc.pycrcc import RectOBB
 from frozendict import frozendict
-from geometry import SE2value, SE2_from_xytheta, SO2_from_angle, SO2, SO2value
+from geometry import SE2value, SE2_from_xytheta, SO2_from_angle, SO2value, T2value
 from scipy.integrate import solve_ivp
+from shapely.affinity import affine_transform
+from shapely.geometry import Polygon
 
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
@@ -196,22 +197,28 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         acc = acceleration_constraint(x0.vx, u.acc, self.vp)
         return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=acc, delta=ddelta)
 
-    def get_footprint(self) -> RectOBB:
+    def get_footprint(self) -> Polygon:
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-        return RectOBB(self.vg.w_half, self.vg.length / 2, self._state.theta, self._state.x, self._state.y)
+        footprint = Polygon(self.vg.outline)
+        transform = self.get_pose()
+        matrix_coeff = transform[0, :2].tolist() + transform[1, :2].tolist() + transform[:2, 2].tolist()
+        footprint = affine_transform(footprint, matrix_coeff)
+        assert footprint.is_valid
+        return footprint
 
-    def get_xytheta_pose(self) -> SE2value:
+    def get_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
 
     def get_geometry(self) -> VehicleGeometry:
         return self.vg
 
-    def get_velocity(self) -> np.ndarray:
+    def get_velocity(self) -> T2value:
+        # fixme this will need to return also the rotational component
         # todo double check this!!!
         vx = self._state.vx
         dtheta = vx * math.tan(self._state.delta) / self.vg.length
-        vy = dtheta * self.vg.lf
-        v_l = np.array([[vx], [vy]])                    # Velocity in local RF
-        l2g: SO2value = SO2_from_angle(self._state.theta)  # Rotation matrix
-        v_g = l2g @ v_l                               # Velocity in global RF
-        return v_g.T[0] # array([vx, vy])
+        vy = dtheta * self.vg.lr
+        v_l = np.array([vx, vy])  # Velocity in local RF
+        rot: SO2value = SO2_from_angle(self._state.theta)  # Rotation matrix
+        v_g = rot @ v_l  # Velocity in global RF
+        return v_g

@@ -85,13 +85,13 @@ class Simulator:
         """
         collision = False
         # this way solves the permutations asymetrically
-        for a, b in permutations(sim_context.models, 2):
-            a_shape = sim_context.models[a].get_footprint()
-            b_shape = sim_context.models[b].get_footprint()
-            if a_shape.collide(b_shape):
-                logger.info(f"Detected a collision between {a} and {b}")
-                from sim.collision import compute_collision_report # import here to avoid circular imports
+        for p1, p2 in permutations(sim_context.models, 2):
+            a_shape = sim_context.models[p1].get_footprint()
+            b_shape = sim_context.models[p2].get_footprint()
+            if a_shape.intersects(b_shape):
+                logger.info(f"Detected a collision between {p1} and {p2}")
+                from sim.collision import compute_collision_report  # import here to avoid circular imports
                 collision = True
-                report: CollisionReport = compute_collision_report(a, b, sim_context)
-                sim_context.collision_reports[a] = report
+                report: CollisionReport = compute_collision_report(p1, p2, sim_context)
+                sim_context.collision_reports[p1] = report
         return collision

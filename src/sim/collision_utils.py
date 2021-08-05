@@ -1,94 +1,76 @@
-from typing import Mapping, List, Tuple, Any
+from typing import Mapping, List, Tuple
 
 import numpy as np
-from commonroad_dc import pycrcc
-from geometry import SE2_from_xytheta, SE2value
-from shapely.geometry import Point, Polygon
+from matplotlib import pyplot as plt
+from shapely.geometry import Polygon, Point
 from shapely.ops import nearest_points
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
-from sim.models.vehicle import VehicleState
-from sim.models.vehicle_structures import VehicleGeometry
+from sim.models.vehicle_structures import ModelGeometry
 
 
-def get_vertices_as_list(rect: pycrcc.RectOBB) -> List[List[float]]:
-    """ This gets the car vertices in the global reference frame (RF) as a list
-    1---------0
-    |         |-----> x
-    2---------3
-    :param rect: RectOBB object
-    :return: [[v0.x, v0.y], [v1.x, v1.y], ..., [vN.x, vN.y]]
-    """
-    l2g: SE2value = SE2_from_xytheta((rect.center()[0], rect.center()[1], rect.orientation()))
-    # vertices of the rectangle
-    vertices = np.array([[rect.r_y(), -rect.r_y(), -rect.r_y(), rect.r_y()],
-                         [rect.r_x(), rect.r_x(), -rect.r_x(), -rect.r_x()],
-                         [1, 1, 1, 1]])
-
-    vertices = l2g @ vertices
-    vertices = vertices[:-1, :]  # Remove last row
-    return vertices.T.tolist()
-
-
-def get_vertices_as_tuple(rect: pycrcc.RectOBB) -> Tuple[Tuple[float, ...], ...]:
-    """ This gets the car vertices in the global reference frame (RF) as a tuple
-    1---------0
-    |         |-----> x
-    2---------3
-    :param rect: RectOBB object
-    :return vertices: ((v0.x, v0.y), (v1.x, v1.y), ..., (vN.x, vN.y))
-    """
-    vertices = get_vertices_as_list(rect)
-    return tuple([tuple(row) for row in vertices])
-
-
-def get_rectangle_mesh(footprint: pycrcc.RectOBB) -> Mapping[ImpactLocation, pycrcc.Triangle]:
+def get_rectangle_mesh(footprint: Polygon) -> Mapping[ImpactLocation, Polygon]:
     """
     This returns all the vertices of a rectangle in the global reference frame of the map (a bit useless for now)
     :param footprint: RectOBB object
     :return:
     """
 
-    vertices = get_vertices_as_list(footprint)
-    rect_cx, rect_cy = footprint.center()
-
-    impact_locations: Mapping[ImpactLocation, pycrcc.Triangle] = {
-        IMPACT_FRONT: pycrcc.Triangle(*vertices[0], *vertices[3], *(rect_cx, rect_cy)),
-        IMPACT_BACK: pycrcc.Triangle(*vertices[1], *vertices[2], *(rect_cx, rect_cy)),
-        IMPACT_LEFT: pycrcc.Triangle(*vertices[0], *vertices[1], *(rect_cx, rect_cy)),
-        IMPACT_RIGHT: pycrcc.Triangle(*vertices[2], *vertices[3], *(rect_cx, rect_cy)),
+    vertices = footprint.exterior.coords[:-1]  # todo check the order!
+    cxy = footprint.centroid.coords[0]
+    # maybe we can use triangulate from shapely
+    impact_locations: Mapping[ImpactLocation, Polygon] = {
+        IMPACT_FRONT: Polygon([cxy, vertices[0], vertices[3], cxy]),
+        IMPACT_BACK: Polygon([cxy, vertices[1], vertices[2], cxy]),
+        IMPACT_LEFT: Polygon([cxy, vertices[0], vertices[1], cxy]),
+        IMPACT_RIGHT: Polygon([cxy, vertices[2], vertices[3], cxy]),
     }
+    for shape in impact_locations.values():
+        assert shape.is_valid
     return impact_locations
 
 
-def get_nearest_collision_points(a: pycrcc.RectOBB, b: pycrcc.RectOBB) -> np.ndarray:
-    """
-    This computes the closes vertex from vehicle b to the center of a
-    :param a: RectOBB object
-    :param b: RectOBB object
-    :return:
-    """
-    # todo: important -> this should compute the closes POINT and not VERTEX
-    center = Point(a.center()[0], a.center()[1])
-    vertices_b = get_vertices_as_tuple(b)
-    vertices_b += (vertices_b[0],)
-    rect = Polygon(vertices_b)
-    nearest_pts = nearest_points(center, rect)
-    return np.array([[nearest_pts[0].x, nearest_pts[0].y], [nearest_pts[1].x, nearest_pts[1].y]])
+def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float]]:
+    int_shape = a.intersection(b)
+    points = list(int_shape.exterior.coords[:-1])
+    plt.plot(*a.exterior.xy, "b")
+    plt.plot(*b.exterior.xy, "r")
+    for p in points:
+        plt.plot(*p, "o")
+
+    def is_contained_in_aorb(p) -> bool:
+        shapely_point = Point(p).buffer(1.0e-9)
+        print("blu:", a.contains(shapely_point))
+        print("red:",b.contains(shapely_point))
+        return a.contains(shapely_point) or b.contains(shapely_point)
+
+    points[:] = [p for p in points if not is_contained_in_aorb(p)]
+    for p in points:
+        plt.plot(*p, "x")
+
+    plt.savefig("test.png")
+    if not len(points) == 2:
+        raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")
+    return points
 
 
-def get_normal_of_impact(a: pycrcc.RectOBB, b: pycrcc.RectOBB) -> np.ndarray:
+def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
     """
     This computes the normal of impact between vehicles a and b
     :param a: RectOBB object
     :param b: RectOBB object
     :return:
     """
+    assert not a.touches(b)
+    intersecting_points = _find_intersection_points(a, b)
+
     # todo: important -> fix this making sure that n is the same wrt a and wrt b
-    nearest_pts = get_nearest_collision_points(a, b)
-    n = nearest_pts[1] - nearest_pts[0]  # Subtract nearest_point_b - center_of_a
-    n /= np.linalg.norm(n)               # Make it a unitary vector
-    return n
+    # fixme this approximations works well only with circles
+    nearest_pt = nearest_points(a.centroid, b)[1]
+    n = np.array(nearest_pt.coords[0]) - np.array(a.centroid.coords[0])  # Subtract nearest_point_b - center_of_a
+    n /= np.linalg.norm(n)  # Make it a unitary vector
+
+    return n, Point([0, 0])
 
 
 def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:
@@ -98,32 +80,20 @@ def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:
     :param rel_v: Relative velocity between a and b
     :return:
     """
+    # fixme just take the orthogonal vector to n???
     t = rel_v - np.dot(rel_v, n) * n
     t /= np.linalg.norm(t)
     return t
 
 
-def get_j_scalar_linear(e: float, vec: np.ndarray, rel_v: np.ndarray, a_m: float, b_m: float) -> float:
+def compute_impulse_response(vec: np.ndarray,
+                             rel_v: np.ndarray,
+                             r_ap: np.ndarray,
+                             r_bp: np.ndarray,
+                             a_geom: ModelGeometry,
+                             b_geom: ModelGeometry) -> float:
     """
-    This computes the impulse scalar "linear" -> not taking into account rotations
-    :param e:               Restitution coefficient -> represents the "bounciness" of the vehicle
-    :param vec:             Vector onto which to project rel_v (normally, n or t)
-    :param rel_v:           Relative velocity between a and b
-    :param a_m:             mass of vehicle a
-    :param b_m:             mass of vehicle b
-    :return:
-    """
-    rel_v_along_vec = np.dot(rel_v, vec)
-    rel_v_along_vec = np.linalg.norm(rel_v_along_vec)
-    j = -(1 + e) * rel_v_along_vec
-    j /= 1 / a_m + 1 / b_m
-    return j
-
-
-def get_j_scalar_angular(e: float, vec: np.ndarray, rel_v: np.ndarray, r_ap: np.ndarray, r_bp: np.ndarray, a_geom: VehicleGeometry, b_geom: VehicleGeometry) -> float:
-    """
-    This computes the impulse scalar "angular" -> taking into account rotations
-    :param e:               Restitution coefficient -> represents the "bounciness" of the vehicle
+    This computes the impulse scalar
     :param vec:             Vector onto which to project rel_v (normally, n or t)
     :param rel_v:           Relative velocity between a and b
     :param r_ap:            Vector from CG of a to collision point P
@@ -132,10 +102,11 @@ def get_j_scalar_angular(e: float, vec: np.ndarray, rel_v: np.ndarray, r_ap: np.
     :param b_geom:          Geometry of vehicle b
     :return:
     """
+    e = min(a_geom.e, b_geom.e)  # Restitution coefficient -> represents the "bounciness" of the vehicle
     rel_v_along_vec = np.dot(rel_v, vec)
     rel_v_along_vec = np.linalg.norm(rel_v_along_vec)
     j = -(1 + e) * rel_v_along_vec
-    tmp = (np.dot(r_ap, vec)**2 / a_geom.Iz) + (np.dot(r_bp, vec)**2 / b_geom.Iz)
+    tmp = (np.dot(r_ap, vec) ** 2 / a_geom.Iz) + (np.dot(r_bp, vec) ** 2 / b_geom.Iz)
     j /= (1 / a_geom.m + 1 / b_geom.m + tmp)
     return j
 
@@ -149,33 +120,16 @@ def get_velocity_after_collision(n: np.ndarray, v_initial: np.ndarray, m: float,
     :param j:           impulse scalar
     :return:
     """
-    return v_initial + (j*n)/m
+    # todo rotational!!
+    return v_initial + (j * n) / m
 
 
-def get_kinetic_energy_delta(v_initial: np.ndarray, v_final: np.ndarray, m: float) -> float:
+def kinetic_energy(velocity: np.ndarray, m: float) -> float:
     """
     This computes the kinetic energy lost in the collision as 1/2*m*(vf^2-vi^2)
-    :param v_initial:   velocity right before the collision
-    :param v_final:     velocity right after the collision
+    :param velocity:   velocity right before the collision
+    :param m:     mass of the object
     :return:
     """
-    return 0.5*m*(np.linalg.norm(v_final)**2 - np.linalg.norm(v_initial)**2)
-
-
-def get_absorption_coefficient() -> float:
-    """
-    This computes the absorption coefficient based on the impact location
-    :return:
-    """
-    # todo : properly implement this (based on impact location, etc.)
-    return 0.5
-
-
-def get_energy_absorbed(kinetic_energy_delta: float, absorption_coefficient: float) -> float:
-    """
-    This computes the total energy absorbed by the passengers during the collision
-    :param kinetic_energy_delta:      kinetic energy lost in collision
-    :param absorption_coefficient:    absorption coefficient based on impact location
-    :return:
-    """
-    return kinetic_energy_delta * absorption_coefficient
+    # todo also rotational components?
+    return .5 * m * np.linalg.norm(velocity) ** 2

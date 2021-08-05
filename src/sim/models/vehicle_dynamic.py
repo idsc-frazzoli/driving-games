@@ -186,7 +186,7 @@ class VehicleModelDyn(SimModel[VehicleStateDyn, VehicleCommands]):
         # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
         return RectOBB(self.vg.w_half, self.vg.l_half, self._state.theta, self._state.x, self._state.y)
 
-    def get_xytheta_pose(self) -> SE2value:
+    def get_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
 
     def get_geometry(self) -> VehicleGeometry:

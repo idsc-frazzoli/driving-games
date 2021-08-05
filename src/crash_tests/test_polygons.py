@@ -1,11 +1,12 @@
 # import Point, Polygon
-import numpy as np
-from sympy import Point, Polygon
-from sympy import Triangle
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
-from shapely.ops import nearest_points
+from matplotlib import pyplot as plt
 from shapely.geometry import Point, Polygon
+from shapely.ops import nearest_points
+
+from sim.collision_utils import _find_intersection_points
+
 
 def test_polygons():
     '''
@@ -13,8 +14,8 @@ def test_polygons():
     Allows to easily compute many metrics from any polygon
     '''
     # creating points using Point()
-    p1, p2, p3 = map(Point, [(0, 0), (1, 0),  (5, 1)])
-    #p1, p2, p3 = map(Point, [(10, 10), (11, 11), (12, 12)])
+    p1, p2, p3 = map(Point, [(0, 0), (1, 0), (5, 1)])
+    # p1, p2, p3 = map(Point, [(10, 10), (11, 11), (12, 12)])
     p4, p5, p6 = map(Point, [(3, 2), (1, -1), (0, 2)])
 
     # creating polygons using Polygon()
@@ -55,26 +56,25 @@ def test_shapely_nearest_point():
 
 
 def test_shapely_collision():
-    rect_a = Polygon(((0, 0), (2, 0), (2, 2), (0, 2), (0, 0)))
-    rect_b = Polygon(((2, 1), (3, 0), (5, 1), (3, 2), (2, 1)))
-    rect_c = Polygon(((1, 1), (2, 0), (4, 1), (2, 2), (1, 1)))
+    a = Polygon(((0, 0), (2, 0), (2, 2), (0, 2), (0, 0)))
+    b = Polygon(((2, 1), (3, 0), (5, 1), (3, 2), (2, 1)))
+    c = Polygon(((1, 1), (2, 0), (4, 1), (2, 2), (1, 1)))
+    d = Polygon(((1, -0.5), (2, -1), (4, 1), (2.5, 1.5), (1, -0.5)))
+    plt.plot(*a.exterior.xy, "b")
+    plt.plot(*b.exterior.xy, "r")
+    plt.plot(*c.exterior.xy, "g")
+    plt.plot(*d.exterior.xy, "y")
+    plt.show()
+    intersection = a.intersection(b)
+    print(a.touches(b))  # True if they touch just on one Point
+    print(a.intersects(b))
+    print(intersection.coords)  # Here intersection is a Point
 
-    intersection = rect_a.intersection(rect_b)
-    print(rect_a.touches(rect_b))  # True if they touch just on one Point
-    print(intersection.coords.xy)  # Here intersection is a Point
-
-
-    intersection = rect_a.intersection(rect_c)
-    print(rect_a.touches(rect_c))
-    print(list(intersection.exterior.coords[:]))  # Here intersection is a Polygon
-
-
-
-
-def test_numpy_to_listtuple():
-    arr = [[1, 1], [2, 2]]
-    lst = tuple([tuple(col) for col in zip(*arr)])
-    print(lst)
+    intersection = a.intersection(c)
+    print(a.touches(c))
+    print(a.intersects(c))
+    print(_find_intersection_points(a, c))
+    print(_find_intersection_points(a, d))  # Here intersection is a Polygon
 
 
 def test_tuples():
@@ -82,7 +82,7 @@ def test_tuples():
     print(a)
     b = ((2, 2),)
     print(b)
-    b = a+b
+    b = a + b
     print(b)
     a = a + (a[0],)
     print(a)
