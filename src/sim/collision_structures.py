@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-from typing import NewType, List
+from typing import NewType, Mapping, Sequence
 
 import numpy as np
+from shapely.geometry import Point, Polygon
 
+from games import PlayerName
 from sim import SimTime
 
 __all__ = ["ImpactLocation",
@@ -10,7 +12,8 @@ __all__ = ["ImpactLocation",
            "IMPACT_BACK",
            "IMPACT_LEFT",
            "IMPACT_RIGHT",
-           "CollisionReport"
+           "CollisionReportPlayer",
+           "CollisionReport",
            ]
 
 ImpactLocation = NewType("ImpactLocation", str)
@@ -21,16 +24,26 @@ IMPACT_RIGHT = ImpactLocation('right')
 
 
 @dataclass(frozen=True, unsafe_hash=True)
-class CollisionReport:
-    location: List[ImpactLocation]
+class CollisionReportPlayer:
+    locations: Sequence[ImpactLocation]
     """ Location of the impact """
     at_fault: bool
     """ At fault is defined as...."""
-    rel_velocity: np.ndarray
-    """ Relative velocity defined as v_a-v_b in global RF [m/s] """
-    # rel_velocity_along_n: float
-    """ Relative velocity defined as dot(v_a,n)-dot(v_b,n), with n the normal of impact """
+    footprint: Polygon
+    """ Footprint of impact"""
+    velocity: np.ndarray
+    """ velocity before impact [m/s] """
     energy_delta: float
     """ Kinetic energy lost in the collision [J] """
+
+
+@dataclass(frozen=True, unsafe_hash=True)
+class CollisionReport:
+    players: Mapping[PlayerName, CollisionReportPlayer]
+    """ Relative velocity defined as v_a-v_b in global RF [m/s] """
+    impact_point: Point
+    """Point of impact"""
+    impact_normal: np.ndarray
+    """Normal of impact"""
     at_time: SimTime
     """ Sim time at which the collision occurred"""

@@ -1,10 +1,10 @@
 from typing import List
 
-from matplotlib import pyplot as plt
 from shapely.geometry import Polygon
 
 from games import PlayerName
 from sim import ImpactLocation, CollisionReport
+from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import get_rectangle_mesh, compute_impact_geometry, \
     get_velocity_after_collision, kinetic_energy, compute_impulse_response
 from sim.simulator import SimContext
@@ -40,10 +40,12 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
     # Compute collision locations
     a_shape = sim_context.models[a].get_footprint()
     b_shape = sim_context.models[b].get_footprint()
-    locations = impact_locations_from_polygons(a_shape, b_shape)
+    a_locations = impact_locations_from_polygons(a_shape, b_shape)
+    b_locations = impact_locations_from_polygons(b_shape, a_shape)
     # Check if A is at fault
-    at_fault: bool = is_a_at_fault()
-
+    a_fault: bool = is_a_at_fault()
+    b_fault: bool = is_a_at_fault()
+    # todo check based on velocities if we actually need to resolve the collision
     # Velocity in global RF
     a_vel_init = sim_context.models[a].get_velocity()
     b_vel_init = sim_context.models[b].get_velocity()
@@ -66,12 +68,23 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
                                    b_geom=b_geom)
     # todo: check if next lines should be done for a or for b
     a_vel_final = get_velocity_after_collision(impact_normal, a_vel_init, a_geom.m, j_n)
-    kenergy_delta = kinetic_energy(a_vel_final, a_geom.m) - kinetic_energy(a_vel_init, a_geom.m)
+    b_vel_final = get_velocity_after_collision(impact_normal, b_vel_init, b_geom.m, j_n)
+    a_kenergy_delta = kinetic_energy(a_vel_final, a_geom.m) - kinetic_energy(a_vel_init, a_geom.m)
+    b_kenergy_delta = kinetic_energy(b_vel_final, b_geom.m) - kinetic_energy(b_vel_init, b_geom.m)
     # todo assorbtion coefficient needs to be justified
 
-    return CollisionReport(location=locations,
-                           at_fault=at_fault,
-                           rel_velocity=rel_velocity,
-                           energy_delta=kenergy_delta,
-                           at_time=sim_context.time
+    a_report = CollisionReportPlayer(locations=a_locations,
+                                     at_fault=a_fault,
+                                     footprint=a_shape,
+                                     velocity=a_vel_init,
+                                     energy_delta=a_kenergy_delta, )
+    b_report = CollisionReportPlayer(locations=b_locations,
+                                     at_fault=b_fault,
+                                     footprint=b_shape,
+                                     velocity=b_vel_init,
+                                     energy_delta=b_kenergy_delta, )
+    return CollisionReport(players={a: a_report, b: b_report},
+                           impact_point=impact_point,
+                           impact_normal=impact_normal,
+                           at_time=sim_context.time,
                            )

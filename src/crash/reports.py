@@ -1,5 +1,7 @@
-from reprep import Report, MIME_GIF
+import matplotlib.pyplot as plt
+from reprep import Report, MIME_PNG, MIME_GIF
 
+from sim.collision_visualisation import plot_collision
 from sim.simulator import SimContext
 from sim.simulator_animation import create_animation
 
@@ -22,6 +24,10 @@ def generete_report(sim_context: SimContext) -> Report:
 
 def get_collsion_reports(sim_context: SimContext) -> Report:
     r = Report("Collison report")
-    for player in sim_context.collision_reports:
-        r.text(player, text=sim_context.collision_reports[player].__str__())
+    for i, report in enumerate(sim_context.collision_reports):
+        r.text(f"Collision-{i}", text=report.__str__())
+        with r.data_file(f"Collision-{i}-viz", MIME_PNG) as f:
+            plot_collision(report)
+            plt.savefig(f)
+
     return r

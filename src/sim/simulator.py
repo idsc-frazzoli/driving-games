@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
-from itertools import permutations
-from typing import Mapping, Optional, Dict
+from itertools import combinations
+from typing import Mapping, Optional, List
 
 from duckietown_world import DuckietownMap
 
@@ -23,7 +23,7 @@ class SimContext:
     time: SimTime = Decimal(0)
     seed: int = 0
     sim_terminated: bool = False
-    collision_reports: Dict[PlayerName, CollisionReport] = field(default_factory=dict)
+    collision_reports: List[CollisionReport] = field(default_factory=list)
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
@@ -84,8 +84,7 @@ class Simulator:
         :return: True if at least one collision happened, False otherwise
         """
         collision = False
-        # this way solves the permutations asymetrically
-        for p1, p2 in permutations(sim_context.models, 2):
+        for p1, p2 in combinations(sim_context.models, 2):
             a_shape = sim_context.models[p1].get_footprint()
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
@@ -93,5 +92,5 @@ class Simulator:
                 from sim.collision import compute_collision_report  # import here to avoid circular imports
                 collision = True
                 report: CollisionReport = compute_collision_report(p1, p2, sim_context)
-                sim_context.collision_reports[p1] = report
+                sim_context.collision_reports.append(report)
         return collision
