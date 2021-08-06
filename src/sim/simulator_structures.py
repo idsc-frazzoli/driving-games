@@ -93,13 +93,21 @@ class SimModel(ABC, Generic[X, U]):
     def get_pose(self) -> SE2value:
         pass
 
-    def get_state(self) -> X:
-        return deepcopy(self._state)
+    @abstractmethod
+    def get_velocity(self) -> T2value:
+        pass
+
+    @abstractmethod
+    def set_velocity(self, vel: T2value):
+        pass
+
+    @abstractmethod
+    def set_rot_velocity(self, vel: float):
+        pass
 
     @abstractmethod
     def get_geometry(self) -> Any:
         pass
 
-    @abstractmethod
-    def get_velocity(self) -> T2value:
-        pass
+    def get_state(self) -> X:
+        return deepcopy(self._state)

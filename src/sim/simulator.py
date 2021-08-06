@@ -89,8 +89,9 @@ class Simulator:
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
                 logger.info(f"Detected a collision between {p1} and {p2}")
-                from sim.collision import compute_collision_report  # import here to avoid circular imports
-                collision = True
-                report: CollisionReport = compute_collision_report(p1, p2, sim_context)
-                sim_context.collision_reports.append(report)
+                from sim.collision import resolve_collision  # import here to avoid circular imports
+                report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
+                if report is not None:
+                    collision = True
+                    sim_context.collision_reports.append(report)
         return collision

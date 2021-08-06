@@ -33,6 +33,8 @@ class CollisionReportPlayer:
     """ Footprint of impact"""
     velocity: np.ndarray
     """ velocity before impact [m/s] """
+    velocity_after: np.ndarray
+    """ velocity after impact [m/s] """
     energy_delta: float
     """ Kinetic energy lost in the collision [J] """
 

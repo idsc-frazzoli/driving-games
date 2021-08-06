@@ -3,7 +3,6 @@ from typing import Mapping, List, Tuple
 import numpy as np
 from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, Point, LineString
-from shapely.ops import nearest_points
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
 from sim.models.vehicle_structures import ModelGeometry
@@ -57,21 +56,23 @@ def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float
 def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
     """
     This computes the normal of impact between vehicles a and b
-    :param a: RectOBB object
-    :param b: RectOBB object
+    :param a: Polygon object
+    :param b: Polygon object
     :return:
     """
     assert not a.touches(b)
     intersecting_points = _find_intersection_points(a, b)
     impact_point = LineString(intersecting_points).interpolate(0.5, normalized=True)
-
-    # todo: important -> fix this making sure that n is the same wrt a and wrt b
-    # fixme this approximations works well only with circles
-    nearest_pt = nearest_points(a.centroid, b)[1]
-    n = np.array(nearest_pt.coords[0]) - np.array(a.centroid.coords[0])  # Subtract nearest_point_b - center_of_a
-    n /= np.linalg.norm(n)  # Make it a unitary vector
-
-    return n, impact_point
+    first, second = intersecting_points
+    dxdy_surface = (second[0] - first[0], second[1] - first[1])
+    # todo check normal direction, probably need to be adaptive to point always outwards from A?!
+    normal = np.array([-dxdy_surface[1], dxdy_surface[0]])
+    normal /= np.linalg.norm(normal)
+    r_ap = np.array(impact_point.coords[0]) - np.array(a.centroid.coords[0])
+    if np.dot(r_ap, normal) < 0:
+        # rotate by 180 if pointing into the inwards of A
+        normal *= -1
+    return normal, impact_point
 
 
 def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:
@@ -87,28 +88,28 @@ def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:
     return t
 
 
-def compute_impulse_response(vec: np.ndarray,
-                             rel_v: np.ndarray,
+def compute_impulse_response(n: np.ndarray,
+                             vel_ab: np.ndarray,
                              r_ap: np.ndarray,
                              r_bp: np.ndarray,
                              a_geom: ModelGeometry,
                              b_geom: ModelGeometry) -> float:
     """
-    This computes the impulse scalar
-    :param vec:             Vector onto which to project rel_v (normally, n or t)
-    :param rel_v:           Relative velocity between a and b
+    The impulse J is defined in terms of force F and time period ∆t
+    J = F*∆t = ma*∆t = m *∆v/∆t *∆t = m*∆v
+    :param n:             Vector onto which to project rel_v (normally, n or t)
+    :param vel_ab:           Relative velocity between a and b
     :param r_ap:            Vector from CG of a to collision point P
     :param r_bp:            Vector from CG of b to collision point P
     :param a_geom:          Geometry of vehicle a
     :param b_geom:          Geometry of vehicle b
     :return:
     """
-    e = min(a_geom.e, b_geom.e)  # Restitution coefficient -> represents the "bounciness" of the vehicle
-    rel_v_along_vec = np.dot(rel_v, vec)
-    rel_v_along_vec = np.linalg.norm(rel_v_along_vec)
-    j = -(1 + e) * rel_v_along_vec
-    tmp = (np.dot(r_ap, vec) ** 2 / a_geom.Iz) + (np.dot(r_bp, vec) ** 2 / b_geom.Iz)
-    j /= (1 / a_geom.m + 1 / b_geom.m + tmp)
+    # Restitution coefficient -> represents the "bounciness" of the vehicle
+    e = min(a_geom.e, b_geom.e)
+    j = -(1 + e) * np.dot(vel_ab, n)
+    rot_part = (np.cross(r_ap, n) ** 2 / a_geom.Iz) + (np.cross(r_bp, n) ** 2 / b_geom.Iz)
+    j /= (1 / a_geom.m + 1 / b_geom.m + rot_part)
     return j
 
 
@@ -121,8 +122,21 @@ def get_velocity_after_collision(n: np.ndarray, v_initial: np.ndarray, m: float,
     :param j:           impulse scalar
     :return:
     """
-    # todo rotational!!
     return v_initial + (j * n) / m
+
+
+def rot_velocity_after_collision(r: np.ndarray, n: np.ndarray, omega: np.ndarray,
+                                 Iz: float, j: float) -> float:
+    """
+    This computes the velocity after the collision based on the impulse resolution method
+    :param r: Contact vector
+    :param n: Normal of impact
+    :param omega: rot velocity before impact
+    :param Iz: rotational inertia
+    :param j: Impulse
+    :return:
+    """
+    return omega + np.cross(r, j * n) / Iz
 
 
 def kinetic_energy(velocity: np.ndarray, m: float) -> float:

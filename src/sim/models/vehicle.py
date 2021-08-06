@@ -222,3 +222,9 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         rot: SO2value = SO2_from_angle(self._state.theta)  # Rotation matrix
         v_g = rot @ v_l  # Velocity in global RF
         return v_g
+
+    def set_velocity(self, vel: T2value):
+        self._state.vx = vel[0]
+
+    def set_rot_velocity(self, vel: float):
+        raise RuntimeWarning("It is not possible to set the rotational velocity")

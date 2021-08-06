@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 from shapely.geometry import Polygon
@@ -34,9 +34,10 @@ def impact_locations_from_polygons(a_shape: Polygon, b_shape: Polygon) -> List[I
     return locations
 
 
-def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimContext) -> CollisionReport:
+def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> Optional[CollisionReport]:
     """
-    Compute the collision report for A given that A and B collided
+    Resolves the collision between A and B.
+    :returns A CollisionReport or None if the collision does not need to be solved (the two bodies are already separating)
     """
     # Compute collision locations
     a_shape = sim_context.models[a].get_footprint()
@@ -53,36 +54,40 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
     # Geometry
     a_geom = sim_context.models[a].get_geometry()
     b_geom = sim_context.models[b].get_geometry()
-    # Relative velocity in global RF
+
     rel_velocity = a_vel_init - b_vel_init
     # Relative velocity along normal of impact
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
+    if np.dot(rel_velocity, impact_normal) < 0:
+        return None
     # Energy absorbed by passengers
     # todo if rel_velocity_along_n > 0 -> raise value error as objects would be separating
     r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
     r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
-    j_n = compute_impulse_response(vec=impact_normal,
-                                   rel_v=rel_velocity,
+    j_n = compute_impulse_response(n=impact_normal,
+                                   vel_ab=rel_velocity,
                                    r_ap=r_ap,
                                    r_bp=r_bp,
                                    a_geom=a_geom,
                                    b_geom=b_geom)
     # todo: check if next lines should be done for a or for b
-    a_vel_final = get_velocity_after_collision(impact_normal, a_vel_init, a_geom.m, j_n)
-    b_vel_final = get_velocity_after_collision(impact_normal, b_vel_init, b_geom.m, j_n)
-    a_kenergy_delta = kinetic_energy(a_vel_final, a_geom.m) - kinetic_energy(a_vel_init, a_geom.m)
-    b_kenergy_delta = kinetic_energy(b_vel_final, b_geom.m) - kinetic_energy(b_vel_init, b_geom.m)
+    a_vel_after = get_velocity_after_collision(impact_normal, a_vel_init, a_geom.m, j_n)
+    b_vel_after = get_velocity_after_collision(-impact_normal, b_vel_init, b_geom.m, j_n)
+    a_kenergy_delta = kinetic_energy(a_vel_after, a_geom.m) - kinetic_energy(a_vel_init, a_geom.m)
+    b_kenergy_delta = kinetic_energy(b_vel_after, b_geom.m) - kinetic_energy(b_vel_init, b_geom.m)
     # todo assorbtion coefficient needs to be justified
 
     a_report = CollisionReportPlayer(locations=a_locations,
                                      at_fault=a_fault,
                                      footprint=a_shape,
                                      velocity=a_vel_init,
+                                     velocity_after=a_vel_after,
                                      energy_delta=a_kenergy_delta, )
     b_report = CollisionReportPlayer(locations=b_locations,
                                      at_fault=b_fault,
                                      footprint=b_shape,
                                      velocity=b_vel_init,
+                                     velocity_after=b_vel_after,
                                      energy_delta=b_kenergy_delta, )
     return CollisionReport(players={a: a_report, b: b_report},
                            impact_point=impact_point,
