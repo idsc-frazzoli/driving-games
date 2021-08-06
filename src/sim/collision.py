@@ -36,31 +36,31 @@ def impact_locations_from_polygons(a_shape: Polygon, b_shape: Polygon) -> List[I
 
 def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> Optional[CollisionReport]:
     """
-    Resolves the collision between A and B.
+    Resolves the collision between A and B using an impulse method.
     :returns A CollisionReport or None if the collision does not need to be solved (the two bodies are already separating)
     """
-    # Compute collision locations
     a_shape = sim_context.models[a].get_footprint()
     b_shape = sim_context.models[b].get_footprint()
-    a_locations = impact_locations_from_polygons(a_shape, b_shape)
-    b_locations = impact_locations_from_polygons(b_shape, a_shape)
-    # Check if A is at fault
-    a_fault: bool = is_a_at_fault()
-    b_fault: bool = is_a_at_fault()
-    # todo check based on velocities if we actually need to resolve the collision
-    # Velocity in global RF
+    # Compute collision geometry
+    impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
     a_vel, a_omega = sim_context.models[a].get_velocity()
     b_vel, b_omega = sim_context.models[b].get_velocity()
-    # Geometry
-    a_geom = sim_context.models[a].get_geometry()
-    b_geom = sim_context.models[b].get_geometry()
-
-    impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
-
     rel_velocity = a_vel - b_vel
     if np.dot(rel_velocity, impact_normal) < 0:
-        logger.debug(f"Not solving the collision between {a}, {b} as they are already separating")
+        logger.debug(f"Not solving the collision between {a}, {b} since they are already separating")
         return None
+
+    # Compute collision locations
+    a_locations = impact_locations_from_polygons(a_shape, b_shape)
+    b_locations = impact_locations_from_polygons(b_shape, a_shape)
+
+    # Check who is at fault
+    a_fault: bool = is_a_at_fault()
+    b_fault: bool = is_a_at_fault()
+
+    # Compute impulse resolution
+    a_geom = sim_context.models[a].get_geometry()
+    b_geom = sim_context.models[b].get_geometry()
     r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
     r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     j_n = compute_impulse_response(n=impact_normal,
@@ -69,21 +69,18 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
                                    r_bp=r_bp,
                                    a_geom=a_geom,
                                    b_geom=b_geom)
-
+    # Apply impulse to models
     a_vel_after = velocity_after_collision(impact_normal, a_vel, a_geom.m, j_n)
     b_vel_after = velocity_after_collision(-impact_normal, b_vel, b_geom.m, j_n)
     a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, a_omega, a_geom.Iz, j_n)
     b_omega_after = rot_velocity_after_collision(r_ap, -impact_normal, b_omega, b_geom.Iz, j_n)
-
-    a_kenergy_delta = kinetic_energy(a_vel_after, a_geom.m) - kinetic_energy(a_vel, a_geom.m)
-    b_kenergy_delta = kinetic_energy(b_vel_after, b_geom.m) - kinetic_energy(b_vel, b_geom.m)
-    # todo rotational energy
-
-    # Apply impulses to models
     sim_context.models[a].set_velocity(a_vel, a_omega)
     sim_context.models[b].set_velocity(b_vel, b_omega)
 
     # Log reports
+    a_kenergy_delta = kinetic_energy(a_vel_after, a_geom.m) - kinetic_energy(a_vel, a_geom.m)
+    b_kenergy_delta = kinetic_energy(b_vel_after, b_geom.m) - kinetic_energy(b_vel, b_geom.m)
+    # todo rotational energy
     a_report = CollisionReportPlayer(locations=a_locations,
                                      at_fault=a_fault,
                                      footprint=a_shape,

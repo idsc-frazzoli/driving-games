@@ -31,6 +31,7 @@ def get_rectangle_mesh(footprint: Polygon) -> Mapping[ImpactLocation, Polygon]:
 def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float]]:
     int_shape = a.intersection(b)
     points = list(int_shape.exterior.coords[:-1])
+
     # plt.plot(*a.exterior.xy, "b")
     # plt.plot(*b.exterior.xy, "r")
     # for p in points:
@@ -64,7 +65,6 @@ def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
     impact_point = LineString(intersecting_points).interpolate(0.5, normalized=True)
     first, second = intersecting_points
     dxdy_surface = (second[0] - first[0], second[1] - first[1])
-    # todo check normal direction, probably need to be adaptive to point always outwards from A?!
     normal = np.array([-dxdy_surface[1], dxdy_surface[0]])
     normal /= np.linalg.norm(normal)
     r_ap = np.array(impact_point.coords[0]) - np.array(a.centroid.coords[0])
@@ -72,19 +72,6 @@ def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
         # rotate by 180 if pointing into the inwards of A
         normal *= -1
     return normal, impact_point
-
-
-def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:
-    """
-    This computes the tangent of impact between vehicles a and b
-    :param n: Normal of impact
-    :param rel_v: Relative velocity between a and b
-    :return:
-    """
-    # fixme just take the orthogonal vector to n???
-    t = rel_v - np.dot(rel_v, n) * n
-    t /= np.linalg.norm(t)
-    return t
 
 
 def compute_impulse_response(n: np.ndarray,
