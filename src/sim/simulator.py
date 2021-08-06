@@ -24,6 +24,7 @@ class SimContext:
     seed: int = 0
     sim_terminated: bool = False
     collision_reports: List[CollisionReport] = field(default_factory=list)
+    first_collision_ts: SimTime = Decimal(999)
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
@@ -68,13 +69,19 @@ class Simulator:
         :param sim_context:
         :return:
         """
-        collison_detected = self._check_collisions(sim_context)
+        collision_detected = self._check_collisions(sim_context)
         # after all the computations advance simulation time
         sim_context.time += sim_context.param.dt
-        if sim_context.time > sim_context.param.max_sim_time or collison_detected:
-            sim_context.sim_terminated = True
-            # fixme simulation not stopping even when colliding
+        self._maybe_terminate_simulation(sim_context)
         return
+
+    @staticmethod
+    def _maybe_terminate_simulation(sim_context: SimContext):
+        """ Evaluates if the simulation needs to terminate based on the expiration of times"""
+        termination_condition: bool = \
+            sim_context.time > sim_context.param.max_sim_time or \
+            sim_context.time > sim_context.first_collision_ts + sim_context.param.sim_time_after_collision
+        sim_context.sim_terminated = termination_condition
 
     @staticmethod
     def _check_collisions(sim_context: SimContext) -> bool:
@@ -88,10 +95,12 @@ class Simulator:
             a_shape = sim_context.models[p1].get_footprint()
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
-                logger.info(f"Detected a collision between {p1} and {p2}")
                 from sim.collision import resolve_collision  # import here to avoid circular imports
                 report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
                 if report is not None:
+                    logger.info(f"Detected a collision between {p1} and {p2}")
                     collision = True
+                    if report.at_time < sim_context.first_collision_ts:
+                        sim_context.first_collision_ts = report.at_time
                     sim_context.collision_reports.append(report)
         return collision

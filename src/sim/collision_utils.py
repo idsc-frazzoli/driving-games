@@ -1,7 +1,6 @@
 from typing import Mapping, List, Tuple
 
 import numpy as np
-from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, Point, LineString
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
@@ -32,22 +31,22 @@ def get_rectangle_mesh(footprint: Polygon) -> Mapping[ImpactLocation, Polygon]:
 def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float]]:
     int_shape = a.intersection(b)
     points = list(int_shape.exterior.coords[:-1])
-    plt.plot(*a.exterior.xy, "b")
-    plt.plot(*b.exterior.xy, "r")
-    for p in points:
-        plt.plot(*p, "o")
+    # plt.plot(*a.exterior.xy, "b")
+    # plt.plot(*b.exterior.xy, "r")
+    # for p in points:
+    #     plt.plot(*p, "o")
 
     def is_contained_in_aorb(p) -> bool:
         shapely_point = Point(p).buffer(1.0e-9)
-        print("blu:", a.contains(shapely_point))
-        print("red:", b.contains(shapely_point))
+        # print("blu:", a.contains(shapely_point))
+        # print("red:", b.contains(shapely_point))
         return a.contains(shapely_point) or b.contains(shapely_point)
 
     points[:] = [p for p in points if not is_contained_in_aorb(p)]
-    for p in points:
-        plt.plot(*p, "x")
-
-    plt.savefig("test.png")
+    # for p in points:
+    #     plt.plot(*p, "x")
+    #
+    # plt.savefig("test.png")
     if not len(points) == 2:
         raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")
     return points
@@ -113,16 +112,16 @@ def compute_impulse_response(n: np.ndarray,
     return j
 
 
-def get_velocity_after_collision(n: np.ndarray, v_initial: np.ndarray, m: float, j: float) -> np.ndarray:
+def velocity_after_collision(n: np.ndarray, velocity: np.ndarray, m: float, j: float) -> np.ndarray:
     """
     This computes the velocity after the collision based on the impulse resolution method
     :param n:           normal of impact
-    :param v_initial:   velocity right before the collision
+    :param velocity:   velocity right before the collision
     :param m:           vehicle mass
     :param j:           impulse scalar
-    :return:
+    :return: velocity after the impulse has been applied
     """
-    return v_initial + (j * n) / m
+    return velocity + (j * n) / m
 
 
 def rot_velocity_after_collision(r: np.ndarray, n: np.ndarray, omega: np.ndarray,

@@ -94,15 +94,11 @@ class SimModel(ABC, Generic[X, U]):
         pass
 
     @abstractmethod
-    def get_velocity(self) -> T2value:
+    def get_velocity(self) -> (T2value, float):
         pass
 
     @abstractmethod
-    def set_velocity(self, vel: T2value):
-        pass
-
-    @abstractmethod
-    def set_rot_velocity(self, vel: float):
+    def set_velocity(self, vel: T2value, omega: float):
         pass
 
     @abstractmethod

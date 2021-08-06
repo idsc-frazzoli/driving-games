@@ -50,7 +50,6 @@ def create_animation(file_path: str,
 
     def init_plot():
         ax.clear()
-        logger.info("Init plotting")
         with sim_viz.plot_arena(ax=ax):
             init_state: MutableMapping[PlayerName, LogEntry] = sim_context.log[time_begin]
             for pname, player in init_state.items():

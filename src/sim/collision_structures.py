@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from typing import NewType, Mapping, Sequence
+from typing import NewType, Mapping, Sequence, Tuple
 
 import numpy as np
+from geometry import T2value
 from shapely.geometry import Point, Polygon
 
 from games import PlayerName
@@ -31,9 +32,9 @@ class CollisionReportPlayer:
     """ At fault is defined as...."""
     footprint: Polygon
     """ Footprint of impact"""
-    velocity: np.ndarray
+    velocity: Tuple[T2value, float]
     """ velocity before impact [m/s] """
-    velocity_after: np.ndarray
+    velocity_after: Tuple[T2value, float]
     """ velocity after impact [m/s] """
     energy_delta: float
     """ Kinetic energy lost in the collision [J] """

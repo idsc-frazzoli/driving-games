@@ -7,7 +7,7 @@ import numpy as np
 from commonroad_dc.pycrcc import RectOBB
 
 from frozendict import frozendict
-from geometry import SE2value, SE2_from_xytheta
+from geometry import SE2value, SE2_from_xytheta, T2value
 from scipy.integrate import solve_ivp
 
 from sim.models.utils import kmh2ms
@@ -189,5 +189,14 @@ class VehicleModelDyn(SimModel[VehicleStateDyn, VehicleCommands]):
     def get_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
 
+    def get_velocity(self) -> (T2value, float):
+        pass
+
     def get_geometry(self) -> VehicleGeometry:
         return self.vg
+
+    def set_velocity(self, vel: T2value, omega: float):
+        self._state.vx = vel[0]
+        self._state.vy = vel[1]
+        self._state.dtheta = omega
+

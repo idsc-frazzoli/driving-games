@@ -12,8 +12,8 @@ def plot_collision(collision_report: CollisionReport):
         plt.text(xc, yc, f"{player}",
                  horizontalalignment="center", verticalalignment="center")
         vel_scale = 0.3
-        vel = vel_scale * p_report.velocity
-        vel_after = vel_scale * p_report.velocity_after
+        vel = vel_scale * p_report.velocity[0]
+        vel_after = vel_scale * p_report.velocity_after[0]
         color, width = "r", 0.01
         head_width = width * 5
         plt.arrow(xc, yc, vel[0], vel[1], width=width, head_width=head_width, ec=color, fc=color, alpha=.5, zorder=90)

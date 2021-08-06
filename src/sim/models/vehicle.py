@@ -9,6 +9,7 @@ from scipy.integrate import solve_ivp
 from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
+from sim import logger
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
 from sim.simulator_structures import SimModel
@@ -212,8 +213,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     def get_geometry(self) -> VehicleGeometry:
         return self.vg
 
-    def get_velocity(self) -> T2value:
-        # fixme this will need to return also the rotational component
+    def get_velocity(self) -> (T2value, float):
         # todo double check this!!!
         vx = self._state.vx
         dtheta = vx * math.tan(self._state.delta) / self.vg.length
@@ -221,10 +221,8 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         v_l = np.array([vx, vy])  # Velocity in local RF
         rot: SO2value = SO2_from_angle(self._state.theta)  # Rotation matrix
         v_g = rot @ v_l  # Velocity in global RF
-        return v_g
+        return v_g, dtheta
 
-    def set_velocity(self, vel: T2value):
+    def set_velocity(self, vel: T2value, omega: float):
         self._state.vx = vel[0]
-
-    def set_rot_velocity(self, vel: float):
-        raise RuntimeWarning("It is not possible to set the rotational velocity")
+        logger.warn("It is not possible to set the lateral and rotational velocity for this model")
