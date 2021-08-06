@@ -11,9 +11,12 @@ def plot_collision(collision_report: CollisionReport):
         xc, yc = footprint.centroid.coords[0]
         plt.text(xc, yc, f"{player}",
                  horizontalalignment="center", verticalalignment="center")
-        vel = p_report.velocity
-        velocity_arrow = ((xc, yc), (xc + vel[0], yc + vel[1]))
-        plt.plot(velocity_arrow, "r-", zorder=90)
+        vel_scale = 0.3
+        vel = vel_scale * p_report.velocity
+        color = "r"
+        plt.arrow(xc, yc, vel[0], vel[1], ec=color,fc=color,alpha=.8, zorder=90)
+    imp_point = collision_report.impact_point.coords[0]
+    plt.plot(*imp_point, "o")
 
     fig.set_tight_layout(True)
     plt.axis('equal')

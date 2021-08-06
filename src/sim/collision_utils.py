@@ -2,7 +2,7 @@ from typing import Mapping, List, Tuple
 
 import numpy as np
 from matplotlib import pyplot as plt
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, LineString
 from shapely.ops import nearest_points
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
@@ -41,7 +41,7 @@ def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float
     def is_contained_in_aorb(p) -> bool:
         shapely_point = Point(p).buffer(1.0e-9)
         print("blu:", a.contains(shapely_point))
-        print("red:",b.contains(shapely_point))
+        print("red:", b.contains(shapely_point))
         return a.contains(shapely_point) or b.contains(shapely_point)
 
     points[:] = [p for p in points if not is_contained_in_aorb(p)]
@@ -63,6 +63,7 @@ def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
     """
     assert not a.touches(b)
     intersecting_points = _find_intersection_points(a, b)
+    impact_point = LineString(intersecting_points).interpolate(0.5, normalized=True)
 
     # todo: important -> fix this making sure that n is the same wrt a and wrt b
     # fixme this approximations works well only with circles
@@ -70,7 +71,7 @@ def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
     n = np.array(nearest_pt.coords[0]) - np.array(a.centroid.coords[0])  # Subtract nearest_point_b - center_of_a
     n /= np.linalg.norm(n)  # Make it a unitary vector
 
-    return n, Point([0, 0])
+    return n, impact_point
 
 
 def get_tangent_of_impact(n: np.ndarray, rel_v: np.ndarray) -> np.ndarray:

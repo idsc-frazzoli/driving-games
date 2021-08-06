@@ -1,5 +1,6 @@
 from typing import List
 
+import numpy as np
 from shapely.geometry import Polygon
 
 from games import PlayerName
@@ -58,8 +59,8 @@ def compute_collision_report(a: PlayerName, b: PlayerName, sim_context: SimConte
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
     # Energy absorbed by passengers
     # todo if rel_velocity_along_n > 0 -> raise value error as objects would be separating
-    r_ap = impact_point - a_shape.centroid
-    r_bp = impact_point - b_shape.centroid
+    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
+    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     j_n = compute_impulse_response(vec=impact_normal,
                                    rel_v=rel_velocity,
                                    r_ap=r_ap,
