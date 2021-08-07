@@ -163,8 +163,8 @@ class VehicleModelDyn(VehicleModel):
 
             dx = x0.vx * math.cos(x0.theta + x0.delta)
             dy = x0.vx * math.sin(x0.theta + x0.delta)
-            acc_x = (F1[0] + Facc + x0.dtheta * x0.vy) / m
-            acc_y = (F1[1] + F2y - x0.dtheta * x0.vx) / m
+            acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy) / m
+            acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
             return VehicleStateDyn(x=dx,
                                    y=dy,
