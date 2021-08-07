@@ -43,8 +43,8 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_shape = sim_context.models[b].get_footprint()
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
-    a_vel, a_omega = sim_context.models[a].get_velocity()
-    b_vel, b_omega = sim_context.models[b].get_velocity()
+    a_vel, a_omega = sim_context.models[a].get_velocity(in_model_frame=False)
+    b_vel, b_omega = sim_context.models[b].get_velocity(in_model_frame=False)
     rel_velocity = a_vel - b_vel
     if np.dot(rel_velocity, impact_normal) < 0:
         logger.debug(f"Not solving the collision between {a}, {b} since they are already separating")
@@ -74,8 +74,8 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_vel_after = velocity_after_collision(-impact_normal, b_vel, b_geom.m, j_n)
     a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, a_omega, a_geom.Iz, j_n)
     b_omega_after = rot_velocity_after_collision(r_ap, -impact_normal, b_omega, b_geom.Iz, j_n)
-    sim_context.models[a].set_velocity(a_vel, a_omega)
-    sim_context.models[b].set_velocity(b_vel, b_omega)
+    sim_context.models[a].set_velocity(a_vel_after, a_omega_after, in_model_frame=False)
+    sim_context.models[b].set_velocity(b_vel_after, b_omega_after, in_model_frame=False)
 
     # Log reports
     a_kenergy_delta = kinetic_energy(a_vel_after, a_geom.m) - kinetic_energy(a_vel, a_geom.m)

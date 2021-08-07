@@ -1,6 +1,9 @@
 # import Point, Polygon
 import commonroad_dc.pycrcc as pycrcc
+import contracts
+import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
+from geometry import SO2_from_angle
 from matplotlib import pyplot as plt
 from shapely.geometry import Point, Polygon
 from shapely.ops import nearest_points
@@ -77,12 +80,24 @@ def test_shapely_collision():
     print(_find_intersection_points(a, d))  # Here intersection is a Polygon
 
 
-def test_tuples():
-    a = ((0, 0), (1, 1))
-    print(a)
-    b = ((2, 2),)
-    print(b)
-    b = a + b
-    print(b)
-    a = a + (a[0],)
-    print(a)
+def test():
+    import math
+    from time import perf_counter_ns
+    contracts.disable_all()
+    theta = 0.1
+    vx, vy = (2, 4)
+
+    t1_start = perf_counter_ns()
+    costh = math.cos(theta)
+    sinth = math.sin(theta)
+    xdot = vx * costh - vy * sinth
+    ydot = vx * sinth + vy * costh
+    t1_stop = perf_counter_ns()
+    print(f"Elapsed time {t1_stop - t1_start} , xdot: {xdot} , ydot: {ydot}")
+
+    t2_start = perf_counter_ns()
+    rot = SO2_from_angle(theta)
+    vel = np.array([vx, vy])
+    xydot = rot@vel
+    t2_stop = perf_counter_ns()
+    print(f"Elapsed time {t2_stop - t2_start} , xdot: {xydot[0]} , ydot: {xydot[1]}")

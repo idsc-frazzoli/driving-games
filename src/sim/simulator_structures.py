@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import MutableMapping, Generic, Optional, Any, Dict, Union
+from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
@@ -79,9 +79,11 @@ class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
 class SimModel(ABC, Generic[X, U]):
     _state: X
     """State of the model"""
+    XT: Type[X] = object
 
     @abstractmethod
     def update(self, commands: U, dt: SimTime):
+        """ The model gets updated via this function """
         pass
 
     @abstractmethod
@@ -91,14 +93,21 @@ class SimModel(ABC, Generic[X, U]):
 
     @abstractmethod
     def get_pose(self) -> SE2value:
+        """Return pose of the model"""
         pass
 
     @abstractmethod
-    def get_velocity(self) -> (T2value, float):
+    def get_velocity(self, in_model_frame: bool) -> (T2value, float):
+        """Get velocity of the model, default in body frame, otherwise in global"""
         pass
 
     @abstractmethod
-    def set_velocity(self, vel: T2value, omega: float):
+    def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
+        """Set velocity of the model
+        :param vel:
+        :param omega:
+        :param in_model_frame: If the passed value are already in body frame (True) or global (False)
+        """
         pass
 
     @abstractmethod

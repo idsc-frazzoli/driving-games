@@ -1,19 +1,13 @@
-from dataclasses import dataclass, replace
-from decimal import Decimal
-
 import math
+from dataclasses import dataclass, replace
 
 import numpy as np
-from commonroad_dc.pycrcc import RectOBB
-
 from frozendict import frozendict
-from geometry import SE2value, SE2_from_xytheta, T2value
-from scipy.integrate import solve_ivp
+from geometry import T2value, SO2_from_angle, SO2value
 
 from sim.models.utils import kmh2ms
-from sim.models.vehicle import VehicleCommands
+from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
-from sim.simulator_structures import SimModel
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -22,14 +16,20 @@ class VehicleParametersDyn(VehicleParameters):
 
     @classmethod
     def default_car(cls) -> "VehicleParametersDyn":
-        return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(130)), delta_max=math.pi)
+        return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(130)),
+                                    acc_limits=(-8, 5),
+                                    delta_max=math.pi / 2,
+                                    ddelta_max=15)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleParametersDyn":
-        return VehicleParametersDyn(vx_limits=(kmh2ms(-1), kmh2ms(50)), delta_max=math.pi)
+        return VehicleParametersDyn(vx_limits=(kmh2ms(-1), kmh2ms(50)),
+                                    acc_limits=(-4, 3),
+                                    delta_max=math.pi / 4,
+                                    ddelta_max=5)
 
     def __post_init__(self):
-        assert self.vx_limits[0] < self.vx_limits[1]
+        super().__post_init__()
 
 
 class VehicleTires:
@@ -37,32 +37,14 @@ class VehicleTires:
     pass
 
 
-# Type alias since the commands are the same
-VehicleCommandsDyn = VehicleCommands
-
-
 @dataclass(unsafe_hash=True, eq=True, order=True)
-class VehicleStateDyn:
-    x: float
-    """ CoG x location [m] """
-    y: float
-    """ CoG y location [m] """
-    theta: float
-    """ CoG heading [rad] """
-    vx: float
-    """ CoG longitudinal velocity [m/s] """
+class VehicleStateDyn(VehicleState):
     vy: float
     """ CoG longitudinal velocity [m/s] """
     dtheta: float
     """ yaw rate """
-    delta: float
-    """ Steering angle [rad] """
     idx = frozendict({"x": 0, "y": 1, "theta": 2, "vx": 3, "vy": 4, "dtheta": 5, "delta": 6})
     """ Dictionary to get correct values from numpy arrays"""
-
-    @classmethod
-    def get_n_states(cls) -> int:
-        return len(cls.idx)
 
     def __add__(self, other: "VehicleStateDyn") -> "VehicleStateDyn":
         if type(other) == type(self):
@@ -78,11 +60,6 @@ class VehicleStateDyn:
         else:
             raise NotImplementedError
 
-    __radd__ = __add__
-
-    def __sub__(self, other: "VehicleStateDyn") -> "VehicleStateDyn":
-        return self + (other * -1.0)
-
     def __mul__(self, val: float) -> "VehicleStateDyn":
         return replace(self,
                        x=self.x * val,
@@ -93,14 +70,6 @@ class VehicleStateDyn:
                        dtheta=self.dtheta * val,
                        delta=self.delta * val,
                        )
-
-    __rmul__ = __mul__
-
-    def __truediv__(self, val: float) -> "VehicleStateDyn":
-        return self * (1 / val)
-
-    def __repr__(self) -> str:
-        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
 
     def as_ndarray(self) -> np.ndarray:
         return np.array([
@@ -121,17 +90,22 @@ class VehicleStateDyn:
                                theta=z[cls.idx["theta"]],
                                vx=z[cls.idx["vx"]],
                                vy=z[cls.idx["vy"]],
-                               dtheta=z[cls.idx["vx"]],
+                               dtheta=z[cls.idx["dtheta"]],
                                delta=z[cls.idx["delta"]])
 
 
-class VehicleModelDyn(SimModel[VehicleStateDyn, VehicleCommands]):
+class VehicleModelDyn(VehicleModel):
 
-    def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn, vtires: VehicleTires):
-        self._state: VehicleStateDyn = x0
-        """ Current state of the model"""
-        self.vg: VehicleGeometry = vg
-        """ The vehicle's geometry parameters"""
+    def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn, vtires: VehicleTires = None):
+        """
+
+        :param x0:
+        :param vg:
+        :param vp:
+        :param vtires:
+        """
+        super(VehicleModelDyn, self).__init__(x0, vg, vp)
+        # """ The vehicle's geometry parameters"""
         self.vp: VehicleParametersDyn = vp
         """ The vehicle parameters"""
         self.vtires: VehicleTires = vtires
@@ -145,58 +119,26 @@ class VehicleModelDyn(SimModel[VehicleStateDyn, VehicleCommands]):
     def default_car(cls, x0: VehicleStateDyn):
         return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParametersDyn.default_car())
 
-    def update(self, commands: VehicleCommands, dt: Decimal):
-        """
-        Perform initial value problem integration
-        to propagate state using actions for time dt
-        """
-
-        def _stateactions_from_array(y: np.ndarray) -> [VehicleStateDyn, VehicleCommands]:
-            n_states = VehicleStateDyn.get_n_states()
-            state = VehicleStateDyn.from_array(y[0:n_states])
-            actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
-                                      ddelta=y[VehicleCommands.idx["ddelta"] + n_states])
-            return state, actions
-
-        def _dynamics(t, y):
-            state0, actions = _stateactions_from_array(y=y)
-            dx = self.dynamics(x0=state0, u=actions, mean=False)
-            du = np.zeros([len(VehicleCommands.idx)])
-            return np.concatenate([dx.as_ndarray(), du])
-
-        state_np = self._state.as_ndarray()
-        action_np = commands.as_ndarray()
-        y0 = np.concatenate([state_np, action_np])
-        result = solve_ivp(fun=_dynamics, t_span=(0.0, float(dt)), y0=y0)
-
-        if not result.success:
-            raise RuntimeError("Failed to integrate ivp!")
-        new_state, _ = _stateactions_from_array(result.y[:, -1])
-        self._state = new_state
-        return
-
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands, mean: bool = True) -> VehicleStateDyn:
         """ returns state derivative for given control inputs """
 
-        # todo
+        print(f"the right call with state {x0},commands {u}")
 
-        return VehicleStateDyn(x=xdot, y=ydot, theta=dtheta, vx=u.acc, delta=u.ddelta)
+        return x0
 
-    def get_footprint(self) -> RectOBB:
-        # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-        return RectOBB(self.vg.w_half, self.vg.l_half, self._state.theta, self._state.x, self._state.y)
+    def get_velocity(self, in_model_frame: bool = True) -> (T2value, float):
+        v_l = np.array([self._state.vx, self._state.vy])
+        if in_model_frame:
+            return v_l, self._state.dtheta
+        rot: SO2value = SO2_from_angle(self._state.theta)
+        v_g = rot @ v_l
+        return v_g, self._state.dtheta
 
-    def get_pose(self) -> SE2value:
-        return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
-
-    def get_velocity(self) -> (T2value, float):
-        pass
-
-    def get_geometry(self) -> VehicleGeometry:
-        return self.vg
-
-    def set_velocity(self, vel: T2value, omega: float):
-        self._state.vx = vel[0]
-        self._state.vy = vel[1]
-        self._state.dtheta = omega
-
+    def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool = True):
+        # fixme inconsistent local/global ref frame
+        if in_model_frame:
+            self._state.vx = vel[0]
+            self._state.vy = vel[1]
+            self._state.dtheta = omega
+        else:
+            raise NotImplementedError
