@@ -227,11 +227,9 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         return v_g, dtheta
 
     def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
-        if in_model_frame:
-            self._state.vx = vel[0]
-        else:
+        if not in_model_frame:
             rot: SO2value = SO2_from_angle(- self._state.theta)
-            v_g = rot @ vel
-            self._state.vx = v_g[0]
+            vel = rot @ vel
+        self._state.vx = vel[0]
         logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
                     "Try using the dynamic model.")

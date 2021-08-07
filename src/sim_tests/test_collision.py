@@ -1,31 +1,21 @@
 import commonroad_dc.pycrcc as pycrcc
+import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
+from geometry import SO2_from_angle
 
 from sim.collision import get_rectangle_mesh, impact_locations_from_polygons
 
 
-def test_commonroad_dc():
-    aabb = pycrcc.RectAABB(2.0, 3.0, 3.0, 2.0)
-
-    # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-    obb = pycrcc.RectOBB(1.0, 2.0, 0.3, 8.0, 10.0)
-
-    # Circle with radius, x-position , y-position
-    circ = pycrcc.Circle(2.5, 6.0, 7.0)
-
-    # Triangle with vertices (x1, y1), (x2, y2), and (x3, y3)
-    tri = pycrcc.Triangle(0.0, 0.0, 4.0, 0.0, 2.0, 2.0)
-
-    rnd = MPRenderer(figsize=(10, 10))
-    aabb.draw(rnd, draw_params={'facecolor': 'green'})
-    obb.draw(rnd, draw_params={'facecolor': 'red'})
-    circ.draw(rnd, draw_params={'facecolor': 'yellow'})
-    tri.draw(rnd, draw_params={'facecolor': 'blue'})
-    rnd.render(show=True)
-
-    print('Collision between OBB and AABB: ', obb.collide(aabb))
-    print('Collision between AABB and Circle: ', aabb.collide(circ))
-    print('Collision between Circle and OBB:  ', circ.collide(obb))
+def test_rotation():
+    delta = 0.8
+    vec = np.array([0.58, 4.21])
+    rot_delta = SO2_from_angle(delta)
+    vec_rot = rot_delta @ vec
+    vec2 = rot_delta.T @ vec_rot
+    rot_mdelta = SO2_from_angle(-delta)
+    vec3 = rot_mdelta @ vec_rot
+    np.testing.assert_array_almost_equal(vec, vec2)
+    np.testing.assert_array_almost_equal(vec, vec3)
 
 
 def test_impact_location():

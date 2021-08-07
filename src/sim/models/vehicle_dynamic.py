@@ -5,9 +5,11 @@ import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
-from sim.models.utils import kmh2ms
+from sim.models import Pacejka
+from sim.models.utils import kmh2ms, G
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
+from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -18,30 +20,25 @@ class VehicleParametersDyn(VehicleParameters):
     def default_car(cls) -> "VehicleParametersDyn":
         return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(130)),
                                     acc_limits=(-8, 5),
-                                    delta_max=math.pi / 2,
-                                    ddelta_max=15)
+                                    delta_max=math.pi / 6,
+                                    ddelta_max=1)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleParametersDyn":
         return VehicleParametersDyn(vx_limits=(kmh2ms(-1), kmh2ms(50)),
                                     acc_limits=(-4, 3),
-                                    delta_max=math.pi / 4,
-                                    ddelta_max=5)
+                                    delta_max=math.pi / 6,
+                                    ddelta_max=1)
 
     def __post_init__(self):
         super().__post_init__()
 
 
-class VehicleTires:
-    # todo
-    pass
-
-
 @dataclass(unsafe_hash=True, eq=True, order=True)
 class VehicleStateDyn(VehicleState):
-    vy: float
+    vy: float = 0
     """ CoG longitudinal velocity [m/s] """
-    dtheta: float
+    dtheta: float = 0
     """ yaw rate """
     idx = frozendict({"x": 0, "y": 1, "theta": 2, "vx": 3, "vy": 4, "dtheta": 5, "delta": 6})
     """ Dictionary to get correct values from numpy arrays"""
@@ -96,7 +93,8 @@ class VehicleStateDyn(VehicleState):
 
 class VehicleModelDyn(VehicleModel):
 
-    def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn, vtires: VehicleTires = None):
+    def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn,
+                 pacejka_front: Pacejka, pacejka_rear: Pacejka):
         """
 
         :param x0:
@@ -108,25 +106,76 @@ class VehicleModelDyn(VehicleModel):
         # """ The vehicle's geometry parameters"""
         self.vp: VehicleParametersDyn = vp
         """ The vehicle parameters"""
-        self.vtires: VehicleTires = vtires
+        self.pacejka_front: Pacejka = pacejka_front
         """ The vehicle tyre model"""
+        self.pacejka_rear: Pacejka = pacejka_rear
 
     @classmethod
     def default_bicycle(cls, x0: VehicleStateDyn):
-        return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_bicycle(), vp=VehicleParametersDyn.default_bicycle())
+        return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_bicycle(), vp=VehicleParametersDyn.default_bicycle(),
+                               pacejka_front=Pacejka.default_bicycle_front(),
+                               pacejka_rear=Pacejka.default_bicycle_rear())
 
     @classmethod
     def default_car(cls, x0: VehicleStateDyn):
-        return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParametersDyn.default_car())
+        return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParametersDyn.default_car(),
+                               pacejka_front=Pacejka.default_car_front(),
+                               pacejka_rear=Pacejka.default_car_rear()
+                               )
 
-    def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands, mean: bool = True) -> VehicleStateDyn:
+    def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:
         """ returns state derivative for given control inputs """
+        if x0.vx < 0.1:
+            dx_kin = super().dynamics(x0, u)
+            return VehicleStateDyn(x=dx_kin.x,
+                                   y=dx_kin.y,
+                                   theta=dx_kin.theta,
+                                   vx=dx_kin.vx,
+                                   vy=0,
+                                   dtheta=0,
+                                   delta=dx_kin.delta
+                                   )
+        else:
+            m = self.vg.m
+            acc = acceleration_constraint(x0.vx, u.acc, self.vp)
+            ddelta = steering_constraint(x0.delta, u.ddelta, self.vp)
 
-        print(f"the right call with state {x0},commands {u}")
+            # vertical forces
+            load_transfer = self.vg.h_cog * acc
+            F1_n = m * (G * self.vg.lr - load_transfer) / self.vg.length
+            F2_n = m * (G * self.vg.lf + load_transfer) / self.vg.length
 
-        return x0
+            # front wheel forces (assumes no longitudinal force, rear traction)
+            rot_delta = SO2_from_angle(x0.delta)
+            vel_1_tyre = rot_delta @ np.array([x0.vx, x0.vy + self.vg.lf * x0.dtheta])
+            slip_angle_1 = math.atan(vel_1_tyre[1] / vel_1_tyre[0])
+            F1y_tyre = self.pacejka_front.evaluate(slip_angle_1) * F1_n
+            F1 = rot_delta.T @ np.array([0, F1y_tyre])
 
-    def get_velocity(self, in_model_frame: bool = True) -> (T2value, float):
+            Facc = m * acc
+
+            # rear wheel forces
+            vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
+            slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
+            F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
+            # approximation sacrificing back wheel lateral forces in favor of longitudinal
+            F2y = F2y0 * math.sqrt(1 - (Facc / self.pacejka_rear.D) ** 2)
+
+            dx = x0.vx * math.cos(x0.theta + x0.delta)
+            dy = x0.vx * math.sin(x0.theta + x0.delta)
+            acc_x = (F1[0] + Facc + x0.dtheta * x0.vy) / m
+            acc_y = (F1[1] + F2y - x0.dtheta * x0.vx) / m
+            ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
+            return VehicleStateDyn(x=dx,
+                                   y=dy,
+                                   theta=x0.dtheta,
+                                   vx=acc_x,
+                                   vy=acc_y,
+                                   dtheta=ddtheta,
+                                   delta=ddelta
+                                   )
+
+    def get_velocity(self, in_model_frame: bool) -> (T2value, float):
         v_l = np.array([self._state.vx, self._state.vy])
         if in_model_frame:
             return v_l, self._state.dtheta
@@ -134,11 +183,11 @@ class VehicleModelDyn(VehicleModel):
         v_g = rot @ v_l
         return v_g, self._state.dtheta
 
-    def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool = True):
-        # fixme inconsistent local/global ref frame
-        if in_model_frame:
-            self._state.vx = vel[0]
-            self._state.vy = vel[1]
-            self._state.dtheta = omega
-        else:
-            raise NotImplementedError
+    def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
+        if not in_model_frame:
+            rot: SO2value = SO2_from_angle(- self._state.theta)
+            vel = rot @ vel
+
+        self._state.vx = vel[0]
+        self._state.vy = vel[1]
+        self._state.dtheta = omega
