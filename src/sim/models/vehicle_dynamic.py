@@ -159,7 +159,7 @@ class VehicleModelDyn(VehicleModel):
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            F2y = F2y0 * math.sqrt(1 - (Facc / self.pacejka_rear.D) ** 2)
+            F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n*self.pacejka_rear.D)) ** 2)
 
             dx = x0.vx * math.cos(x0.theta + x0.delta)
             dy = x0.vx * math.sin(x0.theta + x0.delta)

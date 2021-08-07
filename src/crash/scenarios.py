@@ -50,7 +50,7 @@ def get_scenario_01() -> SimContext:
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.005), sim_time_after_collision=D(5), max_sim_time=D(0.2)),
+                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(0.5)),
                       )
 
 
