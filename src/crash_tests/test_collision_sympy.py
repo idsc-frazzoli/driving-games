@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Mapping
 
 import commonroad_dc.pycrcc as pycrcc
 from commonroad.visualization.mp_renderer import MPRenderer
@@ -6,6 +6,8 @@ import numpy as np
 import triangle
 from sympy import Point, Polygon
 from sympy import Triangle
+
+from driving_games import ImpactLocation
 
 
 def test_main():

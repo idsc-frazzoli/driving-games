@@ -10,7 +10,7 @@ from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.simulator import SimContext
 from sim.simulator_structures import SimTime, SimParameters, SimulationLog
 
-__all__ = ["get_scenario_01", "get_scenario_02"]
+__all__ = ["get_scenario_01", "get_scenario_02", "get_scenario_03"]
 
 
 def get_scenario_01() -> SimContext:
@@ -38,10 +38,14 @@ def get_scenario_01() -> SimContext:
                                                            D(1): VehicleCommands(acc=1, ddelta=0.1),
                                                            D(2): VehicleCommands(acc=-1, ddelta=-0.1),
                                                            D(99): VehicleCommands(acc=0, ddelta=0.2)}
+    commands_input_3: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
+                                                           D(1): VehicleCommands(acc=1, ddelta=-0.1),
+                                                           D(2): VehicleCommands(acc=-1, ddelta=-0.1),
+                                                           D(99): VehicleCommands(acc=0, ddelta=0.2)}
     players = {P1: NPAgent(commands_input),
                P2: NPAgent(commands_input),
                P3: NPAgent(commands_input_2),
-               P4: NPAgent(commands_input),
+               P4: NPAgent(commands_input_3),
                P5: NPAgent(commands_input),
                P6: NPAgent(commands_input_2)
                }
@@ -50,7 +54,7 @@ def get_scenario_01() -> SimContext:
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(0.5)),
+                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(3)),
                       )
 
 
@@ -75,6 +79,28 @@ def get_scenario_02() -> SimContext:
     players = {P1: NPAgent(commands_input),
                P2: NPAgent(commands_input),
                P3: NPAgent(commands_input_2)}
+
+    return SimContext(map_name="4way-double-intersection-only",
+                      models=models,
+                      players=players,
+                      log=SimulationLog(),
+                      param=SimParameters(dt=D(0.05), sim_time_after_collision=D(2)),
+                      )
+
+
+def get_scenario_03() -> SimContext:
+    P1 = PlayerName("P1")
+
+    x0_p1 = VehicleStateDyn(x=2, y=18, theta=0, vx=5, delta=0)
+
+    models = {P1: VehicleModelDyn.default_car(x0_p1)}
+
+    commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
+                                                         D(1): VehicleCommands(acc=1, ddelta=0.1),
+                                                         D(2): VehicleCommands(acc=2, ddelta=-0.1),
+                                                         D(99): VehicleCommands(acc=0, ddelta=0)}
+
+    players = {P1: NPAgent(commands_input)}
 
     return SimContext(map_name="4way-double-intersection-only",
                       models=models,
