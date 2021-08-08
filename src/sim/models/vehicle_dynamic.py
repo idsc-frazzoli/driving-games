@@ -142,8 +142,8 @@ class VehicleModelDyn(VehicleModel):
 
             # vertical forces
             load_transfer = self.vg.h_cog * acc
-            F1_n = m * (G * self.vg.lr - load_transfer) / self.vg.length
-            F2_n = m * (G * self.vg.lf + load_transfer) / self.vg.length
+            F1_n = -m * (G * self.vg.lr - load_transfer) / self.vg.length
+            F2_n = -m * (G * self.vg.lf + load_transfer) / self.vg.length
 
             # front wheel forces (assumes no longitudinal force, rear traction)
             rot_delta = SO2_from_angle(x0.delta)
@@ -159,15 +159,17 @@ class VehicleModelDyn(VehicleModel):
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n*self.pacejka_rear.D)) ** 2)
+            F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
 
-            dx = x0.vx * math.cos(x0.theta + x0.delta)
-            dy = x0.vx * math.sin(x0.theta + x0.delta)
+            costh = math.cos(x0.theta)
+            sinth = math.sin(x0.theta)
+            xdot = x0.vx * costh - x0.vy * sinth
+            ydot = x0.vx * sinth + x0.vy * costh
             acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy) / m
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
-            return VehicleStateDyn(x=dx,
-                                   y=dy,
+            return VehicleStateDyn(x=xdot,
+                                   y=ydot,
                                    theta=x0.dtheta,
                                    vx=acc_x,
                                    vy=acc_y,

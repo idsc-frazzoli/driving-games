@@ -35,8 +35,8 @@ def get_scenario_01() -> SimContext:
                                                          D(2): VehicleCommands(acc=2, ddelta=-0.1),
                                                          D(99): VehicleCommands(acc=0, ddelta=0)}
     commands_input_2: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                           D(1): VehicleCommands(acc=1, ddelta=0.1),
-                                                           D(2): VehicleCommands(acc=-1, ddelta=-0.1),
+                                                           D(1): VehicleCommands(acc=1, ddelta=-0.1),
+                                                           D(2): VehicleCommands(acc=-1, ddelta=0.1),
                                                            D(99): VehicleCommands(acc=0, ddelta=0.2)}
     players = {P1: NPAgent(commands_input),
                P2: NPAgent(commands_input),
@@ -50,7 +50,7 @@ def get_scenario_01() -> SimContext:
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(0.5)),
+                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(2), max_sim_time=D(3.5)),
                       )
 
 
