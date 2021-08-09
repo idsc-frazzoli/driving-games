@@ -52,7 +52,7 @@ class VehicleGeometry(ModelGeometry):
     # todo fix default rotational inertia
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=1.0, lf=2.0, lr=2.0, e=0.6)
+        return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=2000, w_half=1.0, lf=2.0, lr=2.0, e=0.6)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":

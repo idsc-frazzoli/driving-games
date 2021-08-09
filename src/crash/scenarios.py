@@ -43,10 +43,10 @@ def get_scenario_01() -> SimContext:
                                                            D(2): VehicleCommands(acc=-1, ddelta=-0.1),
                                                            D(99): VehicleCommands(acc=0, ddelta=0.2)}
     players = {P1: NPAgent(commands_input),
-               P2: NPAgent(commands_input),
-               P3: NPAgent(commands_input_2),
-               P4: NPAgent(commands_input_3),
-               P5: NPAgent(commands_input),
+               P2: NPAgent(commands_input_2),
+               P3: NPAgent(commands_input),
+               P4: NPAgent(commands_input_2),
+               P5: NPAgent(commands_input_3),
                P6: NPAgent(commands_input_2)
                }
 
@@ -54,7 +54,7 @@ def get_scenario_01() -> SimContext:
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(3)),
+                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(4)),
                       )
 
 
@@ -96,8 +96,8 @@ def get_scenario_03() -> SimContext:
     models = {P1: VehicleModelDyn.default_car(x0_p1)}
 
     commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                         D(1): VehicleCommands(acc=1, ddelta=0.1),
-                                                         D(2): VehicleCommands(acc=2, ddelta=-0.1),
+                                                         D(1): VehicleCommands(acc=1, ddelta=0.3),
+                                                         D(2): VehicleCommands(acc=2, ddelta=-0.6),
                                                          D(99): VehicleCommands(acc=0, ddelta=0)}
 
     players = {P1: NPAgent(commands_input)}
@@ -106,5 +106,5 @@ def get_scenario_03() -> SimContext:
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.05), sim_time_after_collision=D(2)),
+                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(3)),
                       )

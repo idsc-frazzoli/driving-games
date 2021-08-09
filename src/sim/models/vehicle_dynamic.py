@@ -147,10 +147,10 @@ class VehicleModelDyn(VehicleModel):
 
             # front wheel forces (assumes no longitudinal force, rear traction)
             rot_delta = SO2_from_angle(x0.delta)
-            vel_1_tyre = rot_delta @ np.array([x0.vx, x0.vy + self.vg.lf * x0.dtheta])
+            vel_1_tyre = rot_delta.T @ np.array([x0.vx, x0.vy + self.vg.lf * x0.dtheta])
             slip_angle_1 = math.atan(vel_1_tyre[1] / vel_1_tyre[0])
             F1y_tyre = self.pacejka_front.evaluate(slip_angle_1) * F1_n
-            F1 = rot_delta.T @ np.array([0, F1y_tyre])
+            F1 = rot_delta @ np.array([0, F1y_tyre])
 
             Facc = m * acc
 
