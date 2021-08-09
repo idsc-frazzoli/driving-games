@@ -3,7 +3,7 @@ from datetime import datetime
 
 from crash.reports import generete_report
 
-from crash.scenarios import get_scenario_01
+from crash.scenarios import *
 from sim.simulator import Simulator
 
 if __name__ == '__main__':

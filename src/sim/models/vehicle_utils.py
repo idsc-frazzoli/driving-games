@@ -1,4 +1,5 @@
 from sim import logger
+from sim.models.utils import rho, k_drag
 from sim.models.vehicle_structures import VehicleParameters
 
 
@@ -30,3 +31,12 @@ def acceleration_constraint(speed: float, acceleration: float, vp: VehicleParame
         acceleration = vp.acc_limits[1]
         logger.warn("Commanded acceleration out of limits, clipping value")
     return acceleration
+
+
+def aerodynamic_force(speed: float, A: float) -> float:
+    """
+    :param speed:
+    :param A: effective flow surface (frontal area) [m^2]
+    :return:
+    """
+    return .5 * rho * k_drag * A * speed ** 2

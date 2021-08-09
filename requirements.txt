@@ -5,6 +5,7 @@ numpy>=1.20.1
 scipy
 typing_extensions>=3.7.4.1
 toolz>=0.11.1
+shapely>=1.7.0
 
 PyGeometry-z6>=2.0
 zuper-commons-z6>=6.1.5
@@ -49,5 +50,4 @@ decorator~=4.4.2
 matplotlib~=3.3.4
 imageio~=2.9.0
 setuptools~=53.0.0
-
 cachetools~=4.2.1

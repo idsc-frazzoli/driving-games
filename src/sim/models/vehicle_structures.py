@@ -18,10 +18,17 @@ BICYCLE = VehicleType("bicycle")
 
 @dataclass(frozen=True, unsafe_hash=True)
 class ModelGeometry(ABC):
+    m: float
+    """ Vehicle Mass [kg] """
+    Iz: float
+    """ Moment of inertia (used only in the dynamic model) """
+    e: float
+    """ Restitution coefficient (used only in collisions energy transfer). 
+    Ratio of the differences in vehicle speeds before and after the collision -> 0 < e < 1"""
 
     @property
     @abstractmethod
-    def outline(self):
+    def outline(self) -> Tuple[Tuple[float, float], ...]:
         pass
 
 
@@ -31,27 +38,25 @@ class VehicleGeometry(ModelGeometry):
 
     vehicle_type: VehicleType
     """Type of the vehicle"""
-    m: float
-    """ Vehicle Mass [kg] """
-    Iz: float
-    """ Rotational inertia (used only in the dynamic model) """
     w_half: float
     """ Half width of vehicle [m] """
     lf: float
     """ Front length of vehicle - dist from CoG to front [m] """
     lr: float
     """ Rear length of vehicle - dist from CoG to back [m] """
+    h_cog: float = 0.7
+    """ Hight of the CoG [m] """
     color: Color = (1, 1, 1)
     """ Color """
 
     # todo fix default rotational inertia
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=CAR, m=1000.0, Iz=0, w_half=1.0, lf=2.0, lr=2.0)
+        return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=1.0, lf=2.0, lr=2.0, e=0.6)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":
-        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=0, w_half=0.25, lf=1.0, lr=1.0)
+        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=80, w_half=0.25, lf=1.0, lr=1.0, e=0.5)
 
     @cached_property
     def width(self):
@@ -138,15 +143,15 @@ class VehicleParameters:
         # data from https://copradar.com/chapts/references/acceleration.html
         return VehicleParameters(vx_limits=(kmh2ms(-10), kmh2ms(130)),
                                  acc_limits=(-8, 5),
-                                 delta_max=math.pi / 2,
-                                 ddelta_max=15)
+                                 delta_max=math.pi / 6,
+                                 ddelta_max=1)
 
     @classmethod
     def default_bicycle(cls) -> "VehicleParameters":
         return VehicleParameters(vx_limits=(kmh2ms(-1), kmh2ms(50)),
                                  acc_limits=(-4, 3),
-                                 delta_max=math.pi / 4,
-                                 ddelta_max=5)
+                                 delta_max=math.pi / 6,
+                                 ddelta_max=1)
 
     def __post_init__(self):
         assert self.vx_limits[0] < self.vx_limits[1]

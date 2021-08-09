@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import MutableMapping, Generic, Optional, Any, Dict, Union
+from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type
 
-from commonroad_dc.pycrcc import Shape
-from geometry import SE2value
+from geometry import SE2value, T2value
+from shapely.geometry import Polygon
 
 from games import PlayerName, X, U
 
@@ -16,10 +16,12 @@ SimTime = Decimal
 
 @dataclass(frozen=True, unsafe_hash=True)
 class SimParameters:
-    dt: Decimal = Decimal(0.2)
-    """Simulation step in seconds"""
+    dt: Decimal = Decimal(0.1)
+    """Simulation step [s]"""
     max_sim_time: Decimal = Decimal(6)
-    """Max Simulation time in seconds"""
+    """Max Simulation time overall [s]"""
+    sim_time_after_collision: Decimal = Decimal(0)
+    """The simulation time for which to continue after the first collision is detected [s]"""
 
 
 @dataclass
@@ -77,23 +79,40 @@ class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
 class SimModel(ABC, Generic[X, U]):
     _state: X
     """State of the model"""
+    XT: Type[X] = object
 
     @abstractmethod
     def update(self, commands: U, dt: SimTime):
+        """ The model gets updated via this function """
         pass
 
     @abstractmethod
-    def get_footprint(self) -> Shape:
+    def get_footprint(self) -> Polygon:
         """ This returns the footprint of the model that is used for collision checking"""
         pass
 
     @abstractmethod
-    def get_xytheta_pose(self) -> SE2value:
+    def get_pose(self) -> SE2value:
+        """Return pose of the model"""
         pass
 
-    def get_state(self) -> X:
-        return deepcopy(self._state)
+    @abstractmethod
+    def get_velocity(self, in_model_frame: bool) -> (T2value, float):
+        """Get velocity of the model, default in body frame, otherwise in global"""
+        pass
+
+    @abstractmethod
+    def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
+        """Set velocity of the model
+        :param vel:
+        :param omega:
+        :param in_model_frame: If the passed value are already in body frame (True) or global (False)
+        """
+        pass
 
     @abstractmethod
     def get_geometry(self) -> Any:
         pass
+
+    def get_state(self) -> X:
+        return deepcopy(self._state)

@@ -1,13 +1,16 @@
 import math
 from dataclasses import dataclass, replace
 from decimal import Decimal
+from typing import Type
 
 import numpy as np
-from commonroad_dc.pycrcc import RectOBB
 from frozendict import frozendict
-from geometry import SE2value, SE2_from_xytheta
+from geometry import SE2value, SE2_from_xytheta, SO2_from_angle, SO2value, T2value
 from scipy.integrate import solve_ivp
+from shapely.affinity import affine_transform
+from shapely.geometry import Polygon
 
+from sim import logger
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
 from sim.simulator_structures import SimModel
@@ -135,11 +138,13 @@ class VehicleState:
 class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def __init__(self, x0: VehicleState, vg: VehicleGeometry, vp: VehicleParameters):
-        self._state: VehicleState = x0
+        self._state: Type[x0] = x0
         """ Current state of the model"""
+        self.XT: Type[VehicleState] = type(x0)
+        """ State type"""
         self.vg: VehicleGeometry = vg
         """ The vehicle's geometry parameters"""
-        self.vp = vp
+        self.vp: VehicleParameters = vp
         """ The vehicle parameters"""
 
     @classmethod
@@ -157,8 +162,8 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         """
 
         def _stateactions_from_array(y: np.ndarray) -> [VehicleState, VehicleCommands]:
-            n_states = VehicleState.get_n_states()
-            state = VehicleState.from_array(y[0:n_states])
+            n_states = self.XT.get_n_states()
+            state = self.XT.from_array(y[0:n_states])
             actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
                                       ddelta=y[VehicleCommands.idx["ddelta"] + n_states])
             return state, actions
@@ -181,14 +186,12 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         return
 
     def dynamics(self, x0: VehicleState, u: VehicleCommands) -> VehicleState:
-        """ returns state derivative for given control inputs """
-        # todo check this model
+        """ Kinematic bicycle model, returns state derivative for given control inputs """
         vx = x0.vx
         dtheta = vx * math.tan(x0.delta) / self.vg.length
-        vy = dtheta * self.vg.lf
+        vy = dtheta * self.vg.lr
         costh = math.cos(x0.theta)
         sinth = math.sin(x0.theta)
-
         xdot = vx * costh - vy * sinth
         ydot = vx * sinth + vy * costh
 
@@ -196,12 +199,37 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         acc = acceleration_constraint(x0.vx, u.acc, self.vp)
         return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=acc, delta=ddelta)
 
-    def get_footprint(self) -> RectOBB:
-        # Oriented rectangle with width/2, height/2, orientation, x-position , y-position
-        return RectOBB(self.vg.w_half, self.vg.length / 2, self._state.theta, self._state.x, self._state.y)
+    def get_footprint(self) -> Polygon:
+        """Returns current footprint of the vehicle (mainly for collision checking)"""
+        footprint = Polygon(self.vg.outline)
+        transform = self.get_pose()
+        matrix_coeff = transform[0, :2].tolist() + transform[1, :2].tolist() + transform[:2, 2].tolist()
+        footprint = affine_transform(footprint, matrix_coeff)
+        assert footprint.is_valid
+        return footprint
 
-    def get_xytheta_pose(self) -> SE2value:
+    def get_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])
 
     def get_geometry(self) -> VehicleGeometry:
         return self.vg
+
+    def get_velocity(self, in_model_frame: bool) -> (T2value, float):
+        """Returns velocity at COG"""
+        vx = self._state.vx
+        dtheta = vx * math.tan(self._state.delta) / self.vg.length
+        vy = dtheta * self.vg.lr
+        v_l = np.array([vx, vy])
+        if in_model_frame:
+            return v_l, dtheta
+        rot: SO2value = SO2_from_angle(self._state.theta)
+        v_g = rot @ v_l
+        return v_g, dtheta
+
+    def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
+        if not in_model_frame:
+            rot: SO2value = SO2_from_angle(- self._state.theta)
+            vel = rot @ vel
+        self._state.vx = vel[0]
+        logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
+                    "Try using the dynamic model.")

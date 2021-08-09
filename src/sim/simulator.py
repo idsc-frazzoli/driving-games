@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
-from itertools import permutations
-from typing import Mapping, Optional, Dict
+from itertools import combinations
+from typing import Mapping, Optional, List
 
 from duckietown_world import DuckietownMap
 
@@ -23,7 +23,8 @@ class SimContext:
     time: SimTime = Decimal(0)
     seed: int = 0
     sim_terminated: bool = False
-    collision_reports: Dict[PlayerName, CollisionReport] = field(default_factory=dict)
+    collision_reports: List[CollisionReport] = field(default_factory=list)
+    first_collision_ts: SimTime = Decimal(999)
 
     def __post_init__(self):
         assert all([player in self.models for player in self.players])
@@ -68,13 +69,19 @@ class Simulator:
         :param sim_context:
         :return:
         """
-        collison_detected = self._check_collisions(sim_context)
+        collision_detected = self._check_collisions(sim_context)
         # after all the computations advance simulation time
         sim_context.time += sim_context.param.dt
-        if sim_context.time > sim_context.param.max_sim_time or collison_detected:
-            sim_context.sim_terminated = True
-            # fixme simulation not stopping even when colliding
+        self._maybe_terminate_simulation(sim_context)
         return
+
+    @staticmethod
+    def _maybe_terminate_simulation(sim_context: SimContext):
+        """ Evaluates if the simulation needs to terminate based on the expiration of times"""
+        termination_condition: bool = \
+            sim_context.time > sim_context.param.max_sim_time or \
+            sim_context.time > sim_context.first_collision_ts + sim_context.param.sim_time_after_collision
+        sim_context.sim_terminated = termination_condition
 
     @staticmethod
     def _check_collisions(sim_context: SimContext) -> bool:
@@ -84,14 +91,16 @@ class Simulator:
         :return: True if at least one collision happened, False otherwise
         """
         collision = False
-        # this way solves the permutations asymetrically
-        for a, b in permutations(sim_context.models, 2):
-            a_shape = sim_context.models[a].get_footprint()
-            b_shape = sim_context.models[b].get_footprint()
-            if a_shape.collide(b_shape):
-                logger.info(f"Detected a collision between {a} and {b}")
-                from sim.collision import compute_collision_report # import here to avoid circular imports
-                collision = True
-                report: CollisionReport = compute_collision_report(a, b, sim_context)
-                sim_context.collision_reports[a] = report
+        for p1, p2 in combinations(sim_context.models, 2):
+            a_shape = sim_context.models[p1].get_footprint()
+            b_shape = sim_context.models[p2].get_footprint()
+            if a_shape.intersects(b_shape):
+                from sim.collision import resolve_collision  # import here to avoid circular imports
+                report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
+                if report is not None:
+                    logger.info(f"Detected a collision between {p1} and {p2}")
+                    collision = True
+                    if report.at_time < sim_context.first_collision_ts:
+                        sim_context.first_collision_ts = report.at_time
+                    sim_context.collision_reports.append(report)
         return collision
