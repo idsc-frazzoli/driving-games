@@ -1,9 +1,10 @@
-import commonroad_dc.pycrcc as pycrcc
 import numpy as np
-from commonroad.visualization.mp_renderer import MPRenderer
 from geometry import SO2_from_angle
+from matplotlib import pyplot as plt
+from shapely.geometry import Polygon
 
-from sim.collision import get_rectangle_mesh, impact_locations_from_polygons
+from sim.collision import get_rectangle_mesh
+from sim.models.vehicle_structures import VehicleGeometry
 
 
 def test_rotation():
@@ -23,22 +24,16 @@ def test_impact_location():
     Test that prints location of impact when there is a collision
     """
     # Create two rectangles
-    # car_a = pycrcc.RectOBB(1.0, 2.0, 1.2, 5.0, 9.0)  # green left
-    car_a = pycrcc.RectOBB(1.0, 2.0, 1.2, 10.0, 9.0)  # green left
-    car_b = pycrcc.RectOBB(1.0, 2.0, 0, 8.0, 10.0)  # red
+    vg = VehicleGeometry.default_car()
+    footprint = Polygon(vg.outline)
+    impact_locations = get_rectangle_mesh(footprint)
+    fig = plt.figure()
 
-    print(car_a.r_x())
-    print(car_a.r_y())
+    for loc, triangle in impact_locations.items():
+        plt.plot(*triangle.exterior.xy)
+        xc, yc = triangle.centroid.coords[0]
+        plt.text(xc, yc, f"{loc}", horizontalalignment="center", verticalalignment="center")
 
-    car_a_mesh = list(get_rectangle_mesh(car_a).values())
-    car_b_mesh = list(get_rectangle_mesh(car_b).values())
-
-    rnd2 = MPRenderer(figsize=(10, 10))
-    rnd2.draw_list(car_a_mesh, draw_params={'facecolor': 'blue', 'draw_mesh': False})
-    rnd2.draw_list(car_b_mesh, draw_params={'facecolor': 'orange', 'draw_mesh': False})
-    rnd2.render(show=True)
-
-    col_repA = impact_locations_from_polygons(car_a, car_b)
-    col_repB = impact_locations_from_polygons(car_b, car_a)
-    print(f'Collision report A: {col_repA}')
-    print(f'Collision report B: {col_repB}')
+    fig.set_tight_layout(True)
+    plt.axis('equal')
+    plt.show()

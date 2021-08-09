@@ -96,11 +96,10 @@ class VehicleModelDyn(VehicleModel):
     def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn,
                  pacejka_front: Pacejka, pacejka_rear: Pacejka):
         """
-
+        Single track dynamic model
         :param x0:
         :param vg:
         :param vp:
-        :param vtires:
         """
         super(VehicleModelDyn, self).__init__(x0, vg, vp)
         # """ The vehicle's geometry parameters"""
@@ -146,7 +145,7 @@ class VehicleModelDyn(VehicleModel):
             F2_n = -m * (G * self.vg.lf + load_transfer) / self.vg.length
 
             # front wheel forces (assumes no longitudinal force, rear traction)
-            rot_delta = SO2_from_angle(x0.delta)
+            rot_delta = SO2_from_angle(-x0.delta)
             vel_1_tyre = rot_delta @ np.array([x0.vx, x0.vy + self.vg.lf * x0.dtheta])
             slip_angle_1 = math.atan(vel_1_tyre[1] / vel_1_tyre[0])
             F1y_tyre = self.pacejka_front.evaluate(slip_angle_1) * F1_n

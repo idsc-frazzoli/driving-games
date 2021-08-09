@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 from shapely.geometry import Polygon
@@ -16,7 +16,7 @@ def is_a_at_fault():
     return False
 
 
-def impact_locations_from_polygons(a_shape: Polygon, b_shape: Polygon) -> List[ImpactLocation]:
+def impact_locations_from_polygons(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[ImpactLocation, Polygon]]:
     """
     This returns a dictionary with key: impact_location and value: [[x0,y0],[x1,y1]], points defining that vehicle
     segment
@@ -24,11 +24,11 @@ def impact_locations_from_polygons(a_shape: Polygon, b_shape: Polygon) -> List[I
     :param b_shape: RectOBB object
     :return:
     """
-    locations: List[ImpactLocation] = []
+    locations: List[Tuple[ImpactLocation, Polygon]] = []
     a_mesh = get_rectangle_mesh(a_shape)
     for loc, loc_shape in a_mesh.items():
         if b_shape.intersects(loc_shape):
-            locations.append(loc)
+            locations.append((loc, loc_shape))
     if not locations:
         raise RuntimeWarning("Detected a collision but unable to find the impact location")
     return locations
@@ -73,7 +73,7 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     a_vel_after = velocity_after_collision(impact_normal, a_vel, a_geom.m, j_n)
     b_vel_after = velocity_after_collision(-impact_normal, b_vel, b_geom.m, j_n)
     a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, a_omega, a_geom.Iz, j_n)
-    b_omega_after = rot_velocity_after_collision(r_ap, -impact_normal, b_omega, b_geom.Iz, j_n)
+    b_omega_after = rot_velocity_after_collision(r_bp, -impact_normal, b_omega, b_geom.Iz, j_n)
     sim_context.models[a].set_velocity(a_vel_after, a_omega_after, in_model_frame=False)
     sim_context.models[b].set_velocity(b_vel_after, b_omega_after, in_model_frame=False)
 

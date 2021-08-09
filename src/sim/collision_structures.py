@@ -26,7 +26,7 @@ IMPACT_RIGHT = ImpactLocation('right')
 
 @dataclass(frozen=True, unsafe_hash=True)
 class CollisionReportPlayer:
-    locations: Sequence[ImpactLocation]
+    locations: Sequence[Tuple[ImpactLocation, Polygon]]
     """ Location of the impact """
     at_fault: bool
     """ At fault is defined as...."""

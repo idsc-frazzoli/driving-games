@@ -20,7 +20,7 @@ class Pacejka:
 
     @classmethod
     def default_car_front(cls):
-        return Pacejka(B=10, C=1.9, D=1)
+        return Pacejka(B=10, C=1.9, D=0.9)
 
     @classmethod
     def default_car_rear(cls):
@@ -36,7 +36,7 @@ class Pacejka:
     def default_bicycle_rear(cls):
         logger.warn("pacejka for bikes is not tuned")
         # todo
-        return Pacejka(B=5, C=2, D=0.3)
+        return Pacejka(B=5, C=2, D=1)
 
 
 @dataclass(frozen=True)

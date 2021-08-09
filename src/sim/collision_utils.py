@@ -18,10 +18,10 @@ def get_rectangle_mesh(footprint: Polygon) -> Mapping[ImpactLocation, Polygon]:
     cxy = footprint.centroid.coords[0]
     # maybe we can use triangulate from shapely
     impact_locations: Mapping[ImpactLocation, Polygon] = {
-        IMPACT_FRONT: Polygon([cxy, vertices[0], vertices[3], cxy]),
-        IMPACT_BACK: Polygon([cxy, vertices[1], vertices[2], cxy]),
-        IMPACT_LEFT: Polygon([cxy, vertices[0], vertices[1], cxy]),
-        IMPACT_RIGHT: Polygon([cxy, vertices[2], vertices[3], cxy]),
+        IMPACT_RIGHT: Polygon([cxy, vertices[0], vertices[3], cxy]),
+        IMPACT_LEFT: Polygon([cxy, vertices[1], vertices[2], cxy]),
+        IMPACT_BACK: Polygon([cxy, vertices[0], vertices[1], cxy]),
+        IMPACT_FRONT: Polygon([cxy, vertices[2], vertices[3], cxy]),
     }
     for shape in impact_locations.values():
         assert shape.is_valid
