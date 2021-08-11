@@ -5,7 +5,7 @@ import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
-from sim.models import Pacejka
+from sim.models import Pacejka, Pacejka4p
 from sim.models.utils import kmh2ms, G
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
 from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
@@ -94,7 +94,7 @@ class VehicleStateDyn(VehicleState):
 class VehicleModelDyn(VehicleModel):
 
     def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn,
-                 pacejka_front: Pacejka, pacejka_rear: Pacejka):
+                 pacejka_front: Pacejka4p, pacejka_rear: Pacejka4p):
         """
         Single track dynamic model
         :param x0:
@@ -159,12 +159,12 @@ class VehicleModelDyn(VehicleModel):
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
             F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
-
+            F_drag = 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * self.vg.rho ** 2
             costh = math.cos(x0.theta)
             sinth = math.sin(x0.theta)
             xdot = x0.vx * costh - x0.vy * sinth
             ydot = x0.vx * sinth + x0.vy * costh
-            acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy) / m
+            acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy - F_drag) / m
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
             return VehicleStateDyn(x=xdot,

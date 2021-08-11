@@ -41,7 +41,7 @@ class Pacejka:
 
 @dataclass(frozen=True)
 class Pacejka4p(Pacejka):
-    E: float = 0.9
+    E: float = 0.97
     "curvature"
 
     def evaluate(self, slip: float) -> float:
