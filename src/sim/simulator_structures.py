@@ -80,6 +80,9 @@ class SimModel(ABC, Generic[X, U]):
     _state: X
     """State of the model"""
     XT: Type[X] = object
+    """Type of the state"""
+    has_collided: bool = False
+    """Whether or not the object has already collided"""
 
     @abstractmethod
     def update(self, commands: U, dt: SimTime):

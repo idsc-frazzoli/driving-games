@@ -4,7 +4,7 @@ import numpy as np
 from shapely.geometry import Polygon, Point, LineString
 
 from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
-from sim.models.vehicle_structures import ModelGeometry
+from sim.models.vehicle_structures import VehicleGeometry
 
 
 def get_rectangle_mesh(footprint: Polygon) -> Mapping[ImpactLocation, Polygon]:
@@ -78,8 +78,8 @@ def compute_impulse_response(n: np.ndarray,
                              vel_ab: np.ndarray,
                              r_ap: np.ndarray,
                              r_bp: np.ndarray,
-                             a_geom: ModelGeometry,
-                             b_geom: ModelGeometry) -> float:
+                             a_geom: VehicleGeometry,
+                             b_geom: VehicleGeometry) -> float:
     """
     The impulse J is defined in terms of force F and time period ∆t
     J = F*∆t = ma*∆t = m *∆v/∆t *∆t = m*∆v

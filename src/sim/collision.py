@@ -50,6 +50,10 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
         logger.debug(f"Not solving the collision between {a}, {b} since they are already separating")
         return None
 
+    # Update state of the model, it has collided
+    sim_context.models[a].has_collided = True
+    sim_context.models[b].has_collided = True
+
     # Compute collision locations
     a_locations = impact_locations_from_polygons(a_shape, b_shape)
     b_locations = impact_locations_from_polygons(b_shape, a_shape)

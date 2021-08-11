@@ -11,8 +11,9 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
 from sim import logger
-from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
-from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
+from sim.models.model_utils import acceleration_constraint
+from sim.models.vehicle_structures import VehicleGeometry, CAR
+from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 from sim.simulator_structures import SimModel
 
 
@@ -138,7 +139,7 @@ class VehicleState:
 class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def __init__(self, x0: VehicleState, vg: VehicleGeometry, vp: VehicleParameters):
-        self._state: Type[x0] = x0
+        self._state: VehicleState = x0
         """ Current state of the model"""
         self.XT: Type[VehicleState] = type(x0)
         """ State type"""
@@ -164,8 +165,11 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         def _stateactions_from_array(y: np.ndarray) -> [VehicleState, VehicleCommands]:
             n_states = self.XT.get_n_states()
             state = self.XT.from_array(y[0:n_states])
-            actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
-                                      ddelta=y[VehicleCommands.idx["ddelta"] + n_states])
+            if self.has_collided and not self.vg.vehicle_type == CAR:
+                actions = VehicleCommands(acc=0, ddelta=0)
+            else:
+                actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
+                                          ddelta=y[VehicleCommands.idx["ddelta"] + n_states])
             return state, actions
 
         def _dynamics(t, y):
