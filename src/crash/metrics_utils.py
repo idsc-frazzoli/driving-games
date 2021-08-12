@@ -86,8 +86,8 @@ class MalliarisOne(MalliarisCoeff):
     def coeff_mais2(cls) -> "MalliarisOne":
         MalliarisOne(a0=-4.029, a1=0.155, a2=0.465, a3=-1.177)
 
-    def compute_weight(self, delta_v: float, dofs: bool, dofb: bool):
+    def compute_weight(self, delta_v: float, dofs: int, dofb: int):
         return self.a0 + self.a1 * delta_v + self.a2 * dofs + self.a3 * dofb
 
-    def compute_probability(self, delta_v: float, dofs: bool, dofb: bool):
+    def compute_probability(self, delta_v: float, dofs: int, dofb: int):
         return 1 / (1 + np.exp(-self.compute_weight(delta_v, dofs, dofb)))
