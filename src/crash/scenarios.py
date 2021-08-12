@@ -4,12 +4,13 @@ from typing import Mapping
 from numpy import deg2rad
 
 from games import PlayerName
+from sim import SimTime
 from sim.agent import NPAgent
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle import VehicleState, VehicleModel, VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.simulator import SimContext
-from sim.simulator_structures import SimTime, SimParameters, SimulationLog
+from sim.simulator_structures import SimParameters, SimulationLog
 
 __all__ = ["get_scenario_01", "get_scenario_02"]
 
@@ -52,11 +53,11 @@ def get_scenario_01() -> SimContext:
                P7: NPAgent(ped_commands)
                }
 
-    return SimContext(map_name="4way-double-intersection-only",
+    return SimContext(scenario_name="USA_Lanker-1_1_T-1.xml",
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(4), max_sim_time=D(5)),
+                      param=SimParameters(dt=D(0.02), sim_time_after_collision=D(4), max_sim_time=D(5)),
                       )
 
 
@@ -82,7 +83,7 @@ def get_scenario_02() -> SimContext:
                P2: NPAgent(commands_input),
                P3: NPAgent(commands_input_2)}
 
-    return SimContext(map_name="4way-double-intersection-only",
+    return SimContext(scenario_name="USA_Lanker-1_1_T-1.xml",
                       models=models,
                       players=players,
                       log=SimulationLog(),

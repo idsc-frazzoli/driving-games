@@ -15,9 +15,10 @@ def generete_report(sim_context: SimContext) -> Report:
     with gif_viz.data_file("Simulation", MIME_GIF) as fn:
         create_animation(file_path=fn,
                          sim_context=sim_context,
-                         fig_size=None,
+                         figsize=(16, 8),
                          dt=20,
-                         dpi=120)
+                         dpi=120,
+                         plot_limits=None)
     r.add_child(get_collsion_reports(sim_context))
     return r
 
