@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, replace
 from decimal import Decimal
-from typing import Type
+from typing import Type, Mapping
 
 import numpy as np
 from frozendict import frozendict
@@ -10,7 +10,7 @@ from scipy.integrate import solve_ivp
 from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
-from sim import logger
+from sim import logger, ImpactLocation, IMPACT_RIGHT, IMPACT_LEFT, IMPACT_BACK, IMPACT_FRONT
 from sim.models.model_utils import acceleration_constraint
 from sim.models.vehicle_structures import VehicleGeometry, CAR
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
@@ -211,6 +211,21 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         footprint = affine_transform(footprint, matrix_coeff)
         assert footprint.is_valid
         return footprint
+
+    def get_mesh(self) -> Mapping[ImpactLocation, Polygon]:
+        footprint = self.get_footprint()
+        vertices = footprint.exterior.coords[:-1]  # todo check the order!
+        cxy = footprint.centroid.coords[0]
+        # maybe we can use triangulate from shapely
+        impact_locations: Mapping[ImpactLocation, Polygon] = {
+            IMPACT_RIGHT: Polygon([cxy, vertices[0], vertices[3], cxy]),
+            IMPACT_LEFT: Polygon([cxy, vertices[1], vertices[2], cxy]),
+            IMPACT_BACK: Polygon([cxy, vertices[0], vertices[1], cxy]),
+            IMPACT_FRONT: Polygon([cxy, vertices[2], vertices[3], cxy])
+        }
+        for shape in impact_locations.values():
+            assert shape.is_valid
+        return impact_locations
 
     def get_pose(self) -> SE2value:
         return SE2_from_xytheta([self._state.x, self._state.y, self._state.theta])

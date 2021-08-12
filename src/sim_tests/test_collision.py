@@ -3,7 +3,7 @@ from geometry import SO2_from_angle
 from matplotlib import pyplot as plt
 from shapely.geometry import Polygon
 
-from sim.collision import get_rectangle_mesh
+from sim.collision import get_vehicle_mesh
 from sim.models.vehicle_structures import VehicleGeometry
 
 
@@ -26,7 +26,7 @@ def test_impact_location():
     # Create two rectangles
     vg = VehicleGeometry.default_car()
     footprint = Polygon(vg.outline)
-    impact_locations = get_rectangle_mesh(footprint)
+    impact_locations = get_vehicle_mesh(footprint)
     fig = plt.figure()
 
     for loc, triangle in impact_locations.items():

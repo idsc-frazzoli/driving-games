@@ -1,17 +1,17 @@
 from dataclasses import dataclass, replace
 from functools import cached_property
 from math import cos, sin
-from typing import Tuple, Type, Sequence
+from typing import Tuple, Type, Sequence, Mapping
 
 import numpy as np
 from frozendict import frozendict
-from geometry import SE2value, T2value, SE2_from_xytheta
+from geometry import SE2value, T2value, SE2_from_xytheta, SO2_from_angle, SO2value
 from scipy.integrate import solve_ivp
 from shapely import affinity
 from shapely.affinity import affine_transform
 from shapely.geometry import Point, Polygon
 
-from sim import SimModel, SimTime
+from sim import SimModel, SimTime, logger, ImpactLocation, IMPACT_EVERYWHERE
 from sim.models.model_structures import ModelGeometry
 from sim.models.model_utils import acceleration_constraint
 from sim.models.pedestrian_utils import PedestrianParameters, rotation_constraint
@@ -22,7 +22,7 @@ class PedestrianGeometry(ModelGeometry):
 
     @cached_property
     def outline(self) -> Sequence[Tuple[float, float]]:
-        circle = Point(0, 0).buffer(1)  # type(circle)=polygon
+        circle = Point(0, 0).buffer(.5)  # type(circle)=polygon
         ellipse = affinity.scale(circle, 1, 1.5)  # not sure, maybe just a circle?
         return tuple(ellipse.exterior.coords)
 
@@ -211,14 +211,30 @@ class PedestrianModel(SimModel[SE2value, float]):
         assert footprint.is_valid
         return footprint
 
+    def get_mesh(self) -> Mapping[ImpactLocation, Polygon]:
+        return {IMPACT_EVERYWHERE: self.get_footprint()}
+
     def get_pose(self) -> SE2value:
         return SE2_from_xytheta(xytheta=(self._state.x, self._state.y, self._state.theta))
 
     def get_velocity(self, in_model_frame: bool) -> (T2value, float):
-        pass
+        """Returns velocity at COG"""
+        vx = self._state.vx
+        vy = 0
+        v_l = np.array([vx, vy])
+        if in_model_frame:
+            return v_l, 0
+        rot: SO2value = SO2_from_angle(self._state.theta)
+        v_g = rot @ v_l
+        return v_g, 0
 
     def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
-        pass
+        if not in_model_frame:
+            rot: SO2value = SO2_from_angle(- self._state.theta)
+            vel = rot @ vel
+        self._state.vx = vel[0]
+        logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
+                    "Try using the dynamic model.")
 
     def get_geometry(self) -> PedestrianGeometry:
         return self.pg
