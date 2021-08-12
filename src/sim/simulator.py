@@ -6,7 +6,7 @@ from typing import Mapping, Optional, List
 from duckietown_world import DuckietownMap
 
 from games import PlayerName
-from sim import logger, CollisionReport
+from sim import logger, CollisionReport, SimTime
 from sim.agent import Agent
 from sim.simulator_structures import *
 from world import load_driving_game_map

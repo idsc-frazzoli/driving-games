@@ -2,17 +2,16 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type, Mapping, NewType
+from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type, Mapping
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 
 from games import PlayerName, X, U
 
-__all__ = ["SimTime", "ImpactLocation", "SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
+__all__ = ["SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
 
-SimTime = Decimal
-ImpactLocation = NewType("ImpactLocation", str)
+from sim import SimTime, ImpactLocation
 
 
 @dataclass(frozen=True, unsafe_hash=True)

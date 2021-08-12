@@ -2,17 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple, Sequence
 
-from games import PlayerName
 from sim import Color
 
-Colour = Tuple[float, float, float]
-""" An alias to store the RGB values of a colour """
-
-black = PlayerName("black")
-forestgreen = PlayerName("forestgreen")
-firebrick = PlayerName("firebrick")
-dodgerblue = PlayerName("dodgerblue")
-orchid = PlayerName("orchid")
 
 
 @dataclass(frozen=True, unsafe_hash=True)
