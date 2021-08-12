@@ -2,16 +2,16 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type
+from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type, Mapping
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 
 from games import PlayerName, X, U
 
-__all__ = ["SimTime", "SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
+__all__ = ["SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
 
-SimTime = Decimal
+from sim import SimTime, ImpactLocation
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -80,6 +80,9 @@ class SimModel(ABC, Generic[X, U]):
     _state: X
     """State of the model"""
     XT: Type[X] = object
+    """Type of the state"""
+    has_collided: bool = False
+    """Whether or not the object has already collided"""
 
     @abstractmethod
     def update(self, commands: U, dt: SimTime):
@@ -112,6 +115,10 @@ class SimModel(ABC, Generic[X, U]):
 
     @abstractmethod
     def get_geometry(self) -> Any:
+        pass
+
+    @abstractmethod
+    def get_mesh(self) -> Mapping[ImpactLocation, Polygon]:
         pass
 
     def get_state(self) -> X:

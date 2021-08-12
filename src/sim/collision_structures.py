@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from typing import NewType, Mapping, Sequence, Tuple
+from typing import Mapping, Sequence, Tuple
 
 import numpy as np
 from geometry import T2value
 from shapely.geometry import Point, Polygon
 
 from games import PlayerName
-from sim import SimTime
+from sim import SimTime, ImpactLocation
 
-__all__ = ["ImpactLocation",
+__all__ = ["IMPACT_EVERYWHERE",
            "IMPACT_FRONT",
            "IMPACT_BACK",
            "IMPACT_LEFT",
@@ -17,7 +17,7 @@ __all__ = ["ImpactLocation",
            "CollisionReport",
            ]
 
-ImpactLocation = NewType("ImpactLocation", str)
+IMPACT_EVERYWHERE = ImpactLocation("everywhere")
 IMPACT_FRONT = ImpactLocation("front")
 IMPACT_BACK = ImpactLocation("back")
 IMPACT_LEFT = ImpactLocation("left")
@@ -33,9 +33,9 @@ class CollisionReportPlayer:
     footprint: Polygon
     """ Footprint of impact"""
     velocity: Tuple[T2value, float]
-    """ velocity before impact [m/s] """
+    """ velocity before impact [m/s],[rad/s] """
     velocity_after: Tuple[T2value, float]
-    """ velocity after impact [m/s] """
+    """ velocity after impact [m/s],[rad/s] """
     energy_delta: float
     """ Kinetic energy lost in the collision [J] """
 

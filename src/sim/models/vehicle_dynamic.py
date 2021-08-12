@@ -6,10 +6,11 @@ from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
 from sim.models import Pacejka
+from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
-from sim.models.vehicle_structures import VehicleParameters, VehicleGeometry
-from sim.models.vehicle_utils import steering_constraint, acceleration_constraint
+from sim.models.vehicle_structures import VehicleGeometry
+from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -177,6 +178,7 @@ class VehicleModelDyn(VehicleModel):
                                    )
 
     def get_velocity(self, in_model_frame: bool) -> (T2value, float):
+        self._state: VehicleStateDyn
         v_l = np.array([self._state.vx, self._state.vy])
         if in_model_frame:
             return v_l, self._state.dtheta
