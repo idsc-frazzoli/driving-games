@@ -6,30 +6,29 @@ from shapely.geometry import Polygon, Point, LineString
 from sim.models.vehicle_structures import VehicleGeometry
 
 
-def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float]]:
-    int_shape = a.intersection(b)
+def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[float, float]]:
+    int_shape = a_shape.intersection(b_shape)
     points = list(int_shape.exterior.coords[:-1])
 
     ###
-    from matplotlib import pyplot as plt
-    plt.figure()
-    plt.plot(*a.exterior.xy, "b")
-    plt.plot(*b.exterior.xy, "r")
-    for p in points:
-        plt.plot(*p, "o")
-
+    # from matplotlib import pyplot as plt
+    # plt.figure()
+    # plt.plot(*a.exterior.xy, "b")
+    # plt.plot(*b.exterior.xy, "r")
+    # for p in points:
+    #     plt.plot(*p, "o")
     ###
     def is_contained_in_aorb(p) -> bool:
         shapely_point = Point(p).buffer(1.0e-9)
         # print("blu:", a.contains(shapely_point))
         # print("red:", b.contains(shapely_point))
-        return a.contains(shapely_point) or b.contains(shapely_point)
+        return a_shape.contains(shapely_point) or b_shape.contains(shapely_point)
 
     points[:] = [p for p in points if not is_contained_in_aorb(p)]
     ####
-    for p in points:
-        plt.plot(*p, "x")
-    plt.savefig("debug.png")
+    # for p in points:
+    #     plt.plot(*p, "x")
+    # plt.savefig("debug.png")
     ####
     if not len(points) == 2:
         raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")

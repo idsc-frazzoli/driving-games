@@ -15,7 +15,7 @@ from games import PlayerName, X, U, Y
 from sim.models.pedestrian import PedestrianState, PedestrianGeometry
 from sim.models.vehicle import VehicleState, VehicleGeometry
 from sim.simulator import SimContext
-from sim.typing import Color
+from sim.types import Color
 
 __all__ = ["SimRenderer"]
 

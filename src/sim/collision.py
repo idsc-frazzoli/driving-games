@@ -1,6 +1,8 @@
+from math import pi
 from typing import List, Optional, Tuple
 
 import numpy as np
+from geometry import SO2value, SO2_from_angle
 from shapely.geometry import Polygon
 
 from games import PlayerName
@@ -43,10 +45,18 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_shape = b_model.get_footprint()
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
+    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
+    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     a_vel, a_omega = a_model.get_velocity(in_model_frame=False)
     b_vel, b_omega = b_model.get_velocity(in_model_frame=False)
     rel_velocity = a_vel - b_vel
-    if np.dot(rel_velocity, impact_normal) < 0:
+
+    rot90: SO2value = SO2_from_angle(pi / 2)
+    a_vel_atP = a_vel + a_omega * (rot90 @ r_ap)
+    b_vel_atP = b_vel + b_omega * (rot90 @ r_bp)
+    rel_velocity_atP = a_vel_atP - b_vel_atP
+
+    if np.dot(rel_velocity_atP, impact_normal) < 0:
         # fixme this check needs to be done with the velocity vector at the collision point
         logger.debug(f"Not solving the collision between {a}, {b} since they are already separating")
         return None
@@ -66,8 +76,6 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     # Compute impulse resolution
     a_geom = a_model.get_geometry()
     b_geom = b_model.get_geometry()
-    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
-    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     j_n = compute_impulse_response(n=impact_normal,
                                    vel_ab=rel_velocity,
                                    r_ap=r_ap,
