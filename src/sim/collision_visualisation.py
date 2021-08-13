@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.cm import get_cmap
 from matplotlib.colors import ListedColormap
+from matplotlib.patches import FancyArrowPatch
 
 from sim import CollisionReport
 
@@ -16,6 +17,7 @@ class _Zorders(IntEnum):
     IMPACT_LOCATION_NAME = 40
     IMPACT_POINT = 82
     IMPACT_NORMAL = 85
+
     DEBUG = 100
 
 
@@ -24,7 +26,7 @@ def plot_collision(collision_report: CollisionReport):
 
     # common impact point and normals
     imp_point = collision_report.impact_point.coords[0]
-    n = 0.2*collision_report.impact_normal
+    n = 0.2 * collision_report.impact_normal
     plt.plot(*imp_point, "o", zorder=_Zorders.IMPACT_POINT)
     n_color = "r"
     plt.arrow(imp_point[0], imp_point[1], n[0], n[1], ec=n_color, fc=n_color, alpha=.9, zorder=_Zorders.IMPACT_NORMAL)
@@ -50,8 +52,16 @@ def plot_collision(collision_report: CollisionReport):
                   zorder=_Zorders.VEL_BEFORE)
         plt.arrow(xc, yc, vel_after[0], vel_after[1], width=width, head_width=head_width, ec=col_after, fc=col_after,
                   alpha=.8, zorder=_Zorders.VEL_AFTER)
-        # todo rotational velocity
-        # DEBUG velocities at collision point
+        # plot rotational velocity
+        arrow_shift = .1
+        arrow_patch = FancyArrowPatch((xc - arrow_shift, yc), (xc + arrow_shift, yc),
+                                      connectionstyle=f"arc3,rad={arrow_shift}", color="k", zorder=_Zorders.DEBUG)
+        fig.patches.extend([arrow_patch])
+        plt.text(xc, yc + 2 * arrow_shift, f"{p_report.velocity[1]:.3f}", horizontalalignment="center",
+                 verticalalignment="center", zorder=_Zorders.VEL_BEFORE, color=col_befor)
+        plt.text(xc, yc + 4 * arrow_shift, f"{p_report.velocity_after[1]:.3f}", horizontalalignment="center",
+                 verticalalignment="center", zorder=_Zorders.VEL_AFTER, color=col_after)
+        # Velocities at collision point
         ap = np.array(imp_point) - np.array([xc, yc])
         omega = p_report.velocity[1]
         vel_atP = vel + vel_scale * (omega * ap)

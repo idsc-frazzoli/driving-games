@@ -51,6 +51,7 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_vel, b_omega = b_model.get_velocity(in_model_frame=False)
     rel_velocity = a_vel - b_vel
 
+    # rotate by 90 to be equivalent to cross product r_ap x omega
     rot90: SO2value = SO2_from_angle(pi / 2)
     a_vel_atP = a_vel + a_omega * (rot90 @ r_ap)
     b_vel_atP = b_vel + b_omega * (rot90 @ r_bp)
