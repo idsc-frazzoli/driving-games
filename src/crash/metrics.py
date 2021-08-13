@@ -54,16 +54,21 @@ def malliaris_zero(report: CollisionReport) -> List[List[float]]:
     p_mais3 = []
     p_mais2 = []
 
+    tmp = MalliarisZero()
+
     for key, value in report.players.items():
 
-        tmp = MalliarisZero.coeff_fatality()
+        # Compute probability of fatality
+        tmp.coeff_fatality()
         delta_v = get_delta_v(value.velocity[0], value.velocity_after[0])
         p_fatality.append(tmp.compute_probability(delta_v))
 
-        tmp = tmp.coeff_mais3()
+        # Compute probability of MAIS 3+ injury
+        tmp.coeff_mais3()
         p_mais3.append(tmp.compute_probability(delta_v))
 
-        tmp = tmp.coeff_mais2()
+        # Compute probability of MAIS 2+ injury
+        tmp.coeff_mais2()
         p_mais2.append(tmp.compute_probability(delta_v))
 
     return [p_fatality, p_mais3, p_mais2]
@@ -80,17 +85,22 @@ def malliaris_one(report: CollisionReport) -> List[List[float]]:
     p_mais3 = []
     p_mais2 = []
 
+    tmp = MalliarisOne()
+
     for key, value in report.players.items():
-        tmp = MalliarisOne.coeff_fatality()
+
+        # Compute probability of fatality
+        tmp.coeff_fatality()
         delta_v = get_delta_v(value.velocity[0], value.velocity_after[0])
-        #dof = get_malliaris_dof_old(report.impact_normal)
         dof = get_malliaris_dof(report.impact_point, value.footprint)
         p_fatality.append(tmp.compute_probability(delta_v, dof[0], dof[1]))
 
-        tmp = tmp.coeff_mais3()
+        # Compute probability of MAIS 3+ injury
+        tmp.coeff_mais3()
         p_mais3.append(tmp.compute_probability(delta_v, dof[0], dof[1]))
 
-        tmp = tmp.coeff_mais2()
+        # Compute probability of MAIS 2+ injury
+        tmp.coeff_mais2()
         p_mais2.append(tmp.compute_probability(delta_v, dof[0], dof[1]))
 
     return [p_fatality, p_mais3, p_mais2]
