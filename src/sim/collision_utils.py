@@ -1,42 +1,24 @@
-from typing import Mapping, List, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from shapely.geometry import Polygon, Point, LineString
 
-from sim import ImpactLocation, IMPACT_FRONT, IMPACT_BACK, IMPACT_LEFT, IMPACT_RIGHT
-from sim.models.vehicle_structures import ModelGeometry
-
-
-def get_rectangle_mesh(footprint: Polygon) -> Mapping[ImpactLocation, Polygon]:
-    """
-    This returns all the vertices of a rectangle in the global reference frame of the map (a bit useless for now)
-    :param footprint: RectOBB object
-    :return:
-    """
-
-    vertices = footprint.exterior.coords[:-1]  # todo check the order!
-    cxy = footprint.centroid.coords[0]
-    # maybe we can use triangulate from shapely
-    impact_locations: Mapping[ImpactLocation, Polygon] = {
-        IMPACT_RIGHT: Polygon([cxy, vertices[0], vertices[3], cxy]),
-        IMPACT_LEFT: Polygon([cxy, vertices[1], vertices[2], cxy]),
-        IMPACT_BACK: Polygon([cxy, vertices[0], vertices[1], cxy]),
-        IMPACT_FRONT: Polygon([cxy, vertices[2], vertices[3], cxy]),
-    }
-    for shape in impact_locations.values():
-        assert shape.is_valid
-    return impact_locations
+from sim.models.vehicle_structures import VehicleGeometry
 
 
 def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float]]:
     int_shape = a.intersection(b)
     points = list(int_shape.exterior.coords[:-1])
 
-    # plt.plot(*a.exterior.xy, "b")
-    # plt.plot(*b.exterior.xy, "r")
-    # for p in points:
-    #     plt.plot(*p, "o")
+    ###
+    from matplotlib import pyplot as plt
+    plt.figure()
+    plt.plot(*a.exterior.xy, "b")
+    plt.plot(*b.exterior.xy, "r")
+    for p in points:
+        plt.plot(*p, "o")
 
+    ###
     def is_contained_in_aorb(p) -> bool:
         shapely_point = Point(p).buffer(1.0e-9)
         # print("blu:", a.contains(shapely_point))
@@ -44,10 +26,11 @@ def _find_intersection_points(a: Polygon, b: Polygon) -> List[Tuple[float, float
         return a.contains(shapely_point) or b.contains(shapely_point)
 
     points[:] = [p for p in points if not is_contained_in_aorb(p)]
-    # for p in points:
-    #     plt.plot(*p, "x")
-    #
-    # plt.savefig("test.png")
+    ####
+    for p in points:
+        plt.plot(*p, "x")
+    plt.savefig("debug.png")
+    ####
     if not len(points) == 2:
         raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")
     return points
@@ -78,8 +61,8 @@ def compute_impulse_response(n: np.ndarray,
                              vel_ab: np.ndarray,
                              r_ap: np.ndarray,
                              r_bp: np.ndarray,
-                             a_geom: ModelGeometry,
-                             b_geom: ModelGeometry) -> float:
+                             a_geom: VehicleGeometry,
+                             b_geom: VehicleGeometry) -> float:
     """
     The impulse J is defined in terms of force F and time period ∆t
     J = F*∆t = ma*∆t = m *∆v/∆t *∆t = m*∆v

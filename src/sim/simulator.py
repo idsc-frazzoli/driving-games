@@ -6,7 +6,7 @@ from typing import Mapping, Optional, List
 from duckietown_world import DuckietownMap
 
 from games import PlayerName
-from sim import logger, CollisionReport
+from sim import logger, CollisionReport, SimTime
 from sim.agent import Agent
 from sim.simulator_structures import *
 from world import load_driving_game_map
@@ -27,7 +27,7 @@ class SimContext:
     first_collision_ts: SimTime = Decimal(999)
 
     def __post_init__(self):
-        assert all([player in self.models for player in self.players])
+        assert self.models.keys() == self.players.keys()
         self.map = load_driving_game_map(self.map_name)
 
 

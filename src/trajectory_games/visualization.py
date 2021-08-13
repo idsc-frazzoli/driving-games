@@ -12,7 +12,7 @@ from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 from games import PlayerName
 from geometry import SE2_from_xytheta
 
-from sim.simulator_visualisation import get_transformed_xy
+from sim.simulator_visualisation import transform_xy
 from world import LaneSegmentHashable
 from world.map_loading import map_directory, load_driving_game_map
 from .structures import VehicleGeometry, VehicleState
@@ -158,10 +158,10 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
         ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
     xy_theta = (state.x, state.y, state.th)
     q = SE2_from_xytheta(xy_theta)
-    x1, y1 = get_transformed_xy(q, car)
+    x1, y1 = transform_xy(q, car)
     if box is None:
         box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=10)
-        x4, y4 = get_transformed_xy(q, ((0, 0),))
+        x4, y4 = transform_xy(q, ((0, 0),))
         axis.text(x4, y4, player_name, zorder=25,
                   horizontalalignment="center",
                   verticalalignment="center")
