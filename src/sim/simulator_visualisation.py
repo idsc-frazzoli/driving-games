@@ -1,11 +1,12 @@
-import os
 from abc import ABC, abstractmethod
-from typing import Sequence, Tuple, Generic, Optional, List
+from enum import IntEnum
+from math import inf
+from typing import Sequence, Tuple, Generic, Optional, List, Union
 
 import numpy as np
+from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
 from geometry import SE2_from_xytheta
-from imageio import imread
 from matplotlib.axes import Axes
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
@@ -15,12 +16,11 @@ from sim.models.pedestrian import PedestrianState, PedestrianGeometry
 from sim.models.vehicle import VehicleState, VehicleGeometry
 from sim.simulator import SimContext
 from sim.typing import Color
-from world.map_loading import map_directory
 
-__all__ = ["SimVisualisation"]
+__all__ = ["SimRenderer"]
 
 
-class SimVisualisationABC(Generic[X, U, Y], ABC):
+class SimRendererABC(Generic[X, U, Y], ABC):
     """ An artist that can draw the game. """
 
     @abstractmethod
@@ -41,24 +41,19 @@ class SimVisualisationABC(Generic[X, U, Y], ABC):
         pass
 
 
-class SimVisualisation(SimVisualisationABC):
+class SimRenderer(SimRendererABC):
     """ Visualization for the trajectory games"""
 
-    def __init__(self, sim_context: SimContext):
+    def __init__(self, sim_context: SimContext, ax: Axes = None, *args, **kwargs):
         self.sim_context = sim_context
+        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, **kwargs)
 
     @contextmanager
     def plot_arena(self, ax: Axes):
-        png_path = os.path.join(map_directory, f"{self.sim_context.map_name}.png")
-        img = imread(png_path)
-        tile_size = self.sim_context.map.tile_size
-        H = self.sim_context.map["tilemap"].H
-        W = self.sim_context.map["tilemap"].W
-        x_size = tile_size * W
-        y_size = tile_size * H
-        ax.imshow(img, extent=[0, x_size, 0, y_size])
-        ax.set_xlim(left=0, right=x_size)
-        ax.set_ylim(bottom=0, top=y_size)
+        # planning_problem_set.draw(rnd)
+        self.sim_context.scenario.lanelet_network.draw(self.commonroad_renderer, draw_params={"traffic_light": {
+            "draw_traffic_lights": False}})
+        self.commonroad_renderer.render()
         yield
 
     def plot_player(self,
@@ -90,6 +85,11 @@ class SimVisualisation(SimVisualisationABC):
         return polygons
 
 
+class ZOrders(IntEnum):
+    MODEL = 35
+    PLAYER_NAME = 40
+
+
 def plot_vehicle(ax: Axes,
                  player_name: PlayerName,
                  state: VehicleState,
@@ -101,14 +101,15 @@ def plot_vehicle(ax: Axes,
     vehicle_color: Color = vg.color
     q = SE2_from_xytheta((state.x, state.y, state.theta))
     if boxes is None:
-        vehicle_box = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=10)[0]
+        vehicle_box = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=ZOrders.MODEL)[0]
         boxes = [vehicle_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        ax.text(x4, y4, player_name, zorder=30,
+        ax.text(x4, y4, player_name, zorder=ZOrders.PLAYER_NAME,
                 horizontalalignment="center",
                 verticalalignment="center")
         if plot_wheels:
-            wheels_boxes = [ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=15)[0] for _ in range(vg.n_wheels)]
+            wheels_boxes = [ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
+                            range(vg.n_wheels)]
             boxes.extend(wheels_boxes)
     outline = transform_xy(q, vehicle_outline)
     boxes[0].set_xy(outline)
@@ -129,10 +130,11 @@ def plot_pedestrian(ax: Axes,
                     boxes: Optional[List[Polygon]]) -> List[Polygon]:
     q = SE2_from_xytheta((state.x, state.y, state.theta))
     if boxes is None:
-        pedestrian_box = ax.fill([], [], color=pg.color, alpha=alpha, zorder=10)[0]
+        pedestrian_box = ax.fill([], [], color=pg.color, alpha=alpha, zorder=ZOrders.MODEL)[0]
         boxes = [pedestrian_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        ax.text(x4, y4, player_name, zorder=30, horizontalalignment="center", verticalalignment="center")
+        ax.text(x4, y4, player_name, zorder=ZOrders.PLAYER_NAME, horizontalalignment="center",
+                verticalalignment="center")
     ped_outline: Sequence[Tuple[float, float], ...] = pg.outline
     outline_xy = transform_xy(q, ped_outline)
     boxes[0].set_xy(outline_xy)
@@ -155,3 +157,22 @@ def transform_xy(q: np.ndarray, points: Sequence[Tuple[float, float]]) -> Sequen
     x = points[0, :]
     y = points[1, :]
     return list(zip(x, y))
+
+
+def approximate_bounding_box_players(obj_list: Sequence[X]) -> Union[Sequence[List], None]:
+    minmax = [[inf, -inf], [inf, -inf]]
+    for state in obj_list:
+        x, y = state.x, state.y
+        for i in range(2):
+            xory = x if i == 0 else y
+            if xory < minmax[i][0]:
+                minmax[i][0] = xory
+            if xory > minmax[i][1]:
+                minmax[i][1] = xory
+    if not (max(minmax) == inf and min(minmax) == -inf):
+        for i in range(2):
+            assert minmax[i][0] <= minmax[i][1]
+            minmax[i][0] -= 10
+            minmax[i][1] += 10
+        return minmax
+    return None

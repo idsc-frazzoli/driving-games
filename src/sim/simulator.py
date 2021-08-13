@@ -3,19 +3,19 @@ from decimal import Decimal
 from itertools import combinations
 from typing import Mapping, Optional, List
 
-from duckietown_world import DuckietownMap
+from commonroad.scenario.scenario import Scenario
 
 from games import PlayerName
 from sim import logger, CollisionReport, SimTime
 from sim.agent import Agent
+from sim.scenarios import load_commonroad_scenario
 from sim.simulator_structures import *
-from world import load_driving_game_map
 
 
 @dataclass
 class SimContext:
-    map_name: str
-    map: DuckietownMap = field(init=False)
+    scenario_name: str
+    scenario: Scenario = field(init=False)
     models: Mapping[PlayerName, SimModel]
     players: Mapping[PlayerName, Agent]
     log: SimulationLog
@@ -28,7 +28,7 @@ class SimContext:
 
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
-        self.map = load_driving_game_map(self.map_name)
+        self.scenario, _ = load_commonroad_scenario(self.scenario_name)
 
 
 class Simulator:

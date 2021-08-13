@@ -36,7 +36,7 @@ The results are going to be written in the `out-docker` dir.
 
 ## Native installation 
 
-Requires Python >= 3.7.
+Requires Python >= 3.8.
     
 Run manually the instructions in the Dockerfile.
 You want to install all the reqs in `requirements.txt`.
@@ -57,4 +57,7 @@ Reformat with `black` using:
 	
 	$ make black
 
+## Getting commonroad scenarios
+
+    $ git submodule update --init 
  
