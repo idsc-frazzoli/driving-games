@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+# todo: change class methods by normal methods
 
 @dataclass(frozen=True, unsafe_hash=True)
 class MalliarisCoeff:
@@ -43,15 +44,15 @@ class MalliarisZero(MalliarisCoeff):
 
     @classmethod
     def coeff_fatality(cls) -> "MalliarisZero":
-        MalliarisZero(a0=-8.252, a1=0.177)
+        return MalliarisZero(a0=-8.252, a1=0.177)
 
     @classmethod
     def coeff_mais3(cls) -> "MalliarisZero":
-        MalliarisZero(a0=-5.450, a1=0.178)
+        return MalliarisZero(a0=-5.450, a1=0.178)
 
     @classmethod
     def coeff_mais2(cls) -> "MalliarisZero":
-        MalliarisZero(a0=-3.761, a1=0.136)
+        return MalliarisZero(a0=-3.761, a1=0.136)
 
     def compute_weight(self, delta_v: float):
         return self.a0 + self.a1 * delta_v
@@ -76,15 +77,15 @@ class MalliarisOne(MalliarisCoeff):
 
     @classmethod
     def coeff_fatality(cls) -> "MalliarisOne":
-        MalliarisOne(a0=-9.032, a1=0.198, a2=1.462, a3=-1.921)
+        return MalliarisOne(a0=-9.032, a1=0.198, a2=1.462, a3=-1.921)
 
     @classmethod
     def coeff_mais3(cls) -> "MalliarisOne":
-        MalliarisOne(a0=-5.820, a1=0.202, a2=0.556, a3=-2.170)
+        return MalliarisOne(a0=-5.820, a1=0.202, a2=0.556, a3=-2.170)
 
     @classmethod
     def coeff_mais2(cls) -> "MalliarisOne":
-        MalliarisOne(a0=-4.029, a1=0.155, a2=0.465, a3=-1.177)
+        return MalliarisOne(a0=-4.029, a1=0.155, a2=0.465, a3=-1.177)
 
     def compute_weight(self, delta_v: float, dofs: int, dofb: int):
         return self.a0 + self.a1 * delta_v + self.a2 * dofs + self.a3 * dofb

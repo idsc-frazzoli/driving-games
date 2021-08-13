@@ -9,7 +9,7 @@ from sim.simulator import Simulator
 if __name__ == '__main__':
     sim = Simulator()
     # initialize all contexts/ agents and simulator
-    sim_context = get_scenario_01()
+    sim_context = get_scenario_02()
     # run simulations
     sim.run(sim_context)
     # generate report

@@ -5,6 +5,7 @@ from typing import Mapping, Optional, List
 
 from duckietown_world import DuckietownMap
 
+from crash.metrics import malliaris_zero, malliaris_one
 from games import PlayerName
 from sim import logger, CollisionReport
 from sim.agent import Agent
@@ -100,6 +101,8 @@ class Simulator:
                 if report is not None:
                     logger.info(f"Detected a collision between {p1} and {p2}")
                     collision = True
+                    probabilities = malliaris_one(report)
+                    print(probabilities)
                     if report.at_time < sim_context.first_collision_ts:
                         sim_context.first_collision_ts = report.at_time
                     sim_context.collision_reports.append(report)
