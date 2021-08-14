@@ -12,7 +12,7 @@ from sim.models.vehicle import VehicleState
 
 def get_delta_v(v_init: np.ndarray, v_after: np.ndarray) -> float:
     """
-    Computes the norm of delta_v -> ||v_after - v_init|| in MILES PER HOUR
+    Computes the norm of delta_v -> ||v_after - v_init|| in MILES PER HOUR (mph) !!!
     :param v_init:
     :param v_after:
     :return:
@@ -39,11 +39,14 @@ def get_malliaris_dof(impact_point: Point, v_init: np.array, footprint: Polygon,
     """
 
     # Option 1
-    # todo: add steering angle to car heading (for now only theta considered)
-    car_heading = np.array([np.cos(state.theta), np.sin(state.theta)])
+    # Car heading unit vector
+    car_heading = np.array([np.cos(state.theta + state.delta), np.sin(state.theta + state.delta)])
+    # Direction of Force (DOF) -> vector that goes from car center to impact point
     dof = np.array([impact_point.x - footprint.centroid.x,
                     impact_point.y - footprint.centroid.y])  # Direction of Force (DOF) coordinates
+    # DOF unit vector
     dof /= np.linalg.norm(dof)
+    # Angle between DOF and car heading calculation (taking into account the sign)
     angle = np.arctan2(car_heading[0] * dof[1] - car_heading[1] * dof[0],
                        car_heading[0] * dof[0] + car_heading[1] * dof[1]) * 180 / np.pi
     # Option 2
@@ -76,6 +79,7 @@ def malliaris_zero(report: CollisionReport) -> List[List[float]]:
     p_mais3 = []
     p_mais2 = []
 
+    # Variable holding the values of the MalliarisZero coefficients for each severity case
     tmp = MalliarisZero()
 
     for key, value in report.players.items():
@@ -107,6 +111,7 @@ def malliaris_one(report: CollisionReport, a_state: X, b_state: X) -> List[List[
     p_mais3 = []
     p_mais2 = []
 
+    # Variable holding the values of the MalliarisOne coefficients for each severity case
     tmp = MalliarisOne()
 
     states = [a_state, b_state]
