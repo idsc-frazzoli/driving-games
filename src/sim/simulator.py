@@ -101,7 +101,9 @@ class Simulator:
                 if report is not None:
                     logger.info(f"Detected a collision between {p1} and {p2}")
                     collision = True
-                    probabilities = malliaris_one(report)
+                    a_state = sim_context.log.at(report.at_time)[p1].state
+                    b_state = sim_context.log.at(report.at_time)[p2].state
+                    probabilities = malliaris_one(report, a_state, b_state)
                     print(probabilities)
                     if report.at_time < sim_context.first_collision_ts:
                         sim_context.first_collision_ts = report.at_time
