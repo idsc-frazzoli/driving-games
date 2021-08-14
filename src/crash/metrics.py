@@ -4,8 +4,9 @@ import numpy as np
 from geometry import SE2_from_xytheta, SE2value
 from shapely.geometry import Point, Polygon
 
+from crash.metrics_structures import MalliarisOneReportPlayer, MetricsReport
 from crash.metrics_utils import MalliarisZero, MalliarisOne
-from games import X
+from games import X, PlayerName
 from sim import CollisionReport, CollisionReportPlayer
 from sim.models.vehicle import VehicleState
 
@@ -68,7 +69,7 @@ def get_malliaris_dof(impact_point: Point, v_init: np.array, footprint: Polygon,
         return 0, 0
 
 
-def malliaris_zero(report: CollisionReport) -> List[List[float]]:
+def malliaris_zero(a: PlayerName, b: PlayerName, report: CollisionReport) -> MetricsReport:
     """
     Calculates the probability of casualty, MAIS 3+ and MAIS 2+ for the simplest Malliaris model
     for each player in two vehicles crashes, according to the "Malliaris Zero" model
@@ -97,10 +98,18 @@ def malliaris_zero(report: CollisionReport) -> List[List[float]]:
         tmp.coeff_mais2()
         p_mais2.append(tmp.compute_probability(delta_v))
 
-    return [p_fatality, p_mais3, p_mais2]
+    a_metrics = MalliarisOneReportPlayer(p_fatality=p_fatality[0],
+                                         p_mais3=p_mais3[0],
+                                         p_mais2=p_mais2[0])
+
+    b_metrics = MalliarisOneReportPlayer(p_fatality=p_fatality[1],
+                                         p_mais3=p_mais3[1],
+                                         p_mais2=p_mais2[1])
+
+    return MetricsReport(players={a: a_metrics, b: b_metrics})
 
 
-def malliaris_one(report: CollisionReport, a_state: X, b_state: X) -> List[List[float]]:
+def malliaris_one(a: PlayerName, b: PlayerName, report: CollisionReport, a_state: X, b_state: X) -> MetricsReport:
     """
     Calculates the probability of casualty, MAIS 3+ and MAIS 2+ for the simplest Malliaris model
     for each player in two vehicles crashes, according to the "Malliaris One" model
@@ -135,4 +144,12 @@ def malliaris_one(report: CollisionReport, a_state: X, b_state: X) -> List[List[
 
         count += 1
 
-    return [p_fatality, p_mais3, p_mais2]
+    a_metrics = MalliarisOneReportPlayer(p_fatality=p_fatality[0],
+                                         p_mais3=p_mais3[0],
+                                         p_mais2=p_mais2[0])
+
+    b_metrics = MalliarisOneReportPlayer(p_fatality=p_fatality[1],
+                                         p_mais3=p_mais3[1],
+                                         p_mais2=p_mais2[1])
+
+    return MetricsReport(players={a: a_metrics, b: b_metrics})

@@ -43,7 +43,7 @@ class CollisionReportPlayer:
 @dataclass(frozen=True, unsafe_hash=True)
 class CollisionReport:
     players: Mapping[PlayerName, CollisionReportPlayer]
-    """ Relative velocity defined as v_a-v_b in global RF [m/s] """
+    """ Each player's collision report """
     impact_point: Point
     """Point of impact"""
     impact_normal: np.ndarray

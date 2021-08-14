@@ -103,8 +103,8 @@ class Simulator:
                     collision = True
                     a_state = sim_context.log.at(report.at_time)[p1].state
                     b_state = sim_context.log.at(report.at_time)[p2].state
-                    probabilities = malliaris_one(report, a_state, b_state)
-                    print(probabilities)
+                    metrics_report = malliaris_one(p1, p2, report, a_state, b_state)
+                    print(metrics_report)
                     if report.at_time < sim_context.first_collision_ts:
                         sim_context.first_collision_ts = report.at_time
                     sim_context.collision_reports.append(report)
