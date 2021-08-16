@@ -72,8 +72,9 @@ def get_scenario_02() -> SimContext:
               P3: VehicleModel.default_car(x0_p3)}
 
     commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                         D(1): VehicleCommands(acc=1, ddelta=0.1),
+                                                         D(1): VehicleCommands(acc=1, ddelta=0.05),
                                                          D(2): VehicleCommands(acc=2, ddelta=-0.1),
+                                                         D(3): VehicleCommands(acc=1, ddelta=0.2),
                                                          D(99): VehicleCommands(acc=0, ddelta=0)}
     commands_input_2: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
                                                            D(1): VehicleCommands(acc=1, ddelta=0.1),
