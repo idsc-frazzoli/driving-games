@@ -116,7 +116,7 @@ def get_next_state(gp, s0, actions, dt2):
     next_state = {}
     for player_name, action in actions.items():
         player_state = s0[player_name]
-        dynamics = gp.game.players[player_name].dynamics
+        dynamics = gp.game.malliaris[player_name].dynamics
         suc = dynamics.successors(player_state, dt2)
 
         if not action in suc:

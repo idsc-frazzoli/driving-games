@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from crash.reports import generete_report, generate_metrics_report
+from crash.reports import generete_report, compute_damage_metrics
 from crash.scenarios import *
 from sim.simulator import Simulator
 
@@ -10,9 +10,7 @@ if __name__ == '__main__':
     sim_context = get_scenario_01()
     # run simulations
     sim.run(sim_context)
-    # generate metrics report
-    generate_metrics_report(sim_context)
-    # generate report
+    # generate collisions and damages report
     report = generete_report(sim_context)
     # save report
     now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")

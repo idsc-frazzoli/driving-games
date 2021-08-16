@@ -26,7 +26,7 @@ class SimContext:
     seed: int = 0
     sim_terminated: bool = False
     collision_reports: List[CollisionReport] = field(default_factory=list)
-    metrics_reports: List[MetricsReport] = field(default_factory=list)
+#    metrics_reports: List[MetricsReport] = field(default_factory=list)
     first_collision_ts: SimTime = Decimal(999)
 
     def __post_init__(self):
