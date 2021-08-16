@@ -1,10 +1,7 @@
 import os
 from datetime import datetime
-
-from crash.reports import generete_report
-
+from crash.reports import generete_report, generate_metrics_report
 from crash.scenarios import *
-from crash.scenarios import get_scenario_03
 from sim.simulator import Simulator
 
 if __name__ == '__main__':
@@ -13,6 +10,8 @@ if __name__ == '__main__':
     sim_context = get_scenario_01()
     # run simulations
     sim.run(sim_context)
+    # generate metrics report
+    generate_metrics_report(sim_context)
     # generate report
     report = generete_report(sim_context)
     # save report

@@ -6,6 +6,7 @@ from typing import Mapping, Optional, List
 from commonroad.scenario.scenario import Scenario
 
 from crash.metrics import malliaris_one
+from crash.metrics_structures import MetricsReport
 from games import PlayerName
 from sim import logger, CollisionReport, SimTime
 from sim.agent import Agent
@@ -25,6 +26,7 @@ class SimContext:
     seed: int = 0
     sim_terminated: bool = False
     collision_reports: List[CollisionReport] = field(default_factory=list)
+    metrics_reports: List[MetricsReport] = field(default_factory=list)
     first_collision_ts: SimTime = Decimal(999)
 
     def __post_init__(self):
@@ -101,10 +103,10 @@ class Simulator:
                 if report is not None:
                     logger.info(f"Detected a collision between {p1} and {p2}")
                     collision = True
-                    a_state = sim_context.log.at(report.at_time)[p1].state
-                    b_state = sim_context.log.at(report.at_time)[p2].state
-                    metrics_report = malliaris_one(p1, p2, report, a_state, b_state)
-                    print(metrics_report)
+                    #a_state = sim_context.log.at(report.at_time)[p1].state
+                    #b_state = sim_context.log.at(report.at_time)[p2].state
+                    #metrics_report = malliaris_one(p1, p2, report, a_state, b_state)
+                    #print(metrics_report)
                     if report.at_time < sim_context.first_collision_ts:
                         sim_context.first_collision_ts = report.at_time
                     sim_context.collision_reports.append(report)
