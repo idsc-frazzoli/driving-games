@@ -1,9 +1,10 @@
 # import functions to read xml file and visualize commonroad objects
 import json
 
+from commonroad.scenario.lanelet import Lanelet
 from commonroad.visualization.mp_renderer import MPRenderer
 from commonroad.visualization.param_server import write_default_params
-
+# from commonroad_route_planner.route_planner import RoutePlanner
 from sim.scenarios import load_commonroad_scenario
 
 
@@ -12,12 +13,16 @@ def test_load_commonroad():
     scenario = "USA_Lanker-1_1_T-1.xml"
 
     scenario, planning_problem_set = load_commonroad_scenario(scenario)
+
     print(scenario)
     # plt.figure()
     # draw_object(scenario)
     # draw_object(planning_problem_set)
     # plt.gca().set_aspect('equal')
     # plt.show()
+    dyn_obs = scenario.dynamic_obstacles[2]
+    lanelet_id = dyn_obs.initial_center_lanelet_ids
+    Lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet_id,network=scenario.lanelet_network)
 
     rnd = MPRenderer()
     axis = rnd.ax

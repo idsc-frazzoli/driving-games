@@ -29,6 +29,7 @@ class SimContext:
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
         self.scenario, _ = load_commonroad_scenario(self.scenario_name)
+        print(self.scenario)
 
 
 class Simulator:
