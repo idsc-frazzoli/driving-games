@@ -3,8 +3,7 @@ from typing import Tuple, Mapping, Dict
 import numpy as np
 from shapely.geometry import Point, Polygon
 
-from crash.metrics_structures import MalliarisOneReportPlayer, MetricsReport
-from crash.metrics_utils import MalliarisZero, MalliarisOne
+from crash.metrics_utils import MalliarisOneRiskModel, MalliarisZeroRiskModel, MalliarisRisk
 from games import X, PlayerName
 from sim import CollisionReport
 from sim.models import ms2mph
@@ -68,47 +67,28 @@ def get_malliaris_dof(impact_point: Point, v_init: np.array, footprint: Polygon,
         return 0, 0
 
 
-def malliaris_zero(a: PlayerName, b: PlayerName, report: CollisionReport) -> MetricsReport:
+def malliaris_zero(report: CollisionReport, states: Mapping[PlayerName, X]) -> \
+        Mapping[PlayerName, MalliarisRisk]:
     """
     Calculates the probability of casualty, MAIS 3+ and MAIS 2+ for the simplest Malliaris model
     for each player in two vehicles crashes, according to the "Malliaris Zero" model
     :returns: A list with [p_fatality, p_mais3, p_mais2]
     """
+    assert states.keys() == report.players.keys()
 
-    p_fatality = []
-    p_mais3 = []
-    p_mais2 = []
-
-    # Variable holding the values of the MalliarisZero coefficients for each severity case
-    tmp = MalliarisZero()
+    # Variable holding the values of the MalliarisOne coefficients for each severity case
+    risk_model = MalliarisZeroRiskModel()
+    damage_reports: Dict[PlayerName, MalliarisRisk] = {}
 
     for key, value in report.players.items():
-        # Compute probability of fatality
-        tmp.coeff_fatality()
         delta_v = get_delta_v(value.velocity[0], value.velocity_after[0])
-        p_fatality.append(tmp.compute_probability(delta_v))
+        damage_reports[key] = risk_model.compute_risk(delta_v)
 
-        # Compute probability of MAIS 3+ injury
-        tmp.coeff_mais3()
-        p_mais3.append(tmp.compute_probability(delta_v))
-
-        # Compute probability of MAIS 2+ injury
-        tmp.coeff_mais2()
-        p_mais2.append(tmp.compute_probability(delta_v))
-
-    a_metrics = MalliarisOneReportPlayer(p_fatality=p_fatality[0],
-                                         p_mais3=p_mais3[0],
-                                         p_mais2=p_mais2[0])
-
-    b_metrics = MalliarisOneReportPlayer(p_fatality=p_fatality[1],
-                                         p_mais3=p_mais3[1],
-                                         p_mais2=p_mais2[1])
-
-    return MetricsReport(malliaris={a: a_metrics, b: b_metrics})
+    return damage_reports
 
 
 def malliaris_one(report: CollisionReport, states: Mapping[PlayerName, X]) -> \
-        Mapping[PlayerName, MalliarisOneReportPlayer]:
+        Mapping[PlayerName, MalliarisRisk]:
     """
     Calculates the probability of casualty, MAIS 3+ and MAIS 2+ for the simplest Malliaris model
     for each player in two vehicles crashes, according to the "Malliaris One" model
@@ -118,27 +98,12 @@ def malliaris_one(report: CollisionReport, states: Mapping[PlayerName, X]) -> \
     assert states.keys() == report.players.keys()
 
     # Variable holding the values of the MalliarisOne coefficients for each severity case
-    tmp = MalliarisOne()
-    damage_reports: Dict[PlayerName, MalliarisOneReportPlayer] = {}
+    risk_model = MalliarisOneRiskModel()
+    damage_reports: Dict[PlayerName, MalliarisRisk] = {}
 
     for key, value in report.players.items():
-        # Compute probability of fatality
-        tmp.coeff_fatality()
         delta_v = get_delta_v(value.velocity[0], value.velocity_after[0])
         dof = get_malliaris_dof(report.impact_point, value.velocity[0], value.footprint, states[key])
-        p_fatality: float = tmp.compute_probability(delta_v, dof[0], dof[1])
-
-        # Compute probability of MAIS 3+ injury
-        tmp.coeff_mais3()
-        p_mais3: float = tmp.compute_probability(delta_v, dof[0], dof[1])
-
-        # Compute probability of MAIS 2+ injury
-        tmp.coeff_mais2()
-        p_mais2: float = tmp.compute_probability(delta_v, dof[0], dof[1])
-
-        malliaris_one = MalliarisOneReportPlayer(p_fatality=p_fatality,
-                                                 p_mais3=p_mais3,
-                                                 p_mais2=p_mais2)
-        damage_reports[key] = malliaris_one
+        damage_reports[key] = risk_model.compute_risk(delta_v, dof[0], dof[1])
 
     return damage_reports

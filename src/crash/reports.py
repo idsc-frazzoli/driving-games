@@ -18,6 +18,7 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_log: SimulationLog)
     a_state = sim_log.at(coll_report.at_time)[a].state
     b_state = sim_log.at(coll_report.at_time)[b].state
     states = {a: a_state, b: b_state}
+    # Malliaris
     malliaris = malliaris_one(coll_report, states)
 
     return MetricsReport(malliaris=malliaris)
@@ -48,6 +49,6 @@ def get_collsion_reports(sim_context: SimContext) -> Report:
             plot_collision(report)
             plt.savefig(f)
         damage_metrics = compute_damage_metrics(coll_report=report, sim_log=sim_context.log)
-        r.text(f"Damages-Collision-{i}", text=damage_metrics.__str__())
+        r.text(f"Collision-{i}-damages", text=damage_metrics.__str__())
 
     return r
