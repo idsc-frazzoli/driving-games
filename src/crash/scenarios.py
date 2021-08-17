@@ -9,15 +9,39 @@ from sim.agent import NPAgent
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle import VehicleState, VehicleModel, VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
+from sim.scenarios import load_commonroad_scenario
+from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
 from sim.simulator import SimContext
 from sim.simulator_structures import SimParameters, SimulationLog
 
 __all__ = ["get_scenario_01", "get_scenario_02"]
 
 
+def get_scenario_commonroad_replica() -> SimContext:
+    scenario_name = "USA_Lanker-1_1_T-1.xml"
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    players, models = {}, {}
+    for i, dyn_obs in enumerate(scenario.dynamic_obstacles[:4]):
+        playername = PlayerName(f"P{i}")
+        agent, model = npAgent_from_dynamic_obstacle(dyn_obs, scenario.dt)
+        players.update({playername: agent})
+        models.update({playername: model})
+    return SimContext(scenario_name=scenario_name,
+                      models=models,
+                      players=players,
+                      log=SimulationLog(),
+                      param=SimParameters(dt=D(0.02), sim_time_after_collision=D(4), max_sim_time=D(5)),
+                      )
+
+
 def get_scenario_01() -> SimContext:
     P1, P2, P3, P4, P5, P6, P7 = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
         "P5"), PlayerName("P6"), PlayerName("P7")
+
+    scenario_name = "USA_Lanker-1_1_T-1.xml"
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    dyn_obs = scenario.dynamic_obstacles[2]
+    agent, model = npAgent_from_dynamic_obstacle(dyn_obs)
 
     x0_p1 = VehicleStateDyn(x=2, y=18, theta=0, vx=5, delta=0)
     x0_p2 = VehicleStateDyn(x=22, y=6, theta=deg2rad(90), vx=6, delta=0)
@@ -28,7 +52,7 @@ def get_scenario_01() -> SimContext:
     x0_p7 = PedestrianState(x=11, y=32, theta=deg2rad(-90), vx=4)
     models = {P1: VehicleModelDyn.default_car(x0_p1),
               P2: VehicleModelDyn.default_bicycle(x0_p2),
-              P3: VehicleModelDyn.default_car(x0_p3),
+              P3: model,
               P4: VehicleModelDyn.default_car(x0_p4),
               P5: VehicleModelDyn.default_bicycle(x0_p5),
               P6: VehicleModelDyn.default_car(x0_p6),
@@ -46,14 +70,14 @@ def get_scenario_01() -> SimContext:
                                                           D(99): PedestrianCommands(acc=0, dtheta=0)}
     players = {P1: NPAgent(commands_input_2),
                P2: NPAgent(commands_input),
-               P3: NPAgent(commands_input_2),
+               P3: agent,
                P4: NPAgent(commands_input),
                P5: NPAgent(commands_input_2),
                P6: NPAgent(commands_input_2),
                P7: NPAgent(ped_commands)
                }
 
-    return SimContext(scenario_name="USA_Lanker-1_1_T-1.xml",
+    return SimContext(scenario_name=scenario_name,
                       models=models,
                       players=players,
                       log=SimulationLog(),

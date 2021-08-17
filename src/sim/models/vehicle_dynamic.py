@@ -5,6 +5,7 @@ import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
+from sim import logger
 from sim.models import Pacejka
 from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G
@@ -159,8 +160,14 @@ class VehicleModelDyn(VehicleModel):
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
-
+            try:
+                F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
+            except ValueError:
+                msg = f"Results will be inaccurate since\n" \
+                      f"F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2) gave an error.\n" \
+                      f"{F2y0} * math.sqrt(1 - ({Facc} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
+                logger.warn(msg)
+                F2y = F2y0
             costh = math.cos(x0.theta)
             sinth = math.sin(x0.theta)
             xdot = x0.vx * costh - x0.vy * sinth

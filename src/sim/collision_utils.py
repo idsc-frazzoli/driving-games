@@ -10,27 +10,19 @@ def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[
     int_shape = a_shape.intersection(b_shape)
     points = list(int_shape.exterior.coords[:-1])
 
-    ###
-    # from matplotlib import pyplot as plt
-    # plt.figure()
-    # plt.plot(*a.exterior.xy, "b")
-    # plt.plot(*b.exterior.xy, "r")
-    # for p in points:
-    #     plt.plot(*p, "o")
-    ###
     def is_contained_in_aorb(p) -> bool:
         shapely_point = Point(p).buffer(1.0e-9)
-        # print("blu:", a.contains(shapely_point))
-        # print("red:", b.contains(shapely_point))
         return a_shape.contains(shapely_point) or b_shape.contains(shapely_point)
 
     points[:] = [p for p in points if not is_contained_in_aorb(p)]
-    ####
-    # for p in points:
-    #     plt.plot(*p, "x")
-    # plt.savefig("debug.png")
-    ####
     if not len(points) == 2:
+        from matplotlib import pyplot as plt
+        plt.figure()
+        plt.plot(*a_shape.exterior.xy, "b")
+        plt.plot(*b_shape.exterior.xy, "r")
+        for p in points:
+            plt.plot(*p, "o")
+        plt.savefig("debug.png")
         raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")
     return points
 
