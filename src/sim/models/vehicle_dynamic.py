@@ -164,7 +164,7 @@ class VehicleModelDyn(VehicleModel):
                 F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
             except ValueError:
                 msg = f"Results will be inaccurate since\n" \
-                      f"F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2) gave an error.\n" \
+                      f"F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2) gave an error with values\n" \
                       f"{F2y0} * math.sqrt(1 - ({Facc} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
                 logger.warn(msg)
                 F2y = F2y0
