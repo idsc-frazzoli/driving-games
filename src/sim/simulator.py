@@ -8,6 +8,7 @@ from commonroad.scenario.scenario import Scenario
 from games import PlayerName
 from sim import logger, CollisionReport, SimTime
 from sim.agent import Agent
+from sim.collision_utils import CollisionException
 from sim.scenarios import load_commonroad_scenario
 from sim.simulator_structures import *
 
@@ -29,7 +30,6 @@ class SimContext:
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
         self.scenario, _ = load_commonroad_scenario(self.scenario_name)
-        print(self.scenario)
 
 
 class Simulator:
@@ -97,7 +97,11 @@ class Simulator:
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
                 from sim.collision import resolve_collision  # import here to avoid circular imports
-                report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
+                try:
+                    report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
+                except CollisionException as e:
+                    logger.warn(f"Failed to resolve collision between {p1} and {p2} because:\n{e.args}")
+                    report = None
                 if report is not None:
                     logger.info(f"Detected a collision between {p1} and {p2}")
                     collision = True

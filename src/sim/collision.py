@@ -9,7 +9,7 @@ from games import PlayerName
 from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \
-    velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision
+    velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, CollisionException
 from sim.simulator import SimContext
 
 

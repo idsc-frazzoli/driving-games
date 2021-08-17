@@ -6,6 +6,10 @@ from shapely.geometry import Polygon, Point, LineString
 from sim.models.vehicle_structures import VehicleGeometry
 
 
+class CollisionException(Exception):
+    pass
+
+
 def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[float, float]]:
     int_shape = a_shape.intersection(b_shape)
     points = list(int_shape.exterior.coords[:-1])
@@ -23,7 +27,7 @@ def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[
         for p in points:
             plt.plot(*p, "o")
         plt.savefig("debug.png")
-        raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")
+        raise CollisionException(f"At the moment collisions with {len(points)} intersecting points are not supported")
     return points
 
 

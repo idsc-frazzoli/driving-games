@@ -23,6 +23,10 @@ class SimParameters:
     sim_time_after_collision: Decimal = Decimal(0)
     """The simulation time for which to continue after the first collision is detected [s]"""
 
+    @classmethod
+    def default(cls) -> "SimParameters":
+        return SimParameters(dt=SimTime(0.05), max_sim_time=SimTime(10), sim_time_after_collision=SimTime(0))
+
 
 @dataclass
 class SimObservations:

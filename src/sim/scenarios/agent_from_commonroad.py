@@ -40,8 +40,8 @@ def npAgent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, time_step: float) ->
     model = VehicleModelDyn(x0=x0,
                             vg=vg,
                             vp=vp,
-                            pacejka_front=Pacejka.default_bicycle_front(),
-                            pacejka_rear=Pacejka.default_bicycle_rear())
+                            pacejka_front=Pacejka.default_car_front(),
+                            pacejka_rear=Pacejka.default_car_rear())
 
     cmds_seq: Dict[SimTime, VehicleCommands] = {
         SimTime(dyn_obs.initial_state.time_step * time_step): VehicleCommands(acc=acceleration[0], ddelta=ddelta[0])}

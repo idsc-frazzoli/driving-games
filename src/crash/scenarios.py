@@ -17,21 +17,7 @@ from sim.simulator_structures import SimParameters, SimulationLog
 __all__ = ["get_scenario_01", "get_scenario_02"]
 
 
-def get_scenario_commonroad_replica() -> SimContext:
-    scenario_name = "USA_Lanker-1_1_T-1.xml"
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
-    players, models = {}, {}
-    for i, dyn_obs in enumerate(scenario.dynamic_obstacles[:4]):
-        playername = PlayerName(f"P{i}")
-        agent, model = npAgent_from_dynamic_obstacle(dyn_obs, scenario.dt)
-        players.update({playername: agent})
-        models.update({playername: model})
-    return SimContext(scenario_name=scenario_name,
-                      models=models,
-                      players=players,
-                      log=SimulationLog(),
-                      param=SimParameters(dt=D(0.02), sim_time_after_collision=D(4), max_sim_time=D(5)),
-                      )
+
 
 
 def get_scenario_01() -> SimContext:
