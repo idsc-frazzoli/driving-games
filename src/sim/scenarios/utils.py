@@ -10,6 +10,7 @@ __all__ = ["load_commonroad_scenario"]
 
 
 def load_commonroad_scenario(scenario_name: str) -> Tuple[Scenario, PlanningProblemSet]:
+    """Loads a commonroad scenario"""
     dg_root_dir = __file__
     dg_name = "driving-games"
     assert dg_name in dg_root_dir
@@ -26,6 +27,7 @@ def load_commonroad_scenario(scenario_name: str) -> Tuple[Scenario, PlanningProb
                 break
     if scenario_path is None:
         raise FileNotFoundError(
-            f"Unable to find commonroad scenario {scenario_name} within {common_roadscenarios_path}")
+            f"Unable to find commonroad scenario {scenario_name} within {common_roadscenarios_path}.\n"
+            f"Be aware that currently interactive scenarios cannot be loaded.")
     # read in the scenario and planning problem set
-    return CommonRoadFileReader(scenario_path).open()
+    return CommonRoadFileReader(scenario_path).open(lanelet_assignment=True)

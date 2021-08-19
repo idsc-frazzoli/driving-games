@@ -1,37 +1,45 @@
+from math import pi
 from typing import List, Tuple
 
 import numpy as np
+from geometry import T2value, SO2value, SO2_from_angle
 from shapely.geometry import Polygon, Point, LineString
+from toolz import remove
 
 from sim.models.vehicle_structures import VehicleGeometry
+
+
+class CollisionException(Exception):
+    pass
+
+
+_rot90: SO2value = SO2_from_angle(pi / 2)
+
+
+def velocity_of_P_given_A(vel: T2value, omega: float, vec_ap: T2value) -> T2value:
+    """ Compute velocity of point P given velocity at A, rotational velocity of the rigid body and vector AP"""
+    # rotate by 90 to be equivalent to cross product omega x r_ap
+    return vel + omega * (_rot90 @ vec_ap)
 
 
 def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[float, float]]:
     int_shape = a_shape.intersection(b_shape)
     points = list(int_shape.exterior.coords[:-1])
 
-    ###
-    # from matplotlib import pyplot as plt
-    # plt.figure()
-    # plt.plot(*a.exterior.xy, "b")
-    # plt.plot(*b.exterior.xy, "r")
-    # for p in points:
-    #     plt.plot(*p, "o")
-    ###
     def is_contained_in_aorb(p) -> bool:
         shapely_point = Point(p).buffer(1.0e-9)
-        # print("blu:", a.contains(shapely_point))
-        # print("red:", b.contains(shapely_point))
         return a_shape.contains(shapely_point) or b_shape.contains(shapely_point)
 
-    points[:] = [p for p in points if not is_contained_in_aorb(p)]
-    ####
-    # for p in points:
-    #     plt.plot(*p, "x")
-    # plt.savefig("debug.png")
-    ####
+    points = list(remove(is_contained_in_aorb, points))
     if not len(points) == 2:
-        raise RuntimeError(f"At the moment collisions with {len(points)} intersecting points are not supported")
+        from matplotlib import pyplot as plt
+        plt.figure()
+        plt.plot(*a_shape.exterior.xy, "b")
+        plt.plot(*b_shape.exterior.xy, "r")
+        for p in points:
+            plt.plot(*p, "o")
+        plt.savefig("debug.png")
+        raise CollisionException(f"At the moment collisions with {len(points)} intersecting points are not supported")
     return points
 
 

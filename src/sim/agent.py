@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Mapping, Callable
 
 from games import U, PlayerName, X
-from sim.simulator_structures import SimObservations, SimTime
+from sim import SimTime
+from sim.simulator_structures import SimObservations
 
 __all__ = ["Agent", "NPAgent", "PolicyAgent"]
 
@@ -26,9 +27,10 @@ class NPAgent(Agent):
         t: SimTime = sim_obs.time
         command = None
         for instant in self.commands_plan:
-            if instant > t:
+            # todo fixme
+            if t >= instant:
                 command = self.commands_plan[instant]
-                break
+                #break
         if command is None:
             raise RuntimeError(f"Undefined command for instant {t}")
         return command
