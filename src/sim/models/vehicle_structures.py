@@ -94,7 +94,6 @@ class VehicleGeometry(ModelGeometry):
 
     def get_rotated_wheels_outlines(self, delta: float) -> List[np.ndarray]:
         """
-
         :param delta: Steering angle of front wheels
         :return:
         """

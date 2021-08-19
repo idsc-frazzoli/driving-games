@@ -8,7 +8,7 @@ from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \
     velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, \
-    velocity_of_P_given_A
+    velocity_of_P_given_A, CollisionException
 from sim.simulator import SimContext
 
 
@@ -29,7 +29,7 @@ def impact_locations_from_polygons(a_model: SimModel, b_model: SimModel) -> List
         if b_shape.intersects(loc_shape):
             locations.append((loc, loc_shape))
     if not locations:
-        raise RuntimeWarning("Detected a collision but unable to find the impact location")
+        raise CollisionException(f"Detected a collision but unable to find the impact location for model {a_model}")
     return locations
 
 
@@ -54,7 +54,6 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     rel_velocity_atP = a_vel_atP - b_vel_atP
 
     if np.dot(rel_velocity_atP, impact_normal) < 0:
-        # fixme this check needs to be done with the velocity vector at the collision point
         logger.debug(f"Not solving the collision between {a}, {b} since they are already separating")
         return None
 

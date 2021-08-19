@@ -13,6 +13,15 @@ from sim.models.vehicle_structures import VehicleGeometry, CAR
 
 
 def npAgent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, time_step: float) -> (NPAgent, VehicleModelDyn):
+    """
+    This function aims to create a non-playing character (fixed sequence of commands) in our simulation environment from
+    a dynamic obstacle of commonroad (fixed sequence of states).
+    # fixme currently only cars are supported
+    # fixme this function needs to be improved...
+    :param dyn_obs:
+    :param time_step:
+    :return:
+    """
     assert dyn_obs.obstacle_type == ObstacleType.CAR
 
     orientations: List[float] = [dyn_obs.initial_state.orientation]
@@ -33,7 +42,7 @@ def npAgent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, time_step: float) ->
     x0 = VehicleStateDyn(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
                          theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
                          delta=delta[0])
-
+    # fixme  need to estimate mass and inertia from shape of car
     vg = VehicleGeometry(vehicle_type=CAR, w_half=w_half, m=1500.0, Iz=1000, lf=l / 2.0,
                          lr=l / 2.0, e=0.6, color="royalblue")
     vp = VehicleParametersDyn.default_car()

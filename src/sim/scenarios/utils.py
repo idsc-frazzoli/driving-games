@@ -10,6 +10,7 @@ __all__ = ["load_commonroad_scenario"]
 
 
 def load_commonroad_scenario(scenario_name: str) -> Tuple[Scenario, PlanningProblemSet]:
+    """Loads a commonroad scenario"""
     dg_root_dir = __file__
     dg_name = "driving-games"
     assert dg_name in dg_root_dir

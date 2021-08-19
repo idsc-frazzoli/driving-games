@@ -10,7 +10,7 @@ from sim.simulator import SimContext
 def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimParameters] = None) -> SimContext:
     """
     This functions load a commonroad scenario and tries to convert the dynamic obstacles into the Model/Agent paradigm
-    used by this simulator.
+    used by the driving-game simulator.
     :param scenario_name:
     :param sim_param:
     :return:
@@ -24,7 +24,7 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
             players.update({playername: agent})
             models.update({playername: model})
         except ZeroDivisionError as e:
-            logger.warn(e.args)
+            logger.warn("Unable to convert commonroad dynamic obstacle due to " + e.args + " skipping...")
     logger.info(f"Managed to load {len(players)}")
     sim_param = SimParameters.default() if sim_param is None else sim_param
     return SimContext(scenario_name=scenario_name,

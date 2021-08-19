@@ -19,7 +19,6 @@ class _Zorders(IntEnum):
     IMPACT_LOCATION_NAME = 40
     IMPACT_POINT = 82
     IMPACT_NORMAL = 85
-
     DEBUG = 100
 
 
