@@ -5,7 +5,6 @@ from typing import Tuple, Sequence
 from sim import Color
 
 
-
 @dataclass(frozen=True, unsafe_hash=True)
 class ModelGeometry(ABC):
     m: float
