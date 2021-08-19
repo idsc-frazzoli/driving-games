@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from typing import Mapping, Callable
 
 from games import U, PlayerName, X
-from sim.simulator_structures import SimObservations, SimTime
+from sim import SimTime
+from sim.simulator_structures import SimObservations
 
 __all__ = ["Agent", "NPAgent", "PolicyAgent"]
 

@@ -161,6 +161,7 @@ class VehicleModelDyn(VehicleModel):
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
             try:
+                # todo fix https://link.springer.com/chapter/10.1007/978-981-13-8566-7_42
                 F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
             except ValueError:
                 msg = f"Results will be inaccurate since\n" \

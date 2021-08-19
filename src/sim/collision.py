@@ -1,15 +1,14 @@
-from math import pi
 from typing import List, Optional, Tuple
 
 import numpy as np
-from geometry import SO2value, SO2_from_angle
 from shapely.geometry import Polygon
 
 from games import PlayerName
 from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \
-    velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, CollisionException
+    velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, \
+    velocity_of_P_given_A
 from sim.simulator import SimContext
 
 
@@ -45,16 +44,13 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_shape = b_model.get_footprint()
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
+    # fixme this is an approximation to take the cog from the shape centroid
     r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
     r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     a_vel, a_omega = a_model.get_velocity(in_model_frame=False)
     b_vel, b_omega = b_model.get_velocity(in_model_frame=False)
-    rel_velocity = a_vel - b_vel
-
-    # rotate by 90 to be equivalent to cross product r_ap x omega
-    rot90: SO2value = SO2_from_angle(pi / 2)
-    a_vel_atP = a_vel + a_omega * (rot90 @ r_ap)
-    b_vel_atP = b_vel + b_omega * (rot90 @ r_bp)
+    a_vel_atP = velocity_of_P_given_A(a_vel, a_omega, r_ap)
+    b_vel_atP = velocity_of_P_given_A(b_vel, b_omega, r_bp)
     rel_velocity_atP = a_vel_atP - b_vel_atP
 
     if np.dot(rel_velocity_atP, impact_normal) < 0:
@@ -78,7 +74,7 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     a_geom = a_model.get_geometry()
     b_geom = b_model.get_geometry()
     j_n = compute_impulse_response(n=impact_normal,
-                                   vel_ab=rel_velocity,
+                                   vel_ab=rel_velocity_atP,
                                    r_ap=r_ap,
                                    r_bp=r_bp,
                                    a_geom=a_geom,
