@@ -119,19 +119,19 @@ class EvaluatedMetric:
         if m1.incremental is None:
             inc = None
         else:
-            t_1, t_2 = m1.incremental._timestamps, m2.incremental._timestamps
+            t_1, t_2 = m1.incremental.timestamps, m2.incremental.timestamps
             if t_1[-1] != t_2[0]:
                 raise ValueError(f"Timestamps need to be consecutive - {t_1[-1], t_2[0]}")
             times_i = t_1 + t_2[1:]
-            vals_i = m1.incremental._values + m2.incremental._values[1:]
+            vals_i = m1.incremental.values + m2.incremental.values[1:]
             inc = DgSampledSequence(timestamps=times_i, values=vals_i)
 
         if m1.cumulative is None:
             cum = None
         else:
-            times_c = m1.cumulative._timestamps + m2.cumulative._timestamps
-            c_end = m1.cumulative._values[-1]
-            vals_c = m1.cumulative._values + [v + c_end for v in m2.cumulative._values]
+            times_c = m1.cumulative.timestamps + m2.cumulative.timestamps
+            c_end = m1.cumulative.values[-1]
+            vals_c = m1.cumulative.values + [v + c_end for v in m2.cumulative.values]
             cum = DgSampledSequence(timestamps=times_c, values=vals_c)
 
         return EvaluatedMetric(title=m1.title, description=m1.description,

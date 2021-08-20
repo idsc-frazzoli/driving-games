@@ -1,11 +1,10 @@
 from operator import add
-from typing import List, Tuple
 
 from toolz import accumulate
 
-from dg_commons.sequence import DgSampledSequence, Timestamp, iterate_with_dt
+from dg_commons.sequence import DgSampledSequence, iterate_with_dt
 
-__all__ = ["seq_accumulate"]
+__all__ = ["seq_accumulate", "seq_integrate"]
 
 
 # todo check that this operations cannot be done on any values
@@ -18,10 +17,10 @@ def seq_integrate(sequence: DgSampledSequence[float]) -> DgSampledSequence[float
     total = 0.0
     timestamps = []
     values = []
-    for _ in iterate_with_dt(sequence):
-        v_avg = (_.v0 + _.v1) / 2.0
-        total += v_avg * float(_.dt)
-        timestamps.append(_.t1)
+    for it in iterate_with_dt(sequence):
+        v_avg = (it.v0 + it.v1) / 2.0
+        total += v_avg * float(it.dt)
+        timestamps.append(it.t1)
         values.append(total)
 
     return DgSampledSequence[float](timestamps, values)
@@ -30,8 +29,3 @@ def seq_integrate(sequence: DgSampledSequence[float]) -> DgSampledSequence[float
 def seq_accumulate(sequence: DgSampledSequence[float]) -> DgSampledSequence[float]:
     cumsum = list(accumulate(add, sequence.values))
     return DgSampledSequence[sequence.XT](sequence.timestamps, cumsum)
-
-
-
-
-
