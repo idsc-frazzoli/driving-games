@@ -60,7 +60,8 @@ class Trajectory:
 
     @staticmethod
     @cached(cache={}, key=lambda states, lane, values, p_final: cachetools.keys.hashkey((states, lane)))
-    def create(states: Tuple[VehicleState, VehicleState], lane: LaneSegmentHashable,
+    def create(states: Tuple[VehicleState, VehicleState],
+               lane: LaneSegmentHashable,
                values: List[VehicleState], p_final: FinalPoint = None):
         return Trajectory(values=values, lane=lane, p_final=p_final, states=states)
 

@@ -17,12 +17,12 @@ class UndefinedAtTime(ZException):
 
 
 @dataclass
-class IterateDT(Generic[Y]):
+class IterateDT(Generic[X]):
     t0: Timestamp
     t1: Timestamp
     dt: Timestamp
-    v0: Y
-    v1: Y
+    v0: X
+    v1: X
 
 
 @dataclass
@@ -40,7 +40,7 @@ class DgSampledSequence(Generic[X]):
     _timestamps: List[Timestamp] = field(default_factory=list)
     _values: List[X] = field(default_factory=list)
 
-    XT: ClassVar[Type[X]] = object
+    XT: ClassVar[Type[X]] = field(init=False)
 
     def __post_init__(self, timestamps, values):
         timestamps = list(timestamps)
