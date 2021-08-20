@@ -13,7 +13,7 @@ from duckietown_world import SE2Transform
 
 from games import PlayerName
 from .structures import VehicleGeometry, VehicleState
-from .sequence import Timestamp
+from dg_commons.sequence import Timestamp
 from .metrics_def import (
     Metric,
     MetricEvaluationContext,

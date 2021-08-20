@@ -1,16 +1,17 @@
-import cachetools
-from cachetools import cached
+from bisect import bisect_right
 from functools import lru_cache
 from typing import List, Dict, Tuple, Optional, FrozenSet, Iterator, Union
+
+import cachetools
 import numpy as np
+from cachetools import cached
 from duckietown_world import SE2Transform
-from bisect import bisect_right
 from networkx import DiGraph, has_path, shortest_path
 
+from dg_commons.sequence import Timestamp, DgSampledSequence
 from world import LaneSegmentHashable
-from .sequence import Timestamp, SampledSequence
-from .structures import VehicleState
 from .game_def import ActionGraph
+from .structures import VehicleState
 
 __all__ = [
     "Trajectory",
@@ -30,7 +31,7 @@ class Trajectory:
         This is used for evaluation of trajectory metrics where the 
         outcomes are cached using the trajectory as the key """
 
-    states: SampledSequence[VehicleState]
+    states: DgSampledSequence[VehicleState]
     """ The upsampled sequence of vehicle states """
     lane: LaneSegmentHashable
     """ The reference lane used to generate the trajectory """
@@ -44,7 +45,7 @@ class Trajectory:
         if all(isinstance(val, Trajectory) for val in values):
             self.traj = values
             x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
-            self.states = SampledSequence(timestamps=list(x_t.keys()), values=list(x_t.values()))
+            self.states = DgSampledSequence(timestamps=list(x_t.keys()), values=list(x_t.values()))
         elif all(isinstance(val, VehicleState) for val in values):
             if states is not None:
                 values[0] = states[0]
@@ -52,7 +53,7 @@ class Trajectory:
             if p_final is not None:
                 self.trim_trajectory(states=values, p_final=p_final)
             times: List[Timestamp] = [x.t for x in values]
-            self.states = SampledSequence(timestamps=times, values=values)
+            self.states = DgSampledSequence(timestamps=times, values=values)
             self.traj = []
         else:
             raise TypeError(f"Input is of wrong type - {type(values[0])}!")
@@ -121,7 +122,7 @@ class Trajectory:
 
     def get_path_sampled(self) -> List[SE2Transform]:
         """ Returns cartesian coordinates (SE2) of transition states """
-        return self.state_to_se2_list(self.states.values)
+        return self.state_to_se2_list(self.states._values)
 
     def get_start(self) -> Timestamp:
         return self.states.get_start()
@@ -137,10 +138,11 @@ class Trajectory:
 
         def add_entry(t_stamp):
             states[f"t={round(float(t_stamp), 2)}s"] = self.at(t_stamp)
+
         t = self.get_start()
         while t <= self.get_end():
             add_entry(t_stamp=t)
-            t += Timestamp("1")
+            t += 1
         add_entry(t_stamp=self.get_end())
         return str(states)
 
@@ -151,7 +153,7 @@ class Trajectory:
         x1, x2 = self.at(self.get_end()), other.at(other.get_start())
         if not x1.is_close(x2):
             raise ValueError(f"Transitions not continuous - {x1, x2}")
-        return Trajectory(values=self.traj+other.traj, lane=other.get_lane())
+        return Trajectory(values=self.traj + other.traj, lane=other.get_lane())
 
     def starts_with(self, start: "Trajectory") -> bool:
         if len(start) > len(self): return False

@@ -11,7 +11,7 @@ from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
-from .sequence import Timestamp
+from dg_commons.sequence import Timestamp
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation

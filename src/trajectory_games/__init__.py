@@ -1,6 +1,5 @@
 from .config import *
 from .game_def import *
-from .sequence import *
 from .paths import *
 from .structures import *
 from .trajectory_world import *

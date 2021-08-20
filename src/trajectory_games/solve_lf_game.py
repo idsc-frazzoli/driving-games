@@ -18,7 +18,7 @@ from .structures import VehicleState, VehicleGeometry
 from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
     SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, LeaderFollowerGameNode, LeaderFollowerGameStage, \
     LeaderFollowerGame, preprocess_full_game, SolvedRecursiveLeaderFollowerGame
-from .sequence import Timestamp, SampledSequence
+from dg_commons.sequence import Timestamp, DgSampledSequence
 from .paths import Trajectory
 from .trajectory_generator import TransitionGenerator
 from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
@@ -343,4 +343,4 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
     print(f"Recursive solution complete. Total time = {toc:.2f} s\n\n")
 
     return SolvedRecursiveLeaderFollowerGame(lf=deepcopy(game.lf), aggregated_node=agg_node,
-                                             stages=SampledSequence(timestamps=times, values=stage_seq))
+                                             stages=DgSampledSequence(timestamps=times, values=stage_seq))
