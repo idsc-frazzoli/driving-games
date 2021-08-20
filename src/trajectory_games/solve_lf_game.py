@@ -319,7 +319,7 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
         for pname in game.game_players.keys():
             pact = sol.game_node.actions[pname]
             for step in pact.get_sampling_points():
-                if Timestamp("0") <= step - times[i] <= game.lf.simulation_step:
+                if 0 <= step - times[i] <= game.lf.simulation_step:
                     states_traj[pname][step] = pact.at(step)
             lanes[pname] = pact.get_lane()
 
