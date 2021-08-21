@@ -132,7 +132,7 @@ class Trajectory:
         return self.states.get_end()
 
     def at(self, t: Timestamp) -> VehicleState:
-        return self.states.get_interp(t)
+        return self.states.at_interp(t)
 
     def __repr__(self) -> str:
         states: Dict[str, VehicleState] = {}

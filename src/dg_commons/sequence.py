@@ -40,8 +40,6 @@ class DgSampledSequence(Generic[X]):
     _timestamps: List[Timestamp] = field(default_factory=list)
     _values: List[X] = field(default_factory=list)
 
-    XT: ClassVar[Type[X]] = field(init=False)
-
     def __post_init__(self, timestamps, values):
         timestamps = list(timestamps)
         values = list(values)
@@ -63,6 +61,10 @@ class DgSampledSequence(Generic[X]):
         else:
             self._timestamps = timestamps
         self._values = values
+
+    @property
+    def XT(self) -> Type[X]:
+        return get_args(self.__orig_class__)[0]
 
     @property
     def timestamps(self) -> List[Timestamp]:
@@ -93,15 +95,24 @@ class DgSampledSequence(Generic[X]):
         try:
             return self.at(t)
         except UndefinedAtTime:
-            pass
+            if t <= self.get_start():
+                return self.at(self.get_start())
 
-        last_i = 0
-        for i in range(len(self._timestamps)):
-            if self._timestamps[i] < t:
-                last_i = i
-            else:
-                break
-        return self._values[last_i]
+        i = bisect_right(self._timestamps, t)
+        return self._values[i - 1]
+
+    def at_interp(self, t: Timestamp) -> X:
+        """ Returns value at requested timestamp,
+        Interpolates between timestamps, holds at the extremes"""
+        if t <= self.get_start():
+            return self.at(self.get_start())
+        elif t >= self.get_end():
+            return self.at(self.get_end())
+        else:
+            i = bisect_right(self._timestamps, t)
+            scale = float((t - self._timestamps[i - 1]) /
+                          (self._timestamps[i] - self._timestamps[i - 1]))
+            return self._values[i - 1] * (1 - scale) + self._values[i] * scale
 
     def get_start(self) -> Timestamp:
         """ Returns the timestamp for start """
@@ -131,19 +142,6 @@ class DgSampledSequence(Generic[X]):
                 timestamps.append(t)
         return DgSampledSequence[YT](timestamps, values)
 
-    def get_interp(self, t: Timestamp) -> Generic[X]:
-        """ Returns value at requested timestamp,
-        Interpolates between timestamps, holds at the extremes"""
-        if t <= self.get_start():
-            return self.at(self.get_start())
-        elif t >= self.get_end():
-            return self.at(self.get_end())
-        else:
-            i = bisect_right(self._timestamps, t)
-            scale = float((t - self._timestamps[i - 1]) /
-                          (self._timestamps[i] - self._timestamps[i - 1]))
-            return self._values[i - 1] * (1 - scale) + self._values[i] * scale
-
     def __iter__(self):
         return zip(self._timestamps, self._values).__iter__()
 
@@ -162,8 +160,7 @@ def iterate_with_dt(sequence: DgSampledSequence[X]) -> Iterator[IterateDT[X]]:
         v0 = values[i]
         v1 = values[i + 1]
         dt = t1 - t0
-        X = type(sequence).XT
-        yield IterateDT[X](t0, t1, dt, v0, v1)
+        yield IterateDT[sequence.XT](t0, t1, dt, v0, v1)
 
 
 @dataclass
