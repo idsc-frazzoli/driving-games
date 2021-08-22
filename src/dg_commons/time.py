@@ -5,7 +5,7 @@ from typing import Callable
 from dg_commons import logger
 
 
-def time_function_call(func: Callable):
+def time_function(func: Callable):
     """ Decorator to time the execution time of a function/method call"""
 
     @wraps(func)

@@ -7,6 +7,7 @@ from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type, Ma
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 
+from dg_commons.time import time_function
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 

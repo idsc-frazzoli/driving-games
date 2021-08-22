@@ -5,7 +5,7 @@ from typing import Mapping, Optional, List, MutableMapping
 
 from commonroad.scenario.scenario import Scenario
 
-from dg_commons.time import time_function_call
+from dg_commons.time import time_function
 from games import PlayerName, U
 from sim import logger, CollisionReport, SimTime
 from sim.agents.agent import Agent
@@ -40,7 +40,7 @@ class Simulator:
     last_get_commands_ts: SimTime = SimTime(-99)
     last_commands: MutableMapping[PlayerName, U] = {}
 
-    @time_function_call
+    @time_function
     def run(self, sim_context: SimContext):
         for player_name, player in sim_context.players.items():
             player.on_episode_init(player_name)
