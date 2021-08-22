@@ -1,20 +1,24 @@
-version: 2
-workflows:
-  version: 2
-  test:
-    jobs:
-      - test-3.8
-      - test-3.9
-jobs:
-  test-3.8: &test-template
-    resource_class: large
+version: 2.1
+executors:
+  dg3.8:
     environment:
       CODECOV_TOKEN: "82512efc-b166-4477-b755-7763d56f261c"
       COLUMNS: 160
       # default is /usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       PATH: /root/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     docker:
-      - image: python:3.8
+      - image: alezana/dg_base:3.8
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.8
+
+jobs:
+  test-3.8: &test-template
+    resource_class: large
+    executor: dg3.8
     working_directory: ~/repo
     steps: &steps
       - checkout
@@ -24,6 +28,10 @@ jobs:
             curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
             apt-get install git-lfs
             git lfs install & git lfs pull
+      - run:
+          name: Pull submodules (commonroadscenarios)
+          command: |
+            git submodule update --init
       - run:
           name: Install deps
           command: |
@@ -68,7 +76,6 @@ jobs:
             make coverage-report
             coverage xml
 
-
       - store_artifacts:
           when: always
           path: out/coverage
@@ -84,9 +91,3 @@ jobs:
           when: always
           command: |
             codecov
-
-
-  test-3.9:
-    <<: *test-template
-    docker:
-      - image: python:3.9
