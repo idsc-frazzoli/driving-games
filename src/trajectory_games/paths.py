@@ -60,7 +60,8 @@ class Trajectory:
 
     @staticmethod
     @cached(cache={}, key=lambda states, lane, values, p_final: cachetools.keys.hashkey((states, lane)))
-    def create(states: Tuple[VehicleState, VehicleState], lane: LaneSegmentHashable,
+    def create(states: Tuple[VehicleState, VehicleState],
+               lane: LaneSegmentHashable,
                values: List[VehicleState], p_final: FinalPoint = None):
         return Trajectory(values=values, lane=lane, p_final=p_final, states=states)
 
@@ -131,7 +132,7 @@ class Trajectory:
         return self.states.get_end()
 
     def at(self, t: Timestamp) -> VehicleState:
-        return self.states.get_interp(t)
+        return self.states.at_interp(t)
 
     def __repr__(self) -> str:
         states: Dict[str, VehicleState] = {}
