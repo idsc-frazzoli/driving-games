@@ -1,6 +1,6 @@
 version: 2.1
 executors:
-  dg3.8:
+  dg_38:
     environment:
       CODECOV_TOKEN: "82512efc-b166-4477-b755-7763d56f261c"
       COLUMNS: 160
@@ -13,12 +13,12 @@ workflows:
   version: 2
   test:
     jobs:
-      - test-3.8
+      - test-38
 
 jobs:
-  test-3.8: &test-template
+  test-38: &test-template
     resource_class: large
-    executor: dg3.8
+    executor: dg_38
     working_directory: ~/repo
     steps: &steps
       - checkout
