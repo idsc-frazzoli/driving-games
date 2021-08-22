@@ -8,19 +8,20 @@ from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 
 from games import PlayerName, X, U
+from sim import SimTime, ImpactLocation
 
 __all__ = ["SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
-
-from sim import SimTime, ImpactLocation
 
 
 @dataclass(frozen=True, unsafe_hash=True)
 class SimParameters:
-    dt: Decimal = Decimal(0.1)
+    dt: SimTime = SimTime(0.05)
     """Simulation step [s]"""
-    max_sim_time: Decimal = Decimal(6)
+    dt_commands: SimTime = SimTime(0.1)
+    """How often shall we ask the agents for new commands"""
+    max_sim_time: SimTime = SimTime(6)
     """Max Simulation time overall [s]"""
-    sim_time_after_collision: Decimal = Decimal(0)
+    sim_time_after_collision: SimTime = SimTime(0)
     """The simulation time for which to continue after the first collision is detected [s]"""
 
     @classmethod

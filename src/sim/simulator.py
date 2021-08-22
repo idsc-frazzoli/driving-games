@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import combinations
-from typing import Mapping, Optional, List
+from typing import Mapping, Optional, List, MutableMapping
 
 from commonroad.scenario.scenario import Scenario
 
-from games import PlayerName
+from dg_commons.time import time_function_call
+from games import PlayerName, U
 from sim import logger, CollisionReport, SimTime
 from sim.agents.agent import Agent
 from sim.collision_utils import CollisionException
@@ -36,7 +37,10 @@ class SimContext:
 
 class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
+    last_get_commands_ts: SimTime = SimTime(-99)
+    last_commands: MutableMapping[PlayerName, U] = {}
 
+    @time_function_call
     def run(self, sim_context: SimContext):
         for player_name, player in sim_context.players.items():
             player.on_episode_init(player_name)
@@ -57,15 +61,23 @@ class Simulator:
 
     def update(self, sim_context: SimContext):
         """ The real step of the simulation """
+
         sim_context.log[sim_context.time] = {}
+        update_commands: bool = (sim_context.time - self.last_get_commands_ts) >= sim_context.param.dt_commands
         # fixme this can be parallelized later
         for player_name, model in sim_context.models.items():
-            actions = sim_context.players[player_name].get_commands(self.last_observations)
+            if update_commands:
+                actions = sim_context.players[player_name].get_commands(self.last_observations)
+                self.last_commands[player_name] = actions
+            else:
+                actions = self.last_commands[player_name]
             model.update(actions, dt=sim_context.param.dt)
             log_entry = LogEntry(state=model.get_state(), actions=actions)
             logger.debug(f"Update function, sim time {sim_context.time:.2f}, player: {player_name}")
             logger.debug(f"New state {model.get_state()} reached applying {actions}")
             sim_context.log[sim_context.time].update({player_name: log_entry})
+        if update_commands:
+            self.last_get_commands_ts = sim_context.time
         return
 
     def post_update(self, sim_context: SimContext):
