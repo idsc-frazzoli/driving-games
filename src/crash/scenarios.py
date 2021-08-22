@@ -5,7 +5,7 @@ from numpy import deg2rad
 
 from games import PlayerName
 from sim import SimTime
-from sim.agent import NPAgent
+from sim.agents.agent import NPAgent
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle import VehicleState, VehicleModel, VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn

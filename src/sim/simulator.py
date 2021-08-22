@@ -7,7 +7,7 @@ from commonroad.scenario.scenario import Scenario
 
 from games import PlayerName
 from sim import logger, CollisionReport, SimTime
-from sim.agent import Agent
+from sim.agents.agent import Agent
 from sim.collision_utils import CollisionException
 from sim.scenarios import load_commonroad_scenario
 from sim.simulator_structures import *
@@ -36,6 +36,8 @@ class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
 
     def run(self, sim_context: SimContext):
+        for player_name, player in sim_context.players:
+            player.on_episode_init(player_name)
         while not sim_context.sim_terminated:
             self.pre_update(sim_context)
             self.update(sim_context)

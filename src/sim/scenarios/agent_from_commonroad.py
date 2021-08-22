@@ -5,7 +5,7 @@ import numpy as np
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 
 from sim import SimTime
-from sim.agent import NPAgent
+from sim.agents.agent import NPAgent
 from sim.models import Pacejka
 from sim.models.vehicle import VehicleCommands
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn, VehicleParametersDyn

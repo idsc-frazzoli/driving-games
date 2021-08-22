@@ -2,7 +2,7 @@ from decimal import Decimal as D
 
 import numpy as np
 
-from sim.agent import NPAgent
+from sim.agents.agent import NPAgent
 from sim.simulator_structures import SimObservations
 
 

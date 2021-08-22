@@ -4,10 +4,13 @@ from typing import Sequence, List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
-from duckietown_world import SE2Transform
-from duckietown_world.utils import memoized_reset
+from duckietown_world import SE2Transform, relative_pose
+from duckietown_world.utils import memoized_reset, SE2_interpolate, SE2_apply_R2
 from duckietown_world.world_duckietown.lane_segment import get_distance_two
-from geometry import SO2value, SO2_from_angle
+from geometry import SO2value, SO2_from_angle, SE2_from_translation_angle, SE2value, SE2, \
+    translation_angle_scale_from_E2, translation_angle_from_SE2, T2value
+from scipy.optimize import minimize_scalar
+from zuper_commons.types import ZValueError
 
 
 @dataclass(unsafe_hash=True)
@@ -94,7 +97,42 @@ class DgLanelet:
     def get_lane_length(self) -> float:
         return sum(self.get_lane_lengths())
 
-    def lane_pose_from_SE2(self) -> DgLanePose:
+    def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-7) -> DgLanePose:
+        p, _, _ = translation_angle_scale_from_E2(q)
+
+        beta, q0 = self.find_along_lane_closest_point(p, tol=tol)
+        along_lane = self.along_lane_from_beta(beta)
+        rel = relative_pose(q0, q)
+
+        r, relative_heading, _ = translation_angle_scale_from_E2(rel)
+        lateral = r[1]
+
+        return self.lane_pose(along_lane=along_lane, relative_heading=relative_heading, lateral=lateral)
+
+    def find_along_lane_closest_point(self, p: T2value, tol: float = 1e-7):
+        def get_delta(beta):
+            q0 = self.center_point(beta)
+            t0, _ = translation_angle_from_SE2(q0)
+            d = np.linalg.norm(p - t0)
+
+            d1 = np.array([0, -d])
+            p1 = SE2_apply_R2(q0, d1)
+
+            d2 = np.array([0, +d])
+            p2 = SE2_apply_R2(q0, d2)
+
+            D2 = np.linalg.norm(p2 - p)
+            D1 = np.linalg.norm(p1 - p)
+            res = np.maximum(D1, D2)
+            return res
+
+        bracket = (-1.0, len(self.control_points))
+        res0 = minimize_scalar(get_delta, bracket=bracket, tol=tol)
+        beta0 = res0.x
+        q = self.center_point(beta0)
+        return beta0, q
+
+    def lane_pose(self, along_lane: float, relative_heading: float, lateral: float) -> DgLanePose:
         # todo
         pass
 
@@ -137,3 +175,34 @@ class DgLanelet:
                 beta = i + (x0 - start_x) / lengths[i]
                 return beta
         assert False
+
+    def radius(self, beta: float) -> float:
+        n = len(self.control_points)
+        i = int(np.floor(beta))
+        if i < 0 or i >= n - 1:
+            raise ZValueError("Lane width is not defined outside the Lane")
+        else:
+            alpha = beta - i
+            r0 = self.control_points[i].r
+            r1 = self.control_points[i + 1].r
+            return r0 * (1 - alpha) + r1 * alpha
+
+    def center_point(self, beta: float) -> SE2value:
+        n = len(self.control_points)
+        i = int(np.floor(beta))
+
+        if i < 0:
+            q0 = self.control_points[0].q.asmatrix2d().m
+            q1 = SE2.multiply(q0, SE2_from_translation_angle([0.1, 0], 0))
+            alpha = beta
+
+        elif i >= n - 1:
+            q0 = self.control_points[-1].q.asmatrix2d().m
+            q1 = SE2.multiply(q0, SE2_from_translation_angle([0.1, 0], 0))
+            alpha = beta - (n - 1)
+        else:
+            alpha = beta - i
+            q0 = self.control_points[i].q.asmatrix2d().m
+            q1 = self.control_points[i + 1].q.asmatrix2d().m
+        q = SE2_interpolate(q0, q1, alpha)
+        return q

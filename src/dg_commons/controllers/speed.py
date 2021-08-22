@@ -1,10 +1,13 @@
+from dataclasses import dataclass
 from math import pi
 from typing import Optional, Tuple, Dict
+
 import numpy as np
-from dataclasses import dataclass
 from aido_schemas import DTSimRobotInfo
 from duckietown_world import relative_pose, SE2Transform
 from geometry import xytheta_from_SE2
+
+from games import PlayerName, X
 
 __all__ = ["SpeedController", "SpeedBehavior"]
 
@@ -13,7 +16,7 @@ __all__ = ["SpeedController", "SpeedBehavior"]
 class SpeedControllerParam:
     kP: float = 0.1
     kI: float = 0.0
-    antiwindup: Tuple[float, float] = (-0.5, 0.5)
+    antiwindup: Tuple[float, float] = (-2, 2)
     setpoint_minmax: Tuple[float, float] = (-1, 1)
 
 
@@ -36,7 +39,7 @@ class SpeedController:
         self.desired_speed = np.clip(desired_speed, self.params.setpoint_minmax[0], self.params.setpoint_minmax[1])
 
     def get_control(self, at: float) -> float:
-        "A simple PI"
+        """A simple PI"""
         dt = 0 if self.last_request_at is None else at - self.last_request_at
         self.last_request_at = at
         p_error = self.desired_speed - self.current_speed
@@ -56,15 +59,15 @@ class SpeedBehaviorParam:
 
 class SpeedBehavior:
     """Determines the reference speed"""
-    duckiebots: Dict[str, DTSimRobotInfo]
+    others: Dict[PlayerName, DTSimRobotInfo]
     last_speed_ref: float = 0
 
-    def __init__(self, myname: str):
+    def __init__(self, my_name: Optional[PlayerName] = None):
         self.params: SpeedBehaviorParam = SpeedBehaviorParam()
-        self.myname: str = myname
+        self.my_name: PlayerName = my_name
 
-    def update_observations(self, duckiebots: Dict[str, DTSimRobotInfo]):
-        self.duckiebots = duckiebots
+    def update_observations(self, others: Dict[PlayerName, X]):
+        self.others = others
 
     def get_speed_ref(self, at: float) -> float:
         """Check if there is anyone on the right too close, then brake"""
@@ -81,11 +84,11 @@ class SpeedBehavior:
         If someone is approaching from the right or someone is in front of us we yield
         """
 
-        for dk_name, dk_sim_robot in self.duckiebots.items():
-            if dk_name == self.myname:
+        for other_name, _ in self.others.items():
+            if other_name == self.my_name:
                 pass
             rel = SE2Transform.from_SE2(relative_pose(
-                self.duckiebots[self.myname].pose, self.duckiebots[dk_name].pose))
+                self.others[self.my_name].pose, self.others[other_name].pose))
 
             distance = np.linalg.norm(rel.p)
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4

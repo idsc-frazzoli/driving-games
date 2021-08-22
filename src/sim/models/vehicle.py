@@ -214,7 +214,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_mesh(self) -> Mapping[ImpactLocation, Polygon]:
         footprint = self.get_footprint()
-        vertices = footprint.exterior.coords[:-1]  # todo check the order!
+        vertices = footprint.exterior.coords[:-1]
         cxy = footprint.centroid.coords[0]
         # maybe we can use triangulate from shapely
         impact_locations: Mapping[ImpactLocation, Polygon] = {

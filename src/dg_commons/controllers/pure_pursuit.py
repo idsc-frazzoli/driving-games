@@ -4,18 +4,19 @@ from typing import Optional, Tuple
 
 import numpy as np
 import scipy.optimize
-from duckietown_world import LaneSegment
 from geometry import SE2value, translation_angle_from_SE2
-from gtduckie.utils import euclidean_between_SE2value
+
+from dg_commons.geo import euclidean_between_SE2value
+from dg_commons.planning.lanes import DgLanelet
 
 __all__ = ["PurePursuit"]
 
 
 @dataclass
 class PurePursuitParam:
-    look_ahead: float = 0.25
-    min_distance: float = 0.05
-    max_extra_distance: float = 0.4
+    look_ahead: float = 2
+    min_distance: float = 0.1
+    max_extra_distance: float = 6
     k_turn2pwm: float = 0.3
 
 
@@ -30,15 +31,15 @@ class PurePursuit:
         initialise pure_pursuit control loop
         :param
         """
-        self.path: Optional[LaneSegment] = None
+        self.path: Optional[DgLanelet] = None
         self.rel_pose: Optional[SE2value] = None
         self.along_path: Optional[float] = None
         self.speed: float = 0
         self.param: PurePursuitParam = params
-        print("Pure pursuit params: \n", self.param)
+        #logger.debug("Pure pursuit params: \n", self.param)
 
-    def update_path(self, path: LaneSegment):
-        assert isinstance(path, LaneSegment)
+    def update_path(self, path: DgLanelet):
+        assert isinstance(path, DgLanelet)
         self.path = path
 
     def update_pose(self, rel_pose: SE2value, along_path: float):
