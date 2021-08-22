@@ -16,11 +16,6 @@ __all__ = [
 FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
 
-class DgLanelet(float):
-    # todo taking the best from commonroad Lanelet and Lanesegments
-    pass
-
-
 @dataclass
 class Trajectory(DgSampledSequence[X]):
     """ Container for a trajectory as a sampled sequence """
