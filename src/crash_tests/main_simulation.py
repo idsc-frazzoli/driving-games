@@ -8,7 +8,10 @@ from sim.simulator import Simulator
 
 if __name__ == '__main__':
     sim = Simulator()
-    sim_param = SimParameters(dt=SimTime(0.01), max_sim_time=SimTime(6), sim_time_after_collision=SimTime(6))
+    sim_param = SimParameters(dt=SimTime(0.01),
+                              dt_commands=SimTime(0.05),
+                              max_sim_time=SimTime(6),
+                              sim_time_after_collision=SimTime(6))
     # initialize all contexts/ agents and simulator
     sim_context = get_scenario_commonroad_replica(
         scenario_name="USA_Lanker-1_1_T-1.xml", sim_param=sim_param)

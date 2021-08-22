@@ -36,6 +36,9 @@ def impact_locations_from_polygons(a_model: SimModel, b_model: SimModel) -> List
 def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> Optional[CollisionReport]:
     """
     Resolves the collision between A and B using the impulse method.
+    Sources:
+        - http://www.chrishecker.com/images/e/e7/Gdmphys3.pdf
+        - https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/previousinformation/physics6collisionresponse/
     :returns A CollisionReport or None if the collision does not need to be solved (the two bodies are already separating)
     """
     a_model: SimModel = sim_context.models[a]

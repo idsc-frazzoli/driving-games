@@ -24,7 +24,7 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
             players.update({playername: agent})
             models.update({playername: model})
         except ZeroDivisionError as e:
-            logger.warn("Unable to convert commonroad dynamic obstacle due to " + e.args + " skipping...")
+            logger.warn("Unable to convert commonroad dynamic obstacle due to " + e.args[0] + " skipping...")
     logger.info(f"Managed to load {len(players)}")
     sim_param = SimParameters.default() if sim_param is None else sim_param
     return SimContext(scenario_name=scenario_name,

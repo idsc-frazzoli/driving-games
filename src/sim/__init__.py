@@ -1,7 +1,8 @@
+from logging import INFO
+
 from zuper_commons.logs import ZLogger
 
 logger = ZLogger(__name__)
-from logging import INFO
 
 logger.setLevel(level=INFO)
 

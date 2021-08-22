@@ -1,13 +1,12 @@
 from decimal import Decimal as D
-from typing import Mapping
 
 from numpy import deg2rad
 
+from dg_commons import DgSampledSequence
 from games import PlayerName
-from sim import SimTime
-from sim.agent import NPAgent
+from sim.agents.agent import NPAgent
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
-from sim.models.vehicle import VehicleState, VehicleModel, VehicleCommands
+from sim.models.vehicle import VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
@@ -17,9 +16,6 @@ from sim.simulator_structures import SimParameters, SimulationLog
 __all__ = ["get_scenario_01", "get_scenario_02"]
 
 
-
-
-
 def get_scenario_01() -> SimContext:
     P1, P2, P3, P4, P5, P6, P7 = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
         "P5"), PlayerName("P6"), PlayerName("P7")
@@ -27,7 +23,7 @@ def get_scenario_01() -> SimContext:
     scenario_name = "USA_Lanker-1_1_T-1.xml"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     dyn_obs = scenario.dynamic_obstacles[2]
-    agent, model = npAgent_from_dynamic_obstacle(dyn_obs)
+    agent, model = npAgent_from_dynamic_obstacle(dyn_obs, scenario.dt)
 
     x0_p1 = VehicleStateDyn(x=2, y=18, theta=0, vx=5, delta=0)
     x0_p2 = VehicleStateDyn(x=22, y=6, theta=deg2rad(90), vx=6, delta=0)
@@ -44,59 +40,28 @@ def get_scenario_01() -> SimContext:
               P6: VehicleModelDyn.default_car(x0_p6),
               P7: PedestrianModel.default(x0_p7)}
 
-    commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                         D(1): VehicleCommands(acc=1, ddelta=0.1),
-                                                         D(2): VehicleCommands(acc=1.5, ddelta=-0.1),
-                                                         D(99): VehicleCommands(acc=0, ddelta=0)}
-    commands_input_2: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                           D(1): VehicleCommands(acc=.5, ddelta=-0.1),
-                                                           D(2): VehicleCommands(acc=1, ddelta=0.1),
-                                                           D(99): VehicleCommands(acc=0, ddelta=0.2)}
-    ped_commands: Mapping[SimTime, PedestrianCommands] = {D(0): PedestrianCommands(acc=0, dtheta=0),
-                                                          D(99): PedestrianCommands(acc=0, dtheta=0)}
-    players = {P1: NPAgent(commands_input_2),
-               P2: NPAgent(commands_input),
+    timestamps = [0, 1, 1.5, 3]
+    commands = [(0, 0), (1, 0.2), (-1, -0.1), (2, 0.1), ]
+    vehicle_commands = [VehicleCommands(acc=acc, ddelta=ddelta) for acc, ddelta in commands]
+
+    commands_plan = DgSampledSequence[VehicleCommands](timestamps=timestamps, values=vehicle_commands)
+
+    ped_commands_plan = DgSampledSequence[PedestrianCommands](
+        timestamps=[0, 4], values=[PedestrianCommands(acc=0, dtheta=0), PedestrianCommands(acc=0, dtheta=-0.1)])
+
+    players = {P1: NPAgent(commands_plan),
+               P2: NPAgent(commands_plan),
                P3: agent,
-               P4: NPAgent(commands_input),
-               P5: NPAgent(commands_input_2),
-               P6: NPAgent(commands_input_2),
-               P7: NPAgent(ped_commands)
+               P4: NPAgent(commands_plan),
+               P5: NPAgent(commands_plan),
+               P6: NPAgent(commands_plan),
+               P7: NPAgent(ped_commands_plan)
                }
 
     return SimContext(scenario_name=scenario_name,
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.02), sim_time_after_collision=D(4), max_sim_time=D(5)),
-                      )
-
-
-def get_scenario_02() -> SimContext:
-    P1, P2, P3 = PlayerName("P1"), PlayerName("P2"), PlayerName("P3")
-
-    x0_p1 = VehicleState(x=2, y=16, theta=0, vx=5, delta=0)
-    x0_p2 = VehicleState(x=22, y=6, theta=deg2rad(90), vx=6, delta=0)
-    x0_p3 = VehicleState(x=45, y=22, theta=deg2rad(180), vx=4, delta=0)
-    models = {P1: VehicleModel.default_car(x0_p1),
-              P2: VehicleModel.default_bicycle(x0_p2),
-              P3: VehicleModel.default_car(x0_p3)}
-
-    commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                         D(1): VehicleCommands(acc=1, ddelta=0.05),
-                                                         D(2): VehicleCommands(acc=2, ddelta=-0.1),
-                                                         D(3): VehicleCommands(acc=1, ddelta=0.2),
-                                                         D(99): VehicleCommands(acc=0, ddelta=0)}
-    commands_input_2: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                           D(1): VehicleCommands(acc=1, ddelta=0.1),
-                                                           D(2): VehicleCommands(acc=-1, ddelta=-0.1),
-                                                           D(99): VehicleCommands(acc=0, ddelta=0.2)}
-    players = {P1: NPAgent(commands_input),
-               P2: NPAgent(commands_input),
-               P3: NPAgent(commands_input_2)}
-
-    return SimContext(scenario_name="USA_Lanker-1_1_T-1.xml",
-                      models=models,
-                      players=players,
-                      log=SimulationLog(),
-                      param=SimParameters(dt=D(0.05), sim_time_after_collision=D(2)),
+                      param=SimParameters(
+                          dt=D(0.02), dt_commands=D(0.1), sim_time_after_collision=D(4), max_sim_time=D(5)),
                       )
