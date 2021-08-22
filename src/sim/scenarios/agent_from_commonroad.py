@@ -1,9 +1,10 @@
 from math import atan
-from typing import List, Dict
+from typing import List
 
 import numpy as np
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 
+from dg_commons import DgSampledSequence
 from sim import SimTime
 from sim.agents.agent import NPAgent
 from sim.models import Pacejka
@@ -52,13 +53,11 @@ def npAgent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, time_step: float) ->
                             pacejka_front=Pacejka.default_car_front(),
                             pacejka_rear=Pacejka.default_car_rear())
 
-    cmds_seq: Dict[SimTime, VehicleCommands] = {
-        SimTime(dyn_obs.initial_state.time_step * time_step): VehicleCommands(acc=acceleration[0], ddelta=ddelta[0])}
+    timestamps = [SimTime(dyn_obs.initial_state.time_step * time_step), ]
+    commands = [VehicleCommands(acc=acceleration[0], ddelta=ddelta[0]), ]
 
     for i, state in enumerate(dyn_obs.prediction.trajectory.state_list):
-        cmds_seq.update({
-            SimTime(state.time_step * time_step): VehicleCommands(acc=acceleration[i], ddelta=ddelta[i])
-        })
-
-    agent = NPAgent(commands_plan=cmds_seq)
+        timestamps.append(SimTime(state.time_step * time_step))
+        commands.append(VehicleCommands(acc=acceleration[i], ddelta=ddelta[i]))
+    agent = NPAgent(commands_plan=DgSampledSequence[VehicleCommands](timestamps, commands))
     return agent, model

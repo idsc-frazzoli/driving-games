@@ -15,6 +15,8 @@ from sim.simulator_structures import *
 
 @dataclass
 class SimContext:
+    """ The simulation context that keeps track of everything, handle with care as it is passed around by reference and
+    it is a mutable object"""
     scenario_name: str
     scenario: Scenario = field(init=False)
     models: Mapping[PlayerName, SimModel]
@@ -36,7 +38,7 @@ class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
 
     def run(self, sim_context: SimContext):
-        for player_name, player in sim_context.players:
+        for player_name, player in sim_context.players.items():
             player.on_episode_init(player_name)
         while not sim_context.sim_terminated:
             self.pre_update(sim_context)

@@ -30,6 +30,7 @@ class SimParameters:
 
 @dataclass
 class SimObservations:
+    """The observations from the simulator passed to each agent"""
     players: MutableMapping[PlayerName, X]
     time: SimTime
 
@@ -42,6 +43,8 @@ class LogEntry:
 
 
 class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
+    # todo consider switching to DgSampledSequence
+
     def get_init_time(self) -> SimTime:
         return next(iter(self))
 
@@ -63,7 +66,6 @@ class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
         return sim_time, self[sim_time]
 
     def at(self, t: Union[SimTime, float]) -> MutableMapping[PlayerName, LogEntry]:
-        # todo used SampledSequence
         t = Decimal(t)
         if t < self.get_init_time() or t > self.get_last_time():
             raise ValueError(f"Requested simulation log {t} is out of bounds")

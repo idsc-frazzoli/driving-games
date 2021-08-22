@@ -10,13 +10,16 @@ __all__ = ["Agent", "NPAgent", "PolicyAgent"]
 
 
 class Agent(ABC):
+    """ This provides the abstract interface of an agent"""
 
     @abstractmethod
     def on_episode_init(self, my_name: PlayerName):
+        """ This method will get called once for each player at the beginning of the simulation"""
         pass
 
     @abstractmethod
     def get_commands(self, sim_obs: SimObservations) -> U:
+        """ This method gets called for each player inside the update loop of the simulator"""
         pass
 
 
@@ -26,6 +29,7 @@ class NPAgent(Agent):
     """
 
     def __init__(self, commands_plan: DgSampledSequence[U]):
+        assert isinstance(commands_plan, DgSampledSequence)
         self.commands_plan = commands_plan
 
     def on_episode_init(self, my_name: PlayerName):

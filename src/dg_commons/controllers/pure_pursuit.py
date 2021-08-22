@@ -17,7 +17,7 @@ class PurePursuitParam:
     look_ahead: float = 2
     min_distance: float = 0.1
     max_extra_distance: float = 6
-    k_turn2pwm: float = 0.3
+    k_err2ddelta: float = 0.3
 
 
 class PurePursuit:
@@ -36,7 +36,7 @@ class PurePursuit:
         self.along_path: Optional[float] = None
         self.speed: float = 0
         self.param: PurePursuitParam = params
-        #logger.debug("Pure pursuit params: \n", self.param)
+        # logger.debug("Pure pursuit params: \n", self.param)
 
     def update_path(self, path: DgLanelet):
         assert isinstance(path, DgLanelet)
@@ -82,10 +82,11 @@ class PurePursuit:
         """
         # todo fixme
         if any([_ is None for _ in [self.pose, self.path]]):
-            raise RuntimeError("Attempting to use pure pursuit before having set any observations/path")
+            raise RuntimeError("Attempting to use pure pursuit before having set any observations or reference path")
         p, theta = translation_angle_from_SE2(self.pose)
         _, goal_point = self.find_goal_point()
         p_goal, theta_goal = translation_angle_from_SE2(goal_point)
         alpha = theta - np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0])
         radius = self.param.look_ahead / (2 * sin(alpha))
-        return - self.param.k_turn2pwm * self.speed / radius
+        # fixme this last line needs to be checked
+        return - self.param.k_err2ddelta * self.speed / radius
