@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from math import pi
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, MutableMapping
 
 import numpy as np
-from aido_schemas import DTSimRobotInfo
 from duckietown_world import relative_pose, SE2Transform
 from geometry import xytheta_from_SE2
 
@@ -14,14 +13,15 @@ __all__ = ["SpeedController", "SpeedBehavior"]
 
 @dataclass
 class SpeedControllerParam:
-    kP: float = 0.1
-    kI: float = 0.0
+    kP: float = 0.3
+    kI: float = 0.1
     antiwindup: Tuple[float, float] = (-2, 2)
-    setpoint_minmax: Tuple[float, float] = (-1, 1)
+    setpoint_minmax: Tuple[float, float] = (-1, 10)
+    """In m/s"""
 
 
 class SpeedController:
-    """reference tracking of speed"""
+    """Low-level controller for reference tracking of speed"""
 
     def __init__(self):
         self.params = SpeedControllerParam()
@@ -52,21 +52,22 @@ class SpeedController:
 
 @dataclass
 class SpeedBehaviorParam:
-    nominal_speed: float = 0.2
-    safety_dist_right: float = 0.7
-    safety_dist_front: float = 0.25
+    nominal_speed: float = 4
+    safety_dist_right: float = 1.5
+    safety_dist_front: float = 1
 
 
 class SpeedBehavior:
     """Determines the reference speed"""
-    others: Dict[PlayerName, DTSimRobotInfo]
-    last_speed_ref: float = 0
 
     def __init__(self, my_name: Optional[PlayerName] = None):
         self.params: SpeedBehaviorParam = SpeedBehaviorParam()
         self.my_name: PlayerName = my_name
+        self.others: Optional[MutableMapping[PlayerName, X]] = None
+        self.speed_ref: float = 0
+        """ The speed reference"""
 
-    def update_observations(self, others: Dict[PlayerName, X]):
+    def update_observations(self, others: MutableMapping[PlayerName, X]):
         self.others = others
 
     def get_speed_ref(self, at: float) -> float:
@@ -74,10 +75,10 @@ class SpeedBehavior:
 
         yield_to_anyone: bool = self.is_there_anyone_to_yield_to()
         if yield_to_anyone:
-            self.last_speed_ref = 0
+            self.speed_ref = 0
         else:
-            self.last_speed_ref = self.params.nominal_speed
-        return self.last_speed_ref
+            self.speed_ref = self.params.nominal_speed
+        return self.speed_ref
 
     def is_there_anyone_to_yield_to(self) -> bool:
         """

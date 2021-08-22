@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from math import isclose, pi, atan
+from math import isclose, pi, atan2
 from typing import Sequence, List
 
 import numpy as np
@@ -10,7 +10,6 @@ from duckietown_world.world_duckietown.lane_segment import get_distance_two
 from geometry import SO2value, SO2_from_angle, SE2_from_translation_angle, SE2value, SE2, \
     translation_angle_scale_from_E2, translation_angle_from_SE2, T2value
 from scipy.optimize import minimize_scalar
-from zuper_commons.types import ZValueError
 
 
 @dataclass(unsafe_hash=True)
@@ -31,6 +30,7 @@ class DgLanePose:
 
     # Lateral, where 0 = lane center, positive to the left
     lateral: float
+    lateral_inside: bool
     # Longitudinal, along the lane. Starts at 0, positive going forward
     along_lane: float
     # Heading direction: 0 means aligned with the direction of the lane
@@ -77,7 +77,7 @@ class DgLanelet:
         for i, center in enumerate(lanelet.center_vertices):
             normal = right_vertices[i] - left_vertices[i]
             tangent = _rot90 @ normal
-            theta = atan(tangent)  # todo check maybe atan2?
+            theta = atan2(tangent[1], tangent[0])
             q = SE2Transform(p=center, theta=theta)
             ctr_points.append(LaneCtrPoint(
                 q, r=np.linalg.norm(normal) / 2
@@ -133,8 +133,42 @@ class DgLanelet:
         return beta0, q
 
     def lane_pose(self, along_lane: float, relative_heading: float, lateral: float) -> DgLanePose:
-        # todo
-        pass
+        beta = self.beta_from_along_lane(along_lane)
+        center_point = self.center_point(beta)
+        r = self.radius(beta)
+        lateral_inside = -r <= lateral <= r
+        outside_right = lateral < -r
+        outside_left = r < lateral
+        distance_from_left = np.abs(+r - lateral)
+        distance_from_right = np.abs(-r - lateral)
+        distance_from_center = np.abs(lateral)
+
+        L = self.get_lane_length()
+        along_inside = 0 <= along_lane < L
+        along_before = along_lane < 0
+        along_after = along_lane > L
+        inside = lateral_inside and along_inside
+
+        correct_direction = np.abs(relative_heading) <= np.pi / 2
+        return DgLanePose(
+            inside=inside,
+            lateral_inside=lateral_inside,
+            outside_left=outside_left,
+            outside_right=outside_right,
+            distance_from_left=distance_from_left,
+            distance_from_right=distance_from_right,
+            relative_heading=relative_heading,
+            along_inside=along_inside,
+            along_before=along_before,
+            along_after=along_after,
+            along_lane=along_lane,
+            lateral=lateral,
+            lateral_left=r,
+            lateral_right=-r,
+            distance_from_center=distance_from_center,
+            center_point=SE2Transform.from_SE2(center_point),
+            correct_direction=correct_direction,
+        )
 
     def along_lane_from_beta(self, beta: float) -> float:
         """ Returns the position along the lane (parametrized in distance)"""
@@ -179,8 +213,10 @@ class DgLanelet:
     def radius(self, beta: float) -> float:
         n = len(self.control_points)
         i = int(np.floor(beta))
-        if i < 0 or i >= n - 1:
-            raise ZValueError("Lane width is not defined outside the Lane")
+        if i < 0:
+            return self.control_points[0].r
+        elif i >= n - 1:
+            return self.control_points[-1].r
         else:
             alpha = beta - i
             r0 = self.control_points[i].r

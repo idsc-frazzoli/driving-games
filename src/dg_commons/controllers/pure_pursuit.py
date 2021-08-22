@@ -32,7 +32,7 @@ class PurePursuit:
         :param
         """
         self.path: Optional[DgLanelet] = None
-        self.rel_pose: Optional[SE2value] = None
+        self.pose: Optional[SE2value] = None
         self.along_path: Optional[float] = None
         self.speed: float = 0
         self.param: PurePursuitParam = params
@@ -42,10 +42,10 @@ class PurePursuit:
         assert isinstance(path, DgLanelet)
         self.path = path
 
-    def update_pose(self, rel_pose: SE2value, along_path: float):
-        assert isinstance(rel_pose, SE2value)
+    def update_pose(self, pose: SE2value, along_path: float):
+        assert isinstance(pose, SE2value)
         assert isinstance(along_path, float)
-        self.rel_pose = rel_pose
+        self.pose = pose
         self.along_path = along_path
 
     def update_speed(self, speed: float):
@@ -64,7 +64,7 @@ class PurePursuit:
             """
             beta = self.path.beta_from_along_lane(along_path)
             cp = self.path.center_point(beta)
-            dist = euclidean_between_SE2value(self.rel_pose, cp)
+            dist = euclidean_between_SE2value(self.pose, cp)
             return np.linalg.norm(dist - self.param.look_ahead)
 
         min_along_path = self.along_path + self.param.min_distance
@@ -81,9 +81,9 @@ class PurePursuit:
         :return: float
         """
         # todo fixme
-        if any([_ is None for _ in [self.rel_pose, self.path]]):
+        if any([_ is None for _ in [self.pose, self.path]]):
             raise RuntimeError("Attempting to use pure pursuit before having set any observations/path")
-        p, theta = translation_angle_from_SE2(self.rel_pose)
+        p, theta = translation_angle_from_SE2(self.pose)
         _, goal_point = self.find_goal_point()
         p_goal, theta_goal = translation_angle_from_SE2(goal_point)
         alpha = theta - np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0])

@@ -20,7 +20,7 @@ def test_commonroad_lanelet():
     x, y = centerpoints.T
     rnd.render()
     rnd.ax.scatter(x, y, c="b", zorder=1000)
-    plt.savefig("debug.png")
+    plt.savefig("out/debug.png")
 
     lanelets_succ, _ = lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet, lanelet_net)
     rnd = MPRenderer(figsize=(20, 10))
@@ -28,4 +28,4 @@ def test_commonroad_lanelet():
     x, y = np.array(lanelets_succ[0].center_vertices).T
     rnd.render()
     rnd.ax.scatter(x, y, c="b", zorder=1000)
-    plt.savefig("debug2.png")
+    plt.savefig("out/debug2.png")
