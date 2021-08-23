@@ -11,20 +11,15 @@ executors:
 
 workflows:
   version: 2
-  install_test_docs:
+  dg_ci:
     jobs:
-      - install
-      - make-docs:
-          requires:
-            - install
-      - test-38:
-          requires:
-            - install
+      - install_docs_tests
 
 jobs:
-  install:
+  install_docs_tests:
     executor: dg_38
     working_directory: ~/repo
+    resource_class: large
     steps:
       - checkout
       - run:
@@ -52,33 +47,13 @@ jobs:
           name: setup.py develop
           command: |
             python setup.py develop --prefix ~/.local --no-deps
-      - persist_to_workspace:
-          root: .
-          paths:
-            - *
-
-  make-docs:
-    executor: dg_38
-    working_directory: ~/repo
-    steps:
-      - attach_workspace:
-          at: .
       - run:
           name: Make docs
           command: |
-            ls -a
             make docs
       - store_artifacts:
           path: out/docs
           destination: docs
-
-  test-38: &test-template
-    executor: dg_38
-    working_directory: ~/repo
-    resource_class: large
-    steps:
-      - attach_workspace:
-          at: .
       - run:
           name: Notebooks
           command: |
@@ -107,3 +82,8 @@ jobs:
           when: always
           command: |
             codecov
+
+
+
+
+
