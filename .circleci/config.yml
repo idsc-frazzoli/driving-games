@@ -55,7 +55,7 @@ jobs:
       - persist_to_workspace:
           root: .
           paths:
-            - .*
+            - *
 
   make-docs:
     executor: dg_38
@@ -83,15 +83,12 @@ jobs:
           name: Notebooks
           command: |
             make -C notebooks cleanup all
-
       - run:
           name: Run tests
           command: |
             make test
-
       - store_test_results:
           path: out/test-results
-
       - store_artifacts:
           path: out/tests
           destination: tests
@@ -102,11 +99,9 @@ jobs:
             make coverage-combine
             make coverage-report
             coverage xml
-
       - store_artifacts:
           path: out/coverage
           destination: coverage
-
       - run:
           name: CodeCov
           when: always
