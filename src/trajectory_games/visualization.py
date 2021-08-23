@@ -1,18 +1,16 @@
-import os
 from typing import Sequence, Tuple, Mapping, FrozenSet, Set
 
 import numpy as np
+from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
-from duckietown_world import DuckietownMap
 from geometry import SE2_from_xytheta
-from imageio import imread
+from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
+from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
 from sim.simulator_visualisation import transform_xy
-from world import LaneSegmentHashable
-from world.map_loading import map_directory, load_driving_game_map
 from .game_def import GameVisualization
 from .paths import Trajectory
 from .preference import PosetalPreference, WeightedPreference
@@ -30,26 +28,18 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     """ Visualization for the trajectory games"""
 
     world: TrajectoryWorld
-    grid: DuckietownMap
+    commonroad_renderer: MPRenderer
 
-    def __init__(self, world: TrajectoryWorld):
+    def __init__(self, world: TrajectoryWorld, ax: Axes = None, *args, **kwargs):
         self.world = world
-        self.grid = load_driving_game_map(name=world.map_name)
+        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, **kwargs)
 
     @contextmanager
     def plot_arena(self, axis):
 
-        png_path = os.path.join(map_directory, f"{self.world.map_name}.png")
-        img = imread(png_path)
-        tile_size = self.grid.tile_size
-        H = self.grid["tilemap"].H
-        W = self.grid["tilemap"].W
-        x_size = tile_size * W
-        y_size = tile_size * H
-        axis.imshow(img, extent=[0, x_size, 0, y_size])
-        axis.set_xlim(left=0, right=x_size)
-        axis.set_ylim(bottom=0, top=y_size)
-
+        self.world.scenario.lanelet_network.draw(self.commonroad_renderer,
+                                                 draw_params={"traffic_light": {"draw_traffic_lights": False}})
+        self.commonroad_renderer.render()
         yield
 
     def plot_player(self, axis, player_name: PlayerName,
@@ -116,7 +106,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                      width: float = 1.0, alpha: float = 1.0,
                      ticks: bool = True, lines=None) -> LineCollection:
         segments = []
-        lanes: Set[LaneSegmentHashable] = set()
+        lanes: Set[DgLanelet] = set()
         for traj in actions:
             sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
             segments.append(sampled_traj)

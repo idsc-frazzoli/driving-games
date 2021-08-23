@@ -1,18 +1,22 @@
 import os
-from decimal import Decimal
 from functools import partial
 from time import perf_counter
 from typing import Dict, Set
 
+import numpy as np
+from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
+from commonroad.scenario.scenario import Scenario
 from yaml import safe_load
 
+from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
+from world import SE2Transform
+from sim.scenarios import load_commonroad_scenario
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
-from dg_commons.sequence import Timestamp
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
@@ -20,7 +24,6 @@ from .preference import PosetalPreference
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
-from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",
@@ -32,34 +35,53 @@ lanes_file = os.path.join(config_dir, "lanes.yaml")
 leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
-with open(lanes_file) as load_file:
-    config_lanes = safe_load(load_file)[config["map_name"]]
 with open(leader_follower_file) as load_file:
     config_lf = safe_load(load_file)["leader_follower"]
 
 
 def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     tic = perf_counter()
-    lanes: Dict[PlayerName, Set[LaneSegmentHashable]] = {}
+    lanes: Dict[PlayerName, Set[DgLanelet]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
-    duckie_map = load_driving_game_map(config["map_name"])
+    scenario: Scenario
+    print(f"Loading Scenario: {config['map_name']}", end=" ...")
+    scenario, _ = load_commonroad_scenario(config["map_name"])
+    print("Done")
+    lane_network: LaneletNetwork = scenario.lanelet_network
 
     ps = PossibilitySet()
     mpref_build: MonadicPreferenceBuilder = SetPreference1
 
     for pname, pconfig in config[config_str]["players"].items():
+        print(f"Extracting lanes: {pname}", end=" ...")
         lanes[pname] = set()
-        # TODO[SIR]: Check that all lanes start at the same node
-        for lane_id in pconfig["lane"]:
-            lane = config_lanes[lane_id]
-            lane_seg = get_lane_from_node_sequence(m=duckie_map, node_sequence=lane)
-            lanes[pname].add(LaneSegmentHashable.initializor(lane_seg))
+        state = VehicleState.from_config(name=pconfig["state"])
+        init = False
+        state_init = np.array([state.x, state.y])
+        for lane_id in lane_network.find_lanelet_by_position(point_list=[state_init])[0]:
+            lane_init = lane_network.find_lanelet_by_id(lane_id)
+            lanes_all, _ = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet=lane_init,
+                                                                                   network=lane_network,
+                                                                                   max_length=config["max_length"])
+            for lane in lanes_all:
+                dg_lanelet = DgLanelet.from_commonroad_lanelet(lane)
+                lanes[pname].add(dg_lanelet)
+
+                # Reset pose to the center of the reference lane
+                if not init:
+                    _, q = dg_lanelet.find_along_lane_closest_point(p=state_init)
+                    se2_init = SE2Transform.from_SE2(q)
+                    state.x, state.y, state.th = se2_init.p[0], se2_init.p[1], se2_init.theta
+                    init = True
+
+        if not init:
+            raise ValueError(f"No lanes for the existing point: {state}")
+        print("Done")
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TransitionGenerator(params=param)
         pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
-        state = VehicleState.from_config(name=pconfig["state"], lane=next(iter(lanes[pname])))
         players[pname] = TrajectoryGamePlayer(
             name=pname,
             state=ps.unit(state),
@@ -69,15 +91,11 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
             vg=geometries[pname],
         )
 
-    world = TrajectoryWorld(map_name=config["map_name"], geo=geometries, lanes=lanes)
+    world = TrajectoryWorld(map_name=config["map_name"], scenario=scenario, geo=geometries, lanes=lanes)
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
-    game = TrajectoryGame(
-        world=world,
-        game_players=players,
-        ps=ps,
-        get_outcomes=get_outcomes,
-        game_vis=TrajGameVisualization(world=world),
-    )
+    game = TrajectoryGame(world=world, game_players=players, ps=ps,
+                          get_outcomes=get_outcomes,
+                          game_vis=TrajGameVisualization(world=world))
     toc = perf_counter() - tic
     print(f"Game creation time = {toc:.2f} s")
     return game

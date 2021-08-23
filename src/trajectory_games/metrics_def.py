@@ -3,8 +3,9 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List, Mapping, Tuple, Optional
 
-from duckietown_world import SE2Transform, LanePose
+from duckietown_world import SE2Transform
 
+from dg_commons.planning.lanes import DgLanePose
 from dg_commons.seq_op import seq_integrate
 from dg_commons.sequence import Timestamp, DgSampledSequence
 from games import PlayerName
@@ -32,12 +33,12 @@ class MetricEvaluationContext:
 
     """ Internal data """
     _points_cart: Mapping[PlayerName, List[SE2Transform]] = None
-    _points_curv: Mapping[PlayerName, List[LanePose]] = None
+    _points_curv: Mapping[PlayerName, List[DgLanePose]] = None
     """ Sampled vehicle states for each player 
         Cache and reuse for all rules."""
 
     _cache_cart: Dict[Trajectory, List[SE2Transform]] = None
-    _cache_curv: Dict[Trajectory, List[LanePose]] = None
+    _cache_curv: Dict[Trajectory, List[DgLanePose]] = None
     """ Cached transitions to speed up computation, do not set manually """
 
     def __post_init__(self):
@@ -46,7 +47,7 @@ class MetricEvaluationContext:
         if MetricEvaluationContext._cache_curv is None:
             MetricEvaluationContext._cache_curv = {}
         cart: Dict[PlayerName, List[SE2Transform]] = {}
-        curv: Dict[PlayerName, List[LanePose]] = {}
+        curv: Dict[PlayerName, List[DgLanePose]] = {}
         for player, trans in self.transitions.items():
             if trans in MetricEvaluationContext._cache_cart.keys():
                 cart[player] = MetricEvaluationContext._cache_cart[trans]
@@ -76,7 +77,7 @@ class MetricEvaluationContext:
     def get_cartesian_points(self, player: PlayerName) -> List[SE2Transform]:
         return self._points_cart[player]
 
-    def get_curvilinear_points(self, player: PlayerName) -> List[LanePose]:
+    def get_curvilinear_points(self, player: PlayerName) -> List[DgLanePose]:
         return self._points_curv[player]
 
 

@@ -9,8 +9,8 @@ from duckietown_world import relative_pose
 from duckietown_world.utils import SE2_apply_R2
 from scipy.optimize import minimize
 
+from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
-from world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
 from .game_def import ActionSetGenerator
 from .paths import FinalPoint, Trajectory, TrajectoryGraph
@@ -74,7 +74,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                   f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s")
         return frozenset(all_traj)
 
-    def _get_trajectory_graph(self, state: VehicleState, lane: LaneSegmentHashable, graph: TrajectoryGraph):
+    def _get_trajectory_graph(self, state: VehicleState, lane: DgLanelet, graph: TrajectoryGraph):
         """ Construct graph of states """
         stack = list([state])
         graph.origin = state
@@ -111,7 +111,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return graph
 
     @staticmethod
-    def get_curv(state: VehicleState, lane: LaneSegmentHashable) -> Tuple[float, float, float]:
+    def get_curv(state: VehicleState, lane: DgLanelet) -> Tuple[float, float, float]:
         """ Calculate curvilinear coordinates for state """
         p = np.array([state.x, state.y])
         q = geo.SE2_from_translation_angle(t=p, theta=state.th)
@@ -123,7 +123,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return along, r[1], mu
 
     @staticmethod
-    def get_target(lane: LaneSegmentHashable, progress: float,
+    def get_target(lane: DgLanelet, progress: float,
                    offset_target: np.array) -> Optional[Tuple[np.array, float]]:
         """ Calculate target pose ([x, y], theta) at requested progress with additional offset """
         beta_f = lane.beta_from_along_lane(along_lane=progress)
@@ -138,7 +138,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt,
                                                dt_samp=dt_samp)
 
-    def tree_func(self, state: VehicleState, lane: LaneSegmentHashable,
+    def tree_func(self, state: VehicleState, lane: DgLanelet,
                   gen: int) -> Successors:
         if self.params.solve:
             return self.get_successors_solve(state=state, lane=lane, gen=gen)
@@ -157,7 +157,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                     acc_vals.add(0.0)
         return acc_vals, dst_vals
 
-    def get_successors_approx(self, state: VehicleState, lane: LaneSegmentHashable,
+    def get_successors_approx(self, state: VehicleState, lane: DgLanelet,
                               gen: int) -> Successors:
         """
         Approximate method to grow trajectory tree (fast)
@@ -238,7 +238,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
         return successors
 
-    def get_successors_solve(self, state: VehicleState, lane: LaneSegmentHashable,
+    def get_successors_solve(self, state: VehicleState, lane: DgLanelet,
                              gen: int) -> Successors:
         """
         Accurate method to grow trajectory tree (slow)
@@ -314,7 +314,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
     @staticmethod
     @lru_cache(None)
-    def get_p_final(lane: LaneSegmentHashable, s_final: float) -> Optional[FinalPoint]:
+    def get_p_final(lane: DgLanelet, s_final: float) -> Optional[FinalPoint]:
         if s_final < 0:
             return None
         tol = 1e-1

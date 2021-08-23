@@ -1,6 +1,7 @@
 
-#map_name: Map to load (from worlds)
-map_name: "4way-double-intersection-only"
+#map_name: Map to load (from scenarios)
+map_name: "USA_Lanker-1_1_T-1"
+max_length: 40.0        # Max length in m
 
 #players:    List of players in the game
 #  P1:        Player Name
@@ -17,27 +18,12 @@ basic:
       state:    "state_1"
       traj:     "traj_1_3"
       pref:     "pref_d6"
-      lane:     ["rl2"]
       vg:       "green_car"
     P2:
       state:    "state_2"
       traj:     "traj_1_3"
       pref:     "pref_d6"
-      lane:     ["dl2"]
       vg:       "blue_car"
-  #  P3:
-  #    state:    "state_3"
-  #    traj:     "traj_1_3"
-  #    pref:     "pref_d4"
-  ##    lane:     ["ud1", "ud3"]
-  #    lane:     ["ud1"]
-  #    vg:       "red_bicycle"
-  #  P4:
-  #    state:    "state_3"
-  #    traj:     "traj_1_3"
-  #    pref:     "pref_9"
-  #    lane:     ["lu2"]
-  #    vg:       "yellow_car"
 
 ## Lexi config
 lexi:

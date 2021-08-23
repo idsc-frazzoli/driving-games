@@ -1,10 +1,10 @@
+import math
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import FrozenSet, Tuple, Dict
 from yaml import safe_load
 
-from world import SE2Transform, LaneSegmentHashable
 from .config import config_dir
 
 __all__ = [
@@ -183,18 +183,16 @@ class VehicleState:
         return False
 
     @classmethod
-    def default(cls, lane: LaneSegmentHashable) -> "VehicleState":
-        beta0 = lane.beta_from_along_lane(along_lane=0)
-        se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
-        state = VehicleState(x=se2.p[0], y=se2.p[1], th=se2.theta,
+    def default(cls) -> "VehicleState":
+        state = VehicleState(x=0.0, y=0.0, th=math.pi/2.0,
                              v=10.0, st=0.0, t=D("0"))
         return state
 
     @classmethod
-    def from_config(cls, name: str, lane: LaneSegmentHashable) -> "VehicleState":
+    def from_config(cls, name: str) -> "VehicleState":
 
         if len(name) == 0:
-            return cls.default(lane)
+            return cls.default()
 
         if cls._config is None:
             filename = os.path.join(config_dir, "initial_states.yaml")
@@ -202,19 +200,17 @@ class VehicleState:
                 cls._config = safe_load(load_file)
         if name in cls._config.keys():
             config = cls._config[name]
-            beta0 = lane.beta_from_along_lane(along_lane=config["s0"])
-            se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
             state = VehicleState(
-                x=se2.p[0],
-                y=se2.p[1],
-                th=se2.theta+config["th0"],
+                x=config["x0"],
+                y=config["y0"],
+                th=config["th0"],
                 v=config["v0"],
                 st=config["st0"],
                 t=D(config["t0"]),
             )
         else:
             print(f"Failed to intialise {cls.__name__} from {name}, using default")
-            state = cls.default(lane)
+            state = cls.default()
         return state
 
 

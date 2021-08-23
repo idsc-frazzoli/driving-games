@@ -173,7 +173,7 @@ class ProgressAlongReference(Metric):
             interval = context.get_interval(player)
             traj_sn = context.get_curvilinear_points(player)
             # negative for smaller preferred
-            progress = [(traj_sn[0].along_lane - p.along_lane) *self.scale for p in traj_sn]
+            progress = [(traj_sn[0].along_lane - p.along_lane) * self.scale for p in traj_sn]
             inc = differentiate(val=progress, t=interval)
             ret = self.get_evaluated_metric(interval=interval, val=inc)
             self.cache[traj] = ret

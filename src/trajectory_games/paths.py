@@ -8,8 +8,8 @@ from cachetools import cached
 from duckietown_world import SE2Transform
 from networkx import DiGraph, has_path, shortest_path
 
+from dg_commons.planning.lanes import DgLanelet
 from dg_commons.sequence import Timestamp, DgSampledSequence
-from world import LaneSegmentHashable
 from .game_def import ActionGraph
 from .structures import VehicleState
 
@@ -33,11 +33,11 @@ class Trajectory:
 
     states: DgSampledSequence[VehicleState]
     """ The upsampled sequence of vehicle states """
-    lane: LaneSegmentHashable
+    lane: DgLanelet
     """ The reference lane used to generate the trajectory """
 
     def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
-                 lane: LaneSegmentHashable,
+                 lane: DgLanelet,
                  p_final: Optional[FinalPoint] = None,
                  states: Optional[Tuple[VehicleState, VehicleState]] = None):
         assert len(values) > 0
@@ -60,8 +60,7 @@ class Trajectory:
 
     @staticmethod
     @cached(cache={}, key=lambda states, lane, values, p_final: cachetools.keys.hashkey((states, lane)))
-    def create(states: Tuple[VehicleState, VehicleState],
-               lane: LaneSegmentHashable,
+    def create(states: Tuple[VehicleState, VehicleState], lane: DgLanelet,
                values: List[VehicleState], p_final: FinalPoint = None):
         return Trajectory(values=values, lane=lane, p_final=p_final, states=states)
 
@@ -109,7 +108,7 @@ class Trajectory:
     def __len__(self):
         return len(self.states)
 
-    def get_lane(self) -> LaneSegmentHashable:
+    def get_lane(self) -> DgLanelet:
         return self.lane
 
     def get_trajectories(self) -> List["Trajectory"]:
@@ -167,12 +166,12 @@ class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
     """ Structure for storing a graph of trajectory states """
     origin: VehicleState
     """ Origin of the graph of states """
-    lane: LaneSegmentHashable
+    lane: DgLanelet
     """ Reference lane used to generate trajectories """
     trajectories: Dict[Tuple[VehicleState, VehicleState], Trajectory]
     """ Store trajectories based on terminal states """
 
-    def __init__(self, origin: VehicleState, lane: LaneSegmentHashable, **attr):
+    def __init__(self, origin: VehicleState, lane: DgLanelet, **attr):
         super().__init__(**attr)
         self.origin = origin
         self.lane = lane
