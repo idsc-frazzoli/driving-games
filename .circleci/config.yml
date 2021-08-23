@@ -51,11 +51,17 @@ jobs:
           name: setup.py develop
           command: |
             python setup.py develop --prefix ~/.local --no-deps
+      - persist_to_workspace:
+          root: .
+          paths:
+            - .
 
   make-docs:
     executor: dg_38
     working_directory: ~/repo
     steps:
+      - attach_workspace:
+          at: .
       - run:
           name: Make docs
           command: |
@@ -69,6 +75,8 @@ jobs:
     working_directory: ~/repo
     resource_class: large
     steps:
+      - attach_workspace:
+          at: .
       - run:
           name: Notebooks
           command: |
