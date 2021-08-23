@@ -12,9 +12,9 @@ __all__ = ["load_commonroad_scenario"]
 def load_commonroad_scenario(scenario_name: str) -> Tuple[Scenario, PlanningProblemSet]:
     """Loads a commonroad scenario"""
     dg_root_dir = __file__
-    dg_name = "driving-games"
-    assert dg_name in dg_root_dir
-    dg_root_dir = re.split(dg_name, dg_root_dir)[0] + dg_name
+    src_folder = "src"
+    assert src_folder in dg_root_dir, dg_root_dir
+    dg_root_dir = re.split(src_folder, dg_root_dir)[0]
     assert os.path.isdir(dg_root_dir)
     common_roadscenarios_path = os.path.join(dg_root_dir, "scenarios")
     # generate path of the file to be opened

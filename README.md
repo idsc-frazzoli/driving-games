@@ -35,7 +35,7 @@ To build the docker image
     $ make build
 
 this operation will build a docker image based on the instructions contained in the `Dockerfile`.
-As you may notice this will build on top of a pre-existing image which contains some extra dependencies 
+As you may notice this will build on top of a pre-existing [image](https://hub.docker.com/repository/docker/alezana/dg_base) which contains some extra dependencies 
 (e.g. [CommonRoad](https://commonroad.in.tum.de/)).  
 To run an example:
         
