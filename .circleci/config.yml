@@ -11,23 +11,21 @@ executors:
 
 workflows:
   version: 2
-  test:
+  dg_ci:
     jobs:
-      - test-38
+      - install_docs_tests
 
 jobs:
-  test-38: &test-template
-    resource_class: large
+  install_docs_tests:
     executor: dg_38
     working_directory: ~/repo
-    steps: &steps
+    resource_class: large
+    steps:
       - checkout
       - run:
           name: Pull lfs files
           command: |
-            curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-            apt-get install git-lfs
-            git lfs install & git lfs pull
+            git lfs pull
       - run:
           name: Pull submodules (commonroadscenarios)
           command: |
@@ -37,37 +35,38 @@ jobs:
           command: |
             echo PATH=$PATH
             pip install -q --user --upgrade -r requirements.txt
-
       - run:
           name: List deps
           command: |
             mkdir -p artifacts
             pip list | tee artifacts/pip-list.txt
             pipdeptree | tee artifacts/pipdeptree.txt
+      - store_artifacts:
+          path: artifacts/
       - run:
           name: setup.py develop
           command: |
             python setup.py develop --prefix ~/.local --no-deps
-
       - run:
           name: Make docs
           command: |
             make docs
-            
+      - store_artifacts:
+          path: out/docs
+          destination: docs
       - run:
           name: Notebooks
           command: |
             make -C notebooks cleanup all
-
       - run:
           name: Run tests
           command: |
             make test
-
       - store_test_results:
-          when: always
           path: out/test-results
-
+      - store_artifacts:
+          path: out/tests
+          destination: tests
       - run:
           name: Coverage report
           when: always
@@ -75,19 +74,16 @@ jobs:
             make coverage-combine
             make coverage-report
             coverage xml
-
       - store_artifacts:
-          when: always
           path: out/coverage
           destination: coverage
-
-      - store_artifacts:
-          when: always
-          path: out/tests
-          destination: tests
-
       - run:
           name: CodeCov
           when: always
           command: |
             codecov
+
+
+
+
+
