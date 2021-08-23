@@ -11,23 +11,26 @@ executors:
 
 workflows:
   version: 2
-  test:
+  install_test_docs:
     jobs:
-      - test-38
+      - install
+      - make-docs:
+          requires:
+            - install
+      - test-38:
+          requires:
+            - install
 
 jobs:
-  test-38: &test-template
-    resource_class: large
+  install:
     executor: dg_38
     working_directory: ~/repo
-    steps: &steps
+    steps:
       - checkout
       - run:
           name: Pull lfs files
           command: |
-            curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-            apt-get install git-lfs
-            git lfs install & git lfs pull
+            git lfs pull
       - run:
           name: Pull submodules (commonroadscenarios)
           command: |
@@ -49,15 +52,23 @@ jobs:
           command: |
             python setup.py develop --prefix ~/.local --no-deps
 
+  make-docs:
+    executor: dg_38
+    working_directory: ~/repo
+    steps:
       - run:
           name: Make docs
           command: |
             make docs
-
       - store_artifacts:
           path: out/docs
           destination: docs
 
+  test-38: &test-template
+    executor: dg_38
+    working_directory: ~/repo
+    resource_class: large
+    steps:
       - run:
           name: Notebooks
           command: |
@@ -74,7 +85,6 @@ jobs:
       - store_artifacts:
           path: out/tests
           destination: tests
-
       - run:
           name: Coverage report
           when: always
