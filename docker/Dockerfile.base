@@ -1,7 +1,7 @@
-ARG PYTHON_VERSION
+ARG PYTHON_VERSION_
 
-FROM python:${PYTHON_VERSION}
-ARG PYTHON_VERSION
+FROM python:${PYTHON_VERSION_}
+ARG PYTHON_VERSION_
 
 # Copy dependencies file
 COPY dependencies-apt.txt /tmp/
@@ -14,6 +14,6 @@ RUN apt-get update \
 
 # Install commonroad
 RUN git clone https://gitlab.lrz.de/tum-cps/commonroad-drivability-checker.git
-RUN cd commonroad-drivability-checker && bash build.sh -e /usr/local -v ${PYTHON_VERSION} --cgal --serializer -i -j 3 --no-root
+RUN cd commonroad-drivability-checker && bash build.sh -e /usr/local -v ${PYTHON_VERSION_} --cgal --serializer -i -j 3 --no-root
 
 LABEL maintainer="A. Zanardi (azanardi@ethz.ch)"

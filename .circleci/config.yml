@@ -53,7 +53,11 @@ jobs:
           name: Make docs
           command: |
             make docs
-            
+
+      - store_artifacts:
+          path: out/docs
+          destination: docs
+
       - run:
           name: Notebooks
           command: |
@@ -65,8 +69,11 @@ jobs:
             make test
 
       - store_test_results:
-          when: always
           path: out/test-results
+
+      - store_artifacts:
+          path: out/tests
+          destination: tests
 
       - run:
           name: Coverage report
@@ -77,14 +84,8 @@ jobs:
             coverage xml
 
       - store_artifacts:
-          when: always
           path: out/coverage
           destination: coverage
-
-      - store_artifacts:
-          when: always
-          path: out/tests
-          destination: tests
 
       - run:
           name: CodeCov
