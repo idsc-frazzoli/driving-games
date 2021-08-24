@@ -35,8 +35,10 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, **kwargs)
 
     @contextmanager
-    def plot_arena(self, axis):
+    def plot_arena(self, axis: Axes):
 
+        self.commonroad_renderer.ax = axis
+        self.commonroad_renderer.f = axis.figure
         self.world.scenario.lanelet_network.draw(self.commonroad_renderer,
                                                  draw_params={"traffic_light": {"draw_traffic_lights": False}})
         self.commonroad_renderer.render()
@@ -65,7 +67,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
-                axis.scatter(x, y, s=size, c=vel, zorder=10)
+                axis.scatter(x, y, s=size, c=vel, zorder=100)
 
     def plot_pref(self, axis, pref: PosetalPreference,
                   pname: PlayerName, origin: Tuple[float, float],
@@ -118,14 +120,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             x = np.array(xp)
             y = np.array(yp)
             if colour is not None:
-                axis.fill(x, y, color=colour, alpha=0.2, zorder=1)
+                axis.fill(x, y, color=colour, alpha=0.2, zorder=15)
 
         if lines is None:
             if colour is None:
                 colour = (0.0, 0.0, 0.0)  # Black
             lines = LineCollection(segments=[], colors=colour,
                                    linewidths=width, alpha=alpha)
-            lines.set_zorder(5)
+            lines.set_zorder(20)
             axis.add_collection(lines)
             if ticks:
                 axis.yaxis.set_ticks_position("left")
@@ -150,7 +152,7 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     if box is None:
         box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=10)
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        axis.text(x4, y4, player_name, zorder=25,
+        axis.text(x4, y4, player_name, zorder=100,
                   horizontalalignment="center",
                   verticalalignment="center")
     box.set_xy(np.array(car))
