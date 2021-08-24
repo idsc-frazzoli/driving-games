@@ -1,16 +1,13 @@
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
-from typing import NewType
 
-__all__ = ["ImpactLocation", "IMPACT_BACK", "IMPACT_FRONT", "IMPACT_SIDES", "Collision"]
+from sim import ImpactLocation
 
-ImpactLocation = NewType("ImpactLocation", str)
-IMPACT_FRONT = ImpactLocation("front")
-IMPACT_BACK = ImpactLocation("back")
-IMPACT_SIDES = ImpactLocation("sides")
-# IMPACT_RIGHT = ImpactLocation('right')
+__all__ = ["Collision"]
 
+
+# todo redo this part according to new collision checking
 
 @dataclass(frozen=True)
 class Collision:

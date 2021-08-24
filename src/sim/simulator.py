@@ -1,21 +1,25 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import combinations
-from typing import Mapping, Optional, List
+from typing import Mapping, Optional, List, MutableMapping
 
-from duckietown_world import DuckietownMap
+from commonroad.scenario.scenario import Scenario
 
-from games import PlayerName
+from dg_commons.time import time_function
+from games import PlayerName, U
 from sim import logger, CollisionReport, SimTime
-from sim.agent import Agent
+from sim.agents.agent import Agent
+from sim.collision_utils import CollisionException
+from sim.scenarios import load_commonroad_scenario
 from sim.simulator_structures import *
-from world import load_driving_game_map
 
 
 @dataclass
 class SimContext:
-    map_name: str
-    map: DuckietownMap = field(init=False)
+    """ The simulation context that keeps track of everything, handle with care as it is passed around by reference and
+    it is a mutable object"""
+    scenario_name: str
+    scenario: Scenario = field(init=False)
     models: Mapping[PlayerName, SimModel]
     players: Mapping[PlayerName, Agent]
     log: SimulationLog
@@ -28,13 +32,18 @@ class SimContext:
 
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
-        self.map = load_driving_game_map(self.map_name)
+        self.scenario, _ = load_commonroad_scenario(self.scenario_name)
 
 
 class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
+    last_get_commands_ts: SimTime = SimTime(-99)
+    last_commands: MutableMapping[PlayerName, U] = {}
 
+    @time_function
     def run(self, sim_context: SimContext):
+        for player_name, player in sim_context.players.items():
+            player.on_episode_init(player_name)
         while not sim_context.sim_terminated:
             self.pre_update(sim_context)
             self.update(sim_context)
@@ -52,15 +61,23 @@ class Simulator:
 
     def update(self, sim_context: SimContext):
         """ The real step of the simulation """
+
         sim_context.log[sim_context.time] = {}
+        update_commands: bool = (sim_context.time - self.last_get_commands_ts) >= sim_context.param.dt_commands
         # fixme this can be parallelized later
         for player_name, model in sim_context.models.items():
-            actions = sim_context.players[player_name].get_commands(self.last_observations)
+            if update_commands:
+                actions = sim_context.players[player_name].get_commands(self.last_observations)
+                self.last_commands[player_name] = actions
+            else:
+                actions = self.last_commands[player_name]
             model.update(actions, dt=sim_context.param.dt)
             log_entry = LogEntry(state=model.get_state(), actions=actions)
             logger.debug(f"Update function, sim time {sim_context.time:.2f}, player: {player_name}")
             logger.debug(f"New state {model.get_state()} reached applying {actions}")
             sim_context.log[sim_context.time].update({player_name: log_entry})
+        if update_commands:
+            self.last_get_commands_ts = sim_context.time
         return
 
     def post_update(self, sim_context: SimContext):
@@ -96,7 +113,11 @@ class Simulator:
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
                 from sim.collision import resolve_collision  # import here to avoid circular imports
-                report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
+                try:
+                    report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
+                except CollisionException as e:
+                    logger.warn(f"Failed to resolve collision between {p1} and {p2} because:\n{e.args}")
+                    report = None
                 if report is not None:
                     logger.info(f"Detected a collision between {p1} and {p2}")
                     collision = True

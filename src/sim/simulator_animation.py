@@ -1,41 +1,43 @@
 import math
 from itertools import chain
-from typing import MutableMapping, Mapping, List, Union
+from typing import MutableMapping, Mapping, List, Union, Optional, Sequence
 
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.axes import Axes
 
-from games import PlayerName
+from games import PlayerName, X
 from sim import logger
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
-from sim.simulator_visualisation import SimVisualisation
+from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players
 
 
 def create_animation(file_path: str,
                      sim_context: SimContext,
-                     fig_size: Union[list, None] = None,
+                     figsize: Optional[Union[list, tuple]] = None,
                      dt: float = 30,
-                     dpi: int = 120) -> None:
+                     dpi: int = 120,
+                     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto") -> None:
     """
     Creates an animation
 
+    :param plot_limits:
     :param sim_context:
     :param file_path: filename of generated video (ends on .mp4/.gif/.avi, default mp4, when nothing is specified)
-    :param fig_size: size of the video
+    :param figsize: size of the video
     :param dt: time step between frames in ms
     :param dpi: resolution of the video
     :return: None
     """
     logger.info("Creating animation...")
-    sim_viz: SimVisualisation = SimVisualisation(sim_context)
+    sim_viz: SimRenderer = SimRenderer(sim_context, figsize=figsize)
     time_begin = sim_context.log.get_init_time()
     time_end = sim_context.log.get_last_time()
     if not time_begin < time_end:
         raise ValueError(f"Begin time {time_begin} cannot be greater than end time {time_end}")
-    if fig_size is None:
-        fig_size = [15, 8]
-    fig, ax = plt.subplots(figsize=fig_size)
+    ax: Axes = sim_viz.commonroad_renderer.ax
+    fig = ax.figure
     fig.set_tight_layout(True)
     ax.set_aspect('equal')
     # dictionaries with the handles of the plotting stuff
@@ -59,6 +61,10 @@ def create_animation(file_path: str,
                     player_name=pname,
                     alpha=0.7,
                     plot_wheels=plot_wheels)
+            adjust_axes_limits(ax=ax,
+                               plot_limits=plot_limits,
+                               players_states=[player.state for player in init_state.values()])
+
         return _get_list()
 
     def update_plot(frame: int = 0):
@@ -72,7 +78,8 @@ def create_animation(file_path: str,
                 state=log_at_t[pname].state,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
-
+        adjust_axes_limits(ax=ax, plot_limits=plot_limits,
+                           players_states=[log_at_t[pname].state for pname in states])
         return _get_list()
 
     # Min frame rate is 1 fps
@@ -93,3 +100,21 @@ def create_animation(file_path: str,
               )
     logger.info("Animation saved...")
     ax.clear()
+
+
+def adjust_axes_limits(ax: Axes,
+                       plot_limits: Union[str, Sequence[Sequence[float]]],
+                       players_states: Sequence[X]):
+    if plot_limits is None:
+        ax.autoscale()
+    elif plot_limits == 'auto':
+        players_limits = approximate_bounding_box_players(obj_list=players_states)
+        if players_limits is not None:
+            ax.axis(xmin=players_limits[0][0], xmax=players_limits[0][1], ymin=players_limits[1][0],
+                    ymax=players_limits[1][1])
+        else:
+            ax.autoscale()
+    else:
+        ax.xlim(plot_limits[0][0], plot_limits[0][1])
+        ax.ylim(plot_limits[1][0], plot_limits[1][1])
+    return

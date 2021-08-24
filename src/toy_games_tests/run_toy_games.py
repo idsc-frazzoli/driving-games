@@ -68,7 +68,7 @@ def _run_toy_game_bayesian(
     solutions = solve_bayesian_game(game_preprocessed)
     for state, solution in solutions.game_solution.states_to_solution.items():
         # filter out only the first level subgame
-        if all([p.stage == 1 for p in state.values()]):
+        if all([p.stage == 1 for p in state._values()]):
             game_idx1, game_idx2, _, _ = BayesianBirdJointReward.get_payoff_matrix_idx(
                 max_stages, state[p1_name], state[p2_name]
             )

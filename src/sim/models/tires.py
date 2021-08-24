@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from math import atan, sin
 
-__all__ = ["Pacejka", "Pacejka4p"]
-
 from sim import logger
+
+__all__ = ["Pacejka", "Pacejka4p"]
 
 
 @dataclass(frozen=True)

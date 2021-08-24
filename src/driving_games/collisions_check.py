@@ -4,14 +4,14 @@ from frozendict import frozendict
 
 from games import PlayerName
 from zuper_commons.types import ZNotImplementedError
-from .collisions import Collision, IMPACT_FRONT, IMPACT_SIDES
+from .collisions import Collision
 from .rectangle import sample_x, rectangle_from_pose, ProjectedCar
 from .structures import VehicleGeometry, VehicleState
 
 __all__ = ["collision_check"]
 
 
-# XXX: Note that this only works for the simplest cases.
+# todo: Note that this only works for the simplest cases.
 #      For example it does not work for head-to-back collision.
 def collision_check(
     poses: Mapping[PlayerName, VehicleState],

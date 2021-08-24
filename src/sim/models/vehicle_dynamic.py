@@ -5,6 +5,7 @@ import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
+from sim import logger
 from sim.models import Pacejka, Pacejka4p
 from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G
@@ -106,21 +107,21 @@ class VehicleModelDyn(VehicleModel):
         # """ The vehicle's geometry parameters"""
         self.vp: VehicleParametersDyn = vp
         """ The vehicle parameters"""
-        self.pacejka_front: Pacejka = pacejka_front
+        self.pacejka_front: Pacejka4p = pacejka_front
         """ The vehicle tyre model"""
-        self.pacejka_rear: Pacejka = pacejka_rear
+        self.pacejka_rear: Pacejka4p = pacejka_rear
 
     @classmethod
     def default_bicycle(cls, x0: VehicleStateDyn):
         return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_bicycle(), vp=VehicleParametersDyn.default_bicycle(),
-                               pacejka_front=Pacejka.default_bicycle_front(),
-                               pacejka_rear=Pacejka.default_bicycle_rear())
+                               pacejka_front=Pacejka4p.default_bicycle_front(),
+                               pacejka_rear=Pacejka4p.default_bicycle_rear())
 
     @classmethod
     def default_car(cls, x0: VehicleStateDyn):
         return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParametersDyn.default_car(),
-                               pacejka_front=Pacejka.default_car_front(),
-                               pacejka_rear=Pacejka.default_car_rear()
+                               pacejka_front=Pacejka4p.default_car_front(),
+                               pacejka_rear=Pacejka4p.default_car_rear()
                                )
 
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:
@@ -158,14 +159,23 @@ class VehicleModelDyn(VehicleModel):
             vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
-            # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
+
             F_drag = 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * self.vg.rho ** 2
             costh = math.cos(x0.theta)
             sinth = math.sin(x0.theta)
             xdot = x0.vx * costh - x0.vy * sinth
             ydot = x0.vx * sinth + x0.vy * costh
             acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy - F_drag) / m
+            # approximation sacrificing back wheel lateral forces in favor of longitudinal
+            try:
+                # todo fix https://link.springer.com/chapter/10.1007/978-981-13-8566-7_42
+                F2y = F2y0 * math.sqrt(1 - (acc_x / (G * self.pacejka_rear.D)) ** 2)
+            except ValueError:
+                msg = f"Results will be inaccurate since\n" \
+                      f"F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2) gave an error with values\n" \
+                      f"{F2y0} * math.sqrt(1 - ({Facc} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
+                logger.warn(msg)
+                F2y = F2y0
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
             return VehicleStateDyn(x=xdot,

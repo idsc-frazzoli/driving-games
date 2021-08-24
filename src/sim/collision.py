@@ -7,7 +7,8 @@ from games import PlayerName
 from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \
-    velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision
+    velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, \
+    velocity_of_P_given_A, CollisionException
 from sim.simulator import SimContext
 
 
@@ -28,13 +29,16 @@ def impact_locations_from_polygons(a_model: SimModel, b_model: SimModel) -> List
         if b_shape.intersects(loc_shape):
             locations.append((loc, loc_shape))
     if not locations:
-        raise RuntimeWarning("Detected a collision but unable to find the impact location")
+        raise CollisionException(f"Detected a collision but unable to find the impact location for model {a_model}")
     return locations
 
 
 def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> Optional[CollisionReport]:
     """
     Resolves the collision between A and B using the impulse method.
+    Sources:
+        - http://www.chrishecker.com/images/e/e7/Gdmphys3.pdf
+        - https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/previousinformation/physics6collisionresponse/
     :returns A CollisionReport or None if the collision does not need to be solved (the two bodies are already separating)
     """
     a_model: SimModel = sim_context.models[a]
@@ -43,11 +47,16 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_shape = b_model.get_footprint()
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
+    # fixme this is an approximation to take the cog from the shape centroid
+    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
+    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     a_vel, a_omega = a_model.get_velocity(in_model_frame=False)
     b_vel, b_omega = b_model.get_velocity(in_model_frame=False)
-    rel_velocity = a_vel - b_vel
-    if np.dot(rel_velocity, impact_normal) < 0:
-        # fixme this check needs to be done with the velocity vector at the collision point
+    a_vel_atP = velocity_of_P_given_A(a_vel, a_omega, r_ap)
+    b_vel_atP = velocity_of_P_given_A(b_vel, b_omega, r_bp)
+    rel_velocity_atP = a_vel_atP - b_vel_atP
+
+    if np.dot(rel_velocity_atP, impact_normal) < 0:
         logger.debug(f"Not solving the collision between {a}, {b} since they are already separating")
         return None
 
@@ -66,10 +75,8 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     # Compute impulse resolution
     a_geom = a_model.get_geometry()
     b_geom = b_model.get_geometry()
-    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
-    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
     j_n = compute_impulse_response(n=impact_normal,
-                                   vel_ab=rel_velocity,
+                                   vel_ab=rel_velocity_atP,
                                    r_ap=r_ap,
                                    r_bp=r_bp,
                                    a_geom=a_geom,

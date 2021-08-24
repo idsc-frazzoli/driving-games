@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 from functools import partial
 from time import perf_counter
 from typing import Dict, Set
@@ -11,7 +12,7 @@ from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
-from .sequence import Timestamp
+from dg_commons.sequence import Timestamp
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
@@ -105,8 +106,8 @@ def get_leader_follower_game() -> LeaderFollowerGame:
                               prefs_follower_est=prefs_follower_est,
                               pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
                               antichain_comparison=ac_comp[ac_cfg],
-                              solve_time=Timestamp(config_lf["solve_time"]),
-                              simulation_step=Timestamp(config_lf["simulation_step"]),
+                              solve_time=float(config_lf["solve_time"]),
+                              simulation_step=float(config_lf["simulation_step"]),
                               terminal_progress=config_lf["terminal_progress"],
                               update_prefs=config_lf["update_prefs"])
 
