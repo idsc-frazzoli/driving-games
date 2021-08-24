@@ -36,7 +36,7 @@ def callback_eq(tuple_out: EqOutcome, eq: Dict[str, SolvedTrajectoryGame]):
 def init_eq_dict() -> Dict[str, SolvedTrajectoryGame]:
     ret: Dict[str, SolvedTrajectoryGame] = {
         "indiff": set(), "incomp": set(),
-        "weak": set(), "strong": set(),
+        "weak": set(), "strong": set(), "admissible": set(),
     }
     return ret
 
@@ -169,6 +169,8 @@ class Solution:
         print(f"Nash equilibrium computation time = {toc:.2f} s")
         if not cache_dom:
             self.dominated = dom_prev
+        eq_dict["admissible"] = filter_admissible_nasheq(weak_eq=eq_dict["weak"],
+                                                         player_prefs=context.outcome_pref)
         return eq_dict
 
     def reset(self):
@@ -240,4 +242,32 @@ def iterative_best_response(context: SolvingContext, n_runs: int) \
     toc = perf_counter() - tic
     print(f"Best response equilibrium computation time = {toc:.2f} s")
 
+    eq_dict["admissible"] = filter_admissible_nasheq(weak_eq=eq_dict["weak"],
+                                                     player_prefs=context.outcome_pref)
     return eq_dict
+
+
+def filter_admissible_nasheq(weak_eq: SolvedTrajectoryGame,
+                             player_prefs: Mapping[PlayerName, Preference]) -> SolvedTrajectoryGame:
+    if len(weak_eq) == 0:
+        return set()
+    admissible: SolvedTrajectoryGame = set()
+    admissible.update(weak_eq)
+
+    for equilibria in list(admissible):
+        if equilibria not in admissible:
+            continue
+        for alt_ne in list(admissible):
+            if equilibria == alt_ne:
+                continue
+            comp_outcomes: Set[ComparisonOutcome] = set()
+            for pname, pref in player_prefs.items():
+                comp_outcomes.add(pref.compare(equilibria.outcomes[pname], alt_ne.outcomes[pname]))
+            if INCOMPARABLE in comp_outcomes or {FIRST_PREFERRED, SECOND_PREFERRED} <= comp_outcomes:
+                continue
+            if FIRST_PREFERRED in comp_outcomes:
+                admissible.remove(alt_ne)
+            elif SECOND_PREFERRED in comp_outcomes:
+                admissible.remove(equilibria)
+
+    return admissible
