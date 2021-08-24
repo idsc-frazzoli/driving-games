@@ -52,8 +52,6 @@ class VehicleGeometry(ModelGeometry):
     """ Section Area interested by drag """
     h_cog: float = 0.7
     """ Height of the CoG [m] """
-    rho: float = 1.225
-    """ air density """
     # color: Color = (1, 1, 1)
     # """ Color """
 

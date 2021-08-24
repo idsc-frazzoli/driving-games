@@ -8,7 +8,7 @@ from geometry import T2value, SO2_from_angle, SO2value
 from sim import logger
 from sim.models import Pacejka, Pacejka4p
 from sim.models.model_utils import acceleration_constraint
-from sim.models.utils import kmh2ms, G
+from sim.models.utils import kmh2ms, G, rho
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
@@ -154,26 +154,27 @@ class VehicleModelDyn(VehicleModel):
             F1 = rot_delta.T @ np.array([0, F1y_tyre])
 
             Facc = m * acc
+            Facc_sat = math.copysign(min(abs(Facc), abs(F2_n * self.pacejka_rear.D)), Facc)
+            # drag coefficient
+            F_drag = 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * rho ** 2
+            costh = math.cos(x0.theta)
+            sinth = math.sin(x0.theta)
+            xdot = x0.vx * costh - x0.vy * sinth
+            ydot = x0.vx * sinth + x0.vy * costh
+            acc_x = (F1[0] + Facc_sat + m * x0.dtheta * x0.vy - F_drag) / m
 
             # rear wheel forces
             vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
-
-            F_drag = 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * self.vg.rho ** 2
-            costh = math.cos(x0.theta)
-            sinth = math.sin(x0.theta)
-            xdot = x0.vx * costh - x0.vy * sinth
-            ydot = x0.vx * sinth + x0.vy * costh
-            acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy - F_drag) / m
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
             try:
-                # todo fix https://link.springer.com/chapter/10.1007/978-981-13-8566-7_42
-                F2y = F2y0 * math.sqrt(1 - (acc_x / (G * self.pacejka_rear.D)) ** 2)
+                # fix https://link.springer.com/chapter/10.1007/978-981-13-8566-7_42
+                F2y = F2y0 * math.sqrt(1 - (Facc_sat / (F2_n * self.pacejka_rear.D)) ** 2)
             except ValueError:
                 msg = f"Results will be inaccurate since\n" \
-                      f"F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2) gave an error with values\n" \
-                      f"{F2y0} * math.sqrt(1 - ({Facc} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
+                      f"F2y0 * math.sqrt(1 - (F_x_sat/ (F2_n * self.pacejka_rear.D)) ** 2) gave an error with values\n" \
+                      f"{F2y0} * math.sqrt(1 - ({Facc_sat} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
                 logger.warn(msg)
                 F2y = F2y0
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
