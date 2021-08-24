@@ -161,7 +161,10 @@ class VehicleModelDyn(VehicleModel):
             sinth = math.sin(x0.theta)
             xdot = x0.vx * costh - x0.vy * sinth
             ydot = x0.vx * sinth + x0.vy * costh
-            acc_x = (F1[0] + Facc_sat + m * x0.dtheta * x0.vy - F_drag) / m
+            # rolling resistance front and rear
+            F_rr_f = self.vg.c_rr_f * F1_n
+            F_rr_r = self.vg.c_rr_r * F2_n
+            acc_x = (F1[0] + Facc_sat + m * x0.dtheta * x0.vy - F_drag + F_rr_f + F_rr_r) / m
 
             # rear wheel forces
             vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])

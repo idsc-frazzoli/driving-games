@@ -45,7 +45,7 @@ def npAgent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, time_step: float) ->
                          delta=delta[0])
     # fixme  need to estimate mass and inertia from shape of car
     vg = VehicleGeometry(vehicle_type=CAR, w_half=w_half, m=1500.0, Iz=1000, lf=l / 2.0,
-                         lr=l / 2.0, e=0.6, c_drag=0.3756, a_drag=2, color="royalblue")
+                         lr=l / 2.0, e=0.6, c_drag=0.3756, c_rr_f=0.003, c_rr_r=0.003, a_drag=2, color="royalblue")
     vp = VehicleParametersDyn.default_car()
     model = VehicleModelDyn(x0=x0,
                             vg=vg,

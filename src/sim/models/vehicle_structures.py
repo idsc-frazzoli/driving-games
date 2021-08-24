@@ -50,6 +50,10 @@ class VehicleGeometry(ModelGeometry):
     """ Drag coefficient """
     a_drag: float
     """ Section Area interested by drag """
+    c_rr_f: float
+    """ Rolling Resistance coefficient front """
+    c_rr_r: float
+    """ Rolling Resistance coefficient rear """
     h_cog: float = 0.7
     """ Height of the CoG [m] """
     # color: Color = (1, 1, 1)
@@ -59,12 +63,12 @@ class VehicleGeometry(ModelGeometry):
     @classmethod
     def default_car(cls) -> "VehicleGeometry":
         return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=1.0, lf=2.0, lr=2.0, c_drag=0.3756,
-                               a_drag=2, e=0.6, color="royalblue")
+                               a_drag=2, e=0.6, c_rr_f=0.003, c_rr_r=0.003, color="royalblue")
 
     @classmethod
     def default_bicycle(cls) -> "VehicleGeometry":
         return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=80, w_half=0.25, lf=1.0, lr=1.0, c_drag=0.01,
-                               a_drag=0.2, e=0.5, color="saddlebrown")
+                               a_drag=0.2, e=0.5, c_rr_f=0.003, c_rr_r=0.003, color="saddlebrown")
 
     @cached_property
     def width(self):
