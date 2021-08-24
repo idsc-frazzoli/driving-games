@@ -97,9 +97,9 @@ pref_d5:                      &pref_d5
 pref_d6:                      &pref_d6
   CollisionEnergy:            []
   DrivableAreaViolation:      ["CollisionEnergy"]
-  EpisodeTime:                ["DrivableAreaViolation"]
+  weights_speed:              ["DrivableAreaViolation"]
   MinimumClearance:           ["DrivableAreaViolation"]
-  weights_5:                  ["EpisodeTime", "MinimumClearance"]
+  weights_5:                  ["weights_speed", "MinimumClearance"]
   LateralComfort:             ["weights_5"]
   LongitudinalAcceleration:   ["weights_5"]
 
