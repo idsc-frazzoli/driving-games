@@ -97,6 +97,9 @@ class DgLanelet:
     def get_lane_length(self) -> float:
         return sum(self.get_lane_lengths())
 
+    def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol=0.001) -> DgLanePose:
+        return self.lane_pose_from_SE2_generic(qt.as_SE2(), tol=tol)
+
     def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-7) -> DgLanePose:
         p, _, _ = translation_angle_scale_from_E2(q)
 
@@ -242,3 +245,21 @@ class DgLanelet:
             q1 = self.control_points[i + 1].q.asmatrix2d().m
         q = SE2_interpolate(q0, q1, alpha)
         return q
+
+    @memoized_reset
+    def lane_profile(self, points_per_segment: int = 5) -> List[SE2value]:
+        """Lane bounds - left and right along the lane"""
+        points_left = []
+        points_right = []
+        n = len(self.control_points) - 1
+        num = n * points_per_segment
+        betas = np.linspace(0, n, num=num)
+        for beta in betas:
+            q = self.center_point(beta)
+            r = self.radius(beta)
+            delta_left = np.array([0, r])
+            delta_right = np.array([0, -r])
+            points_left.append(SE2_apply_R2(q, delta_left))
+            points_right.append(SE2_apply_R2(q, delta_right))
+
+        return points_right + list(reversed(points_left))
