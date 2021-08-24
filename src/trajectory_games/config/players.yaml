@@ -1,6 +1,7 @@
 
 #map_name: Map to load (from scenarios)
-map_name: "USA_Lanker-1_1_T-1"
+#map_name: "USA_Lanker-1_1_T-1"
+map_name: "USA_Peach-4_3_T-1"
 max_length: 40.0        # Max length in m
 
 #players:    List of players in the game
@@ -15,15 +16,20 @@ max_length: 40.0        # Max length in m
 basic:
   players:
     P1:
-      state:    "state_1"
+      state:    "state_1_peach"
       traj:     "traj_1_3"
       pref:     "pref_d6"
       vg:       "green_car"
     P2:
-      state:    "state_2"
+      state:    "state_2_peach"
       traj:     "traj_1_3"
       pref:     "pref_d6"
       vg:       "blue_car"
+    P3:
+      state:    "state_3_peach"
+      traj:     "traj_1_3"
+      pref:     "pref_d6"
+      vg:       "red_car"
 
 ## Lexi config
 lexi:

@@ -5,18 +5,45 @@
 #  st0:    Steering angle (rad)
 #  t0:     Initial time (s) - string for decimal
 
-state_1:    &state
-  x0:     -10.0
-  y0:     -7.0
+state_0:    &state
+  x0:     0.0
+  y0:     0.0
   th0:    0.0
-  v0:     6.0
+  v0:     5.0
   st0:    0.0
   t0:     "0.0"
 
-state_2:
+state_1_lanker:
+  x0:     -7.0
+  y0:     -0.0
+  v0:     6.0
+
+state_2_lanker:
   <<: *state
-  x0:     30.0
-  y0:     4.0
+  x0:     18.0
+  y0:     10.0
+  v0:     5.0
+
+state_1_peach:
+  <<: *state
+  v0:     5.0
+
+state_2_peach:
+  <<: *state
+  x0:     -1.0
+  y0:     20.0
+  v0:     5.0
+
+state_3_peach:
+  <<: *state
+  x0:     10.0
+  y0:     14.0
+  v0:     5.0
+
+state_4_peach:
+  <<: *state
+  x0:     -2.0
+  y0:     30.0
   v0:     5.0
 
 state_3:

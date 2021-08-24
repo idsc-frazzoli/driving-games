@@ -75,9 +75,10 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
                     state.x, state.y, state.th = se2_init.p[0], se2_init.p[1], se2_init.theta
                     init = True
 
-        if not init:
+        if init:
+            print(f", Init= {state}")
+        else:
             raise ValueError(f"No lanes for the existing point: {state}")
-        print("Done")
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TransitionGenerator(params=param)
