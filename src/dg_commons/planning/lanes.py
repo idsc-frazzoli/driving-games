@@ -257,8 +257,8 @@ class DgLanelet:
         for beta in betas:
             q = self.center_point(beta)
             r = self.radius(beta)
-            delta_left = np.array([0, r / 2])
-            delta_right = np.array([0, -r / 2])
+            delta_left = np.array([0, r])
+            delta_right = np.array([0, -r])
             points_left.append(SE2_apply_R2(q, delta_left))
             points_right.append(SE2_apply_R2(q, delta_right))
 
