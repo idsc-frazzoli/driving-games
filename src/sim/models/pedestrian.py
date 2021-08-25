@@ -212,7 +212,7 @@ class PedestrianModel(SimModel[SE2value, float]):
 
         costheta, sintheta = cos(x0.theta), sin(x0.theta)
         # Lateral acceleration is always decreasing (friction)
-        magic_mu = 0.02
+        magic_mu = 0.005
         frictiony = - np.sign(x0.vy) * magic_mu * self.pg.m * x0.vy ** 2
         frictionx = - np.sign(x0.vx) * magic_mu * self.pg.m * x0.vx ** 2 if self.has_collided else 0
         frictiontheta = - np.sign(x0.dtheta) * self.pg.Iz * x0.dtheta ** 2 if self.has_collided else 0

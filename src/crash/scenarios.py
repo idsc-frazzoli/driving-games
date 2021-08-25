@@ -78,14 +78,14 @@ def get_scenario_az_01() -> SimContext:
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
     x0_p3 = PedestrianState(x=-15, y=-18, theta=deg2rad(90), vx=0)
-    x0_p1 = VehicleStateDyn(x=-24, y=-8, theta=0.1, vx=5, delta=0)
-    x0_p2 = VehicleStateDyn(x=-25, y=-11, theta=0.1, vx=6, delta=0)
-    x0_p4 = VehicleStateDyn(x=-26, y=-14, theta=0.1, vx=5, delta=0)
+    x0_p1 = VehicleStateDyn(x=-30, y=-8, theta=0.05, vx=5, delta=0)
+    x0_p2 = VehicleStateDyn(x=-31, y=-11, theta=0.05, vx=6, delta=0)
+    x0_p4 = VehicleStateDyn(x=-32, y=-14, theta=0.05, vx=5, delta=0)
     x0_p5 = VehicleStateDyn(x=-10, y=-4, theta=deg2rad(188), vx=7, delta=0)
 
     models = {P1: VehicleModelDyn.default_car(x0_p1),
               P2: VehicleModelDyn.default_car(x0_p2),
-              P3: PedestrianModel.default(x0_p3),
+              #P3: PedestrianModel.default(x0_p3),
               P4: VehicleModelDyn.default_car(x0_p4),
               P5: VehicleModelDyn.default_car(x0_p5),
               }
@@ -104,10 +104,21 @@ def get_scenario_az_01() -> SimContext:
         lane = net.find_lanelet_by_id(lane_id[0][0])
         merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
             lanelet=lane, network=net)[0][0]
-        agents.append(LFAgent(DgLanelet.from_commonroad_lanelet(merged_lane)))
+        dglane = DgLanelet.from_commonroad_lanelet(merged_lane)
+        # ####### debug
+        # points = dglane.lane_profile()
+        # xp, yp = zip(*points)
+        # x = np.array(xp)
+        # y = np.array(yp)
+        # plt.fill(x, y, alpha=0.2, zorder=15)
+        # #######
+        agents.append(LFAgent(dglane))
+    #
+    # plt.savefig("lanes_debug.png", dpi=300)
+    #
     players = {P1: agents[0],
                P2: agents[1],
-               P3: NPAgent(ped_commands_plan),
+               #P3: NPAgent(ped_commands_plan),
                P4: agents[2],
                P5: agents[3],
                }
@@ -117,5 +128,5 @@ def get_scenario_az_01() -> SimContext:
                       players=players,
                       log=SimulationLog(),
                       param=SimParameters(
-                          dt=D(0.02), dt_commands=D(0.1), sim_time_after_collision=D(4), max_sim_time=D(6)),
+                          dt=D(0.01), dt_commands=D(0.1), sim_time_after_collision=D(6), max_sim_time=D(10)),
                       )

@@ -53,9 +53,9 @@ class SpeedController:
 
 @dataclass
 class SpeedBehaviorParam:
-    nominal_speed: float = 4
-    safety_dist_right: float = 1.5
-    safety_dist_front: float = 1
+    nominal_speed: float = 5
+    safety_dist_right: float = 2
+    safety_dist_front: float = 4
 
 
 class SpeedBehavior:
@@ -64,12 +64,12 @@ class SpeedBehavior:
     def __init__(self, my_name: Optional[PlayerName] = None):
         self.params: SpeedBehaviorParam = SpeedBehaviorParam()
         self.my_name: PlayerName = my_name
-        self.others: Optional[MutableMapping[PlayerName, X]] = None
+        self.agents: Optional[MutableMapping[PlayerName, X]] = None
         self.speed_ref: float = 0
         """ The speed reference"""
 
-    def update_observations(self, others: MutableMapping[PlayerName, X]):
-        self.others = others
+    def update_observations(self, agents: MutableMapping[PlayerName, X]):
+        self.agents = agents
 
     def get_speed_ref(self, at: float) -> float:
         """Check if there is anyone on the right too close, then brake"""
@@ -86,16 +86,16 @@ class SpeedBehavior:
         If someone is approaching from the right or someone is in front of us we yield
         """
 
-        mypose = extract_pose_from_state(self.others[self.my_name])
-        for other_name, _ in self.others.items():
+        mypose = extract_pose_from_state(self.agents[self.my_name])
+        for other_name, _ in self.agents.items():
             if other_name == self.my_name:
                 pass
             rel = SE2Transform.from_SE2(relative_pose(
-                mypose, extract_pose_from_state(self.others[other_name])))
+                mypose, extract_pose_from_state(self.agents[other_name])))
 
             distance = np.linalg.norm(rel.p)
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
-            in_front_of_me: bool = rel.p[0] > 0 and -pi / 4 <= rel.theta <= pi / 4
+            in_front_of_me: bool = rel.p[0] > 0 and -pi / 6 <= rel.theta <= pi / 6
             if (coming_from_the_right and distance < self.params.safety_dist_right) or (
                     in_front_of_me and distance < self.params.safety_dist_front):
                 return True
