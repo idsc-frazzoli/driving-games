@@ -2,17 +2,17 @@ import os
 from datetime import datetime
 
 from crash.reports import generete_report
-from crash.scenarios import get_scenario_az_01
+from crash.scenarios import *
 from sim import SimParameters, SimTime
 from sim.scenarios.factory import get_scenario_commonroad_replica
-from sim.simulator import Simulator, SimContext
+from sim.simulator import SimContext, Simulator
 
 
 def _simulate_scenario(sim_context: SimContext):
     sim = Simulator()
     # run simulations
     sim.run(sim_context)
-    # generate report
+    # generate collisions and damages report
     report = generete_report(sim_context)
     # save report
     now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")

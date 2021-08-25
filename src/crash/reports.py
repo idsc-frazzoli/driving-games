@@ -1,10 +1,28 @@
 import matplotlib.pyplot as plt
 from reprep import Report, MIME_PNG, MIME_GIF
 
+from crash.metrics_malliaris import compute_malliaris_one
+from crash.metrics_structures import CollMetricsReport
+from sim import SimulationLog, CollisionReport
 from crash import logger
 from sim.collision_visualisation import plot_collision
 from sim.simulator import SimContext
 from sim.simulator_animation import create_animation
+
+
+def compute_damage_metrics(coll_report: CollisionReport, sim_log: SimulationLog):
+    """
+    Generate One MetricsReport for each existing CollisionReport
+    and save all of them as a list in sim_context.metrics_reports
+    """
+    a, b = coll_report.players.keys()
+    a_state = sim_log.at(coll_report.at_time)[a].state
+    b_state = sim_log.at(coll_report.at_time)[b].state
+    states = {a: a_state, b: b_state}
+    # Malliaris
+    malliaris = compute_malliaris_one(coll_report, states)
+
+    return CollMetricsReport(malliaris=malliaris)
 
 
 def generete_report(sim_context: SimContext) -> Report:
@@ -33,5 +51,7 @@ def get_collsion_reports(sim_context: SimContext) -> Report:
             plot_collision(report)
             plt.savefig(f)
         plt.close()
+        damage_metrics = compute_damage_metrics(coll_report=report, sim_log=sim_context.log)
+        r.text(f"Collision-{i}-damages", text=damage_metrics.__str__())
 
     return r

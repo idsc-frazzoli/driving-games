@@ -25,7 +25,6 @@ class LFAgent(Agent):
         self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
         self.pure_pursuit: PurePursuit = PurePursuit() if pure_pursuit is None else pure_pursuit
         self.my_name: Optional[PlayerName] = None
-        self.last_get_commands_request: Optional[float] = None
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -48,10 +47,9 @@ class LFAgent(Agent):
         self.pure_pursuit.update_speed(speed=speed_ref)
         self.speed_controller.update_reference(desired_speed=speed_ref)
         acc = self.speed_controller.get_control(t)
-        dt = 0 if self.last_get_commands_request is None else t - self.last_get_commands_request
-        self.last_get_commands_request = t
-        # todo fixme missing transform ddelta does not correspond to vehicle rot velocity but it's ok
-        ddelta = (self.pure_pursuit.get_desired_rot_speed() - my_obs.dtheta) / dt if dt > 0 else 0
+        # pure proportional with respect to delta error
+        kp = 0.5
+        ddelta = kp * (self.pure_pursuit.get_desired_steering() - my_obs.delta)
         return VehicleCommands(
             acc=acc,
             ddelta=ddelta

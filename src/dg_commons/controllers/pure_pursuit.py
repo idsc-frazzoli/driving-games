@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from math import sin
+from math import sin, atan
 from typing import Optional, Tuple
 
 import numpy as np
@@ -14,10 +14,14 @@ __all__ = ["PurePursuit", "PurePursuitParam"]
 
 @dataclass
 class PurePursuitParam:
-    # todo lookahead shall be made speed dependent
-    look_ahead: float = 6
+    look_ahead_minmax: Tuple[float, float] = (3, 30)
+    """min and max lookahead"""
+    k_lookahead: float = 1.8
+    """Scaling constant for speed dependent params"""
     min_distance: float = 0.1
-    max_extra_distance: float = 6
+    """Min initial progress to look for the next goal point"""
+    max_extra_distance: float = 5
+    """Max extra distance to look for the closest point on the ref path"""
 
 
 class PurePursuit:
@@ -57,6 +61,7 @@ class PurePursuit:
         Find goal point along the path
         :return: along_path, SE2value
         """
+        lookahead = self._get_lookahead()
 
         def goal_point_error(along_path: float) -> float:
             """
@@ -66,27 +71,32 @@ class PurePursuit:
             beta = self.path.beta_from_along_lane(along_path)
             cp = self.path.center_point(beta)
             dist = euclidean_between_SE2value(self.pose, cp)
-            return np.linalg.norm(dist - self.param.look_ahead)
+            return np.linalg.norm(dist - lookahead)
 
         min_along_path = self.along_path + self.param.min_distance
 
         bounds = [min_along_path,
-                  min_along_path + self.param.look_ahead + self.param.max_extra_distance]
+                  min_along_path + lookahead + self.param.max_extra_distance]
         res = scipy.optimize.minimize_scalar(fun=goal_point_error, bounds=bounds, method='Bounded')
         goal_point = self.path.center_point(self.path.beta_from_along_lane(res.x))
         return res.x, goal_point
 
-    def get_desired_rot_speed(self) -> float:
+    def get_desired_steering(self) -> float:
         """
-        gives "rotational velocity"
-        :return: float
+        :return: float the desired wheel angle
         """
-        # todo fixme this controller is not precise, does not consider properly the vehicle length
+        # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.pose, self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         p, theta = translation_angle_from_SE2(self.pose)
         _, goal_point = self.find_goal_point()
         p_goal, theta_goal = translation_angle_from_SE2(goal_point)
         alpha = np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0]) - theta
-        radius = self.param.look_ahead / (2 * sin(alpha))
-        return self.speed / radius
+        radius = self._get_lookahead() / (2 * sin(alpha))
+        # here 3.5 is just an approximation of an average vehicle length
+        return atan(3.5 / radius)
+
+    def _get_lookahead(self) -> float:
+        return float(np.clip(self.param.k_lookahead * self.speed,
+                             self.param.look_ahead_minmax[0],
+                             self.param.look_ahead_minmax[1]))
