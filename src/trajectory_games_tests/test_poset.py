@@ -6,7 +6,7 @@ from decimal import Decimal as D
 from networkx import DiGraph, topological_sort, has_path
 from nose.tools import assert_equal
 
-from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, SampledSequence, WeightedPreference
+from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, DgSampledSequence, WeightedPreference
 
 from trajectory_games.metrics import (
     get_metrics_set,
@@ -36,8 +36,8 @@ def test_poset():
         total=0.0,
         description="",
         title="",
-        incremental=SampledSequence([], []),
-        cumulative=SampledSequence([], []),
+        incremental=DgSampledSequence([], []),
+        cumulative=DgSampledSequence([], []),
     )
 
     p_def: Dict[Metric, EvaluatedMetric] = {metric: deepcopy(default) for metric in metrics}

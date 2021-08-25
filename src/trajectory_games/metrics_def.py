@@ -5,8 +5,9 @@ from typing import Dict, List, Mapping, Tuple, Optional
 
 from duckietown_world import SE2Transform, LanePose
 
+from dg_commons.seq_op import seq_integrate
+from dg_commons.sequence import Timestamp, DgSampledSequence
 from games import PlayerName
-from .sequence import Timestamp, SampledSequence, iterate_with_dt
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 
@@ -83,16 +84,16 @@ class EvaluatedMetric:
     total: float
     description: str
     title: str
-    incremental: SampledSequence
-    cumulative: SampledSequence
+    incremental: DgSampledSequence
+    cumulative: DgSampledSequence
 
     def __init__(
-        self,
-        title: str,
-        description: str,
-        total: float,
-        incremental: Optional[SampledSequence],
-        cumulative: Optional[SampledSequence],
+            self,
+            title: str,
+            description: str,
+            total: float,
+            incremental: Optional[DgSampledSequence],
+            cumulative: Optional[DgSampledSequence],
     ):
         self.title = title
         self.description = description
@@ -123,7 +124,7 @@ class EvaluatedMetric:
                 raise ValueError(f"Timestamps need to be consecutive - {t_1[-1], t_2[0]}")
             times_i = t_1 + t_2[1:]
             vals_i = m1.incremental.values + m2.incremental.values[1:]
-            inc = SampledSequence(timestamps=times_i, values=vals_i)
+            inc = DgSampledSequence(timestamps=times_i, values=vals_i)
 
         if m1.cumulative is None:
             cum = None
@@ -131,7 +132,7 @@ class EvaluatedMetric:
             times_c = m1.cumulative.timestamps + m2.cumulative.timestamps
             c_end = m1.cumulative.values[-1]
             vals_c = m1.cumulative.values + [v + c_end for v in m2.cumulative.values]
-            cum = SampledSequence(timestamps=times_c, values=vals_c)
+            cum = DgSampledSequence(timestamps=times_c, values=vals_c)
 
         return EvaluatedMetric(title=m1.title, description=m1.description,
                                total=m1.total + m2.total, incremental=inc, cumulative=cum)
@@ -139,34 +140,14 @@ class EvaluatedMetric:
     __radd__ = __add__
 
 
-def integrate(sequence: SampledSequence[float]) -> SampledSequence[float]:
-    """ Integrates with respect to time - multiplies the value with delta T. """
-    if not sequence:
-        msg = "Cannot integrate empty sequence."
-        raise ValueError(msg)
-    total = 0.0
-    timestamps = []
-    values = []
-    for _ in iterate_with_dt(sequence):
-        v_avg = (_.v0 + _.v1) / 2.0
-        total += v_avg * float(_.dt)
-        timestamps.append(Timestamp(_.t0))
-        values.append(total)
-
-    return SampledSequence[float](timestamps, values)
-
-
-def accumulate(sequence: SampledSequence[float]) -> SampledSequence[float]:
-    """ Accumulates with respect to time - Sums the values along the horizontal. """
-    total = 0.0
-    timestamps = []
-    values = []
-    for t, v in sequence:
-        total += v
-        timestamps.append(t)
-        values.append(total)
-
-    return SampledSequence[float](timestamps, values)
+def get_integrated(sequence: DgSampledSequence[float]) -> Tuple[DgSampledSequence[float], float]:
+    if len(sequence) <= 1:
+        cumulative = 0.0
+        dtot = 0.0
+    else:
+        cumulative = seq_integrate(sequence)
+        dtot = cumulative.values[-1]
+    return cumulative, dtot
 
 
 def differentiate(val: List[float], t: List[Timestamp]) -> List[float]:
@@ -187,16 +168,6 @@ def differentiate(val: List[float], t: List[Timestamp]) -> List[float]:
     return ret
 
 
-def get_integrated(sequence: SampledSequence[float]) -> Tuple[SampledSequence[float], float]:
-    if len(sequence) <= 1:
-        cumulative = 0.0
-        dtot = 0.0
-    else:
-        cumulative = integrate(sequence)
-        dtot = cumulative.values[-1]
-    return cumulative, dtot
-
-
 class Metric(metaclass=ABCMeta):
     _instances = {}
     description: str
@@ -213,7 +184,7 @@ class Metric(metaclass=ABCMeta):
         """ Evaluates the metric for all players given a context. """
 
     def get_evaluated_metric(self, interval: List[Timestamp], val: List[float]) -> EvaluatedMetric:
-        incremental = SampledSequence[float](interval, val)
+        incremental = DgSampledSequence[float](interval, val)
         cumulative, total = get_integrated(incremental)
         ret = EvaluatedMetric(title=type(self).__name__, description=self.description,
                               total=total, incremental=incremental, cumulative=cumulative)

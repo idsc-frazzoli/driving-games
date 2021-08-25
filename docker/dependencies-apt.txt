@@ -13,3 +13,5 @@ libboost-filesystem-dev
 
 libomp-dev
 libcgal-dev
+
+git-lfs

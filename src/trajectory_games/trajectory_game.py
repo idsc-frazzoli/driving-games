@@ -11,7 +11,7 @@ from games.utils import iterate_dict_combinations
 from possibilities import Poss
 from preferences import Preference
 
-from .sequence import Timestamp, SampledSequence
+from dg_commons.sequence import Timestamp, DgSampledSequence
 from .structures import VehicleState, VehicleGeometry
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
@@ -145,7 +145,7 @@ class SolvedRecursiveLeaderFollowerGame:
     """ Entire recursive multistage game as a sequence of stages """
 
     lf: LeaderFollowerParams
-    stages: SampledSequence[LeaderFollowerGameStage]
+    stages: DgSampledSequence[LeaderFollowerGameStage]
     aggregated_node: SolvedTrajectoryGameNode
     """ Final aggregated actions and outcomes of players """
 

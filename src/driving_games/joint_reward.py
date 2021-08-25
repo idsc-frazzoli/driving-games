@@ -2,7 +2,8 @@ from typing import FrozenSet, Mapping, List
 from decimal import Decimal as D
 
 from games import JointRewardStructure, PlayerName
-from .collisions import Collision, IMPACT_FRONT
+from sim import IMPACT_FRONT
+from .collisions import Collision
 from .collisions_check import collision_check
 from .structures import VehicleActions, VehicleGeometry, VehicleState
 

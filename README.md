@@ -9,7 +9,7 @@
 
 (You need to be logged in with Github account in both cases.) 
 
-# Driving Games tutorial
+# Driving Games
 
 Reachable states for player 1:
 
@@ -23,23 +23,33 @@ Black are terminating states for the single-player game.
 
 <img src="pics/game.png" style="width: 80%; margin-left: auto; margin-right: auto">
 
+# Installation
 
-## Docker installation and run
+Git clone this repository and init the submodules via `$ git submodule update --init ` (which downloads a set of commonroad senarios).
 
-With Docker:
+There are two options to install this package: via Docker or performing a native installation
+
+### Docker installation and run
+To build the docker image
 
     $ make build
-    
+
+this operation will build a docker image based on the instructions contained in the `Dockerfile`.
+As you may notice this will build on top of a pre-existing [image](https://hub.docker.com/repository/docker/alezana/dg_base) which contains some extra dependencies 
+(e.g. [CommonRoad](https://commonroad.in.tum.de/)).  
+To run an example:
+        
     $ make run
 
 The results are going to be written in the `out-docker` dir.
 
-## Native installation 
+### Native installation
 
 Requires Python >= 3.8.
     
-Run manually the instructions in the Dockerfile.
-You want to install all the reqs in `requirements.txt`.
+Run manually the instructions in both the Dockerfiles: first replicate `docker/Dockerfile.base` on your host machine; then `Dockerfile`.
+The instructions in `Dockerfile.base` install CommonRoad packages and relative dependencies, further [instructions](https://commonroad.in.tum.de/docs/commonroad-drivability-checker/sphinx/) are available at their webpage
+The `Dockerfile` install all the reqs in `requirements.txt` and the `driving-games`package.
 
 Run tests using:
 
@@ -56,8 +66,3 @@ Run some games using:
 Reformat with `black` using:
 	
 	$ make black
-
-## Getting commonroad scenarios
-
-    $ git submodule update --init 
- 
