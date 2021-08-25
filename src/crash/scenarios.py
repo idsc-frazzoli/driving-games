@@ -11,9 +11,11 @@ from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
 from sim.agents.agent import NPAgent
 from sim.agents.lane_follower import LFAgent
+from sim.models import kmh2ms
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle import VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
+from sim.models.vehicle_structures import CAR, VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
 from sim.simulator import SimContext
@@ -78,26 +80,33 @@ def get_scenario_az_01() -> SimContext:
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
     x0_p3 = PedestrianState(x=-15, y=-18, theta=deg2rad(90), vx=0)
-    x0_p1 = VehicleStateDyn(x=-30, y=-8, theta=0.05, vx=5, delta=0)
-    x0_p2 = VehicleStateDyn(x=-31, y=-11, theta=0.05, vx=6, delta=0)
-    x0_p4 = VehicleStateDyn(x=-32, y=-14, theta=0.05, vx=5, delta=0)
-    x0_p5 = VehicleStateDyn(x=-10, y=-4, theta=deg2rad(188), vx=7, delta=0)
+    x0_p1 = VehicleStateDyn(x=-37, y=-8, theta=0.05, vx=kmh2ms(40), delta=0)
+    x0_p2 = VehicleStateDyn(x=-35.5, y=-11, theta=0.05, vx=kmh2ms(40), delta=0)
+    x0_p4 = VehicleStateDyn(x=-37, y=-14, theta=0.05, vx=kmh2ms(40), delta=0)
+    x0_p5 = VehicleStateDyn(x=-10, y=-4, theta=deg2rad(188), vx=kmh2ms(30), delta=0)
+
+    x0_ego = VehicleStateDyn(x=x0_p2.x - 8, y=x0_p2.y, theta=0.05, vx=kmh2ms(50), delta=0)
+    vg_ego = VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=.95, lf=1.95, lr=1.95, e=0.6,
+                             color="firebrick")
+    ego_model = VehicleModelDyn.default_car(x0_ego)
+    ego_model.vg = vg_ego
 
     models = {P1: VehicleModelDyn.default_car(x0_p1),
               P2: VehicleModelDyn.default_car(x0_p2),
-              #P3: PedestrianModel.default(x0_p3),
+              P3: PedestrianModel.default(x0_p3),
               P4: VehicleModelDyn.default_car(x0_p4),
               P5: VehicleModelDyn.default_car(x0_p5),
+              P6: ego_model
               }
 
     ped_commands_plan = DgSampledSequence[PedestrianCommands](
-        timestamps=[0, 0.5, 1], values=[PedestrianCommands(acc=0, dtheta=0),
-                                        PedestrianCommands(acc=3, dtheta=0.1),
+        timestamps=[0, 0.2, 1], values=[PedestrianCommands(acc=0, dtheta=0),
+                                        PedestrianCommands(acc=5, dtheta=0.1),
                                         PedestrianCommands(acc=3, dtheta=0)])
 
     net = scenario.lanelet_network
     agents: List[LFAgent] = []
-    for x0 in [x0_p1, x0_p2, x0_p4, x0_p5]:
+    for x0 in [x0_p1, x0_p2, x0_p4, x0_p5, x0_ego]:
         p = np.array([x0.x, x0.y])
         lane_id = net.find_lanelet_by_position([p, ])
         assert len(lane_id[0]) > 0, p
@@ -118,9 +127,10 @@ def get_scenario_az_01() -> SimContext:
     #
     players = {P1: agents[0],
                P2: agents[1],
-               #P3: NPAgent(ped_commands_plan),
+               P3: NPAgent(ped_commands_plan),
                P4: agents[2],
                P5: agents[3],
+               P6: agents[4],
                }
 
     return SimContext(scenario=scenario,
@@ -128,5 +138,5 @@ def get_scenario_az_01() -> SimContext:
                       players=players,
                       log=SimulationLog(),
                       param=SimParameters(
-                          dt=D(0.01), dt_commands=D(0.1), sim_time_after_collision=D(6), max_sim_time=D(10)),
+                          dt=D(0.01), dt_commands=D(0.1), sim_time_after_collision=D(6), max_sim_time=D(7)),
                       )

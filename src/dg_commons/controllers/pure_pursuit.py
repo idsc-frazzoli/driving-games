@@ -15,10 +15,9 @@ __all__ = ["PurePursuit", "PurePursuitParam"]
 @dataclass
 class PurePursuitParam:
     # todo lookahead shall be made speed dependent
-    look_ahead: float = 5
+    look_ahead: float = 6
     min_distance: float = 0.1
     max_extra_distance: float = 6
-    k_err2ddelta: float = 1
 
 
 class PurePursuit:
@@ -90,5 +89,4 @@ class PurePursuit:
         p_goal, theta_goal = translation_angle_from_SE2(goal_point)
         alpha = np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0]) - theta
         radius = self.param.look_ahead / (2 * sin(alpha))
-        # fixme this last line needs to be checked
         return self.speed / radius

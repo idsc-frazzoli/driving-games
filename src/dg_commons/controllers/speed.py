@@ -9,7 +9,7 @@ from games import PlayerName, X
 
 __all__ = ["SpeedController", "SpeedBehavior"]
 
-from sim.models import extract_pose_from_state
+from sim.models import extract_pose_from_state, kmh2ms
 
 
 @dataclass
@@ -17,7 +17,7 @@ class SpeedControllerParam:
     kP: float = 0.3
     kI: float = 0.1
     antiwindup: Tuple[float, float] = (-2, 2)
-    setpoint_minmax: Tuple[float, float] = (-1, 10)
+    setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(100))
     """In m/s"""
 
 
@@ -53,7 +53,7 @@ class SpeedController:
 
 @dataclass
 class SpeedBehaviorParam:
-    nominal_speed: float = 5
+    nominal_speed: float = kmh2ms(40)
     safety_dist_right: float = 2
     safety_dist_front: float = 4
 

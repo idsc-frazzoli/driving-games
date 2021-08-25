@@ -205,14 +205,13 @@ class PedestrianModel(SimModel[SE2value, float]):
         return
 
     def dynamics(self, x0: PedestrianState, u: PedestrianCommands) -> PedestrianState:
-        """ Simple double integrator"""
-        # todo double integrator
+        """ Simple double integrator with friction after collision to simulate a "bag of potato" effect """
         dtheta = rotation_constraint(rot_velocity=u.dtheta, pp=self.pp)
         acc = acceleration_constraint(speed=x0.vx, acceleration=u.acc, p=self.pp)
 
         costheta, sintheta = cos(x0.theta), sin(x0.theta)
         # Lateral acceleration is always decreasing (friction)
-        magic_mu = 0.005
+        magic_mu = 0.002
         frictiony = - np.sign(x0.vy) * magic_mu * self.pg.m * x0.vy ** 2
         frictionx = - np.sign(x0.vx) * magic_mu * self.pg.m * x0.vx ** 2 if self.has_collided else 0
         frictiontheta = - np.sign(x0.dtheta) * self.pg.Iz * x0.dtheta ** 2 if self.has_collided else 0

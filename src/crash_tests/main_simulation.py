@@ -32,10 +32,10 @@ def commonroad_replica():
     _simulate_scenario(sim_context)
 
 
-def az_paper():
+def az_optimal_crashing():
     sim_context = get_scenario_az_01()
     _simulate_scenario(sim_context)
 
 
 if __name__ == '__main__':
-    az_paper()
+    az_optimal_crashing()
