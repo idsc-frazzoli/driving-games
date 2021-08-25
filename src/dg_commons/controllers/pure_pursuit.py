@@ -14,10 +14,11 @@ __all__ = ["PurePursuit"]
 
 @dataclass
 class PurePursuitParam:
-    look_ahead: float = 2
+    # todo lookahead shall be made speed dependent
+    look_ahead: float = 5
     min_distance: float = 0.1
     max_extra_distance: float = 6
-    k_err2ddelta: float = 0.3
+    k_err2ddelta: float = 1
 
 
 class PurePursuit:

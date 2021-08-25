@@ -29,6 +29,7 @@ class LFAgent(Agent):
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
         self.speed_behavior.my_name = my_name
+        self.pure_pursuit.update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         my_obs = sim_obs.players[self.my_name]
@@ -36,7 +37,7 @@ class LFAgent(Agent):
 
         # update observations
         self.speed_behavior.update_observations(sim_obs.players)
-        self.speed_controller.update_observations(current_velocity=my_obs.vx)
+        self.speed_controller.update_observations(current_speed=my_obs.vx)
         lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
         self.pure_pursuit.update_pose(pose=my_pose, along_path=lanepose.along_lane)
 

@@ -4,11 +4,12 @@ from typing import Optional, Tuple, MutableMapping
 
 import numpy as np
 from duckietown_world import relative_pose, SE2Transform
-from geometry import xytheta_from_SE2
 
 from games import PlayerName, X
 
 __all__ = ["SpeedController", "SpeedBehavior"]
+
+from sim.models import extract_pose_from_state
 
 
 @dataclass
@@ -30,8 +31,8 @@ class SpeedController:
         self.last_request_at: Optional[float] = None
         self.last_integral_error: float = 0
 
-    def update_observations(self, current_velocity: np.ndarray):
-        self.current_speed = xytheta_from_SE2(current_velocity)[0]
+    def update_observations(self, current_speed: float):
+        self.current_speed = current_speed
 
     def update_reference(self, desired_speed: float):
         if not self.params.setpoint_minmax[0] <= desired_speed <= self.params.setpoint_minmax[1]:
@@ -85,11 +86,12 @@ class SpeedBehavior:
         If someone is approaching from the right or someone is in front of us we yield
         """
 
+        mypose = extract_pose_from_state(self.others[self.my_name])
         for other_name, _ in self.others.items():
             if other_name == self.my_name:
                 pass
             rel = SE2Transform.from_SE2(relative_pose(
-                self.others[self.my_name].pose, self.others[other_name].pose))
+                mypose, extract_pose_from_state(self.others[other_name])))
 
             distance = np.linalg.norm(rel.p)
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4

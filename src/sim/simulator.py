@@ -10,7 +10,6 @@ from games import PlayerName, U
 from sim import logger, CollisionReport, SimTime
 from sim.agents.agent import Agent
 from sim.collision_utils import CollisionException
-from sim.scenarios import load_commonroad_scenario
 from sim.simulator_structures import *
 
 
@@ -18,8 +17,7 @@ from sim.simulator_structures import *
 class SimContext:
     """ The simulation context that keeps track of everything, handle with care as it is passed around by reference and
     it is a mutable object"""
-    scenario_name: str
-    scenario: Scenario = field(init=False)
+    scenario: Scenario
     models: Mapping[PlayerName, SimModel]
     players: Mapping[PlayerName, Agent]
     log: SimulationLog
@@ -32,7 +30,10 @@ class SimContext:
 
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
-        self.scenario, _ = load_commonroad_scenario(self.scenario_name)
+        assert isinstance(self.scenario, Scenario), self.scenario
+        for pname in self.models.keys():
+            assert issubclass(type(self.models[pname]), SimModel)
+            assert issubclass(type(self.players[pname]), Agent)
 
 
 class Simulator:
@@ -42,12 +43,14 @@ class Simulator:
 
     @time_function
     def run(self, sim_context: SimContext):
+        logger.info("Beginning simulation.")
         for player_name, player in sim_context.players.items():
             player.on_episode_init(player_name)
         while not sim_context.sim_terminated:
             self.pre_update(sim_context)
             self.update(sim_context)
             self.post_update(sim_context)
+        logger.info("Completed simulation.")
 
     def pre_update(self, sim_context: SimContext):
         """Prior to stepping the simulation we compute the observations for each agent"""
