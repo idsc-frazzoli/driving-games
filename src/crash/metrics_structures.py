@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Mapping
 
-from crash.metrics_utils import MalliarisRisk
+from crash.metrics_malliaris import MalliarisRisk
 from games import PlayerName
 
 
 @dataclass(frozen=True, unsafe_hash=True)
-class MetricsReport:
+class CollMetricsReport:
     malliaris: Mapping[PlayerName, MalliarisRisk]
     """ ... """

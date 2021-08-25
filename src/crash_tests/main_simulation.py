@@ -2,14 +2,11 @@ import os
 from datetime import datetime
 
 from crash.reports import generete_report
-from crash.scenarios import get_scenario_az_01
+from crash.scenarios import *
 from sim import SimParameters, SimTime
 from sim.scenarios.factory import get_scenario_commonroad_replica
-from sim.simulator import Simulator, SimContext
+from sim.simulator import SimContext, Simulator
 
-from crash.reports import generete_report, compute_damage_metrics
-from crash.scenarios import *
-from sim.simulator import Simulator
 
 def _simulate_scenario(sim_context: SimContext):
     sim = Simulator()
