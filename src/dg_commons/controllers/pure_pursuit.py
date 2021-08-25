@@ -9,21 +9,22 @@ from geometry import SE2value, translation_angle_from_SE2
 from dg_commons.geo import euclidean_between_SE2value
 from dg_commons.planning.lanes import DgLanelet
 
-__all__ = ["PurePursuit"]
+__all__ = ["PurePursuit", "PurePursuitParam"]
 
 
 @dataclass
 class PurePursuitParam:
-    look_ahead: float = 2
+    # todo lookahead shall be made speed dependent
+    look_ahead: float = 6
     min_distance: float = 0.1
     max_extra_distance: float = 6
-    k_err2ddelta: float = 0.3
 
 
 class PurePursuit:
     """
     https://ethz.ch/content/dam/ethz/special-interest/mavt/dynamic-systems-n-control/idsc-dam/Lectures/amod
     /AMOD_2020/20201019-05%20-%20ETHZ%20-%20Control%20in%20Duckietown%20(PID).pdf
+    Note there is an error in computation of alpha (order needs to be inverted)
     """
 
     def __init__(self, params: PurePursuitParam = PurePursuitParam()):
@@ -75,18 +76,17 @@ class PurePursuit:
         goal_point = self.path.center_point(self.path.beta_from_along_lane(res.x))
         return res.x, goal_point
 
-    def get_steering_derivative(self) -> float:
+    def get_desired_rot_speed(self) -> float:
         """
         gives "rotational velocity"
         :return: float
         """
-        # todo fixme
+        # todo fixme this controller is not precise, does not consider properly the vehicle length
         if any([_ is None for _ in [self.pose, self.path]]):
-            raise RuntimeError("Attempting to use pure pursuit before having set any observations or reference path")
+            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         p, theta = translation_angle_from_SE2(self.pose)
         _, goal_point = self.find_goal_point()
         p_goal, theta_goal = translation_angle_from_SE2(goal_point)
-        alpha = theta - np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0])
+        alpha = np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0]) - theta
         radius = self.param.look_ahead / (2 * sin(alpha))
-        # fixme this last line needs to be checked
-        return - self.param.k_err2ddelta * self.speed / radius
+        return self.speed / radius
