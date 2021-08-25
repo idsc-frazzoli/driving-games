@@ -106,8 +106,7 @@ def test_trajectory_game_lexi():
     pname = next(iter(game.game_players.keys()))
     player = game.game_players[pname]
     for i in range(len(states)):
-        player.state = game.ps.unit(
-            VehicleState.from_config(name=states[i], lane=next(iter(game.world.get_lanes(pname)))))
+        player.state = game.ps.unit(VehicleState.from_config(name=states[i]))
         for j in range(len(prefs)):
             try:
                 player.preference = PosetalPreference(pref_str=prefs[j], use_cache=False)

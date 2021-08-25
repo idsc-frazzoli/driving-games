@@ -9,7 +9,6 @@ leader_follower:
   antichain_comparison:   "JOIN_ACCOMP"   # EXP_ACCOMP or JOIN_ACCOMP
   solve_time:             "15.0"          # Total time to simulate game
   simulation_step:        "1.0"           # Step for game simulation
-  terminal_progress:      0.8             # Final progress of agent to terminate simulation
   update_prefs:           False           # Update estimate of follower prefs or not
 #  update_prefs:           True           # Update estimate of follower prefs or not
 

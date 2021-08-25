@@ -2,17 +2,18 @@ import math
 from copy import deepcopy
 from random import choice
 from time import perf_counter
-from typing import Mapping, Dict, Set, List, Callable, Tuple
+from typing import Mapping, Dict, Set, List, Callable, Tuple, Optional
 
 from duckietown_world import SE2Transform
 from frozendict import frozendict
+from shapely.geometry import Polygon
 
+from dg_commons.planning.lanes import DgLanelet
 from games.utils import iterate_dict_combinations
 from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
 
 from games import PlayerName
-from world import LaneSegmentHashable
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
 from .structures import VehicleState, VehicleGeometry
 from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
@@ -20,7 +21,6 @@ from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
     LeaderFollowerGame, preprocess_full_game, SolvedRecursiveLeaderFollowerGame
 from dg_commons.sequence import Timestamp, DgSampledSequence
 from .paths import Trajectory
-from .trajectory_generator import TransitionGenerator
 from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
 from .metrics import Clearance
 from .solve import get_best_responses
@@ -60,7 +60,8 @@ def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOut
             elif comp == SECOND_PREFERRED:
                 ac_worst.remove(out2)
 
-    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em, total=-math.inf) for m, em in outcomes[0].items()}
+    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em, total=-math.inf) for m, em in
+                                           outcomes[0].items()}
     # TODO[SIR]: This can be improved to calc more accurate joins
     for out in ac_worst:
         for m, em in out.items():
@@ -146,7 +147,6 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
     best_actions: Dict[Preference, Set[Trajectory]] = {}
     all_actions: Set[Trajectory] = set()
     for p_f in lf.prefs_follower_est.support():
-
         def get_outcomes(action: Trajectory) -> PlayerOutcome:
             return agg_out_l[action][p_f]
 
@@ -223,8 +223,8 @@ def solve_recursive_game_stage(game: LeaderFollowerGame,
 
     def get_br(pref: Preference):
         _, br_pref = get_best_responses(joint_actions=joint_act, context=context,
-                                      player=game.lf.follower, done_p=set(),
-                                      player_pref=pref)
+                                        player=game.lf.follower, done_p=set(),
+                                        player_pref=pref)
         return br_pref
 
     for p_f in context.lf.prefs_follower_est.support():
@@ -272,7 +272,6 @@ def simulate_recursive_game_stage(game: LeaderFollowerGame,
 
 
 def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollowerGame:
-
     tic = perf_counter()
     stage_seq: List[LeaderFollowerGameStage] = []
 
@@ -296,9 +295,8 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
                 clearance_dict[pname] = (Trajectory.state_to_se2(state), player.vg)
                 states_p = [states[pname], state]
                 if pname == game.lf.leader:
-                    for lane in game.world.get_lanes(pname):
-                        p_final = TransitionGenerator.get_p_final(lane=lane, s_final=game.lf.terminal_progress)
-                        if Trajectory.trim_trajectory(states=states_p, p_final=p_final):
+                    for lane, goal in game.world.get_lanes(pname):
+                        if Trajectory.trim_trajectory(states=states_p, goal=goal):
                             done = True
                 states[pname] = state
         if Clearance.get_clearance(players=clearance_dict) < 1e-3:
@@ -313,7 +311,8 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
     times: List[Timestamp] = [stage.time for stage in stage_seq]
     states_traj: Mapping[PlayerName, Dict[Timestamp, VehicleState]] = \
         {pname: {} for pname in game.game_players.keys()}
-    lanes: Dict[PlayerName, LaneSegmentHashable] = {}
+    lanes: Dict[PlayerName, DgLanelet] = {}
+    goals: Dict[PlayerName, Optional[Polygon]] = {}
     for i in range(len(stage_seq)):
         sol = stage_seq[i]
         for pname in game.game_players.keys():
@@ -321,15 +320,14 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
             for step in pact.get_sampling_points():
                 if 0 <= step - times[i] <= game.lf.simulation_step:
                     states_traj[pname][step] = pact.at(step)
-            lanes[pname] = pact.get_lane()
+            lane, goal = pact.get_lane()
+            lanes[pname], goals[pname] = lane, goal
 
     # Trim trajectory of leader till terminal progress and follower till same time
-    p_final = TransitionGenerator.get_p_final(lane=lanes[game.lf.leader],
-                                              s_final=game.lf.terminal_progress)
     traj_lead = Trajectory(values=list(states_traj[game.lf.leader].values()),
-                           lane=lanes[game.lf.leader], p_final=p_final)
+                           lane=lanes[game.lf.leader], goal=goals[game.lf.leader])
     traj_foll = Trajectory(values=list(states_traj[game.lf.follower].values())[:len(traj_lead)],
-                           lane=lanes[game.lf.follower])
+                           lane=lanes[game.lf.follower], goal=goals[game.lf.follower])
     traj: Mapping[PlayerName, Trajectory] = \
         {game.lf.leader: traj_lead, game.lf.follower: traj_foll}
 

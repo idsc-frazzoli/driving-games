@@ -12,6 +12,8 @@ from decimal import Decimal as D
 
 from games import PlayerName
 from preferences import Preference
+from sim.simulator_animation import adjust_axes_limits
+from .structures import VehicleState
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
     SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame, LeaderFollowerGameStage
@@ -32,12 +34,15 @@ def report_game_visualization(game: Game) -> Report:
     with r.plot("actions") as pylab:
         ax = pylab.gca()
         with viz.plot_arena(axis=ax):
+            states: List[VehicleState] = []
             for player_name, player in game.game_players.items():
                 for state in player.state.support():
+                    states.append(state)
                     viz.plot_player(axis=ax, player_name=player_name, state=state)
                     actions = player.actions_generator.get_actions_static(state=state, world=game.world,
                                                                           player=player.name)
                     viz.plot_actions(axis=ax, actions=actions, colour=player.vg.colour, width=0.5)
+            adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
 
     toc = perf_counter() - tic
     print(f"Report game viz time = {toc:.2f} s")
@@ -286,8 +291,10 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     def init_plot():
         ax.clear()
         with viz.plot_arena(axis=ax):
+            states: List[VehicleState] = []
             for player_name, player in game.game_players.items():
                 for state in player.state.support():
+                    states.append(state)
                     box[player_name] = \
                         viz.plot_player(axis=ax, player_name=player_name,
                                         state=state)
@@ -295,14 +302,19 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
                 viz.plot_equilibria(axis=ax, actions=frozenset([action]),
                                     colour=game.game_players[player].vg.colour,
                                     width=1.0)
+            adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
+
         return list(box.values())
 
     def update_plot(t: D):
+        states: List[VehicleState] = []
         for player, box_handle in box.items():
             action: Trajectory = node.actions[player]
             state = action.at(t=t)
+            states.append(state)
             box[player] = viz.plot_player(axis=ax, player_name=player,
                                           state=state, box=box_handle)
+        adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
         return list(box.values())
 
     actions = list(node.actions.values())
@@ -312,7 +324,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     dt_ms = int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True, repeat_delay=0)
-    anim.save(fn, dpi=80, writer="imagemagick")
+    anim.save(fn, dpi=200, writer="imagemagick")
 
 
 def report_leader_follower_solution(game: Game, solution: SolvedLeaderFollowerGame,
@@ -583,4 +595,4 @@ def create_animation_recursive(fn: str, game: Game,
     dt_ms = int((times[1] - times[0]) * 1000)
     anim = FuncAnimation(fig=fig, func=update_plot, init_func=init_plot,
                          frames=times, interval=dt_ms, blit=True, repeat_delay=0)
-    anim.save(fn, dpi=80, writer="imagemagick")
+    anim.save(fn, dpi=200, writer="imagemagick")

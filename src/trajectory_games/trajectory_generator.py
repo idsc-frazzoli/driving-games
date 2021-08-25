@@ -1,5 +1,4 @@
 import math
-from functools import lru_cache
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Optional
 import numpy as np
@@ -13,7 +12,7 @@ from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
 from .structures import VehicleState, TrajectoryParams, VehicleActions
 from .game_def import ActionSetGenerator
-from .paths import FinalPoint, Trajectory, TrajectoryGraph
+from .paths import Trajectory, TrajectoryGraph
 from .trajectory_world import TrajectoryWorld
 from .bicycle_dynamics import BicycleDynamics
 
@@ -48,8 +47,8 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         assert world is not None
         tic = perf_counter()
         all_graphs: Set[TrajectoryGraph] = set()
-        for lane in world.get_lanes(player=player):
-            graph = TrajectoryGraph(origin=state, lane=lane)
+        for lane, goal in world.get_lanes(player=player):
+            graph = TrajectoryGraph(origin=state, lane=lane, goal=goal)
             self._get_trajectory_graph(state=state, lane=lane, graph=graph)
             all_graphs.add(graph)
         toc = perf_counter() - tic
@@ -76,15 +75,9 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
     def _get_trajectory_graph(self, state: VehicleState, lane: DgLanelet, graph: TrajectoryGraph):
         """ Construct graph of states """
+        k_maxgen = 5
         stack = list([state])
         graph.origin = state
-
-        p_final = self.get_p_final(lane=lane, s_final=self.params.s_final)
-        if p_final is not None:
-            x_f, y_f, inc = p_final
-            z_f = x_f if x_f is not None else y_f
-        else:
-            x_f, z_f, inc = None, None, True
 
         if state not in graph.nodes:
             graph.add_node(state=state, gen=0)
@@ -98,14 +91,13 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
             expanded.add(s1)
             successors = self.tree_func(state=s1, lane=lane, gen=n_gen)
             for u, (s2, samp) in successors.items():
-                if p_final is not None:
-                    z = s2.x if x_f is not None else s2.y
-                    cond = (inc and (z < z_f)) or (not inc and (z > z_f))
+                if graph.goal is not None:
+                    cond = Trajectory.get_in_goal_index(states=samp, goal=graph.goal) is None and n_gen + 1 < k_maxgen
                 else:
                     cond = n_gen + 1 < self.params.max_gen
                 if cond:
                     stack.append(s2)
-                transition = Trajectory.create(values=samp, lane=lane, p_final=p_final, states=(s1, s2))
+                transition = Trajectory.create(values=samp, lane=lane, goal=graph.goal, states=(s1, s2))
                 graph.add_edge(trajectory=transition, u=u)
 
         return graph
@@ -311,30 +303,6 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                 state_f, states_t = self.get_successor(state=state, u=u_f)
                 successors[u_f] = (state_f, states_t)
         return successors
-
-    @staticmethod
-    @lru_cache(None)
-    def get_p_final(lane: DgLanelet, s_final: float) -> Optional[FinalPoint]:
-        if s_final < 0:
-            return None
-        tol = 1e-1
-        s_max = lane.get_lane_length()
-        beta_final = lane.beta_from_along_lane(along_lane=s_max * s_final)
-        center = lane.center_point(beta=beta_final)
-        pos_f, ang_f, _ = geo.translation_angle_scale_from_E2(center)
-        while ang_f < -math.pi: ang_f += 2 * math.pi
-        while ang_f > +math.pi: ang_f -= 2 * math.pi
-        if abs(ang_f) < tol:
-            p_f = (pos_f[0], None, True)
-        elif abs(ang_f - math.pi) < tol or abs(ang_f + math.pi) < tol:
-            p_f = (pos_f[0], None, False)
-        elif abs(ang_f - math.pi / 2) < tol:
-            p_f = (None, pos_f[1], True)
-        elif abs(ang_f + math.pi / 2) < tol:
-            p_f = (None, pos_f[1], False)
-        else:
-            raise Exception("Final angle is not along axes!")
-        return p_f
 
     @staticmethod
     def _trajectory_graph_to_list(graph: TrajectoryGraph) -> Set[Trajectory]:

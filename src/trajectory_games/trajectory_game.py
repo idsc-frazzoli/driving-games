@@ -71,9 +71,6 @@ class LeaderFollowerParams:
     simulation_step: Timestamp
     """ Timestep for each solution and simulation [s]"""
 
-    terminal_progress: float
-    """ Fraction of leader lane to finish game """
-
     update_prefs: bool
     """ Update estimated preferences of follower online or not """
 

@@ -105,16 +105,11 @@ def create_animation(file_path: str,
 def adjust_axes_limits(ax: Axes,
                        plot_limits: Union[str, Sequence[Sequence[float]]],
                        players_states: Sequence[X]):
+    if plot_limits == 'auto':
+        plot_limits = approximate_bounding_box_players(obj_list=players_states)
     if plot_limits is None:
         ax.autoscale()
-    elif plot_limits == 'auto':
-        players_limits = approximate_bounding_box_players(obj_list=players_states)
-        if players_limits is not None:
-            ax.axis(xmin=players_limits[0][0], xmax=players_limits[0][1], ymin=players_limits[1][0],
-                    ymax=players_limits[1][1])
-        else:
-            ax.autoscale()
     else:
-        ax.xlim(plot_limits[0][0], plot_limits[0][1])
-        ax.ylim(plot_limits[1][0], plot_limits[1][1])
+        ax.axis(xmin=plot_limits[0][0], xmax=plot_limits[0][1],
+                ymin=plot_limits[1][0], ymax=plot_limits[1][1])
     return

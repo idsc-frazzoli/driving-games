@@ -1,4 +1,3 @@
-from bisect import bisect_right
 from functools import lru_cache
 from typing import List, Dict, Tuple, Optional, FrozenSet, Iterator, Union
 
@@ -7,6 +6,7 @@ import numpy as np
 from cachetools import cached
 from duckietown_world import SE2Transform
 from networkx import DiGraph, has_path, shortest_path
+from shapely.geometry import Polygon, Point
 
 from dg_commons.planning.lanes import DgLanelet
 from dg_commons.sequence import Timestamp, DgSampledSequence
@@ -16,11 +16,7 @@ from .structures import VehicleState
 __all__ = [
     "Trajectory",
     "TrajectoryGraph",
-    "FinalPoint"
 ]
-
-# FinalPoint = (x_f, y_f, increase_flag)
-FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
 
 class Trajectory:
@@ -35,13 +31,16 @@ class Trajectory:
     """ The upsampled sequence of vehicle states """
     lane: DgLanelet
     """ The reference lane used to generate the trajectory """
+    goal: Optional[Polygon]
+    """ The goal region for the trajectory """
 
     def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
                  lane: DgLanelet,
-                 p_final: Optional[FinalPoint] = None,
+                 goal: Optional[Polygon] = None,
                  states: Optional[Tuple[VehicleState, VehicleState]] = None):
         assert len(values) > 0
         self.lane = lane
+        self.goal = goal
         if all(isinstance(val, Trajectory) for val in values):
             self.traj = values
             x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
@@ -50,8 +49,7 @@ class Trajectory:
             if states is not None:
                 values[0] = states[0]
                 values[-1] = states[-1]
-            if p_final is not None:
-                self.trim_trajectory(states=values, p_final=p_final)
+            self.trim_trajectory(states=values, goal=goal)
             times: List[Timestamp] = [x.t for x in values]
             self.states = DgSampledSequence(timestamps=times, values=values)
             self.traj = []
@@ -59,10 +57,10 @@ class Trajectory:
             raise TypeError(f"Input is of wrong type - {type(values[0])}!")
 
     @staticmethod
-    @cached(cache={}, key=lambda states, lane, values, p_final: cachetools.keys.hashkey((states, lane)))
+    @cached(cache={}, key=lambda states, lane, values, goal: cachetools.keys.hashkey((states, lane)))
     def create(states: Tuple[VehicleState, VehicleState], lane: DgLanelet,
-               values: List[VehicleState], p_final: FinalPoint = None):
-        return Trajectory(values=values, lane=lane, p_final=p_final, states=states)
+               values: List[VehicleState], goal: Optional[Polygon] = None):
+        return Trajectory(values=values, lane=lane, goal=goal, states=states)
 
     @staticmethod
     def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
@@ -75,32 +73,26 @@ class Trajectory:
         return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
 
     @staticmethod
-    def trim_trajectory(states: List[VehicleState], p_final: FinalPoint) -> bool:
-        """ Trims trajectory till p_final (if longer) and returns if trimming was performed or not """
-        x_f, y_f, increase = p_final
-        assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
-        if x_f is not None:
-            def get_z(state: VehicleState) -> float:
-                return state.x
-
-            z_f = x_f
-        else:
-            def get_z(state: VehicleState) -> float:
-                return state.y
-
-            z_f = y_f
-        times = [x.t for x in states]
-        z_samp = [get_z(x) for x in states]
-        if not increase:
-            z0 = z_samp[0]
-            z_samp = [z0 - z for z in z_samp]
-            z_f = z0 - z_f
-        if z_f < z_samp[0] or z_f > z_samp[-1]:
+    def trim_trajectory(states: List[VehicleState], goal: Optional[Polygon]) -> bool:
+        """ Trims trajectory till goal region (if longer) and returns if trimming was performed or not """
+        if goal is None:
             return False
-        last = bisect_right(z_samp, z_f)
-        for _ in range(last + 1, len(times)):
+        goal_idx = Trajectory.get_in_goal_index(states=states, goal=goal)
+        if goal_idx is None:
+            return False
+        n_states = len(states)
+        for _ in range(goal_idx + 1, n_states):
             states.pop()
         return True
+
+    @staticmethod
+    def get_in_goal_index(states: List[VehicleState], goal: Polygon) -> Optional[int]:
+        in_goal = [goal.contains(Point(x.x, x.y)) for x in states]
+        try:
+            last = in_goal.index(True)
+            return last
+        except:
+            return None
 
     def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
         return self.states.__iter__()
@@ -108,8 +100,8 @@ class Trajectory:
     def __len__(self):
         return len(self.states)
 
-    def get_lane(self) -> DgLanelet:
-        return self.lane
+    def get_lane(self) -> Tuple[DgLanelet, Optional[Polygon]]:
+        return self.lane, self.goal
 
     def get_trajectories(self) -> List["Trajectory"]:
         if len(self.traj) == 0:
@@ -153,7 +145,8 @@ class Trajectory:
         x1, x2 = self.at(self.get_end()), other.at(other.get_start())
         if not x1.is_close(x2):
             raise ValueError(f"Transitions not continuous - {x1, x2}")
-        return Trajectory(values=self.traj + other.traj, lane=other.get_lane())
+        lane, goal = other.get_lane()
+        return Trajectory(values=self.traj + other.traj, lane=lane, goal=goal)
 
     def starts_with(self, start: "Trajectory") -> bool:
         if len(start) > len(self): return False
@@ -168,13 +161,16 @@ class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
     """ Origin of the graph of states """
     lane: DgLanelet
     """ Reference lane used to generate trajectories """
+    goal: Optional[Polygon]
+    """ Goal region for the trajectories """
     trajectories: Dict[Tuple[VehicleState, VehicleState], Trajectory]
     """ Store trajectories based on terminal states """
 
-    def __init__(self, origin: VehicleState, lane: DgLanelet, **attr):
+    def __init__(self, origin: VehicleState, lane: DgLanelet, goal: Optional[Polygon] = None, **attr):
         super().__init__(**attr)
         self.origin = origin
         self.lane = lane
+        self.goal = goal
         self.trajectories = {}
 
     def add_node(self, state: VehicleState, **attr):
@@ -218,4 +214,4 @@ class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
         traj: List[Trajectory] = []
         for node1, node2 in zip(nodes[:-1], nodes[1:]):
             traj.append(self.get_trajectory_edge(source=node1, target=node2))
-        return Trajectory(values=traj, lane=self.lane)
+        return Trajectory(values=traj, lane=self.lane, goal=self.goal)

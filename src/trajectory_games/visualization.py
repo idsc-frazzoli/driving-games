@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Mapping, FrozenSet, Set
+from typing import Sequence, Tuple, Mapping, FrozenSet, Optional, Dict, Union
 
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
@@ -7,6 +7,7 @@ from geometry import SE2_from_xytheta
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
+from shapely.geometry import Polygon
 
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
@@ -30,9 +31,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     world: TrajectoryWorld
     commonroad_renderer: MPRenderer
 
-    def __init__(self, world: TrajectoryWorld, ax: Axes = None, *args, **kwargs):
+    def __init__(self, world: TrajectoryWorld, ax: Axes = None,
+                 plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto",
+                 *args, **kwargs):
         self.world = world
-        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, **kwargs)
+        self.plot_limits = plot_limits
+        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
 
     @contextmanager
     def plot_arena(self, axis: Axes):
@@ -45,7 +49,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         yield
 
     def plot_player(self, axis, player_name: PlayerName,
-                    state: VehicleState, alpha: float = 0.3, box=None):
+                    state: VehicleState, alpha: float = 0.7, box=None):
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
@@ -63,7 +67,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                           alpha=alpha, ticks=ticks)
 
         if scatter:
-            size = (axis.bbox.height / 400.0) ** 2
+            size = (axis.bbox.height / 1000.0) ** 2
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
@@ -103,24 +107,27 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             axis.text(x=X, y=Y + 10.0, s=pname + text, ha="center", va="center")
             axis.set_ylim(top=Y + 15.0)
 
-    def plot_actions(self, axis, actions: FrozenSet[Trajectory],
+    def plot_actions(self, axis: Axes, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR = None,
                      width: float = 1.0, alpha: float = 1.0,
                      ticks: bool = True, lines=None) -> LineCollection:
         segments = []
-        lanes: Set[DgLanelet] = set()
+        lanes: Dict[DgLanelet, Optional[Polygon]] = {}
         for traj in actions:
             sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
             segments.append(sampled_traj)
-            lanes.add(traj.get_lane())
+            lane, goal = traj.get_lane()
+            lanes[lane] = goal
 
-        for lane in lanes:
+        for lane, goal in lanes.items():
             points = lane.lane_profile()
             xp, yp = zip(*points)
             x = np.array(xp)
             y = np.array(yp)
             if colour is not None:
                 axis.fill(x, y, color=colour, alpha=0.2, zorder=15)
+                if goal is not None:
+                    axis.plot(*goal.exterior.xy, color=colour, linewidth=width, zorder=20)
 
         if lines is None:
             if colour is None:

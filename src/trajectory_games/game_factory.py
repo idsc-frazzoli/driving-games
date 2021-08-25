@@ -1,11 +1,12 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict, Set
+from typing import Dict, Set, Tuple, Optional, List
 
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.scenario import Scenario
+from shapely.geometry import Polygon
 from yaml import safe_load
 
 from dg_commons.planning.lanes import DgLanelet
@@ -41,7 +42,7 @@ with open(leader_follower_file) as load_file:
 
 def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     tic = perf_counter()
-    lanes: Dict[PlayerName, Set[DgLanelet]] = {}
+    lanes: Dict[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     scenario: Scenario
@@ -55,10 +56,13 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
 
     for pname, pconfig in config[config_str]["players"].items():
         print(f"Extracting lanes: {pname}", end=" ...")
-        lanes[pname] = set()
+        lanes[pname] = []
         state = VehicleState.from_config(name=pconfig["state"])
         init = False
         state_init = np.array([state.x, state.y])
+        goals: Optional[List[Polygon]] = \
+            None if pconfig["goals"] is None else list(Polygon(goal) for goal in pconfig["goals"])
+
         for lane_id in lane_network.find_lanelet_by_position(point_list=[state_init])[0]:
             lane_init = lane_network.find_lanelet_by_id(lane_id)
             lanes_all, _ = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet=lane_init,
@@ -66,7 +70,13 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
                                                                                    max_length=config["max_length"])
             for lane in lanes_all:
                 dg_lanelet = DgLanelet.from_commonroad_lanelet(lane)
-                lanes[pname].add(dg_lanelet)
+                lane_poly = Polygon([(se2[0], se2[1]) for se2 in dg_lanelet.lane_profile()])
+                lane_goal: Optional[Polygon] = None
+                for goal in (goals or []):
+                    if lane_poly.intersects(goal):
+                        lane_goal = goal
+                        break
+                lanes[pname].append((dg_lanelet, lane_goal))
 
                 # Reset pose to the center of the reference lane
                 if not init:
@@ -96,7 +106,7 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
     game = TrajectoryGame(world=world, game_players=players, ps=ps,
                           get_outcomes=get_outcomes,
-                          game_vis=TrajGameVisualization(world=world))
+                          game_vis=TrajGameVisualization(world=world, plot_limits=config["plot_limits"]))
     toc = perf_counter() - tic
     print(f"Game creation time = {toc:.2f} s")
     return game
@@ -127,7 +137,6 @@ def get_leader_follower_game() -> LeaderFollowerGame:
                               antichain_comparison=ac_comp[ac_cfg],
                               solve_time=float(config_lf["solve_time"]),
                               simulation_step=float(config_lf["simulation_step"]),
-                              terminal_progress=config_lf["terminal_progress"],
                               update_prefs=config_lf["update_prefs"])
 
     # Init pref dict with the correct order of follower prefs from list instead of set

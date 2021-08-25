@@ -2,7 +2,7 @@ import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set, NewType
+from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set, NewType, Union, Sequence
 
 from matplotlib.collections import LineCollection
 
@@ -108,6 +108,8 @@ class GameVisualization(Generic[X, U, W], ABC):
 
     pref_dict: Optional[Mapping[PlayerName, PlotStackDictionary]] = None
     """ Dictionaries for stacking preference plots together for each player """
+
+    plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto"
 
     @abstractmethod
     def plot_arena(self, axis):

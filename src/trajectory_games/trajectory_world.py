@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from typing import Mapping, List, Set
+from typing import Mapping, List, Optional, Tuple
 
 from commonroad.scenario.scenario import Scenario
+from shapely.geometry import Polygon
+
 from dg_commons.planning.lanes import DgLanelet
 
 from games import PlayerName
@@ -23,7 +25,7 @@ class TrajectoryWorld:
     geo: Mapping[PlayerName, VehicleGeometry]
     """ Geometry of each player """
 
-    lanes: Mapping[PlayerName, Set[DgLanelet]]
+    lanes: Mapping[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]]
     """ Reference lanes for each player """
 
     def __post_init__(self):
@@ -34,7 +36,7 @@ class TrajectoryWorld:
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())
 
-    def get_lanes(self, player: PlayerName) -> Set[DgLanelet]:
+    def get_lanes(self, player: PlayerName) -> List[Tuple[DgLanelet, Optional[Polygon]]]:
         return self.lanes[player]
 
     def get_geometry(self, player: PlayerName) -> VehicleGeometry:
