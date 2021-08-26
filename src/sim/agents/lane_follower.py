@@ -53,6 +53,7 @@ class LFAgent(Agent):
         # pure proportional with respect to delta error
 
         ddelta = self.steering_controller.get_steering_velocity(self.lateral_controller.get_desired_steering(), my_obs.delta)
+
         if not -1 <= ddelta <= 1:
             logger.info(f"Agent {self.my_name}: clipping ddelta: {ddelta} within [-1,1]")
             ddelta = np.clip(ddelta, -1, 1)
