@@ -21,12 +21,14 @@ class LFAgent(Agent):
                  lane: Optional[DgLanelet] = None,
                  speed_controller: Optional[SpeedController] = None,
                  speed_behavior: Optional[SpeedBehavior] = None,
-                 pure_pursuit: Optional[PurePursuit] = None):
+                 pure_pursuit: Optional[PurePursuit] = None,
+                 ddelta_kp: float = 10):
         self.ref_lane = lane
         self.speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
         self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
         self.pure_pursuit: PurePursuit = PurePursuit() if pure_pursuit is None else pure_pursuit
         self.my_name: Optional[PlayerName] = None
+        self.ddelta_kp = ddelta_kp
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -50,8 +52,8 @@ class LFAgent(Agent):
         self.speed_controller.update_reference(reference=speed_ref)
         acc = self.speed_controller.get_control(t)
         # pure proportional with respect to delta error
-        kp = 10
-        ddelta = kp * (self.pure_pursuit.get_desired_steering() - my_obs.delta)
+
+        ddelta = self.ddelta_kp * (self.pure_pursuit.get_desired_steering() - my_obs.delta)
         if not -1 <= ddelta <= 1:
             logger.info(f"Agent {self.my_name}: clipping ddelta: {ddelta} within [-1,1]")
             ddelta = np.clip(ddelta, -1, 1)
