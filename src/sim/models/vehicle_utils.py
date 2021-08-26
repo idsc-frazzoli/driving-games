@@ -51,11 +51,3 @@ def steering_constraint(steering_angle: float, steering_velocity: float, vp: Veh
         steering_velocity = vp.ddelta_max
     return steering_velocity
 
-
-def aerodynamic_force(speed: float, k_drag:float, A: float) -> float:
-    """
-    :param speed:
-    :param A: effective flow surface (frontal area) [m^2]
-    :return:
-    """
-    return .5 * rho * k_drag * A * speed ** 2
