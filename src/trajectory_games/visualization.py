@@ -11,6 +11,7 @@ from shapely.geometry import Polygon
 
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
+from sim import Color
 from sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
 from .paths import Trajectory
@@ -58,7 +59,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         return box
 
     def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
-                        colour: VehicleGeometry.COLOUR,
+                        colour: Color,
                         width: float = 1.0, alpha: float = 1.0,
                         ticks: bool = True, scatter: bool = True):
 
@@ -108,7 +109,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             axis.set_ylim(top=Y + 15.0)
 
     def plot_actions(self, axis: Axes, actions: FrozenSet[Trajectory],
-                     colour: VehicleGeometry.COLOUR = None,
+                     colour: Color = None,
                      width: float = 1.0, alpha: float = 1.0,
                      ticks: bool = True, lines=None) -> LineCollection:
         segments = []
