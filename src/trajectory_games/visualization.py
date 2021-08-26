@@ -158,7 +158,7 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     q = SE2_from_xytheta(xy_theta)
     car = transform_xy(q, car)
     if box is None:
-        box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=10)
+        box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=30)
         x4, y4 = transform_xy(q, ((0, 0),))[0]
         axis.text(x4, y4, player_name, zorder=100,
                   horizontalalignment="center",
