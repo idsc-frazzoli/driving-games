@@ -27,7 +27,7 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
             logger.warn("Unable to convert commonroad dynamic obstacle due to " + e.args[0] + " skipping...")
     logger.info(f"Managed to load {len(players)}")
     sim_param = SimParameters.default() if sim_param is None else sim_param
-    return SimContext(scenario_name=scenario_name,
+    return SimContext(scenario=scenario,
                       models=models,
                       players=players,
                       log=SimulationLog(),

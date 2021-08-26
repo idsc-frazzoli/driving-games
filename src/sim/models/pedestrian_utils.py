@@ -14,8 +14,8 @@ class PedestrianParameters(ModelParameters):
     @classmethod
     def default(cls) -> "PedestrianParameters":
         # data from https://copradar.com/chapts/references/acceleration.html
-        return PedestrianParameters(vx_limits=(kmh2ms(-5), kmh2ms(15)),
-                                    acc_limits=(-3, 3),
+        return PedestrianParameters(vx_limits=(kmh2ms(-5), kmh2ms(20)),
+                                    acc_limits=(-3, 5),
                                     dtheta_max=math.pi
                                     )
 

@@ -1,6 +1,9 @@
 # import functions to read xml file and visualize commonroad objects
+from math import pi
 
+import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 
 # from commonroad_route_planner.route_planner import RoutePlanner
@@ -8,31 +11,22 @@ from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
 
 
-def test_load_commonroad():
+def test_commonroad_scenario_viz():
     # generate path of the file to be opened
-    scenario = "USA_Lanker-1_1_T-1.xml"
+    matplotlib.use('TkAgg')
+    scenario_name = "USA_Peach-1_1_T-1"
 
-    scenario, planning_problem_set = load_commonroad_scenario(scenario)
-    # print(scenario)
-    # plt.figure()
-    # draw_object(scenario)
-    # draw_object(planning_problem_set)
-    # plt.gca().set_aspect('equal')
-    # plt.show()
-    # lanelet_id = dyn_obs.initial_center_lanelet_ids
-    # Lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet_id,network=scenario.lanelet_network)
-
-    rnd = MPRenderer()
-    # axis = rnd.ax
-    # scenario.draw(rnd)
-    # planning_problem_set.draw(rnd)
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi/2)
+    rnd = MPRenderer(figsize=(20, 10))
     for dyn_obs in scenario.dynamic_obstacles:
         dyn_obs.draw(rnd)
     scenario.lanelet_network.draw(rnd, draw_params={"traffic_light": {
         "draw_traffic_lights": False}})
     rnd.render()
-    plt.savefig("debug.png", dpi=300)
-
+    plt.grid(True, "both", zorder=1000)
+    plt.show()
+    # plt.savefig(f"{scenario_name}.png", dpi=300)
     # write_default_params("../../sim_tests/scenarios_tests/default_params.json")
 
 

@@ -11,7 +11,7 @@ from shapely import affinity
 from shapely.affinity import affine_transform
 from shapely.geometry import Point, Polygon
 
-from sim import SimModel, SimTime, logger, ImpactLocation, IMPACT_EVERYWHERE
+from sim import SimModel, SimTime, ImpactLocation, IMPACT_EVERYWHERE
 from sim.models.model_structures import ModelGeometry
 from sim.models.model_utils import acceleration_constraint
 from sim.models.pedestrian_utils import PedestrianParameters, rotation_constraint
@@ -85,7 +85,11 @@ class PedestrianState:
     """ orientation [rad] """
     vx: float
     """ longitudinal speed [m/s] """
-    idx = frozendict({"x": 0, "y": 1, "theta": 2, "vx": 3})
+    vy: float = 0
+    """ lassteral speed [m/s] """
+    dtheta: float = 0
+    """ rot speed [rad] """
+    idx = frozendict({"x": 0, "y": 1, "theta": 2, "vx": 3, "vy": 4, "dtheta": 5})
     """ Dictionary to get correct values from numpy arrays"""
 
     @classmethod
@@ -99,6 +103,8 @@ class PedestrianState:
                            y=self.y + other.y,
                            theta=self.theta + other.theta,
                            vx=self.vx + other.vx,
+                           vy=self.vy + other.vy,
+                           dtheta=self.dtheta + other.dtheta
                            )
         else:
             raise NotImplementedError
@@ -114,6 +120,8 @@ class PedestrianState:
                        y=self.y * val,
                        theta=self.theta * val,
                        vx=self.vx * val,
+                       vy=self.vy * val,
+                       dtheta=self.dtheta * val
                        )
 
     __rmul__ = __mul__
@@ -130,6 +138,8 @@ class PedestrianState:
             self.y,
             self.theta,
             self.vx,
+            self.vy,
+            self.dtheta
         ])
 
     @classmethod
@@ -139,12 +149,15 @@ class PedestrianState:
                                y=z[cls.idx["y"]],
                                theta=z[cls.idx["theta"]],
                                vx=z[cls.idx["vx"]],
+                               vy=z[cls.idx["vy"]],
+                               dtheta=z[cls.idx["dtheta"]]
                                )
 
 
 class PedestrianModel(SimModel[SE2value, float]):
 
     def __init__(self, x0: PedestrianState, pg: PedestrianGeometry, pp: PedestrianParameters):
+        assert isinstance(x0, PedestrianState)
         self._state: PedestrianState = x0
         """ Current state of the model"""
         self.XT: Type[PedestrianState] = type(x0)
@@ -192,15 +205,23 @@ class PedestrianModel(SimModel[SE2value, float]):
         return
 
     def dynamics(self, x0: PedestrianState, u: PedestrianCommands) -> PedestrianState:
-        """ Simple double integrator"""
-        # todo double integrator
+        """ Simple double integrator with friction after collision to simulate a "bag of potato" effect """
         dtheta = rotation_constraint(rot_velocity=u.dtheta, pp=self.pp)
         acc = acceleration_constraint(speed=x0.vx, acceleration=u.acc, p=self.pp)
+
+        costheta, sintheta = cos(x0.theta), sin(x0.theta)
+        # Lateral acceleration is always decreasing (friction)
+        magic_mu = 0.002
+        frictiony = - np.sign(x0.vy) * magic_mu * self.pg.m * x0.vy ** 2
+        frictionx = - np.sign(x0.vx) * magic_mu * self.pg.m * x0.vx ** 2 if self.has_collided else 0
+        frictiontheta = - np.sign(x0.dtheta) * self.pg.Iz * x0.dtheta ** 2 if self.has_collided else 0
         return PedestrianState(
-            x=x0.vx * cos(x0.theta),
-            y=x0.vx * sin(x0.theta),
+            x=x0.vx * costheta - x0.vy * sintheta,
+            y=x0.vx * sintheta + x0.vy * costheta,
             theta=dtheta,
-            vx=acc
+            vx=acc + frictionx,
+            vy=frictiony,
+            dtheta=frictiontheta
         )
 
     def get_footprint(self) -> Polygon:
@@ -220,21 +241,21 @@ class PedestrianModel(SimModel[SE2value, float]):
     def get_velocity(self, in_model_frame: bool) -> (T2value, float):
         """Returns velocity at COG"""
         vx = self._state.vx
-        vy = 0
+        vy = self._state.vy
         v_l = np.array([vx, vy])
         if in_model_frame:
-            return v_l, 0
+            return v_l, self._state.dtheta
         rot: SO2value = SO2_from_angle(self._state.theta)
         v_g = rot @ v_l
-        return v_g, 0
+        return v_g, self._state.dtheta
 
     def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
         if not in_model_frame:
             rot: SO2value = SO2_from_angle(- self._state.theta)
             vel = rot @ vel
         self._state.vx = vel[0]
-        logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
-                    "Try using the dynamic model.")
+        self._state.vy = vel[1]
+        self._state.vx = omega
 
     def get_geometry(self) -> PedestrianGeometry:
         return self.pg

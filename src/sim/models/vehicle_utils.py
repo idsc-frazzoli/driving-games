@@ -36,16 +36,19 @@ class VehicleParameters(ModelParameters):
 
 def steering_constraint(steering_angle: float, steering_velocity: float, vp: VehicleParameters):
     """Enforces steering limits"""
-    if (steering_angle <= -vp.delta_max and steering_velocity <= 0) or (
-            steering_angle >= vp.delta_max and steering_velocity >= 0):
+    if (steering_angle <= -vp.delta_max and steering_velocity < 0) or (
+            steering_angle >= vp.delta_max and steering_velocity > 0):
         steering_velocity = 0
-        logger.warn("Reached max steering boundaries")
-    elif steering_velocity <= -vp.ddelta_max:
+        logger.warn(
+            f"Reached max steering boundaries:\n angle:{steering_angle:.2f}\tlimits:[{-vp.delta_max:.2f},{vp.delta_max:.2f}]")
+    elif steering_velocity < -vp.ddelta_max:
+        logger.warn(
+            f"Commanded steering rate out of limits, clipping value: {steering_velocity:.2f}<{-vp.ddelta_max:.2f}")
         steering_velocity = -vp.ddelta_max
-        logger.warn("Commanded steering rate out of limits, clipping value")
-    elif steering_velocity >= vp.ddelta_max:
+    elif steering_velocity > vp.ddelta_max:
+        logger.warn(
+            f"Commanded steering rate out of limits, clipping value: {steering_velocity:.2f}>{vp.ddelta_max:.2f}")
         steering_velocity = vp.ddelta_max
-        logger.warn("Commanded steering rate out of limits, clipping value")
     return steering_velocity
 
 

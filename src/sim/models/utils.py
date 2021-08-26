@@ -1,5 +1,15 @@
+from geometry import SE2_from_xytheta, SE2value
+from zuper_commons.types import ZValueError
+
+from games import X
+
+
 def ms2kmh(val: float) -> float:
     return val * 3.6
+
+
+def ms2mph(val: float) -> float:
+    return val * 2.23694
 
 
 def kmh2ms(val: float) -> float:
@@ -13,4 +23,10 @@ rho = 1.249512
 """air density [kg/m^3]"""
 
 
-
+def extract_pose_from_state(state: X) -> SE2value:
+    try:
+        pose = SE2_from_xytheta([state.x, state.y, state.theta])
+        return pose
+    except Exception:
+        msg = "Unable to extract pose from state"
+        ZValueError(msg=msg, state=state, state_type=type(state))
