@@ -55,7 +55,7 @@ class SpeedController:
 class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
     safety_dist_right: float = 2
-    safety_dist_front: float = 4
+    safety_dist_front: float = 10
 
 
 class SpeedBehavior:
@@ -95,7 +95,7 @@ class SpeedBehavior:
 
             distance = np.linalg.norm(rel.p)
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
-            in_front_of_me: bool = rel.p[0] > 0 and -pi / 6 <= rel.theta <= pi / 6
+            in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
             if (coming_from_the_right and distance < self.params.safety_dist_right) or (
                     in_front_of_me and distance < self.params.safety_dist_front):
                 return True
