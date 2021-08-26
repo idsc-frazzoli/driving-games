@@ -48,7 +48,7 @@ class LFAgent(Agent):
         self.speed_controller.update_reference(desired_speed=speed_ref)
         acc = self.speed_controller.get_control(t)
         # pure proportional with respect to delta error
-        kp = 0.5
+        kp = 10
         ddelta = kp * (self.pure_pursuit.get_desired_steering() - my_obs.delta)
         return VehicleCommands(
             acc=acc,

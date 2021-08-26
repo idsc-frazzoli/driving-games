@@ -4,7 +4,10 @@ from typing import List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
-from numpy import deg2rad
+from duckietown_world.utils import SE2_apply_R2
+from geometry import xytheta_from_SE2
+from matplotlib import pyplot as plt
+from numpy import deg2rad, linspace
 
 from dg_commons import DgSampledSequence
 from dg_commons.planning.lanes import DgLanelet
@@ -82,10 +85,10 @@ def get_scenario_az_01() -> SimContext:
     x0_p3 = PedestrianState(x=-15, y=-18, theta=deg2rad(90), vx=0)
     x0_p1 = VehicleStateDyn(x=-37, y=-8, theta=0.05, vx=kmh2ms(40), delta=0)
     x0_p2 = VehicleStateDyn(x=-35.5, y=-11, theta=0.05, vx=kmh2ms(40), delta=0)
-    x0_p4 = VehicleStateDyn(x=-37, y=-14, theta=0.05, vx=kmh2ms(40), delta=0)
+    x0_p4 = VehicleStateDyn(x=-37, y=-14, theta=0.05, vx=kmh2ms(20), delta=0)
     x0_p5 = VehicleStateDyn(x=-10, y=-4, theta=deg2rad(188), vx=kmh2ms(30), delta=0)
 
-    x0_ego = VehicleStateDyn(x=x0_p2.x - 8, y=x0_p2.y, theta=0.05, vx=kmh2ms(50), delta=0)
+    x0_ego = VehicleStateDyn(x=x0_p2.x - 8, y=x0_p2.y, theta=0.00, vx=kmh2ms(50), delta=0)
     vg_ego = VehicleGeometry.default_car(color="firebrick")
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = vg_ego
@@ -142,10 +145,32 @@ def get_scenario_az_01() -> SimContext:
 
 
 def get_scenario_03() -> SimContext:
-    scenario_name = "USA_Peach-1_1_T-1.xml"
+    scenario_name = "DEU_Hhr-1_1.xml"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    lane = scenario.lanelet_network.lanelets[0]
+    lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane, scenario.lanelet_network, max_length=1000)[0][0]
+    dglane = DgLanelet.from_commonroad_lanelet(lane)
 
-    x0_p1 = VehicleStateDyn(x=2, y=18, theta=0, vx=5, delta=0)
+    betas = linspace(-1, 5, 500).tolist()
+    plt.figure()
+    for beta in betas:
+        q = dglane.center_point(beta)
+        radius = dglane.radius(beta)
+        delta_left = np.array([0, radius])
+        delta_right = np.array([0, -radius])
+        left = SE2_apply_R2(q, delta_left)
+        right = SE2_apply_R2(q, delta_right)
+        plt.plot(*left, "o")
+        plt.plot(*right, "x")
+        plt.gca().set_aspect("equal")
+    plt.savefig(f"out/debug{lane.lanelet_id}.png")
+    plt.close()
+
+
+
+    start = dglane.center_point(10)
+    xytheta = xytheta_from_SE2(start)
+    x0_p1 = VehicleStateDyn(x=xytheta[0], y=xytheta[1], theta=xytheta[2], vx=kmh2ms(50), delta=0)
 
     models = {P1: VehicleModelDyn.default_car(x0_p1)}
     commands_input: DgSampledSequence[VehicleCommands] = DgSampledSequence[VehicleCommands](
@@ -153,11 +178,11 @@ def get_scenario_03() -> SimContext:
         values=[VehicleCommands(acc=0, ddelta=0), VehicleCommands(acc=1, ddelta=0.3),
                 VehicleCommands(acc=2, ddelta=-0.6), VehicleCommands(acc=0, ddelta=0)])
 
-    players = {P1: NPAgent(commands_input)}
+    players = {P1: LFAgent(dglane)}
 
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
                       log=SimulationLog(),
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(3)),
+                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(10)),
                       )

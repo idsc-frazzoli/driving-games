@@ -127,12 +127,15 @@ class VehicleModelDyn(VehicleModel):
         """ returns state derivative for given control inputs """
         if x0.vx < 0.1:
             dx_kin = super().dynamics(x0, u)
+            magic_mu = 0.002
+            frictiony = - np.sign(x0.vy) * magic_mu * self.vg.m * x0.vy ** 2
+            frictiontheta = - np.sign(x0.dtheta) * self.vg.Iz * x0.dtheta ** 2
             return VehicleStateDyn(x=dx_kin.x,
                                    y=dx_kin.y,
                                    theta=dx_kin.theta,
                                    vx=dx_kin.vx,
-                                   vy=0,
-                                   dtheta=0,
+                                   vy=frictiony,
+                                   dtheta=frictiontheta,
                                    delta=dx_kin.delta
                                    )
         else:
@@ -152,29 +155,39 @@ class VehicleModelDyn(VehicleModel):
             F1y_tyre = self.pacejka_front.evaluate(slip_angle_1) * F1_n
             F1 = rot_delta.T @ np.array([0, F1y_tyre])
 
+            vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
+            slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             # Back wheel forces (implicit assumption motor on the back)
-            Facc = m * acc
-            # Saturate acceleration based on load
-            Facc_sat = math.copysign(min(abs(Facc), abs(F2_n * self.pacejka_rear.D)), Facc)
-            # Drag
-            F_drag = 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * rho ** 2
+            F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
+
+            # rear wheel forces approximation
+            F2y = F2y0
+
+            # Drag Force
+            F_drag = - 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * rho ** 2
+
             # Rolling resistance
             F_rr_f = self.vg.c_rr_f * F1_n
             F_rr_r = self.vg.c_rr_r * F2_n
-            acc_x = (F1[0] + Facc_sat + m * x0.dtheta * x0.vy - F_drag + F_rr_f + F_rr_r) / m
-            # rear wheel forces
-            vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
-            slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
-            F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
-            # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            F2y = F2y0 * math.sqrt(1 - (Facc_sat / (F2_n * self.pacejka_rear.D)) ** 2)
 
+            # Saturate longitudinal acceleration based on lateral force
+            Facc = m * acc + F_drag + F_rr_f + F_rr_r
+            Facc_sat = Facc * math.sqrt(1 - (F2y0 / (F2_n * self.pacejka_rear.D)) ** 2)
+
+            # longitudinal acceleration
+            acc_x = (F1[0] + Facc_sat + m * x0.dtheta * x0.vy) / m
+
+            # kinematic model
             costh = math.cos(x0.theta)
             sinth = math.sin(x0.theta)
             xdot = x0.vx * costh - x0.vy * sinth
             ydot = x0.vx * sinth + x0.vy * costh
+
+            # lateral acceleration
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
+            # yaw acceleration
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
+
             return VehicleStateDyn(x=xdot,
                                    y=ydot,
                                    theta=x0.dtheta,
