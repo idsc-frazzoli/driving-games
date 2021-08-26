@@ -43,4 +43,4 @@ def em_devel():
 
 
 if __name__ == '__main__':
-    em_devel()
+    az_optimal_crashing()
