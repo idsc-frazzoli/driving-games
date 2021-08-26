@@ -37,5 +37,10 @@ def az_optimal_crashing():
     _simulate_scenario(sim_context)
 
 
+def em_devel():
+    sim_context = get_scenario_03()
+    _simulate_scenario(sim_context)
+
+
 if __name__ == '__main__':
-    az_optimal_crashing()
+    em_devel()

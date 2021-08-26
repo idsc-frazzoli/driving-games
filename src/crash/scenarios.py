@@ -1,6 +1,6 @@
 from decimal import Decimal as D
 from math import pi
-from typing import List, Mapping
+from typing import List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
@@ -9,14 +9,13 @@ from numpy import deg2rad
 from dg_commons import DgSampledSequence
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
-from sim import SimTime
 from sim.agents.agent import NPAgent
 from sim.agents.lane_follower import LFAgent
 from sim.models import kmh2ms
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle import VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
-from sim.models.vehicle_structures import CAR, VehicleGeometry
+from sim.models.vehicle_structures import VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
 from sim.simulator import SimContext
@@ -87,8 +86,7 @@ def get_scenario_az_01() -> SimContext:
     x0_p5 = VehicleStateDyn(x=-10, y=-4, theta=deg2rad(188), vx=kmh2ms(30), delta=0)
 
     x0_ego = VehicleStateDyn(x=x0_p2.x - 8, y=x0_p2.y, theta=0.05, vx=kmh2ms(50), delta=0)
-    vg_ego = VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=.95, lf=1.95, lr=1.95, e=0.6,
-                             color="firebrick")
+    vg_ego = VehicleGeometry.default_car(color="firebrick")
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = vg_ego
 
@@ -143,7 +141,6 @@ def get_scenario_az_01() -> SimContext:
                       )
 
 
-
 def get_scenario_03() -> SimContext:
     scenario_name = "USA_Peach-1_1_T-1.xml"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
@@ -151,11 +148,10 @@ def get_scenario_03() -> SimContext:
     x0_p1 = VehicleStateDyn(x=2, y=18, theta=0, vx=5, delta=0)
 
     models = {P1: VehicleModelDyn.default_car(x0_p1)}
-    # todo sampled sequence
-    commands_input: Mapping[SimTime, VehicleCommands] = {D(0): VehicleCommands(acc=0, ddelta=0),
-                                                         D(1): VehicleCommands(acc=1, ddelta=0.3),
-                                                         D(2): VehicleCommands(acc=2, ddelta=-0.6),
-                                                         D(99): VehicleCommands(acc=0, ddelta=0)}
+    commands_input: DgSampledSequence[VehicleCommands] = DgSampledSequence[VehicleCommands](
+        timestamps=[0, 1, 2, 99],
+        values=[VehicleCommands(acc=0, ddelta=0), VehicleCommands(acc=1, ddelta=0.3),
+                VehicleCommands(acc=2, ddelta=-0.6), VehicleCommands(acc=0, ddelta=0)])
 
     players = {P1: NPAgent(commands_input)}
 

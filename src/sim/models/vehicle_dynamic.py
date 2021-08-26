@@ -5,8 +5,7 @@ import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
-from sim import logger
-from sim.models import Pacejka, Pacejka4p
+from sim.models import Pacejka4p
 from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G, rho
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
@@ -153,33 +152,27 @@ class VehicleModelDyn(VehicleModel):
             F1y_tyre = self.pacejka_front.evaluate(slip_angle_1) * F1_n
             F1 = rot_delta.T @ np.array([0, F1y_tyre])
 
+            # Back wheel forces (implicit assumption motor on the back)
             Facc = m * acc
+            # Saturate acceleration based on load
             Facc_sat = math.copysign(min(abs(Facc), abs(F2_n * self.pacejka_rear.D)), Facc)
-            # drag coefficient
+            # Drag
             F_drag = 1 / 2 * x0.vx * self.vg.a_drag * self.vg.c_drag * rho ** 2
-            costh = math.cos(x0.theta)
-            sinth = math.sin(x0.theta)
-            xdot = x0.vx * costh - x0.vy * sinth
-            ydot = x0.vx * sinth + x0.vy * costh
-            # rolling resistance front and rear
+            # Rolling resistance
             F_rr_f = self.vg.c_rr_f * F1_n
             F_rr_r = self.vg.c_rr_r * F2_n
             acc_x = (F1[0] + Facc_sat + m * x0.dtheta * x0.vy - F_drag + F_rr_f + F_rr_r) / m
-
             # rear wheel forces
             vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
             F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
             # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            try:
-                # fix https://link.springer.com/chapter/10.1007/978-981-13-8566-7_42
-                F2y = F2y0 * math.sqrt(1 - (Facc_sat / (F2_n * self.pacejka_rear.D)) ** 2)
-            except ValueError:
-                msg = f"Results will be inaccurate since\n" \
-                      f"F2y0 * math.sqrt(1 - (F_x_sat/ (F2_n * self.pacejka_rear.D)) ** 2) gave an error with values\n" \
-                      f"{F2y0} * math.sqrt(1 - ({Facc_sat} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
-                logger.warn(msg)
-                F2y = F2y0
+            F2y = F2y0 * math.sqrt(1 - (Facc_sat / (F2_n * self.pacejka_rear.D)) ** 2)
+
+            costh = math.cos(x0.theta)
+            sinth = math.sin(x0.theta)
+            xdot = x0.vx * costh - x0.vy * sinth
+            ydot = x0.vx * sinth + x0.vy * costh
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
             return VehicleStateDyn(x=xdot,

@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Tuple, List, NewType
+from typing import Tuple, List, NewType, Optional
 
 import numpy as np
 from geometry import SE2_from_xytheta
 
+from sim import Color
 from sim.models.model_structures import ModelGeometry
 
 __all__ = ["VehicleType", "CAR", "MOTORCYCLE", "BICYCLE", "VehicleGeometry"]
@@ -40,14 +41,16 @@ class VehicleGeometry(ModelGeometry):
 
     # todo fix default rotational inertia
     @classmethod
-    def default_car(cls) -> "VehicleGeometry":
+    def default_car(cls, color: Optional[Color] = None) -> "VehicleGeometry":
+        color = "royalblue" if color is None else color
         return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=.95, lf=1.95, lr=1.95, c_drag=0.3756,
-                               a_drag=2, e=0.6, c_rr_f=0.003, c_rr_r=0.003, color="royalblue")
+                               a_drag=2, e=0.6, c_rr_f=0.003, c_rr_r=0.003, color=color)
 
     @classmethod
-    def default_bicycle(cls) -> "VehicleGeometry":
+    def default_bicycle(cls, color: Optional[Color] = None) -> "VehicleGeometry":
+        color = "saddlebrown" if color is None else color
         return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=80, w_half=0.25, lf=1.0, lr=1.0, c_drag=0.01,
-                               a_drag=0.2, e=0.5, c_rr_f=0.003, c_rr_r=0.003, color="saddlebrown")
+                               a_drag=0.2, e=0.5, c_rr_f=0.003, c_rr_r=0.003, color=color)
 
     @cached_property
     def width(self):
