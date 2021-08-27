@@ -8,13 +8,8 @@ from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \
     velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, \
-    velocity_of_P_given_A, CollisionException
+    velocity_of_P_given_A, CollisionException, chek_who_is_at_fault
 from sim.simulator import SimContext
-
-
-def is_a_at_fault():
-    # todo this will need to be implemented with some better logic
-    return False
 
 
 def impact_locations_from_polygons(a_model: SimModel, b_model: SimModel) -> List[Tuple[ImpactLocation, Polygon]]:
@@ -69,8 +64,10 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_locations = impact_locations_from_polygons(b_model, a_model)
 
     # Check who is at fault
-    a_fault: bool = is_a_at_fault()
-    b_fault: bool = is_a_at_fault()
+    who_is_at_fault = chek_who_is_at_fault({a: a_model.get_pose(), b: b_model.get_pose()},
+                                           impact_point=impact_point,
+                                           lanelet_network=sim_context.scenario.lanelet_network)
+    a_fault, b_fault = who_is_at_fault[a], who_is_at_fault[b]
 
     # Compute impulse resolution
     a_geom = a_model.get_geometry()

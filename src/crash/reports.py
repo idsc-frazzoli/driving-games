@@ -27,7 +27,7 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_log: SimulationLog)
     return CollMetricsReport(malliaris=malliaris)
 
 
-def generete_report(sim_context: SimContext) -> Report:
+def generate_report(sim_context: SimContext) -> Report:
     r = Report("Optimal crashing")
     if sim_context.sim_terminated is not True:
         raise RuntimeWarning("Generating a simulation report from a simulation that is not terminated")
@@ -39,17 +39,21 @@ def generete_report(sim_context: SimContext) -> Report:
                          dt=20,
                          dpi=120,
                          plot_limits="auto")
-    r.add_child(get_collsion_reports(sim_context))
+    r.add_child(get_collision_reports(sim_context))
     return r
 
 
-def get_collsion_reports(sim_context: SimContext) -> Report:
+def get_collision_reports(sim_context: SimContext) -> Report:
     r = Report("Collision report")
     logger.info(f"Generating collision images for {len(sim_context.collision_reports)} collisions")
     accidents_report, coll_graph = investigate_collision_report(sim_context.collision_reports, True)
+
     with r.plot(nid="CollisionGraph", mime=MIME_PNG) as pylab:
-        nx.draw(coll_graph, with_labels=True)
+        node_colors = ["darkred" if _["at_fault"] else "forestgreen" for _ in coll_graph.nodes.values()]
+        edgecolors = [sim_context.models[_].get_geometry().color for _ in coll_graph.nodes]
+        nx.draw(coll_graph, with_labels=True, node_color=node_colors, edgecolors=edgecolors)
     plt.close()
+
     for i, report in enumerate(accidents_report):
         r.text(f"Collision-{i}", text=report.__str__())
         with r.data_file(f"Collision-{i}-viz", MIME_PNG) as f:
@@ -58,4 +62,5 @@ def get_collsion_reports(sim_context: SimContext) -> Report:
         plt.close()
         damage_metrics = compute_damage_metrics(coll_report=report, sim_log=sim_context.log)
         r.text(f"Collision-{i}-damages", text=damage_metrics.__str__())
+
     return r

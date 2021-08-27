@@ -67,7 +67,7 @@ class Simulator:
 
         sim_context.log[sim_context.time] = {}
         update_commands: bool = (sim_context.time - self.last_get_commands_ts) >= sim_context.param.dt_commands
-        # fixme this can be parallelized later
+        # fixme this can be parallelized later with ProcessPoolExecutor?
         for player_name, model in sim_context.models.items():
             if update_commands:
                 actions = sim_context.players[player_name].get_commands(self.last_observations)

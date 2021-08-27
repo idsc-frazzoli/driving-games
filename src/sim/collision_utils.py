@@ -1,11 +1,14 @@
 from math import pi
-from typing import List, Tuple
+from typing import List, Tuple, Mapping, Dict
 
 import numpy as np
-from geometry import T2value, SO2value, SO2_from_angle
+from commonroad.scenario.lanelet import LaneletNetwork
+from geometry import T2value, SO2value, SO2_from_angle, SE2value
 from shapely.geometry import Polygon, Point, LineString
 from toolz import remove
 
+from dg_commons.planning.lanes import DgLanelet, DgLanePose
+from games import X, PlayerName
 from sim.models.vehicle_structures import VehicleGeometry
 
 
@@ -43,12 +46,20 @@ def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[
     return points
 
 
+def get_impact_point_direction(state: X, impact_point: Point) -> float:
+    """returns the impact point angle wrt to the vehicle"""
+    # Direction of Force (DOF) -> vector that goes from car center to impact point
+    abs_angle_dof = np.arctan2(impact_point.y - state.y, impact_point.x - state.x)
+    car_heading: float = state.theta
+    return abs_angle_dof - car_heading
+
+
 def compute_impact_geometry(a: Polygon, b: Polygon) -> (np.ndarray, Point):
     """
     This computes the normal of impact between vehicles a and b
     :param a: Polygon object
     :param b: Polygon object
-    :return:
+    :return: normal of impact and the impact point
     """
     assert not a.touches(b)
     intersecting_points = _find_intersection_points(a, b)
@@ -124,3 +135,40 @@ def kinetic_energy(velocity: np.ndarray, m: float) -> float:
     """
     # todo also rotational components?
     return .5 * m * np.linalg.norm(velocity) ** 2
+
+
+def chek_who_is_at_fault(p_poses: Mapping[PlayerName, SE2value],
+                         impact_point: Point,
+                         lanelet_network: LaneletNetwork) -> Mapping[PlayerName, bool]:
+    """
+    This functions checks who is at fault in a collision.
+    First_check who was in an illegal state, if you were in an illegal state you are at fault.
+    You are in an illegal state if your pose is illegal for every
+    :param p_poses:
+    :param impact_point: #fixme this could be made into a np.array, we do not use any shapely stuff atm
+    :param lanelet_network:
+    :return:
+    """
+    # first_check who is in an illegal state, if you are in an illegal state you are at fault
+    lanesid_at_impact = lanelet_network.find_lanelet_by_position([np.array([impact_point.x, impact_point.y])])[0]
+    dglanes_at_impact = [DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(id)) for id in
+                         lanesid_at_impact]
+    who_is_at_fault: Dict[PlayerName, bool] = {p: False for p in p_poses}
+    for p, p_pose in p_poses.items():
+        dglane_poses = [dglane.lane_pose_from_SE2_generic(p_pose) for dglane in dglanes_at_impact]
+        illegal_poses = [_is_illegal_lanepose(pose) for pose in dglane_poses]
+        if all(illegal_poses):
+            who_is_at_fault[p] = True
+
+    if not all(who_is_at_fault.values()):
+        # if you are not in an illegal state you are at fault if also...
+        # todo coming from the right
+        pass
+        # get_impact_point_direction()
+
+    return who_is_at_fault
+
+
+def _is_illegal_lanepose(dglanepose: DgLanePose) -> bool:
+    condition = not dglanepose.correct_direction or not dglanepose.inside
+    return condition
