@@ -6,7 +6,7 @@ import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
-from sim.models import Pacejka4p
+from sim.models import Pacejka4p, Pacejka
 from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G, rho
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
@@ -96,7 +96,7 @@ class VehicleStateDyn(VehicleState):
 class VehicleModelDyn(VehicleModel):
 
     def __init__(self, x0: VehicleStateDyn, vg: VehicleGeometry, vp: VehicleParametersDyn,
-                 pacejka_front: Pacejka4p, pacejka_rear: Pacejka4p):
+                 pacejka_front: Pacejka, pacejka_rear: Pacejka):
         """
         Single track dynamic model
         :param x0:
@@ -107,9 +107,9 @@ class VehicleModelDyn(VehicleModel):
         # """ The vehicle's geometry parameters"""
         self.vp: VehicleParametersDyn = vp
         """ The vehicle parameters"""
-        self.pacejka_front: Pacejka4p = pacejka_front
+        self.pacejka_front: Pacejka = pacejka_front
         """ The vehicle tyre model"""
-        self.pacejka_rear: Pacejka4p = pacejka_rear
+        self.pacejka_rear: Pacejka = pacejka_rear
 
     @classmethod
     def default_bicycle(cls, x0: VehicleStateDyn):
@@ -216,11 +216,14 @@ class VehicleModelDyn(VehicleModel):
         self._state.dtheta = omega
 
     def get_acceleration_split(self, Facc: float) -> Sequence[float]:
-        """returns split of acceleration force to be applied on front and rear wheel"""
+        """Returns split of acceleration force to be applied on front and rear wheel"""
         if Facc <= 0:
+            # we partition acc 60% front 40% rear while braking
             return Facc * .6, Facc * .4
         else:
             if self.vg.vehicle_type in [BICYCLE, MOTORCYCLE]:
+                # only rear for acc on bicycles-like
                 return 0, Facc
             else:
+                # assumes 4WD car
                 return Facc * .5, Facc * .5
