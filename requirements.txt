@@ -22,7 +22,7 @@ zuper-typing-z6>=6.1.0
 seaborn
 nashpy==0.0.19 # todo remove
 duckietown-world-daffy==6.2.24
-
+casadi==3.5.1
 commonroad-io==2021.2
 
 # extra
