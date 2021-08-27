@@ -17,6 +17,8 @@ __all__ = [
     "SE2_disc",
 ]
 
+from sim import Color
+
 Lights = NewType("Lights", str)
 """ The type of light commands. """
 
@@ -71,7 +73,7 @@ class VehicleGeometry:
     """ Car width [m] """
     length: D
     """ Car length [m] """
-    color: Tuple[float, float, float]
+    color: Color
     """ Car color """
 
 

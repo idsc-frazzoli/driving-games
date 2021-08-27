@@ -65,7 +65,8 @@ _rot90: SO2value = SO2_from_angle(pi / 2)
 
 
 class DgLanelet:
-    # todo taking the best from commonroad Lanelet and Lanesegments
+    """ Taking the best from commonroad Lanelet and Duckietown LaneSegment """
+
     def __init__(self, control_points: Sequence[LaneCtrPoint]):
         self.control_points: List[LaneCtrPoint] = list(control_points)
 
@@ -97,10 +98,10 @@ class DgLanelet:
     def get_lane_length(self) -> float:
         return sum(self.get_lane_lengths())
 
-    def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol=0.001) -> DgLanePose:
+    def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol: float = 1e-4) -> DgLanePose:
         return self.lane_pose_from_SE2_generic(qt.as_SE2(), tol=tol)
 
-    def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-7) -> DgLanePose:
+    def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-4) -> DgLanePose:
         p, _, _ = translation_angle_scale_from_E2(q)
 
         beta, q0 = self.find_along_lane_closest_point(p, tol=tol)
@@ -247,7 +248,7 @@ class DgLanelet:
         return q
 
     @memoized_reset
-    def lane_profile(self, points_per_segment: int = 5) -> List[SE2value]:
+    def lane_profile(self, points_per_segment: int = 5) -> List[T2value]:
         """Lane bounds - left and right along the lane"""
         points_left = []
         points_right = []
