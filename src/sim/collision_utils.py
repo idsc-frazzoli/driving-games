@@ -137,8 +137,18 @@ def kinetic_energy(velocity: np.ndarray, m: float) -> float:
     return .5 * m * np.linalg.norm(velocity) ** 2
 
 
-def chek_who_is_at_fault(p_poses: Mapping[PlayerName, SE2value], impact_point: Point, lanelet_network: LaneletNetwork) \
-        -> Mapping[PlayerName, bool]:
+def chek_who_is_at_fault(p_poses: Mapping[PlayerName, SE2value],
+                         impact_point: Point,
+                         lanelet_network: LaneletNetwork) -> Mapping[PlayerName, bool]:
+    """
+    This functions checks who is at fault in a collision.
+    First_check who was in an illegal state, if you were in an illegal state you are at fault.
+    You are in an illegal state if your pose is illegal for every
+    :param p_poses:
+    :param impact_point: #fixme this could be made into a np.array, we do not use any shapely stuff atm
+    :param lanelet_network:
+    :return:
+    """
     # first_check who is in an illegal state, if you are in an illegal state you are at fault
     lanesid_at_impact = lanelet_network.find_lanelet_by_position([np.array([impact_point.x, impact_point.y])])[0]
     dglanes_at_impact = [DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(id)) for id in
@@ -154,7 +164,7 @@ def chek_who_is_at_fault(p_poses: Mapping[PlayerName, SE2value], impact_point: P
         # if you are not in an illegal state you are at fault if also...
         # todo coming from the right
         pass
-        #get_impact_point_direction()
+        # get_impact_point_direction()
 
     return who_is_at_fault
 

@@ -13,6 +13,8 @@ from sim import SimTime, ImpactLocation
 
 __all__ = ["SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
 
+from sim.models.model_structures import ModelGeometry
+
 
 @dataclass(frozen=True, unsafe_hash=True)
 class SimParameters:
@@ -122,7 +124,7 @@ class SimModel(ABC, Generic[X, U]):
         pass
 
     @abstractmethod
-    def get_geometry(self) -> Any:
+    def get_geometry(self) -> ModelGeometry:
         pass
 
     @abstractmethod

@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from crash.reports import generete_report
+from crash.reports import generate_report
 from crash.scenarios import *
 from sim import SimParameters, SimTime
 from sim.scenarios.factory import get_scenario_commonroad_replica
@@ -13,7 +13,7 @@ def _simulate_scenario(sim_context: SimContext):
     # run simulations
     sim.run(sim_context)
     # generate collisions and damages report
-    report = generete_report(sim_context)
+    report = generate_report(sim_context)
     # save report
     now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
     output_dir = "out"
@@ -43,4 +43,4 @@ def em_devel():
 
 
 if __name__ == '__main__':
-    az_optimal_crashing()
+    commonroad_replica()
