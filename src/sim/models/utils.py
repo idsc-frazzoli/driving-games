@@ -22,9 +22,6 @@ G = 9.81
 rho = 1.249512
 """air density [kg/m^3]"""
 
-k_drag = 1.1
-"""air density [kg/m^3]"""
-
 
 def extract_pose_from_state(state: X) -> SE2value:
     try:

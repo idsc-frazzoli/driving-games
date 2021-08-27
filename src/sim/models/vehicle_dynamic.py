@@ -1,16 +1,16 @@
 import math
 from dataclasses import dataclass, replace
+from typing import Sequence
 
 import numpy as np
 from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
-from sim import logger
-from sim.models import Pacejka
+from sim.models import Pacejka4p, Pacejka
 from sim.models.model_utils import acceleration_constraint
-from sim.models.utils import kmh2ms, G
+from sim.models.utils import kmh2ms, G, rho
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
-from sim.models.vehicle_structures import VehicleGeometry
+from sim.models.vehicle_structures import VehicleGeometry, BICYCLE, MOTORCYCLE
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 
 
@@ -114,26 +114,29 @@ class VehicleModelDyn(VehicleModel):
     @classmethod
     def default_bicycle(cls, x0: VehicleStateDyn):
         return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_bicycle(), vp=VehicleParametersDyn.default_bicycle(),
-                               pacejka_front=Pacejka.default_bicycle_front(),
-                               pacejka_rear=Pacejka.default_bicycle_rear())
+                               pacejka_front=Pacejka4p.default_bicycle_front(),
+                               pacejka_rear=Pacejka4p.default_bicycle_rear())
 
     @classmethod
     def default_car(cls, x0: VehicleStateDyn):
         return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParametersDyn.default_car(),
-                               pacejka_front=Pacejka.default_car_front(),
-                               pacejka_rear=Pacejka.default_car_rear()
+                               pacejka_front=Pacejka4p.default_car_front(),
+                               pacejka_rear=Pacejka4p.default_car_rear()
                                )
 
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:
         """ returns state derivative for given control inputs """
         if x0.vx < 0.1:
             dx_kin = super().dynamics(x0, u)
+            magic_mu = 0.002
+            frictiony = - np.sign(x0.vy) * magic_mu * self.vg.m * x0.vy ** 2
+            frictiontheta = - np.sign(x0.dtheta) * self.vg.Iz * x0.dtheta ** 2
             return VehicleStateDyn(x=dx_kin.x,
                                    y=dx_kin.y,
                                    theta=dx_kin.theta,
                                    vx=dx_kin.vx,
-                                   vy=0,
-                                   dtheta=0,
+                                   vy=frictiony,
+                                   dtheta=frictiontheta,
                                    delta=dx_kin.delta
                                    )
         else:
@@ -145,37 +148,46 @@ class VehicleModelDyn(VehicleModel):
             load_transfer = self.vg.h_cog * acc
             F1_n = -m * (G * self.vg.lr - load_transfer) / self.vg.length
             F2_n = -m * (G * self.vg.lf + load_transfer) / self.vg.length
+            # Rolling resistance
+            F_rr_f = self.vg.c_rr_f * F1_n
+            F_rr_r = self.vg.c_rr_r * F2_n
+
+            Facc1, Facc2 = self.get_acceleration_split(m * acc)
+            Facc1 += F_rr_f
 
             # front wheel forces (assumes no longitudinal force, rear traction)
             rot_delta = SO2_from_angle(-x0.delta)
             vel_1_tyre = rot_delta @ np.array([x0.vx, x0.vy + self.vg.lf * x0.dtheta])
             slip_angle_1 = math.atan(vel_1_tyre[1] / vel_1_tyre[0])
             F1y_tyre = self.pacejka_front.evaluate(slip_angle_1) * F1_n
-            F1 = rot_delta.T @ np.array([0, F1y_tyre])
+            Facc1_sat = Facc1 * math.sqrt(1 - (F1y_tyre / (F1_n * self.pacejka_front.D)) ** 2)
+            F1 = rot_delta.T @ np.array([Facc1_sat, F1y_tyre])
 
-            Facc = m * acc
-
-            # rear wheel forces
             vel_2 = np.array([x0.vx, x0.vy - self.vg.lr * x0.dtheta])
             slip_angle_2 = math.atan(vel_2[1] / vel_2[0])
-            F2y0 = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
-            # approximation sacrificing back wheel lateral forces in favor of longitudinal
-            try:
-                # todo fix https://link.springer.com/chapter/10.1007/978-981-13-8566-7_42
-                F2y = F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2)
-            except ValueError:
-                msg = f"Results will be inaccurate since\n" \
-                      f"F2y0 * math.sqrt(1 - (Facc / (F2_n * self.pacejka_rear.D)) ** 2) gave an error with values\n" \
-                      f"{F2y0} * math.sqrt(1 - ({Facc} / ({F2_n} * {self.pacejka_rear.D})) ** 2)"
-                logger.warn(msg)
-                F2y = F2y0
+            # Back wheel forces (implicit assumption motor on the back)
+            F2y = self.pacejka_rear.evaluate(slip_angle_2) * F2_n
+
+            # Saturate longitudinal acceleration based on the used lateral one
+            Facc2 += F_rr_r
+            Facc2_sat = Facc2 * math.sqrt(1 - (F2y / (F2_n * self.pacejka_rear.D)) ** 2)
+
+            # Drag Force
+            F_drag = - .5 * x0.vx * self.vg.a_drag * self.vg.c_drag * rho ** 2
+            # longitudinal acceleration
+            acc_x = (F1[0] + F_drag + Facc2_sat + m * x0.dtheta * x0.vy) / m
+
+            # kinematic model
             costh = math.cos(x0.theta)
             sinth = math.sin(x0.theta)
             xdot = x0.vx * costh - x0.vy * sinth
             ydot = x0.vx * sinth + x0.vy * costh
-            acc_x = (F1[0] + Facc + m * x0.dtheta * x0.vy) / m
+
+            # lateral acceleration
             acc_y = (F1[1] + F2y - m * x0.dtheta * x0.vx) / m
+            # yaw acceleration
             ddtheta = (F1[1] * self.vg.lf - F2y * self.vg.lr) / self.vg.Iz
+
             return VehicleStateDyn(x=xdot,
                                    y=ydot,
                                    theta=x0.dtheta,
@@ -202,3 +214,16 @@ class VehicleModelDyn(VehicleModel):
         self._state.vx = vel[0]
         self._state.vy = vel[1]
         self._state.dtheta = omega
+
+    def get_acceleration_split(self, Facc: float) -> Sequence[float]:
+        """Returns split of acceleration force to be applied on front and rear wheel"""
+        if Facc <= 0:
+            # we partition acc 60% front 40% rear while braking
+            return Facc * .6, Facc * .4
+        else:
+            if self.vg.vehicle_type in [BICYCLE, MOTORCYCLE]:
+                # only rear for acc on bicycles-like
+                return 0, Facc
+            else:
+                # assumes 4WD car
+                return Facc * .5, Facc * .5
