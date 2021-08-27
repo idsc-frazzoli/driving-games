@@ -1,13 +1,15 @@
 from dataclasses import dataclass
 from enum import unique, IntEnum
+from math import pi
 from typing import Tuple, Mapping, Dict
 
 import numpy as np
-from numpy import rad2deg
+from numpy import deg2rad
 from shapely.geometry import Point
 
 from games import X, PlayerName
 from sim import CollisionReport
+from sim.collision_utils import get_impact_point_direction
 from sim.models import ms2mph
 
 
@@ -121,7 +123,7 @@ def compute_malliaris_one(report: CollisionReport, states: Mapping[PlayerName, X
 
     for key, value in report.players.items():
         delta_v = _get_delta_v(value.velocity[0], value.velocity_after[0])
-        dof = get_malliaris_dof(report.impact_point, states[key])
+        dof = get_malliaris_dof(states[key], report.impact_point)
         damage_reports[key] = risk_model.compute_risk(delta_v, dof[0], dof[1])
 
     return damage_reports
@@ -138,7 +140,7 @@ def _get_delta_v(v_init: np.ndarray, v_after: np.ndarray) -> float:
     return ms2mph(np.linalg.norm(delta_v))
 
 
-def get_malliaris_dof(impact_point: Point, state: X) -> Tuple[int, int]:
+def get_malliaris_dof(state: X, impact_point: Point) -> Tuple[int, int]:
     """
     Get direction of force (DOF) from Malliaris, based on impact_normal
                90º
@@ -152,18 +154,14 @@ def get_malliaris_dof(impact_point: Point, state: X) -> Tuple[int, int]:
     :param state:
     :return:
     """
-
-    car_heading: float = state.theta
-    # Direction of Force (DOF) -> vector that goes from car center to impact point
-    abs_angle_dof = np.arctan2(impact_point.y - state.y, impact_point.x - state.x)
-    angle_dof = rad2deg(abs_angle_dof - car_heading)
+    angle_dof = get_impact_point_direction(state=state, impact_point=impact_point)
 
     if angle_dof < 0:
-        angle_dof += 360
+        angle_dof += 2 * pi
     # Output 0 or 1 based on definitions from Malliaris
-    if 45 <= angle_dof <= 135 or 225 <= angle_dof <= 315:
+    if deg2rad(45) <= angle_dof <= deg2rad(135) or deg2rad(225) <= angle_dof <= deg2rad(315):
         return 1, 0
-    elif 135 < angle_dof < 225:
+    elif deg2rad(135) < angle_dof < deg2rad(225):
         return 0, 1
     else:  # 0 < angle < 45 or 315 < angle < 360
         return 0, 0
