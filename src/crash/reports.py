@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-from reprep import Report, MIME_PNG, MIME_GIF
+from reprep import Report, MIME_PNG
 
 from crash import logger
 from crash.collisions_investigation import investigate_collision_report
@@ -11,7 +11,6 @@ from sim import CollisionReport
 from sim.collision_visualisation import plot_collision
 from sim.models import PEDESTRIAN, CAR
 from sim.simulator import SimContext
-from sim.simulator_animation import create_animation
 
 
 def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext):

@@ -57,14 +57,15 @@ def compute_NieLiYang_risk(report: CollisionReport, model_types: Mapping[PlayerN
     :return:
     """
     assert model_types.keys() == report.players.keys()
-
+    assert len(model_types) == 2
     # Variable holding the values of the MalliarisOne coefficients for each severity case
     risk_model = NieLiYangRiskModel()
     damage_reports: Dict[PlayerName, NieLiYangRisk] = {}
 
     for p, p_collreport in report.players.items():
-        v_impact = ms2kmh(np.linalg.norm(p_collreport.velocity[0]))
-        if model_types[p] not in [PEDESTRIAN, BICYCLE]:
+        if model_types[p] in [PEDESTRIAN, BICYCLE]:
+            p_car = set(report.players.keys()).difference(p).pop()
+            v_impact = ms2kmh(np.linalg.norm(report.players[p_car].velocity[0]))
             damage_reports[p] = risk_model.compute_risk(v_impact)
         else:
             # Assumption: the probability of fatality for the vehicle when
