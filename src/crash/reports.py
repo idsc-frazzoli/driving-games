@@ -23,17 +23,17 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext
     a, b = coll_report.players.keys()
     a_state = sim_log.at(coll_report.at_time)[a].state
     b_state = sim_log.at(coll_report.at_time)[b].state
-    states = {a: a_state, b: b_state}
 
     ab_modeltype = [sim_context.models[a].model_type, sim_context.models[b].model_type]
     # Check if any of the players corresponds to a Pedestrian or cyclist
     if all(m == CAR for m in ab_modeltype):
-        malliaris = compute_malliaris_one(coll_report, states)
+        malliaris = compute_malliaris_one(coll_report, states={a: a_state, b: b_state})
         nieliyang = {}
     else:
         if PEDESTRIAN in ab_modeltype and CAR in ab_modeltype:
             malliaris = {}
-            nieliyang = compute_NieLiYang_risk(coll_report, states)
+            nieliyang = compute_NieLiYang_risk(coll_report, model_types={a: sim_context.models[a].model_type,
+                                                                         b: sim_context.models[b].model_type})
         else:
             logger.info(f"We do not have a damage model for accident between {ab_modeltype}. Skipping...")
             malliaris = {}
@@ -46,14 +46,14 @@ def generate_report(sim_context: SimContext) -> Report:
     r = Report("Optimal crashing")
     if sim_context.sim_terminated is not True:
         raise RuntimeWarning("Generating a simulation report from a simulation that is not terminated")
-    gif_viz = r.figure(cols=1)
-    with gif_viz.data_file("Simulation", MIME_GIF) as fn:
-        create_animation(file_path=fn,
-                         sim_context=sim_context,
-                         figsize=(16, 8),
-                         dt=20,
-                         dpi=120,
-                         plot_limits="auto")
+    # gif_viz = r.figure(cols=1)
+    # with gif_viz.data_file("Simulation", MIME_GIF) as fn:
+    #     create_animation(file_path=fn,
+    #                      sim_context=sim_context,
+    #                      figsize=(16, 8),
+    #                      dt=20,
+    #                      dpi=120,
+    #                      plot_limits="auto")
     r.add_child(get_collision_reports(sim_context))
     return r
 

@@ -255,5 +255,6 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
                     "Try using the dynamic model.")
 
+    @property
     def model_type(self) -> ModelType:
         return self.vg.vehicle_type
