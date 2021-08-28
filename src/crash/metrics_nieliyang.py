@@ -40,13 +40,13 @@ class NieLiYangRiskModel:
         NieLiYangField.CYCLIST: (6.929, -0.095)
     }
 
-    def _compute_probability(self, delta_v: float, field: NieLiYangField):
+    def _compute_probability(self, v_impact: float, field: NieLiYangField):
         coeff = self.coeff[field]
-        weight = coeff[0] + coeff[1] * delta_v
+        weight = coeff[0] + coeff[1] * v_impact
         return 1 / (1 + np.exp(weight))
 
-    def compute_risk(self, delta_v: float) -> NieLiYangRisk:
-        return NieLiYangRisk(p_fatality=self._compute_probability(delta_v, NieLiYangField.PEDESTRIAN))
+    def compute_risk(self, v_impact: float) -> NieLiYangRisk:
+        return NieLiYangRisk(p_fatality=self._compute_probability(v_impact, NieLiYangField.PEDESTRIAN))
 
 
 def compute_NieLiYang_risk(report: CollisionReport, model_types: Mapping[PlayerName, ModelType]) -> \
@@ -63,9 +63,9 @@ def compute_NieLiYang_risk(report: CollisionReport, model_types: Mapping[PlayerN
     damage_reports: Dict[PlayerName, NieLiYangRisk] = {}
 
     for p, p_collreport in report.players.items():
-        delta_v = np.linalg.norm(ms2kmh(p_collreport.velocity_after[0] - p_collreport.velocity[0]))
-        if model_types[p] in [PEDESTRIAN, BICYCLE]:
-            damage_reports[p] = risk_model.compute_risk(delta_v)
+        v_impact = ms2kmh(np.linalg.norm(p_collreport.velocity[0]))
+        if model_types[p] not in [PEDESTRIAN, BICYCLE]:
+            damage_reports[p] = risk_model.compute_risk(v_impact)
         else:
             # Assumption: the probability of fatality for the vehicle when
             # colliding with a pedestrian or cyclist are zero
