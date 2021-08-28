@@ -1,5 +1,4 @@
 import numpy as np
-from geometry import T2value
 
 from sim.models.vehicle import VehicleState, VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleParametersDyn, VehicleModelDyn
@@ -17,8 +16,6 @@ def test_vehicle_commands_01():
     vcommands = VehicleCommands.from_array(npcmds)
     print(vcommands)
     np.testing.assert_array_equal(npcmds, vcommands.as_ndarray())
-
-
 
 
 def test_vehicledyn_state_01():
@@ -39,7 +36,7 @@ def test_vehicledyn_inheritance():
     cardyn = VehicleModelDyn.default_car(vstate)
 
     print(cardyn.get_state())
-    print(cardyn.update(VehicleCommands(6.0,6.0), 0.3))
-    print(cardyn.get_velocity())
-    cardyn.set_velocity(np.array([0,2]), 5)
-    print(cardyn.get_velocity())
+    print(cardyn.update(VehicleCommands(6.0, 6.0), 0.3))
+    print(cardyn.get_velocity(in_model_frame=False))
+    cardyn.set_velocity(np.array([0, 2]), 5, in_model_frame=False)
+    print(cardyn.get_velocity(in_model_frame=False))
