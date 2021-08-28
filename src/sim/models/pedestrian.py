@@ -12,7 +12,7 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Point, Polygon
 
 from sim import SimModel, SimTime, ImpactLocation, IMPACT_EVERYWHERE
-from sim.models.model_structures import ModelGeometry
+from sim.models.model_structures import ModelGeometry, PEDESTRIAN, ModelType
 from sim.models.model_utils import acceleration_constraint
 from sim.models.pedestrian_utils import PedestrianParameters, rotation_constraint
 
@@ -259,3 +259,7 @@ class PedestrianModel(SimModel[SE2value, float]):
 
     def get_geometry(self) -> PedestrianGeometry:
         return self.pg
+
+    @property
+    def model_type(self) -> ModelType:
+        return PEDESTRIAN

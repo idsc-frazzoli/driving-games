@@ -1,8 +1,16 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Tuple, Sequence
+from typing import Tuple, Sequence, NewType
 
 from sim import Color
+
+__all__ = ["ModelType", "CAR", "MOTORCYCLE", "BICYCLE", "PEDESTRIAN", "ModelGeometry", "ModelParameters"]
+
+ModelType = NewType("ModelType", str)
+CAR = ModelType("car")
+MOTORCYCLE = ModelType("motorcycle")
+BICYCLE = ModelType("bicycle")
+PEDESTRIAN = ModelType("pedestrian")
 
 
 @dataclass(frozen=True, unsafe_hash=True)

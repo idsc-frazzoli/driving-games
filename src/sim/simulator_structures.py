@@ -7,13 +7,12 @@ from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type, Ma
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 
-from dg_commons.time import time_function
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 
 __all__ = ["SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
 
-from sim.models.model_structures import ModelGeometry
+from sim.models.model_structures import ModelGeometry, ModelType
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -129,6 +128,11 @@ class SimModel(ABC, Generic[X, U]):
 
     @abstractmethod
     def get_mesh(self) -> Mapping[ImpactLocation, Polygon]:
+        pass
+
+    @property
+    @abstractmethod
+    def model_type(self) -> ModelType:
         pass
 
     def get_state(self) -> X:
