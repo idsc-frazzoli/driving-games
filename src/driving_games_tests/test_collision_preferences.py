@@ -7,7 +7,6 @@ from driving_games import (
     Collision,
     CollisionPreference,
     get_asym,
-    IMPACT_FRONT,
     VehicleCosts,
 )
 from games import Combined
@@ -19,6 +18,7 @@ from preferences import (
     SECOND_PREFERRED,
     StrictProductPreferenceDict,
 )
+from sim import IMPACT_FRONT
 from . import logger
 
 

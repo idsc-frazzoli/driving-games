@@ -19,8 +19,6 @@ def test_vehicle_commands_01():
     np.testing.assert_array_equal(npcmds, vcommands.as_ndarray())
 
 
-def test_vehicle_speed():
-    v: T2value
 
 
 def test_vehicledyn_state_01():

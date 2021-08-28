@@ -9,13 +9,9 @@ Welcome to Driving Games's documentation!
    possibilities/index
    games/index
    driving_games/index
-   sim/index
    games_zoo/index
-   toy_games/index
-   bayesian_driving_games/index
-   world/index
    trajectory_games/index
-
+   sim/index
 
 
 Indices and tables

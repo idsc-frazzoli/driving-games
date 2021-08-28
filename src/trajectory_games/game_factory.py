@@ -1,5 +1,4 @@
 import os
-from decimal import Decimal
 from functools import partial
 from time import perf_counter
 from typing import Dict, Set
@@ -12,7 +11,6 @@ from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
-from dg_commons.sequence import Timestamp
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
@@ -20,7 +18,7 @@ from .preference import PosetalPreference
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
-from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
+from _tmp._deprecated.world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",

@@ -4,7 +4,7 @@ from decimal import Decimal as D
 from typing import FrozenSet, Tuple, Dict
 from yaml import safe_load
 
-from world import SE2Transform, LaneSegmentHashable
+from _tmp._deprecated.world import SE2Transform, LaneSegmentHashable
 from .config import config_dir
 
 __all__ = [
