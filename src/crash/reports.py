@@ -10,7 +10,6 @@ from crash.metrics_structures import CollMetricsReport
 from sim import SimulationLog, CollisionReport
 from sim.collision_visualisation import plot_collision
 from sim.models.pedestrian import PedestrianState
-from sim.models.vehicle import VehicleState
 from sim.simulator import SimContext
 from sim.simulator_animation import create_animation
 

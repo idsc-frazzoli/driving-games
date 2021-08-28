@@ -7,6 +7,7 @@ import numpy as np
 from games import PlayerName, X
 from sim import CollisionReport
 from sim.models import ms2kmh
+from sim.models.pedestrian import PedestrianState
 
 
 @unique
@@ -31,8 +32,8 @@ class PedestrianRisk:
 
 class PedestrianZeroRiskModel:
     """
-    Sets the coefficients for the simplest Malliaris model ("Zero"):
-    - Only takes into account delta_v [miles per hour]
+    Sets the coefficients for the simplest Pedestrian model ("Zero"):
+    - Only takes into account delta_v [kilometers per hour]
     """
     coeff: Mapping[PedestrianField, Tuple] = {  # (a0,a1) = (Intercept, DeltaV)
         PedestrianField.FATALITY: (6.576, -0.092)}
@@ -49,9 +50,9 @@ class PedestrianZeroRiskModel:
 def compute_pedestrian_zero(report: CollisionReport, states: Mapping[PlayerName, X]) -> \
         Mapping[PlayerName, PedestrianRisk]:
     """
-    Calculates the probability of casualty, MAIS 3+ and MAIS 2+ for the simplest Malliaris model
-    for each player in two vehicles crashes, according to the "Malliaris Zero" model
-    :returns: A list with [p_fatality, p_mais3, p_mais2]
+    Calculates the probability of casualty for the simplest Pedestrian model
+    for each player in vehicle-pedestrian crashes, according to the "Pedestrian Zero" model
+    :return:
     """
     assert states.keys() == report.players.keys()
 
@@ -61,7 +62,12 @@ def compute_pedestrian_zero(report: CollisionReport, states: Mapping[PlayerName,
 
     for key, value in report.players.items():
         delta_v = _get_delta_v(value.velocity[0], value.velocity_after[0])
-        damage_reports[key] = risk_model.compute_risk(delta_v)
+        if isinstance(states[key], PedestrianState):
+            damage_reports[key] = risk_model.compute_risk(delta_v)
+        else:
+            # Assumption: the probability of casualty for the vehicle when
+            # colliding with a pedestrian are zero
+            damage_reports[key] = PedestrianRisk(p_fatality=0)
 
     return damage_reports
 
