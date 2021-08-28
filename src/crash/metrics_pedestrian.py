@@ -46,7 +46,7 @@ class PedestrianZeroRiskModel:
         return PedestrianRisk(p_fatality=self._compute_probability(delta_v, PedestrianField.FATALITY))
 
 
-def compute_malliaris_zero(report: CollisionReport, states: Mapping[PlayerName, X]) -> \
+def compute_pedestrian_zero(report: CollisionReport, states: Mapping[PlayerName, X]) -> \
         Mapping[PlayerName, PedestrianRisk]:
     """
     Calculates the probability of casualty, MAIS 3+ and MAIS 2+ for the simplest Malliaris model

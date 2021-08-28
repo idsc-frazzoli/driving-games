@@ -5,9 +5,12 @@ from reprep import Report, MIME_PNG, MIME_GIF
 from crash import logger
 from crash.collisions_investigation import investigate_collision_report
 from crash.metrics_malliaris import compute_malliaris_one
+from crash.metrics_pedestrian import compute_pedestrian_zero
 from crash.metrics_structures import CollMetricsReport
 from sim import SimulationLog, CollisionReport
 from sim.collision_visualisation import plot_collision
+from sim.models.pedestrian import PedestrianState
+from sim.models.vehicle import VehicleState
 from sim.simulator import SimContext
 from sim.simulator_animation import create_animation
 
@@ -22,10 +25,29 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_log: SimulationLog)
     b_state = sim_log.at(coll_report.at_time)[b].state
     states = {a: a_state, b: b_state}
     # Malliaris
-    malliaris = compute_malliaris_one(coll_report, states)
 
-    return CollMetricsReport(malliaris=malliaris)
+    # Check if any of the players corresponds to a Pedestrian
+    if isinstance(a_state, PedestrianState) or isinstance(b_state, PedestrianState):
+        # Pedestrian
+        malliaris = {}
+        pedestrian = compute_pedestrian_zero(coll_report, states)
+    else:
+        # Malliaris
+        malliaris = compute_malliaris_one(coll_report, states)
+        pedestrian = {}
 
+    return CollMetricsReport(malliaris=malliaris, pedestrian=pedestrian)
+
+
+"""
+# Check if any of the players corresponds to a Pedestrian
+    if isinstance(a_state, PedestrianState) or isinstance(b_state, PedestrianState):
+        # Pedestrian
+        pass
+    else:
+        # Malliaris
+        malliaris = compute_malliaris_one(coll_report, states)
+"""
 
 def generate_report(sim_context: SimContext) -> Report:
     r = Report("Optimal crashing")
