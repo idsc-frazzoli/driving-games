@@ -19,8 +19,6 @@ quickapp-z6>=6.0.5,<7
 reprep-z6>=6.0.3,<7
 networkx>=2.6
 zuper-typing-z6>=6.1.0
-seaborn
-nashpy==0.0.19 # todo remove
 duckietown-world-daffy==6.2.24
 
 commonroad-io==2021.2
@@ -36,11 +34,11 @@ nose-parallel==0.3.1
 nose_xunitmp==0.4.1
 pipdeptree==0.13.2
 pre-commit==2.1.1
-rednose==1.3.0
+rednose>=1.3.0
 parameterized>=0.7.4
 
-codecov==2.1.9
-coverage==5.2.1
+codecov>=2.1.9
+coverage>=5.2.1
 
 # docs
 sphinx 

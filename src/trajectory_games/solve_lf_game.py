@@ -12,7 +12,7 @@ from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
 
 from games import PlayerName
-from world import LaneSegmentHashable
+from _tmp._deprecated.world import LaneSegmentHashable
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
 from .structures import VehicleState, VehicleGeometry
 from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame, \

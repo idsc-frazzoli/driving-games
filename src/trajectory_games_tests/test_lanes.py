@@ -9,7 +9,7 @@ import geometry as geo
 
 from games import PlayerName
 from trajectory_games import config_dir, TrajGameVisualization, TrajectoryWorld, VehicleGeometry
-from world import load_driving_game_map, get_lane_from_node_sequence, LaneSegmentHashable
+from _tmp._deprecated.world import load_driving_game_map, get_lane_from_node_sequence, LaneSegmentHashable
 
 
 def test_lanes():
