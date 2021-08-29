@@ -72,12 +72,11 @@ class Simulator:
             if update_commands:
                 actions = sim_context.players[player_name].get_commands(self.last_observations)
                 self.last_commands[player_name] = actions
-            else:
-                actions = self.last_commands[player_name]
-            model.update(actions, dt=sim_context.param.dt)
-            log_entry = LogEntry(state=model.get_state(), actions=actions)
+            cmds = self.last_commands[player_name]
+            model.update(cmds, dt=sim_context.param.dt)
+            log_entry = LogEntry(state=model.get_state(), actions=cmds)
             logger.debug(f"Update function, sim time {sim_context.time:.2f}, player: {player_name}")
-            logger.debug(f"New state {model.get_state()} reached applying {actions}")
+            logger.debug(f"New state {model.get_state()} reached applying {cmds}")
             sim_context.log[sim_context.time].update({player_name: log_entry})
         if update_commands:
             self.last_get_commands_ts = sim_context.time
