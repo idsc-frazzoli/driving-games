@@ -9,7 +9,7 @@ from toolz import remove
 
 from dg_commons.planning.lanes import DgLanelet, DgLanePose
 from games import X, PlayerName
-from sim.models.vehicle_structures import VehicleGeometry
+from sim.models.model_structures import ModelGeometry
 
 
 class CollisionException(Exception):
@@ -79,8 +79,8 @@ def compute_impulse_response(n: np.ndarray,
                              vel_ab: np.ndarray,
                              r_ap: np.ndarray,
                              r_bp: np.ndarray,
-                             a_geom: VehicleGeometry,
-                             b_geom: VehicleGeometry) -> float:
+                             a_geom: ModelGeometry,
+                             b_geom: ModelGeometry) -> float:
     """
     The impulse J is defined in terms of force F and time period ∆t
     J = F*∆t = ma*∆t = m *∆v/∆t *∆t = m*∆v

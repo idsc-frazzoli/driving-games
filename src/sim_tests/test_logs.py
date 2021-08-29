@@ -5,6 +5,7 @@ from sim import SimulationLog
 
 
 def test_bisect_simulationLog():
+    # todo test logs performance
     log = SimulationLog()
     log[0] = {PlayerName("P1"): 1, PlayerName("P1"): 2}
     log[4] = {PlayerName("P1"): 4, PlayerName("P1"): 4}

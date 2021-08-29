@@ -13,11 +13,10 @@ from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
 
 def test_commonroad_scenario_viz():
     # generate path of the file to be opened
-    matplotlib.use('TkAgg')
     scenario_name = "USA_Peach-1_1_T-1"
 
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
-    scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi/2)
+    scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
     rnd = MPRenderer(figsize=(20, 10))
     for dyn_obs in scenario.dynamic_obstacles:
         dyn_obs.draw(rnd)
@@ -25,8 +24,7 @@ def test_commonroad_scenario_viz():
         "draw_traffic_lights": False}})
     rnd.render()
     plt.grid(True, "both", zorder=1000)
-    plt.show()
-    # plt.savefig(f"{scenario_name}.png", dpi=300)
+    plt.savefig(f"out/{scenario_name}.png", dpi=300)
     # write_default_params("../../sim_tests/scenarios_tests/default_params.json")
 
 
@@ -35,6 +33,6 @@ def test_npAgent_from_dynamic_obstacle():
     scenario, planning_problem_set = load_commonroad_scenario(scenario)
     dyn_obs = scenario.dynamic_obstacles[2]
 
-    agent, model = npAgent_from_dynamic_obstacle(dyn_obs)
+    agent, model = npAgent_from_dynamic_obstacle(dyn_obs, time_step=2)
 
     print(agent, model)

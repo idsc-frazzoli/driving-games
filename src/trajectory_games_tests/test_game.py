@@ -58,7 +58,7 @@ def report_single(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGa
 
 
 def report_times():
-    from world import LaneSegmentHashable
+    from _tmp._deprecated.world import LaneSegmentHashable
     from trajectory_games.metrics import CollisionEnergy, MinimumClearance
     print(f"LanePose time = {LaneSegmentHashable.time:.2f} s")
     coll, clear = CollisionEnergy(), MinimumClearance()

@@ -9,8 +9,8 @@ xunit_output=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 
 tag=driving_games
 
-test_packages=driving_games_tests,preferences_tests,games_tests,games_zoo_tests,possibilities_tests,toy_games_tests,nash_tests,bayesian_driving_games_tests,trajectory_games_tests
-cover_packages=$(test_packages),driving_games,preferences,games,games_zoo,possibilities,toy_games,nash,bayesian_driving_games,trajectory_games
+test_packages=dg_commons_tests,driving_games_tests,preferences_tests,games_tests,sim_tests,possibilities_tests,crash_tests,trajectory_games_tests
+cover_packages=$(test_packages),dg_commons,driving_games,preferences,games,games_zoo,possibilities,sim,crash,trajectory_games
 
 parallel=--processes=8 --process-timeout=1000 --process-restartworker
 coverage=--cover-html --cover-html-dir=$(coverage_dir) --cover-tests --with-coverage --cover-package=$(cover_packages)
@@ -34,7 +34,7 @@ clean:
 
 test: clean
 	mkdir -p  $(tr)
-	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage)  src  -v --nologcapture $(xunitmp)
+	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(xunitmp)
 
 test-docker: clean
 	mkdir -p  $(tr)
@@ -77,7 +77,7 @@ run-with-mounted-src:
 		dg-demo -o /out/result --reset -c "rparmake"
 
 black:
-	black -l 110 --target-version py37 src
+	black -l 120 --target-version py38 src
 
 coverage-report:
 	coverage html  -d $(coverage_dir)
