@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-from reprep import Report, MIME_PNG
+from reprep import Report, MIME_PNG, MIME_GIF
 
 from crash import logger
 from crash.collisions_investigation import investigate_collision_report
@@ -11,6 +11,7 @@ from sim import CollisionReport
 from sim.collision_visualisation import plot_collision
 from sim.models import PEDESTRIAN, CAR
 from sim.simulator import SimContext
+from sim.simulator_animation import create_animation
 
 
 def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext):
@@ -45,14 +46,14 @@ def generate_report(sim_context: SimContext) -> Report:
     r = Report("Optimal crashing")
     if sim_context.sim_terminated is not True:
         raise RuntimeWarning("Generating a simulation report from a simulation that is not terminated")
-    # gif_viz = r.figure(cols=1)
-    # with gif_viz.data_file("Simulation", MIME_GIF) as fn:
-    #     create_animation(file_path=fn,
-    #                      sim_context=sim_context,
-    #                      figsize=(16, 8),
-    #                      dt=20,
-    #                      dpi=120,
-    #                      plot_limits="auto")
+    gif_viz = r.figure(cols=1)
+    with gif_viz.data_file("Simulation", MIME_GIF) as fn:
+        create_animation(file_path=fn,
+                         sim_context=sim_context,
+                         figsize=(16, 8),
+                         dt=20,
+                         dpi=120,
+                         plot_limits="auto")
     r.add_child(get_collision_reports(sim_context))
     return r
 
