@@ -43,4 +43,5 @@ def em_devel():
 
 
 if __name__ == '__main__':
-    commonroad_replica()
+    #commonroad_replica()
+    az_optimal_crashing()

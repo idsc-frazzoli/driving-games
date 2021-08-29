@@ -1,26 +1,21 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Tuple, List, NewType, Optional
+from typing import Tuple, List, Optional
 
 import numpy as np
 from geometry import SE2_from_xytheta
 
 from sim import Color
-from sim.models.model_structures import ModelGeometry
+from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE
 
-__all__ = ["VehicleType", "CAR", "MOTORCYCLE", "BICYCLE", "VehicleGeometry"]
-
-VehicleType = NewType("VehicleType", str)
-CAR = VehicleType("car")
-MOTORCYCLE = VehicleType("motorcycle")
-BICYCLE = VehicleType("bicycle")
+__all__ = ["VehicleGeometry"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
 class VehicleGeometry(ModelGeometry):
     """ Geometry parameters of the vehicle (and colour)"""
 
-    vehicle_type: VehicleType
+    vehicle_type: ModelType
     """Type of the vehicle"""
     w_half: float
     """ Half width of vehicle [m] """
