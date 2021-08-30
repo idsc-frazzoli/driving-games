@@ -5,6 +5,7 @@ from typing import Optional, Tuple, MutableMapping
 import numpy as np
 from duckietown_world import relative_pose, SE2Transform
 
+from dg_commons.controllers.pid import PIDParam, PID
 from games import PlayerName, X
 
 __all__ = ["SpeedController", "SpeedBehavior"]
@@ -13,42 +14,21 @@ from sim.models import extract_pose_from_state, kmh2ms
 
 
 @dataclass
-class SpeedControllerParam:
+class SpeedControllerParam(PIDParam):
     kP: float = 0.3
     kI: float = 0.1
+    kD: float = 0
     antiwindup: Tuple[float, float] = (-2, 2)
     setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(100))
     """In m/s"""
 
 
-class SpeedController:
+class SpeedController(PID):
     """Low-level controller for reference tracking of speed"""
 
-    def __init__(self):
-        self.params = SpeedControllerParam()
-        self.current_speed: float = 0
-        self.desired_speed: float = 0
-        self.last_request_at: Optional[float] = None
-        self.last_integral_error: float = 0
-
-    def update_observations(self, current_speed: float):
-        self.current_speed = current_speed
-
-    def update_reference(self, desired_speed: float):
-        if not self.params.setpoint_minmax[0] <= desired_speed <= self.params.setpoint_minmax[1]:
-            raise RuntimeWarning("Attempting to set a desired speed out of range. I'll clip the value.")
-        self.desired_speed = np.clip(desired_speed, self.params.setpoint_minmax[0], self.params.setpoint_minmax[1])
-
-    def get_control(self, at: float) -> float:
-        """A simple PI"""
-        dt = 0 if self.last_request_at is None else at - self.last_request_at
-        self.last_request_at = at
-        p_error = self.desired_speed - self.current_speed
-        self.last_integral_error += self.params.kI * p_error * dt
-        self.last_integral_error = np.clip(self.last_integral_error,
-                                           self.params.antiwindup[0],
-                                           self.params.antiwindup[1])
-        return self.params.kP * p_error + self.last_integral_error
+    def __init__(self, params: Optional[PIDParam] = None):
+        params = SpeedControllerParam() if params is None else params
+        super(SpeedController, self).__init__(params)
 
 
 @dataclass

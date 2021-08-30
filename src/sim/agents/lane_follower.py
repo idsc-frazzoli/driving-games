@@ -39,7 +39,7 @@ class LFAgent(Agent):
 
         # update observations
         self.speed_behavior.update_observations(sim_obs.players)
-        self.speed_controller.update_observations(current_speed=my_obs.vx)
+        self.speed_controller.update_measurement(measurement=my_obs.vx)
         lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
         self.pure_pursuit.update_pose(pose=my_pose, along_path=lanepose.along_lane)
 
@@ -47,7 +47,7 @@ class LFAgent(Agent):
         t = float(sim_obs.time)
         speed_ref = self.speed_behavior.get_speed_ref(t)
         self.pure_pursuit.update_speed(speed=speed_ref)
-        self.speed_controller.update_reference(desired_speed=speed_ref)
+        self.speed_controller.update_reference(reference=speed_ref)
         acc = self.speed_controller.get_control(t)
         # pure proportional with respect to delta error
         kp = 10
