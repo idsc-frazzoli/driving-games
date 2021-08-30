@@ -9,7 +9,7 @@ from sim.agents.lane_follower import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters, SimulationLog
 from sim.models.vehicle import VehicleModel, VehicleState
 import numpy as np
-from crash.reports import generete_report
+from crash.reports import generate_report
 import os
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from games import PlayerName
@@ -163,7 +163,7 @@ def test_pure_pursuit_control_all_vehicles():
     simulator: Simulator = Simulator()
     simulator.run(sim_context)
 
-    report = generete_report(sim_context)
+    report = generate_report(sim_context)
     # save report
     output_dir = "out"
     report_file = os.path.join(output_dir, f"Pure_Pursuit_test_speed{vehicle_speed}_lookahead{k_lookahead}_ddeltakp{ddelta_kp}.html")
