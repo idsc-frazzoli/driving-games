@@ -108,7 +108,7 @@ def plot_vehicle(ax: Axes,
                 horizontalalignment="center",
                 verticalalignment="center")
         if plot_wheels:
-            wheels_boxes = [ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
+            wheels_boxes = [ax.fill([], [], color="dimgray", alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
                             range(vg.n_wheels)]
             boxes.extend(wheels_boxes)
     outline = transform_xy(q, vehicle_outline)
