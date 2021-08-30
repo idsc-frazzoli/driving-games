@@ -1,12 +1,13 @@
 from typing import Optional
 
+import numpy as np
 from geometry import SE2_from_xytheta, SE2value
 
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
-from sim import SimObservations
+from sim import SimObservations, logger
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands
 
@@ -16,7 +17,8 @@ class LFAgent(Agent):
     via a pure pursuit controller. The reference in speed is determined by the speed behavior.
     """
 
-    def __init__(self, lane: DgLanelet,
+    def __init__(self,
+                 lane: Optional[DgLanelet] = None,
                  speed_controller: Optional[SpeedController] = None,
                  speed_behavior: Optional[SpeedBehavior] = None,
                  pure_pursuit: Optional[PurePursuit] = None):
@@ -50,6 +52,9 @@ class LFAgent(Agent):
         # pure proportional with respect to delta error
         kp = 10
         ddelta = kp * (self.pure_pursuit.get_desired_steering() - my_obs.delta)
+        if not -1 <= ddelta <= 1:
+            logger.info(f"Agent {self.my_name}: clipping ddelta: {ddelta} within [-1,1]")
+            ddelta = np.clip(ddelta, -1, 1)
         return VehicleCommands(
             acc=acc,
             ddelta=ddelta

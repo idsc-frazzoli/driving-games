@@ -8,7 +8,7 @@ from commonroad.visualization.mp_renderer import MPRenderer
 
 # from commonroad_route_planner.route_planner import RoutePlanner
 from sim.scenarios import load_commonroad_scenario
-from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
+from sim.scenarios.agent_from_commonroad import Agent_from_dynamic_obstacle
 
 
 def test_commonroad_scenario_viz():
@@ -33,6 +33,6 @@ def test_npAgent_from_dynamic_obstacle():
     scenario, planning_problem_set = load_commonroad_scenario(scenario)
     dyn_obs = scenario.dynamic_obstacles[2]
 
-    agent, model = npAgent_from_dynamic_obstacle(dyn_obs, time_step=2)
+    agent, model = Agent_from_dynamic_obstacle(dyn_obs, time_step=2)
 
     print(agent, model)
