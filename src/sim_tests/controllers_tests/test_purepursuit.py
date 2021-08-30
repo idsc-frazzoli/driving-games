@@ -2,7 +2,7 @@ import math
 import matplotlib.pyplot as plt
 from commonroad.scenario.lanelet import Lanelet
 from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
-from dg_commons.controllers.speed import SpeedBehavior
+from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam
 from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
 from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
@@ -100,8 +100,8 @@ def get_merged_lanes(lanes, dyn_obs):
     return return_lanelet
 
 
-def lp_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanes, nominal_speed: float,
-                                   ddelta_kp: float, k_lookahead: float) -> (LFAgent, VehicleModel):
+def lp_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanes, nominal_speed: float, ddelta_kp: float,
+                                   k_lookahead: float, speed_kp: float, speed_ki: float) -> (LFAgent, VehicleModel):
     assert dyn_obs.obstacle_type == ObstacleType.CAR
 
     orient_0, orient_1 = dyn_obs.prediction.trajectory.state_list[0].orientation, dyn_obs.prediction.trajectory.state_list[1].orientation
@@ -124,18 +124,22 @@ def lp_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanes, nominal_spee
     pure_pursuit_controller: PurePursuit = PurePursuit(pure_pursuit_param)
     speed_behavior: SpeedBehavior = SpeedBehavior()
     speed_behavior.params.nominal_speed = nominal_speed
+    speed_controller: SpeedController = SpeedController()
+    speed_controller.params = SpeedControllerParam(kI=speed_ki, kP=speed_kp)
 
     agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior,
                              pure_pursuit=pure_pursuit_controller, ddelta_kp=ddelta_kp)
     return agent, model
 
 
-def get_sim_context_all_vehicles_controller(scenario_name: str, nominal_speed: float, ddelta_kp: float, k_lookahead: float) -> SimContext:
+def get_sim_context_all_vehicles_controller(scenario_name: str, nominal_speed: float, ddelta_kp: float,
+                                            k_lookahead: float, speed_kp: float, speed_ki: float) -> SimContext:
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     lanes = scenario.lanelet_network
     players, models = {}, {}
     for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
-        agent, model = lp_agent_from_dynamic_obstacle(dyn_obs, lanes, nominal_speed, ddelta_kp, k_lookahead)
+        agent, model = lp_agent_from_dynamic_obstacle(dyn_obs, lanes, nominal_speed, ddelta_kp,
+                                                      k_lookahead, speed_kp, speed_ki)
         player_name = PlayerName(f"P{i}")
         players.update({player_name: agent})
         models.update({player_name: model})
@@ -157,8 +161,13 @@ def test_pure_pursuit_control_all_vehicles():
     """Scaling constant for speed dependent params"""
     ddelta_kp: float = 10
     """Proportional gain ddelta with respect to delta error"""
+    speed_kp: float = 0.5
+    """Propotioanl gain longitudinal speed controller"""
+    speed_ki: float = 0.01
+    """Integral gain longitudinal speed controller"""
 
-    sim_context = get_sim_context_all_vehicles_controller(scenario_name, vehicle_speed, ddelta_kp, k_lookahead)
+    sim_context = get_sim_context_all_vehicles_controller(scenario_name, vehicle_speed, ddelta_kp, k_lookahead,
+                                                          speed_kp, speed_ki)
 
     simulator: Simulator = Simulator()
     simulator.run(sim_context)
