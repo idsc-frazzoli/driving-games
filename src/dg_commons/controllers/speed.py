@@ -77,7 +77,7 @@ class SpeedBehavior:
             distance = np.linalg.norm(rel.p)
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
             in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-            if (coming_from_the_right and distance < self.params.safety_dist_right) or (
+            if (coming_from_the_right and distance < self.params.safety_dist_right and rel.p[0] > 0) or (
                     in_front_of_me and distance < self.params.safety_dist_front):
                 return True
         return False
