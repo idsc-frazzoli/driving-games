@@ -29,7 +29,7 @@ from trajectory_games import (
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
-plot_gif = True  # gif vs image for viz
+plot_gif = False  # gif vs image for viz
 only_traj = False  # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"

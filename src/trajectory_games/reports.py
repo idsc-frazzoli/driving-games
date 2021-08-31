@@ -114,14 +114,17 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
 
     def plot_actions(axis, sol_node: SolvedTrajectoryGameNode, width: float):
         with viz.plot_arena(axis):
+            states: List[VehicleState] = []
             for pname in sol_node.actions.keys():
                 for state in players[pname].state.support():
+                    states.append(state)
                     viz.plot_player(axis=axis, player_name=pname,
                                     state=state)
             for pname, action in sol_node.actions.items():
                 viz.plot_equilibria(axis=axis, actions=frozenset([action]),
                                     colour=players[pname].vg.colour,
-                                    width=width, alpha=width, ticks=False)
+                                    width=width, alpha=min(1.0, width), ticks=False)
+                adjust_axes_limits(ax=ax, plot_limits=viz.plot_limits, players_states=states)
 
     if nodes_strong is None:
         nodes_strong = set()
@@ -137,7 +140,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
                 plot_outcomes_pref(viz=viz, axis=ax, outcomes=node.outcomes[lead],
                                    pref=pref, pname=lead, add_title=False)
             else:
-                w: float = 1.0 if node in nodes_strong else 0.5
+                w: float = 2.0 if node in nodes_strong else 1.5
                 plot_actions(axis=ax, sol_node=node, width=w)
 
         save_stack_figure(fn=fn, fig=fig, axs=axs, all_idx=all_idx)
@@ -210,7 +213,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                 continue
             viz.plot_equilibria(axis=axis, actions=frozenset(actions),
                                 colour=game.game_players[pname].vg.colour,
-                                width=w, alpha=w, scatter=False)
+                                width=w, alpha=min(w, 1.0), scatter=False)
 
     def plot_pref(rep: Report):
         with rep.data_file("Pref", MIME) as fn:
@@ -223,7 +226,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             plt.close(fig=fig)
 
     def image_eq(report: Report):
-        eq_viz = report.figure(cols=2)
+        eq_viz = report.figure("Overlay", cols=2)
         nodes_strong = nash_eq["strong"]
         nodes_weak = node_set.difference(nodes_strong)
         actions_strong = save_actions(nodes_strong)
@@ -231,12 +234,15 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
         with eq_viz.plot("all_equilibria") as pylab:
             ax = pylab.gca()
             with viz.plot_arena(axis=ax):
+                states: List[VehicleState] = []
                 for player_name, player in game.game_players.items():
                     for state in player.state.support():
+                        states.append(state)
                         viz.plot_player(axis=ax, player_name=player_name,
                                         state=state)
-                plot_eq_all(axis=ax, actions_all=actions_weak, w=0.5)
-                plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0)
+                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.5)
+                plot_eq_all(axis=ax, actions_all=actions_strong, w=2.0)
+                adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
 
         plot_pref(rep=eq_viz)
 
@@ -247,16 +253,14 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq)
             req.add_child(rplot)
             i += 1
-    else:
-        rplot = Report(f"Equilibria")
-        if len(node_set) > 200:
-            image_eq(report=rplot)
-        else:
-            eq_viz = rplot.figure(cols=2)
-            stack_nodes(report=eq_viz, viz=viz, title="all_equilibria", players=game.game_players,
-                        nodes=node_set, nodes_strong=nash_eq["strong"])
-            plot_pref(rep=eq_viz)
-        req.add_child(rplot)
+    rplot = Report(f"Equilibria")
+    image_eq(report=rplot)
+    if len(node_set) < 200:
+        eq_viz = rplot.figure("Stacked", cols=2)
+        stack_nodes(report=eq_viz, viz=viz, title="all_equilibria", players=game.game_players,
+                    nodes=node_set, nodes_strong=nash_eq["strong"])
+        plot_pref(rep=eq_viz)
+    req.add_child(rplot)
 
     r_all.add_child(req)
     toc = perf_counter() - tic
