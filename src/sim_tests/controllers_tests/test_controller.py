@@ -1,29 +1,20 @@
 import math
-import matplotlib.pyplot as plt
-from commonroad.scenario.lanelet import Lanelet
-from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
-from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam
-from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
 from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters, SimulationLog
 from sim.models.vehicle import VehicleModel, VehicleState
-import numpy as np
 from crash.reports import generate_report
 import os
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from games import PlayerName
-from typing import Optional
-from geometry import translation_angle_from_SE2
-from sim_tests.controllers_tests.lanelet_generator import LaneletGenerator
+from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 
 
 class TestController:
 
     def __init__(self, scenario_name: str, vehicle_model: str, lateral_controller, longitudinal_controller, speed_behavior):
         scenario, _ = load_commonroad_scenario(scenario_name)
-        lanelet_net = scenario.lanelet_network
-        self.lanelet_gen = LaneletGenerator(lanelet_net)
+        self.lanelet_net = scenario.lanelet_network
 
         self.lateral_controller = lateral_controller
         self.longitudinal_controller = longitudinal_controller
@@ -50,8 +41,7 @@ class TestController:
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
 
-        merged_lane = self.lanelet_gen.lanelet_from_dynamic_obstacle(dyn_obs, 123123123)
-        dg_lane = DgLanelet.from_commonroad_lanelet(merged_lane)
+        dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
         agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
                                  pure_pursuit=lateral_controller, ddelta_kp=10)
 

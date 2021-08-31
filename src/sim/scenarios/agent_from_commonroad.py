@@ -1,6 +1,6 @@
-from typing import List, Tuple
-
-from commonroad.scenario.lanelet import LaneletNetwork
+from typing import List, Tuple, Optional
+import math
+from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.trajectory import State
 from duckietown_world import SE2Transform
@@ -12,6 +12,7 @@ from sim.agents.lane_follower import LFAgent
 from sim.models import Pacejka
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn, VehicleParametersDyn
 from sim.models.vehicle_structures import VehicleGeometry, CAR
+import numpy as np
 
 
 class NotSupportedConversion(ZException):
@@ -53,7 +54,7 @@ def model_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanelet_network:
                             pacejka_rear=Pacejka.default_car_rear())
 
     # Agent
-    dglane = infer_lane_from_dyn_obs(dyn_obs=dyn_obs, network=lanelet_network)
+    dglane = infer_lane_from_dyn_obs(dyn_obs=dyn_obs, lanelet_net=lanelet_network)
     agent = LFAgent(dglane)
     return model, agent
 
@@ -68,33 +69,69 @@ def _estimate_mass_inertia(length: float, width: float) -> Tuple[float, float]:
     return mass, inertia
 
 
-def infer_lane_from_dyn_obs(dyn_obs: DynamicObstacle, network: LaneletNetwork) -> DgLanelet:
+def infer_lane_from_dyn_obs(dyn_obs: DynamicObstacle, lanelet_net: LaneletNetwork) -> DgLanelet:
     """ Tries to find a lane corresponding to the trajectory, if no lane is found it creates one from the trajectory"""
-    init_position = dyn_obs.initial_state.position
-    end_position = dyn_obs.prediction.trajectory.state_list[-1].position
 
-    init_ids = network.find_lanelet_by_position([init_position])[0]
-    final_ids = network.find_lanelet_by_position([end_position])[0]
-    if not init_ids or not final_ids:
-        return _dglane_from_trajectory(dyn_obs.prediction.trajectory.state_list)
+    initial_state = dyn_obs.initial_state.position
+    end_state = dyn_obs.prediction.trajectory.state_list[-1].position
 
-    for init_id in init_ids:
-        lanelet = network.find_lanelet_by_id(init_id)
-        merged_lanelets, _ = lanelet.all_lanelets_by_merging_successors_from_lanelet(
-            lanelet=lanelet, network=network)
-        for merged_lanelet in merged_lanelets:
-            if any(str(id) in str(merged_lanelet.lanelet_id) for id in final_ids):
-                return DgLanelet.from_commonroad_lanelet(merged_lanelet)
-    # if we reach this point we did not find any lanelet,
-    # this might occur because of change of lanes or similar by the dyn obstacle,
-    # we create a 'fake' lane from its trajectory
-    return _dglane_from_trajectory(dyn_obs.prediction.trajectory.state_list)
+    initial_ids = lanelet_net.find_lanelet_by_position([initial_state])[0]
+    final_ids = lanelet_net.find_lanelet_by_position([end_state])[0]
+    return_lanelet: Optional[DgLanelet] = None
+
+    for initial_id in initial_ids:
+        lanelet = lanelet_net.find_lanelet_by_id(initial_id)
+        merged_lanelets, merged_ids = lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet, lanelet_net)
+        for i, merged_id in enumerate(merged_ids):
+            if any(item in merged_id for item in final_ids):
+                return_lanelet = DgLanelet.from_commonroad_lanelet(merged_lanelets[i])
+                break
+        if return_lanelet is not None:
+            break
+
+    if return_lanelet is None:
+        return_lanelet = dglanelet_from_trajectory(dyn_obs.prediction.trajectory.state_list, lanelet_net)
+
+    return return_lanelet
 
 
-def _dglane_from_trajectory(states: List[State], width: float = 3) -> DgLanelet:
+def dglanelet_from_trajectory(states, lanelet_net: LaneletNetwork, width: Optional[float] = None):
+    if width is None:
+        width = compute_width(lanelet_net)
+
     control_points: List[LaneCtrPoint] = []
     for state in states:
         q = SE2Transform(p=state.position, theta=state.orientation)
         control_points.append(LaneCtrPoint(
             q=q, r=width / 2))
+
+    add_control_points = additional_trajectory_steps(control_points[-1].q, lanelet_net)
+
+    control_points = control_points + add_control_points
+
     return DgLanelet(control_points=control_points)
+
+
+def compute_width(lanelet_net: LaneletNetwork):
+    res = 0
+    counter = 0
+    for lanelet in lanelet_net.lanelets:
+        weight, _ = lanelet.right_vertices.shape
+        res += np.average(np.linalg.norm(lanelet.right_vertices - lanelet.left_vertices, axis=1)) * weight
+        counter += weight
+    return res/counter
+
+
+def additional_trajectory_steps(end_pose: SE2Transform, lanelet_net: LaneletNetwork):
+    end_position = end_pose.p
+    current_lanelet_id = lanelet_net.find_lanelet_by_position([end_position])[0][0]
+    current_lanelet = lanelet_net.find_lanelet_by_id(current_lanelet_id)
+    merged_lanelets, _ = current_lanelet.all_lanelets_by_merging_successors_from_lanelet(current_lanelet,
+                                                                                         lanelet_net)
+    merged_lanelet: Lanelet = merged_lanelets[0]
+    dg_lanelet = DgLanelet.from_commonroad_lanelet(merged_lanelet)
+    beta, _ = dg_lanelet.find_along_lane_closest_point(end_position)
+    control_points = dg_lanelet.control_points[math.ceil(beta):]
+
+    return control_points
+

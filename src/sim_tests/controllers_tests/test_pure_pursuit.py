@@ -1,22 +1,6 @@
 from sim_tests.controllers_tests.test_controller import TestController
-import math
-import matplotlib.pyplot as plt
-from commonroad.scenario.lanelet import Lanelet
-from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
-from sim.scenarios import load_commonroad_scenario
-from sim.agents.lane_follower import LFAgent
-from sim.simulator import SimContext, Simulator, SimParameters, SimulationLog
-from sim.models.vehicle import VehicleModel, VehicleState
-import numpy as np
-from crash.reports import generate_report
-import os
-from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
-from games import PlayerName
-from typing import Optional
-from geometry import translation_angle_from_SE2
-from sim_tests.controllers_tests.lanelet_generator import LaneletGenerator
 
 
 def test_pure_pursuit():
