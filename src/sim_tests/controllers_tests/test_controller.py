@@ -5,15 +5,14 @@ from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters
 from sim.models.vehicle import VehicleModel, VehicleState
-from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
-from games import PlayerName
-from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 from dg_commons.analysis.metrics_def import MetricEvaluationContext, Metric
 import matplotlib.pyplot as plt
 import json
 from dataclasses import fields
 from typing import Optional
-from sim_tests.controllers_tests.lanelet_generator import LaneletGenerator
+from commonroad.scenario.obstacle import DynamicObstacle
+from games import PlayerName
+from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 
 
 class TestController:
@@ -55,7 +54,6 @@ class TestController:
         longitudinal_controller.params = self.longitudinal_controller["Parameters"]
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
-
         steering_controller = self.steering_controller["Controller"]()
         steering_controller.params = self.steering_controller["Parameters"]
 
