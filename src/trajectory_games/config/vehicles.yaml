@@ -8,17 +8,17 @@
 
 red_car:      &car
   m:      1000
-  w:      0.5
-  l:      1.0
-  colour: "red"
+  w:      1.0
+  l:      2.0
+  colour: "firebrick"
 
 blue_car:
   <<: *car
-  colour: "blue"
+  colour: "royalblue"
 
 green_car:
   <<: *car
-  colour: "green"
+  colour: "forestgreen"
 
 yellow_car:
   <<: *car

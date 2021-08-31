@@ -2,9 +2,11 @@ import math
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet, Tuple, Dict
+from typing import FrozenSet, Dict
+
 from yaml import safe_load
 
+from sim import Color
 from .config import config_dir
 
 __all__ = [
@@ -19,16 +21,13 @@ __all__ = [
 class VehicleGeometry:
     """ Geometry parameters of the vehicle"""
 
-    COLOUR = Tuple[float, float, float]
-    """ An alias to store the RGB values of a colour """
-
     m: float
     """ Car Mass [kg] """
     w: float
     """ Half width of car [m] """
     l: float
     """ Half length of car - dist from CoG to each axle [m] """
-    colour: COLOUR
+    colour: Color
     """ Car colour """
 
     _config: Dict = None
@@ -43,24 +42,15 @@ class VehicleGeometry:
 
     @classmethod
     def default(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
+        return VehicleGeometry(m=1000.0, w=1.8, l=3.0, colour="k")
 
     @classmethod
-    def load_colour(cls, name: str) -> COLOUR:
+    def load_colour(cls, name: str) -> Color:
         """ Load the colour name from the possible colour configs"""
 
-        def default():
-            return 1, 1, 1
-
         if len(name) == 0:
-            return default()
-        cls._load_all_configs()
-        if name in cls._config["colours"].keys():
-            colour = tuple(_ for _ in cls._config["colours"][name])
-        else:
-            print(f"Failed to intialise {cls.__name__} from {name}, using default")
-            colour = default()
-        return colour
+            return "gray"
+        return name
 
     @classmethod
     def from_config(cls, name: str) -> "VehicleGeometry":
@@ -108,7 +98,7 @@ class VehicleActions:
     __rmul__ = __mul__
 
     def __truediv__(self, factor: float) -> "VehicleActions":
-        return self * (1/factor)
+        return self * (1 / factor)
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -166,7 +156,7 @@ class VehicleState:
     __rmul__ = __mul__
 
     def __truediv__(self, factor: float) -> "VehicleState":
-        return self * (1/factor)
+        return self * (1 / factor)
 
     def __repr__(self) -> str:
         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
@@ -184,7 +174,7 @@ class VehicleState:
 
     @classmethod
     def default(cls) -> "VehicleState":
-        state = VehicleState(x=0.0, y=0.0, th=math.pi/2.0,
+        state = VehicleState(x=0.0, y=0.0, th=math.pi / 2.0,
                              v=10.0, st=0.0, t=D("0"))
         return state
 
@@ -282,9 +272,9 @@ class TrajectoryParams:
             config = cls._config[name]
 
             def get_set(inp: str):
-                n = config["n_"+inp]
-                start = -(n-1)/2.0
-                u = frozenset([(_+start) * config["step_"+inp] for _ in range(n)])
+                n = config["n_" + inp]
+                start = -(n - 1) / 2.0
+                u = frozenset([(_ + start) * config["step_" + inp] for _ in range(n)])
                 return u
 
             u_acc = get_set(inp="acc")
