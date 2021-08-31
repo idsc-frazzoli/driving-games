@@ -15,11 +15,11 @@ def test_pure_pursuit():
     """Scaling constant for speed dependent params"""
     ddelta_kp: float = 10
     """Proportional gain ddelta with respect to delta error"""
-    speed_kp: float = 0.5
+    speed_kp: float = 2
     """Propotioanl gain longitudinal speed controller"""
-    speed_ki: float = 0.01
+    speed_ki: float = 0.005
     """Integral gain longitudinal speed controller"""
-    speed_kd: float = 0
+    speed_kd: float = 0.1
     """Derivative gain longitudinal speed controller"""
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
