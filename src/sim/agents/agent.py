@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 
 from dg_commons import DgSampledSequence
 from games import U, PlayerName, X
@@ -20,6 +20,11 @@ class Agent(ABC):
     @abstractmethod
     def get_commands(self, sim_obs: SimObservations) -> U:
         """ This method gets called for each player inside the update loop of the simulator"""
+        pass
+
+    def on_get_extra(self, ) -> Optional[Any]:
+        """ This method gets called for each player inside the update loop of the simulator,
+        it is used purely for logging. For example pass all the trajectories that have been generated at that step  """
         pass
 
 

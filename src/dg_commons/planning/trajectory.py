@@ -20,9 +20,6 @@ FinalPoint = Tuple[Optional[float], Optional[float], bool]
 class Trajectory(DgSampledSequence[X]):
     """ Container for a trajectory as a sampled sequence """
 
-    lane: Optional[DgLanelet] = None
-    """ If thee trajectory has to be referenced wrt to a lane"""
-
     def trim_trajectory(self, p_final: FinalPoint) -> bool:
         """ Trims trajectory till p_final (if longer) and returns if trimming was performed or not """
         # todo

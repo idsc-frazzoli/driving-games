@@ -55,6 +55,10 @@ class CollisionReport:
 
 
 def combine_collision_reports(r1: CollisionReport, r2: CollisionReport) -> CollisionReport:
+    """ This function "sums" collision reports.
+    While the simulation generates a collision report at every simulation step, oftentimes it's convenient to
+    reduce them to an "accident" report.
+    """
     if r1.players.keys() != r2.players.keys():
         raise ZValueError("Cannot combine collision reports with different players",
                           report1=r1, report2=r2)

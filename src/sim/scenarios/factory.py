@@ -3,7 +3,7 @@ from typing import Optional
 from games import PlayerName
 from sim import logger, SimulationLog, SimParameters
 from sim.scenarios import load_commonroad_scenario
-from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
+from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle, NotSupportedConversion
 from sim.simulator import SimContext
 
 
@@ -19,11 +19,11 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
     players, models = {}, {}
     for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
         try:
-            agent, model = npAgent_from_dynamic_obstacle(dyn_obs, scenario.dt)
+            model, agent = model_agent_from_dynamic_obstacle(dyn_obs, scenario.lanelet_network)
             playername = PlayerName(f"P{i}")
             players.update({playername: agent})
             models.update({playername: model})
-        except ZeroDivisionError as e:
+        except NotSupportedConversion as e:
             logger.warn("Unable to convert commonroad dynamic obstacle due to " + e.args[0] + " skipping...")
     logger.info(f"Managed to load {len(players)}")
     sim_param = SimParameters.default() if sim_param is None else sim_param

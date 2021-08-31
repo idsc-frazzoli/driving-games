@@ -11,8 +11,9 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
 from sim import logger, ImpactLocation, IMPACT_RIGHT, IMPACT_LEFT, IMPACT_BACK, IMPACT_FRONT
+from sim.models import ModelType, CAR
 from sim.models.model_utils import acceleration_constraint
-from sim.models.vehicle_structures import VehicleGeometry, CAR
+from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 from sim.simulator_structures import SimModel
 
@@ -23,6 +24,7 @@ class VehicleCommands:
     """ Acceleration [m/s^2] """
     ddelta: float
     """ Steering rate [rad/s] (delta derivative) """
+    # todo add ligths and horn
     idx = frozendict({"acc": 0, "ddelta": 1})
     """ Dictionary to get correct values from numpy arrays"""
 
@@ -252,3 +254,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         self._state.vx = vel[0]
         logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
                     "Try using the dynamic model.")
+
+    @property
+    def model_type(self) -> ModelType:
+        return self.vg.vehicle_type

@@ -9,7 +9,7 @@ from duckietown_world import SE2Transform
 from networkx import DiGraph, has_path, shortest_path
 
 from dg_commons.sequence import Timestamp, DgSampledSequence
-from world import LaneSegmentHashable
+from _tmp._deprecated.world import LaneSegmentHashable
 from .game_def import ActionGraph
 from .structures import VehicleState
 

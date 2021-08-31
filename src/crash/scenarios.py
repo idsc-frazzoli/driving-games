@@ -20,7 +20,7 @@ from sim.models.vehicle import VehicleCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
-from sim.scenarios.agent_from_commonroad import npAgent_from_dynamic_obstacle
+from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle
 from sim.simulator import SimContext
 from sim.simulator_structures import SimParameters, SimulationLog
 
@@ -34,7 +34,7 @@ def get_scenario_01() -> SimContext:
     scenario_name = "USA_Lanker-1_1_T-1.xml"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     dyn_obs = scenario.dynamic_obstacles[2]
-    agent, model = npAgent_from_dynamic_obstacle(dyn_obs, scenario.dt)
+    model, agent = model_agent_from_dynamic_obstacle(dyn_obs, scenario.lanelet_network)
 
     x0_p1 = VehicleStateDyn(x=2, y=18, theta=0, vx=5, delta=0)
     x0_p2 = VehicleStateDyn(x=22, y=6, theta=deg2rad(90), vx=6, delta=0)
@@ -148,7 +148,8 @@ def get_scenario_03() -> SimContext:
     scenario_name = "DEU_Hhr-1_1.xml"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     lane = scenario.lanelet_network.lanelets[0]
-    lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane, scenario.lanelet_network, max_length=1000)[0][0]
+    lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane, scenario.lanelet_network, max_length=1000)[0][
+        0]
     dglane = DgLanelet.from_commonroad_lanelet(lane)
 
     betas = linspace(-1, 5, 500).tolist()
@@ -166,18 +167,11 @@ def get_scenario_03() -> SimContext:
     plt.savefig(f"out/debug{lane.lanelet_id}.png")
     plt.close()
 
-
-
     start = dglane.center_point(10)
     xytheta = xytheta_from_SE2(start)
     x0_p1 = VehicleStateDyn(x=xytheta[0], y=xytheta[1], theta=xytheta[2], vx=kmh2ms(50), delta=0)
 
     models = {P1: VehicleModelDyn.default_car(x0_p1)}
-    commands_input: DgSampledSequence[VehicleCommands] = DgSampledSequence[VehicleCommands](
-        timestamps=[0, 1, 2, 99],
-        values=[VehicleCommands(acc=0, ddelta=0), VehicleCommands(acc=1, ddelta=0.3),
-                VehicleCommands(acc=2, ddelta=-0.6), VehicleCommands(acc=0, ddelta=0)])
-
     players = {P1: LFAgent(dglane)}
 
     return SimContext(scenario=scenario,

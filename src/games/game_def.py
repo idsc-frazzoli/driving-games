@@ -232,7 +232,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         commands: Optional[U],
         opacity: float = 1.0,
     ):
-        """ Draw the player at a certain state doing certain commands (if givne)"""
+        """ Draw the player at a certain state doing certain commands (if given)"""
         pass
 
     @abstractmethod

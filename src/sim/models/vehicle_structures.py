@@ -1,33 +1,28 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Tuple, List, NewType, Optional
+from typing import Tuple, List, Optional
 
 import numpy as np
 from geometry import SE2_from_xytheta
 
 from sim import Color
-from sim.models.model_structures import ModelGeometry
+from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE
 
-__all__ = ["VehicleType", "CAR", "MOTORCYCLE", "BICYCLE", "VehicleGeometry"]
-
-VehicleType = NewType("VehicleType", str)
-CAR = VehicleType("car")
-MOTORCYCLE = VehicleType("motorcycle")
-BICYCLE = VehicleType("bicycle")
+__all__ = ["VehicleGeometry"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
 class VehicleGeometry(ModelGeometry):
     """ Geometry parameters of the vehicle (and colour)"""
 
-    vehicle_type: VehicleType
+    vehicle_type: ModelType
     """Type of the vehicle"""
     w_half: float
-    """ Half width of vehicle [m] """
+    """ Half width of vehicle (between center of wheels) [m] """
     lf: float
-    """ Front length of vehicle - dist from CoG to front [m] """
+    """ Front length of vehicle - dist from CoG to front axle [m] """
     lr: float
-    """ Rear length of vehicle - dist from CoG to back [m] """
+    """ Rear length of vehicle - dist from CoG to back axle [m] """
     c_drag: float
     """ Drag coefficient """
     a_drag: float
@@ -43,7 +38,7 @@ class VehicleGeometry(ModelGeometry):
     @classmethod
     def default_car(cls, color: Optional[Color] = None) -> "VehicleGeometry":
         color = "royalblue" if color is None else color
-        return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=.95, lf=1.95, lr=1.95, c_drag=0.3756,
+        return VehicleGeometry(vehicle_type=CAR, m=1500.0, Iz=1000, w_half=.95, lf=1.75, lr=1.75, c_drag=0.3756,
                                a_drag=2, e=0.6, c_rr_f=0.003, c_rr_r=0.003, color=color)
 
     @classmethod
@@ -58,12 +53,20 @@ class VehicleGeometry(ModelGeometry):
 
     @cached_property
     def length(self):
+        """ Length between the two axles, it does not consider bumpers etc..."""
         return self.lf + self.lr
 
     @cached_property
     def outline(self) -> Tuple[Tuple[float, float], ...]:
-        return ((-self.lr, -self.w_half), (-self.lr, +self.w_half),
-                (+self.lf, +self.w_half), (+self.lf, -self.w_half), (-self.lr, -self.w_half))
+        """Outline of the vehicle intended as the whole car body."""
+        tyre_halfw, radius = self.wheel_shape
+        if self.vehicle_type == CAR:
+            frontbumper = self.lf / 2
+        else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
+            frontbumper = radius
+        return ((-self.lr - radius, -self.w_half - tyre_halfw), (-self.lr - radius, +self.w_half + tyre_halfw),
+                (+self.lf + frontbumper, +self.w_half + tyre_halfw),
+                (+self.lf + frontbumper, -self.w_half - tyre_halfw), (-self.lr - radius, -self.w_half - tyre_halfw))
 
     @cached_property
     def wheel_shape(self):
@@ -85,18 +88,14 @@ class VehicleGeometry(ModelGeometry):
 
     @cached_property
     def wheels_position(self) -> np.ndarray:
-        halfwidth, radius = self.wheel_shape
         if self.vehicle_type == CAR:
-            backwardshift = self.lf / 4
             # return 4 wheels position (always the first half are the front ones)
-            positions = np.array(
-                [[self.lf - radius - backwardshift, self.lf - radius - backwardshift, -self.lr + radius,
-                  -self.lr + radius],
-                 [self.w_half - halfwidth, -self.w_half + halfwidth, self.w_half - halfwidth,
-                  -self.w_half + halfwidth], [1, 1, 1, 1]])
+            positions = np.array([[self.lf, self.lf, -self.lr, -self.lr],
+                                  [self.w_half, -self.w_half, self.w_half, -self.w_half],
+                                  [1, 1, 1, 1]])
 
         else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
-            positions = np.array([[self.lf - radius, -self.lr + radius], [0, 0], [1, 1]])
+            positions = np.array([[self.lf, -self.lr], [0, 0], [1, 1]])
         return positions
 
     @cached_property
