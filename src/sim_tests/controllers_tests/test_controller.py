@@ -12,13 +12,15 @@ from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 
 class TestController:
 
-    def __init__(self, scenario_name: str, vehicle_model: str, lateral_controller, longitudinal_controller, speed_behavior):
+    def __init__(self, scenario_name: str, vehicle_model: str, lateral_controller, longitudinal_controller,
+                 speed_behavior, steering_controller):
         scenario, _ = load_commonroad_scenario(scenario_name)
         self.lanelet_net = scenario.lanelet_network
 
         self.lateral_controller = lateral_controller
         self.longitudinal_controller = longitudinal_controller
         self.speed_behavior = speed_behavior
+        self.steering_controller = steering_controller
         self.vehicle_model = vehicle_model
 
         players, models = {}, {}
@@ -40,10 +42,12 @@ class TestController:
         longitudinal_controller.params = self.longitudinal_controller["Parameters"]
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
+        steering_controller = self.steering_controller["Controller"]()
+        steering_controller.param = self.steering_controller["Parameters"]
 
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
         agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
-                                 pure_pursuit=lateral_controller, ddelta_kp=10)
+                                 lateral_controller=lateral_controller, steering_controller=steering_controller)
 
         orient_0, orient_1 = dyn_obs.prediction.trajectory.state_list[0].orientation, \
                              dyn_obs.prediction.trajectory.state_list[1].orientation

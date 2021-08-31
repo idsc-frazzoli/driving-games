@@ -1,6 +1,7 @@
 from sim_tests.controllers_tests.test_controller import TestController
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
+from dg_commons.controllers.steering_controllers import SCP, SCPParam
 
 
 def test_pure_pursuit():
@@ -18,8 +19,10 @@ def test_pure_pursuit():
     """Propotioanl gain longitudinal speed controller"""
     speed_ki: float = 0.01
     """Integral gain longitudinal speed controller"""
+    speed_kd: float = 0
+    """Derivative gain longitudinal speed controller"""
 
-    sp_controller_param: SpeedControllerParam = SpeedControllerParam(kI=speed_ki, kP=speed_kp)
+    sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
     sp_controller = {"Controller": SpeedController, "Parameters": sp_controller_param}
     """Speed Controller"""
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
@@ -28,8 +31,11 @@ def test_pure_pursuit():
     pp_param: PurePursuitParam = PurePursuitParam(k_lookahead=k_lookahead)
     pp_controller = {"Controller": PurePursuit, "Parameters": pp_param}
     """Pure Pursuit Controller"""
+    steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)
+    steering_controller = {"Controller": SCP, "Parameters": steering_param}
+    """Pure Pursuit Controller"""
 
-    test_pp = TestController(scenario_name, "-", pp_controller, sp_controller, sp_behavior)
+    test_pp = TestController(scenario_name, "-", pp_controller, sp_controller, sp_behavior, steering_controller)
     test_pp.run()
 
 
