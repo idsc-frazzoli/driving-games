@@ -1,12 +1,12 @@
 from bisect import bisect_left, bisect_right
 
 from games import PlayerName
-from sim import SimulationLog
+from sim import SimLog
 
 
 def test_bisect_simulationLog():
     # todo test logs performance
-    log = SimulationLog()
+    log = SimLog()
     log[0] = {PlayerName("P1"): 1, PlayerName("P1"): 2}
     log[4] = {PlayerName("P1"): 4, PlayerName("P1"): 4}
 

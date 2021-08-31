@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from dataclasses import dataclass
-from decimal import Decimal
-from typing import MutableMapping, Generic, Optional, Any, Dict, Union, Type, Mapping
+from dataclasses import dataclass, field
+from typing import MutableMapping, Generic, Any, Dict, Union, Type, Mapping
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 
+from dg_commons import DgSampledSequence
+from dg_commons.sequence import DgSampledSequenceBuilder
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 
-__all__ = ["SimObservations", "SimParameters", "SimModel", "SimulationLog", "LogEntry"]
+__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog"]
 
 from sim.models.model_structures import ModelGeometry, ModelType
 
@@ -41,48 +42,51 @@ class SimObservations:
 @dataclass(unsafe_hash=True, frozen=True)
 class LogEntry:
     state: X
-    actions: U
-    extra: Optional[Any] = None
+    commands: U
+    extra: Any
 
 
-class SimulationLog(Dict[SimTime, MutableMapping[PlayerName, LogEntry]]):
-    # todo consider switching to DgSampledSequence
+@dataclass
+class PlayerLog:
+    """A log for a player"""
+    states: DgSampledSequence[X]
+    actions: DgSampledSequence[U]
+    extra: DgSampledSequence[Any]
+
+    def at_interp(self, t) -> LogEntry:
+        extra = None if not self.extra else self.extra.at_or_previous(t)
+        return LogEntry(state=self.states.at_interp(t),
+                        commands=self.actions.at_or_previous(t),
+                        extra=extra)
+
+
+@dataclass
+class PlayerLogger(Generic[X, U]):
+    states: DgSampledSequenceBuilder[X] = field(default_factory=DgSampledSequenceBuilder[X])
+    actions: DgSampledSequenceBuilder[U] = field(default_factory=DgSampledSequenceBuilder[U])
+    extra: DgSampledSequenceBuilder[Any] = field(default_factory=DgSampledSequenceBuilder[Any])
+
+    def as_sequence(self, ) -> PlayerLog:
+        return PlayerLog(states=self.states.as_sequence(),
+                         actions=self.actions.as_sequence(),
+                         extra=self.extra.as_sequence())
+
+
+class SimLog(Dict[PlayerName, PlayerLog]):
+    """The logger for a simulation. For each players it records sampled sequences of states, commands and extra
+     arguments than an agent might want to log."""
+
+    def at_interp(self, t: Union[SimTime, float]) -> Mapping[PlayerName, LogEntry]:
+        interpolated_entry: Dict[PlayerName, LogEntry] = {}
+        for player in self:
+            interpolated_entry[player] = self[player].at_interp(t)
+        return interpolated_entry
 
     def get_init_time(self) -> SimTime:
-        return next(iter(self))
+        return min([self[p].states.get_start() for p in self])
 
     def get_last_time(self) -> SimTime:
-        return next(reversed(self))
-
-    def get_entry_before(self, t: SimTime) -> (SimTime, MutableMapping[PlayerName, LogEntry]):
-        sim_time = self.get_last_time()
-        times = reversed(self)
-        while sim_time > t:
-            sim_time = next(times)
-        return sim_time, self[sim_time]
-
-    def get_entry_after(self, t: SimTime) -> (SimTime, MutableMapping[PlayerName, LogEntry]):
-        sim_time = self.get_init_time()
-        times = iter(self)
-        while sim_time < t:
-            sim_time = next(times)
-        return sim_time, self[sim_time]
-
-    def at(self, t: Union[SimTime, float]) -> MutableMapping[PlayerName, LogEntry]:
-        t = Decimal(t)
-        if t < self.get_init_time() or t > self.get_last_time():
-            raise ValueError(f"Requested simulation log {t} is out of bounds")
-        t0, entry_before = self.get_entry_before(t)
-        t1, entry_after = self.get_entry_after(t)
-        alpha: float = float(t - t0) / float(t1 - t0) if float(t1 - t0) > 0 else 0.0
-        interpolated_entry: Dict[PlayerName, LogEntry] = {}
-        for player in entry_before:
-            interpolated_entry[player] = LogEntry(
-                state=alpha * entry_after[player].state + (1 - alpha) * entry_before[player].state,
-                actions=entry_before[player].actions,
-                extra=entry_before[player].extra)
-
-        return interpolated_entry
+        return max([self[p].states.get_end() for p in self])
 
 
 class SimModel(ABC, Generic[X, U]):

@@ -22,7 +22,7 @@ from sim.models.vehicle_structures import VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle
 from sim.simulator import SimContext
-from sim.simulator_structures import SimParameters, SimulationLog
+from sim.simulator_structures import SimParameters, SimLog
 
 __all__ = ["get_scenario_01", "get_scenario_az_01", "get_scenario_03"]
 
@@ -72,7 +72,6 @@ def get_scenario_01() -> SimContext:
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      log=SimulationLog(),
                       param=SimParameters(
                           dt=D(0.02), dt_commands=D(0.1), sim_time_after_collision=D(4), max_sim_time=D(5)),
                       )
@@ -138,7 +137,6 @@ def get_scenario_az_01() -> SimContext:
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      log=SimulationLog(),
                       param=SimParameters(
                           dt=D(0.01), dt_commands=D(0.1), sim_time_after_collision=D(6), max_sim_time=D(7)),
                       )
@@ -177,6 +175,5 @@ def get_scenario_03() -> SimContext:
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      log=SimulationLog(),
                       param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(10)),
                       )

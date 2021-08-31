@@ -9,7 +9,7 @@ from matplotlib.axes import Axes
 from games import PlayerName, X
 from sim import logger
 from sim.simulator import SimContext
-from sim.simulator_structures import LogEntry
+from sim.simulator_structures import PlayerLog, LogEntry
 from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players
 
 
@@ -53,7 +53,7 @@ def create_animation(file_path: str,
     def init_plot():
         ax.clear()
         with sim_viz.plot_arena(ax=ax):
-            init_state: MutableMapping[PlayerName, LogEntry] = sim_context.log[time_begin]
+            init_state: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
             for pname, player in init_state.items():
                 states[pname] = sim_viz.plot_player(
                     ax=ax,
@@ -70,7 +70,7 @@ def create_animation(file_path: str,
     def update_plot(frame: int = 0):
         t: float = (frame * dt / 1000.0)
         logger.info(f"Plotting t = {t}")
-        log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at(t)
+        log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
             states[pname] = sim_viz.plot_player(
                 ax=ax,
