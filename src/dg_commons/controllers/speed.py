@@ -20,7 +20,7 @@ class SpeedControllerParam(PIDParam):
     kD: float = 0
     antiwindup: Tuple[float, float] = (-2, 2)
     setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(100))
-    """In m/s"""
+    output_minmax: Tuple[float, float] = (-8, 5)  # m/s2
 
 
 class SpeedController(PID):
