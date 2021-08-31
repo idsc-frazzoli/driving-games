@@ -15,6 +15,7 @@ from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from games import PlayerName
 from typing import Optional
 from geometry import translation_angle_from_SE2
+from sim_tests.controllers_tests.lanelet_generator import LaneletGenerator
 
 
 def compute_lanelet_given_trajectory(center_points, width):
@@ -114,7 +115,9 @@ def lp_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanes, nominal_spee
                       theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity, delta=delta_0)
     model = VehicleModel.default_car(x0=x0)
 
-    merged_lane = get_merged_lanes(lanes, dyn_obs)
+    #merged_lane = get_merged_lanes(lanes, dyn_obs)
+    lanelet_gen = LaneletGenerator(lanes)
+    merged_lane = lanelet_gen.lanelet_from_dynamic_obstacle(dyn_obs, 123123123)
     dg_lane = DgLanelet.from_commonroad_lanelet(merged_lane)
     points = dg_lane.lane_profile(10)
     x, y = zip(*points)

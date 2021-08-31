@@ -4,6 +4,13 @@ from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
 from dg_commons.analysis.metrics import DeviationLateral
 from typing import List
+from sim_tests.controllers_tests.test_controller import TestController
+import math
+import matplotlib.pyplot as plt
+from commonroad.scenario.lanelet import Lanelet
+from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
+from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
+from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
 
 
 def test_pure_pursuit():

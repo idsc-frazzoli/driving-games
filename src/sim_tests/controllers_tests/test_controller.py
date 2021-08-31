@@ -1,20 +1,19 @@
 import math
+from sim.simulator import SimLog
+from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
-from sim.simulator import SimContext, Simulator, SimParameters, SimLog
+from sim.simulator import SimContext, Simulator, SimParameters
 from sim.models.vehicle import VehicleModel, VehicleState
-from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
-from crash.reports import generate_report
-import os
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
-from decimal import Decimal
 from dg_commons.analysis.metrics_def import MetricEvaluationContext, Metric
-from typing import Optional, List
 import matplotlib.pyplot as plt
 import json
-from dataclasses import dataclass, fields
+from dataclasses import fields
+from typing import Optional
+from sim_tests.controllers_tests.lanelet_generator import LaneletGenerator
 
 
 class TestController:
@@ -46,6 +45,8 @@ class TestController:
         self.metrics_context: Optional[MetricEvaluationContext] = None
         self.result = []
 
+        self.simulator: Simulator = Simulator()
+
     def _agent_model_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
 
         lateral_controller = self.lateral_controller["Controller"]()
@@ -54,6 +55,7 @@ class TestController:
         longitudinal_controller.params = self.longitudinal_controller["Parameters"]
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
+
         steering_controller = self.steering_controller["Controller"]()
         steering_controller.params = self.steering_controller["Parameters"]
 
@@ -70,6 +72,7 @@ class TestController:
         dtheta = orient_1 - orient_0
         l = dyn_obs.obstacle_shape.length
         delta_0 = math.atan(l * dtheta / vel_0)
+
         if is_dynamic:
             x0 = VehicleStateDyn(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
                                  theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
@@ -96,12 +99,6 @@ class TestController:
             commands[key] = self.sim_context.log[key].actions
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands)
-
-        report = generate_report(self.sim_context)
-        # save report
-        output_dir = "out"
-        report_file = os.path.join(output_dir, f"{name}.html")
-        report.to_html(report_file)
 
     def evaluate_metrics_test(self):
         if self.metrics is not None:
