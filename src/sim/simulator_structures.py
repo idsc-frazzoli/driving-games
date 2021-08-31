@@ -5,6 +5,7 @@ from typing import MutableMapping, Generic, Any, Dict, Union, Type, Mapping
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
+from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence
 from dg_commons.sequence import DgSampledSequenceBuilder
@@ -75,6 +76,11 @@ class PlayerLogger(Generic[X, U]):
 class SimLog(Dict[PlayerName, PlayerLog]):
     """The logger for a simulation. For each players it records sampled sequences of states, commands and extra
      arguments than an agent might want to log."""
+
+    def __setitem__(self, key, value):
+        if not isinstance(value, PlayerLog):
+            raise ZValueError("Invalid value for PlayerLog", value=value, required_type=PlayerLog)
+        super(SimLog, self).__setitem__(key, value)
 
     def at_interp(self, t: Union[SimTime, float]) -> Mapping[PlayerName, LogEntry]:
         interpolated_entry: Dict[PlayerName, LogEntry] = {}
