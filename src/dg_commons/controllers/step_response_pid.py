@@ -1,9 +1,8 @@
 from dg_commons import DgSampledSequence
 from sim.models import kmh2ms
 
-from sim.models.vehicle import VehicleModel, VehicleState
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
-from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
+from dg_commons.controllers.speed import SpeedController, SpeedControllerParam
 from sim.models.vehicle import VehicleCommands
 import matplotlib.pyplot as plt
 from decimal import Decimal
