@@ -3,11 +3,13 @@ from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters, SimulationLog
 from sim.models.vehicle import VehicleModel, VehicleState
+from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from crash.reports import generate_report
 import os
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
+from decimal import Decimal
 
 
 class TestController:
@@ -25,7 +27,8 @@ class TestController:
 
         players, models = {}, {}
         for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
-            agent, model = self._agent_model_from_dynamic_obstacle(dyn_obs)
+            agent = self._agent_model_from_dynamic_obstacle(dyn_obs)
+            model = TestController._model_from_dynamic_obstacle(dyn_obs, False)
             player_name = PlayerName(f"P{i}")
             players.update({player_name: agent})
             models.update({player_name: model})
@@ -48,19 +51,28 @@ class TestController:
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
         agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
                                  lateral_controller=lateral_controller, steering_controller=steering_controller)
+        return agent
 
+    @staticmethod
+    def _model_from_dynamic_obstacle(dyn_obs: DynamicObstacle, is_dynamic: bool):
         orient_0, orient_1 = dyn_obs.prediction.trajectory.state_list[0].orientation, \
                              dyn_obs.prediction.trajectory.state_list[1].orientation
         vel_0 = dyn_obs.prediction.trajectory.state_list[0].velocity
         dtheta = orient_1 - orient_0
         l = dyn_obs.obstacle_shape.length
         delta_0 = math.atan(l * dtheta / vel_0)
+        if is_dynamic:
+            x0 = VehicleStateDyn(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
+                                 theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
+                                 delta=delta_0, vy=0, dtheta=dtheta)
+            model = VehicleModel.default_car(x0=x0)
+        else:
+            x0 = VehicleState(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
+                              theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
+                              delta=delta_0)
+            model = VehicleModel.default_car(x0=x0)
 
-        x0 = VehicleState(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
-                          theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity, delta=delta_0)
-        model = VehicleModel.default_car(x0=x0)
-
-        return agent, model
+        return model
 
     def run(self):
         self.simulator.run(self.sim_context)
