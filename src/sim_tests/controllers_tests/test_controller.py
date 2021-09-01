@@ -1,7 +1,7 @@
 import math
 from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
-from sim.simulator import SimContext, Simulator, SimParameters, SimulationLog
+from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 from sim.models.vehicle import VehicleModel, VehicleState
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from crash.reports import generate_report
@@ -28,13 +28,13 @@ class TestController:
         players, models = {}, {}
         for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
             agent = self._agent_model_from_dynamic_obstacle(dyn_obs)
-            model = TestController._model_from_dynamic_obstacle(dyn_obs, False)
+            model = TestController._model_from_dynamic_obstacle(dyn_obs, True)
             player_name = PlayerName(f"P{i}")
             players.update({player_name: agent})
             models.update({player_name: model})
 
         self.sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
-                                                  param=SimParameters.default(), log=SimulationLog())
+                                                  param=SimParameters.default(), log=SimLog())
         self.simulator: Simulator = Simulator()
 
     def _agent_model_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
@@ -65,7 +65,7 @@ class TestController:
             x0 = VehicleStateDyn(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
                                  theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
                                  delta=delta_0, vy=0, dtheta=dtheta)
-            model = VehicleModel.default_car(x0=x0)
+            model = VehicleModelDyn.default_car(x0=x0)
         else:
             x0 = VehicleState(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
                               theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
