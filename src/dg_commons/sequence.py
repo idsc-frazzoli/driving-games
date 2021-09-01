@@ -54,7 +54,7 @@ class DgSampledSequence(Generic[X]):
             dt = timestamps[i + 1] - timestamps[i]
             if dt <= 0:
                 raise ZValueError(f"Invalid dt = {dt} at i = {i}; ts= {timestamps}")
-        ts_types = set([type(ts) for ts in self._timestamps])
+        ts_types = set([type(ts) for ts in timestamps])
         if not len(ts_types) == 1:
             # fixme can be controversial
             self._timestamps = list(map(float, timestamps))

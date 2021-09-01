@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import MutableMapping, Generic, Any, Dict, Union, Type, Mapping
+from typing import MutableMapping, Generic, Any, Dict, Type, Mapping
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence
-from dg_commons.sequence import DgSampledSequenceBuilder
+from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 
@@ -54,7 +54,7 @@ class PlayerLog:
     actions: DgSampledSequence[U]
     extra: DgSampledSequence[Any]
 
-    def at_interp(self, t) -> LogEntry:
+    def at_interp(self, t: Timestamp) -> LogEntry:
         extra = None if not self.extra else self.extra.at_or_previous(t)
         return LogEntry(state=self.states.at_interp(t),
                         commands=self.actions.at_or_previous(t),
@@ -82,7 +82,7 @@ class SimLog(Dict[PlayerName, PlayerLog]):
             raise ZValueError("Invalid value for PlayerLog", value=value, required_type=PlayerLog)
         super(SimLog, self).__setitem__(key, value)
 
-    def at_interp(self, t: Union[SimTime, float]) -> Mapping[PlayerName, LogEntry]:
+    def at_interp(self, t: Timestamp) -> Mapping[PlayerName, LogEntry]:
         interpolated_entry: Dict[PlayerName, LogEntry] = {}
         for player in self:
             interpolated_entry[player] = self[player].at_interp(t)

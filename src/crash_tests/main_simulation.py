@@ -27,4 +27,4 @@ def em_devel():
 
 if __name__ == '__main__':
     #run_experiments_with_compmake()
-    commonroad_replica()
+    az_optimal_crashing()

@@ -7,23 +7,30 @@ from dg_commons import DgSampledSequence, UndefinedAtTime
 
 
 def test_dg_sampledsequence():
-    ts = [1, 2.2, 3, 4, 5]
+    ts = (1, 2.2, 3, 4, 5)
     tsD = [Decimal(t) for t in ts]
     val = [1, 2, 3, 4, 5]
-    seq = DgSampledSequence[float](ts, val)
+    t0 = process_time()
+    seq = DgSampledSequence[float](ts, values=val)
+    t1 = process_time()
+    seqD = DgSampledSequence[float](tsD, values=val)
 
+    # at
     with assert_raises(UndefinedAtTime):
         seq.at(4.4)
+    atD = Decimal(4)
+    at = 8 / 2.0
 
-    t0 = process_time()
-    t = DgSampledSequence[float](ts, val)
-    t1 = process_time()
-    assert t.XT == float
-    assert t.at_or_previous(3.2) == 3
-    print(t.at_or_previous(-2))
-    print(t.at_or_previous(4.9))
-    print(t.at_or_previous(6))
-    assert t.at_interp(3.2) == 3.2
-    print(t.at_interp(-2))
-    print(t.at_interp(6))
+    assert seq.at(atD) == seq.at(at) == at
+    assert seqD.at(atD) == seqD.at(at) == at
 
+    # type, at previous and interp
+    for s in [seq, seqD]:
+        assert s.XT == float
+        assert s.at_or_previous(3.2) == 3
+        assert s.at_or_previous(-2) == 1
+        assert s.at_or_previous(4.9) == 4
+        assert s.at_or_previous(6) == 5
+        assert s.at_interp(3.2) == 3.2
+        assert s.at_interp(-2) == 1
+        assert s.at_interp(3.5) == 3.5
