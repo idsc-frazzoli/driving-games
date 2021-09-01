@@ -27,11 +27,11 @@ def get_input_plots(log: SimLog) -> Figure:
 
         for inputs in actions:
             commands = log[player].actions.values
-            if inputs is 'acc':
+            if inputs == 'acc':
                 y_label = [commands[item].acc for item in range(len(commands))]
-            elif inputs is 'ddelta':
+            elif inputs == 'ddelta':
                 y_label = [commands[item].ddelta for item in range(len(commands))]
-            elif inputs is 'dtheta':
+            elif inputs == 'dtheta':
                 y_label = [commands[item].dtheta for item in range(len(commands))]
             else:
                 y_label = []
@@ -74,19 +74,19 @@ def get_state_plots(log: SimLog) -> Figure:
 
         for sx in states_vec:
             states = log[player].states.values
-            if sx is 'x':
+            if sx == 'x':
                 y_label = [states[item].x for item in range(len(states))]
-            elif sx is 'y':
+            elif sx == 'y':
                 y_label = [states[item].y for item in range(len(states))]
-            elif sx is 'theta':
+            elif sx == 'theta':
                 y_label = [states[item].theta for item in range(len(states))]
-            elif sx is 'vx':
+            elif sx == 'vx':
                 y_label = [states[item].vx for item in range(len(states))]
-            elif sx is 'vy':
+            elif sx == 'vy':
                 y_label = [states[item].vy for item in range(len(states))]
-            elif sx is 'dtheta':
+            elif sx == 'dtheta':
                 y_label = [states[item].dtheta for item in range(len(states))]
-            elif sx is 'delta':
+            elif sx == 'delta':
                 y_label = [states[item].delta for item in range(len(states))]
             else:
                 y_label = []

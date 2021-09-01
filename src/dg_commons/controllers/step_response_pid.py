@@ -43,11 +43,11 @@ def sim_step_response(model, sp_controller):
 
 vehicle_speed_step: float = 5
 """Nominal speed of the vehicle"""
-speed_kp: float = 0.5
+speed_kp: float = 4
 """Propotioanl gain longitudinal speed controller"""
-speed_ki: float = 0.01
+speed_ki: float = 0.005
 """Integral gain longitudinal speed controller"""
-speed_kd: float = 0
+speed_kd: float = 0.0001
 """Derivative gain longitudinal speed controller"""
 
 sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
