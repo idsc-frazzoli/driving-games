@@ -15,12 +15,13 @@ from sim.models import extract_pose_from_state, kmh2ms
 
 @dataclass
 class SpeedControllerParam(PIDParam):
-    kP: float = 0.3
-    kI: float = 0.1
-    kD: float = 0
+    """Default values are tuned roughly for a default car model"""
+    kP: float = 1
+    kI: float = 0.01
+    kD: float = 0.1
     antiwindup: Tuple[float, float] = (-2, 2)
-    setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(100))
-    """In m/s"""
+    setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(150))
+    output_minmax: Tuple[float, float] = (-8, 5)  # acc minmax
 
 
 class SpeedController(PID):
