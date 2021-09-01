@@ -105,13 +105,12 @@ class DgSampledSequence(Generic[X]):
         """ Returns value at requested timestamp,
         Interpolates between timestamps, holds at the extremes"""
         if t <= self.get_start():
-            return self.at(self.get_start())
+            return self._values[0]
         elif t >= self.get_end():
-            return self.at(self.get_end())
+            return self._values[-1]
         else:
             i = bisect_right(self._timestamps, t)
-            scale = (float(t) - float(self._timestamps[i - 1]) /
-                     float(self._timestamps[i] - self._timestamps[i - 1]))
+            scale = (float(t) - float(self._timestamps[i - 1])) / (float(self._timestamps[i] - self._timestamps[i - 1]))
             return self._values[i - 1] * (1 - scale) + self._values[i] * scale
 
     def get_start(self) -> Timestamp:

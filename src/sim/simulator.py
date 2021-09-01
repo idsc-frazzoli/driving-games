@@ -64,7 +64,7 @@ class Simulator:
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
             self.last_observations.players.update({player_name: model.get_state()})
-        logger.debug(f"Pre update function, sim time {sim_context.time:.2f}")
+        logger.debug(f"Pre update function, sim time {sim_context.time}")
         logger.debug(f"Last observations:\n{self.last_observations}")
         return
 

@@ -69,7 +69,7 @@ def create_animation(file_path: str,
 
     def update_plot(frame: int = 0):
         t: float = frame * dt / 1000.0
-        logger.info(f"Plotting t = {t:.2f}")
+        logger.info(f"Plotting t = {t}")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
             states[pname] = sim_viz.plot_player(
