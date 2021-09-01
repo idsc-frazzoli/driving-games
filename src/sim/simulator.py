@@ -22,7 +22,7 @@ class SimContext:
     models: Mapping[PlayerName, SimModel]
     players: Mapping[PlayerName, Agent]
     param: SimParameters
-    log: SimLog = field(default_factory=dict)
+    log: SimLog = field(default_factory=SimLog)
     time: SimTime = Decimal(0)
     seed: int = 0
     sim_terminated: bool = False

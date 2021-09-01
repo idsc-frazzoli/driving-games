@@ -78,8 +78,9 @@ def create_animation(file_path: str,
                 state=log_at_t[pname].state,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
-        adjust_axes_limits(ax=ax, plot_limits=plot_limits,
-                           players_states=[log_at_t[pname].state for pname in states])
+        adjust_axes_limits(ax=ax,
+                           plot_limits=plot_limits,
+                           players_states=[player.state for player in log_at_t.values()])
         return _get_list()
 
     # Min frame rate is 1 fps
