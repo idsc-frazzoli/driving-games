@@ -73,7 +73,7 @@ def get_scenario_01() -> SimContext:
                       models=models,
                       players=players,
                       param=SimParameters(
-                          dt=D(0.02), dt_commands=D(0.1), sim_time_after_collision=D(4), max_sim_time=D(5)),
+                          dt=D("0.02"), dt_commands=D("0.1"), sim_time_after_collision=D(4), max_sim_time=D(5)),
                       )
 
 
@@ -138,7 +138,7 @@ def get_scenario_az_01() -> SimContext:
                       models=models,
                       players=players,
                       param=SimParameters(
-                          dt=D(0.01), dt_commands=D(0.1), sim_time_after_collision=D(6), max_sim_time=D(7)),
+                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(6), max_sim_time=D(7)),
                       )
 
 
@@ -175,5 +175,5 @@ def get_scenario_03() -> SimContext:
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(10)),
+                      param=SimParameters(dt=D("0.01"), sim_time_after_collision=D(3), max_sim_time=D(10)),
                       )

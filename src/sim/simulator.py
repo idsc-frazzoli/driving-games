@@ -27,7 +27,7 @@ class SimContext:
     seed: int = 0
     sim_terminated: bool = False
     collision_reports: List[CollisionReport] = field(default_factory=list)
-    first_collision_ts: SimTime = Decimal(999)
+    first_collision_ts: SimTime = Decimal("Infinity")
 
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
@@ -39,7 +39,7 @@ class SimContext:
 
 class Simulator:
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
-    last_get_commands_ts: SimTime = SimTime(-99)
+    last_get_commands_ts: SimTime = SimTime('-Infinity')
     last_commands: Dict[PlayerName, U] = {}
     simlogger: Dict[PlayerName, PlayerLogger] = {}
 

@@ -19,18 +19,14 @@ from sim.models.model_structures import ModelGeometry, ModelType
 
 @dataclass(frozen=True, unsafe_hash=True)
 class SimParameters:
-    dt: SimTime = SimTime(0.05)
+    dt: SimTime = SimTime("0.05")
     """Simulation step [s]"""
-    dt_commands: SimTime = SimTime(0.1)
+    dt_commands: SimTime = SimTime("0.1")
     """How often shall we ask the agents for new commands"""
     max_sim_time: SimTime = SimTime(6)
     """Max Simulation time overall [s]"""
     sim_time_after_collision: SimTime = SimTime(0)
     """The simulation time for which to continue after the first collision is detected [s]"""
-
-    @classmethod
-    def default(cls) -> "SimParameters":
-        return SimParameters(dt=SimTime(0.05), max_sim_time=SimTime(10), sim_time_after_collision=SimTime(0))
 
 
 @dataclass
