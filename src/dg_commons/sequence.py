@@ -110,8 +110,8 @@ class DgSampledSequence(Generic[X]):
             return self.at(self.get_end())
         else:
             i = bisect_right(self._timestamps, t)
-            scale = float((t - self._timestamps[i - 1]) /
-                          (self._timestamps[i] - self._timestamps[i - 1]))
+            scale = (float(t) - float(self._timestamps[i - 1]) /
+                     float(self._timestamps[i] - self._timestamps[i - 1]))
             return self._values[i - 1] * (1 - scale) + self._values[i] * scale
 
     def get_start(self) -> Timestamp:
