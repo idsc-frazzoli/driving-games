@@ -1,6 +1,6 @@
 import math
 from itertools import chain
-from typing import MutableMapping, Mapping, List, Union, Optional, Sequence
+from typing import Mapping, List, Union, Optional, Sequence
 
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -9,7 +9,7 @@ from matplotlib.axes import Axes
 from games import PlayerName, X
 from sim import logger
 from sim.simulator import SimContext
-from sim.simulator_structures import PlayerLog, LogEntry
+from sim.simulator_structures import LogEntry
 from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players
 
 
@@ -68,7 +68,7 @@ def create_animation(file_path: str,
         return _get_list()
 
     def update_plot(frame: int = 0):
-        t: float = (frame * dt / 1000.0)
+        t: float = frame * dt / 1000.0
         logger.info(f"Plotting t = {t}")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
