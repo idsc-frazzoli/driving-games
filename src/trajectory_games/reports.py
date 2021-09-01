@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
-from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG
+from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG, MIME_PDF
 from zuper_commons.text import remove_escapes
 from decimal import Decimal as D
 
@@ -23,8 +23,9 @@ from .visualization import TrajGameVisualization
 from .metrics_def import PlayerOutcome
 
 
+EXPORT_PDF = False
 STACK_JPG = False
-MIME = MIME_JPG if STACK_JPG else MIME_PNG
+MIME = MIME_PDF if EXPORT_PDF else MIME_JPG if STACK_JPG else MIME_PNG
 
 
 def report_game_visualization(game: Game) -> Report:
