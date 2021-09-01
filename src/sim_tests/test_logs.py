@@ -1,17 +1,14 @@
-from bisect import bisect_left, bisect_right
+from numpy.testing import assert_raises
+from zuper_commons.types import ZValueError
 
 from games import PlayerName
-from sim import SimulationLog
+from sim import SimLog
 
 
-def test_bisect_simulationLog():
-    # todo test logs performance
-    log = SimulationLog()
-    log[0] = {PlayerName("P1"): 1, PlayerName("P1"): 2}
-    log[4] = {PlayerName("P1"): 4, PlayerName("P1"): 4}
+def test_illegal_simulationLog():
+    log = SimLog()
 
-    print("after ", log.get_entry_after(0))
-    print("before ", log.get_entry_before(0))
+    def tryillegal():
+        log[0] = {PlayerName("P1"): 1, PlayerName("P1"): 2}
 
-    print(bisect_left(list(log.keys()), 0))
-    print(bisect_right(list(log.keys()), 0))
+    assert_raises(ZValueError, tryillegal)

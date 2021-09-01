@@ -1,7 +1,7 @@
 from typing import Optional
 
 from games import PlayerName
-from sim import logger, SimulationLog, SimParameters
+from sim import logger, SimLog, SimParameters
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle, NotSupportedConversion
 from sim.simulator import SimContext
@@ -30,6 +30,6 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      log=SimulationLog(),
+                      log=SimLog(),
                       param=sim_param,
                       )
