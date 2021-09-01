@@ -9,6 +9,7 @@ colorsIdx = {'P1': 'rgb(0,215,215)', 'P2': 'rgb(0,0,215)',
              'P5': 'rgb(215,215,0)', 'P6': 'rgb(215,0,215)',
              'P7': 'rgb(0,215,215)', 'P8': 'rgb(0,0,215)'}
 
+
 def get_input_plots(log: SimLog) -> Figure:
 
     n_inputs = []

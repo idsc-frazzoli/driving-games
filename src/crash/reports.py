@@ -21,8 +21,8 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext
     """
     sim_log = sim_context.log
     a, b = coll_report.players.keys()
-    a_state = sim_log.at_interp(coll_report.at_time)[a].state
-    b_state = sim_log.at_interp(coll_report.at_time)[b].state
+    a_state = sim_log[a].states.at(coll_report.at_time)
+    b_state = sim_log[b].states.at(coll_report.at_time)
 
     ab_modeltype = [sim_context.models[a].model_type, sim_context.models[b].model_type]
     # Check if any of the players corresponds to a Pedestrian or cyclist

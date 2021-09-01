@@ -5,8 +5,8 @@ from sim.scenarios.factory import get_scenario_commonroad_replica
 
 
 def commonroad_replica():
-    sim_param = SimParameters(dt=SimTime(0.01),
-                              dt_commands=SimTime(0.05),
+    sim_param = SimParameters(dt=SimTime("0.01"),
+                              dt_commands=SimTime("0.05"),
                               max_sim_time=SimTime(6),
                               sim_time_after_collision=SimTime(6))
     # initialize all contexts/ agents and simulator

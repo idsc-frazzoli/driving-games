@@ -4,9 +4,7 @@ from typing import List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
-from duckietown_world.utils import SE2_apply_R2
 from geometry import xytheta_from_SE2
-from matplotlib import pyplot as plt
 from numpy import deg2rad, linspace
 
 from dg_commons import DgSampledSequence
@@ -22,7 +20,7 @@ from sim.models.vehicle_structures import VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle
 from sim.simulator import SimContext
-from sim.simulator_structures import SimParameters, SimLog
+from sim.simulator_structures import SimParameters
 
 __all__ = ["get_scenario_01", "get_scenario_az_01", "get_scenario_03"]
 
@@ -73,7 +71,7 @@ def get_scenario_01() -> SimContext:
                       models=models,
                       players=players,
                       param=SimParameters(
-                          dt=D(0.02), dt_commands=D(0.1), sim_time_after_collision=D(4), max_sim_time=D(5)),
+                          dt=D("0.02"), dt_commands=D("0.1"), sim_time_after_collision=D(4), max_sim_time=D(5)),
                       )
 
 
@@ -138,7 +136,7 @@ def get_scenario_az_01() -> SimContext:
                       models=models,
                       players=players,
                       param=SimParameters(
-                          dt=D(0.01), dt_commands=D(0.1), sim_time_after_collision=D(6), max_sim_time=D(7)),
+                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(6), max_sim_time=D(7)),
                       )
 
 
@@ -151,19 +149,19 @@ def get_scenario_03() -> SimContext:
     dglane = DgLanelet.from_commonroad_lanelet(lane)
 
     betas = linspace(-1, 5, 500).tolist()
-    plt.figure()
-    for beta in betas:
-        q = dglane.center_point(beta)
-        radius = dglane.radius(beta)
-        delta_left = np.array([0, radius])
-        delta_right = np.array([0, -radius])
-        left = SE2_apply_R2(q, delta_left)
-        right = SE2_apply_R2(q, delta_right)
-        plt.plot(*left, "o")
-        plt.plot(*right, "x")
-        plt.gca().set_aspect("equal")
-    plt.savefig(f"out/debug{lane.lanelet_id}.png")
-    plt.close()
+    # plt.figure()
+    # for beta in betas:
+    #     q = dglane.center_point(beta)
+    #     radius = dglane.radius(beta)
+    #     delta_left = np.array([0, radius])
+    #     delta_right = np.array([0, -radius])
+    #     left = SE2_apply_R2(q, delta_left)
+    #     right = SE2_apply_R2(q, delta_right)
+    #     plt.plot(*left, "o")
+    #     plt.plot(*right, "x")
+    #     plt.gca().set_aspect("equal")
+    # plt.savefig(f"out/debug{lane.lanelet_id}.png")
+    # plt.close()
 
     start = dglane.center_point(10)
     xytheta = xytheta_from_SE2(start)
@@ -175,5 +173,5 @@ def get_scenario_03() -> SimContext:
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      param=SimParameters(dt=D(0.01), sim_time_after_collision=D(3), max_sim_time=D(10)),
+                      param=SimParameters(dt=D("0.01"), sim_time_after_collision=D(3), max_sim_time=D(10)),
                       )
