@@ -2,6 +2,7 @@ from decimal import Decimal as D
 from time import process_time
 
 from numpy.testing import assert_raises
+from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence, UndefinedAtTime
 
@@ -41,3 +42,10 @@ def test_dg_sampledsequence():
         assert s.at_interp(D(-2)) == 1
         assert s.at_interp(3.5) == 3.5
         assert s.at_interp(D(3.5)) == 3.5
+
+    def illegal_timestamps():
+        ts = [D(0), 1]
+        v = [1, 2]
+        _ = DgSampledSequence[float](timestamps=ts, values=v)
+
+    assert_raises(ZValueError, illegal_timestamps)
