@@ -1,6 +1,5 @@
 import math
 from sim.simulator import SimLog
-from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters
@@ -10,6 +9,7 @@ import matplotlib.pyplot as plt
 import json
 from dataclasses import fields
 from typing import Optional
+from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from commonroad.scenario.obstacle import DynamicObstacle
 from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
