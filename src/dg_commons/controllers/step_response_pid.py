@@ -1,4 +1,5 @@
 from dg_commons import DgSampledSequence
+from sim.models import kmh2ms
 
 from sim.models.vehicle import VehicleModel, VehicleState
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
@@ -10,7 +11,7 @@ from decimal import Decimal
 
 def sim_step_response(model, sp_controller):
     t, sim_step = 0, 0.05
-    ref = DgSampledSequence[float](timestamps=[0, 10], values=[0, 5])
+    ref = DgSampledSequence[float](timestamps=[0, 10], values=[kmh2ms(40), kmh2ms(5)])
     times, speeds, accelerations, refs = [], [], [], []
     while t < 20:
         current_state = model.get_state().vx

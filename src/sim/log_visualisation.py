@@ -1,99 +1,110 @@
-from typing import List
-
 import numpy as np
 import plotly.graph_objects as go
 from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
-from games import PlayerName
-from sim import SimulationLog
-from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleCommands
+from sim import SimLog
 
+colorsIdx = {'P1': 'rgb(0,215,215)', 'P2': 'rgb(0,0,215)',
+             'P3': 'rgb(215,0,0)', 'P4': 'rgb(0,215,0)',
+             'P5': 'rgb(215,215,0)', 'P6': 'rgb(215,0,215)',
+             'P7': 'rgb(0,215,215)', 'P8': 'rgb(0,0,215)'}
 
-def create_vectors_log(log: SimulationLog, players: List[PlayerName]):
+def get_input_plots(log: SimLog) -> Figure:
 
-    states_log = dict((el, []) for el in VehicleStateDyn.idx)
-    actions_log = dict((el, []) for el in VehicleCommands.idx)
-    states_log['t'] = []
-    actions_log['t'] = []
-    players_states_log = dict((player, states_log) for player in players)
-    players_actions_log = dict((player, actions_log) for player in players)
+    n_inputs = []
 
-    for player in players:
-        for timestamps in log:
-            players_states_log[player]['x'].append(log.at(timestamps)[player].state.x)
-            players_states_log[player]['y'].append(log.at(timestamps)[player].state.y)
-            players_states_log[player]['theta'].append(log.at(timestamps)[player].state.theta)
-            players_states_log[player]['vx'].append(log.at(timestamps)[player].state.vx)
-            players_states_log[player]['vy'].append(log.at(timestamps)[player].state.vy)
-            players_states_log[player]['dtheta'].append(log.at(timestamps)[player].state.dtheta)
-            players_states_log[player]['delta'].append(log.at(timestamps)[player].state.delta)
-            players_states_log[player]['t'].append(timestamps)
-            if timestamps > 0:
-                players_actions_log[player]['acc'].append(log.at(timestamps)[player].actions.acc)
-                players_actions_log[player]['ddelta'].append(log.at(timestamps)[player].actions.ddelta)
-                players_actions_log[player]['t'].append(timestamps)
-
-    return players_states_log, players_actions_log
-
-
-def get_input_plots(players_actions_log) -> Figure:
-
-    n_players = len(players_actions_log)
-    n_inputs = dict((player, len(players_actions_log[player]) - 1) for player in players_actions_log)
-    names = dict((player, list(players_actions_log[player].keys())) for player in players_actions_log)
+    # Number of inputs for each agent
+    for player in log:
+        n_inputs.append(len(log[player].actions.values[00].idx))
 
     fig = make_subplots(
-        rows=int(np.ceil(2 / 2) * n_players), cols=2, column_widths=[0.5, 0.5])
-    for player in players_actions_log:
-        x_label = players_actions_log[player]['t']
-        names[player].remove('t')
-        for i in range(n_inputs[player]):
-            row = int(np.floor(i / 2)) + 1
-            col = np.mod(i, 2) + 1
+        rows=int(np.ceil(max(n_inputs) / 2)), cols=2, column_widths=[0.5, 0.5])
+
+    for player in log:
+        x_label = log[player].actions.timestamps
+        actions = log[player].actions.values[00].idx
+
+        for inputs in actions:
+            commands = log[player].actions.values
+            if inputs is 'acc':
+                y_label = [commands[item].acc for item in range(len(commands))]
+            elif inputs is 'ddelta':
+                y_label = [commands[item].ddelta for item in range(len(commands))]
+            elif inputs is 'dtheta':
+                y_label = [commands[item].dtheta for item in range(len(commands))]
+            else:
+                y_label = []
+
+            row = int(np.floor(actions[inputs] / 2)) + 1
+            col = np.mod(actions[inputs], 2) + 1
             fig.add_trace(
                 go.Scatter(
                     x=x_label,
-                    y=players_actions_log[player][names[player][i]],
-                    line=dict(width=1, dash="dot"),
+                    y=y_label,
+                    line=dict(width=1, dash="dot", color=colorsIdx[player]),
                     mode="lines+markers",
-                    name=names[player][i],
+                    name=player,
                 ),
                 row=row,
                 col=col
             )
             fig.update_yaxes(row=row, col=col)
+            fig.update_xaxes(title_text=inputs, row=row, col=col)
 
     fig.update_layout(title_text="Inputs")
 
     return fig
 
 
-def get_state_plots(players_states_log) -> Figure:
+def get_state_plots(log: SimLog) -> Figure:
 
-    n_players = len(players_states_log)
-    n_states = dict((player, len(players_states_log[player]) - 1) for player in players_states_log)
-    names = dict((player, list(players_states_log[player].keys())) for player in players_states_log)
+    n_states = []
+
+    # Number of inputs for each agent
+    for player in log:
+        n_states.append(len(log[player].states.values[00].idx))
 
     fig = make_subplots(
-        rows=int(np.ceil(7 / 2) * n_players), cols=2, column_widths=[0.5, 0.5])
-    for player in players_states_log:
-        x_label = players_states_log[player]['t']
-        names[player].remove('t')
-        for i in range(n_states[player]):
-            row = int(np.floor(i / 2)) + 1
-            col = np.mod(i, 2) + 1
+        rows=int(np.ceil(max(n_states) / 2)), cols=2, column_widths=[0.5, 0.5])
+
+    for player in log:
+        x_label = log[player].states.timestamps
+        states_vec = log[player].states.values[00].idx
+
+        for sx in states_vec:
+            states = log[player].states.values
+            if sx is 'x':
+                y_label = [states[item].x for item in range(len(states))]
+            elif sx is 'y':
+                y_label = [states[item].y for item in range(len(states))]
+            elif sx is 'theta':
+                y_label = [states[item].theta for item in range(len(states))]
+            elif sx is 'vx':
+                y_label = [states[item].vx for item in range(len(states))]
+            elif sx is 'vy':
+                y_label = [states[item].vy for item in range(len(states))]
+            elif sx is 'dtheta':
+                y_label = [states[item].dtheta for item in range(len(states))]
+            elif sx is 'delta':
+                y_label = [states[item].delta for item in range(len(states))]
+            else:
+                y_label = []
+
+            row = int(np.floor(states_vec[sx] / 2)) + 1
+            col = np.mod(states_vec[sx], 2) + 1
             fig.add_trace(
                 go.Scatter(
                     x=x_label,
-                    y=players_states_log[player][names[player][i]],
-                    line=dict(width=1, dash="dot"),
+                    y=y_label,
+                    line=dict(width=1, dash="dot", color=colorsIdx[player]),
                     mode="lines+markers",
-                    name=names[player][i],
+                    name=player,
                 ),
                 row=row,
                 col=col
             )
             fig.update_yaxes(row=row, col=col)
+            fig.update_xaxes(title_text=sx, row=row, col=col)
 
     fig.update_layout(title_text="States")
 

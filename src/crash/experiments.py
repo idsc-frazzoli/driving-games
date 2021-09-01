@@ -5,7 +5,7 @@ from compmake import Context
 
 from crash.reports import generate_report
 from crash.scenarios import get_scenario_az_01, get_scenario_03
-from sim.log_visualisation import create_vectors_log, get_input_plots, get_state_plots
+from sim.log_visualisation import get_input_plots, get_state_plots
 from sim.simulator import SimContext, Simulator
 
 
@@ -13,14 +13,13 @@ def run_scenario(sim_context: SimContext, output_dir: str = "out"):
     sim = Simulator()
     # run simulations
     sim.run(sim_context)
-    players_states_log, players_actions_log = create_vectors_log(sim_context.log, sim_context.players)
+    # players_states_log, players_actions_log = create_vectors_log(sim_context.log, sim_context.players)
 
-    inputs = get_input_plots(players_actions_log)
+    inputs = get_input_plots(sim_context.log)
     inputs.show()
 
-    states = get_state_plots(players_states_log)
+    states = get_state_plots(sim_context.log)
     states.show()
-
 
     # generate collisions and damages report
     report = generate_report(sim_context)
