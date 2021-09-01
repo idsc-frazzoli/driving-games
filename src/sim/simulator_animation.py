@@ -1,6 +1,6 @@
 import math
 from itertools import chain
-from typing import MutableMapping, Mapping, List, Union, Optional, Sequence
+from typing import Mapping, List, Union, Optional, Sequence
 
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -53,7 +53,7 @@ def create_animation(file_path: str,
     def init_plot():
         ax.clear()
         with sim_viz.plot_arena(ax=ax):
-            init_state: MutableMapping[PlayerName, LogEntry] = sim_context.log[time_begin]
+            init_state: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
             for pname, player in init_state.items():
                 states[pname] = sim_viz.plot_player(
                     ax=ax,
@@ -68,9 +68,9 @@ def create_animation(file_path: str,
         return _get_list()
 
     def update_plot(frame: int = 0):
-        t: float = (frame * dt / 1000.0)
+        t: float = frame * dt / 1000.0
         logger.info(f"Plotting t = {t}")
-        log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at(t)
+        log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
             states[pname] = sim_viz.plot_player(
                 ax=ax,
@@ -78,8 +78,9 @@ def create_animation(file_path: str,
                 state=log_at_t[pname].state,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
-        adjust_axes_limits(ax=ax, plot_limits=plot_limits,
-                           players_states=[log_at_t[pname].state for pname in states])
+        adjust_axes_limits(ax=ax,
+                           plot_limits=plot_limits,
+                           players_states=[player.state for player in log_at_t.values()])
         return _get_list()
 
     # Min frame rate is 1 fps

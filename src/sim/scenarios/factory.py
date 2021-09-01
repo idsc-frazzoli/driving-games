@@ -1,7 +1,7 @@
 from typing import Optional
 
 from games import PlayerName
-from sim import logger, SimulationLog, SimParameters
+from sim import logger, SimLog, SimParameters
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle, NotSupportedConversion
 from sim.simulator import SimContext
@@ -26,10 +26,10 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
         except NotSupportedConversion as e:
             logger.warn("Unable to convert commonroad dynamic obstacle due to " + e.args[0] + " skipping...")
     logger.info(f"Managed to load {len(players)}")
-    sim_param = SimParameters.default() if sim_param is None else sim_param
+    sim_param = SimParameters() if sim_param is None else sim_param
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
-                      log=SimulationLog(),
+                      log=SimLog(),
                       param=sim_param,
                       )
