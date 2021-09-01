@@ -209,7 +209,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
             # Sample deviation as a function of dst
             for dst in dst_vals:
                 # Calculate target pose of rear axle
-                nf = 0.9 * n_i + dst * n_scale
+                nf = self.params.n_factor * n_i + dst * n_scale
                 offset_t = np.array([-l, nf])
                 p_t, th_t = self.get_target(lane=lane, progress=along_i + distance,
                                             offset_target=offset_t)
@@ -280,7 +280,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
             # Sample deviations
             for dst in dst_vals:
-                nf = 0.9 * n_init + dst * n_scale
+                nf = self.params.n_factor * n_init + dst * n_scale
 
                 # Solve boundary value problem to obtain actions
                 residual, dst_f = 100.0, 0.0

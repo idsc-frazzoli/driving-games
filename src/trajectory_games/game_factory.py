@@ -4,7 +4,7 @@ from time import perf_counter
 from typing import Dict, Set, Tuple, Optional, List
 
 import numpy as np
-from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
+from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
 from yaml import safe_load
@@ -40,6 +40,18 @@ with open(leader_follower_file) as load_file:
     config_lf = safe_load(load_file)["leader_follower"]
 
 
+def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
+    beta, _ = lanelet.find_along_lane_closest_point(p=goal)
+    progress = lanelet.along_lane_from_beta(beta)
+    points: List[np.ndarray] = []
+
+    for dx, dy in [(-1, -1), (-1, 1), (1, 1), (1, -1)]:
+        s_f, n_f = progress + dy * config["goal"]["long_dist"], dx * config["goal"]["lat_dist"]
+        xy_f, _ = TransitionGenerator.get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
+        points.append(xy_f)
+    return Polygon(points)
+
+
 def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     tic = perf_counter()
     lanes: Dict[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]] = {}
@@ -56,39 +68,28 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
 
     for pname, pconfig in config[config_str]["players"].items():
         print(f"Extracting lanes: {pname}", end=" ...")
-        lanes[pname] = []
         state = VehicleState.from_config(name=pconfig["state"])
-        init = False
         state_init = np.array([state.x, state.y])
-        goals: Optional[List[Polygon]] = \
-            None if pconfig["goals"] is None else list(Polygon(goal) for goal in pconfig["goals"])
 
-        for lane_id in lane_network.find_lanelet_by_position(point_list=[state_init])[0]:
-            lane_init = lane_network.find_lanelet_by_id(lane_id)
-            lanes_all, _ = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lanelet=lane_init,
-                                                                                   network=lane_network,
-                                                                                   max_length=config["max_length"])
-            for lane in lanes_all:
-                dg_lanelet = DgLanelet.from_commonroad_lanelet(lane)
-                lane_poly = Polygon([(se2[0], se2[1]) for se2 in dg_lanelet.lane_profile()])
-                lane_goal: Optional[Polygon] = None
-                for goal in (goals or []):
-                    if lane_poly.intersects(goal):
-                        lane_goal = goal
-                        break
-                lanes[pname].append((dg_lanelet, lane_goal))
-
-                # Reset pose to the center of the reference lane
-                if not init:
-                    _, q = dg_lanelet.find_along_lane_closest_point(p=state_init)
-                    se2_init = SE2Transform.from_SE2(q)
-                    state.x, state.y, state.th = se2_init.p[0], se2_init.p[1], se2_init.theta
-                    init = True
-
-        if init:
-            print(f", Init= {state}")
+        if pconfig["goals"] is None:
+            lanes_all = DgLanelet.from_start(lane_network=lane_network, start=state_init,
+                                             max_length=config["goal"]["max_length"])
+            lanes[pname] = list((lane, None) for lane in lanes_all)
         else:
+            goals = list(np.array(goal) for goal in pconfig["goals"])
+            lanes_all = DgLanelet.from_ends(lane_network=lane_network, start=state_init,
+                                            goals=goals)
+            lanes[pname] = []
+            for lane, goal in zip(lanes_all, goals):
+                lanes[pname].append((lane, get_goal_polygon(lanelet=lane, goal=goal)))
+
+        # Reset pose to the center of the reference lane
+        if len(lanes_all) == 0:
             raise ValueError(f"No lanes for the existing point: {state}")
+        _, q = lanes_all[0].find_along_lane_closest_point(p=state_init)
+        se2_init = SE2Transform.from_SE2(q)
+        state.x, state.y, state.th = se2_init.p[0], se2_init.p[1], se2_init.theta
+
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
         param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
         traj_gen = TransitionGenerator(params=param)

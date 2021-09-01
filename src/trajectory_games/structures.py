@@ -231,6 +231,8 @@ class TrajectoryParams:
     """ Timestamp for upsampling trajectories [s] """
     dst_scale: bool
     """ Scale target lateral deviation with velocity or not """
+    n_factor: float
+    """ Factor to scale target lateral deviation between stages """
     vg: VehicleGeometry
     """ Vehicle geometry parameters """
 
@@ -254,6 +256,7 @@ class TrajectoryParams:
             dst_max=1.0,
             dt_samp=D("0.1"),
             dst_scale=False,
+            n_factor=0.8,
             vg=VehicleGeometry.from_config(""),
         )
         return params
@@ -292,6 +295,7 @@ class TrajectoryParams:
                 dst_max=config["dst_max"],
                 dt_samp=D(config["dt_samp"]),
                 dst_scale=config["dst_scale"],
+                n_factor=config["n_factor"],
                 vg=VehicleGeometry.from_config(vg_name),
             )
         else:

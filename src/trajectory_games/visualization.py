@@ -127,8 +127,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             y = np.array(yp)
             if colour is not None:
                 axis.fill(x, y, color=colour, alpha=0.2, zorder=15)
-                if goal is not None:
-                    axis.plot(*goal.exterior.xy, color=colour, linewidth=width, zorder=20)
+                #  Toggle to plot goal region
+                # if goal is not None:
+                #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=20)
 
         if lines is None:
             if colour is None:

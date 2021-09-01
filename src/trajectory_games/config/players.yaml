@@ -3,11 +3,15 @@
 #map_name: "USA_Lanker-1_1_T-1"
 map_name:       "USA_Peach-4_3_T-1"
 
+# Goal params
 #max_length: Max reference lane length in m
-max_length:     75.0
+goal:
+  max_length:     75.0
+  long_dist:      2.0
+  lat_dist:       10.0
 
 #plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
-plot_limits:    [[-30, 20], [-20, 30]]
+plot_limits:    [[-30, 20], [-15, 35]]
 
 #players:    List of players in the game
 #  P1:        Player Name
@@ -22,20 +26,23 @@ basic:
   players:
     P1:
       state:    "state_1_peach"
-      goals:    [[[0.0,22.0], [9.0,22.0], [9.0,27.0], [0.0,27.0]]]
-      traj:     "traj_1_3"
+#      goals:    null
+      goals:    [[4.5,30.0], [8.0,30.0]]
+      traj:     "traj_1_5"
       pref:     "pref_d6"
       vg:       "green_car"
     P2:
       state:    "state_2_peach"
-      goals:    [[[1.0,-10.0], [-8.0,-10.0], [-8.0,-15.0], [1.0,-15.0]]]
-      traj:     "traj_1_3"
+#      goals:    null
+      goals:    [[-3.5,-10.0], [-7.0,-10.0]]
+      traj:     "traj_1_5"
       pref:     "pref_d6"
       vg:       "blue_car"
     P3:
       state:    "state_3_peach"
-      goals:    [[[-18.0,9.0], [-23.0,9.0], [-23.0,18.0], [-18.0,18.0]]]
-      traj:     "traj_1_3"
+#      goals:    null
+      goals:    [[-20.0,13.5], [-20.0,17]]
+      traj:     "traj_1_5"
       pref:     "pref_d6"
       vg:       "red_car"
 

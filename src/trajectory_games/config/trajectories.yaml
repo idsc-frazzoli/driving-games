@@ -13,6 +13,7 @@
 #  v_min:      Minimum velocity (m/s)
 #  st_max:     Maximum steering angle (rad)
 #  dst_max:    Maximum steering rate (rad/s)
+#  n_factor:   Scaling for lateral deviation between steps
 #  dt_samp:    Re-Sampling time for metrics (s) - string for decimal
 
 traj_1:       &traj_1
@@ -29,6 +30,7 @@ traj_1:       &traj_1
   st_max:     0.5
   dst_max:    1.0
   dst_scale:  True
+  n_factor:   0.8
   dt_samp:    "0.2"
 
 traj_1_3:     &traj_1_3
@@ -37,6 +39,15 @@ traj_1_3:     &traj_1_3
   max_gen:    1
   n_acc:      3
   n_dst:      3
+
+traj_1_5:     &traj_1_5
+  <<:         *traj_1
+  dt:         "3.0"
+  max_gen:    1
+  step_acc:   2.0
+  n_acc:      3
+  step_dst:   0.1
+  n_dst:      5
 
 traj_1_r:     &traj_1_r
   solve:      False
