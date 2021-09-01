@@ -56,10 +56,9 @@ class DgSampledSequence(Generic[X]):
                 raise ZValueError(f"Invalid dt = {dt} at i = {i}; ts= {timestamps}")
         ts_types = set([type(ts) for ts in timestamps])
         if not len(ts_types) == 1:
-            # fixme can be controversial
-            self._timestamps = list(map(float, timestamps))
-        else:
-            self._timestamps = timestamps
+            raise ZValueError("Attempting to create SampledSequence with mixed Timestamps types",
+                              timestamps=timestamps)
+        self._timestamps = timestamps
         self._values = values
 
     @property
