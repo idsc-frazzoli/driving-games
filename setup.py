@@ -41,6 +41,7 @@ setup(
     packages=[module],
     version=version,
     zip_safe=False,
-    entry_points={"console_scripts": ["dg-demo = games_zoo:dg_demo", ]},
+    entry_points={"console_scripts": ["dg-demo = games_zoo:dg_demo",
+                                      "crash-exp = crash:run_crashing_experiments"]},
     install_requires=install_requires,
 )
