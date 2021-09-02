@@ -4,20 +4,37 @@ from plotly.graph_objs import Figure
 from plotly.subplots import make_subplots
 from sim import SimLog
 
-colorsIdx = {'P1': 'rgb(0,215,215)', 'P2': 'rgb(0,0,215)',
-             'P3': 'rgb(215,0,0)', 'P4': 'rgb(0,215,0)',
-             'P5': 'rgb(215,215,0)', 'P6': 'rgb(215,0,215)',
-             'P7': 'rgb(0,215,215)', 'P8': 'rgb(0,0,215)'}
+colorsIdx = {'P0': 'rgb(0,215,215)', 'P1': 'rgb(0,215,100)',
+             'P2': 'rgb(0,0,215)', 'P3': 'rgb(215,0,0)',
+             'P4': 'rgb(0,215,0)', 'P5': 'rgb(215,215,0)',
+             'P6': 'rgb(215,0,215)', 'P7': 'rgb(100,215,215)',
+             'P8': 'rgb(100,0,215)', 'P9': 'rgb(0,100,215)',
+             'P10': 'rgb(100,215,100)', 'P11': 'rgb(100,100,215)',
+             'P12': 'rgb(215,100,100)', 'P13': 'rgb(200,100,200)',
+             'P14': 'rgb(200,100,0)', 'P15': 'rgb(0,150,0)',
+             'P16': 'rgb(0,215,50)', 'P17': 'rgb(150,215,50)',
+             'P18': 'rgb(215,70,100)', 'P19': 'rgb(215,50,150)',
+             'P20': 'rgb(50,70,130)', 'P21': 'rgb(215,70,130)',
+             'P22': 'rgb(0,140,215)', 'P23': 'rgb(0,215,215)',
+             'P24': 'rgb(150,150,20)', 'P25': 'rgb(215,72,184)',
+             'P26': 'rgb(160,215,0)', 'P27': 'rgb(215,100,0)',
+             'P28': 'rgb(90,180,215)', 'P29': 'rgb(215,26,98)',
+             'P30': 'rgb(90,215,180)', 'P31': 'rgb(215,90,180)',
+             }
 
 
 def get_input_plots(log: SimLog) -> Figure:
 
     n_inputs = []
+    agent_ID = []
 
     # Number of inputs for each agent
     for player in log:
         n_inputs.append(len(log[player].actions.values[00].idx))
+        agent_ID.append(type(log[player].actions.values[00]))
 
+    # unique_agent_ID = set(agent_ID)
+    # unique_agent_count = len(unique_agent_ID)
     fig = make_subplots(
         rows=int(np.ceil(max(n_inputs) / 2)), cols=2, column_widths=[0.5, 0.5])
 

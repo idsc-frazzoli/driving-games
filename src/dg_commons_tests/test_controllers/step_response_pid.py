@@ -73,9 +73,9 @@ if __name__ == '__main__':
     except FileExistsError:
         pass
     # speed pid
-    speed_kp: float = 1
-    speed_ki: float = 0.01
-    speed_kd: float = 0.1
+    speed_kp: float = 4
+    speed_ki: float = 0.005
+    speed_kd: float = 0.001
 
     # steer pid
     steer_kp: float = 1
