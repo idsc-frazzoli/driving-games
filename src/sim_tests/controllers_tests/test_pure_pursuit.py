@@ -1,7 +1,9 @@
-from sim_tests.controllers_tests.test_controller import TestController
+from sim_tests.controllers_tests.test_controller import TestController, Metric
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
+from dg_commons.analysis.metrics import DeviationLateral
+from typing import List
 
 
 def test_pure_pursuit():
@@ -23,20 +25,25 @@ def test_pure_pursuit():
     """Derivative gain longitudinal speed controller"""
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
-    sp_controller = {"Controller": SpeedController, "Parameters": sp_controller_param}
+    sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
     """Speed Controller"""
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
-    sp_behavior = {"Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
+    sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
     pp_param: PurePursuitParam = PurePursuitParam(k_lookahead=k_lookahead)
-    pp_controller = {"Controller": PurePursuit, "Parameters": pp_param}
+    pp_controller = {"Name": "Pure Pursuit Controller", "Controller": PurePursuit, "Parameters": pp_param}
     """Pure Pursuit Controller"""
     steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)
-    steering_controller = {"Controller": SCP, "Parameters": steering_param}
+    steering_controller = {"Name": "P controller", "Controller": SCP, "Parameters": steering_param}
     """Pure Pursuit Controller"""
+    metrics = [DeviationLateral]
+    """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", pp_controller, sp_controller, sp_behavior, steering_controller)
+    test_pp = TestController(scenario_name, "-", pp_controller, sp_controller, sp_behavior, steering_controller, metrics)
     test_pp.run()
+    test_pp.evaluate_metrics()
+    test_pp.evaluate_metrics_test()
+    test_pp.to_json()
 
 
 test_pure_pursuit()

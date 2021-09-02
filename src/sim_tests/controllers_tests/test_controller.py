@@ -10,12 +10,17 @@ from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 from decimal import Decimal
+from dg_commons.analysis.metrics_def import MetricEvaluationContext, Metric
+from typing import Optional, List
+import matplotlib.pyplot as plt
+import json
+from dataclasses import dataclass, fields
 
 
 class TestController:
 
     def __init__(self, scenario_name: str, vehicle_model: str, lateral_controller, longitudinal_controller,
-                 speed_behavior, steering_controller):
+                 speed_behavior, steering_controller, metrics):
         scenario, _ = load_commonroad_scenario(scenario_name)
         self.lanelet_net = scenario.lanelet_network
 
@@ -36,6 +41,10 @@ class TestController:
         self.sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
                                                   param=SimParameters.default(), log=SimLog())
         self.simulator: Simulator = Simulator()
+
+        self.metrics = metrics
+        self.metrics_context: Optional[MetricEvaluationContext] = None
+        self.result = []
 
     def _agent_model_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
 
@@ -78,8 +87,75 @@ class TestController:
         self.simulator.run(self.sim_context)
         name = "notimplemented"
 
-        report = generate_report(self.sim_context)
+        dg_lanelets = {}
+        states = {}
+        commands = {}
+        for key in self.sim_context.log.keys():
+            dg_lanelets[key] = self.sim_context.players[key].ref_lane
+            states[key] = self.sim_context.log[key].states
+            commands[key] = self.sim_context.log[key].actions
+
+        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands)
+
+        #report = generate_report(self.sim_context)
         # save report
-        output_dir = "out"
-        report_file = os.path.join(output_dir, f"{name}.html")
-        report.to_html(report_file)
+        #output_dir = "out"
+        #report_file = os.path.join(output_dir, f"{name}.html")
+        #report.to_html(report_file)
+
+    def evaluate_metrics_test(self):
+        if self.metrics is not None:
+            for i, metric in enumerate(self.metrics):
+                for player in self.sim_context.players.keys():
+                    met = metric()
+                    res = met.evaluate(self.metrics_context)
+                    plt.plot(res[player].incremental.timestamps, res[player].incremental.values, label=player)
+                plt.savefig(f"fig{i}")
+        else:
+            print("No Metric to Evaluate")
+
+    def evaluate_metrics(self):
+        if self.metrics is not None:
+            self.result = []
+            for metric in self.metrics:
+                met = metric()
+                self.result.append(met.evaluate(self.metrics_context))
+        else:
+            print("No Metric to Evaluate")
+
+    def to_json(self):
+        lateral_dict = {"Name": self.lateral_controller["Name"]}
+        for field in fields(self.lateral_controller["Parameters"]):
+            value = getattr(self.lateral_controller["Parameters"], field.name)
+            lateral_dict[field.name] = value
+
+        longitudinal_dict = {"Name": self.longitudinal_controller["Name"]}
+        for field in fields(self.longitudinal_controller["Parameters"]):
+            value = getattr(self.longitudinal_controller["Parameters"], field.name)
+            longitudinal_dict[field.name] = value
+
+        steering_dict = {"Name": self.steering_controller["Name"]}
+        for field in fields(self.steering_controller["Parameters"]):
+            value = getattr(self.steering_controller["Parameters"], field.name)
+            steering_dict[field.name] = value
+
+
+        metric_dict = {}
+        for i, metric in enumerate(self.metrics):
+            metric_dict["Name"] = metric.description
+            result = self.result[i]
+            player_dict = {}
+            for player in self.sim_context.players.keys():
+                player_dict["Total"] = result[player].total
+                player_dict["IncrementalT"] = result[player].incremental.timestamps
+                player_dict["IncrementalV"] = result[player].incremental.values
+                player_dict["CumulativeT"] = result[player].cumulative.timestamps
+                player_dict["CumulativeV"] = result[player].cumulative.values
+                metric_dict[f"Results {player}"] = player_dict
+
+        json_dict = {"LateralController": lateral_dict, "LongitudinalController": longitudinal_dict,
+                     "SteeringController": steering_dict, "Results": metric_dict}
+
+        json_object = json.dumps(json_dict, indent=4)
+        with open("results.json", "w") as outfile:
+            outfile.write(json_object)
