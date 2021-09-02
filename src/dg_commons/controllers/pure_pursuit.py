@@ -24,7 +24,6 @@ class PurePursuitParam:
     """Min initial progress to look for the next goal point"""
     max_extra_distance: float = 5
     """Max extra distance to look for the closest point on the ref path"""
-    vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
 
 
 class PurePursuit:
@@ -45,6 +44,7 @@ class PurePursuit:
         self.along_path: Optional[float] = None
         self.speed: float = 0
         self.param: PurePursuitParam = params
+        self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
         # logger.debug("Pure pursuit params: \n", self.param)
 
     def update_path(self, path: DgLanelet):
@@ -62,7 +62,7 @@ class PurePursuit:
         tr, ang = translation_angle_from_SE2(self.pose)
         rot = SO2_from_angle(ang)
 
-        delta_tr = np.dot(rot, np.array([-self.param.vehicle_geometry.lr, 0]).T)
+        delta_tr = np.dot(rot, np.array([-self.vehicle_geometry.lr, 0]).T)
         tr += delta_tr
         self.rear_pose = SE2_from_rotation_translation(rot, tr)
 
@@ -86,7 +86,7 @@ class PurePursuit:
             dist = euclidean_between_SE2value(self.rear_pose, cp)
             return np.linalg.norm(dist - lookahead)
 
-        min_along_path = self.along_path + self.param.min_distance - self.param.vehicle_geometry.lr
+        min_along_path = self.along_path + self.param.min_distance - self.vehicle_geometry.lr
 
         bounds = [min_along_path,
                   min_along_path + lookahead + self.param.max_extra_distance]
@@ -107,7 +107,7 @@ class PurePursuit:
         alpha = np.arctan2(p_goal[1] - p[1], p_goal[0] - p[0]) - theta
         radius = self._get_lookahead() / (2 * sin(alpha))
         # here 3.5 is just an approximation of an average vehicle length
-        return atan(self.param.vehicle_geometry.length / radius)
+        return atan(self.vehicle_geometry.length / radius)
 
     def _get_lookahead(self) -> float:
         return float(np.clip(self.param.k_lookahead * self.speed,
