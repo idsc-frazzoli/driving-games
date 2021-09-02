@@ -26,7 +26,7 @@ class PurePursuitParam:
     """Min initial progress to look for the next goal point"""
     max_extra_distance: float = 5
     """Max extra distance to look for the closest point on the ref path"""
-    
+
 
 class PurePursuit:
     """
