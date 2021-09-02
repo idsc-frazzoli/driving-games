@@ -13,13 +13,13 @@ def test_stanley():
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""
-    k_lookahead: float = 1.8
+    stanley_gain: float = 1
     """Scaling constant for speed dependent params"""
     ddelta_kp: float = 10
     """Proportional gain ddelta with respect to delta error"""
-    speed_kp: float = 2
+    speed_kp: float = 1
     """Propotioanl gain longitudinal speed controller"""
-    speed_ki: float = 0.005
+    speed_ki: float = 0.01
     """Integral gain longitudinal speed controller"""
     speed_kd: float = 0.1
     """Derivative gain longitudinal speed controller"""
@@ -30,7 +30,7 @@ def test_stanley():
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
-    stanley_param: StanleyParam = StanleyParam(gain=100)
+    stanley_param: StanleyParam = StanleyParam(gain=stanley_gain)
     stanley_controller = {"Name": "Stanley Controller", "Controller": Stanley, "Parameters": stanley_param}
     """Stanley Controller"""
     steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)

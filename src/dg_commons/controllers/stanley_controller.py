@@ -40,7 +40,7 @@ class Stanley:
         self.front_speed: Optional[float] = None
         self.alpha: Optional[float] = None
         self.lateral: Optional[float] = None
-        self.param: StanleyParam = params
+        self.params: StanleyParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
         # logger.debug("Pure pursuit params: \n", self.param)
 
@@ -74,4 +74,4 @@ class Stanley:
         # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.alpha, self.lateral, self.front_speed]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-        return self.alpha + atan(self.param.gain*self.lateral/self.front_speed)
+        return self.alpha + atan(self.params.gain*self.lateral/self.front_speed)

@@ -41,7 +41,6 @@ class LFAgent(Agent):
         self.speed_behavior.update_observations(sim_obs.players)
         self.speed_controller.update_measurement(measurement=my_obs.vx)
         self.lateral_controller.update_state(my_obs)
-
         # compute commands
         t = float(sim_obs.time)
         speed_ref = self.speed_behavior.get_speed_ref(t)
