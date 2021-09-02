@@ -43,7 +43,7 @@ class PurePursuit:
         self.rear_pose: Optional[SE2value] = None
         self.along_path: Optional[float] = None
         self.speed: float = 0
-        self.param: PurePursuitParam = params
+        self.params: PurePursuitParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
         # logger.debug("Pure pursuit params: \n", self.param)
 
@@ -86,10 +86,10 @@ class PurePursuit:
             dist = euclidean_between_SE2value(self.rear_pose, cp)
             return np.linalg.norm(dist - lookahead)
 
-        min_along_path = self.along_path + self.param.min_distance - self.vehicle_geometry.lr
+        min_along_path = self.along_path + self.params.min_distance - self.vehicle_geometry.lr
 
         bounds = [min_along_path,
-                  min_along_path + lookahead + self.param.max_extra_distance]
+                  min_along_path + lookahead + self.params.max_extra_distance]
         res = scipy.optimize.minimize_scalar(fun=goal_point_error, bounds=bounds, method='Bounded')
         goal_point = self.path.center_point(self.path.beta_from_along_lane(res.x))
         return res.x, goal_point
@@ -110,6 +110,6 @@ class PurePursuit:
         return atan(self.vehicle_geometry.length / radius)
 
     def _get_lookahead(self) -> float:
-        return float(np.clip(self.param.k_lookahead * self.speed,
-                             self.param.look_ahead_minmax[0],
-                             self.param.look_ahead_minmax[1]))
+        return float(np.clip(self.params.k_lookahead * self.speed,
+                             self.params.look_ahead_minmax[0],
+                             self.params.look_ahead_minmax[1]))

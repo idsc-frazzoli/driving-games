@@ -55,7 +55,7 @@ class TestController:
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
         steering_controller = self.steering_controller["Controller"]()
-        steering_controller.param = self.steering_controller["Parameters"]
+        steering_controller.params = self.steering_controller["Parameters"]
 
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
         agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
