@@ -34,8 +34,8 @@ class PID:
         self.measurement = measurement
 
     def update_reference(self, reference: float):
-        if not self.params.setpoint_minmax[0] <= reference <= self.params.setpoint_minmax[1]:
-            raise RuntimeWarning("Attempting to set a desired speed out of range. I'll clip the value.")
+        # if not self.params.setpoint_minmax[0] <= reference <= self.params.setpoint_minmax[1]:
+        #     raise RuntimeWarning("Attempting to set a desired reference out of range. I'll clip the value.")
         self.reference = np.clip(reference, self.params.setpoint_minmax[0], self.params.setpoint_minmax[1])
 
     def get_control(self, at: float) -> float:

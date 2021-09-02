@@ -37,8 +37,8 @@ class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
     safety_dist_right: float = 2
     safety_dist_left: float = 2
-    safety_dist_front: float = 3
-    safety_dist_front_crash: float = 10
+    safety_dist_front: float = 6
+    safety_dist_front_crash: float = 20
     safety_time_front: float = 2
     vx_limits: Tuple[float, float] = (kmh2ms(-10), kmh2ms(130))
 
@@ -80,10 +80,10 @@ class SpeedBehavior:
                 coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
                 coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-                coming_from_the_front: bool = 3 * pi / 4 <= rel.theta <= pi * 5 / 4
+                coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
                 if (coming_from_the_right and distance < self.params.safety_dist_right) or (
                         coming_from_the_left and distance < self.params.safety_dist_left) or (
-                        coming_from_the_front and in_front_of_me and distance < self.params.safety_dist_front_crash):
+                        coming_from_the_front and distance < self.params.safety_dist_front_crash):
                     return [True, 0]
                 elif in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front *\
                         abs(vel-myvel):

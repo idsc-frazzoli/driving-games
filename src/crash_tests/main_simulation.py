@@ -1,5 +1,6 @@
 from crash.experiments import run_scenario
 from crash.scenarios import *
+from crash.scenarios import get_scenario_devel
 from sim import SimParameters, SimTime
 from sim.scenarios.factory import get_scenario_commonroad_replica
 
@@ -21,10 +22,10 @@ def az_optimal_crashing():
 
 
 def em_devel():
-    sim_context = get_scenario_03()
+    sim_context = get_scenario_devel()
     run_scenario(sim_context)
 
 
 if __name__ == '__main__':
     #run_experiments_with_compmake()
-    az_optimal_crashing()
+    commonroad_replica()

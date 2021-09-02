@@ -1,6 +1,5 @@
 from typing import Optional
 
-import numpy as np
 from geometry import SE2_from_xytheta, SE2value
 
 from dg_commons.controllers.pure_pursuit import PurePursuit
@@ -8,7 +7,7 @@ from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
-from sim import SimObservations, logger
+from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands
 
