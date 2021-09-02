@@ -39,7 +39,7 @@ class TestController:
             models.update({player_name: model})
 
         self.sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
-                                                  param=SimParameters.default(), log=SimLog())
+                                                  param=SimParameters(), log=SimLog())
         self.simulator: Simulator = Simulator()
 
         self.metrics = metrics
@@ -85,7 +85,7 @@ class TestController:
 
     def run(self):
         self.simulator.run(self.sim_context)
-        name = "notimplemented"
+        name = "Test"
 
         dg_lanelets = {}
         states = {}
@@ -97,11 +97,11 @@ class TestController:
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands)
 
-        #report = generate_report(self.sim_context)
+        report = generate_report(self.sim_context)
         # save report
-        #output_dir = "out"
-        #report_file = os.path.join(output_dir, f"{name}.html")
-        #report.to_html(report_file)
+        output_dir = "out"
+        report_file = os.path.join(output_dir, f"{name}.html")
+        report.to_html(report_file)
 
     def evaluate_metrics_test(self):
         if self.metrics is not None:
@@ -124,32 +124,35 @@ class TestController:
             print("No Metric to Evaluate")
 
     def to_json(self):
-        lateral_dict = {"Name": self.lateral_controller["Name"]}
-        for field in fields(self.lateral_controller["Parameters"]):
-            value = getattr(self.lateral_controller["Parameters"], field.name)
-            lateral_dict[field.name] = value
+        key_string = ""
 
-        longitudinal_dict = {"Name": self.longitudinal_controller["Name"]}
-        for field in fields(self.longitudinal_controller["Parameters"]):
-            value = getattr(self.longitudinal_controller["Parameters"], field.name)
-            longitudinal_dict[field.name] = value
+        def dict_key_from_dataclass(data):
+            res = {"Name": data["Name"]}
+            key_str = str(data["Name"])
+            for field in fields(data["Parameters"]):
+                value = getattr(data["Parameters"], field.name)
+                res[field.name] = value
+                key_str += str(value)
+            return res, key_str
 
-        steering_dict = {"Name": self.steering_controller["Name"]}
-        for field in fields(self.steering_controller["Parameters"]):
-            value = getattr(self.steering_controller["Parameters"], field.name)
-            steering_dict[field.name] = value
-
+        lateral_dict, key_str = dict_key_from_dataclass(self.lateral_controller)
+        key_string += key_str
+        longitudinal_dict, key_str = dict_key_from_dataclass(self.longitudinal_controller)
+        key_string += key_str
+        steering_dict, key_str = dict_key_from_dataclass(self.steering_controller)
+        key_string += key_str
 
         metric_dict = {}
         for i, metric in enumerate(self.metrics):
             metric_dict["Name"] = metric.description
+            key_string += str(metric.description)
             result = self.result[i]
             player_dict = {}
             for player in self.sim_context.players.keys():
                 player_dict["Total"] = result[player].total
-                player_dict["IncrementalT"] = result[player].incremental.timestamps
+                player_dict["IncrementalT"] = [float(i) for i in result[player].incremental.timestamps]
                 player_dict["IncrementalV"] = result[player].incremental.values
-                player_dict["CumulativeT"] = result[player].cumulative.timestamps
+                player_dict["CumulativeT"] = [float(i) for i in result[player].cumulative.timestamps]
                 player_dict["CumulativeV"] = result[player].cumulative.values
                 metric_dict[f"Results {player}"] = player_dict
 
@@ -159,3 +162,5 @@ class TestController:
         json_object = json.dumps(json_dict, indent=4)
         with open("results.json", "w") as outfile:
             outfile.write(json_object)
+        key_string = key_string.replace(" ", "")
+        print(key_string)
