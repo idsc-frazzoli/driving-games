@@ -55,11 +55,10 @@ class DgSampledSequence(Generic[X]):
             if dt <= 0:
                 raise ZValueError(f"Invalid dt = {dt} at i = {i}; ts= {timestamps}")
         ts_types = set([type(ts) for ts in timestamps])
-        if not len(ts_types) == 1:
-            # fixme can be controversial
-            self._timestamps = list(map(float, timestamps))
-        else:
-            self._timestamps = timestamps
+        if D in ts_types and any([int in ts_types, float in ts_types]):
+            raise ZValueError("Attempting to create SampledSequence with mixed Decimal and floats",
+                              timestamps=timestamps)
+        self._timestamps = timestamps
         self._values = values
 
     @property
