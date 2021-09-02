@@ -36,18 +36,15 @@ class LFAgent(Agent):
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         my_obs = sim_obs.players[self.my_name]
-        my_pose: SE2value = SE2_from_xytheta([my_obs.x, my_obs.y, my_obs.theta])
 
         # update observations
         self.speed_behavior.update_observations(sim_obs.players)
         self.speed_controller.update_measurement(measurement=my_obs.vx)
-        lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
-        self.lateral_controller.update_pose(pose=my_pose, along_path=lanepose.along_lane)
+        self.lateral_controller.update_state(my_obs)
 
         # compute commands
         t = float(sim_obs.time)
         speed_ref = self.speed_behavior.get_speed_ref(t)
-        self.lateral_controller.update_speed(speed=speed_ref)
         self.speed_controller.update_reference(reference=speed_ref)
         acc = self.speed_controller.get_control(t)
         # pure proportional with respect to delta error

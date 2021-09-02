@@ -5,11 +5,13 @@ from sim.models.vehicle_structures import VehicleGeometry
 
 import numpy as np
 import scipy.optimize
-from geometry import SE2value, translation_angle_from_SE2, SE2_from_rotation_translation
+from geometry import SE2value, translation_angle_from_SE2, SE2_from_rotation_translation, SE2_from_translation_angle
 from geometry.rotations import SO2_from_angle
 
 from dg_commons.geo import euclidean_between_SE2value
 from dg_commons.planning.lanes import DgLanelet
+from games import X, U
+
 
 __all__ = ["PurePursuit", "PurePursuitParam"]
 
@@ -51,12 +53,12 @@ class PurePursuit:
         assert isinstance(path, DgLanelet)
         self.path = path
 
-    def update_pose(self, pose: SE2value, along_path: float):
-        assert isinstance(pose, SE2value)
-        assert isinstance(along_path, float)
-        self.pose = pose
-        self.along_path = along_path
+    def update_state(self, obs: X):
+        self.pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
+        lanepose = self.path.lane_pose_from_SE2_generic(self.pose)
+        self.along_path = lanepose.along_lane
         self._update_rear_axle_pose()
+        self.speed = obs.vx
 
     def _update_rear_axle_pose(self):
         tr, ang = translation_angle_from_SE2(self.pose)
@@ -65,9 +67,6 @@ class PurePursuit:
         delta_tr = np.dot(rot, np.array([-self.vehicle_geometry.lr, 0]).T)
         tr += delta_tr
         self.rear_pose = SE2_from_rotation_translation(rot, tr)
-
-    def update_speed(self, speed: float):
-        self.speed = speed
 
     def find_goal_point(self) -> Tuple[float, SE2value]:
         """
