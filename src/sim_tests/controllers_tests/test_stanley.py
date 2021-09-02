@@ -13,7 +13,7 @@ def test_stanley():
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""
-    stanley_gain: float = 1
+    stanley_gain: float = 2
     """Scaling constant for speed dependent params"""
     ddelta_kp: float = 10
     """Proportional gain ddelta with respect to delta error"""
