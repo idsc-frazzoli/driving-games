@@ -40,8 +40,6 @@ class TestController:
 
         self.sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
                                                   param=SimParameters(), log=SimLog())
-        self.simulator: Simulator = Simulator()
-
         self.metrics = metrics
         self.metrics_context: Optional[MetricEvaluationContext] = None
         self.result = []
@@ -57,7 +55,6 @@ class TestController:
         speed_behavior.params = self.speed_behavior["Parameters"]
         steering_controller = self.steering_controller["Controller"]()
         steering_controller.params = self.steering_controller["Parameters"]
-        steering_controller.param = self.steering_controller["Parameters"]
 
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
         agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
