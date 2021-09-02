@@ -42,6 +42,7 @@ class SpeedBehaviorParam:
     safety_time_front: float = 2
     vx_limits: Tuple[float, float] = (kmh2ms(-10), kmh2ms(130))
 
+
 class SpeedBehavior:
     """Determines the reference speed"""
 
