@@ -6,6 +6,9 @@
 #  direction - d(down), r(right), u(up), l(left)
 #  Lane number: 1-right, 2-left, 3-cross, 4-reverse cross
 
+# az: this file relates to duckietown experiments, I think it is deprecated
+
+
 4way-double-intersection-only:
 
   dl1:      ['P30', 'P21', 'P8',  'P9' ]

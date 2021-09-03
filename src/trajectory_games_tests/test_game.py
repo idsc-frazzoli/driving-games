@@ -1,7 +1,7 @@
 import os
 from copy import deepcopy
 from os.path import join
-from typing import Mapping, Dict
+from typing import Mapping, Dict, Optional
 
 from reprep import Report
 from yaml import safe_load
@@ -30,7 +30,7 @@ from trajectory_games import (
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
 plot_gif = True  # gif vs image for viz
-only_traj = True  # Only trajectory generation vs full game
+only_traj = False  # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"
 
@@ -63,7 +63,7 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: TrajectoryGame = get_trajectory_game(config_str="basic")
+    game: TrajectoryGame = get_trajectory_game(config_str="basic2")
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
@@ -155,7 +155,7 @@ def test_trajectory_game_levels():
             r_levels[stage] = node
         return stage_eq
 
-    nash_eqf: Mapping[str, SolvedTrajectoryGame] = None
+    nash_eqf: Optional[Mapping[str, SolvedTrajectoryGame]] = None
     for i in range(1, 5):
         nash_eqf = play_stage(stage=i + 1)
 
