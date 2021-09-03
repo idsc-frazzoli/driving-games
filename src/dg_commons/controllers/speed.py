@@ -69,15 +69,14 @@ class SpeedBehavior:
 
         mypose = extract_pose_from_state(self.agents[self.my_name])
         for other_name, _ in self.agents.items():
-            if other_name == self.my_name:
-                pass
-            rel = SE2Transform.from_SE2(relative_pose(
-                mypose, extract_pose_from_state(self.agents[other_name])))
+            if not other_name == self.my_name:
+                rel = SE2Transform.from_SE2(relative_pose(
+                    mypose, extract_pose_from_state(self.agents[other_name])))
 
-            distance = np.linalg.norm(rel.p)
-            coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
-            in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-            if (coming_from_the_right and distance < self.params.safety_dist_right) or (
-                    in_front_of_me and distance < self.params.safety_dist_front):
-                return True
+                distance = np.linalg.norm(rel.p)
+                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
+                in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
+                if (coming_from_the_right and distance < self.params.safety_dist_right) or (
+                        in_front_of_me and distance < self.params.safety_dist_front):
+                    return True
         return False

@@ -10,6 +10,7 @@ from numpy import deg2rad, linspace
 from dg_commons import DgSampledSequence
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
+from sim import SimTime
 from sim.agents.agent import NPAgent
 from sim.agents.lane_follower import LFAgent
 from sim.models import kmh2ms
@@ -19,17 +20,20 @@ from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle
+from sim.scenarios.factory import get_scenario_commonroad_replica
 from sim.simulator import SimContext
 from sim.simulator_structures import SimParameters
 
-__all__ = ["get_scenario_01", "get_scenario_az_01", "get_scenario_03"]
+__all__ = ["get_scenario_01", "get_scenario_illegal_turn", "get_scenario_suicidal_pedestrian",
+           "get_scenario_racetrack_test"]
 
-P1, P2, P3, P4, P5, P6, P7 = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
-    "P5"), PlayerName("P6"), PlayerName("P7")
+P1, P2, P3, P4, P5, P6, P7, EGO = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
+    "P5"), PlayerName("P6"), PlayerName("P7"), PlayerName("Ego")
 
 
 def get_scenario_01() -> SimContext:
-    scenario_name = "USA_Lanker-1_1_T-1.xml"
+    # todo
+    scenario_name = "USA_Lanker-1_1_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     dyn_obs = scenario.dynamic_obstacles[2]
     model, agent = model_agent_from_dynamic_obstacle(dyn_obs, scenario.lanelet_network)
@@ -75,8 +79,18 @@ def get_scenario_01() -> SimContext:
                       )
 
 
-def get_scenario_az_01() -> SimContext:
-    scenario_name = "USA_Peach-1_1_T-1.xml"
+def get_scenario_illegal_turn() -> SimContext:
+    sim_param = SimParameters(dt=SimTime("0.01"),
+                              dt_commands=SimTime("0.05"),
+                              max_sim_time=SimTime(6),
+                              sim_time_after_collision=SimTime(6))
+    # initialize all contexts/ agents and simulator
+    return get_scenario_commonroad_replica(
+        scenario_name="USA_Lanker-1_1_T-1.xml", sim_param=sim_param)
+
+
+def get_scenario_suicidal_pedestrian() -> SimContext:
+    scenario_name = "USA_Peach-1_1_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
     x0_p3 = PedestrianState(x=-15, y=-18, theta=deg2rad(90), vx=0)
@@ -95,7 +109,7 @@ def get_scenario_az_01() -> SimContext:
               P3: PedestrianModel.default(x0_p3),
               P4: VehicleModelDyn.default_car(x0_p4),
               P5: VehicleModelDyn.default_car(x0_p5),
-              P6: ego_model
+              EGO: ego_model
               }
 
     ped_commands_plan = DgSampledSequence[PedestrianCommands](
@@ -129,7 +143,7 @@ def get_scenario_az_01() -> SimContext:
                P3: NPAgent(ped_commands_plan),
                P4: agents[2],
                P5: agents[3],
-               P6: agents[4],
+               EGO: agents[4],
                }
 
     return SimContext(scenario=scenario,
@@ -140,8 +154,8 @@ def get_scenario_az_01() -> SimContext:
                       )
 
 
-def get_scenario_03() -> SimContext:
-    scenario_name = "DEU_Hhr-1_1.xml"
+def get_scenario_racetrack_test() -> SimContext:
+    scenario_name = "DEU_Hhr-1_1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
     lane = scenario.lanelet_network.lanelets[0]
     lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane, scenario.lanelet_network, max_length=1000)[0][

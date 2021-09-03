@@ -1,13 +1,13 @@
 from typing import Optional
 
-import numpy as np
 from geometry import SE2_from_xytheta, SE2value
 
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
+from dg_commons.controllers.steer import SteerController
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
-from sim import SimObservations, logger
+from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands
 
@@ -21,10 +21,12 @@ class LFAgent(Agent):
                  lane: Optional[DgLanelet] = None,
                  speed_controller: Optional[SpeedController] = None,
                  speed_behavior: Optional[SpeedBehavior] = None,
-                 pure_pursuit: Optional[PurePursuit] = None):
+                 pure_pursuit: Optional[PurePursuit] = None,
+                 steer_controller: Optional[SteerController] = None):
         self.ref_lane = lane
         self.speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
         self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
+        self.steer_controller: SteerController = SteerController() if steer_controller is None else steer_controller
         self.pure_pursuit: PurePursuit = PurePursuit() if pure_pursuit is None else pure_pursuit
         self.my_name: Optional[PlayerName] = None
 
@@ -40,6 +42,7 @@ class LFAgent(Agent):
         # update observations
         self.speed_behavior.update_observations(sim_obs.players)
         self.speed_controller.update_measurement(measurement=my_obs.vx)
+        self.steer_controller.update_measurement(measurement=my_obs.delta)
         lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
         self.pure_pursuit.update_pose(pose=my_pose, along_path=lanepose.along_lane)
 
@@ -49,12 +52,9 @@ class LFAgent(Agent):
         self.pure_pursuit.update_speed(speed=speed_ref)
         self.speed_controller.update_reference(reference=speed_ref)
         acc = self.speed_controller.get_control(t)
-        # pure proportional with respect to delta error
-        kp = 10
-        ddelta = kp * (self.pure_pursuit.get_desired_steering() - my_obs.delta)
-        if not -1 <= ddelta <= 1:
-            logger.info(f"Agent {self.my_name}: clipping ddelta: {ddelta} within [-1,1]")
-            ddelta = np.clip(ddelta, -1, 1)
+        delta_ref = self.pure_pursuit.get_desired_steering()
+        self.steer_controller.update_reference(delta_ref)
+        ddelta = self.steer_controller.get_control(t)
         return VehicleCommands(
             acc=acc,
             ddelta=ddelta
