@@ -19,7 +19,7 @@ def get_version(filename):
 
 install_requires = [
     'scipy',
-    'seaborn',
+    'matplotlib',
     'PyGeometry-z6',
     'zuper-commons-z6>=6.0.19',
     'quickapp-z6>=6,<7',
