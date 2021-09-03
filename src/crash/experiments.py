@@ -6,6 +6,7 @@ from quickapp import QuickApp, QuickAppContext
 
 from crash.experiment_def import get_exp_suicidal_pedestrian, get_exp_illegal_turn
 from crash.reports import generate_report
+from sim.log_visualisation import get_input_plots, get_state_plots
 from sim.simulator import SimContext, Simulator
 
 __all__ = ["CrashingExperiments", "run_crashing_experiments"]
@@ -41,7 +42,13 @@ def run_simulation(sim_context: SimContext) -> SimContext:
 
 def run_scenario_without_compmake(sim_context: SimContext, output_dir: str = "out"):
     sim_context = run_simulation(sim_context)
-    # generate collisions and damages report
+    # generate collisions and damages
+    inputs = get_input_plots(sim_context.log)
+    inputs.show()
+
+    states = get_state_plots(sim_context.log)
+    states.show()
+
     report = generate_report(sim_context)
     # save report
     now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
