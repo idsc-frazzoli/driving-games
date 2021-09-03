@@ -18,7 +18,7 @@ def sim_step_response(model, sp_controller, st_controller):
                                          values=[0, kmh2ms(20), kmh2ms(0), kmh2ms(50), kmh2ms(0), kmh2ms(130),
                                                  kmh2ms(0)])
 
-    steer_ref = DgSampledSequence[float](timestamps=[0, 10, 20, 30, 40, 50, 60],
+    steer_ref = DgSampledSequence[float](timestamps=[0, 5, 15, 25, 35, 45, 55],
                                          values=[0, pi / 12, pi / 6, -pi / 12, 0, -pi / 12, 0])
 
     times, speeds, accs, speed_refs, steer, dsteers, steer_refs = [], [], [], [], [], [], []
@@ -48,7 +48,7 @@ def sim_step_response(model, sp_controller, st_controller):
         # update observations
 
     # do plot
-    fig, (ax1, ax2,ax3,ax4) = plt.subplots(4)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle("Step Response PID Controller for Vehicle Speed")
     ax1.plot(times, speeds, label="actual speed")
     ax1.plot(times, speed_refs, "r", label="ref. speed")
@@ -73,13 +73,13 @@ if __name__ == '__main__':
     except FileExistsError:
         pass
     # speed pid
-    speed_kp: float = 1
-    speed_ki: float = 0.01
-    speed_kd: float = 0.1
+    speed_kp: float = 4
+    speed_ki: float = 0.05
+    speed_kd: float = 0.001
 
     # steer pid
-    steer_kp: float = 1
-    steer_ki: float = 0.01
+    steer_kp: float = 4
+    steer_ki: float = 0.05
     steer_kd: float = 0.1
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)

@@ -10,15 +10,15 @@ from games import PlayerName, X
 
 __all__ = ["SpeedController", "SpeedBehavior"]
 
-from sim.models import extract_pose_from_state, kmh2ms
+from sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 
 
 @dataclass
 class SpeedControllerParam(PIDParam):
     """Default values are tuned roughly for a default car model"""
-    kP: float = 1
-    kI: float = 0.01
-    kD: float = 0.1
+    kP: float = 4
+    kI: float = 0.005
+    kD: float = 0.0001
     antiwindup: Tuple[float, float] = (-2, 2)
     setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(150))
     output_minmax: Tuple[float, float] = (-8, 5)  # acc minmax
@@ -36,7 +36,11 @@ class SpeedController(PID):
 class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
     safety_dist_right: float = 2
-    safety_dist_front: float = 10
+    safety_dist_left: float = 2
+    safety_dist_front: float = 6
+    safety_dist_front_crash: float = 20
+    safety_time_front: float = 2
+    vx_limits: Tuple[float, float] = (kmh2ms(-10), kmh2ms(130))
 
 
 class SpeedBehavior:
@@ -55,28 +59,33 @@ class SpeedBehavior:
     def get_speed_ref(self, at: float) -> float:
         """Check if there is anyone on the right too close, then brake"""
 
-        yield_to_anyone: bool = self.is_there_anyone_to_yield_to()
-        if yield_to_anyone:
-            self.speed_ref = 0
-        else:
-            self.speed_ref = self.params.nominal_speed
+        [yield_to_anyone, ref] = self.is_there_anyone_to_yield_to()
+        self.speed_ref = ref
         return self.speed_ref
 
-    def is_there_anyone_to_yield_to(self) -> bool:
+    def is_there_anyone_to_yield_to(self) -> [bool, int]:
         """
         If someone is approaching from the right or someone is in front of us we yield
         """
 
         mypose = extract_pose_from_state(self.agents[self.my_name])
+        myvel = extract_vel_from_state(self.agents[self.my_name])
         for other_name, _ in self.agents.items():
             if not other_name == self.my_name:
                 rel = SE2Transform.from_SE2(relative_pose(
-                    mypose, extract_pose_from_state(self.agents[other_name])))
+                mypose, extract_pose_from_state(self.agents[other_name])))
+                vel = extract_vel_from_state(self.agents[other_name])
 
                 distance = np.linalg.norm(rel.p)
                 coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
+                coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
+                coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
                 if (coming_from_the_right and distance < self.params.safety_dist_right) or (
-                        in_front_of_me and distance < self.params.safety_dist_front):
-                    return True
-        return False
+                        coming_from_the_left and distance < self.params.safety_dist_left) or (
+                        coming_from_the_front and distance < self.params.safety_dist_front_crash):
+                    return [True, 0]
+                elif in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front *\
+                        abs(vel-myvel):
+                    return [True, np.clip(vel - abs(vel-myvel), self.params.vx_limits[0], self.params.vx_limits[1])]
+        return [False, self.params.nominal_speed]
