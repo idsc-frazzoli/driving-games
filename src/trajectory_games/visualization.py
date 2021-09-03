@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Sequence, Tuple, Mapping, FrozenSet, Optional, Dict, Union
 
 import numpy as np
@@ -135,8 +136,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         if lines is None:
             if colour is None:
                 colour = (0.0, 0.0, 0.0)  # Black
-            cmap = infer_cmap_from_color(colour)
-            lines = LineCollection(segments=[], colors=colour, cmap=cmap,
+            # cmap = infer_cmap_from_color(colour)
+            lines = LineCollection(segments=[], colors=colour,
+                                   # cmap=cmap,
                                    linewidths=width, alpha=alpha, zorder=20)
 
             axis.add_collection(lines)
@@ -146,9 +148,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             else:
                 axis.yaxis.set_visible(False)
                 axis.xaxis.set_visible(False)
-        z = np.linspace(0.0, 1.0, len(segments))
-        z = np.asarray(z)
-        lines.set_array(z)
+        # z = np.linspace(0.0, 1.0, len(segments))
+        # z = np.asarray(z)
+        # lines.set_array(z)
         lines.set_segments(segments=segments)
         return lines
 
@@ -173,42 +175,7 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     return box
 
 
-# def colorline(x, y, z=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0, 1.0), linewidth=.8, alpha=.9):
-#     """
-#     Plot a colored line with coordinates x and y
-#     Optionally specify colors in the array z
-#     Optionally specify a colormap, a norm function and a line width
-#     """
-#
-#     # Default colors equally spaced on [0,1]:
-#     if z is None:
-#         z = np.linspace(0.0, 1.0, len(x))
-#
-#     # Special case if a single number:
-#     if not hasattr(z, "__iter__"):  # to check for numerical input -- this is a hack
-#         z = np.array([z])
-#
-#     z = np.asarray(z)
-#
-#     segments = make_segments(x, y)
-#     lc = LineCollection(segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha, zorder=20)
-#
-#     ax = plt.gca()
-#     ax.add_collection(lc)
-#
-#     return lc
-
-
-# def make_segments(x, y):
-#     """
-#     Create list of line segments from x and y coordinates, in the correct format for LineCollection:
-#     an array of the form   numlines x (points per line) x 2 (x and y) array
-#     """
-#     points = np.array([x, y]).T.reshape(-1, 1, 2)
-#     segments = np.concatenate([points[:-1], points[1:]], axis=1)
-#     return segments
-
-
+@lru_cache
 def infer_cmap_from_color(colour):
     colour = colour.lower()
     if colour is None or isinstance(colour, tuple):

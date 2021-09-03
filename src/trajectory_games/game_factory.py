@@ -31,7 +31,6 @@ __all__ = [
 ]
 
 players_file = os.path.join(config_dir, "players.yaml")
-# fixme az this can go?  lanes_file = os.path.join(config_dir, "lanes.yaml")
 leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)

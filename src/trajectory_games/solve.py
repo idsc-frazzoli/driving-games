@@ -162,7 +162,8 @@ class Solution:
         if self.dominated is None:
             self.dominated = {_: set() for _ in context.player_actions.keys()}
         for joint_act in set(iterate_dict_combinations(context.player_actions)):
-            out = equilibrium_check(joint_actions=joint_act, context=context,
+            out = equilibrium_check(joint_actions=joint_act,
+                                    context=context,
                                     done=self.dominated)
             callback_eq(tuple_out=out, eq=eq_dict)
         toc = perf_counter() - tic
