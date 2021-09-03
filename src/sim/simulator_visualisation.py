@@ -88,6 +88,7 @@ class SimRenderer(SimRendererABC):
 class ZOrders(IntEnum):
     MODEL = 35
     PLAYER_NAME = 40
+    TIME_TEXT = 50
 
 
 def plot_vehicle(ax: Axes,

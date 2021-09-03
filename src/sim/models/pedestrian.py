@@ -28,7 +28,7 @@ class PedestrianGeometry(ModelGeometry):
 
     @classmethod
     def default(cls):
-        return PedestrianGeometry(m=75, Iz=50, e=0.3, color="pink")
+        return PedestrianGeometry(m=75, Iz=50, e=0.35, color="pink")
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)

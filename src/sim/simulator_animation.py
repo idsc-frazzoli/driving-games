@@ -6,13 +6,15 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 
+from dg_commons.time import time_function
 from games import PlayerName, X
 from sim import logger
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
-from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players
+from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players, ZOrders
 
 
+@time_function
 def create_animation(file_path: str,
                      sim_context: SimContext,
                      figsize: Optional[Union[list, tuple]] = None,
@@ -41,14 +43,15 @@ def create_animation(file_path: str,
     fig.set_tight_layout(True)
     ax.set_aspect('equal')
     # dictionaries with the handles of the plotting stuff
-    states, actions, opt_actions = {}, {}, {}
+    states, actions, opt_actions, texts = {}, {}, {}, {}
     # some parameters
     plot_wheels: bool = True
 
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
         # fixme this is supposed to be an iterable of artists
-        return list(chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values())
+        return list(chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values()) + list(
+            texts.values())
 
     def init_plot():
         ax.clear()
@@ -64,7 +67,8 @@ def create_animation(file_path: str,
             adjust_axes_limits(ax=ax,
                                plot_limits=plot_limits,
                                players_states=[player.state for player in init_state.values()])
-
+            texts["time"] = ax.text(0.02, 0.96, '', transform=ax.transAxes,
+                                    bbox=dict(facecolor='lightgreen', alpha=0.5), zorder=ZOrders.TIME_TEXT)
         return _get_list()
 
     def update_plot(frame: int = 0):
@@ -78,9 +82,12 @@ def create_animation(file_path: str,
                 state=log_at_t[pname].state,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
+            # ax.scatter(log_at_t[pname].state.x, log_at_t[pname].state.y)
         adjust_axes_limits(ax=ax,
                            plot_limits=plot_limits,
                            players_states=[player.state for player in log_at_t.values()])
+        texts["time"].set_text(f"t = {t:.1f}s")
+        texts["time"].set_transform(ax.transAxes)
         return _get_list()
 
     # Min frame rate is 1 fps

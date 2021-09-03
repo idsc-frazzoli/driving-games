@@ -9,7 +9,7 @@ from sim.models.utils import kmh2ms
 @dataclass(frozen=True, unsafe_hash=True)
 class PedestrianParameters(ModelParameters):
     dtheta_max: float
-    """ Maximum turning_rate [rad] """
+    """ Maximum turning_rate [rad/s] """
 
     @classmethod
     def default(cls) -> "PedestrianParameters":
