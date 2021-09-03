@@ -20,6 +20,11 @@ def test_commonroad_replica():
     run_scenario_without_compmake(sim_context)
 
 
-def test_em_devel():
+def test_scenario_bicycle():
     sim_context = get_scenario_bicycle()
+    run_scenario_without_compmake(sim_context)
+
+
+def test_em_devel():
+    sim_context = get_scenario_devel()
     run_scenario_without_compmake(sim_context)

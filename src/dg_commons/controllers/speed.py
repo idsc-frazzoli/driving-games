@@ -35,10 +35,10 @@ class SpeedController(PID):
 @dataclass
 class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
-    safety_dist_right: float = 2
-    safety_dist_left: float = 2
+    safety_dist_right: float = 6
+    safety_dist_left: float = 6
     safety_dist_front: float = 6
-    safety_dist_front_crash: float = 20
+    safety_dist_front_crash: float = 10
     safety_time_front: float = 2
     vx_limits: Tuple[float, float] = (kmh2ms(-10), kmh2ms(130))
 
@@ -77,8 +77,8 @@ class SpeedBehavior:
                 vel = extract_vel_from_state(self.agents[other_name])
 
                 distance = np.linalg.norm(rel.p)
-                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
-                coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4
+                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and vel > kmh2ms(15)
+                coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4 and vel > kmh2ms(15)
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
                 coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
                 if (coming_from_the_right and distance < self.params.safety_dist_right) or (
