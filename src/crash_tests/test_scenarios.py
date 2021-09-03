@@ -21,5 +21,5 @@ def test_commonroad_replica():
 
 
 def test_em_devel():
-    sim_context = get_scenario_racetrack_test()
+    sim_context = get_scenario_bicycle()
     run_scenario_without_compmake(sim_context)
