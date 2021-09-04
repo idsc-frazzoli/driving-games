@@ -1,7 +1,8 @@
-from typing import Optional
+from typing import Optional, List
 
-from geometry import SE2_from_xytheta, SE2value
+from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
 
+from dg_commons import DgSampledSequence
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
@@ -9,7 +10,7 @@ from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
 from sim import SimObservations
 from sim.agents.agent import Agent
-from sim.models.vehicle import VehicleCommands
+from sim.models.vehicle import VehicleCommands, VehicleState
 
 
 class LFAgent(Agent):
@@ -22,13 +23,15 @@ class LFAgent(Agent):
                  speed_controller: Optional[SpeedController] = None,
                  speed_behavior: Optional[SpeedBehavior] = None,
                  pure_pursuit: Optional[PurePursuit] = None,
-                 steer_controller: Optional[SteerController] = None):
+                 steer_controller: Optional[SteerController] = None,
+                 return_extra: bool = True):
         self.ref_lane = lane
         self.speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
         self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
         self.steer_controller: SteerController = SteerController() if steer_controller is None else steer_controller
         self.pure_pursuit: PurePursuit = PurePursuit() if pure_pursuit is None else pure_pursuit
         self.my_name: Optional[PlayerName] = None
+        self.return_extra: bool = return_extra
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -59,3 +62,16 @@ class LFAgent(Agent):
             acc=acc,
             ddelta=ddelta
         )
+
+    def on_get_extra(self, ) -> List[DgSampledSequence[VehicleState]]:
+        if not self.return_extra:
+            return None
+        _, gpoint = self.pure_pursuit.find_goal_point()
+        pgoal = translation_from_SE2(gpoint)
+        pself = translation_from_SE2(self.pure_pursuit.pose)
+
+        traj = DgSampledSequence[VehicleState](
+            timestamps=[0, 1],
+            values=[VehicleState(x=pself[0], y=pself[1], theta=0, vx=0, delta=0),
+                    VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0)])
+        return [traj, ]
