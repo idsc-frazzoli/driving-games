@@ -5,7 +5,8 @@ from typing import Generic, TypeVar, List, Callable, Type, ClassVar, Iterator, U
 
 from zuper_commons.types import ZException, ZValueError
 
-__all__ = ["Timestamp", "DgSampledSequence", "IterateDT", "iterate_with_dt", "UndefinedAtTime"]
+__all__ = ["Timestamp", "DgSampledSequence", "DgSampledSequenceBuilder", "IterateDT", "iterate_with_dt",
+           "UndefinedAtTime"]
 
 X = TypeVar("X")
 Y = TypeVar("Y")
@@ -17,15 +18,6 @@ class UndefinedAtTime(ZException):
 
 
 @dataclass
-class IterateDT(Generic[X]):
-    t0: Timestamp
-    t1: Timestamp
-    dt: Timestamp
-    v0: X
-    v1: X
-
-
-@dataclass
 class DgSampledSequence(Generic[X]):
     """ A sampled time sequence. Only defined at certain points.
     Modernized version of the original SampledSequence from Duckietown:
@@ -33,6 +25,7 @@ class DgSampledSequence(Generic[X]):
     Modification:
         - Adds the possibility of interpolating
         - removing possibility of assigning post-init timestamps and values fields
+        - Seamless support for different timestamps types (e.g. float or Decimal)
     """
     timestamps: InitVar[Sequence[Timestamp]]
     values: InitVar[Sequence[X]]
@@ -145,6 +138,15 @@ class DgSampledSequence(Generic[X]):
 
     def __len__(self) -> int:
         return len(self._timestamps)
+
+
+@dataclass
+class IterateDT(Generic[X]):
+    t0: Timestamp
+    t1: Timestamp
+    dt: Timestamp
+    v0: X
+    v1: X
 
 
 def iterate_with_dt(sequence: DgSampledSequence[X]) -> Iterator[IterateDT[X]]:

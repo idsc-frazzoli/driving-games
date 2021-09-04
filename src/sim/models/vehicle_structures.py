@@ -4,6 +4,7 @@ from typing import Tuple, List, Optional
 
 import numpy as np
 from geometry import SE2_from_xytheta
+from shapely.geometry import Polygon
 
 from sim import Color
 from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE
@@ -44,8 +45,8 @@ class VehicleGeometry(ModelGeometry):
     @classmethod
     def default_bicycle(cls, color: Optional[Color] = None) -> "VehicleGeometry":
         color = "saddlebrown" if color is None else color
-        return VehicleGeometry(vehicle_type=BICYCLE, m=80.0, Iz=90, w_half=0.25, lf=1.0, lr=1.0, c_drag=0.01,
-                               a_drag=0.2, e=0.4, c_rr_f=0.003, c_rr_r=0.003, color=color)
+        return VehicleGeometry(vehicle_type=BICYCLE, m=85.0, Iz=90, w_half=0.25, lf=1.0, lr=1.0, c_drag=0.01,
+                               a_drag=0.2, e=0.35, c_rr_f=0.003, c_rr_r=0.003, color=color)
 
     @cached_property
     def width(self):
@@ -67,6 +68,10 @@ class VehicleGeometry(ModelGeometry):
         return ((-self.lr - radius, -self.w_half - tyre_halfw), (-self.lr - radius, +self.w_half + tyre_halfw),
                 (+self.lf + frontbumper, +self.w_half + tyre_halfw),
                 (+self.lf + frontbumper, -self.w_half - tyre_halfw), (-self.lr - radius, -self.w_half - tyre_halfw))
+
+    @cached_property
+    def outline_as_polygon(self) -> Polygon:
+        return Polygon(self.outline)
 
     @cached_property
     def wheel_shape(self):

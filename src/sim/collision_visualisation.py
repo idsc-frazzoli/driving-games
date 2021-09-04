@@ -1,3 +1,4 @@
+from collections import Mapping
 from enum import IntEnum
 
 import matplotlib.patches as mpatches
@@ -7,8 +8,10 @@ from matplotlib.cm import get_cmap
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import FancyArrowPatch
 
-from sim import CollisionReport
+from games import PlayerName
+from sim import CollisionReport, SimLog
 from sim.collision_utils import velocity_of_P_given_A
+from sim.simulator_structures import LogEntry
 
 
 class _Zorders(IntEnum):
@@ -22,9 +25,10 @@ class _Zorders(IntEnum):
     DEBUG = 100
 
 
-def plot_collision(collision_report: CollisionReport):
-    fig = plt.figure()
+def plot_collision(collision_report: CollisionReport, sim_log: SimLog):
+    fig = plt.gca().get_figure()
 
+    log_entries: Mapping[PlayerName, LogEntry] = sim_log.at_interp(collision_report.at_time)
     # common impact point and normals
     imp_point = collision_report.impact_point.coords[0]
     n = 0.2 * collision_report.impact_normal
@@ -41,7 +45,7 @@ def plot_collision(collision_report: CollisionReport):
         # vehicle outline
         footprint = p_report.footprint
         plt.plot(*footprint.exterior.xy, color=p_color)
-        xc, yc = footprint.centroid.coords[0]
+        xc, yc = log_entries[player].state.x, log_entries[player].state.y  # footprint.centroid.coords[0]
         plt.text(xc, yc, f"{player}", horizontalalignment="center", verticalalignment="center",
                  zorder=_Zorders.PLAYER_NAME)
         # velocity vectors
@@ -86,4 +90,5 @@ def plot_collision(collision_report: CollisionReport):
 
     fig.set_tight_layout(True)
     plt.axis('equal')
+    plt.draw()
     return
