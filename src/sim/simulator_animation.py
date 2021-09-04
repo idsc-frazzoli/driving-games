@@ -5,6 +5,7 @@ from typing import Mapping, List, Union, Optional, Sequence
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
+from toolz.sandbox import unzip
 
 from dg_commons.time import time_function
 from games import PlayerName, X
@@ -45,6 +46,7 @@ def create_animation(file_path: str,
     # dictionaries with the handles of the plotting stuff
     states, actions, extra, texts = {}, {}, {}, {}
     traj_lines, traj_points = {}, {}
+    history = {}
     # some parameters
     plot_wheels: bool = True
 
@@ -66,9 +68,11 @@ def create_animation(file_path: str,
                     alpha=0.7,
                     plot_wheels=plot_wheels)
                 if plog.extra is not None:
+                    trajectories, tcolors = unzip(plog.extra)
                     traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
                         ax=ax, player_name=pname,
-                        trajectories=plog.extra
+                        trajectories=list(trajectories),
+                        colors=list(tcolors)
                     )
             adjust_axes_limits(ax=ax,
                                plot_limits=plot_limits,
@@ -89,11 +93,13 @@ def create_animation(file_path: str,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
             if log_at_t[pname].extra is not None:
+                trajectories, tcolors = unzip(log_at_t[pname].extra)
                 traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
                     ax=ax, player_name=pname,
-                    trajectories=log_at_t[pname].extra,
+                    trajectories=list(trajectories),
                     traj_lines=traj_lines[pname],
-                    traj_points=traj_points[pname]
+                    traj_points=traj_points[pname],
+                    colors=list(tcolors)
                 )
         adjust_axes_limits(ax=ax,
                            plot_limits=plot_limits,

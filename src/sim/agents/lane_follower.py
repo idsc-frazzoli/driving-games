@@ -1,5 +1,7 @@
-from typing import Optional, List
+from typing import Optional
 
+import numpy as np
+from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
 
 from dg_commons import DgSampledSequence
@@ -11,6 +13,7 @@ from games import PlayerName
 from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands, VehicleState
+from sim.sim_vis_extra import DrawableTrajectoryType
 
 
 class LFAgent(Agent):
@@ -63,15 +66,23 @@ class LFAgent(Agent):
             ddelta=ddelta
         )
 
-    def on_get_extra(self, ) -> List[DgSampledSequence[VehicleState]]:
+    def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
         if not self.return_extra:
             return None
         _, gpoint = self.pure_pursuit.find_goal_point()
         pgoal = translation_from_SE2(gpoint)
-        pself = translation_from_SE2(self.pure_pursuit.pose)
-
+        l = 3.5
+        rear_axle = SE2_apply_R2(self.pure_pursuit.pose, np.array([-l / 2, 0]))
         traj = DgSampledSequence[VehicleState](
-            timestamps=[0, 1],
-            values=[VehicleState(x=pself[0], y=pself[1], theta=0, vx=0, delta=0),
-                    VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0)])
-        return [traj, ]
+            timestamps=[0, 1, 3],
+            values=[VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
+                    VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0),
+                    VehicleState(x=pgoal[0] + 1, y=pgoal[1] + 1, theta=0, vx=1, delta=0)])
+        # traj2 = DgSampledSequence[VehicleState](
+        #     timestamps=[0, 1, 3],
+        #     values=[VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
+        #             VehicleState(x=pgoal[0] + 2, y=pgoal[1] - 2, theta=0, vx=1, delta=0),
+        #             VehicleState(x=pgoal[0] - 1, y=pgoal[1] - 2, theta=0, vx=1, delta=0)])
+        traj_s = [traj, ]
+        colors = ["gold", ]
+        return list(zip(traj_s, colors))

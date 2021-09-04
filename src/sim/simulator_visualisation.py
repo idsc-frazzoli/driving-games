@@ -92,27 +92,31 @@ class SimRenderer(SimRendererABC):
                           trajectories: Sequence[DgSampledSequence],
                           traj_lines: Optional[List[LineCollection]] = None,
                           traj_points: Optional[List[PathCollection]] = None,
-                          colour: Color = None,
+                          colors: Optional[List[Color]] = None,
                           width: float = 1,
                           alpha: float = 1) -> Tuple[List[LineCollection], List[PathCollection]]:
         mg = self.sim_context.models[player_name].get_geometry()
+        assert colors is None or len(colors) == len(trajectories)
+        colors = mg.color if colors is None else colors
+
         segments, mcolor = [], []
         for traj in trajectories:
             sampled_traj = np.vstack([[x.x, x.y, x.vx] for x in traj.values])
             segments.append(sampled_traj[:, :2])
-            mcolor.append(sampled_traj[:, 2])
+            mcolor.append(sampled_traj[:, 2]) # fixme marker color functionality not available yet
 
         if traj_lines is None:
-            colour = mg.color if colour is None else colour
             traj_lines = LineCollection(segments=[],
-                                        colors=colour,
+                                        colors=colors,
                                         linewidths=width,
                                         alpha=alpha,
                                         zorder=ZOrders.TRAJECTORY)
             ax.add_collection(traj_lines)
-            traj_points = ax.scatter([], [], c="r",zorder=ZOrders.TRAJECTORY_MARKER)
+            size = np.linalg.norm(ax.bbox.size) / 1000
+            traj_points = ax.scatter([], [], s=size, c="r", zorder=ZOrders.TRAJECTORY_MARKER)
             ax.add_collection(traj_points)
         traj_lines.set_segments(segments=segments)
+        traj_lines.set_color(colors)
         traj_points.set_offsets(np.concatenate(segments))
         # traj_points.set_facecolor(mcolor) # todo adjust color based on velocity
         # https://stackoverflow.com/questions/23966121/updating-the-positions-and-colors-of-pyplot-scatter
