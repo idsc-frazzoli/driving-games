@@ -83,7 +83,7 @@ ral_02_level_0:
       state: "state_2_peach"
       goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
       traj: "traj_1_3"
-      pref: "safe"
+      pref: "cautious"
       vg: "green_car"
     Average: &P32
       state: "state_3_peach"
@@ -100,7 +100,7 @@ ral_02_level_1:
       pref: "pref_ambulance_level_1"
     Granny:
       <<: *P22
-      pref: "safe"
+      pref: "cautious"
     Average:
       <<: *P32
       pref: "common_person"
@@ -114,7 +114,7 @@ ral_02_level_2:
       pref: "pref_ambulance_level_2"
     Granny:
       <<: *P22
-      pref: "safe"
+      pref: "cautious"
     Average:
       <<: *P32
       pref: "common_person"
@@ -133,7 +133,7 @@ ral_03_level_0:
       state: "state_2_peach"
       goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
       traj: "traj_1_3"
-      pref: "safe"
+      pref: "cautious"
       vg: "green_car"
     Average: &P33
       state: "state_3_peach"
@@ -150,7 +150,7 @@ ral_03_level_1:
       pref: "pref_ambulance_level_1"
     Granny:
       <<: *P13
-      pref: "safe"
+      pref: "cautious"
     Average:
       <<: *P33
       pref: "common_person"
@@ -164,7 +164,7 @@ ral_03_level_2:
       pref: "pref_ambulance_level_2"
     Granny:
       <<: *P13
-      pref: "safe"
+      pref: "cautious"
     Average:
       <<: *P33
       pref: "common_person"
@@ -183,7 +183,7 @@ ral_04_level_0:
       state: "state_2_peach"
       goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
       traj: "traj_1_3"
-      pref: "safe"
+      pref: "cautious"
       vg: "green_car"
     Average: &P24
       state: "state_3_peach"
@@ -200,7 +200,7 @@ ral_04_level_1:
       pref: "pref_ambulance_level_1"
     Granny:
       <<: *P14
-      pref: "safe"
+      pref: "cautious"
     Average:
       <<: *P24
       pref: "common_person"
@@ -214,7 +214,7 @@ ral_04_level_2:
       pref: "pref_ambulance_level_2"
     Granny:
       <<: *P14
-      pref: "safe"
+      pref: "cautious"
     Average:
       <<: *P24
       pref: "common_person"
