@@ -8,8 +8,8 @@
 
 red_car:      &car
   m:      1000
-  w:      1.0
-  l:      2.0
+  w:      0.9
+  l:      1.9
   colour: "firebrick"
 
 blue_car:

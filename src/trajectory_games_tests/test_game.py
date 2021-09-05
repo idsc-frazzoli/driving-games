@@ -30,7 +30,7 @@ from trajectory_games import (
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
 plot_gif = False  # gif vs image for viz
-only_traj = True  # Only trajectory generation vs full game
+only_traj = False  # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"
 
@@ -63,7 +63,7 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: TrajectoryGame = get_trajectory_game(config_str="basic2")
+    game: TrajectoryGame = get_trajectory_game(config_str="basic")
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:

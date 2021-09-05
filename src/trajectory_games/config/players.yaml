@@ -27,22 +27,22 @@ basic:
     P1:
       state:    "state_1_peach"
 #      goals:    null
-      goals:    [[4.5,30.0], [8.0,30.0]]
-      traj:     "traj_1_5"
+      goals:    [[-15.0,13.5], [-15.0,17]]
+      traj:     "traj_1_3"
       pref:     "pref_d6"
       vg:       "green_car"
     P2:
       state:    "state_2_peach"
 #      goals:    null
-      goals:    [[-3.5,-10.0], [-7.0,-10.0]]
-      traj:     "traj_1_5"
+      goals:    [[-3.5,-5.0], [-7.0,-5.0]]
+      traj:     "traj_1_3"
       pref:     "pref_d6"
       vg:       "blue_car"
     P3:
       state:    "state_3_peach"
 #      goals:    null
-      goals:    [[-20.0,13.5], [-20.0,17]]
-      traj:     "traj_1_5"
+      goals:    [[-15.0,13.5], [-15.0,17]]
+      traj:     "traj_1_3"
       pref:     "pref_d6"
       vg:       "red_car"
 
@@ -69,8 +69,6 @@ basic2:
       traj:     "traj_1_5"
       pref:     "pref_10_2"
       vg:       "red_car"
-
-
 
 
 ## Lexi config

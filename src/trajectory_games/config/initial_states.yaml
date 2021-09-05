@@ -33,12 +33,12 @@ state_1_peach:
 state_2_peach:
   <<: *state
   x0:     -1.0
-  y0:     20.0
+  y0:     25.0
   v0:     5.0
 
 state_3_peach:
   <<: *state
-  x0:     10.0
+  x0:     13.0
   y0:     14.0
   v0:     5.0
 
