@@ -15,12 +15,12 @@ def bruteforce_solve(context: SolvingContext) -> (Mapping[str, SolvedTrajectoryG
 
 
 def bruteforce_report(game: TrajectoryGame, nash_eq=Mapping[str, SolvedTrajectoryGame],
-                      skip_gif: bool = False) -> Report:
+                      gif: bool = False) -> Report:
     game.game_vis.init_plot_dict(values=nash_eq["weak"])
     r_game = Report()
-    if not skip_gif:
+    if gif:  # first level we plot everything
         r_game.add_child(report_game_visualization(game=game))
-    create_reports(game=game, nash_eq=nash_eq, r_game=r_game, gif=skip_gif)
+    create_reports(game=game, nash_eq=nash_eq, r_game=r_game, gif=gif)
     prefs = {p.name: p.preference for p in game.game_players.values()}
     r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))
     return r_game
@@ -43,9 +43,9 @@ class RalExperiments(QuickApp):
                 game = cexp.comp(get_trajectory_game, pref_str)
                 solving_context = cexp.comp(preprocess_full_game, game)
                 nash_eq = cexp.comp(bruteforce_solve, solving_context)
-                skip_gif = False if level == 0 else True
-                report = cexp.comp(bruteforce_report, game, nash_eq=nash_eq, skip_gif=skip_gif)
-                cexp.add_report(report, f"refinement_{level}")
+                gif = True if level == 0 else False
+                report = cexp.comp(bruteforce_report, game, nash_eq=nash_eq, gif=gif)
+                cexp.add_report(report, extra_report_keys={"refinement": f"{level}"})
 
 
 run_ral_exp = RalExperiments.get_sys_main()

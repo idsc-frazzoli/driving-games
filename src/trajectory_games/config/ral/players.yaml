@@ -34,7 +34,7 @@ ral_01_level_0:
       goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
       traj: "traj_1_3"
       pref: "pref_granny"
-      vg: "blue_car"
+      vg: "green_car"
     P3: &P3
       state: "state_3_peach"
       goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]

@@ -35,8 +35,10 @@ d = "out/tests/"
 filename = "r_game_all.html"
 
 
-def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   r_game: Report, gif: bool = plot_gif):
+def create_reports(game: TrajectoryGame,
+                   nash_eq: Mapping[str, SolvedTrajectoryGame],
+                   r_game: Report,
+                   gif: bool = plot_gif):
     if not only_traj:
         print(", ".join(f"{k.capitalize()} = {len(v)}" for k, v in nash_eq.items()))
         r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=gif))
