@@ -149,7 +149,7 @@ def test_trajectory_game_levels():
             game.game_vis.init_plot_dict(values=stage_eq["weak"])
         if stage not in r_levels:
             rep = Report()
-            create_reports(game=game, nash_eq=stage_eq, r_game=rep, gif=False)
+            create_reports(game=game, nash_eq=stage_eq, r_game=rep, gif=plot_gif)
             node: Report = rep.last()
             node.nid = f"Pref_{name}"
             r_levels[stage] = node
@@ -161,7 +161,7 @@ def test_trajectory_game_levels():
 
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
-    create_reports(game=game, nash_eq=nash_eqf, r_game=r_game, gif=True)
+    create_reports(game=game, nash_eq=nash_eqf, r_game=r_game, gif=plot_gif)
     prefs = {p.name: p.preference for p in game.game_players.values()}
     r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))
     for level in r_levels.values():

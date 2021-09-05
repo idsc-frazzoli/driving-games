@@ -18,6 +18,7 @@ from preferences import (
     SECOND_PREFERRED,
 )
 from .config import config_dir
+from .config.ral import config_dir_ral
 from .metrics_def import Metric, PlayerOutcome
 from .metrics import get_metrics_set
 
@@ -116,7 +117,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:
-            filename = os.path.join(config_dir, "player_pref.yaml")
+            filename = os.path.join(config_dir_ral, "player_pref.yaml")
             with open(filename) as load_file:
                 PosetalPreference._config = safe_load(load_file)
 

@@ -1,0 +1,65 @@
+
+# Pref structure for each player
+# Player_name:
+#   node1:   List[None]
+#   node2:   List[Parent1, Parent2, ...]
+#   node3:   List[Parent1, Parent3, ...]
+#     nodes    -> Any node from pref_nodes.yaml
+#     Parents  -> Any node from pref_nodes.yaml
+
+# Use "NoPreference" for any action
+
+## Finite time preferences
+pref_ambulance:
+  CollisionEnergy:            []
+  EpisodeTime:                ["CollisionEnergy"]
+  MinimumClearance:           ["EpisodeTime"]
+  DrivableAreaViolation:      ["EpisodeTime"]
+  DeviationHeading:           ["DrivableAreaViolation","MinimumClearance"]
+
+pref_ambulance_level_1:
+  CollisionEnergy: [ ]
+  EpisodeTime: [ "CollisionEnergy" ]
+  MinimumClearance: [ "EpisodeTime" ]
+  DrivableAreaViolation: [ "MinimumClearance" ]
+  DeviationHeading:           ["DrivableAreaViolation"]
+
+pref_ambulance_level_2:
+  CollisionEnergy: [ ]
+  EpisodeTime: [ "CollisionEnergy" ]
+  MinimumClearance: [ "EpisodeTime" ]
+  DrivableAreaViolation: [ "MinimumClearance" ]
+  DeviationHeading: [ "DrivableAreaViolation" ]
+  weights_comf: ["DeviationHeading"]
+
+pref_granny:
+  CollisionEnergy:            []
+  MinimumClearance:           ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  LateralComfort:             ["DrivableAreaViolation", "MinimumClearance"]
+  DeviationHeading:           ["DrivableAreaViolation", "MinimumClearance"]
+  DeviationLateral:           ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime:                ["DeviationHeading", "DeviationLateral","LateralComfort"]
+
+pref_granny_level_1:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation:      [ "CollisionEnergy" ]
+  MinimumClearance:           [ "DrivableAreaViolation" ]
+  LateralComfort:             [ "DrivableAreaViolation"]
+  weights_5:                  ["DrivableAreaViolation"]
+  EpisodeTime:                ["weights_5","LateralComfort"]
+
+pref_granny_level_2:
+  CollisionEnergy:            []
+  #todo
+
+common_person:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation:    [ "CollisionEnergy" ]
+  weights_speed:           [ "DrivableAreaViolation" ]
+  MinimumClearance:       [ "DrivableAreaViolation" ]
+  weights_5:               [ "weights_speed", "MinimumClearance" ]
+  LateralComfort:           [ "weights_5" ]
+  LongitudinalAcceleration:   [ "weights_5" ]
+
+

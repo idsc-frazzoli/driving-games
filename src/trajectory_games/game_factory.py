@@ -16,6 +16,7 @@ from preferences import SetPreference1
 from sim.scenarios import load_commonroad_scenario
 from world import SE2Transform
 from .config import config_dir
+from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
@@ -30,12 +31,12 @@ __all__ = [
     "get_leader_follower_game",
 ]
 
-players_file = os.path.join(config_dir, "players.yaml")
-leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
+players_file = os.path.join(config_dir_ral, "players.yaml")
+#leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
-with open(leader_follower_file) as load_file:
-    config_lf = safe_load(load_file)["leader_follower"]
+# with open(leader_follower_file) as load_file:
+#     config_lf = safe_load(load_file)["leader_follower"]
 
 
 def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:

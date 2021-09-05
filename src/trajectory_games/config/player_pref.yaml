@@ -20,6 +20,7 @@ pref_ambulance:
   DeviationLateral:           ["DrivableAreaViolation"]
   LateralComfort:             ["DrivableAreaViolation"]
 
+
 pref_granny:
   CollisionEnergy:            []
   MinimumClearance:           ["CollisionEnergy"]

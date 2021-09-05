@@ -1,0 +1,72 @@
+#map_name: Map to load (from scenarios)
+#map_name: "USA_Lanker-1_1_T-1"
+map_name: "USA_Peach-4_3_T-1"
+
+# Goal params
+#max_length: Max reference lane length in m
+goal:
+  max_length: 75.0
+  long_dist: 2.0
+  lat_dist: 10.0
+
+#plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
+plot_limits: [ [ -30, 20 ], [ -15, 35 ] ]
+
+#players:    List of players in the game
+#  P1:        Player Name
+#    state:    Initial state (from initial_states.yaml)
+#    goals:    List of Goal(s) polygon points [[[xi,yi],[xj,yj]]] or null
+#    traj:     Trajectory params (from trajectories.yaml)
+#    pref:     Player preference (from player_pref.yaml)
+#    vg:       Vehicle geometry (from vehicles.yaml)
+#  P2: ...
+
+ral_01_level_0:
+  players:
+    P1: &P1
+      state: "state_1_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    P2: &P2
+      state: "state_2_peach"
+      goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
+      traj: "traj_1_3"
+      pref: "pref_granny"
+      vg: "blue_car"
+    P3: &P3
+      state: "state_3_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_01_level_1:
+  players:
+    P1:
+      <<: *P1
+      pref: "pref_ambulance_level_1"
+    P2:
+      <<: *P2
+      pref: "pref_granny_level_1"
+    P3:
+      <<: *P3
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_01_level_2:
+  players:
+    P1:
+      <<: *P1
+      pref: "pref_ambulance_level_2"
+    P2:
+      <<: *P2
+      pref: "pref_granny_level_1"
+    P3:
+      <<: *P3
+      pref: "common_person"
+
+
