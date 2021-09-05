@@ -17,7 +17,6 @@ def bruteforce_solve(context: SolvingContext) -> Mapping[str, SolvedTrajectoryGa
 def bruteforce_report(game: TrajectoryGame, nash_eq=Mapping[str, SolvedTrajectoryGame]) -> Report:
     game.game_vis.init_plot_dict(values=nash_eq["weak"])
     r_game = Report()
-    print(game.game_vis)
     r_game.add_child(report_game_visualization(game=game))
     create_reports(game=game, nash_eq=nash_eq, r_game=r_game, gif=True)
     prefs = {p.name: p.preference for p in game.game_players.values()}
