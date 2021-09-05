@@ -2,16 +2,16 @@ from copy import deepcopy
 from random import choice
 from time import perf_counter
 from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
+
 from frozendict import frozendict
 
+from games import PlayerName
 from games.utils import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
-
-from games import PlayerName
 from .game_def import SolvingContext
-from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame
+from .metrics_def import TrajGameOutcome, PlayerOutcome
 from .paths import Trajectory
-from .metrics_def import TrajGameOutcome, PlayerOutcome, EvaluatedMetric
+from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
 EqOutcome = Tuple[Optional[JointPureTraj], Optional[TrajGameOutcome], bool, bool, bool, bool]
@@ -266,9 +266,13 @@ def filter_admissible_nasheq(weak_eq: SolvedTrajectoryGame,
                 comp_outcomes.add(pref.compare(equilibria.outcomes[pname], alt_ne.outcomes[pname]))
             if INCOMPARABLE in comp_outcomes or {FIRST_PREFERRED, SECOND_PREFERRED} <= comp_outcomes:
                 continue
-            if FIRST_PREFERRED in comp_outcomes:
-                admissible.remove(alt_ne)
-            elif SECOND_PREFERRED in comp_outcomes:
-                admissible.remove(equilibria)
+            try:
+                if FIRST_PREFERRED in comp_outcomes:
+                    admissible.remove(alt_ne)
+                elif SECOND_PREFERRED in comp_outcomes:
+                    admissible.remove(equilibria)
+            except KeyError:
+                # trying to remove something that has been already removed
+                pass
 
     return admissible
