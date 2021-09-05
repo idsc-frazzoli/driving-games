@@ -43,6 +43,11 @@ def report_game_visualization(game: Game) -> Report:
                     actions = player.actions_generator.get_actions_static(
                         state=state, world=game.world, player=player.name)
                     viz.plot_actions(axis=ax, actions=actions, colour=player.vg.colour, width=0.5)
+                    size = (ax.bbox.height / 1000.0) ** 2
+                    for path in actions:
+                        vals = [(x.x, x.y, x.v) for _, x in path]
+                        x, y, vel = zip(*vals)
+                        ax.scatter(x, y, s=size, c=vel, zorder=100)
             adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
 
     toc = perf_counter() - tic
@@ -125,7 +130,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
                 viz.plot_equilibria(axis=axis, actions=frozenset([action]),
                                     colour=players[pname].vg.colour,
                                     width=width, alpha=min(1.0, width), ticks=False)
-                adjust_axes_limits(ax=ax, plot_limits=viz.plot_limits, players_states=states)
+            adjust_axes_limits(ax=ax, plot_limits=viz.plot_limits, players_states=states)
 
     if nodes_strong is None:
         nodes_strong = set()
@@ -220,7 +225,8 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                                 actions=frozenset(actions),
                                 colour=color,
                                 width=w, alpha=min(w, 1.0),
-                                scatter=True)
+                                scatter=True,
+                                plot_lanes = False)
 
     def plot_pref(rep: Report):
         with rep.data_file("Pref", MIME) as fn:
@@ -246,8 +252,8 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                     for state in player.state.support():
                         states.append(state)
                         viz.plot_player(axis=ax, player_name=player_name, state=state)
-                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.5)
-                plot_eq_all(axis=ax, actions_all=actions_strong, w=2.0)
+                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.5, color="green")
+                plot_eq_all(axis=ax, actions_all=actions_strong, w=2.0,  color="gold")
                 adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
         plot_pref(rep=eq_viz)
 

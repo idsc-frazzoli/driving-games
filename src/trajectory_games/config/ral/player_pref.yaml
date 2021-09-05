@@ -41,7 +41,7 @@ pref_granny:
   DeviationLateral:           ["DrivableAreaViolation", "MinimumClearance"]
   EpisodeTime:                ["DeviationHeading", "DeviationLateral","LateralComfort"]
 
-pref_granny_level_1:
+pref_granny_level_1: # fixme this is not a refinement
   CollisionEnergy: [ ]
   DrivableAreaViolation:      [ "CollisionEnergy" ]
   MinimumClearance:           [ "DrivableAreaViolation" ]
@@ -55,11 +55,18 @@ pref_granny_level_2:
 
 common_person:
   CollisionEnergy: [ ]
-  DrivableAreaViolation:    [ "CollisionEnergy" ]
-  weights_speed:           [ "DrivableAreaViolation" ]
-  MinimumClearance:       [ "DrivableAreaViolation" ]
-  weights_5:               [ "weights_speed", "MinimumClearance" ]
-  LateralComfort:           [ "weights_5" ]
-  LongitudinalAcceleration:   [ "weights_5" ]
+  DrivableAreaViolation:       [ "CollisionEnergy" ]
+  weights_speed:               [ "DrivableAreaViolation" ]
+  MinimumClearance:            [ "DrivableAreaViolation" ]
+  weights_5:                   [ "weights_speed", "MinimumClearance" ]
+  LateralComfort:              [ "weights_5" ]
+  LongitudinalAcceleration:    [ "weights_5" ]
 
+cautious:
+  DrivableAreaViolation: []
+  CollisionEnergy: []
+  MinimumClearance: []
+  LateralComfort:             ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
+  LongitudinalAcceleration:   ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
+  EpisodeTime:                ["LateralComfort", "LongitudinalAcceleration"]
 

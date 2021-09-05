@@ -62,15 +62,15 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
     def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
                         colour: Color,
-                        width: float = 1.0, alpha: float = 1.0,
-                        ticks: bool = True, scatter: bool = True):
+                        width: float = .9, alpha: float = 1.0,
+                        ticks: bool = True, scatter: bool = True, plot_lanes=True):
 
         self.plot_actions(axis=axis, actions=actions,
                           colour=colour, width=width,
-                          alpha=alpha, ticks=ticks)
+                          alpha=alpha, ticks=ticks, plot_lanes=plot_lanes)
 
         if scatter:
-            size = (axis.bbox.height / 1000.0) ** 2
+            size = (axis.bbox.height / 2000.0) ** 2
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
@@ -109,11 +109,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         if add_title:
             axis.text(x=X, y=Y + 10.0, s=pname + text, ha="center", va="center")
             axis.set_ylim(top=Y + 15.0)
+            # I suspect here we have the problems
 
     def plot_actions(self, axis: Axes, actions: FrozenSet[Trajectory],
                      colour: Color = None,
-                     width: float = 1.0, alpha: float = 1.0,
-                     ticks: bool = True, lines=None) -> LineCollection:
+                     width: float = .7, alpha: float = 1.0,
+                     ticks: bool = True, lines=None, plot_lanes=True) -> LineCollection:
         segments = []
         lanes: Dict[DgLanelet, Optional[Polygon]] = {}
         for traj in actions:
@@ -128,33 +129,35 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             x = np.array(xp)
             y = np.array(yp)
             if colour is not None:
-                axis.fill(x, y, color=colour, alpha=0.2, zorder=15)
+                if plot_lanes:
+                    axis.fill(x, y, color=colour, alpha=0.2, zorder=15)
                 #  Toggle to plot goal region
                 # if goal is not None:
                 #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=20)
 
         if lines is None:
             if colour is None:
-                colour = (0.0, 0.0, 0.0)  # Black
-            cmap = infer_cmap_from_color(colour)
+                colour = "gray"  # Black
+            # cmap = infer_cmap_from_color(colour)
             length_seg = sum([x.shape[0] for x in segments])
             z = np.linspace(0.0, 1.0, len(segments))
             lines = LineCollection(segments=[],
-                                   #colors=colour,
+                                   # colors=colour,
                                    array=z,
-                                   cmap=cmap, norm=plt.Normalize(0.0, 1.0),
+                                   # cmap=cmap, norm=plt.Normalize(0.0, 1.0),
                                    linewidths=width, alpha=alpha, zorder=20)
 
             axis.add_collection(lines)
-            if ticks:
-                axis.yaxis.set_ticks_position("left")
-                axis.xaxis.set_ticks_position("bottom")
-            else:
-                axis.yaxis.set_visible(False)
-                axis.xaxis.set_visible(False)
+            # if ticks:
+            #     axis.yaxis.set_ticks_position("left")
+            #     axis.xaxis.set_ticks_position("bottom")
+            # else:
+            #     axis.yaxis.set_visible(False)
+            #     axis.xaxis.set_visible(False)
 
         # lines.set_array(z)
         lines.set_segments(segments=segments)
+        lines.set_color(colour)
         return lines
 
 
