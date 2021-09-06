@@ -70,11 +70,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                           alpha=alpha, ticks=ticks, plot_lanes=plot_lanes)
 
         if scatter:
-            size = (axis.bbox.height / 500.0) ** 2
+            size = (axis.bbox.height / 2000.0) ** 2
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
-                scatter = axis.scatter(x, y, s=size, c=vel, cmap='winter', vmin=2.0, vmax=10.0, zorder=ZOrder.scatter)
+                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='winter',
+                                       vmin=2.0, vmax=10.0, zorder=ZOrder.scatter)
                 # plt.colorbar(scatter, ax=axis)
 
     def plot_pref(self, axis, pref: PosetalPreference,
@@ -169,10 +170,13 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     q = SE2_from_xytheta(xy_theta)
     car = transform_xy(q, car)
     if box is None:
-        box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=ZOrder.car_box)
+        box, = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        axis.text(x4, y4, player_name, zorder=ZOrder.player_name,
-                  horizontalalignment="center",
+        axis.text(x4+2, y4,
+                  player_name,
+                  fontsize=9,
+                  zorder=ZOrder.player_name,
+                  horizontalalignment="left",
                   verticalalignment="center")
     box.set_xy(np.array(car))
     return box
