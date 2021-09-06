@@ -31,14 +31,14 @@ traj_1:       &traj_1
   dst_max:    1.0
   dst_scale:  True
   n_factor:   0.8
-  dt_samp:    "0.2"
+  dt_samp:    "0.1"
 
 traj_1_3:     &traj_1_3
   <<:         *traj_1
   dt:         "2.0"
   max_gen:    1
   n_acc:      2
-  n_dst:      3
+  n_dst:      2
   step_dst:   0.12
 
 traj_1_5:     &traj_1_5

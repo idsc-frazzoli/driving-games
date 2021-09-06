@@ -172,9 +172,10 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
         vehicle_box, = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
         box = [vehicle_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        axis.text(x4 + 2, y4,
+
+        axis.text(x4 + 1, y4,
                   player_name,
-                  fontsize=9,
+                  fontsize=8,
                   zorder=ZOrder.player_name,
                   horizontalalignment="left",
                   verticalalignment="center")

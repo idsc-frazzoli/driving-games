@@ -418,3 +418,53 @@ ral_08_level_2:
     Average:
       <<: *P28
       pref: "common_person"
+
+
+
+ral_10_level_0:
+  players:
+    Ambulance: &P310
+      state: "state_1_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "red_car"
+    Granny: &P110
+      state: "state_2_peach"
+      goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P210
+      state: "state_3_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_10_level_1:
+  players:
+    Ambulance:
+      <<: *P310
+      pref: "common_person"
+    Granny:
+      <<: *P110
+      pref: "cautious_2"
+    Average:
+      <<: *P210
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_10_level_2:
+  players:
+    Ambulance:
+      <<: *P310
+      pref: "common_person"
+    Granny:
+      <<: *P110
+      pref: "cautious_3"
+    Average:
+      <<: *P210
+      pref: "common_person"

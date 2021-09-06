@@ -309,7 +309,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
     assert isinstance(node, SolvedTrajectoryGameNode)
     assert isinstance(viz, TrajGameVisualization)
 
-    fig, ax = plt.subplots(figsize=(5, 5))
+    fig, ax = plt.subplots(figsize=(6, 6))
     fig.set_tight_layout(True)
     ax.set_aspect(1)
     box = {}
