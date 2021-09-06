@@ -76,6 +76,15 @@ run-with-mounted-src:
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
+run-posets-exp: build
+	mkdir -p $(out-docker)
+	docker run -it \
+		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		posets-exp -o /out/posets --reset
+
+
+
 black:
 	black -l 110 --target-version py37 src
 
@@ -91,7 +100,7 @@ docs-docker: build
 	mkdir -p $(out-docker)/docs
 	docker run -it --rm --user $$(id -u)\
 		-v ${PWD}/src:/driving_games/src:ro \
-		-v ${PWD}/$(out-docker)/docs:/driving-games/$(out)/docs $(tag) \
+		-v ${PWD}/$(out-docker)/docs:/driving_games/$(out)/docs $(tag) \
 		sphinx-build src /driving-games/$(out)/docs
 
 
