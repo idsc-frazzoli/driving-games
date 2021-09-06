@@ -24,7 +24,7 @@ class SCIdentityParam(BaseParam):
 
 
 class SCIdentity(BaseClass):
-    def __init__(self, params: SCIdentityParam):
+    def __init__(self, params: Optional[SCIdentityParam] = None):
         self.params = SCIdentityParam() if params is None else params
 
     def get_steering_velocity(self, desired_steering: float, current_steering: float):

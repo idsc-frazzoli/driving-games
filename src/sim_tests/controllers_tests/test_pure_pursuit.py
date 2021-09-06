@@ -38,7 +38,7 @@ def test_pure_pursuit():
     metrics = [DeviationLateral]
     """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", pp_controller, sp_controller, sp_behavior, steering_controller, metrics)
+    test_pp = TestController(scenario_name, "-", metrics, pp_controller, sp_behavior, steering_controller, sp_controller)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()

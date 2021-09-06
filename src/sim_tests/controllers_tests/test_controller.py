@@ -18,13 +18,13 @@ from crash.reports import generate_report
 
 class TestController:
 
-    def __init__(self, scenario_name: str, vehicle_model: str, lateral_controller, longitudinal_controller,
-                 speed_behavior, steering_controller, metrics):
+    def __init__(self, scenario_name: str, vehicle_model: str, metrics, controller,
+                 speed_behavior, steering_controller, longitudinal_controller=None):
 
         scenario, _ = load_commonroad_scenario(scenario_name)
         self.lanelet_net = scenario.lanelet_network
 
-        self.lateral_controller = lateral_controller
+        self.controller = controller
         self.longitudinal_controller = longitudinal_controller
         self.speed_behavior = speed_behavior
         self.steering_controller = steering_controller
@@ -47,18 +47,22 @@ class TestController:
 
     def _agent_model_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
 
-        lateral_controller = self.lateral_controller["Controller"]()
-        lateral_controller.params = self.lateral_controller["Parameters"]
-        longitudinal_controller = self.longitudinal_controller["Controller"]()
-        longitudinal_controller.params = self.longitudinal_controller["Parameters"]
+        controller = self.controller["Controller"]()
+        controller.params = self.controller["Parameters"]
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
         steering_controller = self.steering_controller["Controller"]()
         steering_controller.params = self.steering_controller["Parameters"]
-
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
-        agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
-                                 lateral_controller=lateral_controller, steering_controller=steering_controller)
+
+        if self.longitudinal_controller:
+            longitudinal_controller = self.longitudinal_controller["Controller"]()
+            longitudinal_controller.params = self.longitudinal_controller["Parameters"]
+            agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
+                                     controller=controller, steering_controller=steering_controller)
+        else:
+            agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, controller=controller,
+                                     steering_controller=steering_controller)
         return agent
 
     @staticmethod
@@ -135,10 +139,11 @@ class TestController:
                 key_str += str(value)
             return res, key_str
 
-        lateral_dict, key_str = dict_key_from_dataclass(self.lateral_controller)
+        lateral_dict, key_str = dict_key_from_dataclass(self.controller)
         key_string += key_str
-        longitudinal_dict, key_str = dict_key_from_dataclass(self.longitudinal_controller)
-        key_string += key_str
+        if self.longitudinal_controller:
+            longitudinal_dict, key_str = dict_key_from_dataclass(self.longitudinal_controller)
+            key_string += key_str
         steering_dict, key_str = dict_key_from_dataclass(self.steering_controller)
         key_string += key_str
 
