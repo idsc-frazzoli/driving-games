@@ -65,7 +65,7 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: TrajectoryGame = get_trajectory_game(config_str="basic")
+    game: TrajectoryGame = get_trajectory_game(config_str="ral_01_level_2")
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
@@ -81,7 +81,7 @@ def test_trajectory_game_best_response():
     folder = "best_response/"
     n_runs = 100  # Number of random runs for best response
 
-    game: TrajectoryGame = get_trajectory_game(config_str="basic")
+    game: TrajectoryGame = get_trajectory_game(config_str="ral_01_level_2")
     context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
 
     if only_traj:

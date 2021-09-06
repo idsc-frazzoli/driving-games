@@ -39,7 +39,7 @@ traj_1_3:     &traj_1_3
   max_gen:    1
   n_acc:      3
   n_dst:      3
-  step_dst:   0.15
+  step_dst:   0.12
 
 traj_1_5:     &traj_1_5
   <<:         *traj_1

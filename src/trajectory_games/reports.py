@@ -43,11 +43,13 @@ def report_game_visualization(game: Game) -> Report:
                     actions = player.actions_generator.get_actions_static(
                         state=state, world=game.world, player=player.name)
                     viz.plot_actions(axis=ax, actions=actions, colour=player.vg.colour, width=0.5)
-                    size = (ax.bbox.height / 1000.0) ** 2
-                    for path in actions:
-                        vals = [(x.x, x.y, x.v) for _, x in path]
-                        x, y, vel = zip(*vals)
-                        ax.scatter(x, y, s=size, c=vel, zorder=100)
+                    # size = (ax.bbox.height / 1000.0) ** 2
+                    # for path in actions:
+                    #     vals = [(x.x, x.y, x.v) for _, x in path]
+                    #     x, y, vel = zip(*vals)
+                    #     ax.scatter(x, y, s=size, c=vel, zorder=100)
+            ax.tick_params(top=False, bottom=False, left=False, right=False,
+                           labelleft=False, labelbottom=False)
             adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
 
     toc = perf_counter() - tic
@@ -129,7 +131,9 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
             for pname, action in sol_node.actions.items():
                 viz.plot_equilibria(axis=axis, actions=frozenset([action]),
                                     colour=players[pname].vg.colour,
-                                    width=width, alpha=min(1.0, width), ticks=False)
+                                    width=width, alpha=min(1.0, width), ticks=False, scatter=False)
+                axis.tick_params(top=False, bottom=False, left=False, right=False,
+                                 labelleft=False, labelbottom=False)
             adjust_axes_limits(ax=ax, plot_limits=viz.plot_limits, players_states=states)
 
     if nodes_strong is None:
@@ -194,7 +198,7 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
 
 
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   plot_gif: bool) -> Report:
+                   plot_gif: bool, max_n_gif=2) -> Report:
     tic = perf_counter()
     viz = game.game_vis
     r_all = Report("equilibria")
@@ -226,7 +230,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                                 colour=color,
                                 width=w, alpha=min(w, 1.0),
                                 scatter=True,
-                                plot_lanes = False)
+                                plot_lanes=False)
 
     def plot_pref(rep: Report):
         with rep.data_file("Pref", MIME) as fn:
@@ -252,18 +256,25 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                     for state in player.state.support():
                         states.append(state)
                         viz.plot_player(axis=ax, player_name=player_name, state=state)
-                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.5, color="green")
-                plot_eq_all(axis=ax, actions_all=actions_strong, w=2.0,  color="gold")
+                        actions_all = player.actions_generator.get_actions_static(state=state, world=game.world,
+                                                                                  player=player.name)
+                        viz.plot_actions(axis=ax, actions=actions_all, colour='grey',
+                                         width=1.0, alpha=1.0, ticks=False, plot_lanes=False)
+                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.0, color="darkgoldenrod")
+                plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0, color="gold")
+                ax.tick_params(top=False, bottom=False, left=False, right=False,
+                               labelleft=False, labelbottom=False)
                 adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
         plot_pref(rep=eq_viz)
 
     if plot_gif:
         i = 1
         for node in node_set:
-            rplot = Report(f"Eq_{i}")
-            gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq)
-            req.add_child(rplot)
-            i += 1
+            if i < max_n_gif:
+                rplot = Report(f"Eq_{i}")
+                gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq)
+                req.add_child(rplot)
+                i += 1
     rplot = Report(f"Equilibria")
     image_eq(report=rplot)
     if len(node_set) < 200:
@@ -305,6 +316,8 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
     def init_plot():
         ax.clear()
+        ax.tick_params(top=False, bottom=False, left=False, right=False,
+                       labelleft=False, labelbottom=False)
         with viz.plot_arena(axis=ax):
             states: List[VehicleState] = []
             for player_name, player in game.game_players.items():
@@ -315,7 +328,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
             for player, action in node.actions.items():
                 viz.plot_equilibria(axis=ax, actions=frozenset([action]),
                                     colour=game.game_players[player].vg.colour,
-                                    width=1.0)
+                                    width=1.0, scatter=False)
             adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=[])
 
         return list(box.values())
@@ -508,7 +521,7 @@ def report_leader_follower_recursive(game: LeaderFollowerGame,
                     p_act = frozenset([result.aggregated_node.actions[pname]])
                     game.game_vis.plot_equilibria(axis=ax, actions=p_act,
                                                   colour=game.game_players[pname].vg.colour,
-                                                  width=1.0, alpha=1.0)
+                                                  width=1.0, alpha=1.0, scatter=False)
 
     prefs = {game.lf.leader: game.lf.pref_leader,
              game.lf.follower: game.lf.pref_follower_real}

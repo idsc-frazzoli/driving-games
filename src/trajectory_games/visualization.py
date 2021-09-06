@@ -74,7 +74,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
-                axis.scatter(x, y, s=size, c=vel, zorder=100)
+                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='winter',
+                                       vmin=2.0, vmax=10.0, zorder=ZOrder.scatter)
+                # plt.colorbar(scatter, ax=axis)
 
     def plot_pref(self, axis, pref: PosetalPreference,
                   pname: PlayerName, origin: Tuple[float, float],
@@ -130,35 +132,31 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             y = np.array(yp)
             if colour is not None:
                 if plot_lanes:
-                    axis.fill(x, y, color=colour, alpha=0.2, zorder=15)
+                    axis.fill(x, y, color=colour, alpha=0.2, zorder=ZOrder.lanes)
                 #  Toggle to plot goal region
                 # if goal is not None:
-                #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=20)
+                #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=ZOrder.goal)
 
         if lines is None:
             if colour is None:
                 colour = "gray"  # Black
-            # cmap = infer_cmap_from_color(colour)
-            length_seg = sum([x.shape[0] for x in segments])
-            z = np.linspace(0.0, 1.0, len(segments))
             lines = LineCollection(segments=[],
-                                   # colors=colour,
-                                   array=z,
-                                   # cmap=cmap, norm=plt.Normalize(0.0, 1.0),
-                                   linewidths=width, alpha=alpha, zorder=20)
+                                   linewidths=width, alpha=alpha, zorder=ZOrder.actions)
 
             axis.add_collection(lines)
-            # if ticks:
-            #     axis.yaxis.set_ticks_position("left")
-            #     axis.xaxis.set_ticks_position("bottom")
-            # else:
-            #     axis.yaxis.set_visible(False)
-            #     axis.xaxis.set_visible(False)
 
-        # lines.set_array(z)
         lines.set_segments(segments=segments)
         lines.set_color(colour)
         return lines
+
+
+class ZOrder:
+    scatter = 100
+    lanes = 15
+    goal = 20
+    actions = 20
+    car_box = 75
+    player_name = 100
 
 
 def plot_car(axis, player_name: PlayerName, state: VehicleState,
@@ -172,10 +170,13 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     q = SE2_from_xytheta(xy_theta)
     car = transform_xy(q, car)
     if box is None:
-        box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=75)
+        box, = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        axis.text(x4, y4, player_name, zorder=100,
-                  horizontalalignment="center",
+        axis.text(x4+2, y4,
+                  player_name,
+                  fontsize=9,
+                  zorder=ZOrder.player_name,
+                  horizontalalignment="left",
                   verticalalignment="center")
     box.set_xy(np.array(car))
     return box
@@ -200,7 +201,7 @@ def colorline(x, y, z=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0,
     z = np.asarray(z)
 
     segments = make_segments(x, y)
-    return LineCollection(segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha, zorder=20)
+    return LineCollection(segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha, zorder=ZOrder.actions)
 
 
 def make_segments(x, y):
