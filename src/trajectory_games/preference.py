@@ -210,7 +210,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 return self._cache[(a, b)]
             if (b, a) in self._cache:
                 return self._complement[(self._cache[(b, a)])]
-        OPEN = PriorityQueue(self.graph.number_of_nodes())
+        OPEN = PriorityQueue(100)
         DONE: Set[metric_type] = set()
         CLOSED: Set[metric_type] = set()
         OUTCOMES: Set[ComparisonOutcome] = set()
