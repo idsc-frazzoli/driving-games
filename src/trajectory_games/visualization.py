@@ -52,7 +52,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         yield
 
     def plot_player(self, axis, player_name: PlayerName,
-                    state: VehicleState, alpha: float = 0.7, box=None):
+                    state: VehicleState, alpha: float = 0.95, box=None):
         """ Draw the player and his action set at a certain state. """
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
@@ -140,8 +140,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         if lines is None:
             if colour is None:
                 colour = "gray"  # Black
-            lines = LineCollection(segments=[],
-                                   linewidths=width, alpha=alpha, zorder=ZOrder.actions)
+            lines = LineCollection(segments=[], linewidths=width, alpha=alpha, zorder=ZOrder.actions)
 
             axis.add_collection(lines)
 
@@ -160,7 +159,7 @@ class ZOrder:
 
 
 def plot_car(axis, player_name: PlayerName, state: VehicleState,
-             vg: VehicleGeometry, alpha: float, box):
+             vg: VehicleGeometry, alpha: float, box, plot_wheels: bool = True):
     L = vg.l
     W = vg.w
     car_color = vg.colour
@@ -170,15 +169,25 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     q = SE2_from_xytheta(xy_theta)
     car = transform_xy(q, car)
     if box is None:
-        box, = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
+        vehicle_box, = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
+        box = [vehicle_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-        axis.text(x4+2, y4,
+        axis.text(x4 + 2, y4,
                   player_name,
                   fontsize=9,
                   zorder=ZOrder.player_name,
                   horizontalalignment="left",
                   verticalalignment="center")
-    box.set_xy(np.array(car))
+        if plot_wheels:
+            wheels_boxes = [axis.fill([], [], color="dimgray", alpha=alpha, zorder=ZOrder.car_box)[0] for _ in range(4)]
+            box.extend(wheels_boxes)
+    box[0].set_xy(np.array(car))
+    if plot_wheels:
+        wheels_outlines = vg.get_rotated_wheels_outlines(state.st)
+        wheels_outlines = [q @ w_outline for w_outline in wheels_outlines]
+        for w_idx, wheel in enumerate(box[1:]):
+            xy_poly = wheels_outlines[w_idx][:2, :].T
+            wheel.set_xy(xy_poly)
     return box
 
 
@@ -201,7 +210,8 @@ def colorline(x, y, z=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0,
     z = np.asarray(z)
 
     segments = make_segments(x, y)
-    return LineCollection(segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha, zorder=ZOrder.actions)
+    return LineCollection(segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha,
+                          zorder=ZOrder.actions)
 
 
 def make_segments(x, y):

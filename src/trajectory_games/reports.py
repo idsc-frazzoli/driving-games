@@ -198,7 +198,7 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
 
 
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   plot_gif: bool, max_n_gif=2) -> Report:
+                   plot_gif: bool, max_n_gif=10) -> Report:
     tic = perf_counter()
     viz = game.game_vis
     r_all = Report("equilibria")
@@ -331,7 +331,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
                                     width=1.0, scatter=False)
             adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=[])
 
-        return list(box.values())
+        return list(itertools.chain.from_iterable(box.values()))
 
     def update_plot(t: D):
         states: List[VehicleState] = []
@@ -342,7 +342,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
             box[player] = viz.plot_player(axis=ax, player_name=player,
                                           state=state, box=box_handle)
         # adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
-        return list(box.values())
+        return list(itertools.chain.from_iterable(box.values()))
 
     actions = list(node.actions.values())
     lens = [_.get_end() for _ in actions]
@@ -573,7 +573,8 @@ def create_animation_recursive(fn: str, game: Game,
     i_plot = Counter()
 
     def get_list() -> List:
-        return list(states.values()) + list(actions.values()) + list(opt_actions.values())
+        return list(
+            itertools.chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values())
 
     def init_plot():
         ax.clear()

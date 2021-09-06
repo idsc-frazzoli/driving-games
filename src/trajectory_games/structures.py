@@ -2,8 +2,11 @@ import math
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet, Dict
+from functools import cached_property
+from typing import FrozenSet, Dict, List
 
+import numpy as np
+from geometry import SE2_from_xytheta
 from yaml import safe_load
 
 from sim import Color
@@ -70,6 +73,47 @@ class VehicleGeometry:
             print(f"Failed to intialise {cls.__name__} from {name}, using default")
             vg = cls.default()
         return vg
+
+    @cached_property
+    def wheel_shape(self):
+        halfwidth, radius = 0.1, 0.3  # size of the wheels
+        return halfwidth, radius
+
+    @cached_property
+    def wheel_outline(self):
+        halfwidth, radius = self.wheel_shape
+        # fixme uniform points handlings to native list of tuples
+        return np.array([[radius, -radius, -radius, radius, radius],
+                         [-halfwidth, -halfwidth, halfwidth, halfwidth, -halfwidth],
+                         [1, 1, 1, 1, 1]])
+
+    @cached_property
+    def wheels_position(self) -> np.ndarray:
+        halfwidth, radius = self.wheel_shape
+        backwardshift = self.l / 4
+        # return 4 wheels position (always the first half are the front ones)
+        positions = np.array(
+            [[self.l - radius - backwardshift, self.l - radius - backwardshift, -self.l + radius,
+              -self.l + radius],
+             [self.w - halfwidth, -self.w + halfwidth, self.w - halfwidth,
+              -self.w + halfwidth], [1, 1, 1, 1]])
+        return positions
+
+    def get_rotated_wheels_outlines(self, delta: float) -> List[np.ndarray]:
+        """
+        :param delta: Steering angle of front wheels
+        :return:
+        """
+        wheels_position = self.wheels_position
+        transformed_wheels_outlines = []
+        for i in range(4):
+            # the first half of the wheels are the ones that get rotated
+            if i < 2:
+                transform = SE2_from_xytheta((wheels_position[0, i], wheels_position[1, i], delta))
+            else:
+                transform = SE2_from_xytheta((wheels_position[0, i], wheels_position[1, i], 0))
+            transformed_wheels_outlines.append(transform @ self.wheel_outline)
+        return transformed_wheels_outlines
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)

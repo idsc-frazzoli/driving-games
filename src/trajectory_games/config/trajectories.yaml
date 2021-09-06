@@ -37,7 +37,7 @@ traj_1_3:     &traj_1_3
   <<:         *traj_1
   dt:         "2.0"
   max_gen:    1
-  n_acc:      3
+  n_acc:      2
   n_dst:      3
   step_dst:   0.12
 
