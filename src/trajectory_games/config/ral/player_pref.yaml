@@ -70,3 +70,65 @@ cautious:
   LongitudinalAcceleration:   ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
   EpisodeTime:                ["LateralComfort", "LongitudinalAcceleration"]
 
+cautious_1:
+  DrivableAreaViolation: []
+  CollisionEnergy: []
+  MinimumClearance: []
+
+cautious_2:
+  DrivableAreaViolation: []
+  CollisionEnergy: []
+  MinimumClearance: []
+  LateralComfort:             ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
+  LongitudinalAcceleration:   ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
+
+cautious_3:
+  DrivableAreaViolation: []
+  CollisionEnergy: []
+  MinimumClearance: []
+  LateralComfort:             ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
+  LongitudinalAcceleration:   ["DrivableAreaViolation", "CollisionEnergy", "MinimumClearance"]
+  EpisodeTime:                ["LateralComfort", "LongitudinalAcceleration"]
+
+suicidal:
+  weigths_suicidal: []
+
+citizen_1:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  LateralComfort: ["CollisionEnergy"]
+  LongitudinalAcceleration: ["CollisionEnergy"]
+  EpisodeTime: ["CollisionEnergy"]
+  DeviationHeading: ["CollisionEnergy"]
+  DeviationLateral: ["CollisionEnergy"]
+
+citizen_2:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  LateralComfort: ["DrivableAreaViolation", "MinimumClearance"]
+  LongitudinalAcceleration: ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  DeviationHeading: ["DrivableAreaViolation", "MinimumClearance"]
+  DeviationLateral: ["DrivableAreaViolation", "MinimumClearance"]
+
+citizen_3:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  LateralComfort: ["EpisodeTime"]
+  LongitudinalAcceleration: ["EpisodeTime"]
+  DeviationHeading: ["EpisodeTime"]
+  DeviationLateral: ["EpisodeTime"]
+
+citizen_4:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  LateralComfort: ["EpisodeTime"]
+  LongitudinalAcceleration: ["EpisodeTime"]
+  DeviationHeading: ["LateralComfort", "LongitudinalAcceleration"]
+  DeviationLateral: ["LateralComfort", "LongitudinalAcceleration"]

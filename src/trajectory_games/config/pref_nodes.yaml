@@ -178,3 +178,6 @@ weights_lf6:
   CollisionEnergy:            1.0
   weights_speed:              2.0
   weights_comf:               4.0
+
+weights_suicidal:
+  CollisionEnergy:            -1.0
