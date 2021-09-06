@@ -81,7 +81,7 @@ run-posets-exp: build
 	docker run -it \
 		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
 		-v $(PWD)/$(out-docker):/out $(tag) \
-		posets-exp -o /out/posets --reset "rparmake"
+		posets-exp -o /out/posets --reset -c "rparmake"
 
 
 
