@@ -35,11 +35,11 @@ class SpeedController(PID):
 @dataclass
 class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
-    safety_dist_right: float = 6
-    safety_dist_left: float = 6
+    safety_dist_lateral: float = 7
     safety_dist_front: float = 6
     safety_dist_front_crash: float = 10
     safety_time_front: float = 2
+    minimum_safety_vel: float = kmh2ms(5)
     vx_limits: Tuple[float, float] = (kmh2ms(-10), kmh2ms(130))
 
 
@@ -57,35 +57,57 @@ class SpeedBehavior:
         self.agents = agents
 
     def get_speed_ref(self, at: float) -> float:
-        """Check if there is anyone on the right too close, then brake"""
+        """Check if there is anyone too close, then brake"""
 
-        [yield_to_anyone, ref] = self.is_there_anyone_to_yield_to()
-        self.speed_ref = ref
+        emergency_condition = self.is_there_anyone_to_yield_to()
+        if emergency_condition:
+            self.speed_ref = 0
+        else:
+            self.speed_ref = self.cruise_control()
+
         return self.speed_ref
 
-    def is_there_anyone_to_yield_to(self) -> [bool, int]:
+    def is_there_anyone_to_yield_to(self) -> bool:
         """
         If someone is approaching from the right or someone is in front of us we yield
         """
 
         mypose = extract_pose_from_state(self.agents[self.my_name])
+        for other_name, _ in self.agents.items():
+            if not other_name == self.my_name:
+                rel = SE2Transform.from_SE2(relative_pose(
+                    mypose, extract_pose_from_state(self.agents[other_name])))
+                vel = extract_vel_from_state(self.agents[other_name])
+
+                distance = np.linalg.norm(rel.p)
+                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and\
+                                              vel > self.params.minimum_safety_vel
+                coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4 and \
+                                             vel > self.params.minimum_safety_vel
+                in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
+                coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
+                if (coming_from_the_right and distance < self.params.safety_dist_lateral) or (
+                        coming_from_the_left and distance < self.params.safety_dist_lateral) or (
+                        coming_from_the_front and distance < self.params.safety_dist_front_crash):
+                    return True
+        return False
+
+    def cruise_control(self) -> [int]:
+        """
+        If someone is in front with the same orientation, then apply the two seconds rule to adapt reference velocity
+         that allows maintaining a safe distance between the vehicles
+        """
+        mypose = extract_pose_from_state(self.agents[self.my_name])
         myvel = extract_vel_from_state(self.agents[self.my_name])
         for other_name, _ in self.agents.items():
             if not other_name == self.my_name:
                 rel = SE2Transform.from_SE2(relative_pose(
-                mypose, extract_pose_from_state(self.agents[other_name])))
+                    mypose, extract_pose_from_state(self.agents[other_name])))
                 vel = extract_vel_from_state(self.agents[other_name])
 
                 distance = np.linalg.norm(rel.p)
-                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and vel > kmh2ms(15)
-                coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4 and vel > kmh2ms(15)
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-                coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
-                if (coming_from_the_right and distance < self.params.safety_dist_right) or (
-                        coming_from_the_left and distance < self.params.safety_dist_left) or (
-                        coming_from_the_front and distance < self.params.safety_dist_front_crash):
-                    return [True, 0]
-                elif in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front *\
-                        abs(vel-myvel):
-                    return [True, np.clip(vel - abs(vel-myvel), self.params.vx_limits[0], self.params.vx_limits[1])]
-        return [False, self.params.nominal_speed]
+                if in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front * \
+                        abs(vel - myvel):
+                    return np.clip(vel - abs(vel - myvel), 0, self.params.vx_limits[1])
+        return self.params.nominal_speed

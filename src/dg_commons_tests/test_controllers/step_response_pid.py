@@ -48,7 +48,7 @@ def sim_step_response(model, sp_controller, st_controller):
         # update observations
 
     # do plot
-    fig, (ax1, ax2,ax3,ax4) = plt.subplots(4)
+    fig, (ax1, ax2, ax3, ax4) = plt.subplots(4)
     fig.suptitle("Step Response PID Controller for Vehicle Speed")
     ax1.plot(times, speeds, label="actual speed")
     ax1.plot(times, speed_refs, "r", label="ref. speed")
@@ -73,14 +73,14 @@ if __name__ == '__main__':
     except FileExistsError:
         pass
     # speed pid
-    speed_kp: float = 1
-    speed_ki: float = 0.01
-    speed_kd: float = 0.1
+    speed_kp: float = 4
+    speed_ki: float = 0.005
+    speed_kd: float = 0.0001
 
     # steer pid
-    steer_kp: float = 1
-    steer_ki: float = 0.01
-    steer_kd: float = 0.1
+    steer_kp: float = 4
+    steer_ki: float = 0.5
+    steer_kd: float = 0.2
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
     st_controller_param: SteerControllerParam = SteerControllerParam(kP=steer_kp, kI=steer_ki, kD=steer_kd)
