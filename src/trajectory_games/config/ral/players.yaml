@@ -1028,7 +1028,7 @@ ral_22_level_0:
       state: "state_2_peach"
       goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
       traj: "traj_1_3"
-      pref: "pref_ambulance"
+      pref: "common_person"
       vg: "green_car"
     Average: &P222
       state: "state_3_peach"
@@ -1046,7 +1046,7 @@ ral_22_level_1:
       pref: "citizen_5"
     Granny:
       <<: *P122
-      pref: "pref_ambulance"
+      pref: "common_person"
     Average:
       <<: *P222
       pref: "common_person"
@@ -1060,7 +1060,7 @@ ral_22_level_2:
       pref: "citizen_11"
     Granny:
       <<: *P122
-      pref: "pref_ambulance"
+      pref: "common_person_5"
     Average:
       <<: *P222
-      pref: "common_person_3"
+      pref: "common_person_5"
