@@ -1,0 +1,51 @@
+from dg_commons.analysis.metrics import DeviationLateral
+from sim_tests.controllers_tests.test_controller import TestController
+from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
+from dg_commons.controllers.lqr import LQRParam, LQR
+from dg_commons.controllers.steering_controllers import SCP, SCPParam
+import numpy as np
+
+
+def test_pure_pursuit():
+    scenario_name: str = "USA_Peach-1_1_T-1"
+    # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
+    # scenario_name: str = "ARG_Carcarana-1_1_T-1"
+    """Name of the chosen scenario"""
+    vehicle_speed: float = 8
+    """Nominal speed of the vehicle"""
+    r: float = 4
+    """ Input Multiplier """
+    q: np.ndarray = np.array([[1, 0], [0, 1]])
+    """ State Multiplier """
+    ddelta_kp: float = 10
+    """Proportional gain ddelta with respect to delta error"""
+    speed_kp: float = 2
+    """Propotioanl gain longitudinal speed controller"""
+    speed_ki: float = 0.005
+    """Integral gain longitudinal speed controller"""
+    speed_kd: float = 0.1
+    """Derivative gain longitudinal speed controller"""
+
+    sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
+    sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
+    """Speed Controller"""
+    sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
+    sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
+    """Speed behavior"""
+    lqr_param: LQRParam = LQRParam(r=r, q=q)
+    lqr_controller = {"Name": "LQR Controller", "Controller": LQR, "Parameters": lqr_param}
+    """Pure Pursuit Controller"""
+    steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)
+    steering_controller = {"Name": "P controller", "Controller": SCP, "Parameters": steering_param}
+    """Pure Pursuit Controller"""
+    metrics = [DeviationLateral]
+    """Metrics"""
+
+    test_pp = TestController(scenario_name, "-", metrics, lqr_controller, sp_behavior, steering_controller, sp_controller)
+    test_pp.run()
+    test_pp.evaluate_metrics()
+    test_pp.evaluate_metrics_test()
+    test_pp.to_json()
+
+
+test_pure_pursuit()
