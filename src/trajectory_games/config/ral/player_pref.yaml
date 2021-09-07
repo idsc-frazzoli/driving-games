@@ -91,6 +91,10 @@ common_person_5:
   MinimumClearance:            [ "DrivableAreaViolation" ]
   weights_comf_extreme_2:      ["MinimumClearance"]
 
+common_person_6:
+  CollisionEnergy: [ ]
+  weights_comf_extreme_3:      [ "CollisionEnergy" ]
+
 cautious:
   DrivableAreaViolation: []
   CollisionEnergy: []

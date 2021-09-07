@@ -1060,7 +1060,7 @@ ral_22_level_2:
       pref: "citizen_11"
     Granny:
       <<: *P122
-      pref: "common_person_5"
+      pref: "common_person_6" #was 5 to get 4 eqs
     Average:
       <<: *P222
-      pref: "common_person_5"
+      pref: "common_person_6"

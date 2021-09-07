@@ -189,3 +189,8 @@ weights_comf_extreme:
 weights_comf_extreme_2:
   weights_comf_extreme:       1.0
   weights_speed:              1.0
+
+weights_comf_extreme_3:
+  weights_comf_extreme_2:       1.0
+  MinimumClearance:             1.0
+  DrivableAreaViolation:        1.0
