@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from sim.scenarios import load_commonroad_scenario
 from sim.agents.lane_follower import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
@@ -91,15 +92,18 @@ class TestController:
         self.simulator.run(self.sim_context)
         name = "Test"
 
+        nominal_velocity = self.speed_behavior["Parameters"].nominal_speed
         dg_lanelets = {}
         states = {}
         commands = {}
+        velocities = {}
         for key in self.sim_context.log.keys():
             dg_lanelets[key] = self.sim_context.players[key].ref_lane
             states[key] = self.sim_context.log[key].states
             commands[key] = self.sim_context.log[key].actions
+            velocities[key] = nominal_velocity
 
-        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands)
+        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities)
 
         report = generate_report(self.sim_context)
         # save report
@@ -135,6 +139,7 @@ class TestController:
             key_str = str(data["Name"])
             for field in fields(data["Parameters"]):
                 value = getattr(data["Parameters"], field.name)
+                value = value.tolist() if type(value) == np.ndarray else value
                 res[field.name] = value
                 key_str += str(value)
             return res, key_str
@@ -144,6 +149,8 @@ class TestController:
         if self.longitudinal_controller:
             longitudinal_dict, key_str = dict_key_from_dataclass(self.longitudinal_controller)
             key_string += key_str
+        else:
+            longitudinal_dict = {}
         steering_dict, key_str = dict_key_from_dataclass(self.steering_controller)
         key_string += key_str
 

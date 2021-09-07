@@ -24,6 +24,9 @@ class MetricEvaluationContext:
     commands: Mapping[PlayerName, DgSampledSequence[U]]
     """ Commands for each player """
 
+    target_velocities: Mapping[PlayerName, DgSampledSequence[float]]
+    """ Planned velocities """
+
     def get_interval(self, player: PlayerName) -> List[Timestamp]:
         return self.actual_trajectory[player].get_sampling_points()
 
