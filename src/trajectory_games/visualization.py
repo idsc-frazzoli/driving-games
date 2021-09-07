@@ -70,11 +70,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                           alpha=alpha, ticks=ticks, plot_lanes=plot_lanes)
 
         if scatter:
-            size = (axis.bbox.height / 2000.0) ** 2
+            size = np.linalg.norm(axis.bbox.size) / 2000.0
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
-                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='winter',
+                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='PuRd',
                                        vmin=2.0, vmax=10.0, zorder=ZOrder.scatter)
                 # plt.colorbar(scatter, ax=axis)
 
@@ -150,7 +150,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
 
 class ZOrder:
-    scatter = 100
+    scatter = 60
     lanes = 15
     goal = 20
     actions = 20
@@ -173,14 +173,14 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
         box = [vehicle_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
 
-        axis.text(x4 + 1, y4,
-                  player_name,
-                  fontsize=8,
-                  zorder=ZOrder.player_name,
-                  horizontalalignment="left",
-                  verticalalignment="center")
+        # axis.text(x4 + 1, y4,
+        #           player_name,
+        #           fontsize=8,
+        #           zorder=ZOrder.player_name,
+        #           horizontalalignment="left",
+        #           verticalalignment="center")
         if plot_wheels:
-            wheels_boxes = [axis.fill([], [], color="dimgray", alpha=alpha, zorder=ZOrder.car_box)[0] for _ in range(4)]
+            wheels_boxes = [axis.fill([], [], color="k", alpha=alpha, zorder=ZOrder.car_box)[0] for _ in range(4)]
             box.extend(wheels_boxes)
     box[0].set_xy(np.array(car))
     if plot_wheels:
@@ -226,15 +226,12 @@ def make_segments(x, y):
 
 
 @lru_cache
-def infer_cmap_from_color(colour):
+def tone_down_color(colour):
     colour = colour.lower()
-    if colour is None or isinstance(colour, tuple):
-        return plt.get_cmap('copper')
-    assert isinstance(colour, str)
-    if any([w in colour for w in ["red", "fire"]]):
-        return plt.get_cmap('YlOrRd')
-    if any([w in colour for w in ["green"]]):
-        return plt.get_cmap('Greens')
-    if any([w in colour for w in ["blue"]]):
-        return plt.get_cmap('Blues')
-    assert False, colour
+    if colour == "firebrick":
+        return "saddlebrown"
+    if colour == "royalblue":
+        return "dodgerblue"
+    if colour == "forestgreen":
+        return "green"
+    return colour
