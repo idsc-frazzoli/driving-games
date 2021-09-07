@@ -28,19 +28,19 @@ state_1_peach:
   <<: *state
   x0:     4.0
   y0:     0.0
-  v0:     5.0
+  v0:     7.0
 
 state_2_peach:
   <<: *state
   x0:     -1.0
   y0:     25.0
-  v0:     5.0
+  v0:     7.0
 
 state_3_peach:
   <<: *state
   x0:     13.0
   y0:     14.0
-  v0:     5.0
+  v0:     7.0
 
 state_4_peach:
   <<: *state

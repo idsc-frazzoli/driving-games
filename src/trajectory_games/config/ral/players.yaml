@@ -10,7 +10,7 @@ goal:
   lat_dist: 10.0
 
 #plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
-plot_limits: [ [ -20, 20 ], [ -10, 30 ] ]
+plot_limits: [ [ -17, 18 ], [ -7, 28 ] ]
 
 #players:    List of players in the game
 #  P1:        Player Name

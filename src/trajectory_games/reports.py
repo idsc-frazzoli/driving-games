@@ -21,7 +21,7 @@ from .preference import PosetalPreference
 from .structures import VehicleState
 from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
     SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame, LeaderFollowerGameStage
-from .visualization import TrajGameVisualization
+from .visualization import TrajGameVisualization, tone_down_color, ZOrder
 
 EXPORT_PDF = False
 STACK_JPG = False
@@ -42,14 +42,15 @@ def report_game_visualization(game: Game) -> Report:
                     viz.plot_player(axis=ax, player_name=player_name, state=state)
                     actions = player.actions_generator.get_actions_static(
                         state=state, world=game.world, player=player.name)
-                    viz.plot_actions(axis=ax, actions=actions, colour=player.vg.colour, width=0.5)
-                    # size = (ax.bbox.height / 1000.0) ** 2
-                    # for path in actions:
-                    #     vals = [(x.x, x.y, x.v) for _, x in path]
-                    #     x, y, vel = zip(*vals)
-                    #     ax.scatter(x, y, s=size, c=vel, zorder=100)
+                    viz.plot_actions(axis=ax, actions=actions, colour=tone_down_color(player.vg.colour), width=0.5)
+                    size = np.linalg.norm(ax.bbox.size) / 10000.0
+                    for path in actions:
+                        vals = [(x.x, x.y, x.v) for _, x in path]
+                        x, y, vel = zip(*vals)
+                        ax.scatter(x, y, s=size, marker="o", c="k", alpha=.2, zorder=ZOrder.scatter)
             ax.tick_params(top=False, bottom=False, left=False, right=False,
                            labelleft=False, labelbottom=False)
+            pylab.axis("off")
             adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
 
     toc = perf_counter() - tic
@@ -259,9 +260,9 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                         actions_all = player.actions_generator.get_actions_static(state=state, world=game.world,
                                                                                   player=player.name)
                         viz.plot_actions(axis=ax, actions=actions_all, colour='grey',
-                                         width=1.0, alpha=1.0, ticks=False, plot_lanes=False)
-                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.0, color="darkgoldenrod")
-                plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0, color="gold")
+                                         width=1.0, alpha=.7, ticks=False, plot_lanes=False)
+                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.0, color="gold")
+                plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0, color="darkgoldenrod")
                 ax.tick_params(top=False, bottom=False, left=False, right=False,
                                labelleft=False, labelbottom=False)
                 adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
