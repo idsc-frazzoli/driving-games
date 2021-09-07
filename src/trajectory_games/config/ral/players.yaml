@@ -864,4 +864,100 @@ ral_18_level_2:
       <<: *P218
       pref: "common_person_3"
 
+####
+ral_19_level_0:
+  players:
+    Ambulance: &P319
+      state: "state_1_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "citizen_8"
+      vg: "red_car"
+    Granny: &P119
+      state: "state_2_peach"
+      goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P219
+      state: "state_3_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
 
+# make sure the preferences here are a refinement of the ones above
+ral_19_level_1:
+  players:
+    Ambulance:
+      <<: *P319
+      pref: "citizen_4"
+    Granny:
+      <<: *P119
+      pref: "common_person"
+    Average:
+      <<: *P219
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_19_level_2:
+  players:
+    Ambulance:
+      <<: *P319
+      pref: "citizen_11"
+    Granny:
+      <<: *P119
+      pref: "common_person_3"
+    Average:
+      <<: *P219
+      pref: "common_person_3"
+
+####
+ral_20_level_0:
+  players:
+    Ambulance: &P320
+      state: "state_1_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "citizen_8"
+      vg: "red_car"
+    Granny: &P120
+      state: "state_2_peach"
+      goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
+      traj: "traj_1_3"
+      pref: "pref_ambulance_level_2"
+      vg: "green_car"
+    Average: &P220
+      state: "state_3_peach"
+      goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_20_level_1:
+  players:
+    Ambulance:
+      <<: *P320
+      pref: "citizen_4"
+    Granny:
+      <<: *P120
+      pref: "pref_ambulance_level_2"
+    Average:
+      <<: *P220
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_20_level_2:
+  players:
+    Ambulance:
+      <<: *P320
+      pref: "citizen_11"
+    Granny:
+      <<: *P120
+      pref: "pref_ambulance_level_2"
+    Average:
+      <<: *P220
+      pref: "common_person_3"

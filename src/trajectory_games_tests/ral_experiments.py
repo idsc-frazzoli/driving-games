@@ -33,7 +33,7 @@ class RalExperiments(QuickApp):
         pass
 
     def define_jobs_context(self, context: QuickAppContext):
-        bruteforce: List[str] = ["ral_15"]  # "ral_06",
+        bruteforce: List[str] = ["ral_19", "ral_20"]  # "ral_06",
 
         for exp in bruteforce:
             cexp = context.child(exp, extra_report_keys=dict(experiment=exp))
