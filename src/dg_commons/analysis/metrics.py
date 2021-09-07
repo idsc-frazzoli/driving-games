@@ -30,3 +30,26 @@ class DeviationLateral(Metric):
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class DeviationVelocity(Metric):
+    description = "This metric describes the deviation from reference velocity. "
+    scale: float = 1.0
+
+    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            interval = context.get_interval(player)
+            player_states = context.actual_trajectory[player]
+            target_vels = context.target_velocities[player]
+
+            val = []
+            for time in interval:
+                player_vel = player_states.at(time).vx
+                target_vel = target_vels.at(time)
+                val.append(float(abs(player_vel-target_vel)))
+
+            ret = self.get_evaluated_metric(interval=interval, val=val)
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)

@@ -1,4 +1,4 @@
-from dg_commons.analysis.metrics import DeviationLateral
+from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from sim_tests.controllers_tests.test_controller import TestController
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
@@ -35,7 +35,7 @@ def test_pure_pursuit():
     steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)
     steering_controller = {"Name": "P controller", "Controller": SCP, "Parameters": steering_param}
     """Pure Pursuit Controller"""
-    metrics = [DeviationLateral]
+    metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
     test_pp = TestController(scenario_name, "-", metrics, pp_controller, sp_behavior, steering_controller, sp_controller)

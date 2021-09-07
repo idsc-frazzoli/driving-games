@@ -2,7 +2,7 @@ from sim_tests.controllers_tests.test_controller import TestController, Metric
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.stanley_controller import StanleyParam, Stanley
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
-from dg_commons.analysis.metrics import DeviationLateral
+from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from typing import List
 
 
@@ -36,7 +36,7 @@ def test_stanley():
     steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)
     steering_controller = {"Name": "P controller", "Controller": SCP, "Parameters": steering_param}
     """Pure Pursuit Controller"""
-    metrics = [DeviationLateral]
+    metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
     test_pp = TestController(scenario_name, "-", metrics, stanley_controller, sp_behavior, steering_controller, sp_controller)

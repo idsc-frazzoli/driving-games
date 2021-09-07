@@ -15,6 +15,7 @@ from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
 from crash.reports import generate_report
+from dg_commons.sequence import Timestamp, DgSampledSequence
 
 
 class TestController:
@@ -101,7 +102,8 @@ class TestController:
             dg_lanelets[key] = self.sim_context.players[key].ref_lane
             states[key] = self.sim_context.log[key].states
             commands[key] = self.sim_context.log[key].actions
-            velocities[key] = nominal_velocity
+            timestamps = states[key].timestamps
+            velocities[key] = DgSampledSequence(timestamps, len(timestamps)*[nominal_velocity])
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities)
 
@@ -118,7 +120,10 @@ class TestController:
                     met = metric()
                     res = met.evaluate(self.metrics_context)
                     plt.plot(res[player].incremental.timestamps, res[player].incremental.values, label=player)
+                plt.title(metric.description)
+                plt.legend()
                 plt.savefig(f"fig{i}")
+                plt.figure()
         else:
             print("No Metric to Evaluate")
 
