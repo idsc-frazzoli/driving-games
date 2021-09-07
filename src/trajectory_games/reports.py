@@ -199,7 +199,7 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
 
 
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   plot_gif: bool, max_n_gif=1) -> Report:
+                   plot_gif: bool, max_n_gif=5) -> Report:
     tic = perf_counter()
     viz = game.game_vis
     r_all = Report("equilibria")

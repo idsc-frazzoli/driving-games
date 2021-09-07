@@ -74,7 +74,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
-                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='winter',
+                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='PuRd',
                                        vmin=2.0, vmax=10.0, zorder=ZOrder.scatter)
                 # plt.colorbar(scatter, ax=axis)
 
