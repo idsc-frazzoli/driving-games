@@ -21,3 +21,5 @@ out-docker
 *graphml
 .idea
 venv
+*png
+*json
