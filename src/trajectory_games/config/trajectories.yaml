@@ -31,11 +31,11 @@ traj_1:       &traj_1
   dst_max:    1.0
   dst_scale:  True
   n_factor:   0.8
-  dt_samp:    "0.1"
+  dt_samp:    "0.2"
 
 traj_1_3:     &traj_1_3
   <<:         *traj_1
-  dt:         "1.5"
+  dt:         "1.8"
   max_gen:    1
   n_acc:      3
   n_dst:      4
