@@ -35,11 +35,11 @@ traj_1:       &traj_1
 
 traj_1_3:     &traj_1_3
   <<:         *traj_1
-  dt:         "1.8"
+  dt:         "2.0"
   max_gen:    1
   n_acc:      2
-  n_dst:      4
-  step_dst:   0.25
+  n_dst:      2
+  step_dst:   0.12
 
 traj_1_5:     &traj_1_5
   <<:         *traj_1

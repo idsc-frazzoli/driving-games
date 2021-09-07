@@ -142,6 +142,15 @@ citizen_2:
   DeviationHeading: ["DrivableAreaViolation", "MinimumClearance"]
   DeviationLateral: ["DrivableAreaViolation", "MinimumClearance"]
 
+citizen_2_1:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  LateralComfort: ["DrivableAreaViolation", "MinimumClearance"]
+  LongitudinalAcceleration: ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  weights_5: ["EpisodeTime"]
+
 citizen_3:
   CollisionEnergy: []
   DrivableAreaViolation: ["CollisionEnergy"]
