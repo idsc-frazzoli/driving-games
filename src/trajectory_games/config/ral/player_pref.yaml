@@ -62,6 +62,35 @@ common_person:
   LateralComfort:              [ "weights_5" ]
   LongitudinalAcceleration:    [ "weights_5" ]
 
+common_person_2:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation:       [ "CollisionEnergy" ]
+  weights_speed:               [ "DrivableAreaViolation" ]
+  MinimumClearance:            [ "DrivableAreaViolation" ]
+  weights_5:                   [ "weights_speed", "MinimumClearance" ]
+  weights_comf:                ["weights_5"]
+
+common_person_3:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation:       [ "CollisionEnergy" ]
+  MinimumClearance:            [ "DrivableAreaViolation" ]
+  weights_speed:               [ "MinimumClearance" ]
+  weights_5:                   [ "weights_speed"]
+  weights_comf:                ["weights_5"]
+
+common_person_4:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation:       [ "CollisionEnergy" ]
+  MinimumClearance:            [ "DrivableAreaViolation" ]
+  weights_speed:               [ "MinimumClearance" ]
+  weights_comf_extreme:        ["weights_speed"]
+
+common_person_5:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation:       [ "CollisionEnergy" ]
+  MinimumClearance:            [ "DrivableAreaViolation" ]
+  weights_comf_extreme_2:      ["MinimumClearance"]
+
 cautious:
   DrivableAreaViolation: []
   CollisionEnergy: []
@@ -132,3 +161,66 @@ citizen_4:
   LongitudinalAcceleration: ["EpisodeTime"]
   DeviationHeading: ["LateralComfort", "LongitudinalAcceleration"]
   DeviationLateral: ["LateralComfort", "LongitudinalAcceleration"]
+
+citizen_5:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  LateralComfort: ["EpisodeTime"]
+  LongitudinalAcceleration: ["EpisodeTime"]
+  weights_5: ["LateralComfort", "LongitudinalAcceleration"]
+
+citizen_5_bis:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  weights_speed: ["DrivableAreaViolation", "MinimumClearance"]
+  LateralComfort: ["weights_speed"]
+  LongitudinalAcceleration: ["weights_speed"]
+  weights_5: ["LateralComfort", "LongitudinalAcceleration"]
+
+citizen_6:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  weights_comf: ["EpisodeTime"]
+  weights_5: ["weights_comf"]
+
+citizen_7:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["CollisionEnergy"]
+  weights_speed: ["DrivableAreaViolation", "MinimumClearance"]
+  weights_comf: ["weights_speed"]
+  weights_5: ["weights_comf"]
+
+citizen_8:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_speed: ["DrivableAreaViolation"]
+  weights_comf: ["weights_speed"]
+  weights_5: ["weights_comf"]
+
+citizen_9:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_speed: ["MinimumClearance"]
+  weights_comf: ["weights_speed"]
+  weights_5: ["weights_comf"]
+
+citizen_10:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_speed: ["MinimumClearance"]
+  weights_comf_extreme: ["weights_speed"]
+
+citizen_11:
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_comf_extreme_2: ["MinimumClearance"]
