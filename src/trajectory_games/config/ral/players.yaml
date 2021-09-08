@@ -1419,10 +1419,10 @@ ral_54_level_2:
   players:
     Ambulance:
       <<: *P354
-      pref: "citizen_11"
+      pref: "citizen_12"
     Granny:
       <<: *P154
-      pref: "common_person_6" #was 5 to get 4 eqs
+      pref: "common_person_7" #was 5 to get 4 eqs
     Average:
       <<: *P254
-      pref: "common_person_6"
+      pref: "common_person_7"
