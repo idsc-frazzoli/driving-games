@@ -23,7 +23,7 @@ from sim.simulator import SimContext
 from sim.simulator_structures import SimParameters
 
 __all__ = ["get_scenario_bicycle", "get_scenario_illegal_turn", "get_scenario_suicidal_pedestrian",
-           "get_scenario_racetrack_test", "get_scenario_merging"]
+           "get_scenario_racetrack_test", "get_two_lanes_scenario"]
 
 P1, P2, P3, P4, P5, P6, P7, EGO = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
     "P5"), PlayerName("P6"), PlayerName("P7"), PlayerName("Ego")
@@ -162,7 +162,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
                       )
 
 
-def get_scenario_merging() -> SimContext:
+def get_two_lanes_scenario() -> SimContext:
     scenario_name = "ZAM_Zip-1_66_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
 

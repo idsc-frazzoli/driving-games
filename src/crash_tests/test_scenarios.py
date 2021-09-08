@@ -25,8 +25,8 @@ def test_scenario_bicycle():
     run_scenario_without_compmake(sim_context)
 
 
-def test_scenario_merging():
-    sim_context = get_scenario_merging()
+def test_two_lanes_scenario():
+    sim_context = get_two_lanes_scenario()
     run_scenario_without_compmake(sim_context)
 
 
