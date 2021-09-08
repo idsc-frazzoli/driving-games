@@ -8,8 +8,10 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG, MIME_PDF
+from shapely.geometry import Polygon
 from zuper_commons.text import remove_escapes
 
+from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
 from preferences import Preference
 from sim import Color
@@ -244,12 +246,11 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             fig.savefig(fn, **RepRepDefaults.savefig_params)
             plt.close(fig=fig)
 
-    def image_eq(report: Report):
+    def image_eq(report: Report, nodes_light: SolvedTrajectoryGame, nodes_dark: SolvedTrajectoryGame,
+                 plot_actions: bool, plot_lanes: bool):
         eq_viz = report.figure("Overlay", cols=2)
-        nodes_strong = nash_eq["strong"]
-        nodes_weak = node_set.difference(nodes_strong)
-        actions_strong = save_actions(nodes_strong)
-        actions_weak = save_actions(nodes_weak)
+        actions_dark = save_actions(nodes_dark)
+        actions_light = save_actions(nodes_light)
         with eq_viz.plot("all_equilibria") as pylab:
             ax = pylab.gca()
             with viz.plot_arena(axis=ax):
@@ -260,10 +261,19 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
                         viz.plot_player(axis=ax, player_name=player_name, state=state)
                         actions_all = player.actions_generator.get_actions_static(state=state, world=game.world,
                                                                                   player=player.name)
-                        viz.plot_actions(axis=ax, actions=actions_all, colour='grey',
-                                         width=1.0, alpha=.7, ticks=False, plot_lanes=False)
-                plot_eq_all(axis=ax, actions_all=actions_weak, w=1.0, color="gold")
-                plot_eq_all(axis=ax, actions_all=actions_strong, w=1.0, color="darkgoldenrod")
+                        if plot_actions:
+                            viz.plot_actions(axis=ax, actions=actions_all, colour='grey',
+                                             width=1.0, alpha=.7, ticks=False, plot_lanes=False)
+                        if plot_lanes:
+                            lanes: Dict[DgLanelet, Optional[Polygon]] = {}
+                            for traj in actions_all:
+                                lane, goal = traj.get_lane()
+                                lanes[lane] = goal
+                            viz.plot_actions(axis=ax, actions=frozenset(), colour=player.vg.colour,
+                                             plot_lanes=True, lanes=lanes)
+
+                plot_eq_all(axis=ax, actions_all=actions_light, w=1.0, color="gold")
+                plot_eq_all(axis=ax, actions_all=actions_dark, w=1.0, color="red")
                 ax.tick_params(top=False, bottom=False, left=False, right=False,
                                labelleft=False, labelbottom=False)
                 adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
@@ -277,13 +287,18 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
             gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq, make_gif=make_gif)
             req.add_child(rplot)
             i += 1
-    rplot = Report(f"Equilibria")
-    image_eq(report=rplot)
+    rplot = Report(f"Equilibria:Strong-Weak")
+    image_eq(report=rplot, nodes_dark=nash_eq["strong"], nodes_light=node_set, plot_actions=True, plot_lanes=False)
+
     if len(node_set) < 200:
         eq_viz = rplot.figure("Stacked", cols=2)
         stack_nodes(report=eq_viz, viz=viz, title="all_equilibria", players=game.game_players,
                     nodes=node_set, nodes_strong=nash_eq["strong"])
         plot_pref(rep=eq_viz)
+    req.add_child(rplot)
+
+    rplot = Report(f"Equilibria:Admissible-Weak")
+    image_eq(report=rplot, nodes_dark=nash_eq["admissible"], nodes_light=node_set, plot_actions=False, plot_lanes=True)
     req.add_child(rplot)
 
     r_all.add_child(req)
