@@ -114,25 +114,24 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             # I suspect here we have the problems
 
     def plot_actions(self, axis: Axes, actions: FrozenSet[Trajectory],
+                     lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
                      colour: Color = None,
                      width: float = .7, alpha: float = 1.0,
-                     ticks: bool = True, lines=None, plot_lanes=True) -> LineCollection:
-        segments = []
-        lanes: Dict[DgLanelet, Optional[Polygon]] = {}
-        for traj in actions:
-            sampled_traj = np.array([np.array([x.x, x.y]) for _, x in traj])
-            segments.append(sampled_traj)
-            lane, goal = traj.get_lane()
-            lanes[lane] = goal
+                     ticks: bool = True, lines=None, plot_lanes=True,) -> LineCollection:
+        if lanes is None:
+            lanes: Dict[DgLanelet, Optional[Polygon]] = {}
+            for traj in actions:
+                lane, goal = traj.get_lane()
+                lanes[lane] = goal
+        segments = [np.array([np.array([x.x, x.y]) for _, x in traj]) for traj in actions]
 
-        for lane, goal in lanes.items():
-            points = lane.lane_profile()
-            xp, yp = zip(*points)
-            x = np.array(xp)
-            y = np.array(yp)
-            if colour is not None:
-                if plot_lanes:
-                    axis.fill(x, y, color=colour, alpha=0.2, zorder=ZOrder.lanes)
+        if plot_lanes and colour is not None:
+            for lane, goal in lanes.items():
+                points = lane.lane_profile()
+                xp, yp = zip(*points)
+                x = np.array(xp)
+                y = np.array(yp)
+                axis.fill(x, y, color=colour, alpha=0.2, zorder=ZOrder.lanes)
                 #  Toggle to plot goal region
                 # if goal is not None:
                 #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=ZOrder.goal)
@@ -141,7 +140,6 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             if colour is None:
                 colour = "gray"  # Black
             lines = LineCollection(segments=[], linewidths=width, alpha=alpha, zorder=ZOrder.actions)
-
             axis.add_collection(lines)
 
         lines.set_segments(segments=segments)
