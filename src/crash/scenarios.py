@@ -166,22 +166,25 @@ def get_two_lanes_scenario() -> SimContext:
     scenario_name = "ZAM_Zip-1_66_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
 
-    x0_p1 = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=kmh2ms(40), delta=0)
-    x0_p2 = VehicleStateDyn(x=-102, y=9, theta=0.00, vx=kmh2ms(60), delta=0)
+    x0_truck = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=kmh2ms(40), delta=0)
+    x0_car = VehicleStateDyn(x=-105, y=9, theta=0.00, vx=kmh2ms(60), delta=0)
     x0_ego = VehicleStateDyn(x=-115, y=5.3, theta=0.00, vx=kmh2ms(95), delta=0)
 
+    vg_truck = VehicleGeometry.default_truck()
     vg_ego = VehicleGeometry.default_car(color="firebrick")
+    truck_model = VehicleModelDyn.default_car(x0_truck)
+    truck_model.vg = vg_truck
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = vg_ego
 
-    models = {P1: VehicleModelDyn.default_car(x0_p1),
-              P2: VehicleModelDyn.default_car(x0_p2),
+    models = {P1: truck_model,
+              P2: VehicleModelDyn.default_car(x0_car),
               EGO: ego_model
               }
 
     net = scenario.lanelet_network
     agents: List[LFAgent] = []
-    for x0 in [x0_p1, x0_p2, x0_ego]:
+    for x0 in [x0_truck, x0_car, x0_ego]:
         p = np.array([x0.x, x0.y])
         lane_id = net.find_lanelet_by_position([p, ])
         assert len(lane_id[0]) > 0, p

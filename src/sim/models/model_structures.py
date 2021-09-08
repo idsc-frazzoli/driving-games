@@ -8,6 +8,7 @@ __all__ = ["ModelType", "CAR", "MOTORCYCLE", "BICYCLE", "PEDESTRIAN", "ModelGeom
 
 ModelType = NewType("ModelType", str)
 CAR = ModelType("car")
+TRUCK = ModelType("truck")
 MOTORCYCLE = ModelType("motorcycle")
 BICYCLE = ModelType("bicycle")
 PEDESTRIAN = ModelType("pedestrian")
