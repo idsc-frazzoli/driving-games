@@ -4,7 +4,7 @@ from typing import Tuple, Sequence, NewType
 
 from sim import Color
 
-__all__ = ["ModelType", "CAR", "MOTORCYCLE", "BICYCLE", "PEDESTRIAN", "ModelGeometry", "ModelParameters"]
+__all__ = ["ModelType", "CAR", "MOTORCYCLE", "BICYCLE", "TRUCK", "PEDESTRIAN", "ModelGeometry", "ModelParameters"]
 
 ModelType = NewType("ModelType", str)
 CAR = ModelType("car")

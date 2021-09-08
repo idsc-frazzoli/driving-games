@@ -24,7 +24,7 @@ class VehicleParameters(ModelParameters):
     @classmethod
     def default_truck(cls) -> "VehicleParameters":
         return VehicleParameters(vx_limits=(kmh2ms(-10), kmh2ms(90)),
-                                 acc_limits=(-5, 3),
+                                 acc_limits=(-6, 4),
                                  delta_max=math.pi / 6,
                                  ddelta_max=1)
 

@@ -27,6 +27,14 @@ class Pacejka:
         return Pacejka(B=11, C=1.9, D=1)
 
     @classmethod
+    def default_truck_front(cls):
+        return Pacejka(B=10, C=1.9, D=0.9)
+
+    @classmethod
+    def default_truck_rear(cls):
+        return Pacejka(B=11, C=1.9, D=1)
+
+    @classmethod
     def default_bicycle_front(cls):
         logger.warn("pacejka for bikes is not tuned")
         # todo

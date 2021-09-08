@@ -26,6 +26,13 @@ class VehicleParametersDyn(VehicleParameters):
                                     ddelta_max=1)
 
     @classmethod
+    def default_truck(cls) -> "VehicleParametersDyn":
+        return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(90)),
+                                    acc_limits=(-6, 4),
+                                    delta_max=math.pi / 6,
+                                    ddelta_max=1)
+
+    @classmethod
     def default_bicycle(cls) -> "VehicleParametersDyn":
         return VehicleParametersDyn(vx_limits=(kmh2ms(-1), kmh2ms(50)),
                                     acc_limits=(-4, 3),
@@ -122,6 +129,13 @@ class VehicleModelDyn(VehicleModel):
         return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParametersDyn.default_car(),
                                pacejka_front=Pacejka4p.default_car_front(),
                                pacejka_rear=Pacejka4p.default_car_rear()
+                               )
+
+    @classmethod
+    def default_truck(cls, x0: VehicleStateDyn):
+        return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_truck(), vp=VehicleParametersDyn.default_truck(),
+                               pacejka_front=Pacejka4p.default_truck_front(),
+                               pacejka_rear=Pacejka4p.default_truck_rear()
                                )
 
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:

@@ -9,7 +9,7 @@ from crash.metrics_nieliyang import compute_NieLiYang_risk
 from crash.metrics_structures import CollMetricsReport
 from sim import CollisionReport
 from sim.collision_visualisation import plot_collision
-from sim.models import PEDESTRIAN, CAR, BICYCLE
+from sim.models import PEDESTRIAN, CAR, BICYCLE, TRUCK
 from sim.simulator import SimContext
 from sim.simulator_animation import create_animation
 
@@ -26,11 +26,11 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext
 
     ab_modeltype = [sim_context.models[a].model_type, sim_context.models[b].model_type]
     # Check if any of the players corresponds to a Pedestrian or cyclist
-    if all(m == CAR for m in ab_modeltype):
+    if all(m == CAR or m == TRUCK for m in ab_modeltype):
         malliaris = compute_malliaris_one(coll_report, states={a: a_state, b: b_state})
         nieliyang = {}
     else:
-        if any([x in ab_modeltype for x in [PEDESTRIAN, BICYCLE]]) and CAR in ab_modeltype:
+        if any([x in ab_modeltype for x in [PEDESTRIAN, BICYCLE]]) and (CAR or TRUCK) in ab_modeltype:
             malliaris = {}
             nieliyang = compute_NieLiYang_risk(coll_report, model_types={a: sim_context.models[a].model_type,
                                                                          b: sim_context.models[b].model_type})
