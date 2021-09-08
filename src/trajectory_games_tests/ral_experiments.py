@@ -43,7 +43,7 @@ class RalExperiments(QuickApp):
                 game = cexp.comp(get_trajectory_game, pref_str)
                 solving_context = cexp.comp(preprocess_full_game, game)
                 nash_eq = cexp.comp(bruteforce_solve, solving_context)
-                gif = True if level == 0 else False
+                gif = True  # if level == 0 else False
                 report = cexp.comp(bruteforce_report, game, nash_eq=nash_eq, gif=gif)
                 cexp.add_report(report, f"refinement{level}")
 

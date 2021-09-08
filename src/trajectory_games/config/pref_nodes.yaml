@@ -194,3 +194,7 @@ weights_comf_extreme_3:
   weights_comf_extreme_2:       1.0
   MinimumClearance:             1.0
   DrivableAreaViolation:        1.0
+
+weighted_ref_deviation:
+  DeviationLateral:           1.0
+  DeviationHeading:           1.0
