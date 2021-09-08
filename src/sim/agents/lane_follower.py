@@ -66,6 +66,31 @@ class LFAgent(Agent):
             ddelta=ddelta
         )
 
+    def get_aftercrash_commands(self, sim_obs: SimObservations) -> VehicleCommands:
+        my_obs = sim_obs.players[self.my_name]
+        my_pose: SE2value = SE2_from_xytheta([my_obs.x, my_obs.y, my_obs.theta])
+
+        # update observations
+        self.speed_behavior.update_observations(sim_obs.players)
+        self.speed_controller.update_measurement(measurement=my_obs.vx)
+        self.steer_controller.update_measurement(measurement=my_obs.delta)
+        lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
+        self.pure_pursuit.update_pose(pose=my_pose, along_path=lanepose.along_lane)
+
+        # compute commands
+        t = float(sim_obs.time)
+        speed_ref = 0
+        self.pure_pursuit.update_speed(speed=speed_ref)
+        self.speed_controller.update_reference(reference=speed_ref)
+        acc = self.speed_controller.get_control(t)
+        delta_ref = self.pure_pursuit.get_desired_steering()
+        self.steer_controller.update_reference(delta_ref)
+        ddelta = self.steer_controller.get_control(t)
+        return VehicleCommands(
+            acc=acc,
+            ddelta=ddelta
+        )
+
     def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
         if not self.return_extra:
             return None

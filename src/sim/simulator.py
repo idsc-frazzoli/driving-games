@@ -74,8 +74,17 @@ class Simulator:
         update_commands: bool = (t - self.last_get_commands_ts) >= sim_context.param.dt_commands
         # fixme this can be parallelized later with ProcessPoolExecutor?
         for player_name, model in sim_context.models.items():
+            collision: bool = False
+            for collisions in range(len(sim_context.collision_reports)):
+                collision: bool = player_name in sim_context.collision_reports[collisions].players
+                if collision:
+                    break
+
             if update_commands:
-                actions = sim_context.players[player_name].get_commands(self.last_observations)
+                if collision:
+                    actions = sim_context.players[player_name].get_aftercrash_commands(self.last_observations)
+                else:
+                    actions = sim_context.players[player_name].get_commands(self.last_observations)
                 self.last_commands[player_name] = actions
                 self.simlogger[player_name].actions.add(t=t, v=actions)
                 extra = sim_context.players[player_name].on_get_extra()

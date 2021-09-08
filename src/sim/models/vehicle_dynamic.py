@@ -28,8 +28,8 @@ class VehicleParametersDyn(VehicleParameters):
     @classmethod
     def default_truck(cls) -> "VehicleParametersDyn":
         return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(90)),
-                                    acc_limits=(-6, 4),
-                                    delta_max=math.pi / 6,
+                                    acc_limits=(-10, 4),
+                                    delta_max=math.pi / 3,
                                     ddelta_max=1)
 
     @classmethod

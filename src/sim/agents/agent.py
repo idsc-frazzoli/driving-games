@@ -22,6 +22,11 @@ class Agent(ABC):
         """ This method gets called for each player inside the update loop of the simulator"""
         pass
 
+    @abstractmethod
+    def get_aftercrash_commands(self, sim_obs: SimObservations) -> U:
+        """ This method gets called for each player inside the update loop of the simulator"""
+        pass
+
     def on_get_extra(self, ) -> Optional[Any]:
         """ This method gets called for each player inside the update loop of the simulator,
         it is used purely for logging. For example pass all the trajectories that have been generated at that step  """

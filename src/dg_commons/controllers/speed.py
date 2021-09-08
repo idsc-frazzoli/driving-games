@@ -40,7 +40,6 @@ class SpeedBehaviorParam:
     safety_dist_front_crash: float = 10
     safety_time_front: float = 2
     minimum_safety_vel: float = kmh2ms(5)
-    vx_limits: Tuple[float, float] = (kmh2ms(-10), kmh2ms(130))
 
 
 class SpeedBehavior:
@@ -109,5 +108,5 @@ class SpeedBehavior:
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
                 if in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front * \
                         abs(vel - myvel):
-                    return np.clip(vel - abs(vel - myvel), 0, self.params.vx_limits[1])
+                    return np.clip(vel - abs(vel - myvel), 0, kmh2ms(200))
         return self.params.nominal_speed
