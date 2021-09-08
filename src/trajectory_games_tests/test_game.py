@@ -65,7 +65,7 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: TrajectoryGame = get_trajectory_game(config_str="ral_01_level_2")
+    game: TrajectoryGame = get_trajectory_game(config_str="ral_32_level_1")
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
