@@ -1215,7 +1215,7 @@ ral_22_level_2:
   players:
     Ambulance:
       <<: *P322
-      pref: "citizen_11"
+      pref: "citizen_12" #was 11 but not clear how refinement
     Granny:
       <<: *P122
       pref: "common_person_7" #was 6!!!

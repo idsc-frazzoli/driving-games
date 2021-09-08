@@ -243,6 +243,15 @@ citizen_11:
   DrivableAreaViolation: [ "CollisionEnergy" ]
   MinimumClearance: [ "DrivableAreaViolation" ]
   weights_comf_extreme_2: [ "MinimumClearance" ]
+
+citizen_12:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation: [ "CollisionEnergy" ]
+  MinimumClearance: [ "DrivableAreaViolation" ]
+  EpisodeTime: ["MinimumClearance"]
+  weights_comf: ["EpisodeTime"]
+  weighted_ref_deviation: ["weights_comf"]
+
 ########################################################
 pref_ambulance_az:
   CollisionEnergy: [ ]
