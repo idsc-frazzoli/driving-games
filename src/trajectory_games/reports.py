@@ -161,7 +161,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
 
 def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
            game: Game, prefs: Mapping[PlayerName, Preference] = None,
-           nash_eq: Mapping[str, SolvedTrajectoryGame] = None, make_gif = True):
+           nash_eq: Mapping[str, SolvedTrajectoryGame] = None, make_gif=True):
     if prefs is None:
         prefs = {pname: peq.preference for pname, peq in game.game_players.items()}
     for pref in prefs.values():
@@ -185,7 +185,7 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
             create_animation(fn=fn, game=game, node=node_eq)
         plt.close()
 
-    with eq_viz.plot("outcomes") as pylab:
+    with eq_viz.plot(title + "outcomes") as pylab:
         n: float = 0.0
         ax: Axes = pylab.gca()
         for pname, pref in prefs.items():
