@@ -99,7 +99,7 @@ common_person_7:
   DrivableAreaViolation: ["CollisionEnergy"]
   weights_ral_1: ["DrivableAreaViolation"]
   weighted_ref_deviation: ["weights_ral_1"]
-  weights_comf: ["weights_ref_deviation"]
+  weights_comf: ["weighted_ref_deviation"]
 
 cautious:
   DrivableAreaViolation: [ ]
