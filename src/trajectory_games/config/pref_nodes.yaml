@@ -198,3 +198,7 @@ weights_comf_extreme_3:
 weighted_ref_deviation:
   DeviationLateral:           1.0
   DeviationHeading:           1.0
+
+weights_ral_1:
+  weights_speed: 1.0
+  MinimumClearance: 1.0
