@@ -159,7 +159,7 @@ def stack_nodes(report: Report, viz: GameVisualization, title: str,
 
 def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
            game: Game, prefs: Mapping[PlayerName, Preference] = None,
-           nash_eq: Mapping[str, SolvedTrajectoryGame] = None):
+           nash_eq: Mapping[str, SolvedTrajectoryGame] = None, make_gif = True):
     if prefs is None:
         prefs = {pname: peq.preference for pname, peq in game.game_players.items()}
     for pref in prefs.values():
@@ -178,9 +178,10 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
                 nodes.append(k)
         title = ", ".join(nodes)
 
-    with eq_viz.data_file(title, MIME_GIF) as fn:
-        create_animation(fn=fn, game=game, node=node_eq)
-    plt.close()
+    if make_gif:
+        with eq_viz.data_file(title, MIME_GIF) as fn:
+            create_animation(fn=fn, game=game, node=node_eq)
+        plt.close()
 
     with eq_viz.plot("outcomes") as pylab:
         n: float = 0.0
@@ -199,7 +200,7 @@ def gif_eq(report: Report, node_eq: SolvedTrajectoryGameNode,
 
 
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   plot_gif: bool, max_n_gif=5) -> Report:
+                   plot_gif: bool, max_n_gif=10) -> Report:
     tic = perf_counter()
     viz = game.game_vis
     r_all = Report("equilibria")
@@ -271,11 +272,11 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame],
     if plot_gif:
         i = 1
         for node in node_set:
-            if i < max_n_gif:
-                rplot = Report(f"Eq_{i}")
-                gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq)
-                req.add_child(rplot)
-                i += 1
+            make_gif = i < max_n_gif
+            rplot = Report(f"Eq_{i}")
+            gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq, make_gif=make_gif)
+            req.add_child(rplot)
+            i += 1
     rplot = Report(f"Equilibria")
     image_eq(report=rplot)
     if len(node_set) < 200:

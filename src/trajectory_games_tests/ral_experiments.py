@@ -33,7 +33,7 @@ class RalExperiments(QuickApp):
         pass
 
     def define_jobs_context(self, context: QuickAppContext):
-        bruteforce: List[str] = ["ral_21", "ral_22"]  # "ral_06",
+        bruteforce: List[str] = ["ral_30", "ral_31", "ral_32"]  # "ral_06",
 
         for exp in bruteforce:
             cexp = context.child(exp, extra_report_keys=dict(experiment=exp))
@@ -43,7 +43,7 @@ class RalExperiments(QuickApp):
                 game = cexp.comp(get_trajectory_game, pref_str)
                 solving_context = cexp.comp(preprocess_full_game, game)
                 nash_eq = cexp.comp(bruteforce_solve, solving_context)
-                gif = True if level == 0 else False
+                gif = True  # if level == 0 else False
                 report = cexp.comp(bruteforce_report, game, nash_eq=nash_eq, gif=gif)
                 cexp.add_report(report, f"refinement{level}")
 

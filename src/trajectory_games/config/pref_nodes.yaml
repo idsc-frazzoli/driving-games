@@ -189,3 +189,7 @@ weights_comf_extreme:
 weights_comf_extreme_2:
   weights_comf_extreme:       1.0
   weights_speed:              1.0
+
+weighted_ref_deviation:
+  DeviationLateral:           1.0
+  DeviationHeading:           1.0
