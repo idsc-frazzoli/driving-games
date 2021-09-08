@@ -1171,9 +1171,9 @@ ral_31_level_2:
       pref: "common_person_3"
 
 #######################################################
-ral_33_level_0:
+ral_32_level_0:
   players:
-    Ambulance: &P333
+    Ambulance: &P332
       state: "state_1_peach"
       goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
       traj: "traj_1_3"
@@ -1181,13 +1181,13 @@ ral_33_level_0:
       #pref: "citizen_2" 121
       pref: "pref_ambulance_az"
       vg: "red_car"
-    Granny: &P133
+    Granny: &P132
       state: "state_2_peach"
       goals: [ [ -3.5,-5.0 ], [ -7.0,-5.0 ] ]
       traj: "traj_1_3"
       pref: "common_person"
       vg: "green_car"
-    Average: &P233
+    Average: &P232
       state: "state_3_peach"
       goals: [ [ -15.0,13.5 ], [ -15.0,17 ] ]
       traj: "traj_1_3"
@@ -1195,29 +1195,29 @@ ral_33_level_0:
       vg: "blue_car"
 
 # make sure the preferences here are a refinement of the ones above
-ral_33_level_1:
+ral_32_level_1:
   players:
     Ambulance:
-      <<: *P333
+      <<: *P332
       #pref: "citizen_4" 121
       pref: "pref_ambulance_az1"
     Granny:
-      <<: *P133
+      <<: *P132
       pref: "common_person"
     Average:
-      <<: *P233
+      <<: *P232
       pref: "common_person"
 
 
 # make sure the preferences here are a refinement of the ones above
-ral_33_level_2:
+ral_32_level_2:
   players:
     Ambulance:
-      <<: *P333
+      <<: *P332
       pref: "pref_ambulance_az2"
     Granny:
-      <<: *P133
+      <<: *P132
       pref: "common_person_3"
     Average:
-      <<: *P233
+      <<: *P232
       pref: "common_person_3"
