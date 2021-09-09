@@ -12,8 +12,6 @@ def test_mpckin():
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""
-    ddelta_kp: float = 10
-    """Proportional gain ddelta with respect to delta error"""
     speed_kp: float = 1
     """Propotioanl gain longitudinal speed controller"""
     speed_ki: float = 0.01
