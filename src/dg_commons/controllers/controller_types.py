@@ -4,15 +4,16 @@ from dg_commons.controllers.stanley_controller import Stanley, StanleyParam
 from dg_commons.controllers.speed import SpeedController, SpeedBehavior, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.steering_controllers import SCP, SCIdentity, SCIdentityParam, SCPParam
 from dg_commons.controllers.lqr import LQR, LQRParam
-from dg_commons.controllers.mpc_kin_cont import MPCKinCont, MPCKinContParam
+from dg_commons.controllers.mpc.mpc_kin_cont import MPCKinCont, MPCKinContParam
+from dg_commons.controllers.mpc.mpc_kin_cont_path_var import MPCKinContPathVarParam, MPCKinContPathVar
 
 
 class Empty:
     pass
 
 
-LateralController = Union[Empty, PurePursuit, Stanley, LQR, MPCKinCont]
-LateralControllerParam = Union[Empty, PurePursuitParam, StanleyParam, LQRParam, MPCKinContParam]
+LateralController = Union[Empty, PurePursuit, Stanley, LQR, MPCKinCont, MPCKinContPathVar]
+LateralControllerParam = Union[Empty, PurePursuitParam, StanleyParam, LQRParam, MPCKinContParam, MPCKinContPathVarParam]
 
 LongitudinalController = Union[Empty, SpeedController]
 LongitudinalControllerParam = Union[Empty, SpeedControllerParam]
