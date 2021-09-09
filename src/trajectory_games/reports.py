@@ -25,7 +25,7 @@ from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, Sol
     SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame, LeaderFollowerGameStage
 from .visualization import TrajGameVisualization, tone_down_color, ZOrder
 
-EXPORT_PDF = False
+EXPORT_PDF = True
 STACK_JPG = False
 MIME = MIME_PDF if EXPORT_PDF else MIME_JPG if STACK_JPG else MIME_PNG
 
