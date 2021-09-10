@@ -1,7 +1,7 @@
 from functools import reduce
 from itertools import permutations
 from operator import attrgetter
-from typing import List
+from typing import List, Set, Tuple
 
 import networkx as nx
 from networkx import DiGraph
@@ -16,7 +16,7 @@ def _first_collision_for(player: PlayerName, coll_report: List[CollisionReport])
     return min([report.at_time for report in coll_report if player in report.players])
 
 
-def investigate_collision_report(coll_reports: List[CollisionReport], combine_reports: bool = False) \
+def investigate_collision_report(coll_reports: List[CollisionReport]) \
         -> (List[CollisionReport], DiGraph):
     """We get a collision report for every step of the simulation in which a collision is detected.
     Yet an accident is *one* accident even if the two cars are in a collision state for multiple simulation steps.
@@ -24,11 +24,10 @@ def investigate_collision_report(coll_reports: List[CollisionReport], combine_re
     Assumptions:
         - For each episode two players can have an accidents with each other only once
     :param coll_reports: The original list of collision reports
-    :param combine_reports: Whether or not to squeeze the report of collisions between the same pairs of players
     """
 
-    players_involved = set()
-    accidents = set()
+    players_involved: Set[PlayerName] = set()
+    accidents: Set[Tuple[PlayerName]] = set()
     for report in coll_reports:
         players = tuple(report.players.keys())
         for p in players:
@@ -49,14 +48,13 @@ def investigate_collision_report(coll_reports: List[CollisionReport], combine_re
             if Gcoll.nodes[p1]["ts_first_collision"] <= Gcoll.nodes[p2]["ts_first_collision"]:
                 Gcoll.add_edge(p1, p2)
 
-    if combine_reports:
-        logger.info("Combining collisions reports into accidents' reports")
-        list_accidents: List[CollisionReport] = []
-        for involved_ps in accidents:
-            report_involved_ps = [r for r in coll_reports if set(involved_ps) == set(r.players.keys())]
-            accident_report = reduce(combine_collision_reports, report_involved_ps)
-            list_accidents.append(accident_report)
-        coll_reports = list_accidents
+    logger.info("Combining collisions reports into accidents' reports")
+    list_accidents: List[CollisionReport] = []
+    for involved_ps in accidents:
+        report_involved_ps = [r for r in coll_reports if set(involved_ps) == set(r.players.keys())]
+        accident_report = reduce(combine_collision_reports, report_involved_ps)
+        list_accidents.append(accident_report)
+    coll_reports = list_accidents
 
     # add info to node graph about who is at fault
     for player in Gcoll.nodes:

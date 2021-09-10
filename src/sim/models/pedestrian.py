@@ -26,9 +26,13 @@ class PedestrianGeometry(ModelGeometry):
         ellipse = affinity.scale(circle, 1, 1.5)  # not sure, maybe just a circle?
         return tuple(ellipse.exterior.coords)
 
+    @cached_property
+    def outline_as_polygon(self) -> Polygon:
+        return Polygon(self.outline)
+
     @classmethod
     def default(cls):
-        return PedestrianGeometry(m=75, Iz=50, e=0.3, color="pink")
+        return PedestrianGeometry(m=75, Iz=50, e=0.35, color="pink")
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -86,9 +90,9 @@ class PedestrianState:
     vx: float
     """ longitudinal speed [m/s] """
     vy: float = 0
-    """ lassteral speed [m/s] """
+    """ lateral speed [m/s] """
     dtheta: float = 0
-    """ rot speed [rad] """
+    """ rot speed [rad/s] """
     idx = frozendict({"x": 0, "y": 1, "theta": 2, "vx": 3, "vy": 4, "dtheta": 5})
     """ Dictionary to get correct values from numpy arrays"""
 
@@ -214,7 +218,7 @@ class PedestrianModel(SimModel[SE2value, float]):
         magic_mu = 0.002
         frictiony = - np.sign(x0.vy) * magic_mu * self.pg.m * x0.vy ** 2
         frictionx = - np.sign(x0.vx) * magic_mu * self.pg.m * x0.vx ** 2 if self.has_collided else 0
-        frictiontheta = - np.sign(x0.dtheta) * self.pg.Iz * x0.dtheta ** 2 if self.has_collided else 0
+        frictiontheta = - np.sign(x0.dtheta) * magic_mu * self.pg.Iz * x0.dtheta ** 2 if self.has_collided else 0
         return PedestrianState(
             x=x0.vx * costheta - x0.vy * sintheta,
             y=x0.vx * sintheta + x0.vy * costheta,
@@ -225,7 +229,7 @@ class PedestrianModel(SimModel[SE2value, float]):
         )
 
     def get_footprint(self) -> Polygon:
-        footprint = Polygon(self.pg.outline)
+        footprint = self.pg.outline_as_polygon
         transform = self.get_pose()
         matrix_coeff = transform[0, :2].tolist() + transform[1, :2].tolist() + transform[:2, 2].tolist()
         footprint = affine_transform(footprint, matrix_coeff)

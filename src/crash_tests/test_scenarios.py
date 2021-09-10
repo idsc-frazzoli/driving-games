@@ -11,12 +11,17 @@ def test_suicidal_pedestrian():
 
 def test_commonroad_replica():
     sim_param = SimParameters(dt=SimTime("0.01"),
-                              dt_commands=SimTime("0.05"),
+                              dt_commands=SimTime("0.1"),
                               max_sim_time=SimTime(6),
-                              sim_time_after_collision=SimTime(6))
+                              sim_time_after_collision=SimTime(5))
     # initialize all contexts/ agents and simulator
     sim_context = get_scenario_commonroad_replica(
         scenario_name="USA_Lanker-1_1_T-1.xml", sim_param=sim_param)
+    run_scenario_without_compmake(sim_context)
+
+
+def test_scenario_bicycle():
+    sim_context = get_scenario_bicycle()
     run_scenario_without_compmake(sim_context)
 
 

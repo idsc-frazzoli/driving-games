@@ -207,7 +207,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_footprint(self) -> Polygon:
         """Returns current footprint of the vehicle (mainly for collision checking)"""
-        footprint = Polygon(self.vg.outline)
+        footprint = self.vg.outline_as_polygon
         transform = self.get_pose()
         matrix_coeff = transform[0, :2].tolist() + transform[1, :2].tolist() + transform[:2, 2].tolist()
         footprint = affine_transform(footprint, matrix_coeff)

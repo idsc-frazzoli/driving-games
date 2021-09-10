@@ -11,10 +11,9 @@ from dg_commons import DgSampledSequence
 from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
+from sim.models.model_structures import ModelGeometry, ModelType
 
 __all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog"]
-
-from sim.models.model_structures import ModelGeometry, ModelType
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -22,7 +21,7 @@ class SimParameters:
     dt: SimTime = SimTime("0.05")
     """Simulation step [s]"""
     dt_commands: SimTime = SimTime("0.1")
-    """How often shall we ask the agents for new commands"""
+    """How often shall we ask the agents for new commands [s]"""
     max_sim_time: SimTime = SimTime(6)
     """Max Simulation time overall [s]"""
     sim_time_after_collision: SimTime = SimTime(0)
@@ -116,7 +115,8 @@ class SimModel(ABC, Generic[X, U]):
 
     @abstractmethod
     def get_velocity(self, in_model_frame: bool) -> (T2value, float):
-        """Get velocity of the model, default in body frame, otherwise in global"""
+        """ Get velocity of the model
+        :param in_model_frame: whether in body frame, or global frame"""
         pass
 
     @abstractmethod
