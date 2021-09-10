@@ -49,6 +49,10 @@ class NPAgent(Agent):
         t: SimTime = sim_obs.time
         return self.commands_plan.at_or_previous(t)
 
+    def get_aftercrash_commands(self, sim_obs: SimObservations) -> U:
+        t: SimTime = sim_obs.time
+        return self.commands_plan.at_or_previous(t)
+
 
 class PolicyAgent(Agent):
     """

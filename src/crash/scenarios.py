@@ -15,7 +15,7 @@ from games import PlayerName
 from sim import SimTime
 from sim.agents.agent import NPAgent
 from sim.agents.lane_follower import LFAgent
-from sim.models import kmh2ms
+from sim.models import kmh2ms, CAR, TRUCK
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.models.vehicle_structures import VehicleGeometry
@@ -68,7 +68,8 @@ def get_scenario_bicycle() -> SimContext:
         sp_controller_param: SpeedControllerParam = SpeedControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
                                                                          output_minmax=models[agent].vp.acc_limits,
                                                                          )
-        st_controller_param: SteerControllerParam = SteerControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
+        st_controller_param: SteerControllerParam = SteerControllerParam(setpoint_minmax=(-models[agent].vp.delta_max,
+                                                                                          models[agent].vp.delta_max),
                                                                          output_minmax=(-models[agent].vp.ddelta_max,
                                                                                         models[agent].vp.ddelta_max),
                                                                          )
@@ -140,24 +141,26 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
     net = scenario.lanelet_network
     agents: List[LFAgent] = []
     for agent in models:
-        x0 = models[agent].get_state()
-        p = np.array([x0.x, x0.y])
-        lane_id = net.find_lanelet_by_position([p, ])
-        assert len(lane_id[0]) > 0, p
-        lane = net.find_lanelet_by_id(lane_id[0][0])
-        merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
-            lanelet=lane, network=net)[0][0]
-        dglane = DgLanelet.from_commonroad_lanelet(merged_lane)
-        sp_controller_param: SpeedControllerParam = SpeedControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
-                                                                         output_minmax=models[agent].vp.acc_limits,
-                                                                         )
-        st_controller_param: SteerControllerParam = SteerControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
-                                                                         output_minmax=(-models[agent].vp.ddelta_max,
-                                                                                        models[agent].vp.ddelta_max),
-                                                                         )
-        sp_controller = SpeedController(sp_controller_param)
-        st_controller = SteerController(st_controller_param)
-        agents.append(LFAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+        if not models[agent].model_type == 'pedestrian':
+            x0 = models[agent].get_state()
+            p = np.array([x0.x, x0.y])
+            lane_id = net.find_lanelet_by_position([p, ])
+            assert len(lane_id[0]) > 0, p
+            lane = net.find_lanelet_by_id(lane_id[0][0])
+            merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+                lanelet=lane, network=net)[0][0]
+            dglane = DgLanelet.from_commonroad_lanelet(merged_lane)
+            sp_controller_param: SpeedControllerParam = SpeedControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
+                                                                             output_minmax=models[agent].vp.acc_limits,
+                                                                             )
+            st_controller_param: SteerControllerParam = SteerControllerParam(setpoint_minmax=(-models[agent].vp.delta_max,
+                                                                                              models[agent].vp.delta_max),
+                                                                             output_minmax=(-models[agent].vp.ddelta_max,
+                                                                                            models[agent].vp.ddelta_max),
+                                                                             )
+            sp_controller = SpeedController(sp_controller_param)
+            st_controller = SteerController(st_controller_param)
+            agents.append(LFAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
     #
     # plt.savefig("lanes_debug.png", dpi=300)
     #
@@ -181,12 +184,13 @@ def get_two_lanes_scenario() -> SimContext:
     scenario_name = "ZAM_Zip-1_66_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
 
-    x0_truck = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=kmh2ms(40), delta=0)
+    x0_truck = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=kmh2ms(30), delta=0)
     x0_p2 = VehicleStateDyn(x=-105, y=9, theta=0.00, vx=kmh2ms(60), delta=0)
     x0_ego = VehicleStateDyn(x=-115, y=5.3, theta=0.00, vx=kmh2ms(90), delta=0)
 
-    truck_model = VehicleModelDyn.default_truck(x0_truck)
-
+    truck_model = VehicleModelDyn.default_car(x0_truck)
+    truck_model.vg = VehicleGeometry(vehicle_type=CAR, m=8000.0, Iz=6300, w_half=1.2, lf=4, lr=4, c_drag=0.3756,
+                                     a_drag=4, e=0.5, c_rr_f=0.03, c_rr_r=0.03, color="darkgreen")
     vg_ego = VehicleGeometry.default_car(color="firebrick")
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = vg_ego
@@ -210,7 +214,8 @@ def get_two_lanes_scenario() -> SimContext:
         sp_controller_param: SpeedControllerParam = SpeedControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
                                                                          output_minmax=models[agent].vp.acc_limits,
                                                                          )
-        st_controller_param: SteerControllerParam = SteerControllerParam(setpoint_minmax=models[agent].vp.vx_limits,
+        st_controller_param: SteerControllerParam = SteerControllerParam(setpoint_minmax=(-models[agent].vp.delta_max,
+                                                                                          models[agent].vp.delta_max),
                                                                          output_minmax=(-models[agent].vp.ddelta_max,
                                                                                         models[agent].vp.ddelta_max),
                                                                          )
