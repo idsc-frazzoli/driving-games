@@ -35,7 +35,7 @@ class TestController:
         players, models = {}, {}
         for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
             agent = self._agent_model_from_dynamic_obstacle(dyn_obs)
-            model = TestController._model_from_dynamic_obstacle(dyn_obs, True)
+            model = TestController._model_from_dynamic_obstacle(dyn_obs, False)
             player_name = PlayerName(f"P{i}")
             players.update({player_name: agent})
             models.update({player_name: model})
@@ -49,8 +49,7 @@ class TestController:
 
     def _agent_model_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
 
-        controller = self.controller["Controller"]()
-        controller.params = self.controller["Parameters"]
+        controller = self.controller["Controller"](self.controller["Parameters"])
         speed_behavior = self.speed_behavior["Behavior"]()
         speed_behavior.params = self.speed_behavior["Parameters"]
         steering_controller = self.steering_controller["Controller"]()
