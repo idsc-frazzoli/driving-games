@@ -79,12 +79,10 @@ class LFAgent(Agent):
         return acc, ddelta
 
     def _get_coupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
-        # update observations
-        self.controller.update_state(my_obs)
         # compute commands
         speed_ref = self.speed_behavior.get_speed_ref(t)
-        self.controller.update_ref_speed(speed_ref)
+        self.controller.update_state(my_obs, speed_ref)
 
-        acc, steering = self.controller.get_targets()
+        steering, acc = self.controller.get_targets()
         ddelta = self.steering_controller.get_steering_velocity(steering, my_obs.delta)
         return acc, ddelta

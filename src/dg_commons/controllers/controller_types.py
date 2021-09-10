@@ -7,6 +7,7 @@ from dg_commons.controllers.lqr import LQR, LQRParam
 from dg_commons.controllers.mpc.mpc_kin_cont import MPCKinCont, MPCKinContParam
 from dg_commons.controllers.mpc.mpc_kin_cont_path_var import MPCKinContPathVarParam, MPCKinContPathVar
 from dg_commons.controllers.mpc.mpc_kin_dis import MPCKinDisParam, MPCKinDis
+from dg_commons.controllers.mpc.mpc_kin_full_cont import MPCKinContFullParam, MPCKinContFull
 
 
 class Empty:
@@ -26,5 +27,5 @@ LongitudinalBehaviorParam = Union[Empty, SpeedBehaviorParam]
 SteeringController = Union[Empty, SCP, SCIdentity]
 SteeringControllerParam = Union[Empty, SCPParam, SCIdentityParam]
 
-LatAndLonController = Union[Empty]
-LatAndLonControllerParam = Union[Empty]
+LatAndLonController = Union[Empty, MPCKinContFull]
+LatAndLonControllerParam = Union[Empty, MPCKinContFullParam]
