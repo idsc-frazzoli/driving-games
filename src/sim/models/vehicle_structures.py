@@ -7,7 +7,7 @@ from geometry import SE2_from_xytheta
 from shapely.geometry import Polygon
 
 from sim import Color
-from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE, TRUCK
+from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE
 
 __all__ = ["VehicleGeometry"]
 
@@ -48,12 +48,6 @@ class VehicleGeometry(ModelGeometry):
         return VehicleGeometry(vehicle_type=BICYCLE, m=85.0, Iz=90, w_half=0.25, lf=1.0, lr=1.0, c_drag=0.01,
                                a_drag=0.2, e=0.35, c_rr_f=0.003, c_rr_r=0.003, color=color)
 
-    @classmethod
-    def default_truck(cls, color: Optional[Color] = None) -> "VehicleGeometry":
-        color = "darkgreen" if color is None else color
-        return VehicleGeometry(vehicle_type=TRUCK, m=8000.0, Iz=6300, w_half=1.2, lf=4, lr=4, c_drag=0.3756,
-                               a_drag=4, e=0.5, c_rr_f=0.03, c_rr_r=0.03, color=color)
-
     @cached_property
     def width(self):
         return self.w_half * 2
@@ -67,7 +61,7 @@ class VehicleGeometry(ModelGeometry):
     def outline(self) -> Tuple[Tuple[float, float], ...]:
         """Outline of the vehicle intended as the whole car body."""
         tyre_halfw, radius = self.wheel_shape
-        if self.vehicle_type == CAR or self.vehicle_type == TRUCK:
+        if self.vehicle_type == CAR:
             frontbumper = self.lf / 2
         else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
             frontbumper = radius
@@ -81,7 +75,7 @@ class VehicleGeometry(ModelGeometry):
 
     @cached_property
     def wheel_shape(self):
-        if self.vehicle_type == CAR or self.vehicle_type == TRUCK:
+        if self.vehicle_type == CAR:
             halfwidth, radius = 0.1, 0.3  # size of the wheels
         elif self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE:
             halfwidth, radius = 0.05, 0.3  # size of the wheels
@@ -99,7 +93,7 @@ class VehicleGeometry(ModelGeometry):
 
     @cached_property
     def wheels_position(self) -> np.ndarray:
-        if self.vehicle_type == CAR or self.vehicle_type == TRUCK:
+        if self.vehicle_type == CAR:
             # return 4 wheels position (always the first half are the front ones)
             positions = np.array([[self.lf, self.lf, -self.lr, -self.lr],
                                   [self.w_half, -self.w_half, self.w_half, -self.w_half],

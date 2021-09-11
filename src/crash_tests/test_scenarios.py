@@ -25,11 +25,6 @@ def test_scenario_bicycle():
     run_scenario_without_compmake(sim_context)
 
 
-def test_two_lanes_scenario():
-    sim_context = get_two_lanes_scenario()
-    run_scenario_without_compmake(sim_context)
-
-
 def test_em_devel():
     sim_context = get_scenario_racetrack_test()
     run_scenario_without_compmake(sim_context)
