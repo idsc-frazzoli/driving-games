@@ -37,6 +37,7 @@ class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
     safety_dist_right: float = 2
     safety_dist_front: float = 10
+    safety_time_front: float = 2
 
 
 class SpeedBehavior:
@@ -59,7 +60,7 @@ class SpeedBehavior:
         if yield_to_anyone:
             self.speed_ref = 0
         else:
-            self.speed_ref = self.params.nominal_speed
+            self.speed_ref = self.cruise_control()
         return self.speed_ref
 
     def is_there_anyone_to_yield_to(self) -> bool:

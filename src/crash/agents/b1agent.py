@@ -4,6 +4,7 @@ from sim.agents.agent import Agent
 
 __all__ = ["B1Agent"]
 
+
 class B1Agent(Agent):
     """Baseline 1 agent"""
 
