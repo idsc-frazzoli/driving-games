@@ -7,7 +7,7 @@ from geometry import SE2_from_xytheta
 from shapely.geometry import Polygon
 
 from sim import Color
-from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE
+from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE, TRUCK
 
 __all__ = ["VehicleGeometry"]
 
@@ -47,6 +47,12 @@ class VehicleGeometry(ModelGeometry):
         color = "saddlebrown" if color is None else color
         return VehicleGeometry(vehicle_type=BICYCLE, m=85.0, Iz=90, w_half=0.25, lf=1.0, lr=1.0, c_drag=0.01,
                                a_drag=0.2, e=0.35, c_rr_f=0.003, c_rr_r=0.003, color=color)
+
+    @classmethod
+    def default_truck(cls, color: Optional[Color] = None) -> "VehicleGeometry":
+        color = "darkgreen" if color is None else color
+        return VehicleGeometry(vehicle_type=TRUCK, m=8000.0, Iz=6300, w_half=1.2, lf=4, lr=4, c_drag=0.3756,
+                               a_drag=4, e=0.5, c_rr_f=0.03, c_rr_r=0.03, color=color)
 
     @cached_property
     def width(self):

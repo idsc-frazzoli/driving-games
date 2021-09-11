@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from sim import logger
 from sim.models.model_structures import ModelParameters
-from sim.models.utils import rho, kmh2ms
+from sim.models.utils import kmh2ms
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -19,6 +19,13 @@ class VehicleParameters(ModelParameters):
         return VehicleParameters(vx_limits=(kmh2ms(-10), kmh2ms(130)),
                                  acc_limits=(-8, 5),
                                  delta_max=math.pi / 6,
+                                 ddelta_max=1)
+
+    @classmethod
+    def default_truck(cls) -> "VehicleParameters":
+        return VehicleParameters(vx_limits=(kmh2ms(-10), kmh2ms(90)),
+                                 acc_limits=(-6, 3.5),
+                                 delta_max=math.pi / 4,
                                  ddelta_max=1)
 
     @classmethod
@@ -50,4 +57,3 @@ def steering_constraint(steering_angle: float, steering_velocity: float, vp: Veh
             f"Commanded steering rate out of limits, clipping value: {steering_velocity:.2f}>{vp.ddelta_max:.2f}")
         steering_velocity = vp.ddelta_max
     return steering_velocity
-
