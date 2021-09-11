@@ -87,12 +87,12 @@ class SpeedBehavior:
          that allows maintaining a safe distance between the vehicles
         """
         mypose = extract_pose_from_state(self.agents[self.my_name])
-        myvel = extract_vel_from_state(self.agents[self.my_name])
+        myvel = self.agents[self.my_name].vx
         for other_name, _ in self.agents.items():
             if not other_name == self.my_name:
                 rel = SE2Transform.from_SE2(relative_pose(
                     mypose, extract_pose_from_state(self.agents[other_name])))
-                vel = extract_vel_from_state(self.agents[other_name])
+                vel = self.agents[other_name].vx
 
                 distance = np.linalg.norm(rel.p)
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2

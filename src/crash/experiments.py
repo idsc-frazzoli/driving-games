@@ -19,7 +19,7 @@ class CrashingExperiments(QuickApp):
 
     def define_jobs_context(self, context: QuickAppContext):
 
-        experiments = [get_exp_suicidal_pedestrian(), get_exp_illegal_turn()]
+        experiments = [get_exp_suicidal_pedestrian(), get_exp_illegal_turn(), get_exp_two_lanes_scenario()]
         for exp in experiments:
             cexp = context.child(exp.name, extra_report_keys=dict(experiment=exp.name))
             for scenario_name, sim_context in exp.sub_experiments.items():
