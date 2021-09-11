@@ -10,7 +10,7 @@ from games import PlayerName, X
 
 __all__ = ["SpeedController", "SpeedBehavior"]
 
-from sim.models import extract_pose_from_state, kmh2ms
+from sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 
 
 @dataclass
@@ -35,9 +35,11 @@ class SpeedController(PID):
 @dataclass
 class SpeedBehaviorParam:
     nominal_speed: float = kmh2ms(40)
-    safety_dist_right: float = 2
-    safety_dist_front: float = 10
+    safety_dist_lateral: float = 7
+    safety_dist_front: float = 6
+    safety_dist_front_crash: float = 10
     safety_time_front: float = 2
+    minimum_safety_vel: float = kmh2ms(5)
 
 
 class SpeedBehavior:
@@ -73,12 +75,18 @@ class SpeedBehavior:
             if not other_name == self.my_name:
                 rel = SE2Transform.from_SE2(relative_pose(
                     mypose, extract_pose_from_state(self.agents[other_name])))
+                vel = extract_vel_from_state(self.agents[other_name])
 
                 distance = np.linalg.norm(rel.p)
-                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4
+                coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and \
+                                              vel > self.params.minimum_safety_vel
+                coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4 and \
+                                             vel > self.params.minimum_safety_vel
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-                if (coming_from_the_right and distance < self.params.safety_dist_right) or (
-                        in_front_of_me and distance < self.params.safety_dist_front):
+                coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
+                if (coming_from_the_right and distance < self.params.safety_dist_lateral) or (
+                        coming_from_the_left and distance < self.params.safety_dist_lateral) or (
+                        coming_from_the_front and distance < self.params.safety_dist_front_crash):
                     return True
         return False
 
