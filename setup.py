@@ -41,6 +41,7 @@ setup(
     packages=[module],
     version=version,
     zip_safe=False,
-    entry_points={"console_scripts": ["dg-demo = games_zoo:dg_demo", ]},
+    entry_points={"console_scripts": ["dg-demo = games_zoo:dg_demo",
+                                      "posets-exp = trajectory_games_tests:run_ral_exp"]},
     install_requires=install_requires,
 )

@@ -23,7 +23,7 @@ traj_1:       &traj_1
   dt:         "2.0"
   step_acc:   2.0
   n_acc:      3
-  step_dst:   0.075
+  step_dst:   0.06
   n_dst:      3
   v_max:      10.0
   v_min:      2.0
@@ -35,16 +35,32 @@ traj_1:       &traj_1
 
 traj_1_3:     &traj_1_3
   <<:         *traj_1
-  dt:         "3.0"
+  dt:         "1.5"
   max_gen:    1
-  n_acc:      3
-  n_dst:      3
+  n_acc:      2
+  n_dst:      4
+  step_dst:   0.1
+
+traj_1_32:     &traj_1_32
+  <<:         *traj_1
+  dt:         "2"
+  max_gen:    1
+  n_acc:      2
+  n_dst:      4
+  step_dst:   0.12
+traj_1_33:     &traj_1_33
+  <<:         *traj_1
+  dt:         "1.8"
+  max_gen:    1
+  n_acc:      2
+  n_dst:      4
+  step_dst:   0.17
 
 traj_1_5:     &traj_1_5
   <<:         *traj_1
   dt:         "3.0"
   max_gen:    1
-  step_acc:   2.0
+  step_acc:   1.5
   n_acc:      3
   step_dst:   0.1
   n_dst:      5

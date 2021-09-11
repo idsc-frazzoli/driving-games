@@ -178,3 +178,27 @@ weights_lf6:
   CollisionEnergy:            1.0
   weights_speed:              2.0
   weights_comf:               4.0
+
+weights_suicidal:
+  CollisionEnergy:            -1.0
+
+weights_comf_extreme:
+  weights_5:                  1.0
+  weights_comf:               1.0
+
+weights_comf_extreme_2:
+  weights_comf_extreme:       1.0
+  weights_speed:              1.0
+
+weights_comf_extreme_3:
+  weights_comf_extreme_2:       1.0
+  MinimumClearance:             1.0
+  DrivableAreaViolation:        1.0
+
+weighted_ref_deviation:
+  DeviationLateral:           1.0
+  DeviationHeading:           1.0
+
+weights_ral_1:
+  weights_speed: 1.0
+  MinimumClearance: 1.0

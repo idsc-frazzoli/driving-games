@@ -10,6 +10,49 @@
 # Use "NoPreference" for any action
 
 ## Finite time preferences
+pref_ambulance:
+  CollisionEnergy:            []
+  EpisodeTime:                ["CollisionEnergy"]
+  ProgressAlongReference:     ["CollisionEnergy"]
+  MinimumClearance:           ["EpisodeTime", "ProgressAlongReference"]
+  DrivableAreaViolation:      ["MinimumClearance"]
+  DeviationHeading:           ["DrivableAreaViolation"]
+  DeviationLateral:           ["DrivableAreaViolation"]
+  LateralComfort:             ["DrivableAreaViolation"]
+
+
+pref_granny:
+  CollisionEnergy:            []
+  MinimumClearance:           ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  LateralComfort:             ["DrivableAreaViolation", "MinimumClearance"]
+  DeviationHeading:           ["LateralComfort"]
+  DeviationLateral:           ["LateralComfort"]
+  ProgressAlongReference:     ["DeviationHeading", "DeviationLateral"]
+  EpisodeTime:                ["DeviationHeading", "DeviationLateral"]
+
+pref_granny_gen1:
+  CollisionEnergy:            []
+  MinimumClearance:           ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  ProgressAlongReference:     ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime:                ["DrivableAreaViolation", "MinimumClearance"]
+
+pref_granny_gen2:
+  CollisionEnergy:            []
+  MinimumClearance:           ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  ProgressAlongReference:     ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime:                ["DrivableAreaViolation", "MinimumClearance"]
+  LateralComfort:             ["EpisodeTime", "ProgressAlongReference"]
+
+pref_granny_gen3:
+  CollisionEnergy:            []
+  MinimumClearance:           ["CollisionEnergy"]
+  DrivableAreaViolation:      ["MinimumClearance"]
+  ProgressAlongReference:     ["MinimumClearance"]
+  EpisodeTime:                ["MinimumClearance"]
+  LateralComfort:             ["EpisodeTime", "ProgressAlongReference"]
 # Toy game preferences
 pref_1:                       &pref_1
   CollisionEnergy:            []

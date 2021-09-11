@@ -1,7 +1,7 @@
 import os
 from copy import deepcopy
 from os.path import join
-from typing import Mapping, Dict
+from typing import Mapping, Dict, Optional
 
 from reprep import Report
 from yaml import safe_load
@@ -29,14 +29,16 @@ from trajectory_games import (
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
-plot_gif = True  # gif vs image for viz
+plot_gif = False  # gif vs image for viz
 only_traj = False  # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"
 
 
-def create_reports(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   r_game: Report, gif: bool = plot_gif):
+def create_reports(game: TrajectoryGame,
+                   nash_eq: Mapping[str, SolvedTrajectoryGame],
+                   r_game: Report,
+                   gif: bool = plot_gif):
     if not only_traj:
         print(", ".join(f"{k.capitalize()} = {len(v)}" for k, v in nash_eq.items()))
         r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=gif))
@@ -63,7 +65,7 @@ def report_times():
 
 def test_trajectory_game_brute_force():
     folder = "brute_force/"
-    game: TrajectoryGame = get_trajectory_game(config_str="basic")
+    game: TrajectoryGame = get_trajectory_game(config_str="ral_32_level_1")
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
     if only_traj:
@@ -79,7 +81,7 @@ def test_trajectory_game_best_response():
     folder = "best_response/"
     n_runs = 100  # Number of random runs for best response
 
-    game: TrajectoryGame = get_trajectory_game(config_str="basic")
+    game: TrajectoryGame = get_trajectory_game(config_str="ral_01_level_2")
     context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
 
     if only_traj:
@@ -149,19 +151,19 @@ def test_trajectory_game_levels():
             game.game_vis.init_plot_dict(values=stage_eq["weak"])
         if stage not in r_levels:
             rep = Report()
-            create_reports(game=game, nash_eq=stage_eq, r_game=rep, gif=False)
+            create_reports(game=game, nash_eq=stage_eq, r_game=rep, gif=plot_gif)
             node: Report = rep.last()
             node.nid = f"Pref_{name}"
             r_levels[stage] = node
         return stage_eq
 
-    nash_eqf: Mapping[str, SolvedTrajectoryGame] = None
+    nash_eqf: Optional[Mapping[str, SolvedTrajectoryGame]] = None
     for i in range(1, 5):
         nash_eqf = play_stage(stage=i + 1)
 
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))
-    create_reports(game=game, nash_eq=nash_eqf, r_game=r_game, gif=True)
+    create_reports(game=game, nash_eq=nash_eqf, r_game=r_game, gif=plot_gif)
     prefs = {p.name: p.preference for p in game.game_players.values()}
     r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))
     for level in r_levels.values():

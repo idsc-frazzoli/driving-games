@@ -37,6 +37,8 @@ __all__ = [
     "JOIN_ACCOMP"
 ]
 
+from sim import Color
+
 W = TypeVar("W")
 """Generic variable for a world"""
 G = TypeVar("G")
@@ -125,7 +127,7 @@ class GameVisualization(Generic[X, U, W], ABC):
 
     @abstractmethod
     def plot_equilibria(self, axis, actions: FrozenSet[U],
-                        colour: Tuple[float, float, float], **kwargs):
+                        colour: Color, **kwargs):
         pass
 
     @abstractmethod
