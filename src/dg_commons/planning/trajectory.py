@@ -1,11 +1,11 @@
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Type
 
 import numpy as np
 from duckietown_world import SE2Transform
 
-from dg_commons.sequence import DgSampledSequence
+from dg_commons.sequence import DgSampledSequence, X
 from sim.models.vehicle import VehicleState
 
 __all__ = [
@@ -13,9 +13,12 @@ __all__ = [
 ]
 
 
-#@dataclass(unsafe_hash=True)
 class Trajectory(DgSampledSequence[VehicleState]):
     """ Container for a trajectory as a sampled sequence """
+
+    @property
+    def XT(self) -> Type[X]:
+        return VehicleState
 
     def as_path(self) -> List[SE2Transform]:
         """ Returns cartesian coordinates (SE2) of transition states """
