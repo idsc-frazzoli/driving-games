@@ -8,11 +8,12 @@ __all__ = ["ModelType", "CAR", "MOTORCYCLE", "BICYCLE", "PEDESTRIAN", "ModelGeom
 
 ModelType = NewType("ModelType", str)
 CAR = ModelType("car")
+TRUCK = ModelType("truck")
 MOTORCYCLE = ModelType("motorcycle")
 BICYCLE = ModelType("bicycle")
 PEDESTRIAN = ModelType("pedestrian")
 TwoWheelsTypes = frozenset({BICYCLE, MOTORCYCLE})
-FourWheelsTypes = frozenset({CAR})
+FourWheelsTypes = frozenset({CAR, TRUCK})
 
 
 @dataclass(frozen=True, unsafe_hash=True)

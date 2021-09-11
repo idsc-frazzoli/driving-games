@@ -158,6 +158,10 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     def default_car(cls, x0: VehicleState):
         return VehicleModel(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParameters.default_car())
 
+    @classmethod
+    def default_truck(cls, x0: VehicleState):
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_truck(), vp=VehicleParameters.default_truck())
+
     def update(self, commands: VehicleCommands, dt: Decimal):
         """
         Perform initial value problem integration
