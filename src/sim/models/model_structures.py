@@ -11,6 +11,8 @@ CAR = ModelType("car")
 MOTORCYCLE = ModelType("motorcycle")
 BICYCLE = ModelType("bicycle")
 PEDESTRIAN = ModelType("pedestrian")
+TwoWheelsTypes = frozenset({BICYCLE, MOTORCYCLE})
+FourWheelsTypes = frozenset({CAR})
 
 
 @dataclass(frozen=True, unsafe_hash=True)

@@ -258,3 +258,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     @property
     def model_type(self) -> ModelType:
         return self.vg.vehicle_type
+
+    def get_extra_collision_friction_acc(self):
+        # this model is not dynamic
+        pass
