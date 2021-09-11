@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from sim import logger
 from sim.models.model_structures import ModelParameters
-from sim.models.utils import rho, kmh2ms
+from sim.models.utils import kmh2ms
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -57,4 +57,3 @@ def steering_constraint(steering_angle: float, steering_velocity: float, vp: Veh
             f"Commanded steering rate out of limits, clipping value: {steering_velocity:.2f}>{vp.ddelta_max:.2f}")
         steering_velocity = vp.ddelta_max
     return steering_velocity
-

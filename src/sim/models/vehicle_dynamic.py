@@ -139,8 +139,6 @@ class VehicleModelDyn(VehicleModel):
                                pacejka_rear=Pacejka4p.default_truck_rear()
                                )
 
-
-
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:
         """ returns state derivative for given control inputs """
 
