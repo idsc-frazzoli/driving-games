@@ -16,7 +16,7 @@ from sim.models import extract_pose_from_state, kmh2ms
 @dataclass
 class SpeedControllerParam(PIDParam):
     """Default values are tuned roughly for a default car model"""
-    kP: float = 1
+    kP: float = 4
     kI: float = 0.01
     kD: float = 0.1
     antiwindup: Tuple[float, float] = (-2, 2)
@@ -80,3 +80,23 @@ class SpeedBehavior:
                         in_front_of_me and distance < self.params.safety_dist_front):
                     return True
         return False
+
+    def cruise_control(self) -> [int]:
+        """
+        If someone is in front with the same orientation, then apply the two seconds rule to adapt reference velocity
+         that allows maintaining a safe distance between the vehicles
+        """
+        mypose = extract_pose_from_state(self.agents[self.my_name])
+        myvel = extract_vel_from_state(self.agents[self.my_name])
+        for other_name, _ in self.agents.items():
+            if not other_name == self.my_name:
+                rel = SE2Transform.from_SE2(relative_pose(
+                    mypose, extract_pose_from_state(self.agents[other_name])))
+                vel = extract_vel_from_state(self.agents[other_name])
+
+                distance = np.linalg.norm(rel.p)
+                in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
+                if in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front * \
+                        abs(vel - myvel):
+                    return np.clip(vel - abs(vel - myvel), 0, kmh2ms(200))
+        return self.params.nominal_speed
