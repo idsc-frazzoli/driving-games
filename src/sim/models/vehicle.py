@@ -11,7 +11,7 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
 from sim import logger, ImpactLocation, IMPACT_RIGHT, IMPACT_LEFT, IMPACT_BACK, IMPACT_FRONT
-from sim.models import ModelType, CAR
+from sim.models import ModelType, CAR, TRUCK
 from sim.models.model_utils import acceleration_constraint
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
@@ -171,7 +171,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         def _stateactions_from_array(y: np.ndarray) -> [VehicleState, VehicleCommands]:
             n_states = self.XT.get_n_states()
             state = self.XT.from_array(y[0:n_states])
-            if self.has_collided and not self.vg.vehicle_type == CAR:
+            if self.has_collided and not (self.vg.vehicle_type == CAR or self.vg.vehicle_type == TRUCK):
                 actions = VehicleCommands(acc=0, ddelta=0)
             else:
                 actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
