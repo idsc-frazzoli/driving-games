@@ -4,7 +4,7 @@ from datetime import datetime
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
 
-from crash.experiment_def import get_exp_suicidal_pedestrian, get_exp_illegal_turn
+from crash.experiment_def import get_exp_suicidal_pedestrian, get_exp_illegal_turn, get_exp_two_lanes_scenario
 from crash.reports import generate_report
 from sim.simulator import SimContext, Simulator
 
