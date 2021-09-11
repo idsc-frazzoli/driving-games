@@ -6,17 +6,17 @@ from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence, UndefinedAtTime
 
+ts = (1, 2.2, 3, 4, 5)
+tsD = [D(t) for t in ts]
+val = [1, 2, 3, 4, 5]
+t0 = process_time()
+seq = DgSampledSequence[float](ts, values=val)
+t1 = process_time()
+seqD = DgSampledSequence[float](tsD, values=val)
+
 
 def test_dg_sampledsequence():
-    ts = (1, 2.2, 3, 4, 5)
-    tsD = [D(t) for t in ts]
-    val = [1, 2, 3, 4, 5]
-    t0 = process_time()
-    seq = DgSampledSequence[float](ts, values=val)
-    t1 = process_time()
-    seqD = DgSampledSequence[float](tsD, values=val)
-
-    # at
+    # test at method
     with assert_raises(UndefinedAtTime):
         seq.at(4.4)
     atD = D(4)
@@ -49,3 +49,11 @@ def test_dg_sampledsequence():
         _ = DgSampledSequence[float](timestamps=ts, values=v)
 
     assert_raises(ZValueError, illegal_timestamps)
+
+
+def test_hashability():
+    pass
+
+    # d = {seq:1}
+    # print(d[seq])
+    # assert isinstance(seq, Hashable)

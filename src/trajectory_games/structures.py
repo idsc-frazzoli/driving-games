@@ -2,9 +2,10 @@ import os
 from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import FrozenSet, Tuple, Dict
+
+from duckietown_world import SE2Transform
 from yaml import safe_load
 
-from _tmp._deprecated.world import SE2Transform, LaneSegmentHashable
 from .config import config_dir
 
 __all__ = [
@@ -14,6 +15,8 @@ __all__ = [
     "TrajectoryParams",
 ]
 
+
+# todo deprecated use things from dg_commons
 
 @dataclass
 class VehicleGeometry:
@@ -108,7 +111,7 @@ class VehicleActions:
     __rmul__ = __mul__
 
     def __truediv__(self, factor: float) -> "VehicleActions":
-        return self * (1/factor)
+        return self * (1 / factor)
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -166,7 +169,7 @@ class VehicleState:
     __rmul__ = __mul__
 
     def __truediv__(self, factor: float) -> "VehicleState":
-        return self * (1/factor)
+        return self * (1 / factor)
 
     def __repr__(self) -> str:
         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
@@ -183,7 +186,7 @@ class VehicleState:
         return False
 
     @classmethod
-    def default(cls, lane: LaneSegmentHashable) -> "VehicleState":
+    def default(cls, lane) -> "VehicleState":
         beta0 = lane.beta_from_along_lane(along_lane=0)
         se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
         state = VehicleState(x=se2.p[0], y=se2.p[1], th=se2.theta,
@@ -191,7 +194,7 @@ class VehicleState:
         return state
 
     @classmethod
-    def from_config(cls, name: str, lane: LaneSegmentHashable) -> "VehicleState":
+    def from_config(cls, name: str, lane) -> "VehicleState":
 
         if len(name) == 0:
             return cls.default(lane)
@@ -207,7 +210,7 @@ class VehicleState:
             state = VehicleState(
                 x=se2.p[0],
                 y=se2.p[1],
-                th=se2.theta+config["th0"],
+                th=se2.theta + config["th0"],
                 v=config["v0"],
                 st=config["st0"],
                 t=D(config["t0"]),
@@ -286,9 +289,9 @@ class TrajectoryParams:
             config = cls._config[name]
 
             def get_set(inp: str):
-                n = config["n_"+inp]
-                start = -(n-1)/2.0
-                u = frozenset([(_+start) * config["step_"+inp] for _ in range(n)])
+                n = config["n_" + inp]
+                start = -(n - 1) / 2.0
+                u = frozenset([(_ + start) * config["step_" + inp] for _ in range(n)])
                 return u
 
             u_acc = get_set(inp="acc")

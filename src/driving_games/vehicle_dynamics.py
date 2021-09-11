@@ -18,14 +18,15 @@ from .rectangle import get_resources_used, Rectangle
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
 
-__all__ = ["VehicleDynamics", "InvalidAction"]
+__all__ = ["VehicleTrackDynamics", "InvalidAction"]
 
 
 class InvalidAction(ZException):
     pass
 
 
-class VehicleDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
+class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
+    """ Dynamics only along a path #fixme"""
     max_speed: D
     """ Maximum speed [m/s] """
 
