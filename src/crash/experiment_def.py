@@ -2,7 +2,8 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict
 
-from crash.scenarios import get_scenario_suicidal_pedestrian, get_scenario_illegal_turn
+from crash.agents import B2Agent, MilleniumFalcon, B1Agent
+from crash.scenarios import get_scenario_suicidal_pedestrian, get_scenario_illegal_turn, EGO
 from sim.simulator import SimContext
 
 
@@ -37,16 +38,23 @@ def get_exp_illegal_turn() -> CrashingExperiment:
     sub_experiments: Dict[str, SimContext] = {}
     # baseline
     sim_context = get_scenario_illegal_turn()
+    # todo properly initialize B1
+    baseline1_agent = B1Agent()
+    sim_context.players[EGO] = baseline1_agent
     sub_experiments.update({"baseline": sim_context})
 
     # baseline 2
     sim_context_2 = deepcopy(sim_context)
-    # todo variation with baseline2 agent instead of ego
+    # todo properly initialize B2
+    baseline2_agent = B2Agent()
+    sim_context_2.players[EGO] = baseline2_agent
     sub_experiments.update({"baseline-avoidance": sim_context_2})
 
     # our
     sim_context_3 = deepcopy(sim_context)
-    # todo variation with baseline2 agent instead of ego
+    # todo properly initialize MilleniumFalcon
+    mf_agent = MilleniumFalcon()
+    sim_context_3.players[EGO] = mf_agent
     sub_experiments.update({"our": sim_context_3})
     return CrashingExperiment(
         name="illegal-turn",
