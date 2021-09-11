@@ -214,11 +214,7 @@ class PedestrianModel(SimModel[SE2value, float]):
         acc = acceleration_constraint(speed=x0.vx, acceleration=u.acc, p=self.pp)
 
         costheta, sintheta = cos(x0.theta), sin(x0.theta)
-        # Lateral acceleration is always decreasing (friction)
-        magic_mu = 0.002
-        frictiony = - np.sign(x0.vy) * magic_mu * self.pg.m * x0.vy ** 2
-        frictionx = - np.sign(x0.vx) * magic_mu * self.pg.m * x0.vx ** 2 if self.has_collided else 0
-        frictiontheta = - np.sign(x0.dtheta) * magic_mu * self.pg.Iz * x0.dtheta ** 2 if self.has_collided else 0
+        frictionx, frictiony, frictiontheta = self.get_extra_collision_friction_acc()
         return PedestrianState(
             x=x0.vx * costheta - x0.vy * sintheta,
             y=x0.vx * sintheta + x0.vy * costheta,
@@ -267,3 +263,13 @@ class PedestrianModel(SimModel[SE2value, float]):
     @property
     def model_type(self) -> ModelType:
         return PEDESTRIAN
+
+    def get_extra_collision_friction_acc(self):
+        magic_mu = 0.03
+        if self.has_collided:
+            frictiony = - np.sign(self._state.vy) * magic_mu * self._state.vy
+            frictionx = - np.sign(self._state.vx) * magic_mu * self._state.vx
+            frictiontheta = - np.sign(self._state.dtheta) * magic_mu * self._state.dtheta
+            return frictionx, frictiony, frictiontheta
+        else:
+            return 0, 0, 0

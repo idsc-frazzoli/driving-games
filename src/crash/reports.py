@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 from reprep import Report, MIME_PNG, MIME_GIF
+from zuper_commons.text import pretty_msg
 
 from crash import logger
 from crash.collisions_investigation import investigate_collision_report
@@ -79,7 +80,7 @@ def get_collision_reports(sim_context: SimContext, skip_collision_viz: bool = Fa
     for i, acc_report in enumerate(accidents_report):
         acc_id = '-'.join(list(acc_report.players.keys()))
         r.subsection(f"Accident-{acc_id}")
-        r.text(f"Accident-{acc_id}-report", text=acc_report.__str__())
+        r.text(f"Accident-{acc_id}-report", text=pretty_msg(acc_report.__str__()))
         damage_metrics = compute_damage_metrics(coll_report=acc_report, sim_context=sim_context)
         r.text(f"Accident-{acc_id}-damages", text=damage_metrics.__str__())
         if not skip_collision_viz:

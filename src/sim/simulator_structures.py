@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import MutableMapping, Generic, Any, Dict, Type, Mapping
+from typing import MutableMapping, Generic, Any, Dict, Type, Mapping, Tuple
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
@@ -143,3 +143,7 @@ class SimModel(ABC, Generic[X, U]):
 
     def get_state(self) -> X:
         return deepcopy(self._state)
+
+    @abstractmethod
+    def get_extra_collision_friction_acc(self, ) -> Tuple[float, float, float]:
+        pass
