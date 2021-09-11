@@ -13,7 +13,7 @@ __all__ = [
 ]
 
 
-@dataclass
+#@dataclass(unsafe_hash=True)
 class Trajectory(DgSampledSequence[VehicleState]):
     """ Container for a trajectory as a sampled sequence """
 

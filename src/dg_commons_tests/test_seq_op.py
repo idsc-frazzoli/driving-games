@@ -12,7 +12,7 @@ seqD = DgSampledSequence[float](tsD, values=val)
 
 
 def test_accumulate():
-    expected = [1, 3, 6, 10, 15]
+    expected = (1, 3, 6, 10, 15)
     seq_acc = seq_accumulate(seq)
     seqD_acc = seq_accumulate(seqD)
     assert seq_acc.values == expected

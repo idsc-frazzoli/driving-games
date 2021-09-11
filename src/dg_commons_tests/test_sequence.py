@@ -1,10 +1,13 @@
 from decimal import Decimal as D
 from time import process_time
+from typing import Hashable
 
+import numpy as np
 from numpy.testing import assert_raises
 from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence, UndefinedAtTime
+from dg_commons.time import time_function
 
 ts = (1, 2.2, 3, 4, 5)
 tsD = [D(t) for t in ts]
@@ -51,9 +54,28 @@ def test_dg_sampledsequence():
     assert_raises(ZValueError, illegal_timestamps)
 
 
+class TestHash():
+    def __init__(self):
+        self.wow = [1, 2, 3]
+
+
 def test_hashability():
-    pass
+    assert isinstance(seq, Hashable)
+    test_hash = TestHash()
+    assert isinstance(test_hash, Hashable)
+    # assert isinstance(seq, Hashable)
 
     # d = {seq:1}
     # print(d[seq])
-    # assert isinstance(seq, Hashable)
+
+
+def test_seq_performance():
+    ts = np.linspace(0, 10, 100).tolist()
+    v = np.random.random(100).tolist()
+
+    @time_function
+    def instantiate(n=10000):
+        for _ in range(n):
+            DgSampledSequence[float](timestamps=ts, values=v)
+
+    instantiate()

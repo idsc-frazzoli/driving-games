@@ -17,6 +17,6 @@ def test_generate_motion_primitives():
                                     vehicle_params=VehicleParameters.default_car())
 
     traject = mpg.generate_motion_primitives()
-    #print(traject)
+    print(traject)
 
 
