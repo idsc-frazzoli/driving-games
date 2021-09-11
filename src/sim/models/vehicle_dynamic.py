@@ -141,10 +141,9 @@ class VehicleModelDyn(VehicleModel):
 
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:
         """ returns state derivative for given control inputs """
-
         # friction model
         frictionx, frictiony, frictiontheta = self.get_extra_collision_friction_acc()
-
+        
         if x0.vx < 0.1:
             dx_kin = super().dynamics(x0, u)
             return VehicleStateDyn(x=dx_kin.x,

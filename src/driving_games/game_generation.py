@@ -27,7 +27,7 @@ from .structures import (
     VehicleGeometry,
     VehicleState,
 )
-from .vehicle_dynamics import VehicleDynamics
+from .vehicle_dynamics import VehicleTrackDynamics
 from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 
@@ -95,7 +95,7 @@ def get_two_vehicle_game(
         ref=p2_ref, x=D(vehicles_params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
     )
     p2_initial = ps.unit(p2_x)
-    p1_dynamics = VehicleDynamics(
+    p1_dynamics = VehicleTrackDynamics(
         max_speed=max_speed,
         max_wait=max_wait,
         available_accels=available_accels,
@@ -107,7 +107,7 @@ def get_two_vehicle_game(
         shared_resources_ds=vehicles_params.shared_resources_ds,
         poss_monad=ps,
     )
-    p2_dynamics = VehicleDynamics(
+    p2_dynamics = VehicleTrackDynamics(
         min_speed=min_speed,
         max_speed=max_speed,
         max_wait=max_wait,

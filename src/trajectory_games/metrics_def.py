@@ -131,7 +131,7 @@ class EvaluatedMetric:
         else:
             times_c = m1.cumulative.timestamps + m2.cumulative.timestamps
             c_end = m1.cumulative.values[-1]
-            vals_c = m1.cumulative.values + [v + c_end for v in m2.cumulative.values]
+            vals_c = m1.cumulative.values + tuple([v + c_end for v in m2.cumulative.values])
             cum = DgSampledSequence(timestamps=times_c, values=vals_c)
 
         return EvaluatedMetric(title=m1.title, description=m1.description,
