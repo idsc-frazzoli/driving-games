@@ -12,7 +12,7 @@ def test_trajectory():
     x0_p3 = VehicleState(x=45, y=22, theta=deg2rad(180), vx=4, delta=0)
     ts = [1, 2, 3]
     t0 = process_time()
-    t = Trajectory[VehicleState](ts, [x0_p1, x0_p2, x0_p3])
+    t = Trajectory(ts, [x0_p1, x0_p2, x0_p3])
     t1 = process_time()
     print(t1 - t0)
     assert t.XT == VehicleState
