@@ -1,17 +1,11 @@
-from games import PlayerName, U
-from sim import SimObservations
-from sim.agents.agent import Agent
+from sim.agents.lane_follower import LFAgent
 
 __all__ = ["B2Agent"]
 
 
-
-class B2Agent(Agent):
+class B2Agent(LFAgent):
     """Baseline 2 agent"""
 
-    def on_episode_init(self, my_name: PlayerName):
+    def emergency_subroutine(self):
+        #todo
         pass
-
-    def get_commands(self, sim_obs: SimObservations) -> U:
-        pass
-

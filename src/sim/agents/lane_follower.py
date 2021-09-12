@@ -54,7 +54,9 @@ class LFAgent(Agent):
 
         # compute commands
         t = float(sim_obs.time)
-        speed_ref = self.speed_behavior.get_speed_ref(t)
+        speed_ref, emergency = self.speed_behavior.get_speed_ref(t)
+        if emergency:
+            self.emergency_subroutine()
         self.pure_pursuit.update_speed(speed=speed_ref)
         self.speed_controller.update_reference(reference=speed_ref)
         acc = self.speed_controller.get_control(t)
@@ -65,6 +67,9 @@ class LFAgent(Agent):
             acc=acc,
             ddelta=ddelta
         )
+
+    def emergency_subroutine(self) -> VehicleCommands:
+        pass
 
     def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
         if not self.return_extra:

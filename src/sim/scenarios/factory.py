@@ -7,10 +7,12 @@ from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacl
 from sim.simulator import SimContext
 
 
-def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimParameters] = None) -> SimContext:
+def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimParameters] = None,
+                                    ego_player: Optional[PlayerName] = None) -> SimContext:
     """
     This functions load a commonroad scenario and tries to convert the dynamic obstacles into the Model/Agent paradigm
     used by the driving-game simulator.
+    :param ego_player:
     :param scenario_name:
     :param sim_param:
     :return:
@@ -19,8 +21,13 @@ def get_scenario_commonroad_replica(scenario_name: str, sim_param: Optional[SimP
     players, models = {}, {}
     for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
         try:
-            model, agent = model_agent_from_dynamic_obstacle(dyn_obs, scenario.lanelet_network)
             playername = PlayerName(f"P{i}")
+            if playername == ego_player:
+                playername = PlayerName("Ego")
+                model, agent = model_agent_from_dynamic_obstacle(dyn_obs, scenario.lanelet_network, color="firebrick")
+            else:
+                model, agent = model_agent_from_dynamic_obstacle(dyn_obs, scenario.lanelet_network)
+
             players.update({playername: agent})
             models.update({playername: model})
         except NotSupportedConversion as e:

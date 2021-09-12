@@ -5,9 +5,10 @@ from typing import Tuple, List, Optional
 import numpy as np
 from geometry import SE2_from_xytheta
 from shapely.geometry import Polygon
+from zuper_commons.types import ZValueError
 
 from sim import Color
-from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE, TRUCK
+from sim.models.model_structures import ModelGeometry, ModelType, CAR, BICYCLE, MOTORCYCLE, TRUCK, FourWheelsTypes
 
 __all__ = ["VehicleGeometry"]
 
@@ -67,7 +68,7 @@ class VehicleGeometry(ModelGeometry):
     def outline(self) -> Tuple[Tuple[float, float], ...]:
         """Outline of the vehicle intended as the whole car body."""
         tyre_halfw, radius = self.wheel_shape
-        if self.vehicle_type == CAR:
+        if self.vehicle_type in FourWheelsTypes:
             frontbumper = self.lf / 2
         else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
             frontbumper = radius
@@ -83,10 +84,12 @@ class VehicleGeometry(ModelGeometry):
     def wheel_shape(self):
         if self.vehicle_type == CAR:
             halfwidth, radius = 0.1, 0.3  # size of the wheels
+        elif self.vehicle_type == TRUCK:
+            halfwidth, radius = 0.2, 0.4  # size of the wheels
         elif self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE:
             halfwidth, radius = 0.05, 0.3  # size of the wheels
         else:
-            raise ValueError("Unrecognised vehicle type while trying to get weels outline")
+            raise ZValueError("Unrecognised vehicle type", vehicle_type=self.vehicle_type)
         return halfwidth, radius
 
     @cached_property

@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
@@ -8,6 +8,7 @@ from geometry import T2value
 from zuper_commons.types import ZException
 
 from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
+from sim import Color
 from sim.agents.agent import Agent
 from sim.agents.lane_follower import LFAgent
 from sim.models import Pacejka
@@ -19,13 +20,15 @@ class NotSupportedConversion(ZException):
     pass
 
 
-def model_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanelet_network: LaneletNetwork) -> (
+def model_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanelet_network: LaneletNetwork,
+                                      color: Color = "royalblue") -> (
         VehicleModelDyn, Agent):
     """
     This function aims to create a non-playing character (fixed sequence of commands) in our simulation environment from
     a dynamic obstacle of commonroad (fixed sequence of states).
     # fixme currently only cars are supported
     # fixme this function needs to be improved...
+    :param color:
     :param dyn_obs:
     :param lanelet_network:
     :return:
@@ -34,18 +37,18 @@ def model_agent_from_dynamic_obstacle(dyn_obs: DynamicObstacle, lanelet_network:
         raise NotSupportedConversion(commonroad=dyn_obs.obstacle_type)
 
     axle_length_ratio = .8  # the distance between wheels is less than the car body
+    axle_width_ratio = .95  # the distance between wheels is less than the car body
+
     l = dyn_obs.obstacle_shape.length * axle_length_ratio
     dtheta = dyn_obs.prediction.trajectory.state_list[0].orientation - dyn_obs.initial_state.orientation
-    # todo some scaling
     delta = dtheta / l
     x0 = VehicleStateDyn(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
                          theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
                          delta=delta)
     mass, rot_inertia = _estimate_mass_inertia(length=dyn_obs.obstacle_shape.length, width=dyn_obs.obstacle_shape.width)
-    axle_width_ratio = .95  # the distance between wheels is less than the car body
     w_half = dyn_obs.obstacle_shape.width / 2 * axle_width_ratio
     vg = VehicleGeometry(vehicle_type=CAR, w_half=w_half, m=mass, Iz=rot_inertia, lf=l / 2.0,
-                         lr=l / 2.0, e=0.6, c_drag=0.3756, c_rr_f=0.003, c_rr_r=0.003, a_drag=2, color="royalblue")
+                         lr=l / 2.0, e=0.6, c_drag=0.3756, c_rr_f=0.003, c_rr_r=0.003, a_drag=2, color=color)
     vp = VehicleParametersDyn.default_car()
     model = VehicleModelDyn(x0=x0,
                             vg=vg,

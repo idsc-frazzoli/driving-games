@@ -7,6 +7,7 @@ from commonroad.scenario.lanelet import Lanelet
 from geometry import xytheta_from_SE2
 from numpy import deg2rad, linspace
 
+from crash.agents import B1Agent
 from dg_commons import DgSampledSequence
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
@@ -14,7 +15,6 @@ from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName
 from sim import SimTime
 from sim.agents.agent import NPAgent
-from sim.agents.lane_follower import LFAgent
 from sim.models import kmh2ms, PEDESTRIAN
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
@@ -56,7 +56,7 @@ def get_scenario_bicycle() -> SimContext:
               }
 
     net = scenario.lanelet_network
-    agents: List[LFAgent] = []
+    agents: List[B1Agent] = []
     for pname in models:
         assert not models[pname].model_type == PEDESTRIAN
         x0 = models[pname].get_state()
@@ -69,7 +69,7 @@ def get_scenario_bicycle() -> SimContext:
             output_minmax=(-models[pname].vp.ddelta_max, models[pname].vp.ddelta_max))
         sp_controller = SpeedController(sp_controller_param)
         st_controller = SteerController(st_controller_param)
-        agents.append(LFAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+        agents.append(B1Agent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
 
     players = {P1: agents[0],
                P2: agents[1],
@@ -91,8 +91,10 @@ def get_scenario_illegal_turn() -> SimContext:
                               max_sim_time=SimTime(6),
                               sim_time_after_collision=SimTime(6))
     # initialize all contexts/ agents and simulator
-    return get_scenario_commonroad_replica(
-        scenario_name="USA_Lanker-1_1_T-1.xml", sim_param=sim_param)
+    sim_context = get_scenario_commonroad_replica(
+        scenario_name="USA_Lanker-1_1_T-1.xml", sim_param=sim_param, ego_player=PlayerName("P16"))
+
+    return sim_context
 
 
 def get_scenario_suicidal_pedestrian() -> SimContext:
@@ -124,7 +126,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
                                         PedestrianCommands(acc=3, dtheta=0)])
 
     net = scenario.lanelet_network
-    agents: List[LFAgent] = []
+    agents: List[B1Agent] = []
     for x0 in [x0_p1, x0_p2, x0_p4, x0_p5, x0_ego]:
         p = np.array([x0.x, x0.y])
         dglane = dglane_from_position(p, net)
@@ -135,7 +137,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
         # y = np.array(yp)
         # plt.fill(x, y, alpha=0.2, zorder=15)
         # #######
-        agents.append(LFAgent(dglane))
+        agents.append(B1Agent(dglane))
     #
     # plt.savefig("lanes_debug.png", dpi=300)
     #
@@ -174,7 +176,7 @@ def get_scenario_two_lanes() -> SimContext:
               }
 
     net = scenario.lanelet_network
-    agents: List[LFAgent] = []
+    agents: List[B1Agent] = []
     for agent in models:
         if not models[agent].model_type == 'pedestrian':
             x0 = models[agent].get_state()
@@ -187,7 +189,7 @@ def get_scenario_two_lanes() -> SimContext:
                 output_minmax=(-models[agent].vp.ddelta_max, models[agent].vp.ddelta_max), )
             sp_controller = SpeedController(sp_controller_param)
             st_controller = SteerController(st_controller_param)
-            agents.append(LFAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+            agents.append(B1Agent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
     players = {P1: agents[0],
                P2: agents[1],
                EGO: agents[2],
@@ -229,7 +231,7 @@ def get_scenario_racetrack_test() -> SimContext:
     x0_p1 = VehicleStateDyn(x=xytheta[0], y=xytheta[1], theta=xytheta[2], vx=kmh2ms(50), delta=0)
 
     models = {P1: VehicleModelDyn.default_car(x0_p1)}
-    players = {P1: LFAgent(dglane)}
+    players = {P1: B1Agent(dglane)}
 
     return SimContext(scenario=scenario,
                       models=models,
