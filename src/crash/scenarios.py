@@ -20,12 +20,13 @@ from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCo
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.scenarios import load_commonroad_scenario
+from sim.scenarios.agent_from_commonroad import dglane_from_position
 from sim.scenarios.factory import get_scenario_commonroad_replica
 from sim.simulator import SimContext
 from sim.simulator_structures import SimParameters
 
 __all__ = ["get_scenario_bicycle", "get_scenario_illegal_turn", "get_scenario_suicidal_pedestrian",
-           "get_scenario_racetrack_test"]
+           "get_scenario_two_lanes", "get_scenario_racetrack_test"]
 
 P1, P2, P3, P4, P5, P6, P7, EGO = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
     "P5"), PlayerName("P6"), PlayerName("P7"), PlayerName("Ego")
@@ -60,18 +61,12 @@ def get_scenario_bicycle() -> SimContext:
         assert not models[pname].model_type == PEDESTRIAN
         x0 = models[pname].get_state()
         p = np.array([x0.x, x0.y])
-        lane_id = net.find_lanelet_by_position([p, ])
-        assert len(lane_id[0]) > 0, p
-        lane = net.find_lanelet_by_id(lane_id[0][0])
-        merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
-            lanelet=lane, network=net)[0][0]
-        dglane = DgLanelet.from_commonroad_lanelet(merged_lane)
+        dglane = dglane_from_position(p, net)
         sp_controller_param: SpeedControllerParam = SpeedControllerParam(
-            setpoint_minmax=models[pname].vp.vx_limits,
-            output_minmax=models[pname].vp.acc_limits, )
+            setpoint_minmax=models[pname].vp.vx_limits, output_minmax=models[pname].vp.acc_limits)
         st_controller_param: SteerControllerParam = SteerControllerParam(
             setpoint_minmax=(-models[pname].vp.delta_max, models[pname].vp.delta_max),
-            output_minmax=(-models[pname].vp.ddelta_max, models[pname].vp.ddelta_max), )
+            output_minmax=(-models[pname].vp.ddelta_max, models[pname].vp.ddelta_max))
         sp_controller = SpeedController(sp_controller_param)
         st_controller = SteerController(st_controller_param)
         agents.append(LFAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
@@ -132,12 +127,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
     agents: List[LFAgent] = []
     for x0 in [x0_p1, x0_p2, x0_p4, x0_p5, x0_ego]:
         p = np.array([x0.x, x0.y])
-        lane_id = net.find_lanelet_by_position([p, ])
-        assert len(lane_id[0]) > 0, p
-        lane = net.find_lanelet_by_id(lane_id[0][0])
-        merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
-            lanelet=lane, network=net)[0][0]
-        dglane = DgLanelet.from_commonroad_lanelet(merged_lane)
+        dglane = dglane_from_position(p, net)
         # ####### debug
         # points = dglane.lane_profile()
         # xp, yp = zip(*points)
@@ -165,7 +155,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
                       )
 
 
-def get_two_lanes_scenario() -> SimContext:
+def get_scenario_two_lanes() -> SimContext:
     scenario_name = "ZAM_Zip-1_66_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
 
@@ -189,12 +179,7 @@ def get_two_lanes_scenario() -> SimContext:
         if not models[agent].model_type == 'pedestrian':
             x0 = models[agent].get_state()
             p = np.array([x0.x, x0.y])
-            lane_id = net.find_lanelet_by_position([p, ])
-            assert len(lane_id[0]) > 0, p
-            lane = net.find_lanelet_by_id(lane_id[0][0])
-            merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
-                lanelet=lane, network=net)[0][0]
-            dglane = DgLanelet.from_commonroad_lanelet(merged_lane)
+            dglane = dglane_from_position(p, net)
             sp_controller_param: SpeedControllerParam = SpeedControllerParam(
                 setpoint_minmax=models[agent].vp.vx_limits, output_minmax=models[agent].vp.acc_limits, )
             st_controller_param: SteerControllerParam = SteerControllerParam(

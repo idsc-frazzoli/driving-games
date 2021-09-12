@@ -8,7 +8,7 @@ from duckietown_world import relative_pose, SE2Transform
 from dg_commons.controllers.pid import PIDParam, PID
 from games import PlayerName, X
 
-__all__ = ["SpeedController", "SpeedBehavior"]
+__all__ = ["SpeedControllerParam", "SpeedController", "SpeedBehavior"]
 
 from sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 
@@ -90,7 +90,7 @@ class SpeedBehavior:
                     return True
         return False
 
-    def cruise_control(self) -> [int]:
+    def cruise_control(self) -> float:
         """
         If someone is in front with the same orientation, then apply the two seconds rule to adapt reference velocity
          that allows maintaining a safe distance between the vehicles
@@ -101,11 +101,10 @@ class SpeedBehavior:
             if not other_name == self.my_name:
                 rel = SE2Transform.from_SE2(relative_pose(
                     mypose, extract_pose_from_state(self.agents[other_name])))
+                rel_dist = np.linalg.norm(rel.p)
                 vel = self.agents[other_name].vx
-
-                distance = np.linalg.norm(rel.p)
                 in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-                if in_front_of_me and distance < self.params.safety_dist_front + self.params.safety_time_front * \
+                if in_front_of_me and rel_dist < self.params.safety_dist_front + self.params.safety_time_front * \
                         abs(vel - myvel):
-                    return np.clip(vel - abs(vel - myvel), 0, kmh2ms(200))
+                    return float(np.clip(vel - abs(vel - myvel), 0, kmh2ms(200)))
         return self.params.nominal_speed

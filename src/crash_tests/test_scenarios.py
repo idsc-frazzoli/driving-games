@@ -1,5 +1,6 @@
 from crash.experiments import run_scenario_without_compmake
 from crash.scenarios import *
+from crash.scenarios import get_scenario_two_lanes
 from sim import SimParameters, SimTime
 from sim.scenarios.factory import get_scenario_commonroad_replica
 
@@ -22,6 +23,10 @@ def test_commonroad_replica():
 
 def test_scenario_bicycle():
     sim_context = get_scenario_bicycle()
+    run_scenario_without_compmake(sim_context)
+
+def test_scenario_two_lanes():
+    sim_context = get_scenario_two_lanes()
     run_scenario_without_compmake(sim_context)
 
 

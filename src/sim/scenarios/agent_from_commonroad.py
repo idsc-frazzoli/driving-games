@@ -1,9 +1,10 @@
 from typing import List, Tuple
 
-from commonroad.scenario.lanelet import LaneletNetwork
+from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.trajectory import State
 from duckietown_world import SE2Transform
+from geometry import T2value
 from zuper_commons.types import ZException
 
 from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
@@ -66,6 +67,16 @@ def _estimate_mass_inertia(length: float, width: float) -> Tuple[float, float]:
     mass = alpha * area ** beta
     inertia = mass * (length + width) / 6
     return mass, inertia
+
+
+def dglane_from_position(p: T2value, network: LaneletNetwork):
+    """Gets the first merged lane from the current position"""
+    lane_id = network.find_lanelet_by_position([p, ])
+    assert len(lane_id[0]) > 0, p
+    lane = network.find_lanelet_by_id(lane_id[0][0])
+    merged_lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+        lanelet=lane, network=network)[0][0]
+    return DgLanelet.from_commonroad_lanelet(merged_lane)
 
 
 def infer_lane_from_dyn_obs(dyn_obs: DynamicObstacle, network: LaneletNetwork) -> DgLanelet:

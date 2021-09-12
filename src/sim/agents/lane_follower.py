@@ -4,11 +4,11 @@ import numpy as np
 from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
 
-from dg_commons import DgSampledSequence
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
 from dg_commons.planning.lanes import DgLanelet
+from dg_commons.planning.trajectory import Trajectory
 from games import PlayerName
 from sim import SimObservations
 from sim.agents.agent import Agent
@@ -71,18 +71,13 @@ class LFAgent(Agent):
             return None
         _, gpoint = self.pure_pursuit.find_goal_point()
         pgoal = translation_from_SE2(gpoint)
-        l = 3.5
+        l = self.pure_pursuit.param.length
         rear_axle = SE2_apply_R2(self.pure_pursuit.pose, np.array([-l / 2, 0]))
-        traj = DgSampledSequence[VehicleState](
-            timestamps=[0, 1, 3],
+        traj = Trajectory(
+            timestamps=[0, 1],
             values=[VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
                     VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0),
-                    VehicleState(x=pgoal[0] + 1, y=pgoal[1] + 1, theta=0, vx=1, delta=0)])
-        # traj2 = DgSampledSequence[VehicleState](
-        #     timestamps=[0, 1, 3],
-        #     values=[VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
-        #             VehicleState(x=pgoal[0] + 2, y=pgoal[1] - 2, theta=0, vx=1, delta=0),
-        #             VehicleState(x=pgoal[0] - 1, y=pgoal[1] - 2, theta=0, vx=1, delta=0)])
+                    ])
         traj_s = [traj, ]
         colors = ["gold", ]
         return list(zip(traj_s, colors))

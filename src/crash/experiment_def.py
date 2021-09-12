@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 from crash.agents import B2Agent, MilleniumFalcon, B1Agent
-from crash.scenarios import get_scenario_suicidal_pedestrian, get_scenario_illegal_turn, EGO, get_two_lanes_scenario
+from crash.scenarios import get_scenario_suicidal_pedestrian, get_scenario_illegal_turn, EGO, get_scenario_two_lanes
 from sim.simulator import SimContext
 
 
@@ -72,10 +72,10 @@ def get_exp_illegal_turn() -> CrashingExperiment:
 def get_exp_two_lanes_scenario() -> CrashingExperiment:
     sub_experiments: Dict[str, SimContext] = {}
     # baseline
-    sim_context = get_two_lanes_scenario()
+    sim_context = get_scenario_two_lanes()
     # todo properly initialize B1
-    baseline1_agent = B1Agent()
-    sim_context.players[EGO] = baseline1_agent
+    #baseline1_agent = B1Agent()
+    #sim_context.players[EGO] = baseline1_agent
     sub_experiments.update({"baseline": sim_context})
 
     # baseline 2
