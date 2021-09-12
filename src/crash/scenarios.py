@@ -40,9 +40,9 @@ def get_scenario_bicycles() -> SimContext:
     x0_p2 = VehicleStateDyn(x=24, y=6, theta=deg2rad(150), vx=6, delta=0)
     x0_p3 = VehicleStateDyn(x=30, y=10, theta=deg2rad(170), vx=7, delta=0)
     x0_p4 = VehicleStateDyn(x=-4, y=0, theta=deg2rad(60), vx=5, delta=0)
-    x0_p5 = VehicleStateDyn(x=20, y=9, theta=deg2rad(150), vx=8, delta=0)
+    x0_p5 = VehicleStateDyn(x=22, y=6, theta=deg2rad(150), vx=8, delta=0)
 
-    x0_ego = VehicleStateDyn(x=3, y=0, theta=deg2rad(60), vx=kmh2ms(50), delta=0)
+    x0_ego = VehicleStateDyn(x=2.5, y=-3, theta=deg2rad(60), vx=kmh2ms(50), delta=0)
     vg_ego = VehicleGeometry.default_car(color="firebrick")
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = vg_ego
