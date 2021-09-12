@@ -244,7 +244,7 @@ class VehicleModelDyn(VehicleModel):
                 return Facc * .5, Facc * .5
 
     def get_extra_collision_friction_acc(self):
-        magic_mu = 0.002
+        magic_mu = 0.2
         if self.has_collided and self.model_type in TwoWheelsTypes:
             frictiony = - np.sign(self._state.vy) * magic_mu * self._state.vy ** 2
             frictionx = - np.sign(self._state.vx) * magic_mu * self._state.vx ** 2
