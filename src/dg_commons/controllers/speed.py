@@ -122,7 +122,7 @@ class SpeedBehavior:
          that allows maintaining a safe distance between the vehicles
         """
         myvel = self.agents[self.my_name].vx
-        candidate_speed_ref = []
+        candidate_speed_ref = [self.params.nominal_speed,]
         for other_name, _ in self.agents.items():
             if other_name == self.my_name:
                 continue
