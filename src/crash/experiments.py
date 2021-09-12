@@ -4,7 +4,8 @@ from datetime import datetime
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
 
-from crash.experiment_def import get_exp_suicidal_pedestrian, get_exp_illegal_turn, get_exp_two_lanes_scenario
+from crash.experiment_def import get_exp_suicidal_pedestrian, get_exp_illegal_turn, get_exp_two_lanes_scenario, \
+    get_exp_bicycles_scenario
 from crash.reports import generate_report
 from sim.simulator import SimContext, Simulator
 
@@ -19,7 +20,8 @@ class CrashingExperiments(QuickApp):
 
     def define_jobs_context(self, context: QuickAppContext):
 
-        experiments = [get_exp_suicidal_pedestrian(), get_exp_illegal_turn(), get_exp_two_lanes_scenario()]
+        experiments = [get_exp_suicidal_pedestrian(), get_exp_illegal_turn(), get_exp_two_lanes_scenario(),
+                       get_exp_bicycles_scenario()]
         for exp in experiments:
             cexp = context.child(exp.name, extra_report_keys=dict(experiment=exp.name))
             for scenario_name, sim_context in exp.sub_experiments.items():

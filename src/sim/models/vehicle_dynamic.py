@@ -143,7 +143,7 @@ class VehicleModelDyn(VehicleModel):
         """ returns state derivative for given control inputs """
         # friction model
         frictionx, frictiony, frictiontheta = self.get_extra_collision_friction_acc()
-        
+
         if x0.vx < 0.1:
             dx_kin = super().dynamics(x0, u)
             return VehicleStateDyn(x=dx_kin.x,
@@ -246,9 +246,9 @@ class VehicleModelDyn(VehicleModel):
     def get_extra_collision_friction_acc(self):
         magic_mu = 0.2
         if self.has_collided and self.model_type in TwoWheelsTypes:
-            frictiony = - np.sign(self._state.vy) * magic_mu * self._state.vy ** 2
-            frictionx = - np.sign(self._state.vx) * magic_mu * self._state.vx ** 2
-            frictiontheta = - np.sign(self._state.dtheta) * magic_mu * self._state.dtheta ** 2
+            frictionx = np.sign(self._state.vx) * magic_mu * self._state.vx
+            frictiony = np.sign(self._state.vy) * magic_mu * self._state.vy
+            frictiontheta = np.sign(self._state.dtheta) * magic_mu * self._state.dtheta
             return frictionx, frictiony, frictiontheta
         else:
             return 0, 0, 0

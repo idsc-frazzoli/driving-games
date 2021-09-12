@@ -13,7 +13,7 @@ def test_illegal_turn():
 
 
 def test_scenario_bicycle():
-    sim_context = get_scenario_bicycle()
+    sim_context = get_scenario_bicycles()
     run_scenario_without_compmake(sim_context)
 
 
