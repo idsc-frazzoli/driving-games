@@ -76,10 +76,10 @@ run-with-mounted-src:
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
-run-crashing_experiments:
+run-crashing_experiments: build
 	mkdir -p $(out-docker)
 	docker run -it --user $$(id -u) \
-		-v $(PWD)/scenarios:/driving_games/scenarios \
+		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		crash-exp -o /out/crash --reset -c "rparmake"
 

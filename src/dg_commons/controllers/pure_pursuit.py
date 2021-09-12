@@ -23,6 +23,8 @@ class PurePursuitParam:
     """Min initial progress to look for the next goal point"""
     max_extra_distance: float = 20
     """Max extra distance to look for the closest point on the ref path"""
+    length: float = 3.5
+    """Length of the vehicle"""
 
 
 class PurePursuit:
@@ -85,18 +87,15 @@ class PurePursuit:
         """
         :return: float the desired wheel angle
         """
-        # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.pose, self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         theta = angle_from_SE2(self.pose)
-        # here 3.5 is just an approximation of an average vehicle length
-        l = 3.5
-        rear_axle = SE2_apply_R2(self.pose, np.array([-l / 2, 0]))
+        rear_axle = SE2_apply_R2(self.pose, np.array([-self.param.length / 2, 0]))
         _, goal_point = self.find_goal_point()
         p_goal, theta_goal = translation_angle_from_SE2(goal_point)
         alpha = np.arctan2(p_goal[1] - rear_axle[1], p_goal[0] - rear_axle[0]) - theta
         radius = self._get_lookahead() / (2 * sin(alpha))
-        return atan(l / radius)
+        return atan(self.param.length / radius)
 
     def _get_lookahead(self) -> float:
         return float(np.clip(self.param.k_lookahead * self.speed,

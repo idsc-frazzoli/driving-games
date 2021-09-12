@@ -3,4 +3,5 @@ from crash_tests.test_scenarios import *
 
 if __name__ == '__main__':
     test_scenario_bicycle()
-    test_suicidal_pedestrian()
+    # test_scenario_bicycle()
+    # test_suicidal_pedestrian()
