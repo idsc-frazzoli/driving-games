@@ -102,7 +102,7 @@ class VehicleGeometry(ModelGeometry):
 
     @cached_property
     def wheels_position(self) -> np.ndarray:
-        if self.vehicle_type == CAR:
+        if self.vehicle_type in FourWheelsTypes:
             # return 4 wheels position (always the first half are the front ones)
             positions = np.array([[self.lf, self.lf, -self.lr, -self.lr],
                                   [self.w_half, -self.w_half, self.w_half, -self.w_half],

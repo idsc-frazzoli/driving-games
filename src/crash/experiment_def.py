@@ -2,7 +2,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict
 
-from crash.agents import B2Agent, MilleniumFalcon, B1Agent
+from crash.agents import B2Agent, MilleniumFalcon
 from crash.scenarios import get_scenario_suicidal_pedestrian, get_scenario_illegal_turn, EGO, get_scenario_two_lanes
 from sim.simulator import SimContext
 
@@ -23,7 +23,7 @@ def get_exp_suicidal_pedestrian() -> CrashingExperiment:
     sim_context_2 = deepcopy(sim_context)
     b1agent = sim_context.players[EGO]
     baseline2_agent = B2Agent(lane=b1agent.ref_lane, speed_controller=b1agent.speed_controller,
-                              steer_controller=b1agent.speed_controller, speed_behavior=b1agent.speed_behavior,
+                              steer_controller=b1agent.steer_controller, speed_behavior=b1agent.speed_behavior,
                               pure_pursuit=b1agent.pure_pursuit)
     sim_context_2.players[EGO] = baseline2_agent
     sub_experiments.update({"baseline-avoidance": sim_context_2})
@@ -31,7 +31,7 @@ def get_exp_suicidal_pedestrian() -> CrashingExperiment:
     # our
     sim_context_3 = deepcopy(sim_context)
     mf_agent = MilleniumFalcon(lane=b1agent.ref_lane, speed_controller=b1agent.speed_controller,
-                               steer_controller=b1agent.speed_controller, speed_behavior=b1agent.speed_behavior,
+                               steer_controller=b1agent.steer_controller, speed_behavior=b1agent.speed_behavior,
                                pure_pursuit=b1agent.pure_pursuit)
     sim_context_3.players[EGO] = mf_agent
     sub_experiments.update({"our": sim_context_3})
@@ -51,7 +51,7 @@ def get_exp_illegal_turn() -> CrashingExperiment:
     sim_context_2 = deepcopy(sim_context)
     b1agent = sim_context.players[EGO]
     baseline2_agent = B2Agent(lane=b1agent.ref_lane, speed_controller=b1agent.speed_controller,
-                              steer_controller=b1agent.speed_controller, speed_behavior=b1agent.speed_behavior,
+                              steer_controller=b1agent.steer_controller, speed_behavior=b1agent.speed_behavior,
                               pure_pursuit=b1agent.pure_pursuit)
     sim_context_2.players[EGO] = baseline2_agent
     sub_experiments.update({"baseline-avoidance": sim_context_2})
@@ -59,7 +59,7 @@ def get_exp_illegal_turn() -> CrashingExperiment:
     # our
     sim_context_3 = deepcopy(sim_context)
     mf_agent = MilleniumFalcon(lane=b1agent.ref_lane, speed_controller=b1agent.speed_controller,
-                               steer_controller=b1agent.speed_controller, speed_behavior=b1agent.speed_behavior,
+                               steer_controller=b1agent.steer_controller, speed_behavior=b1agent.speed_behavior,
                                pure_pursuit=b1agent.pure_pursuit)
     sim_context_3.players[EGO] = mf_agent
     sub_experiments.update({"our": sim_context_3})
@@ -79,7 +79,7 @@ def get_exp_two_lanes_scenario() -> CrashingExperiment:
     sim_context_2 = deepcopy(sim_context)
     b1agent = sim_context.players[EGO]
     baseline2_agent = B2Agent(lane=b1agent.ref_lane, speed_controller=b1agent.speed_controller,
-                              steer_controller=b1agent.speed_controller, speed_behavior=b1agent.speed_behavior,
+                              steer_controller=b1agent.steer_controller, speed_behavior=b1agent.speed_behavior,
                               pure_pursuit=b1agent.pure_pursuit)
     sim_context_2.players[EGO] = baseline2_agent
     sub_experiments.update({"baseline-avoidance": sim_context_2})
@@ -87,7 +87,7 @@ def get_exp_two_lanes_scenario() -> CrashingExperiment:
     # our
     sim_context_3 = deepcopy(sim_context)
     mf_agent = MilleniumFalcon(lane=b1agent.ref_lane, speed_controller=b1agent.speed_controller,
-                               steer_controller=b1agent.speed_controller, speed_behavior=b1agent.speed_behavior,
+                               steer_controller=b1agent.steer_controller, speed_behavior=b1agent.speed_behavior,
                                pure_pursuit=b1agent.pure_pursuit)
     sim_context_3.players[EGO] = mf_agent
     sub_experiments.update({"our": sim_context_3})
