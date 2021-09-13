@@ -1,23 +1,17 @@
 from sim_tests.controllers_tests.test_controller import TestController
-from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons.controllers.mpc.mpc_kin_dis import MPCKinDisParam, MPCKinDis
+from dg_commons.controllers.speed import SpeedBehavior, SpeedBehaviorParam
+from dg_commons.controllers.mpc.mpc_kin_full_dis import MPCKinDisFullParam, MPCKinDisFull
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 
 
-def test_mpckin_dis():
+def test_mpckin():
     scenario_name: str = "USA_Peach-1_1_T-1"
     # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
     # scenario_name: str = "ARG_Carcarana-1_1_T-1"
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""
-    speed_kp: float = 1
-    """Propotioanl gain longitudinal speed controller"""
-    speed_ki: float = 0.01
-    """Integral gain longitudinal speed controller"""
-    speed_kd: float = 0.1
-    """Derivative gain longitudinal speed controller"""
     n_horizon = 15
     """ Horizon Length """
     t_step = 0.1
@@ -26,26 +20,23 @@ def test_mpckin_dis():
     """ Weighting factor in cost function for having state error """
     input_mult = 1
     """ Weighting factor in cost function for applying input """
-    delta_input_mult = 10-3
+    speed_mult: float = 1
+    """ Weighting factor in cost function for velocity error """
+    delta_input_mult = 1e-2
     """ Weighting factor in cost function for varying input """
-    technique: str = 'linear'
-    """ Path approximation technique """
     dis_technique: str = 'Kinematic RK4'  # 'Kinematic Euler' or 'Kinematic RK4'
     """ Discretization technique """
     dis_t = 0.05
     """ Discretization interval """
 
-    sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
-    sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
-    """Speed Controller"""
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
-    mpc_param: MPCKinDisParam = MPCKinDisParam(n_horizon=n_horizon, t_step=t_step,
-                                               state_mult=state_mult, input_mult=input_mult,
-                                               delta_input_mult=delta_input_mult, technique=technique,
-                                               dis_technique=dis_technique, dis_t=dis_t)
-    mpc_controller = {"Name": "MPC Controller", "Controller": MPCKinDis, "Parameters": mpc_param}
+    mpc_param: MPCKinDisFullParam = MPCKinDisFullParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
+                                                       input_mult=input_mult, delta_input_mult=delta_input_mult,
+                                                       speed_mult=speed_mult, dis_technique=dis_technique,
+                                                       dis_t=dis_t)
+    mpc_controller = {"Name": "MPC Controller", "Controller": MPCKinDisFull, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
     steering_controller = {"Name": "Identity controller", "Controller": SCIdentity, "Parameters": steering_param}
@@ -53,11 +44,11 @@ def test_mpckin_dis():
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", metrics, mpc_controller, sp_behavior, steering_controller, sp_controller)
+    test_pp = TestController(scenario_name, "-", metrics, mpc_controller, sp_behavior, steering_controller)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()
     test_pp.to_json()
 
 
-test_mpckin_dis()
+test_mpckin()

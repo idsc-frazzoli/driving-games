@@ -1,27 +1,11 @@
-import math
-from dataclasses import dataclass
-from typing import Optional
-
-import casadi
-import numpy as np
-
-from sim.models.vehicle_structures import VehicleGeometry
-from geometry import SE2value, SE2_from_translation_angle, translation_angle_from_SE2
-from dg_commons.planning.lanes import DgLanelet
-from games import X, U
-import do_mpc
-from do_mpc.data import save_results
 from casadi import *
-from scipy.integrate import RK45
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 
 
-def kin_euler(x, y, theta, v, delta, s, v_delta, v_s, vehicle_geometry, ts: float):
+def kin_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
     state_x = x + cos(theta) * v * ts
     state_y = y + sin(theta) * v * ts
     state_theta = theta + tan(delta) * v * ts / vehicle_geometry.length
-    state_v = v + (8 - v) * ts
+    state_v = v + acc*ts
     state_delta = delta + v_delta * ts
     state_s = s + v_s * ts
 
@@ -43,15 +27,10 @@ def rk4(f, param, h: float):
     return combine_list(param, k, 1, 1)
 
 
-def kin_rk4(x, y, theta, v, delta, s, v_delta, v_s, vehicle_geometry, ts: float):
+def kin_rk4(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
     def f(param):
-        return_val = []
-        return_val.append(cos(param[2]) * param[3])
-        return_val.append(sin(param[2]) * param[3])
-        return_val.append(tan(param[4]) * param[3] / vehicle_geometry.length)
-        return_val.append(0)
-        return_val.append(v_delta)
-        return_val.append(v_s)
+        return_val = [cos(param[2]) * param[3], sin(param[2]) * param[3],
+                      tan(param[4]) * param[3] / vehicle_geometry.length, acc, v_delta, v_s]
         return return_val
 
     parameters = [x, y, theta, v, delta, s]
