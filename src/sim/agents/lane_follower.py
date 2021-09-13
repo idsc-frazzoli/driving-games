@@ -9,7 +9,7 @@ from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
 from dg_commons.planning.lanes import DgLanelet
 from dg_commons.planning.trajectory import Trajectory
-from games import PlayerName
+from games import PlayerName, X
 from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands, VehicleState
@@ -36,6 +36,7 @@ class LFAgent(Agent):
         self.my_name: Optional[PlayerName] = None
         self.return_extra: bool = return_extra
         self._emergency: bool = False
+        self._my_obs: Optional[X] = None
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -43,13 +44,13 @@ class LFAgent(Agent):
         self.pure_pursuit.update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
-        my_obs = sim_obs.players[self.my_name]
-        my_pose: SE2value = SE2_from_xytheta([my_obs.x, my_obs.y, my_obs.theta])
+        self._my_obs = sim_obs.players[self.my_name]
+        my_pose: SE2value = SE2_from_xytheta([self._my_obs.x, self._my_obs.y, self._my_obs.theta])
 
         # update observations
         self.speed_behavior.update_observations(sim_obs.players)
-        self.speed_controller.update_measurement(measurement=my_obs.vx)
-        self.steer_controller.update_measurement(measurement=my_obs.delta)
+        self.speed_controller.update_measurement(measurement=self._my_obs.vx)
+        self.steer_controller.update_measurement(measurement=self._my_obs.delta)
         lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
         self.pure_pursuit.update_pose(pose=my_pose, along_path=lanepose.along_lane)
 

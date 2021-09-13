@@ -100,6 +100,9 @@ class VehicleStateDyn(VehicleState):
                                dtheta=z[cls.idx["dtheta"]],
                                delta=z[cls.idx["delta"]])
 
+    def to_vehicle_state(self) -> VehicleState:
+        return VehicleState(x=self.x, y=self.y, theta=self.theta, vx=self.vx, delta=self.delta)
+
 
 class VehicleModelDyn(VehicleModel):
 

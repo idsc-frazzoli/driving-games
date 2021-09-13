@@ -10,13 +10,14 @@ def test_generate_motion_primitives():
     vp = VehicleParameters.default_car()
     vg = VehicleGeometry.default_car()
 
-    params = MPGParam(dt=Decimal(".2"), n_steps=10, velocity=(0, 50, 5), steering=(-vp.delta_max, vp.delta_max, 7))
+    params = MPGParam(dt=Decimal(".2"),
+                      n_steps=10,
+                      velocity=(0, 50, 5),
+                      steering=(-vp.delta_max, vp.delta_max, 7))
     vehicle = BicycleDynamics(vg=vg, vp=vp)
     mpg = MotionPrimitivesGenerator(mpg_param=params,
                                     vehicle_dynamics=vehicle.successor,
-                                    vehicle_params=VehicleParameters.default_car())
+                                    vehicle_params=vp)
 
-    traject = mpg.generate_motion_primitives()
+    traject = mpg.generate()
     print(traject)
-
-

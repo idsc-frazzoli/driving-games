@@ -67,13 +67,16 @@ def create_animation(file_path: str,
                     player_name=pname,
                     alpha=0.7,
                     plot_wheels=plot_wheels)
-                if plog.extra is not None:
-                    trajectories, tcolors = unzip(plog.extra)
-                    traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
-                        ax=ax, player_name=pname,
-                        trajectories=list(trajectories),
-                        colors=list(tcolors)
-                    )
+                if plog.extra:
+                    try:
+                        trajectories, tcolors = unzip(plog.extra)
+                        traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
+                            ax=ax, player_name=pname,
+                            trajectories=list(trajectories),
+                            colors=list(tcolors)
+                        )
+                    except:
+                        logger.warn(f"Cannot plot extra", extra=plog.extra)
             adjust_axes_limits(ax=ax,
                                plot_limits=plot_limits,
                                players_states=[player.state for player in init_log_entry.values()])
@@ -92,15 +95,18 @@ def create_animation(file_path: str,
                 state=log_at_t[pname].state,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
-            if log_at_t[pname].extra is not None:
-                trajectories, tcolors = unzip(log_at_t[pname].extra)
-                traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
-                    ax=ax, player_name=pname,
-                    trajectories=list(trajectories),
-                    traj_lines=traj_lines[pname],
-                    traj_points=traj_points[pname],
-                    colors=list(tcolors)
-                )
+            if log_at_t[pname].extra:
+                try:
+                    trajectories, tcolors = unzip(log_at_t[pname].extra)
+                    traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
+                        ax=ax, player_name=pname,
+                        trajectories=list(trajectories),
+                        traj_lines=traj_lines[pname],
+                        traj_points=traj_points[pname],
+                        colors=list(tcolors)
+                    )
+                except:
+                    logger.warn(f"Cannot plot extra", extra=log_at_t[pname].extra)
         adjust_axes_limits(ax=ax,
                            plot_limits=plot_limits,
                            players_states=[player.state for player in log_at_t.values()])

@@ -4,12 +4,15 @@ from typing import List, Optional, Type
 
 import numpy as np
 from duckietown_world import SE2Transform
+from geometry import xytheta_from_SE2
 
-from dg_commons.sequence import DgSampledSequence, X
-from sim.models.vehicle import VehicleState
+from dg_commons.sequence import DgSampledSequence, X, iterate_with_dt
+from sim.models import extract_pose_from_state
+from sim.models.vehicle import VehicleState, VehicleCommands
 
 __all__ = [
     "Trajectory",
+    "commands_plan_from_trajectory"
 ]
 
 
@@ -26,7 +29,10 @@ class Trajectory(DgSampledSequence[VehicleState]):
 
     def apply_SE2transform(self, transform: SE2Transform):
         def _applySE2(x: VehicleState, t: SE2Transform) -> VehicleState:
-            return replace(x, x=x.x + t.p[0], y=x.y + t.p[1], theta=x.theta + t.theta)
+            pose = extract_pose_from_state(x)
+            new_pose = np.dot(t.as_SE2(), pose)
+            xytheta = xytheta_from_SE2(new_pose)
+            return replace(x, x=xytheta[0], y=xytheta[1], theta=xytheta[2])
 
         f = partial(_applySE2, t=transform)
         return self.transform_values(f=f, YT=VehicleState)
@@ -45,3 +51,12 @@ class Trajectory(DgSampledSequence[VehicleState]):
         assert self.is_connectable(other)
         # todo
         pass
+
+
+def commands_plan_from_trajectory(trajectory: Trajectory) -> DgSampledSequence[VehicleCommands]:
+    timestamps = []
+    commands = []
+    for t0, _, dt, v0, v1 in iterate_with_dt(trajectory):
+        timestamps.append(t0)
+        commands.append(VehicleCommands(acc=(v1.vx - v0.vx) / dt, ddelta=(v1.delta - v0.delta) / dt))
+    return DgSampledSequence[VehicleCommands](timestamps, commands)
