@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from casadi import *
 from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
 from dg_commons.controllers.mpc.discretization_techniques import kin_euler, discretizations
+from typing import Tuple
 
 
 __all__ = ["MPCKinDisFull", "MPCKinDisFullParam"]
@@ -19,6 +20,8 @@ class MPCKinDisFullParam(MPCBAseParam):
     """ Discretization technique """
     dis_t: float = 0.01
     """ Discretization Time Step """
+    acc_bounds: Tuple[float, float] = (-8, 5)
+    """ Accelertion bounds """
 
 
 class MPCKinDisFull(MPCBase):
@@ -64,12 +67,12 @@ class MPCKinDisFull(MPCBase):
         return self.s, self.traj(self.s), None
 
     def set_bounds(self):
-        self.mpc.bounds['lower', '_u', 'v_delta'] = -1
-        self.mpc.bounds['upper', '_u', 'v_delta'] = 1
-        self.mpc.bounds['lower', '_u', 'a'] = -8
-        self.mpc.bounds['upper', '_u', 'a'] = 5
-        self.mpc.bounds['lower', '_x', 'delta'] = -0.52
-        self.mpc.bounds['upper', '_x', 'delta'] = 0.52
+        self.mpc.bounds['lower', '_u', 'v_delta'] = self.params.v_delta_bounds[0]
+        self.mpc.bounds['upper', '_u', 'v_delta'] = self.params.v_delta_bounds[1]
+        self.mpc.bounds['lower', '_u', 'a'] = self.params.acc_bounds[0]
+        self.mpc.bounds['upper', '_u', 'a'] = self.params.acc_bounds[1]
+        self.mpc.bounds['lower', '_x', 'delta'] = self.params.delta_bounds[0]
+        self.mpc.bounds['upper', '_x', 'delta'] = self.params.delta_bounds[1]
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1

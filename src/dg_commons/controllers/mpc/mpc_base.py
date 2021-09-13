@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass
-from typing import Optional, Mapping, Callable
+from typing import Optional, Mapping, Callable, Tuple
 from abc import ABC, abstractmethod
 from geometry import translation_angle_from_SE2
 from dg_commons.planning.lanes import DgLanelet
@@ -26,6 +26,10 @@ class MPCBAseParam:
     """ Weighting factor in cost function for applying input """
     delta_input_mult: float = 1e-2
     """ Weighting factor in cost function for varying input """
+    v_delta_bounds: Tuple[float, float] = (-1, 1)
+    """ Ddelta Bounds """
+    delta_bounds: Tuple[float, float] = (-0.52, 0.52)
+    """ Steering Bounds """
 
 
 class MPCBase(ABC):
