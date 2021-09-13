@@ -5,6 +5,7 @@ from typing import List, Optional, Type
 import numpy as np
 from duckietown_world import SE2Transform
 from geometry import xytheta_from_SE2
+from networkx import DiGraph
 
 from dg_commons.sequence import DgSampledSequence, X, iterate_with_dt
 from sim.models import extract_pose_from_state
@@ -52,6 +53,10 @@ class Trajectory(DgSampledSequence[VehicleState]):
         # todo
         pass
 
+    def upsample(self, n: int) -> "Trajectory":
+        # todo
+        pass
+
 
 def commands_plan_from_trajectory(trajectory: Trajectory) -> DgSampledSequence[VehicleCommands]:
     timestamps = []
@@ -60,3 +65,8 @@ def commands_plan_from_trajectory(trajectory: Trajectory) -> DgSampledSequence[V
         timestamps.append(t0)
         commands.append(VehicleCommands(acc=(v1.vx - v0.vx) / dt, ddelta=(v1.delta - v0.delta) / dt))
     return DgSampledSequence[VehicleCommands](timestamps, commands)
+
+
+class TrajectoryGraph(DiGraph):
+    pass
+    # todo

@@ -44,6 +44,8 @@ class MPGParam:
 
 
 class MotionPrimitivesGenerator(TrajGenerator):
+    """Generator of motion primitives sampling the state space"""
+
     def __init__(self,
                  mpg_param: MPGParam,
                  vehicle_dynamics: Callable[[VehicleState, VehicleCommands, Timestamp], VehicleState],
@@ -65,7 +67,7 @@ class MotionPrimitivesGenerator(TrajGenerator):
         s_samples_init = steer_samples if x0 is None else [x0.delta, ]
 
         n = len(v_samples) * len(steer_samples) * len(v_samples_init) * len(s_samples_init)
-        logger.info(f"Attempting to generate {n} motion primitives")
+        logger.debug(f"Attempting to generate {n} motion primitives")
         for (v_start, sa_start) in product(v_samples_init, s_samples_init):
             for (v_end, sa_end) in product(v_samples, steer_samples):
                 is_valid, input_a, input_sa_rate = self.check_input_constraints(
@@ -83,7 +85,7 @@ class MotionPrimitivesGenerator(TrajGenerator):
                     timestamps.append(n_step * self.param.dt)
                     states.append(next_state)
                 motion_primitives.add(Trajectory(timestamps=timestamps, values=states))
-        logger.info(f"Found {len(motion_primitives)} feasible motion primitives")
+        logger.info(f"{self.__name__}:Found {len(motion_primitives)} feasible motion primitives")
         return motion_primitives
 
     def generate_samples(self) -> (List, List):
