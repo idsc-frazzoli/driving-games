@@ -16,12 +16,12 @@ class B1Agent(LFAgent):
     def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
         if not self._emergency:
             return None
-        mypose = self.pure_pursuit.pose()
-        p, theta = translation_from_SE2(mypose)
+        mypose = self.pure_pursuit.pose
+        p = translation_from_SE2(mypose)
         traj = Trajectory(
             timestamps=[0, 1],
-            values=[VehicleState(x=p[0], y=p[1], theta=theta, vx=0, delta=0),
-                    VehicleState(x=p[0], y=p[1], theta=theta, vx=0, delta=0),
+            values=[VehicleState(x=p[0], y=p[1], theta=0, vx=0, delta=0),
+                    VehicleState(x=p[0], y=p[1], theta=0, vx=0, delta=0),
                     ])
         traj_s = [traj, ]
         colors = ["gold", ]
