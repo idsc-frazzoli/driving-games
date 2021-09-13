@@ -1,33 +1,29 @@
 from dataclasses import dataclass
 from casadi import *
 from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
-from dg_commons.controllers.mpc.discretization_techniques import kin_euler, discretizations
 from typing import Tuple
 
 
-__all__ = ["MPCKinDisFull", "MPCKinDisFullParam"]
+__all__ = ["NMPCFullKinCont", "NMPCFullKinContParam"]
 
 
 @dataclass
-class MPCKinDisFullParam(MPCBAseParam):
+class NMPCFullKinContParam(MPCBAseParam):
     technique: str = 'linear'
     """ Path approximation technique """
     speed_mult: float = 1
     """ Weighting factor in cost function for velocity error """
     acc_mult: float = 1
     """ Weighting factor in cost function for acceleration """
-    dis_technique: str = 'Kinematic Euler'
-    """ Discretization technique """
-    dis_t: float = 0.01
-    """ Discretization Time Step """
     acc_bounds: Tuple[float, float] = (-8, 5)
     """ Accelertion bounds """
 
 
-class MPCKinDisFull(MPCBase):
+class NMPCFullKinCont(MPCBase):
+    """ Nonlinear MPC for full control of vehicle. Kinematic model without prior discretization """
 
-    def __init__(self, params: MPCKinDisFullParam = MPCKinDisFullParam()):
-        model_type = 'discrete'  # either 'discrete' or 'continuous'
+    def __init__(self, params: NMPCFullKinContParam = NMPCFullKinContParam()):
+        model_type = 'continuous'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
         assert self.params.technique in self.techniques.keys()
@@ -36,19 +32,14 @@ class MPCKinDisFull(MPCBase):
         self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
         self.a = self.model.set_variable(var_type='_u', var_name='a')
 
-        f = [self.state_x, self.state_y, self.theta, self.v, self.delta, self.s]
-        for _ in range(int(self.params.t_step/self.params.dis_t)):
-            f = discretizations[self.params.dis_technique](f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta,
-                                                           self.v_s, self.a, self.vehicle_geometry, self.params.dis_t)
-
         self.path_var = True
-        # Set right right hand side of difference equation for x, y, theta, v, delta and s
-        self.model.set_rhs('state_x', f[0])
-        self.model.set_rhs('state_y', f[1])
-        self.model.set_rhs('theta', f[2])
-        self.model.set_rhs('v', f[3])
-        self.model.set_rhs('delta', f[4])
-        self.model.set_rhs('s', f[5])
+        # Set right right hand side of differential equation for x, y, theta, v, delta and s
+        self.model.set_rhs('state_x', cos(self.theta) * self.v)
+        self.model.set_rhs('state_y', sin(self.theta) * self.v)
+        self.model.set_rhs('theta', tan(self.delta) * self.v / self.vehicle_geometry.length)
+        self.model.set_rhs('v', self.a)
+        self.model.set_rhs('delta', self.v_delta)
+        self.model.set_rhs('s', self.v_s)
 
         self.model.setup()
 

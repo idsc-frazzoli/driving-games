@@ -1,6 +1,6 @@
 from sim_tests.controllers_tests.test_controller import TestController
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons.controllers.mpc.mpc_kin_dis import MPCKinDisParam, MPCKinDis
+from dg_commons.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDisParam, NMPCLatKinDis
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 
@@ -41,11 +41,11 @@ def test_mpckin_dis():
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
-    mpc_param: MPCKinDisParam = MPCKinDisParam(n_horizon=n_horizon, t_step=t_step,
-                                               state_mult=state_mult, input_mult=input_mult,
-                                               delta_input_mult=delta_input_mult, technique=technique,
-                                               dis_technique=dis_technique, dis_t=dis_t)
-    mpc_controller = {"Name": "MPC Controller", "Controller": MPCKinDis, "Parameters": mpc_param}
+    mpc_param: NMPCLatKinDisParam = NMPCLatKinDisParam(n_horizon=n_horizon, t_step=t_step,
+                                                       state_mult=state_mult, input_mult=input_mult,
+                                                       delta_input_mult=delta_input_mult, technique=technique,
+                                                       dis_technique=dis_technique, dis_t=dis_t)
+    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCLatKinDis, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
     steering_controller = {"Name": "Identity controller", "Controller": SCIdentity, "Parameters": steering_param}

@@ -2,18 +2,19 @@ from dataclasses import dataclass
 from casadi import *
 from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
 
-__all__ = ["MPCKinContPathVar", "MPCKinContPathVarParam"]
+__all__ = ["NMPCLatKinCont", "NMPCLatKinContParam"]
 
 
 @dataclass
-class MPCKinContPathVarParam(MPCBAseParam):
+class NMPCLatKinContParam(MPCBAseParam):
     technique: str = 'linear'
     """ Path approximation technique """
 
 
-class MPCKinContPathVar(MPCBase):
+class NMPCLatKinCont(MPCBase):
+    """ Nonlinear MPC for lateral control of vehicle. Kinematic model without prior discretization """
 
-    def __init__(self, params: MPCKinContPathVarParam = MPCKinContPathVarParam()):
+    def __init__(self, params: NMPCLatKinContParam = NMPCLatKinContParam()):
         model_type = 'continuous'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
