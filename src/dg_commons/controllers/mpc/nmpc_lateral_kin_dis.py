@@ -11,7 +11,7 @@ class NMPCLatKinDisParam(LatMPCBAseParam):
     """ Path approximation technique """
     dis_technique: str = 'Kinematic Euler'
     """ Discretization technique """
-    dis_t: float = 0.01
+    dis_t: float = 0.1
     """ Discretization Time Step """
 
 

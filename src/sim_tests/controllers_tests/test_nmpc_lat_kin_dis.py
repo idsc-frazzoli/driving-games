@@ -30,9 +30,9 @@ def test_mpckin_dis():
     """ Weighting factor in cost function for varying input """
     technique: str = 'linear'
     """ Path approximation technique """
-    dis_technique: str = 'Kinematic RK4'  # 'Kinematic Euler' or 'Kinematic RK4'
+    dis_technique: str = 'Kinematic Euler'  # 'Kinematic Euler' or 'Kinematic RK4'
     """ Discretization technique """
-    dis_t = t_step
+    dis_t = 0.05
     """ Discretization interval """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
