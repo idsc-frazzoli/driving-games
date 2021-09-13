@@ -27,7 +27,7 @@ class LFAgent(Agent):
                  speed_behavior: Optional[SpeedBehavior] = None,
                  pure_pursuit: Optional[PurePursuit] = None,
                  steer_controller: Optional[SteerController] = None,
-                 return_extra: bool = True):
+                 return_extra: bool = False):
         self.ref_lane = lane
         self.speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
         self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior

@@ -199,7 +199,7 @@ def get_scenario_two_lanes() -> SimContext:
                       models=models,
                       players=players,
                       param=SimParameters(
-                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(6), max_sim_time=D(7)),
+                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(4), max_sim_time=D(6)),
                       )
 
 
