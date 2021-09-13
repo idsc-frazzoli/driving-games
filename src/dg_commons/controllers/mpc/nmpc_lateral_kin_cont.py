@@ -1,29 +1,23 @@
 from dataclasses import dataclass
 from casadi import *
-from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
+from dg_commons.controllers.mpc.mpc_base_classes import LatMPCBasePathVariable, LatMPCBAseParam
 
 __all__ = ["NMPCLatKinCont", "NMPCLatKinContParam"]
 
 
 @dataclass
-class NMPCLatKinContParam(MPCBAseParam):
+class NMPCLatKinContParam(LatMPCBAseParam):
     technique: str = 'linear'
     """ Path approximation technique """
 
 
-class NMPCLatKinCont(MPCBase):
+class NMPCLatKinCont(LatMPCBasePathVariable):
     """ Nonlinear MPC for lateral control of vehicle. Kinematic model without prior discretization """
 
     def __init__(self, params: NMPCLatKinContParam = NMPCLatKinContParam()):
         model_type = 'continuous'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
-        assert self.params.technique in self.techniques.keys()
-
-        self.s = self.model.set_variable(var_type='_x', var_name='s', shape=(1, 1))
-        self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
-
-        self.path_var = True
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
         self.model.set_rhs('state_x', cos(self.theta) * self.v)
         self.model.set_rhs('state_y', sin(self.theta) * self.v)

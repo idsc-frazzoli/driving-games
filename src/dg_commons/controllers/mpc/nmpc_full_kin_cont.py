@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from casadi import *
-from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
+from dg_commons.controllers.mpc.mpc_base_classes import FullMPCBasePathVariable, FullMPCBAseParam
 from typing import Tuple
 
 
@@ -8,31 +8,18 @@ __all__ = ["NMPCFullKinCont", "NMPCFullKinContParam"]
 
 
 @dataclass
-class NMPCFullKinContParam(MPCBAseParam):
+class NMPCFullKinContParam(FullMPCBAseParam):
     technique: str = 'linear'
     """ Path approximation technique """
-    speed_mult: float = 1
-    """ Weighting factor in cost function for velocity error """
-    acc_mult: float = 1
-    """ Weighting factor in cost function for acceleration """
-    acc_bounds: Tuple[float, float] = (-8, 5)
-    """ Accelertion bounds """
 
 
-class NMPCFullKinCont(MPCBase):
+class NMPCFullKinCont(FullMPCBasePathVariable):
     """ Nonlinear MPC for full control of vehicle. Kinematic model without prior discretization """
 
     def __init__(self, params: NMPCFullKinContParam = NMPCFullKinContParam()):
         model_type = 'continuous'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
-        assert self.params.technique in self.techniques.keys()
-
-        self.s = self.model.set_variable(var_type='_x', var_name='s', shape=(1, 1))
-        self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
-        self.a = self.model.set_variable(var_type='_u', var_name='a')
-
-        self.path_var = True
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
         self.model.set_rhs('state_x', cos(self.theta) * self.v)
         self.model.set_rhs('state_y', sin(self.theta) * self.v)

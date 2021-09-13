@@ -2,17 +2,17 @@ from dataclasses import dataclass
 from geometry import translation_angle_from_SE2
 from casadi import *
 import matplotlib.pyplot as plt
-from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
+from dg_commons.controllers.mpc.mpc_base_classes import LatMPCBase, LatMPCBAseParam
 
 __all__ = ["MPCKinCont", "MPCKinContParam"]
 
 
 @dataclass
-class MPCKinContParam(MPCBAseParam):
+class MPCKinContParam(LatMPCBAseParam):
     pass
 
 
-class MPCKinCont(MPCBase):
+class MPCKinCont(LatMPCBase):
 
     def __init__(self, params: MPCKinContParam = MPCKinContParam()):
         model_type = 'continuous'  # either 'discrete' or 'continuous'

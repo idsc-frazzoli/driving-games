@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from dg_commons.controllers.mpc.discretization_techniques import kin_euler, discretizations
-from dg_commons.controllers.mpc.mpc_base import MPCBase, MPCBAseParam
+from dg_commons.controllers.mpc.mpc_base_classes import LatMPCBasePathVariable, LatMPCBAseParam
 
 __all__ = ["NMPCLatKinDis", "NMPCLatKinDisParam"]
 
 
 @dataclass
-class NMPCLatKinDisParam(MPCBAseParam):
+class NMPCLatKinDisParam(LatMPCBAseParam):
     technique: str = 'linear'
     """ Path approximation technique """
     dis_technique: str = 'Kinematic Euler'
@@ -15,26 +15,21 @@ class NMPCLatKinDisParam(MPCBAseParam):
     """ Discretization Time Step """
 
 
-class NMPCLatKinDis(MPCBase):
+class NMPCLatKinDis(LatMPCBasePathVariable):
     """ Nonlinear MPC for lateral control of vehicle. Kinematic model with prior discretization """
 
     def __init__(self, params: NMPCLatKinDisParam = NMPCLatKinDisParam()):
         model_type = 'discrete'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
-        assert self.params.technique in self.techniques.keys()
         assert self.params.dis_technique in discretizations.keys()
         assert self.params.t_step % self.params.dis_t < 10e-10
-
-        self.s = self.model.set_variable(var_type='_x', var_name='s', shape=(1, 1))
-        self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
 
         f = [self.state_x, self.state_y, self.theta, self.v, self.delta, self.s]
         for _ in range(int(self.params.t_step/self.params.dis_t)):
             f = discretizations[self.params.dis_technique](f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta,
                                                            self.v_s, 0, self.vehicle_geometry, self.params.dis_t)
 
-        self.path_var = True
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
         self.model.set_rhs('state_x', f[0])
         self.model.set_rhs('state_y', f[1])
