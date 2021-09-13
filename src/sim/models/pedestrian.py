@@ -265,7 +265,7 @@ class PedestrianModel(SimModel[SE2value, float]):
         return PEDESTRIAN
 
     def get_extra_collision_friction_acc(self):
-        magic_mu = 0.5
+        magic_mu = 2.0
         if self.has_collided:
             frictionx = - magic_mu * self._state.vx
             frictiony = - magic_mu * self._state.vy
