@@ -1,4 +1,4 @@
-from sim_tests.controllers_tests.test_controller import TestController
+from sim_tests.controllers_tests.test_controller import TestController, DT_COMMANDS
 from dg_commons.controllers.speed import SpeedBehavior, SpeedBehaviorParam
 from dg_commons.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDisParam, NMPCFullKinDis
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
@@ -14,7 +14,7 @@ def test_mpckin():
     """Nominal speed of the vehicle"""
     n_horizon = 15
     """ Horizon Length """
-    t_step = 0.1
+    t_step = float(DT_COMMANDS)
     """ Sample Time """
     state_mult = 1
     """ Weighting factor in cost function for having state error """

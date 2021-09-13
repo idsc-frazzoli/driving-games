@@ -1,4 +1,4 @@
-from sim_tests.controllers_tests.test_controller import TestController
+from sim_tests.controllers_tests.test_controller import TestController, DT_COMMANDS
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDisParam, NMPCLatKinDis
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
@@ -20,7 +20,7 @@ def test_mpckin_dis():
     """Derivative gain longitudinal speed controller"""
     n_horizon = 15
     """ Horizon Length """
-    t_step = 0.1
+    t_step = float(DT_COMMANDS)
     """ Sample Time """
     state_mult = 1
     """ Weighting factor in cost function for having state error """
@@ -32,7 +32,7 @@ def test_mpckin_dis():
     """ Path approximation technique """
     dis_technique: str = 'Kinematic RK4'  # 'Kinematic Euler' or 'Kinematic RK4'
     """ Discretization technique """
-    dis_t = 0.05
+    dis_t = t_step
     """ Discretization interval """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)

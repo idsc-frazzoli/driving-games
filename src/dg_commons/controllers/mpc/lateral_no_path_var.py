@@ -40,12 +40,6 @@ class MPCKinCont(LatMPCBase):
         self.traj = self.get_traj_func(current_beta)
         return self.traj(self.state_x, self.state_y)
 
-    def set_bounds(self):
-        self.mpc.bounds['lower', '_u', 'v_delta'] = self.params.v_delta_bounds[0]
-        self.mpc.bounds['upper', '_u', 'v_delta'] = self.params.v_delta_bounds[1]
-        self.mpc.bounds['lower', '_x', 'delta'] = self.params.delta_bounds[0]
-        self.mpc.bounds['upper', '_x', 'delta'] = self.params.delta_bounds[1]
-
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
         self.mpc.scaling['_x', 'state_y'] = 1

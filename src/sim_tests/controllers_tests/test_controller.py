@@ -16,6 +16,11 @@ from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
 from crash.reports import generate_report
 from dg_commons.sequence import Timestamp, DgSampledSequence
+from sim import SimTime, ImpactLocation
+
+DT: SimTime = SimTime("0.05")
+DT_COMMANDS: SimTime = SimTime("0.1")
+assert DT_COMMANDS % DT == SimTime(0)
 
 
 class TestController:
@@ -40,8 +45,9 @@ class TestController:
             players.update({player_name: agent})
             models.update({player_name: model})
 
+        sim_parameters: SimParameters = SimParameters(dt=DT, dt_commands=DT_COMMANDS)
         self.sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
-                                                  param=SimParameters(), log=SimLog())
+                                                  param=sim_parameters, log=SimLog())
         self.metrics = metrics
         self.metrics_context: Optional[MetricEvaluationContext] = None
         self.result = []
