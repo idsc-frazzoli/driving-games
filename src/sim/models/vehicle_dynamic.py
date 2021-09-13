@@ -11,7 +11,7 @@ from sim.models.model_structures import TwoWheelsTypes
 from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G, rho
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
-from sim.models.vehicle_structures import VehicleGeometry, BICYCLE, MOTORCYCLE
+from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 
 
@@ -236,7 +236,7 @@ class VehicleModelDyn(VehicleModel):
             # we partition acc 60% front 40% rear while braking
             return Facc * .6, Facc * .4
         else:
-            if self.vg.vehicle_type in [BICYCLE, MOTORCYCLE]:
+            if self.vg.vehicle_type in TwoWheelsTypes:
                 # only rear for acc on bicycles-like
                 return 0, Facc
             else:

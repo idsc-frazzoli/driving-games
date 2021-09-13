@@ -35,6 +35,7 @@ class LFAgent(Agent):
         self.pure_pursuit: PurePursuit = PurePursuit() if pure_pursuit is None else pure_pursuit
         self.my_name: Optional[PlayerName] = None
         self.return_extra: bool = return_extra
+        self._emergency: bool = False
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -55,7 +56,10 @@ class LFAgent(Agent):
         # compute commands
         t = float(sim_obs.time)
         speed_ref, emergency = self.speed_behavior.get_speed_ref(t)
-        if emergency:
+        if emergency or self._emergency:
+            # Once the emergency kicks in the speed ref will always be 0
+            self._emergency = True
+            speed_ref = 0
             self.emergency_subroutine()
         self.pure_pursuit.update_speed(speed=speed_ref)
         self.speed_controller.update_reference(reference=speed_ref)
