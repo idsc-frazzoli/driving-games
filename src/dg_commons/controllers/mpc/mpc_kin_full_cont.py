@@ -11,6 +11,8 @@ class MPCKinContFullParam(MPCBAseParam):
     """ Path approximation technique """
     speed_mult: float = 1
     """ Weighting factor in cost function for velocity error """
+    acc_mult: float = 1
+    """ Weighting factor in cost function for acceleration """
 
 
 class MPCKinContFull(MPCBase):
@@ -39,7 +41,8 @@ class MPCKinContFull(MPCBase):
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
         return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
                self.params.speed_mult * (self.v - speed_ref)**2 + \
-               self.params.input_mult * self.v_delta ** 2
+               self.params.input_mult * self.v_delta ** 2 + \
+               self.params.acc_mult * self.a ** 2
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
         return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \

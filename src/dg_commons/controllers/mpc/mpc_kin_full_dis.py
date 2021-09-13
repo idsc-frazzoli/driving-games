@@ -13,6 +13,8 @@ class MPCKinDisFullParam(MPCBAseParam):
     """ Path approximation technique """
     speed_mult: float = 1
     """ Weighting factor in cost function for velocity error """
+    acc_mult: float = 1
+    """ Weighting factor in cost function for acceleration """
     dis_technique: str = 'Kinematic Euler'
     """ Discretization technique """
     dis_t: float = 0.01
@@ -50,7 +52,8 @@ class MPCKinDisFull(MPCBase):
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
         return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
                self.params.speed_mult * (self.v - speed_ref)**2 + \
-               self.params.input_mult * self.v_delta ** 2
+               self.params.input_mult * self.v_delta ** 2 + \
+               self.params.acc_mult * self.a ** 2
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
         return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \

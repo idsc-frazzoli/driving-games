@@ -22,6 +22,8 @@ def test_mpckin():
     """ Weighting factor in cost function for applying input """
     speed_mult: float = 1
     """ Weighting factor in cost function for velocity error """
+    acc_mult: float = 1
+    """ Weighting factor in cost function for acceleration """
     delta_input_mult = 1e-2
     """ Weighting factor in cost function for varying input """
 
@@ -30,7 +32,7 @@ def test_mpckin():
     """Speed behavior"""
     mpc_param: MPCKinContFullParam = MPCKinContFullParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
                                                          input_mult=input_mult, delta_input_mult=delta_input_mult,
-                                                         speed_mult=speed_mult)
+                                                         speed_mult=speed_mult, acc_mult=acc_mult)
     mpc_controller = {"Name": "MPC Controller", "Controller": MPCKinContFull, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
