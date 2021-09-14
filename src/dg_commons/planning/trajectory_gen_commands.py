@@ -69,11 +69,11 @@ class CommandsSampler(TrajGenerator):
             timestamps.append(self._param.dt)
             states.append(next_state)
             trajectories.add(Trajectory(timestamps=timestamps, values=states))
-        logger.info(f"{self.__name__}:Generated {len(trajectories)}")
+        logger.info(f"{type(self).__name__}:Generated {len(trajectories)}")
         return trajectories
 
     def update_params(self, param: CommandsSamplerParam):
-        assert self.vehicle_params.acc_limits[1] <= param.acc[0] <= param.acc[1] <= self.vehicle_params.acc_limits[1]
+        assert self.vehicle_params.acc_limits[0] <= param.acc[0] <= param.acc[1] <= self.vehicle_params.acc_limits[1]
         assert -self.vehicle_params.ddelta_max <= param.steer_rate[0] <= param.steer_rate[
             1] <= self.vehicle_params.ddelta_max
         self._param = param

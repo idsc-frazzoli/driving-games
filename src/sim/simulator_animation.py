@@ -81,7 +81,8 @@ def create_animation(file_path: str,
                                plot_limits=plot_limits,
                                players_states=[player.state for player in init_log_entry.values()])
             texts["time"] = ax.text(0.02, 0.96, '', transform=ax.transAxes,
-                                    bbox=dict(facecolor='lightgreen', alpha=0.5), zorder=ZOrders.TIME_TEXT)
+                                    bbox=dict(facecolor='lightgreen', alpha=0.5),
+                                    zorder=ZOrders.TIME_TEXT)
         return _get_list()
 
     def update_plot(frame: int = 0):
@@ -142,8 +143,8 @@ def adjust_axes_limits(ax: Axes,
     elif plot_limits == 'auto':
         players_limits = approximate_bounding_box_players(obj_list=players_states)
         if players_limits is not None:
-            ax.axis(xmin=players_limits[0][0], xmax=players_limits[0][1], ymin=players_limits[1][0],
-                    ymax=players_limits[1][1])
+            ax.axis(xmin=players_limits[0][0], xmax=players_limits[0][1],
+                    ymin=players_limits[1][0], ymax=players_limits[1][1])
         else:
             ax.autoscale()
     else:

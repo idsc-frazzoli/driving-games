@@ -85,7 +85,7 @@ class MotionPrimitivesGenerator(TrajGenerator):
                     timestamps.append(n_step * self.param.dt)
                     states.append(next_state)
                 motion_primitives.add(Trajectory(timestamps=timestamps, values=states))
-        logger.info(f"{self.__name__}:Found {len(motion_primitives)} feasible motion primitives")
+        logger.info(f"{type(self).__name__}:Found {len(motion_primitives)} feasible motion primitives")
         return motion_primitives
 
     def generate_samples(self) -> (List, List):

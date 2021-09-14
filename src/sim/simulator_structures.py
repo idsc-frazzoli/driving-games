@@ -13,7 +13,7 @@ from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 from sim.models.model_structures import ModelGeometry, ModelType
 
-__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog"]
+__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog", "LogEntry"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
