@@ -25,9 +25,9 @@ class B2Agent(LFAgent):
                              velocity=(0, 10, 5),
                              steering=(-vp.delta_max, vp.delta_max, 9))
         vehicle = BicycleDynamics(vg=vg, vp=vp)
-        self._mpg = MotionPrimitivesGenerator(mpg_param=mpg_param,
+        self._mpg = MotionPrimitivesGenerator(param=mpg_param,
                                               vehicle_dynamics=vehicle.successor,
-                                              vehicle_params=vp)
+                                              vehicle_param=vp)
 
     def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
         trajectories = self._mpg.generate(x0=self._my_obs.to_vehicle_state())

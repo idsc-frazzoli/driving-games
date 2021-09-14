@@ -1,8 +1,7 @@
-from collections import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from itertools import product
-from typing import Set, List
+from typing import Set, List, Callable, Optional
 
 import numpy as np
 
@@ -13,7 +12,7 @@ from dg_commons.types import LinSpaceTuple
 from sim.models.vehicle import VehicleState, VehicleCommands
 from sim.models.vehicle_utils import VehicleParameters
 
-__all__ = ["CommandsSampler"]
+__all__ = ["CommandsSampler", "CommandsSamplerParam"]
 
 
 @dataclass
@@ -52,9 +51,9 @@ class CommandsSampler(TrajGenerator):
     def __init__(self,
                  param: CommandsSamplerParam,
                  vehicle_dynamics: Callable[[VehicleState, VehicleCommands, Timestamp], VehicleState],
-                 vehicle_params: VehicleParameters):
-        super(CommandsSampler, self).__init__(vehicle_dynamics=vehicle_dynamics, vehicle_params=vehicle_params)
-        self._param = None
+                 vehicle_param: VehicleParameters):
+        super(CommandsSampler, self).__init__(vehicle_dynamics=vehicle_dynamics, vehicle_param=vehicle_param)
+        self._param: Optional[CommandsSamplerParam] = None
         self.update_params(param)
 
     def generate(self, x0: VehicleState) -> Set[Trajectory]:
@@ -73,12 +72,12 @@ class CommandsSampler(TrajGenerator):
         return trajectories
 
     def update_params(self, param: CommandsSamplerParam):
-        assert self.vehicle_params.acc_limits[0] <= param.acc[0] <= param.acc[1] <= self.vehicle_params.acc_limits[1]
-        assert -self.vehicle_params.ddelta_max <= param.steer_rate[0] <= param.steer_rate[
-            1] <= self.vehicle_params.ddelta_max
+        assert self.vehicle_param.acc_limits[0] <= param.acc[0] <= param.acc[1] <= self.vehicle_param.acc_limits[1]
+        assert -self.vehicle_param.ddelta_max <= param.steer_rate[0] <= param.steer_rate[
+            1] <= self.vehicle_param.ddelta_max
         self._param = param
 
     def generate_samples(self) -> (List, List):
         acc_samples = np.linspace(*self._param.acc)
-        dsteer_samples = np.linspace(*self._param.ste)
+        dsteer_samples = np.linspace(*self._param.steer_rate)
         return acc_samples, dsteer_samples

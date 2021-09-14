@@ -13,6 +13,7 @@ from sim.models.vehicle import VehicleState, VehicleCommands
 
 __all__ = [
     "Trajectory",
+    "TrajectoryGraph",
     "commands_plan_from_trajectory"
 ]
 
@@ -54,6 +55,7 @@ class Trajectory(DgSampledSequence[VehicleState]):
         pass
 
     def upsample(self, n: int) -> "Trajectory":
+        """"""
         # todo
         pass
 

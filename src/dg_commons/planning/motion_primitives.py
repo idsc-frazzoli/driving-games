@@ -47,15 +47,14 @@ class MotionPrimitivesGenerator(TrajGenerator):
     """Generator of motion primitives sampling the state space"""
 
     def __init__(self,
-                 mpg_param: MPGParam,
+                 param: MPGParam,
                  vehicle_dynamics: Callable[[VehicleState, VehicleCommands, Timestamp], VehicleState],
-                 vehicle_params: VehicleParameters):
-        super().__init__(vehicle_dynamics=vehicle_dynamics, vehicle_params=vehicle_params)
-        self.param = mpg_param
+                 vehicle_param: VehicleParameters):
+        super().__init__(vehicle_dynamics=vehicle_dynamics, vehicle_param=vehicle_param)
+        self.param = param
 
     @time_function
-    def generate(self, x0: Optional[VehicleState] = None) \
-            -> Set[Trajectory]:
+    def generate(self, x0: Optional[VehicleState] = None) -> Set[Trajectory]:
         """
         :param x0: optionally if one wants to generate motion primitives only from a specific state
         :return:
@@ -104,8 +103,8 @@ class MotionPrimitivesGenerator(TrajGenerator):
         horizon = float(self.param.dt * self.param.n_steps)
         acc = (v_end - v_start) / horizon
         sa_rate = (sa_end - sa_start) / horizon
-        if not (-self.vehicle_params.ddelta_max <= sa_rate <= self.vehicle_params.ddelta_max) or \
-                (not self.vehicle_params.acc_limits[0] <= acc <= self.vehicle_params.acc_limits[1]):
+        if not (-self.vehicle_param.ddelta_max <= sa_rate <= self.vehicle_param.ddelta_max) or \
+                (not self.vehicle_param.acc_limits[0] <= acc <= self.vehicle_param.acc_limits[1]):
             return False, 0, 0
         else:
             return True, acc, sa_rate
