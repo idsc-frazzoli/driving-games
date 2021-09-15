@@ -6,17 +6,16 @@ from typing import Mapping, FrozenSet
 from frozendict import frozendict
 from zuper_commons.types import ZValueError, ZException
 
-from .structures import (
-    SE2_disc,
-    LightsValue,
-    VehicleState,
-    VehicleActions,
-    Lights,
-    VehicleGeometry,
-)
-from .rectangle import get_resources_used, Rectangle
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
+from sim.models.vehicle_ligths import LightsValues, LightsCmd
+from .rectangle import get_resources_used, Rectangle
+from .structures import (
+    SE2_disc,
+    VehicleState,
+    VehicleActions,
+    VehicleGeometry,
+)
 
 __all__ = ["VehicleTrackDynamics", "InvalidAction"]
 
@@ -42,7 +41,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     max_wait: D
     """ Maximum wait [s] -- maximum duration at v=0. """
 
-    lights_commands: FrozenSet[Lights]
+    lights_commands: FrozenSet[LightsCmd]
     """ Allowed light commands """
 
     shared_resources_ds: D
@@ -52,17 +51,17 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     """ The vehicle's geometry. """
 
     def __init__(
-        self,
-        max_speed: D,
-        min_speed: D,
-        available_accels: FrozenSet[D],
-        max_wait: D,
-        ref: SE2_disc,
-        max_path: D,
-        lights_commands: FrozenSet[Lights],
-        shared_resources_ds: D,
-        vg: VehicleGeometry,
-        poss_monad: PossibilityMonad,
+            self,
+            max_speed: D,
+            min_speed: D,
+            available_accels: FrozenSet[D],
+            max_wait: D,
+            ref: SE2_disc,
+            max_path: D,
+            lights_commands: FrozenSet[LightsCmd],
+            shared_resources_ds: D,
+            vg: VehicleGeometry,
+            poss_monad: PossibilityMonad,
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -78,7 +77,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
         res = set()
-        for light, accel in itertools.product(LightsValue, self.available_accels):
+        for light, accel in itertools.product(LightsValues, self.available_accels):
             res.add(VehicleActions(accel=accel, light=light))
         return frozenset(res)
 

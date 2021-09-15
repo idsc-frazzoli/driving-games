@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Mapping
 
 import numpy as np
 from geometry import SE2_from_xytheta
@@ -111,6 +111,14 @@ class VehicleGeometry(ModelGeometry):
         else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
             positions = np.array([[self.lf, -self.lr], [0, 0], [1, 1]])
         return positions
+
+    @cached_property
+    def lights_position(self) -> Mapping[str, Tuple[float, float]]:
+        return {"back_left": (-self.lr, +self.w_half - self.lr),
+                "back_right": (-self.lr, -self.w_half + self.lr),
+                "front_left": (self.lf, +self.w_half - self.lf),
+                "front_right": (self.lf, -self.w_half + self.lf),
+                }
 
     @cached_property
     def n_wheels(self) -> int:

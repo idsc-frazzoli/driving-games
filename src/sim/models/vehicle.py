@@ -13,6 +13,7 @@ from shapely.geometry import Polygon
 from sim import logger, ImpactLocation, IMPACT_RIGHT, IMPACT_LEFT, IMPACT_BACK, IMPACT_FRONT
 from sim.models import ModelType, CAR
 from sim.models.model_utils import acceleration_constraint
+from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 from sim.simulator_structures import SimModel
@@ -24,6 +25,7 @@ class VehicleCommands:
     """ Acceleration [m/s^2] """
     ddelta: float
     """ Steering rate [rad/s] (delta derivative) """
+    lights: LightsCmd = NO_LIGHTS
     # todo add ligths and horn
     idx = frozendict({"acc": 0, "ddelta": 1})
     """ Dictionary to get correct values from numpy arrays"""

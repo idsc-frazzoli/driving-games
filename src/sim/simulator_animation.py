@@ -7,9 +7,12 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 from toolz.sandbox import unzip
 
+from dg_commons import Timestamp
 from dg_commons.time import time_function
 from games import PlayerName, X
 from sim import logger
+from sim.models.vehicle import VehicleCommands
+from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
 from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players, ZOrders
@@ -49,6 +52,7 @@ def create_animation(file_path: str,
     history = {}
     # some parameters
     plot_wheels: bool = True
+    plot_ligths: bool = True
 
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
@@ -61,12 +65,14 @@ def create_animation(file_path: str,
         with sim_viz.plot_arena(ax=ax):
             init_log_entry: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
             for pname, plog in init_log_entry.items():
-                states[pname] = sim_viz.plot_player(
+                states[pname], actions[pname] = sim_viz.plot_player(
                     ax=ax,
                     state=plog.state,
+                    lights_colors=init_log_entry[pname].commands,
                     player_name=pname,
                     alpha=0.7,
-                    plot_wheels=plot_wheels)
+                    plot_wheels=plot_wheels,
+                    plot_ligths=plot_ligths)
                 if plog.extra:
                     try:
                         trajectories, tcolors = unzip(plog.extra)
@@ -90,12 +96,15 @@ def create_animation(file_path: str,
         logger.info(f"Plotting t = {t}\r")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
-            states[pname] = sim_viz.plot_player(
+            states[pname], actions[pname] = sim_viz.plot_player(
                 ax=ax,
                 player_name=pname,
                 state=log_at_t[pname].state,
-                polygons=box_handle,
-                plot_wheels=plot_wheels)
+                lights_colors=log_at_t[pname].commands,
+                vehicle_poly=box_handle,
+                lights_patches=actions[pname],
+                plot_wheels=plot_wheels,
+                plot_ligths=plot_ligths)
             if log_at_t[pname].extra:
                 try:
                     trajectories, tcolors = unzip(log_at_t[pname].extra)
@@ -151,3 +160,14 @@ def adjust_axes_limits(ax: Axes,
         ax.xlim(plot_limits[0][0], plot_limits[0][1])
         ax.ylim(plot_limits[1][0], plot_limits[1][1])
     return
+
+
+def _get_lights_colors_from_cmds(cmds: VehicleCommands, t: Timestamp) -> LightsColors:
+    phases = lightscmd2phases[cmds.lights]
+    lights_colors = get_phased_lights(phases, float(t))
+    if cmds.acc < 0:
+        if lights_colors.back_left == red:
+            lights_colors.back_left = red_more
+        if lights_colors.back_right == red:
+            lights_colors.back_right = red_more
+    return lights_colors
