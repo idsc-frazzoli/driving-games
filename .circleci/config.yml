@@ -98,6 +98,8 @@ workflows:
   driving_games_ci:
     jobs:
       - install_docs_tests:
+          name: "DrivingGamesCI:3.8"
           version: "3.8"
       - install_docs_tests:
+          name: "DrivingGamesCI:3.9"
           version: "3.9"
