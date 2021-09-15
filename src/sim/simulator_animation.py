@@ -5,14 +5,17 @@ from typing import Mapping, List, Union, Optional, Sequence
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
+from toolz.sandbox import unzip
 
+from dg_commons.time import time_function
 from games import PlayerName, X
 from sim import logger
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
-from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players
+from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players, ZOrders
 
 
+@time_function
 def create_animation(file_path: str,
                      sim_context: SimContext,
                      figsize: Optional[Union[list, tuple]] = None,
@@ -41,35 +44,50 @@ def create_animation(file_path: str,
     fig.set_tight_layout(True)
     ax.set_aspect('equal')
     # dictionaries with the handles of the plotting stuff
-    states, actions, opt_actions = {}, {}, {}
+    states, actions, extra, texts = {}, {}, {}, {}
+    traj_lines, traj_points = {}, {}
+    history = {}
     # some parameters
     plot_wheels: bool = True
 
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
         # fixme this is supposed to be an iterable of artists
-        return list(chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values())
+        return list(chain.from_iterable(states.values())) + list(actions.values()) + \
+               list(extra.values()) + list(traj_lines.values()) + list(traj_points.values()) + list(texts.values())
 
     def init_plot():
         ax.clear()
         with sim_viz.plot_arena(ax=ax):
-            init_state: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
-            for pname, player in init_state.items():
+            init_log_entry: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
+            for pname, plog in init_log_entry.items():
                 states[pname] = sim_viz.plot_player(
                     ax=ax,
-                    state=player.state,
+                    state=plog.state,
                     player_name=pname,
                     alpha=0.7,
                     plot_wheels=plot_wheels)
+                if plog.extra:
+                    try:
+                        trajectories, tcolors = unzip(plog.extra)
+                        traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
+                            ax=ax, player_name=pname,
+                            trajectories=list(trajectories),
+                            colors=list(tcolors)
+                        )
+                    except:
+                        logger.warn(f"Cannot plot extra", extra=plog.extra)
             adjust_axes_limits(ax=ax,
                                plot_limits=plot_limits,
-                               players_states=[player.state for player in init_state.values()])
-
+                               players_states=[player.state for player in init_log_entry.values()])
+            texts["time"] = ax.text(0.02, 0.96, '', transform=ax.transAxes,
+                                    bbox=dict(facecolor='lightgreen', alpha=0.5),
+                                    zorder=ZOrders.TIME_TEXT)
         return _get_list()
 
     def update_plot(frame: int = 0):
         t: float = frame * dt / 1000.0
-        logger.info(f"Plotting t = {t}")
+        logger.info(f"Plotting t = {t}\r")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
             states[pname] = sim_viz.plot_player(
@@ -78,9 +96,23 @@ def create_animation(file_path: str,
                 state=log_at_t[pname].state,
                 polygons=box_handle,
                 plot_wheels=plot_wheels)
+            if log_at_t[pname].extra:
+                try:
+                    trajectories, tcolors = unzip(log_at_t[pname].extra)
+                    traj_lines[pname], traj_points[pname] = sim_viz.plot_trajectories(
+                        ax=ax, player_name=pname,
+                        trajectories=list(trajectories),
+                        traj_lines=traj_lines[pname],
+                        traj_points=traj_points[pname],
+                        colors=list(tcolors)
+                    )
+                except:
+                    logger.warn(f"Cannot plot extra", extra=log_at_t[pname].extra)
         adjust_axes_limits(ax=ax,
                            plot_limits=plot_limits,
                            players_states=[player.state for player in log_at_t.values()])
+        texts["time"].set_text(f"t = {t:.1f}s")
+        texts["time"].set_transform(ax.transAxes)
         return _get_list()
 
     # Min frame rate is 1 fps
@@ -111,8 +143,8 @@ def adjust_axes_limits(ax: Axes,
     elif plot_limits == 'auto':
         players_limits = approximate_bounding_box_players(obj_list=players_states)
         if players_limits is not None:
-            ax.axis(xmin=players_limits[0][0], xmax=players_limits[0][1], ymin=players_limits[1][0],
-                    ymax=players_limits[1][1])
+            ax.axis(xmin=players_limits[0][0], xmax=players_limits[0][1],
+                    ymin=players_limits[1][0], ymax=players_limits[1][1])
         else:
             ax.autoscale()
     else:

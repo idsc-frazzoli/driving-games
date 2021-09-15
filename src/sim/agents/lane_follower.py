@@ -1,88 +1,93 @@
-from typing import Optional, Tuple, get_args
+from typing import Optional
 
 import numpy as np
-from geometry import SE2_from_xytheta, SE2value
+from duckietown_world.utils import SE2_apply_R2
+from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
+
+from dg_commons.controllers.pure_pursuit import PurePursuit
+from dg_commons.controllers.speed import SpeedBehavior, SpeedController
+from dg_commons.controllers.steer import SteerController
 from dg_commons.planning.lanes import DgLanelet
-from games import PlayerName
-from sim import SimObservations, logger
+from dg_commons.planning.trajectory import Trajectory
+from games import PlayerName, X
+from sim import SimObservations
 from sim.agents.agent import Agent
-from sim.models.vehicle import VehicleCommands
-from dg_commons.controllers.controller_types import *
-from games import X
+from sim.models.vehicle import VehicleCommands, VehicleState
+from sim.sim_vis_extra import DrawableTrajectoryType
 
 
 class LFAgent(Agent):
     """ This agent is a simple lane follower tracking the centerline of the given lane
-    via a lateral controller. The reference speed is determined by the speed behavior and it
-    is tracked by a speed controller.
+    via a pure pursuit controller. The reference in speed is determined by the speed behavior.
     """
 
     def __init__(self,
-                 lane: DgLanelet,
-                 controller: Union[LateralController, LatAndLonController],
-                 speed_behavior: Optional[LongitudinalBehavior] = None,
-                 speed_controller: Optional[LongitudinalController] = None,
-                 steering_controller: Optional[SteeringController] = None):
-
-        decoupled: bool = type(controller) in get_args(LateralController) and type(speed_controller) in get_args(LongitudinalController)
-        single: bool = type(controller) in get_args(LatAndLonController) and speed_controller is None
-        assert decoupled or single
-
+                 lane: Optional[DgLanelet] = None,
+                 speed_controller: Optional[SpeedController] = None,
+                 speed_behavior: Optional[SpeedBehavior] = None,
+                 pure_pursuit: Optional[PurePursuit] = None,
+                 steer_controller: Optional[SteerController] = None,
+                 return_extra: bool = False):
         self.ref_lane = lane
+        self.speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
+        self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
+        self.steer_controller: SteerController = SteerController() if steer_controller is None else steer_controller
+        self.pure_pursuit: PurePursuit = PurePursuit() if pure_pursuit is None else pure_pursuit
         self.my_name: Optional[PlayerName] = None
-        self.decoupled = decoupled
-
-        self.controller: Union[LateralController, LatAndLonController] = controller
-        self.speed_controller: Optional[LongitudinalController] = speed_controller
-        self.speed_behavior: LongitudinalBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
-        self.steering_controller: SteeringController = SCP() if steering_controller is None else steering_controller
-
-    @classmethod
-    def get_default_la(cls, lane: DgLanelet):
-        pass
+        self.return_extra: bool = return_extra
+        self._emergency: bool = False
+        self._my_obs: Optional[X] = None
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
         self.speed_behavior.my_name = my_name
-        self.controller.update_path(self.ref_lane)
+        self.pure_pursuit.update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
-        my_obs = sim_obs.players[self.my_name]
-        t = float(sim_obs.time)
+        self._my_obs = sim_obs.players[self.my_name]
+        my_pose: SE2value = SE2_from_xytheta([self._my_obs.x, self._my_obs.y, self._my_obs.theta])
+
+        # update observations
         self.speed_behavior.update_observations(sim_obs.players)
+        self.speed_controller.update_measurement(measurement=self._my_obs.vx)
+        self.steer_controller.update_measurement(measurement=self._my_obs.delta)
+        lanepose = self.ref_lane.lane_pose_from_SE2_generic(my_pose)
+        self.pure_pursuit.update_pose(pose=my_pose, along_path=lanepose.along_lane)
 
-        if self.decoupled:
-            acc, ddelta = self._get_decoupled_commands(my_obs, t)
-        else:
-            acc, ddelta = self._get_coupled_commands(my_obs, t)
-
-        if not -1 <= ddelta <= 1:
-            logger.info(f"Agent {self.my_name}: clipping ddelta: {ddelta} within [-1,1]")
-            ddelta = np.clip(ddelta, -1, 1)
+        # compute commands
+        t = float(sim_obs.time)
+        speed_ref, emergency = self.speed_behavior.get_speed_ref(t)
+        if emergency or self._emergency:
+            # Once the emergency kicks in the speed ref will always be 0
+            self._emergency = True
+            speed_ref = 0
+            self.emergency_subroutine()
+        self.pure_pursuit.update_speed(speed=speed_ref)
+        self.speed_controller.update_reference(reference=speed_ref)
+        acc = self.speed_controller.get_control(t)
+        delta_ref = self.pure_pursuit.get_desired_steering()
+        self.steer_controller.update_reference(delta_ref)
+        ddelta = self.steer_controller.get_control(t)
         return VehicleCommands(
             acc=acc,
             ddelta=ddelta
         )
 
-    def _get_decoupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
+    def emergency_subroutine(self) -> VehicleCommands:
+        pass
 
-        # update observations
-        self.speed_controller.update_measurement(measurement=my_obs.vx)
-        self.controller.update_state(my_obs)
-        # compute commands
-        speed_ref = self.speed_behavior.get_speed_ref(t)
-        self.speed_controller.update_reference(reference=speed_ref)
-        acc = self.speed_controller.get_control(t)
-
-        ddelta = self.steering_controller.get_steering_velocity(self.controller.get_desired_steering(), my_obs.delta)
-
-        return acc, ddelta
-
-    def _get_coupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
-        # compute commands
-        speed_ref = self.speed_behavior.get_speed_ref(t)
-        self.controller.update_state(my_obs, speed_ref)
-
-        steering, acc = self.controller.get_targets()
-        ddelta = self.steering_controller.get_steering_velocity(steering, my_obs.delta)
-        return acc, ddelta
+    def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
+        if not self.return_extra:
+            return None
+        _, gpoint = self.pure_pursuit.find_goal_point()
+        pgoal = translation_from_SE2(gpoint)
+        l = self.pure_pursuit.param.length
+        rear_axle = SE2_apply_R2(self.pure_pursuit.pose, np.array([-l / 2, 0]))
+        traj = Trajectory(
+            timestamps=[0, 1],
+            values=[VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
+                    VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0),
+                    ])
+        traj_s = [traj, ]
+        colors = ["gold", ]
+        return list(zip(traj_s, colors))

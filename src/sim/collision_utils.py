@@ -1,3 +1,4 @@
+import time
 from math import pi
 from typing import List, Tuple, Mapping, Dict
 
@@ -41,7 +42,7 @@ def _find_intersection_points(a_shape: Polygon, b_shape: Polygon) -> List[Tuple[
         plt.plot(*b_shape.exterior.xy, "r")
         for p in points:
             plt.plot(*p, "o")
-        plt.savefig("debug.png")
+        plt.savefig(f"coll_debug{time.time()}.png")
         raise CollisionException(f"At the moment collisions with {len(points)} intersecting points are not supported")
     return points
 

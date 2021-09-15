@@ -7,10 +7,11 @@ from frozendict import frozendict
 from geometry import T2value, SO2_from_angle, SO2value
 
 from sim.models import Pacejka4p, Pacejka
+from sim.models.model_structures import TwoWheelsTypes
 from sim.models.model_utils import acceleration_constraint
 from sim.models.utils import kmh2ms, G, rho
 from sim.models.vehicle import VehicleCommands, VehicleState, VehicleModel
-from sim.models.vehicle_structures import VehicleGeometry, BICYCLE, MOTORCYCLE
+from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 
 
@@ -23,6 +24,13 @@ class VehicleParametersDyn(VehicleParameters):
         return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(130)),
                                     acc_limits=(-8, 5),
                                     delta_max=math.pi / 6,
+                                    ddelta_max=1)
+
+    @classmethod
+    def default_truck(cls) -> "VehicleParametersDyn":
+        return VehicleParametersDyn(vx_limits=(kmh2ms(-10), kmh2ms(90)),
+                                    acc_limits=(-6, 3.5),
+                                    delta_max=math.pi / 3,
                                     ddelta_max=1)
 
     @classmethod
@@ -92,6 +100,9 @@ class VehicleStateDyn(VehicleState):
                                dtheta=z[cls.idx["dtheta"]],
                                delta=z[cls.idx["delta"]])
 
+    def to_vehicle_state(self) -> VehicleState:
+        return VehicleState(x=self.x, y=self.y, theta=self.theta, vx=self.vx, delta=self.delta)
+
 
 class VehicleModelDyn(VehicleModel):
 
@@ -124,17 +135,24 @@ class VehicleModelDyn(VehicleModel):
                                pacejka_rear=Pacejka4p.default_car_rear()
                                )
 
+    @classmethod
+    def default_truck(cls, x0: VehicleStateDyn):
+        return VehicleModelDyn(x0=x0, vg=VehicleGeometry.default_truck(), vp=VehicleParametersDyn.default_truck(),
+                               pacejka_front=Pacejka4p.default_truck_front(),
+                               pacejka_rear=Pacejka4p.default_truck_rear()
+                               )
+
     def dynamics(self, x0: VehicleStateDyn, u: VehicleCommands) -> VehicleStateDyn:
         """ returns state derivative for given control inputs """
+        # friction model
+        frictionx, frictiony, frictiontheta = self.get_extra_collision_friction_acc()
+
         if x0.vx < 0.1:
             dx_kin = super().dynamics(x0, u)
-            magic_mu = 0.002
-            frictiony = - np.sign(x0.vy) * magic_mu * self.vg.m * x0.vy ** 2
-            frictiontheta = - np.sign(x0.dtheta) * self.vg.Iz * x0.dtheta ** 2
             return VehicleStateDyn(x=dx_kin.x,
                                    y=dx_kin.y,
                                    theta=dx_kin.theta,
-                                   vx=dx_kin.vx,
+                                   vx=dx_kin.vx + frictionx,
                                    vy=frictiony,
                                    dtheta=frictiontheta,
                                    delta=dx_kin.delta
@@ -191,9 +209,9 @@ class VehicleModelDyn(VehicleModel):
             return VehicleStateDyn(x=xdot,
                                    y=ydot,
                                    theta=x0.dtheta,
-                                   vx=acc_x,
-                                   vy=acc_y,
-                                   dtheta=ddtheta,
+                                   vx=acc_x + frictionx,
+                                   vy=acc_y + frictiony,
+                                   dtheta=ddtheta + frictiontheta,
                                    delta=ddelta
                                    )
 
@@ -221,9 +239,19 @@ class VehicleModelDyn(VehicleModel):
             # we partition acc 60% front 40% rear while braking
             return Facc * .6, Facc * .4
         else:
-            if self.vg.vehicle_type in [BICYCLE, MOTORCYCLE]:
+            if self.vg.vehicle_type in TwoWheelsTypes:
                 # only rear for acc on bicycles-like
                 return 0, Facc
             else:
                 # assumes 4WD car
                 return Facc * .5, Facc * .5
+
+    def get_extra_collision_friction_acc(self):
+        magic_mu = 3.0 if self.model_type in TwoWheelsTypes else 1.0
+        if self.has_collided:  # and self.model_type in TwoWheelsTypes:
+            frictionx = - magic_mu * self._state.vx
+            frictiony = - magic_mu * self._state.vy
+            frictiontheta = - magic_mu * self._state.dtheta
+            return frictionx, frictiony, frictiontheta
+        else:
+            return 0, 0, 0

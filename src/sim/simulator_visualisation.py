@@ -8,9 +8,11 @@ from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
 from geometry import SE2_from_xytheta
 from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection, PathCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon
 
+from dg_commons.planning.trajectory import Trajectory
 from games import PlayerName, X, U, Y
 from sim.models.pedestrian import PedestrianState, PedestrianGeometry
 from sim.models.vehicle import VehicleState, VehicleGeometry
@@ -37,8 +39,16 @@ class SimRendererABC(Generic[X, U, Y], ABC):
             alpha: float = 1.0,
             box=None
     ):
-        """ Draw the player at a certain state doing certain commands (if givne)"""
+        """ Draw the player at a certain state doing certain commands (if given)"""
         pass
+
+
+class ZOrders(IntEnum):
+    MODEL = 35
+    PLAYER_NAME = 40
+    TRAJECTORY = 45
+    TRAJECTORY_MARKER = 46
+    TIME_TEXT = 50
 
 
 class SimRenderer(SimRendererABC):
@@ -60,10 +70,10 @@ class SimRenderer(SimRendererABC):
                     ax: Axes,
                     player_name: PlayerName,
                     state: X,
-                    alpha: float = 0.3,
                     polygons: Optional[List[Polygon]] = None,
+                    alpha: float = 0.3,
                     plot_wheels: bool = False) -> List[Polygon]:
-        """ Draw the player and his action set at a certain state. """
+        """ Draw the player the state. """
 
         mg = self.sim_context.models[player_name].get_geometry()
         if issubclass(type(state), VehicleState):
@@ -84,10 +94,52 @@ class SimRenderer(SimRendererABC):
                                        )
         return polygons
 
+    def plot_trajectories(self,
+                          ax: Axes,
+                          player_name: PlayerName,
+                          trajectories: Sequence[Trajectory],
+                          traj_lines: Optional[List[LineCollection]] = None,
+                          traj_points: Optional[List[PathCollection]] = None,
+                          colors: Optional[List[Color]] = None,
+                          width: float = 1,
+                          alpha: float = 1) -> Tuple[List[LineCollection], List[PathCollection]]:
+        mg = self.sim_context.models[player_name].get_geometry()
+        assert colors is None or len(colors) == len(trajectories)
+        colors = mg.color if colors is None else colors
+        return plot_trajectories(ax=ax, trajectories=trajectories,
+                                 traj_lines=traj_lines, traj_points=traj_points,
+                                 colors=colors, width=width, alpha=alpha)
 
-class ZOrders(IntEnum):
-    MODEL = 35
-    PLAYER_NAME = 40
+
+def plot_trajectories(ax: Axes,
+                      trajectories: Sequence[Trajectory],
+                      traj_lines: Optional[List[LineCollection]] = None,
+                      traj_points: Optional[List[PathCollection]] = None,
+                      colors: Union[List[Color], Color] = None,
+                      width: float = 1,
+                      alpha: float = 1) -> Tuple[List[LineCollection], List[PathCollection]]:
+    segments, mcolor = [], []
+    for traj in trajectories:
+        sampled_traj = np.vstack([[x.x, x.y, x.vx] for x in traj.values])
+        segments.append(sampled_traj[:, :2])
+        mcolor.append(sampled_traj[:, 2])  # fixme marker color functionality not available yet
+
+    if traj_lines is None:
+        traj_lines = LineCollection(segments=[],
+                                    colors=colors,
+                                    linewidths=width,
+                                    alpha=alpha,
+                                    zorder=ZOrders.TRAJECTORY)
+        ax.add_collection(traj_lines)
+        size = np.linalg.norm(ax.bbox.size) / 1000
+        traj_points = ax.scatter([], [], s=size, c="r", zorder=ZOrders.TRAJECTORY_MARKER)
+        ax.add_collection(traj_points)
+    traj_lines.set_segments(segments=segments)
+    traj_lines.set_color(colors)
+    traj_points.set_offsets(np.concatenate(segments))
+    # traj_points.set_facecolor(mcolor) # todo adjust color based on velocity
+    # https://stackoverflow.com/questions/23966121/updating-the-positions-and-colors-of-pyplot-scatter
+    return traj_lines, traj_points
 
 
 def plot_vehicle(ax: Axes,

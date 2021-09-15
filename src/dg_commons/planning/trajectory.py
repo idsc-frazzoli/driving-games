@@ -1,57 +1,74 @@
-from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from dataclasses import replace
+from functools import partial
+from typing import List, Optional, Type
 
 import numpy as np
 from duckietown_world import SE2Transform
+from geometry import xytheta_from_SE2
+from networkx import DiGraph
 
-from dg_commons.sequence import DgSampledSequence, X
+from dg_commons.sequence import DgSampledSequence, X, iterate_with_dt
+from sim.models import extract_pose_from_state
+from sim.models.vehicle import VehicleState, VehicleCommands
 
 __all__ = [
     "Trajectory",
-    # "TrajectoryGraph",
-    "FinalPoint"
+    "TrajectoryGraph",
+    "commands_plan_from_trajectory"
 ]
 
-# FinalPoint = (x_f, y_f, increase_flag)
-FinalPoint = Tuple[Optional[float], Optional[float], bool]
 
-
-@dataclass
-class Trajectory(DgSampledSequence[X]):
+class Trajectory(DgSampledSequence[VehicleState]):
     """ Container for a trajectory as a sampled sequence """
 
-    def trim_trajectory(self, p_final: FinalPoint) -> bool:
-        """ Trims trajectory till p_final (if longer) and returns if trimming was performed or not """
-        # todo
-        # x_f, y_f, increase = p_final
-        # assert x_f is None or y_f is None, "Only one of x_f, y_f should be set!"
-        # if x_f is not None:
-        #     def get_z(state: VehicleState) -> float:
-        #         return state.x
-        #
-        #     z_f = x_f
-        # else:
-        #     def get_z(state: VehicleState) -> float:
-        #         return state.y
-        #
-        #     z_f = y_f
-        # times = [x.t for x in states]
-        # z_samp = [get_z(x) for x in states]
-        # if not increase:
-        #     z0 = z_samp[0]
-        #     z_samp = [z0 - z for z in z_samp]
-        #     z_f = z0 - z_f
-        # if z_f < z_samp[0] or z_f > z_samp[-1]:
-        #     return False
-        # last = bisect_right(z_samp, z_f)
-        # for _ in range(last + 1, len(times)):
-        #     states.pop()
-        return True
+    @property
+    def XT(self) -> Type[X]:
+        return VehicleState
 
-    def get_path(self) -> List[SE2Transform]:
+    def as_path(self) -> List[SE2Transform]:
         """ Returns cartesian coordinates (SE2) of transition states """
-        return [SE2Transform(p=np.array([x.x, x.y]), theta=x.th) for x in self.values]
+        return [SE2Transform(p=np.array([x.x, x.y]), theta=x.theta) for x in self.values]
+
+    def apply_SE2transform(self, transform: SE2Transform):
+        def _applySE2(x: VehicleState, t: SE2Transform) -> VehicleState:
+            pose = extract_pose_from_state(x)
+            new_pose = np.dot(t.as_SE2(), pose)
+            xytheta = xytheta_from_SE2(new_pose)
+            return replace(x, x=xytheta[0], y=xytheta[1], theta=xytheta[2])
+
+        f = partial(_applySE2, t=transform)
+        return self.transform_values(f=f, YT=VehicleState)
+
+    def is_connectable(self, other: 'Trajectory', tol=1e-3) -> bool:
+        """
+        Any primitive whose initial state's velocity and steering angle are equal to those of the current primitive is
+        deemed connectable.
+
+        :param other: the motion primitive to which the connectivity is examined
+        """
+        diff = self.at(self.get_end()) - other.at(other.get_end())
+        return abs(diff.vx) < tol and abs(diff.delta) < tol
 
     def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
+        assert self.is_connectable(other)
         # todo
         pass
+
+    def upsample(self, n: int) -> "Trajectory":
+        """"""
+        # todo
+        pass
+
+
+def commands_plan_from_trajectory(trajectory: Trajectory) -> DgSampledSequence[VehicleCommands]:
+    timestamps = []
+    commands = []
+    for t0, _, dt, v0, v1 in iterate_with_dt(trajectory):
+        timestamps.append(t0)
+        commands.append(VehicleCommands(acc=(v1.vx - v0.vx) / dt, ddelta=(v1.delta - v0.delta) / dt))
+    return DgSampledSequence[VehicleCommands](timestamps, commands)
+
+
+class TrajectoryGraph(DiGraph):
+    pass
+    # todo

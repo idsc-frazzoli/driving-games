@@ -1,11 +1,12 @@
 from bisect import bisect_right
 from dataclasses import dataclass, InitVar, field
 from decimal import Decimal as D
-from typing import Generic, TypeVar, List, Callable, Type, ClassVar, Iterator, Union, get_args, Any, Sequence
+from typing import Generic, TypeVar, List, Callable, Type, Iterator, Union, get_args, Any, Sequence, Tuple
 
 from zuper_commons.types import ZException, ZValueError
 
-__all__ = ["Timestamp", "DgSampledSequence", "IterateDT", "iterate_with_dt", "UndefinedAtTime"]
+__all__ = ["Timestamp", "DgSampledSequence", "DgSampledSequenceBuilder", "IterateDT", "iterate_with_dt",
+           "UndefinedAtTime"]
 
 X = TypeVar("X")
 Y = TypeVar("Y")
@@ -16,34 +17,24 @@ class UndefinedAtTime(ZException):
     pass
 
 
-@dataclass
-class IterateDT(Generic[X]):
-    t0: Timestamp
-    t1: Timestamp
-    dt: Timestamp
-    v0: X
-    v1: X
-
-
-@dataclass
+@dataclass(unsafe_hash=True)
 class DgSampledSequence(Generic[X]):
     """ A sampled time sequence. Only defined at certain points.
     Modernized version of the original SampledSequence from Duckietown:
     https://github.com/duckietown/duckietown-world/blob/daffy/src/duckietown_world/seqs/tsequence.py
     Modification:
+        - It is hashable
         - Adds the possibility of interpolating
         - removing possibility of assigning post-init timestamps and values fields
+        - Seamless support for different timestamps types (e.g. float or Decimal)
     """
     timestamps: InitVar[Sequence[Timestamp]]
     values: InitVar[Sequence[X]]
 
-    _timestamps: List[Timestamp] = field(default_factory=list)
-    _values: List[X] = field(default_factory=list)
+    _timestamps: Tuple[Timestamp] = field(default_factory=tuple)
+    _values: Tuple[X] = field(default_factory=tuple)
 
     def __post_init__(self, timestamps, values):
-        timestamps = list(timestamps)
-        values = list(values)
-
         if len(timestamps) != len(values):
             raise ZValueError("Length mismatch of Timestamps and values")
 
@@ -58,15 +49,15 @@ class DgSampledSequence(Generic[X]):
         if D in ts_types and any([int in ts_types, float in ts_types]):
             raise ZValueError("Attempting to create SampledSequence with mixed Decimal and floats",
                               timestamps=timestamps)
-        self._timestamps = timestamps
-        self._values = values
+        self._timestamps = tuple(timestamps)
+        self._values = tuple(values)
 
     @property
     def XT(self) -> Type[X]:
         return get_args(self.__orig_class__)[0]
 
     @property
-    def timestamps(self) -> List[Timestamp]:
+    def timestamps(self) -> Tuple[Timestamp]:
         return self._timestamps
 
     @timestamps.setter
@@ -74,7 +65,7 @@ class DgSampledSequence(Generic[X]):
         raise RuntimeError("Cannot set timestamps of SampledSequence directly")
 
     @property
-    def values(self) -> List[X]:
+    def values(self) -> Tuple[X]:
         return self._values
 
     @values.setter
@@ -124,7 +115,7 @@ class DgSampledSequence(Generic[X]):
             raise ZValueError("Empty sequence")
         return self._timestamps[-1]
 
-    def get_sampling_points(self) -> List[Timestamp]:
+    def get_sampling_points(self) -> Tuple[Timestamp]:
         """
         Returns the lists of sampled timestamps
         """
@@ -147,6 +138,15 @@ class DgSampledSequence(Generic[X]):
         return len(self._timestamps)
 
 
+@dataclass
+class IterateDT(Generic[X]):
+    t0: Timestamp
+    t1: Timestamp
+    dt: Timestamp
+    v0: X
+    v1: X
+
+
 def iterate_with_dt(sequence: DgSampledSequence[X]) -> Iterator[IterateDT[X]]:
     """ yields t0, t1, dt, v0, v1 """
     timestamps = sequence.timestamps
@@ -161,16 +161,18 @@ def iterate_with_dt(sequence: DgSampledSequence[X]) -> Iterator[IterateDT[X]]:
         yield IterateDT[sequence.XT](t0, t1, dt, v0, v1)
 
 
+DgSampledSequenceType = TypeVar('DgSampledSequenceType', bound='DgSampledSequence')
+
+
 @dataclass
 class DgSampledSequenceBuilder(Generic[X]):
     timestamps: List[Timestamp] = field(default_factory=list)
     values: List[X] = field(default_factory=list)
-
-    XT: ClassVar[Type[X]] = Any
+    sampled_sequence_type: DgSampledSequenceType = DgSampledSequence
 
     def add(self, t: Timestamp, v: X):
         if self.timestamps:
-            if t == self.timestamps[-1]:
+            if t <= self.timestamps[-1]:
                 msg = "Repeated time stamp"
                 raise ZValueError(msg, t=t, timestamps=self.timestamps)
         self.timestamps.append(t)
@@ -179,5 +181,9 @@ class DgSampledSequenceBuilder(Generic[X]):
     def __len__(self) -> int:
         return len(self.timestamps)
 
+    @property
+    def XT(self) -> Type[X]:
+        return get_args(self.__orig_class__)[0]
+
     def as_sequence(self) -> DgSampledSequence:
-        return DgSampledSequence[self.XT](timestamps=self.timestamps, values=self.values)
+        return self.sampled_sequence_type[self.XT](timestamps=self.timestamps, values=self.values)

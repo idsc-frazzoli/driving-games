@@ -23,11 +23,11 @@ class SimContext:
     players: Mapping[PlayerName, Agent]
     param: SimParameters
     log: SimLog = field(default_factory=SimLog)
-    time: SimTime = Decimal(0)
+    time: SimTime = SimTime(0)
     seed: int = 0
     sim_terminated: bool = False
     collision_reports: List[CollisionReport] = field(default_factory=list)
-    first_collision_ts: SimTime = Decimal("Infinity")
+    first_collision_ts: SimTime = SimTime("Infinity")
 
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()

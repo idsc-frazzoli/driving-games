@@ -16,7 +16,7 @@ from _tmp.bayesian_driving_games.structures import (
     NEUTRAL,
     BayesianGame,
 )
-from driving_games import TwoVehicleSimpleParams, VehicleDynamics
+from driving_games import TwoVehicleSimpleParams, VehicleTrackDynamics
 from games import (
     GameVisualization,
     get_accessible_states,
@@ -109,7 +109,7 @@ def get_bayesian_driving_game(
     p2_initial = ps.unit(p2_x)
 
     # Dynamics
-    p1_dynamics = VehicleDynamics(
+    p1_dynamics = VehicleTrackDynamics(
         max_speed=max_speed,
         max_wait=max_wait,
         available_accels=available_accels,
@@ -121,7 +121,7 @@ def get_bayesian_driving_game(
         shared_resources_ds=vehicles_params.shared_resources_ds,
         poss_monad=ps,
     )
-    p2_dynamics = VehicleDynamics(
+    p2_dynamics = VehicleTrackDynamics(
         min_speed=min_speed,
         max_speed=max_speed,
         max_wait=max_wait,

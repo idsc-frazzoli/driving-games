@@ -158,6 +158,10 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     def default_car(cls, x0: VehicleState):
         return VehicleModel(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParameters.default_car())
 
+    @classmethod
+    def default_truck(cls, x0: VehicleState):
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_truck(), vp=VehicleParameters.default_truck())
+
     def update(self, commands: VehicleCommands, dt: Decimal):
         """
         Perform initial value problem integration
@@ -207,7 +211,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_footprint(self) -> Polygon:
         """Returns current footprint of the vehicle (mainly for collision checking)"""
-        footprint = Polygon(self.vg.outline)
+        footprint = self.vg.outline_as_polygon
         transform = self.get_pose()
         matrix_coeff = transform[0, :2].tolist() + transform[1, :2].tolist() + transform[:2, 2].tolist()
         footprint = affine_transform(footprint, matrix_coeff)
@@ -258,3 +262,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     @property
     def model_type(self) -> ModelType:
         return self.vg.vehicle_type
+
+    def get_extra_collision_friction_acc(self):
+        # this model is not dynamic
+        pass

@@ -1,6 +1,7 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+from geometry import translation_angle_from_SE2
 from shapely.geometry import Polygon
 
 from games import PlayerName
@@ -43,8 +44,10 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
     # fixme this is an approximation to take the cog from the shape centroid
-    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
-    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
+    a_cog = translation_angle_from_SE2(a_model.get_pose())[0]
+    b_cog = translation_angle_from_SE2(b_model.get_pose())[0]
+    r_ap = np.array(impact_point.coords[0]) - np.array(a_cog)
+    r_bp = np.array(impact_point.coords[0]) - np.array(b_cog)  # b_shape.centroid.coords[0])
     a_vel, a_omega = a_model.get_velocity(in_model_frame=False)
     b_vel, b_omega = b_model.get_velocity(in_model_frame=False)
     a_vel_atP = velocity_of_P_given_A(a_vel, a_omega, r_ap)
