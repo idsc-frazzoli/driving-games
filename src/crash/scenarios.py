@@ -7,7 +7,7 @@ from commonroad.scenario.lanelet import Lanelet
 from geometry import xytheta_from_SE2
 from numpy import deg2rad, linspace
 
-from crash.agents import B1Agent
+from crash.agents import B1Agent, B2Agent
 from dg_commons import DgSampledSequence
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
@@ -176,7 +176,7 @@ def get_scenario_two_lanes() -> SimContext:
               }
 
     net = scenario.lanelet_network
-    agents: List[B1Agent] = []
+    agents: List[B2Agent] = []
     for agent in models:
         if not models[agent].model_type == 'pedestrian':
             x0 = models[agent].get_state()
@@ -189,7 +189,7 @@ def get_scenario_two_lanes() -> SimContext:
                 output_minmax=(-models[agent].vp.ddelta_max, models[agent].vp.ddelta_max), )
             sp_controller = SpeedController(sp_controller_param)
             st_controller = SteerController(st_controller_param)
-            agents.append(B1Agent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+            agents.append(B2Agent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
     players = {P1: agents[0],
                P2: agents[1],
                EGO: agents[2],
