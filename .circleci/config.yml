@@ -1,23 +1,32 @@
 version: 2.1
+
 executors:
-  dg_38:
+  dg_exec:
     environment:
       CODECOV_TOKEN: "82512efc-b166-4477-b755-7763d56f261c"
       COLUMNS: 160
       # default is /usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       PATH: /root/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     docker:
-      - image: alezana/dg_base:3.8
+      - image: alezana/dg_base:<< parameters.tag >>
+    parameters:
+      tag:
+        default: "3.8"
+        description: The `cimg/python` Docker image version tag.
+        type: string
 
-workflows:
-  version: 2
-  dg_ci:
-    jobs:
-      - install_docs_tests
 
 jobs:
   install_docs_tests:
-    executor: dg_38
+    executor:
+      name: dg_exec
+      tag: << parameters.version >>
+    parameters:
+      version:
+        default: "3.8"
+        description: |
+          A full version tag must be specified. Example: "3.8"
+        type: string
     working_directory: ~/repo
     resource_class: large
     steps:
@@ -84,6 +93,13 @@ jobs:
             codecov
 
 
-
-
-
+workflows:
+  version: 2
+  driving_games_ci:
+    jobs:
+      - install_docs_tests:
+          name: "DrivingGamesCI:3.8"
+          version: "3.8"
+      - install_docs_tests:
+          name: "DrivingGamesCI:3.9"
+          version: "3.9"
