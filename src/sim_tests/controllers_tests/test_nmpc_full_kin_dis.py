@@ -1,6 +1,6 @@
 from sim_tests.controllers_tests.test_controller import TestController, DT_COMMANDS
 from dg_commons.controllers.speed import SpeedBehavior, SpeedBehaviorParam
-from dg_commons.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDisParam, NMPCFullKinDis
+from dg_commons.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDisPVParam, NMPCFullKinDisPV
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 
@@ -34,11 +34,11 @@ def test_mpckin():
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
-    mpc_param: NMPCFullKinDisParam= NMPCFullKinDisParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
-                                                        input_mult=input_mult, delta_input_mult=delta_input_mult,
-                                                        speed_mult=speed_mult, dis_technique=dis_technique,
-                                                        dis_t=dis_t, acc_mult=acc_mult)
-    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCFullKinDis, "Parameters": mpc_param}
+    mpc_param: NMPCFullKinDisPVParam = NMPCFullKinDisPVParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
+                                                             input_mult=input_mult, delta_input_mult=delta_input_mult,
+                                                             speed_mult=speed_mult, dis_technique=dis_technique,
+                                                             dis_t=dis_t, acc_mult=acc_mult)
+    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCFullKinDisPV, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
     steering_controller = {"Name": "Identity controller", "Controller": SCIdentity, "Parameters": steering_param}

@@ -1,22 +1,21 @@
 from dataclasses import dataclass
 from casadi import *
-from dg_commons.controllers.mpc.mpc_base_classes import FullMPCBasePathVariable, FullMPCBAseParam
-from typing import Tuple
+from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam
 
 
-__all__ = ["NMPCFullKinCont", "NMPCFullKinContParam"]
+__all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam"]
 
 
 @dataclass
-class NMPCFullKinContParam(FullMPCBAseParam):
+class NMPCFullKinContPVParam(FullMPCKinBaseParam):
     technique: str = 'linear'
     """ Path approximation technique """
 
 
-class NMPCFullKinCont(FullMPCBasePathVariable):
+class NMPCFullKinContPV(FullMPCKinBasePathVariable):
     """ Nonlinear MPC for full control of vehicle. Kinematic model without prior discretization """
 
-    def __init__(self, params: NMPCFullKinContParam = NMPCFullKinContParam()):
+    def __init__(self, params: NMPCFullKinContPVParam = NMPCFullKinContPVParam()):
         model_type = 'continuous'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 

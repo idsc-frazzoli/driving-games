@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from dg_commons.controllers.mpc.discretization_techniques import kin_euler, discretizations
-from dg_commons.controllers.mpc.mpc_base_classes import LatMPCBasePathVariable, LatMPCBAseParam
+from dg_commons.controllers.mpc.discretization_techniques import discretizations
+from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBaseParam, LatMPCKinBasePathVariable
 
-__all__ = ["NMPCLatKinDis", "NMPCLatKinDisParam"]
+__all__ = ["NMPCLatKinDisPV", "NMPCLatKinDisPVParam"]
 
 
 @dataclass
-class NMPCLatKinDisParam(LatMPCBAseParam):
+class NMPCLatKinDisPVParam(LatMPCKinBaseParam):
     technique: str = 'linear'
     """ Path approximation technique """
     dis_technique: str = 'Kinematic Euler'
@@ -15,10 +15,10 @@ class NMPCLatKinDisParam(LatMPCBAseParam):
     """ Discretization Time Step """
 
 
-class NMPCLatKinDis(LatMPCBasePathVariable):
+class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
     """ Nonlinear MPC for lateral control of vehicle. Kinematic model with prior discretization """
 
-    def __init__(self, params: NMPCLatKinDisParam = NMPCLatKinDisParam()):
+    def __init__(self, params: NMPCLatKinDisPVParam = NMPCLatKinDisPVParam()):
         model_type = 'discrete'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 

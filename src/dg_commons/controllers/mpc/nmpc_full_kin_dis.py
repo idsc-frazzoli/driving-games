@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from casadi import *
-from dg_commons.controllers.mpc.mpc_base_classes import FullMPCBAseParam, FullMPCBasePathVariable
+from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam
 from dg_commons.controllers.mpc.discretization_techniques import kin_euler, discretizations
 from typing import Tuple
 
 
-__all__ = ["NMPCFullKinDis", "NMPCFullKinDisParam"]
+__all__ = ["NMPCFullKinDisPV", "NMPCFullKinDisPVParam"]
 
 
 @dataclass
-class NMPCFullKinDisParam(FullMPCBAseParam):
+class NMPCFullKinDisPVParam(FullMPCKinBaseParam):
     technique: str = 'linear'
     """ Path approximation technique """
     dis_technique: str = 'Kinematic Euler'
@@ -18,10 +18,10 @@ class NMPCFullKinDisParam(FullMPCBAseParam):
     """ Discretization Time Step """
 
 
-class NMPCFullKinDis(FullMPCBasePathVariable):
+class NMPCFullKinDisPV(FullMPCKinBasePathVariable):
     """ Nonlinear MPC for full control of vehicle. Kinematic model with prior discretization """
 
-    def __init__(self, params: NMPCFullKinDisParam = NMPCFullKinDisParam()):
+    def __init__(self, params: NMPCFullKinDisPVParam = NMPCFullKinDisPVParam()):
         model_type = 'discrete'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 

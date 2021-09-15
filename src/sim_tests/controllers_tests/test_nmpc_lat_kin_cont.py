@@ -1,6 +1,6 @@
 from sim_tests.controllers_tests.test_controller import TestController, DT_COMMANDS
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinContParam, NMPCLatKinCont
+from dg_commons.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinContPVParam, NMPCLatKinContPV
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 
@@ -37,10 +37,10 @@ def test_mpckin_path_var():
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
-    mpc_param: NMPCLatKinContParam = NMPCLatKinContParam(n_horizon=n_horizon, t_step=t_step,
-                                                         state_mult=state_mult, input_mult=input_mult,
-                                                         delta_input_mult=delta_input_mult, technique=technique)
-    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCLatKinCont, "Parameters": mpc_param}
+    mpc_param: NMPCLatKinContPVParam = NMPCLatKinContPVParam(n_horizon=n_horizon, t_step=t_step,
+                                                             state_mult=state_mult, input_mult=input_mult,
+                                                             delta_input_mult=delta_input_mult, technique=technique)
+    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCLatKinContPV, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
     steering_controller = {"Name": "Identity controller", "Controller": SCIdentity, "Parameters": steering_param}
