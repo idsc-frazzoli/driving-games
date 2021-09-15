@@ -92,7 +92,7 @@ class SpeedBehavior:
             rel = agents_rel_pose[other_name]
             other_vel = extract_vel_from_state(self.agents[other_name])
             rel_distance = np.linalg.norm(rel.p)
-
+            # todo improve with SPOT predictions
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and \
                                           other_vel > self.params.minimum_yield_vel
             if coming_from_the_right and rel_distance < self.params.yield_distance:

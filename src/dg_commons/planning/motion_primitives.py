@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from itertools import product
-from typing import List, Tuple, Callable, Set
+from typing import List, Tuple, Callable, Set, Optional
 
 import numpy as np
 
 from dg_commons import logger, Timestamp
 from dg_commons.planning.trajectory import Trajectory
+from dg_commons.planning.trajectory_generator_abc import TrajGenerator
 from dg_commons.time import time_function
 from dg_commons.types import LinSpaceTuple
 from sim.models.vehicle import VehicleState, VehicleCommands
@@ -42,27 +43,38 @@ class MPGParam:
                         steering=steer_linspace)
 
 
-class MotionPrimitivesGenerator:
+class MotionPrimitivesGenerator(TrajGenerator):
+    """Generator of motion primitives sampling the state space"""
+
     def __init__(self,
-                 mpg_param: MPGParam,
+                 param: MPGParam,
                  vehicle_dynamics: Callable[[VehicleState, VehicleCommands, Timestamp], VehicleState],
-                 vehicle_params: VehicleParameters):
-        self.param = mpg_param
-        self.vehicle_dynamics = vehicle_dynamics
-        self.vehicle_params = vehicle_params
+                 vehicle_param: VehicleParameters):
+        super().__init__(vehicle_dynamics=vehicle_dynamics, vehicle_param=vehicle_param)
+        self.param = param
 
     @time_function
-    def generate_motion_primitives(self, ) -> Set[Trajectory]:
+    def generate(self, x0: Optional[VehicleState] = None) -> Set[Trajectory]:
+        """
+        :param x0: optionally if one wants to generate motion primitives only from a specific state
+        :return:
+        """
         v_samples, steer_samples = self.generate_samples()
-        logger.info(f"Attempting to generate {(len(v_samples) * len(steer_samples)) ** 2} motion primitives")
         motion_primitives: Set[Trajectory] = set()
-        for (v_start, sa_start) in product(v_samples, steer_samples):
+
+        v_samples_init = v_samples if x0 is None else [x0.vx, ]
+        s_samples_init = steer_samples if x0 is None else [x0.delta, ]
+
+        n = len(v_samples) * len(steer_samples) * len(v_samples_init) * len(s_samples_init)
+        logger.debug(f"Attempting to generate {n} motion primitives")
+        for (v_start, sa_start) in product(v_samples_init, s_samples_init):
             for (v_end, sa_end) in product(v_samples, steer_samples):
                 is_valid, input_a, input_sa_rate = self.check_input_constraints(
                     v_start, v_end, sa_start, sa_end)
                 if not is_valid:
                     continue
-                init_state = VehicleState(x=0, y=0, theta=0, vx=v_start, delta=sa_start)
+
+                init_state = VehicleState(x=0, y=0, theta=0, vx=v_start, delta=sa_start) if x0 is None else x0
                 timestamps = [Decimal(0), ]
                 states = [init_state, ]
                 next_state = init_state
@@ -72,11 +84,10 @@ class MotionPrimitivesGenerator:
                     timestamps.append(n_step * self.param.dt)
                     states.append(next_state)
                 motion_primitives.add(Trajectory(timestamps=timestamps, values=states))
-        logger.info(f"Found {len(motion_primitives)} feasible motion primitives")
+        logger.info(f"{type(self).__name__}:Found {len(motion_primitives)} feasible motion primitives")
         return motion_primitives
 
     def generate_samples(self) -> (List, List):
-        # fixme list or numpy
         v_samples = np.linspace(*self.param.velocity)
         steer_samples = np.linspace(*self.param.steering)
         return v_samples, steer_samples
@@ -92,8 +103,8 @@ class MotionPrimitivesGenerator:
         horizon = float(self.param.dt * self.param.n_steps)
         acc = (v_end - v_start) / horizon
         sa_rate = (sa_end - sa_start) / horizon
-        if not (-self.vehicle_params.ddelta_max <= sa_rate <= self.vehicle_params.ddelta_max) or \
-                (not self.vehicle_params.acc_limits[0] <= acc <= self.vehicle_params.acc_limits[1]):
+        if not (-self.vehicle_param.ddelta_max <= sa_rate <= self.vehicle_param.ddelta_max) or \
+                (not self.vehicle_param.acc_limits[0] <= acc <= self.vehicle_param.acc_limits[1]):
             return False, 0, 0
         else:
             return True, acc, sa_rate

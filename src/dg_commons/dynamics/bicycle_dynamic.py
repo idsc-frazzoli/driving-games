@@ -1,9 +1,10 @@
 import math
 from dataclasses import replace
 from decimal import Decimal as D
-from typing import Mapping, Tuple, List, Any, FrozenSet
+from typing import Mapping, Any, FrozenSet
 
 import numpy as np
+from scipy.integrate import solve_ivp
 
 from dg_commons import Timestamp
 from games import Dynamics, U, X, SR
@@ -32,7 +33,8 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleCommands, Any]):
         pass
 
     def successor(self, x0: VehicleState, u: VehicleCommands, dt: Timestamp) -> VehicleState:
-        """ Perform Euler forward integration to propagate state using actions for time dt """
+        """ Perform Euler forward integration to propagate state using actions for time dt.
+         This method is very inaccurate for integration steps above 0.1[s]"""
         dt = float(dt)
         # input constraints
         acc = float(np.clip(u.ddelta, self.vp.acc_limits[0], self.vp.acc_limits[1]))
@@ -42,16 +44,39 @@ class BicycleDynamics(Dynamics[VehicleState, VehicleCommands, Any]):
         x0 += state_rate * dt
 
         # state constraints
-        vx = float(np.clip(x0.vx, self.vp.acc_limits[0], self.vp.acc_limits[1]))
-        delta = float(np.clip(x0.delta, -self.vp.ddelta_max, self.vp.ddelta_max))
+        vx = float(np.clip(x0.vx, self.vp.vx_limits[0], self.vp.vx_limits[1]))
+        delta = float(np.clip(x0.delta, -self.vp.delta_max, self.vp.delta_max))
 
         new_state = replace(x0, vx=vx, delta=delta)
         return new_state
 
-    def successor_ivp(self, x0: VehicleState, u: VehicleCommands, dt: D, dt_samp: D) \
-            -> Tuple[VehicleState, List[VehicleState]]:
-        # todo
-        pass
+    def successor_ivp(self, x0: VehicleState, u: VehicleCommands, dt: Timestamp) -> VehicleState:
+        """
+        Perform initial value problem integration to propagate state using actions for time dt
+        """
+
+        def _stateactions_from_array(y: np.ndarray) -> [VehicleState, VehicleCommands]:
+            n_states = VehicleState.get_n_states()
+            state = VehicleState.from_array(y[0:n_states])
+            actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
+                                      ddelta=y[VehicleCommands.idx["ddelta"] + n_states])
+            return state, actions
+
+        def _dynamics(t, y):
+            state0, actions = _stateactions_from_array(y=y)
+            dx = self.dynamics(x0=state0, u=actions)
+            du = np.zeros([len(VehicleCommands.idx)])
+            return np.concatenate([dx.as_ndarray(), du])
+
+        state_np = x0.as_ndarray()
+        input_np = u.as_ndarray()
+        y0 = np.concatenate([state_np, input_np])
+        result = solve_ivp(fun=_dynamics, t_span=(0.0, float(dt)), y0=y0)
+
+        if not result.success:
+            raise RuntimeError("Failed to integrate ivp!")
+        new_state, _ = _stateactions_from_array(result.y[:, -1])
+        return new_state
 
     def dynamics(self, x0: VehicleState, u: VehicleCommands) -> VehicleState:
         """ Get rate of change of states for given control inputs """

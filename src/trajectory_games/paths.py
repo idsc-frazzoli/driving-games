@@ -8,8 +8,8 @@ from cachetools import cached
 from duckietown_world import SE2Transform
 from networkx import DiGraph, has_path, shortest_path
 
-from dg_commons.sequence import Timestamp, DgSampledSequence
 from _tmp._deprecated.world import LaneSegmentHashable
+from dg_commons.sequence import Timestamp, DgSampledSequence
 from .game_def import ActionGraph
 from .structures import VehicleState
 
@@ -36,7 +36,8 @@ class Trajectory:
     lane: LaneSegmentHashable
     """ The reference lane used to generate the trajectory """
 
-    def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
+    def __init__(self,
+                 values: List[Union[VehicleState, "Trajectory"]],
                  lane: LaneSegmentHashable,
                  p_final: Optional[FinalPoint] = None,
                  states: Optional[Tuple[VehicleState, VehicleState]] = None):
