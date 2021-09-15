@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from casadi import *
-from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam
+from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam, \
+    FullMPCKinBaseAnalytical
+from typing import Tuple
 
 
-__all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam"]
+__all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam", "NMPCFullKinContAN", "NMPCFullKinContANParam"]
 
 
 @dataclass
@@ -53,7 +55,7 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         self.mpc.scaling['_u', 'v_delta'] = 1
         self.mpc.scaling['_u', 'a'] = 1
 
-    def get_targets(self) -> float:
+    def get_targets(self) -> Tuple[float, float]:
         """
         :return: float the desired wheel angle
         """
@@ -61,3 +63,59 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         if any([_ is None for _ in [self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         return self.u[0][0], self.u[2][0]
+
+
+@dataclass
+class NMPCFullKinContANParam(FullMPCKinBaseParam):
+    technique: str = 'linear'
+    """ Path Approximation Technique """
+
+
+class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
+
+    def __init__(self, params: NMPCFullKinContANParam = NMPCFullKinContANParam()):
+        model_type = 'continuous'  # either 'discrete' or 'continuous'
+        super().__init__(params, model_type)
+
+        self.path_var = False
+        assert self.params.technique in self.techniques.keys()
+
+        # Set right right hand side of differential equation for x, y, theta, v, and delta
+        self.model.set_rhs('state_x', cos(self.theta) * self.v)
+        self.model.set_rhs('state_y', sin(self.theta) * self.v)
+        self.model.set_rhs('theta', tan(self.delta) * self.v / self.vehicle_geometry.length)
+        self.model.set_rhs('v', self.a)
+        self.model.set_rhs('delta', self.v_delta)
+
+        self.model.setup()
+
+    def lterm(self, target_x, target_y, speed_ref, target_angle=None):
+        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.speed_mult * (self.v - speed_ref) ** 2 + \
+               self.params.input_mult * self.v_delta ** 2 + \
+               self.params.acc_mult * self.a ** 2
+
+    def mterm(self, target_x, target_y, speed_ref, target_angle=None):
+        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.speed_mult * (self.v - speed_ref) ** 2
+
+    def compute_targets(self, current_beta):
+        self.traj = self.techniques[self.params.technique](self, current_beta)
+        return self.traj(self.state_x, self.state_y)
+
+    def set_scaling(self):
+        self.mpc.scaling['_x', 'state_x'] = 1
+        self.mpc.scaling['_x', 'state_y'] = 1
+        self.mpc.scaling['_x', 'theta'] = 1
+        self.mpc.scaling['_x', 'v'] = 1
+        self.mpc.scaling['_x', 'delta'] = 1
+        self.mpc.scaling['_u', 'v_delta'] = 1
+
+    def get_targets(self) -> Tuple[float, float]:
+        """
+        :return: float the desired wheel angle
+        """
+        # todo fixme this controller is not precise, as we use the cog rather than the base link
+        if any([_ is None for _ in [self.path]]):
+            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
+        return self.u[0][0], self.u[1][0]

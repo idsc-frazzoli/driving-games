@@ -1,14 +1,14 @@
 from sim_tests.controllers_tests.test_controller import TestController, DT_COMMANDS
 from dg_commons.controllers.speed import SpeedBehavior, SpeedBehaviorParam
-from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContPVParam, NMPCFullKinContPV
+from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContAN, NMPCFullKinContANParam
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 
 
 def test_mpckin():
-    # scenario_name: str = "USA_Peach-1_1_T-1"
+    scenario_name: str = "USA_Peach-1_1_T-1"
     # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
-    scenario_name: str = "ARG_Carcarana-1_1_T-1"
+    # scenario_name: str = "ARG_Carcarana-1_1_T-1"
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""
@@ -26,14 +26,16 @@ def test_mpckin():
     """ Weighting factor in cost function for acceleration """
     delta_input_mult = 1e-2
     """ Weighting factor in cost function for varying input """
+    technique = 'quadratic'
 
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
-    mpc_param: NMPCFullKinContPVParam = NMPCFullKinContPVParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
+    mpc_param: NMPCFullKinContANParam = NMPCFullKinContANParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
                                                                input_mult=input_mult, delta_input_mult=delta_input_mult,
-                                                               speed_mult=speed_mult, acc_mult=acc_mult)
-    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCFullKinContPV, "Parameters": mpc_param}
+                                                               speed_mult=speed_mult, acc_mult=acc_mult,
+                                                               technique=technique)
+    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCFullKinContAN, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
     steering_controller = {"Name": "Identity controller", "Controller": SCIdentity, "Parameters": steering_param}

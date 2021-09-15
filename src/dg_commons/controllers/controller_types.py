@@ -7,7 +7,8 @@ from dg_commons.controllers.lqr import LQR, LQRParam
 from dg_commons.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinContPV, NMPCLatKinContPVParam, NMPCLatKinContAN,\
     NMPCLatKinContANParam
 from dg_commons.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDisPV, NMPCLatKinDisPVParam
-from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContPV, NMPCFullKinContPVParam
+from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContPV, NMPCFullKinContPVParam,\
+    NMPCFullKinContANParam, NMPCFullKinContAN
 from dg_commons.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDisPV, NMPCFullKinDisPVParam
 
 
@@ -28,5 +29,5 @@ LongitudinalBehaviorParam = Union[Empty, SpeedBehaviorParam]
 SteeringController = Union[Empty, SCP, SCIdentity]
 SteeringControllerParam = Union[Empty, SCPParam, SCIdentityParam]
 
-LatAndLonController = Union[Empty, NMPCFullKinDisPV, NMPCFullKinContPV]
-LatAndLonControllerParam = Union[Empty, NMPCFullKinContPVParam, NMPCFullKinDisPVParam]
+LatAndLonController = Union[Empty, NMPCFullKinDisPV, NMPCFullKinContPV, NMPCFullKinContAN]
+LatAndLonControllerParam = Union[Empty, NMPCFullKinContPVParam, NMPCFullKinDisPVParam, NMPCFullKinContANParam]
