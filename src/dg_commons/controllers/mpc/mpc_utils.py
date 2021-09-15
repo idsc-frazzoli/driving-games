@@ -17,16 +17,21 @@ def cubic_param(pos1, angle1, pos2, angle2, pos3, angle3):
     return np.linalg.solve(A, b)
 
 
-def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3, pref='Default'):
+def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3):
+    pref = 'var3'
 
     if pref == 'var1':
         A = np.array([[pos1[0] ** 2, pos1[0], 1], [pos2[0] ** 2, pos2[0], 1], [pos3[0] ** 2, pos3[0], 1]])
         b = np.array([[pos1[1]], [pos2[1]], [pos3[1]]])
-    else:
+    elif pref == 'var2':
         A = np.array([[pos1[0] ** 2, pos1[0], 1], [pos3[0] ** 2, pos3[0], 1], [2 * pos1[0], 1, 0]])
         b = np.array([[pos1[1]], [pos2[1]], [tan(angle1)]])
+    elif pref == 'var3':
+        A = np.array([[pos1[0] ** 2, pos1[0], 1], [pos2[0] ** 2, pos2[0], 1], [pos3[0] ** 2, pos3[0], 1],
+                      [2 * pos1[0], 1, 0], [2 * pos2[0], 1, 0], [2 * pos3[0], 1, 0]])
+        b = np.array([[pos1[1]], [pos2[1]], [pos3[1]], [tan(angle1)], [tan(angle2)], [tan(angle3)]])
 
-    return np.linalg.solve(A, b)
+    return np.linalg.lstsq(A, b)[0]
 
 
 def cuberoot(x):
