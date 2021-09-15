@@ -64,6 +64,7 @@ class LatMPCBase(ABC):
     def update_state(self, obs: X, speed_ref: Optional[float] = None):
         position = np.array([obs.x, obs.y])
         current_beta, _ = self.path.find_along_lane_closest_point(position)
+        self.current_speed = obs.vx
         s0, _ = translation_angle_from_SE2(self.path.center_point(current_beta))
 
         self.mpc = do_mpc.controller.MPC(self.model)

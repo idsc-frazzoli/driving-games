@@ -28,6 +28,8 @@ def test_mpckin():
     """ Weighting factor in cost function for applying input """
     delta_input_mult = 1e-2
     """ Weighting factor in cost function for varying input """
+    technique = 'quadratic'
+    """ Path Approximation Technique """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
     sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
@@ -36,7 +38,8 @@ def test_mpckin():
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
     mpc_param: MPCKinContParam = MPCKinContParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
-                                                 input_mult=input_mult, delta_input_mult=delta_input_mult)
+                                                 input_mult=input_mult, delta_input_mult=delta_input_mult,
+                                                 technique=technique)
     mpc_controller = {"Name": "MPC Controller", "Controller": MPCKinCont, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
