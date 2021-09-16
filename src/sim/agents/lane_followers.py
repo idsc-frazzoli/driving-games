@@ -62,6 +62,38 @@ class LFAgentFullMPC(LFAgent):
         full_mpc: LatAndLonController = NMPCFullKinContPV() if controller is None else controller
         super().__init__(lane, full_mpc, speed_behavior, speed_controller, steer_controller, return_extra)
 
+    def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
+        if not self.return_extra:
+            return None
+        dt = self.controller.params.t_step
+        n_horizon = self.controller.params.n_horizon
+        N = 20
+        timestamps1 = []
+        timestamps2 = []
+        values1 = []
+        values2 = []
+
+        delta = self.controller.target_position[0] - self.controller.current_position[0]
+        x_samples = np.linspace(self.controller.current_position[0],
+                                self.controller.target_position[0] + 0.5*delta, num=N)
+
+        for i in range(n_horizon):
+            timestamps1.append(i*dt)
+            values1.append(VehicleState(x=self.controller.prediction_x[i][0],
+                                        y=self.controller.prediction_y[i][0], theta=0, vx=0, delta=0))
+
+        for i in range(N):
+            values2.append(VehicleState(x=x_samples[i], y=self.controller.current_f(x_samples[i]), theta=0, vx=0, delta=0))
+            timestamps2.append(i / N * n_horizon * dt)
+
+
+        traj1 = Trajectory(timestamps=timestamps1, values=values1)
+        traj2 = Trajectory(timestamps=timestamps2, values=values2)
+
+        traj_s = [traj1,]
+        colors = ["gold",]
+        return list(zip(traj_s, colors))
+
 
 class LFAgentLatMPC(LFAgent):
     def __init__(self,
@@ -76,6 +108,38 @@ class LFAgentLatMPC(LFAgent):
         steer_controller: SteeringController = SteeringController() if steer_controller is None else steer_controller
         lat_mpc: LateralController = NMPCLatKinContPV() if controller is None else controller
         super().__init__(lane, lat_mpc, speed_behavior, speed_controller, steer_controller, return_extra)
+
+    def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
+        if not self.return_extra:
+            return None
+        dt = self.controller.params.t_step
+        n_horizon = self.controller.params.n_horizon
+        N = 20
+        timestamps1 = []
+        timestamps2 = []
+        values1 = []
+        values2 = []
+
+        delta = self.controller.target_position[0] - self.controller.current_position[0]
+        x_samples = np.linspace(self.controller.current_position[0],
+                                self.controller.target_position[0] + 0.5 * delta, num=N)
+
+        for i in range(n_horizon):
+            timestamps1.append(i * dt)
+            values1.append(VehicleState(x=self.controller.prediction_x[i][0],
+                                        y=self.controller.prediction_y[i][0], theta=0, vx=0, delta=0))
+
+        for i in range(N):
+            values2.append(
+                VehicleState(x=x_samples[i], y=self.controller.current_f(x_samples[i]), theta=0, vx=0, delta=0))
+            timestamps2.append(i / N * n_horizon * dt)
+
+        traj1 = Trajectory(timestamps=timestamps1, values=values1)
+        traj2 = Trajectory(timestamps=timestamps2, values=values2)
+
+        traj_s = [traj1,]
+        colors = ["gold",]
+        return list(zip(traj_s, colors))
 
 
 class LFAgentStanley(LFAgent):

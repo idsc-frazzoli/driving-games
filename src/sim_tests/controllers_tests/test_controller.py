@@ -69,7 +69,8 @@ class TestController:
             longitudinal_controller.params = self.longitudinal_controller["Parameters"]
 
         agent = self.agent(dg_lane, controller=controller, speed_behavior=speed_behavior,
-                           speed_controller=longitudinal_controller, steer_controller=steering_controller)
+                           speed_controller=longitudinal_controller, steer_controller=steering_controller,
+                           return_extra=True)
 
         return agent
 

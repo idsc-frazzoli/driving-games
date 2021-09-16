@@ -40,13 +40,20 @@ class LatMPCKinBase(MPCKinBase):
 
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
 
+        self.current_position = None
+        self.target_position = None
+        self.current_f = None
+
+        self.prediction_x = None
+        self.prediction_y = None
+
     def update_path(self, path: DgLanelet):
         assert isinstance(path, DgLanelet)
         self.path = path
 
     def update_state(self, obs: Optional[X] = None, speed_ref: Optional[float] = None):
-        position = np.array([obs.x, obs.y])
-        current_beta, _ = self.path.find_along_lane_closest_point(position)
+        self.current_position = np.array([obs.x, obs.y])
+        current_beta, _ = self.path.find_along_lane_closest_point(self.current_position)
         self.current_speed = obs.vx
         s0, _ = translation_angle_from_SE2(self.path.center_point(current_beta))
 
@@ -73,6 +80,8 @@ class LatMPCKinBase(MPCKinBase):
         self.mpc.x0 = x0
         self.mpc.set_initial_guess()
         self.u = self.mpc.make_step(x0)
+        self.prediction_x = self.mpc.data.prediction(('_x', 'state_x', 0))[0]
+        self.prediction_y = self.mpc.data.prediction(('_x', 'state_y', 0))[0]
 
     def next_pos(self, current_beta):
         along_lane = self.path.along_lane_from_beta(current_beta)
@@ -90,6 +99,7 @@ class LatMPCKinBase(MPCKinBase):
         pos1, angle1 = translation_angle_from_SE2(q1)
         pos2, angle2 = translation_angle_from_SE2(q2)
         pos3, angle3 = translation_angle_from_SE2(q3)
+        self.target_position = pos3
         return pos1, angle1, pos2, angle2, pos3, angle3
 
     def delta_step(self):
@@ -114,7 +124,9 @@ class LatMPCKinBaseAnalytical(LatMPCKinBase):
 
     def _get_linear(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, f = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+
+        self.current_f = f
 
         def func(x, y):
             x_val = (x + res[0] * (y - res[1])) / (1 + res[0] ** 2)
@@ -128,14 +140,12 @@ class LatMPCKinBaseAnalytical(LatMPCKinBase):
 
     def _get_quadratic(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, f = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
         a, b, c = res[0], res[1], res[2]
+        self.current_f = f
 
         if abs(2*a*pos2[0]) / abs(2*a*pos2[0] + b) < 5*10e-2:
             return self._get_linear(beta)
-
-        def quad(x_value):
-            return a*x_value**2 + b*x_value + c
 
         def func(x, y):
             a1 = 2*a**2
@@ -143,7 +153,7 @@ class LatMPCKinBaseAnalytical(LatMPCKinBase):
             a3 = (1 - 2 * a * y + b ** 2 + 2 * a * c)
             a4 = (c*b - y * b - x)
             sols = solve_quadratic(a1, a2, a3, a4)
-            dists_list = [power(x_c-x, 2) + power(quad(x_c)-y, 2) for x_c in sols]
+            dists_list = [power(x_c-x, 2) + power(f(x_c)-y, 2) for x_c in sols]
             dists = SX(4, 1)
             dists[0, 0] = dists_list[0]
             dists[1, 0] = dists_list[1]
@@ -153,10 +163,10 @@ class LatMPCKinBaseAnalytical(LatMPCKinBase):
             min_dist = mmin(dists)
             x_sol = casadi.inf
             for sol in sols:
-                current_dist = power(sol-x, 2) + power(quad(sol)-y, 2)
+                current_dist = power(sol-x, 2) + power(f(sol)-y, 2)
                 x_sol = if_else(current_dist == min_dist, sol, x_sol)
 
-            return x_sol, quad(x_sol), None
+            return x_sol, f(x_sol), None
 
         return func
 
@@ -176,28 +186,22 @@ class LatMPCKinBasePathVariable(LatMPCKinBase):
 
     def _get_linear_func(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
-
-        def func(x):
-            return res[0]*x + res[1]
+        res, func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        self.current_f = func
 
         return func
 
     def _get_cubic_func(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res = cubic_param(pos1, angle1, pos2, angle2, pos3, angle3)
-
-        def func(x):
-            return res[0] * x ** 3 + res[1] * x ** 2 + res[2] * x + res[3]
+        res, func = cubic_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        self.current_f = func
 
         return func
 
     def _get_quadratic_func(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
-
-        def func(x):
-            return res[0] * x ** 2 + res[1] * x + res[2]
+        res, func = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        self.current_f = func
 
         return func
 

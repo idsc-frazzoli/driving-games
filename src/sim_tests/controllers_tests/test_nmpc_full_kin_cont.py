@@ -7,9 +7,9 @@ from sim.agents.lane_followers import LFAgentFullMPC
 
 
 def test_mpckin():
-    # scenario_name: str = "USA_Peach-1_1_T-1"
+    scenario_name: str = "USA_Peach-1_1_T-1"
     # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
-    scenario_name: str = "ARG_Carcarana-1_1_T-1"
+    # scenario_name: str = "ARG_Carcarana-1_1_T-1"
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""
@@ -27,13 +27,14 @@ def test_mpckin():
     """ Weighting factor in cost function for acceleration """
     delta_input_mult = 1e-2
     """ Weighting factor in cost function for varying input """
+    technique = 'linear'
 
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
     sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
     """Speed behavior"""
     mpc_param: NMPCFullKinContPVParam = NMPCFullKinContPVParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
                                                                input_mult=input_mult, delta_input_mult=delta_input_mult,
-                                                               speed_mult=speed_mult, acc_mult=acc_mult)
+                                                               speed_mult=speed_mult, acc_mult=acc_mult, technique=technique)
     mpc_controller = {"Name": "MPC Controller", "Controller": NMPCFullKinContPV, "Parameters": mpc_param}
     """MPC Controller"""
     steering_param: SCIdentityParam = SCIdentityParam()
