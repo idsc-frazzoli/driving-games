@@ -12,7 +12,7 @@ from dg_commons.time import time_function
 from games import PlayerName, X
 from sim import logger
 from sim.models.vehicle import VehicleCommands
-from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors, NO_LIGHTS
+from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
 from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players, ZOrders
@@ -167,12 +167,16 @@ def adjust_axes_limits(ax: Axes,
 
 
 def _get_lights_colors_from_cmds(cmds: VehicleCommands, t: Timestamp) -> LightsColors:
-    """Assumption, let's display braking lights only if no other light command is on, otherwise it is a bit confusing"""
-    phases = lightscmd2phases[cmds.lights]
-    lights_colors = get_phased_lights(phases, float(t))
-    if cmds == NO_LIGHTS and cmds.acc < 0:
-        if lights_colors.back_left == red:
-            lights_colors.back_left = red_more
-        if lights_colors.back_right == red:
-            lights_colors.back_right = red_more
+    """Note that braking lights are out of the agent's control"""
+    try:
+        phases = lightscmd2phases[cmds.lights]
+        lights_colors = get_phased_lights(phases, float(t))
+        if cmds.acc < 0:  # and cmds == NO_LIGHTS:
+            if lights_colors.back_left == red:
+                lights_colors.back_left = red_more
+            if lights_colors.back_right == red:
+                lights_colors.back_right = red_more
+    except AttributeError:
+        # in case the model commands does not have lights command
+        lights_colors = None
     return lights_colors

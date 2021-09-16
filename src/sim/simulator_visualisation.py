@@ -74,7 +74,7 @@ class SimRenderer(SimRendererABC):
                     ax: Axes,
                     player_name: PlayerName,
                     state: X,
-                    lights_colors: LightsColors,
+                    lights_colors: Optional[LightsColors],
                     vehicle_poly: Optional[List[Polygon]] = None,
                     lights_patches: Optional[List[Circle]] = None,
                     alpha: float = 0.6,
