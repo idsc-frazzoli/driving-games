@@ -1,8 +1,9 @@
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from sim_tests.controllers_tests.test_controller import TestController
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons.controllers.pure_pursuit import PurePursuit, PurePursuitParam
+from dg_commons.controllers.pure_pursuit_z import PurePursuit, PurePursuitParam
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
+from sim.agents.lane_followers import LFAgentPP
 
 
 def test_pure_pursuit():
@@ -38,7 +39,8 @@ def test_pure_pursuit():
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", metrics, pp_controller, sp_behavior, steering_controller, sp_controller)
+    test_pp = TestController(scenario_name, "-", metrics, LFAgentPP, pp_controller, sp_behavior, steering_controller,
+                             sp_controller)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()

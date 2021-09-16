@@ -1,8 +1,9 @@
-from sim_tests.controllers_tests.test_controller import TestController, Metric
+from sim_tests.controllers_tests.test_controller import TestController
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.stanley_controller import StanleyParam, Stanley
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
+from sim.agents.lane_followers import LFAgentStanley
 from typing import List
 
 
@@ -39,7 +40,8 @@ def test_stanley():
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", metrics, stanley_controller, sp_behavior, steering_controller, sp_controller)
+    test_pp = TestController(scenario_name, "-", metrics, LFAgentStanley, stanley_controller, sp_behavior,
+                             steering_controller, sp_controller)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()

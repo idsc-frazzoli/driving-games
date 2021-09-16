@@ -25,11 +25,12 @@ assert DT_COMMANDS % DT == SimTime(0)
 
 class TestController:
 
-    def __init__(self, scenario_name: str, vehicle_model: str, metrics, controller,
+    def __init__(self, scenario_name: str, vehicle_model: str, metrics, agent, controller,
                  speed_behavior, steering_controller, longitudinal_controller=None):
 
         scenario, _ = load_commonroad_scenario(scenario_name)
         self.lanelet_net = scenario.lanelet_network
+        self.agent = agent
 
         self.controller = controller
         self.longitudinal_controller = longitudinal_controller
@@ -61,15 +62,15 @@ class TestController:
         steering_controller = self.steering_controller["Controller"]()
         steering_controller.params = self.steering_controller["Parameters"]
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
+        longitudinal_controller = None
 
         if self.longitudinal_controller:
             longitudinal_controller = self.longitudinal_controller["Controller"]()
             longitudinal_controller.params = self.longitudinal_controller["Parameters"]
-            agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, speed_controller=longitudinal_controller,
-                                     controller=controller, steering_controller=steering_controller)
-        else:
-            agent: LFAgent = LFAgent(dg_lane, speed_behavior=speed_behavior, controller=controller,
-                                     steering_controller=steering_controller)
+
+        agent = self.agent(dg_lane, controller=controller, speed_behavior=speed_behavior,
+                           speed_controller=longitudinal_controller, steer_controller=steering_controller)
+
         return agent
 
     @staticmethod

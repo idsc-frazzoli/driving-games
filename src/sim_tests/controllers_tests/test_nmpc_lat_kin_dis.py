@@ -3,6 +3,7 @@ from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedCo
 from dg_commons.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDisPVParam, NMPCLatKinDisPV
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
+from sim.agents.lane_followers import LFAgentLatMPC
 
 
 def test_mpckin_dis():
@@ -53,7 +54,8 @@ def test_mpckin_dis():
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", metrics, mpc_controller, sp_behavior, steering_controller, sp_controller)
+    test_pp = TestController(scenario_name, "-", metrics, LFAgentLatMPC,
+                             mpc_controller, sp_behavior, steering_controller, sp_controller)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()

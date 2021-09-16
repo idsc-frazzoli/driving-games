@@ -4,6 +4,7 @@ from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedCo
 from dg_commons.controllers.lqr import LQRParam, LQR
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
 import numpy as np
+from sim.agents.lane_followers import LFAgentLQR
 
 
 def test_pure_pursuit():
@@ -41,7 +42,8 @@ def test_pure_pursuit():
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
 
-    test_pp = TestController(scenario_name, "-", metrics, lqr_controller, sp_behavior, steering_controller, sp_controller)
+    test_pp = TestController(scenario_name, "-", metrics, LFAgentLQR,
+                             lqr_controller, sp_behavior, steering_controller, sp_controller)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()
