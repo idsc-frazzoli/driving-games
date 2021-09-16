@@ -25,7 +25,7 @@ class Agent(ABC):
     def on_get_extra(self, ) -> Optional[Any]:
         """ This method gets called for each player inside the update loop of the simulator,
         it is used purely for logging. For example pass all the trajectories that have been generated at that step.
-          To return something only at certain timesteps simply return None in the others."""
+          To return something only at certain timestamps simply return None in the others."""
         pass
 
 

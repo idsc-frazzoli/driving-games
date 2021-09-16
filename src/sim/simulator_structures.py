@@ -13,7 +13,7 @@ from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 from sim.models.model_structures import ModelGeometry, ModelType
 
-__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog", "LogEntry"]
+__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog", "LogEntry", "PlayerLogger"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -37,6 +37,7 @@ class SimObservations:
 
 @dataclass(unsafe_hash=True, frozen=True)
 class LogEntry:
+    """A log entry for a player"""
     state: X
     commands: U
     extra: Any
@@ -50,6 +51,7 @@ class PlayerLog:
     extra: DgSampledSequence[Any]
 
     def at_interp(self, t: Timestamp) -> LogEntry:
+        """State gets interpolated, commands and extra not."""
         extra = None if not self.extra else self.extra.at_or_previous(t)
         return LogEntry(state=self.states.at_interp(t),
                         commands=self.actions.at_or_previous(t),
@@ -58,6 +60,7 @@ class PlayerLog:
 
 @dataclass
 class PlayerLogger(Generic[X, U]):
+    """The logger of a player that builds the log"""
     states: DgSampledSequenceBuilder[X] = field(default_factory=DgSampledSequenceBuilder[X])
     actions: DgSampledSequenceBuilder[U] = field(default_factory=DgSampledSequenceBuilder[U])
     extra: DgSampledSequenceBuilder[Any] = field(default_factory=DgSampledSequenceBuilder[Any])

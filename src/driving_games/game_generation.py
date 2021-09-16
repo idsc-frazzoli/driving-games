@@ -14,14 +14,13 @@ from games import (
     UncertaintyParams,
 )
 from possibilities import PossibilityMonad
+from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 from .collisions import Collision
 from .joint_reward import VehicleJointReward
 from .personal_reward import VehiclePersonalRewardStructureTime
 from .preferences_coll_time import VehiclePreferencesCollTime
 from .rectangle import Rectangle
 from .structures import (
-    Lights,
-    NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
     VehicleGeometry,
@@ -47,7 +46,7 @@ class TwoVehicleSimpleParams:
     max_wait: D
     available_accels: FrozenSet[D]
     collision_threshold: float
-    light_actions: FrozenSet[Lights]
+    light_actions: FrozenSet[LightsCmd]
     dt: D
     # initial positions
     first_progress: D

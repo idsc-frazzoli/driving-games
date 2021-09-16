@@ -79,7 +79,7 @@ lightscmd2phases: Mapping[LightsCmd, Tuple[LightsCmd, ...]] = fd({
     LIGHTS_HAZARD: (LIGHTS_HAZARD, NO_LIGHTS),
 })
 
-PHASE_SLOW: float = 0.5
+PHASE_SLOW: float = 0.4
 
 
 def get_phased_lights(phases, t: float, phase_period: float = PHASE_SLOW) -> LightsColors:

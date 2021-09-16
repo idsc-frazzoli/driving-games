@@ -124,10 +124,10 @@ class VehicleGeometry(ModelGeometry):
     def lights_position(self) -> Mapping[str, Tuple[float, float]]:
         halfwidth, _ = self.wheel_shape
         frontbumper, backbumper = self.bumpers_length
-        return {"back_left": (-self.lr - backbumper, +self.w_half - halfwidth),  # - self.lr),#
-                "back_right": (-self.lr - backbumper, -self.w_half + halfwidth),  # + self.lr),
-                "front_left": (self.lf + frontbumper, +self.w_half - halfwidth),  # - self.lf),
-                "front_right": (self.lf + frontbumper, -self.w_half + halfwidth),  # + self.lf),
+        return {"back_left": (-self.lr - backbumper, +self.w_half - halfwidth),
+                "back_right": (-self.lr - backbumper, -self.w_half + halfwidth),
+                "front_left": (self.lf + frontbumper, +self.w_half - halfwidth),
+                "front_right": (self.lf + frontbumper, -self.w_half + halfwidth),
                 }
 
     @cached_property
