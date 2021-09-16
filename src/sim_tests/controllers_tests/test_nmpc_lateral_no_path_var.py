@@ -6,9 +6,9 @@ from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 
 
 def test_mpckin():
-    # scenario_name: str = "USA_Peach-1_1_T-1"
+    scenario_name: str = "USA_Peach-1_1_T-1"
     # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
-    scenario_name: str = "ARG_Carcarana-1_1_T-1"
+    # scenario_name: str = "ARG_Carcarana-1_1_T-1"
     """Name of the chosen scenario"""
     vehicle_speed: float = 8
     """Nominal speed of the vehicle"""

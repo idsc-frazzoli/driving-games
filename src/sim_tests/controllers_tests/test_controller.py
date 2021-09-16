@@ -1,10 +1,10 @@
 import math
 import numpy as np
 from sim.scenarios import load_commonroad_scenario
-from sim.agents.lane_follower import LFAgent
+from sim.agents.lane_follower_z import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 from sim.models.vehicle import VehicleModel, VehicleState
-from dg_commons.analysis.metrics_def import MetricEvaluationContext, Metric
+from dg_commons.analysis.metrics_def import MetricEvaluationContext
 import matplotlib.pyplot as plt
 import json
 from dataclasses import fields
@@ -15,8 +15,8 @@ from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
 from crash.reports import generate_report
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from sim import SimTime, ImpactLocation
+from dg_commons.sequence import DgSampledSequence
+from sim import SimTime
 
 DT: SimTime = SimTime("0.05")
 DT_COMMANDS: SimTime = SimTime("0.1")
