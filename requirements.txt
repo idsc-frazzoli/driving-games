@@ -23,6 +23,8 @@ duckietown-world-daffy==6.2.24
 
 commonroad-io==2021.2
 
+do-mpc==4.2.0
+
 # extra
 jupyter
 
