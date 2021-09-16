@@ -47,6 +47,7 @@ class SimRendererABC(Generic[X, U, Y], ABC):
 
 
 class ZOrders(IntEnum):
+    LIGHTS = 34
     MODEL = 35
     PLAYER_NAME = 40
     TRAJECTORY = 45
@@ -76,7 +77,7 @@ class SimRenderer(SimRendererABC):
                     lights_colors: LightsColors,
                     vehicle_poly: Optional[List[Polygon]] = None,
                     lights_patches: Optional[List[Circle]] = None,
-                    alpha: float = 0.3,
+                    alpha: float = 0.6,
                     plot_wheels: bool = False,
                     plot_ligths: bool = False) -> Tuple[List[Polygon], List[Circle]]:
         """ Draw the player the state. """
@@ -173,7 +174,7 @@ def plot_vehicle(ax: Axes,
                 horizontalalignment="center",
                 verticalalignment="center")
         if plot_wheels:
-            wheels_boxes = [ax.fill([], [], color="dimgray", alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
+            wheels_boxes = [ax.fill([], [], color="k", alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
                             range(vg.n_wheels)]
             vehicle_poly.extend(wheels_boxes)
         if plot_ligths:
@@ -194,7 +195,7 @@ def plot_vehicle(ax: Axes,
         for i, name in enumerate(vg.lights_position):
             light_color = light_dict[name]
             position = vg.lights_position[name]
-            x2, y2 = transform_xy(q, (position,))
+            x2, y2 = transform_xy(q, (position,))[0]
             lights_patches[i].center = x2, y2
             lights_patches[i].set_color(light_color)
 
@@ -206,14 +207,14 @@ def _plot_lights(ax: Axes,
                  lights_colors: LightsColors,
                  vg: VehicleGeometry
                  ) -> List[Circle]:
-    radius_light = 0.01 * vg.length * vg.width
+    radius_light = 0.03 * vg.length * vg.width
     light_dict = asdict(lights_colors)
     patches = []
     for name in vg.lights_position:
         light_color = light_dict[name]
         position = vg.lights_position[name]
-        x2, y2 = transform_xy(q, (position,))
-        patch = Circle((x2[0], y2[0]), radius=radius_light, color=light_color)
+        x2, y2 = transform_xy(q, (position,))[0]
+        patch = Circle((x2, y2), radius=radius_light, color=light_color,zorder=ZOrders.LIGHTS)
         patches.append(patch)
         ax.add_patch(patch)
     return patches

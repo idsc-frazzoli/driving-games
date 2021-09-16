@@ -12,7 +12,7 @@ from dg_commons.time import time_function
 from games import PlayerName, X
 from sim import logger
 from sim.models.vehicle import VehicleCommands
-from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors
+from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors, NO_LIGHTS
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
 from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players, ZOrders
@@ -57,7 +57,7 @@ def create_animation(file_path: str,
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
         # fixme this is supposed to be an iterable of artists
-        return list(chain.from_iterable(states.values())) + list(actions.values()) + \
+        return list(chain.from_iterable(states.values())) + list(chain.from_iterable(actions.values())) + \
                list(extra.values()) + list(traj_lines.values()) + list(traj_points.values()) + list(texts.values())
 
     def init_plot():
@@ -65,10 +65,12 @@ def create_animation(file_path: str,
         with sim_viz.plot_arena(ax=ax):
             init_log_entry: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
             for pname, plog in init_log_entry.items():
+                lights_colors: LightsColors = _get_lights_colors_from_cmds(
+                    init_log_entry[pname].commands, t=0)
                 states[pname], actions[pname] = sim_viz.plot_player(
                     ax=ax,
                     state=plog.state,
-                    lights_colors=init_log_entry[pname].commands,
+                    lights_colors=lights_colors,
                     player_name=pname,
                     alpha=0.7,
                     plot_wheels=plot_wheels,
@@ -96,11 +98,13 @@ def create_animation(file_path: str,
         logger.info(f"Plotting t = {t}\r")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
+            lights_colors: LightsColors = _get_lights_colors_from_cmds(
+                log_at_t[pname].commands, t=t)
             states[pname], actions[pname] = sim_viz.plot_player(
                 ax=ax,
                 player_name=pname,
                 state=log_at_t[pname].state,
-                lights_colors=log_at_t[pname].commands,
+                lights_colors=lights_colors,
                 vehicle_poly=box_handle,
                 lights_patches=actions[pname],
                 plot_wheels=plot_wheels,
@@ -163,9 +167,10 @@ def adjust_axes_limits(ax: Axes,
 
 
 def _get_lights_colors_from_cmds(cmds: VehicleCommands, t: Timestamp) -> LightsColors:
+    """Assumption, let's display braking lights only if no other light command is on, otherwise it is a bit confusing"""
     phases = lightscmd2phases[cmds.lights]
     lights_colors = get_phased_lights(phases, float(t))
-    if cmds.acc < 0:
+    if cmds == NO_LIGHTS and cmds.acc < 0:
         if lights_colors.back_left == red:
             lights_colors.back_left = red_more
         if lights_colors.back_right == red:

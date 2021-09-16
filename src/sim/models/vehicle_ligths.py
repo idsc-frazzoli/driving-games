@@ -41,8 +41,8 @@ class LightsColors:
     back_right: Color
 
 
-dark = (0.2, 0.2, 0.2)
-white = (0.6, 0.6, 0.6)
+dark = (0.5, 0.5, 0.5)
+white = (0.9, 0.9, 0.9)
 yellow = (1.0, 1.0, 0.0)
 red = (0.5, 0.0, 0.0)
 red_more = (1.0, 0.0, 0.0)
@@ -55,12 +55,12 @@ phase2colors: Mapping[LightsCmd, LightsColors] = fd({
         back_left=yellow,
         back_right=red,
         front_left=yellow,
-        front_right=white,
+        front_right=dark,
     ),
     LIGHTS_TURN_RIGHT: LightsColors(
         back_left=red,
         back_right=yellow,
-        front_left=white,
+        front_left=dark,
         front_right=yellow,
     ),
     LIGHTS_HAZARD: LightsColors(

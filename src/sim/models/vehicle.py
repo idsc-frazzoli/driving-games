@@ -26,7 +26,7 @@ class VehicleCommands:
     ddelta: float
     """ Steering rate [rad/s] (delta derivative) """
     lights: LightsCmd = NO_LIGHTS
-    # todo add ligths and horn
+    # todo add horn
     idx = frozendict({"acc": 0, "ddelta": 1})
     """ Dictionary to get correct values from numpy arrays"""
 
