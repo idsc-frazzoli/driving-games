@@ -11,6 +11,7 @@ __all__ = ["Agent", "NPAgent", "PolicyAgent"]
 
 class Agent(ABC):
     """ This provides the abstract interface of an agent"""
+    state: Optional[X] = None
 
     @abstractmethod
     def on_episode_init(self, my_name: PlayerName):
@@ -27,6 +28,10 @@ class Agent(ABC):
         it is used purely for logging. For example pass all the trajectories that have been generated at that step.
           To return something only at certain timesteps simply return None in the others."""
         pass
+
+    def measurement_update(self, measurement):
+        """ This method gets called after every measurement of the vehicle state """
+        self.state = measurement
 
 
 class NPAgent(Agent):

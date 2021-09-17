@@ -42,6 +42,20 @@ class LFAgent(Agent):
         self._emergency: bool = False
         self._my_obs: Optional[X] = None
 
+        self.state_estimator = None
+        self.commands = None
+
+    def set_state_estimator(self, state_estimator):
+        self.state_estimator = state_estimator
+
+    def measurement_update(self, measurement):
+        if self.state_estimator is not None:
+            self.state_estimator.update_prediction(self.commands)
+            self.state_estimator.update_measurement(measurement)
+            self.state = self.state_estimator.state
+        else:
+            self.state = measurement
+
     @staticmethod
     def get_default_la(lane: DgLanelet):
         return LFAgent(lane, PurePursuit(), SpeedBehavior(), SpeedController(), SteeringController())
@@ -53,6 +67,7 @@ class LFAgent(Agent):
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         my_obs = sim_obs.players[self.my_name]
+
         t = float(sim_obs.time)
         self.speed_behavior.update_observations(sim_obs.players)
         speed_ref, emergency = self.speed_behavior.get_speed_ref(t)
@@ -68,10 +83,8 @@ class LFAgent(Agent):
         else:
             acc, ddelta = self._get_coupled_commands(my_obs, speed_ref, t)
 
-        return VehicleCommands(
-            acc=acc,
-            ddelta=ddelta
-        )
+        self.commands = VehicleCommands(acc=acc, ddelta=ddelta)
+        return self.commands
 
     def _get_decoupled_commands(self, my_obs: X, speed_ref: float, t: float) -> Tuple[float, float]:
 

@@ -4,6 +4,8 @@ from dg_commons.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinContANPar
 from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from sim.agents.lane_followers import LFAgentLatMPC
+from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmenParam
+import numpy as np
 
 
 def test_mpckin():
@@ -31,6 +33,14 @@ def test_mpckin():
     """ Weighting factor in cost function for varying input """
     technique = 'quadratic'
     """ Path Approximation Technique """
+    modeling_variance: np.ndarray = 0.0001*np.eye(5)
+    """ Modeling variance matrix """
+    measurement_variance: np.ndarray = 0.001*np.eye(5)
+    """ Measurement variance matrix """
+    belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
+    """ Modeling variance matrix """
+    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
+    """ Measurement variance matrix """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
     sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
@@ -48,9 +58,16 @@ def test_mpckin():
     """Pure Pursuit Controller"""
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
+    state_estimator_params: ExtendedKalmenParam = ExtendedKalmenParam(actual_meas_var=measurement_variance,
+                                                                      actual_model_var=modeling_variance,
+                                                                      belief_meas_var=belief_measurement_variance,
+                                                                      belief_model_var=belief_modeling_variance
+                                                                      )
+    state_estimator = {"Name": "Extended Kalman", "Estimator": ExtendedKalman, "Parameters": state_estimator_params}
+    """ State Estimator """
 
     test_pp = TestController(scenario_name, "-", metrics, LFAgentLatMPC,
-                             mpc_controller, sp_behavior, steering_controller, sp_controller)
+                             mpc_controller, sp_behavior, steering_controller, sp_controller, state_estimator)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()

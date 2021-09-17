@@ -4,7 +4,8 @@ from dg_commons.controllers.stanley_controller import StanleyParam, Stanley
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from sim.agents.lane_followers import LFAgentStanley
-from typing import List
+from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmenParam
+import numpy as np
 
 
 def test_stanley():
@@ -24,6 +25,14 @@ def test_stanley():
     """Integral gain longitudinal speed controller"""
     speed_kd: float = 0.1
     """Derivative gain longitudinal speed controller"""
+    modeling_variance: np.ndarray = 0.0001*np.eye(5)
+    """ Modeling variance matrix """
+    measurement_variance: np.ndarray = 0.001*np.eye(5)
+    """ Measurement variance matrix """
+    belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
+    """ Modeling variance matrix """
+    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
+    """ Measurement variance matrix """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
     sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
@@ -39,9 +48,16 @@ def test_stanley():
     """Pure Pursuit Controller"""
     metrics = [DeviationLateral, DeviationVelocity]
     """Metrics"""
+    state_estimator_params: ExtendedKalmenParam = ExtendedKalmenParam(actual_meas_var=measurement_variance,
+                                                                      actual_model_var=modeling_variance,
+                                                                      belief_meas_var=belief_measurement_variance,
+                                                                      belief_model_var=belief_modeling_variance
+                                                                      )
+    state_estimator = {"Name": "Extended Kalman", "Estimator": ExtendedKalman, "Parameters": state_estimator_params}
+    """ State Estimator """
 
     test_pp = TestController(scenario_name, "-", metrics, LFAgentStanley, stanley_controller, sp_behavior,
-                             steering_controller, sp_controller)
+                             steering_controller, sp_controller, state_estimator)
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()

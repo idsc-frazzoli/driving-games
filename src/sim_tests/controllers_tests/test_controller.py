@@ -1,7 +1,6 @@
 import math
 import numpy as np
 from sim.scenarios import load_commonroad_scenario
-from sim.agents.lane_follower_z import LFAgent
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 from sim.models.vehicle import VehicleModel, VehicleState
 from dg_commons.analysis.metrics_def import MetricEvaluationContext
@@ -26,7 +25,7 @@ assert DT_COMMANDS % DT == SimTime(0)
 class TestController:
 
     def __init__(self, scenario_name: str, vehicle_model: str, metrics, agent, controller,
-                 speed_behavior, steering_controller, longitudinal_controller=None):
+                 speed_behavior, steering_controller, longitudinal_controller=None, state_estimator=None):
 
         scenario, _ = load_commonroad_scenario(scenario_name)
         self.lanelet_net = scenario.lanelet_network
@@ -37,11 +36,13 @@ class TestController:
         self.speed_behavior = speed_behavior
         self.steering_controller = steering_controller
         self.vehicle_model = vehicle_model
+        self.state_estimator = state_estimator
 
         players, models = {}, {}
         for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
-            agent = self._agent_model_from_dynamic_obstacle(dyn_obs)
-            model = TestController._model_from_dynamic_obstacle(dyn_obs, False)
+            agent = self._agent_from_dynamic_obstacle(dyn_obs)
+            model, estimator = self._model_se_from_dynamic_obstacle(dyn_obs, False)
+            agent.set_state_estimator(estimator)
             player_name = PlayerName(f"P{i}")
             players.update({player_name: agent})
             models.update({player_name: model})
@@ -54,7 +55,7 @@ class TestController:
         self.result = []
         self.simulator: Simulator = Simulator()
 
-    def _agent_model_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
+    def _agent_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
 
         controller = self.controller["Controller"](self.controller["Parameters"])
         speed_behavior = self.speed_behavior["Behavior"]()
@@ -74,8 +75,7 @@ class TestController:
 
         return agent
 
-    @staticmethod
-    def _model_from_dynamic_obstacle(dyn_obs: DynamicObstacle, is_dynamic: bool):
+    def _model_se_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle, is_dynamic: bool):
         orient_0, orient_1 = dyn_obs.prediction.trajectory.state_list[0].orientation, \
                              dyn_obs.prediction.trajectory.state_list[1].orientation
         vel_0 = dyn_obs.prediction.trajectory.state_list[0].velocity
@@ -83,6 +83,7 @@ class TestController:
         l = dyn_obs.obstacle_shape.length
         delta_0 = math.atan(l * dtheta / vel_0)
 
+        state_estimator = None
         if is_dynamic:
             x0 = VehicleStateDyn(x=dyn_obs.initial_state.position[0], y=dyn_obs.initial_state.position[1],
                                  theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
@@ -93,8 +94,10 @@ class TestController:
                               theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
                               delta=delta_0)
             model = VehicleModel.default_car(x0=x0)
+            if self.state_estimator:
+                state_estimator = self.state_estimator['Estimator'](DT, params=self.state_estimator["Parameters"])
 
-        return model
+        return model, state_estimator
 
     def run(self):
         self.simulator.run(self.sim_context)

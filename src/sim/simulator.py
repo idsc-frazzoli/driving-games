@@ -1,9 +1,7 @@
 from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import combinations
-from typing import Mapping, Optional, List, Dict, Tuple
-
-import numpy as np
+from typing import Mapping, Optional, List, Dict
 from commonroad.scenario.scenario import Scenario
 
 from dg_commons.time import time_function
@@ -29,7 +27,6 @@ class SimContext:
     sim_terminated: bool = False
     collision_reports: List[CollisionReport] = field(default_factory=list)
     first_collision_ts: SimTime = SimTime("Infinity")
-    noise: Tuple[np.ndarray, np.ndarray] = (np.zeros(5), np.zeros((5, 5)))
 
     def __post_init__(self):
         assert self.models.keys() == self.players.keys()
@@ -66,10 +63,8 @@ class Simulator:
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
             state = model.get_state()
-            noise = np.zeros(state.get_n_states())
-            noise[:5] = np.random.multivariate_normal(sim_context.noise[0], sim_context.noise[1])
-            state = state.from_array(state.as_ndarray() + noise)
-            self.last_observations.players.update({player_name: state})
+            sim_context.players[player_name].measurement_update(state)
+            self.last_observations.players.update({player_name: sim_context.players[player_name].state})
         logger.debug(f"Pre update function, sim time {sim_context.time}")
         logger.debug(f"Last observations:\n{self.last_observations}")
         return
