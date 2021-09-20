@@ -4,6 +4,7 @@ import numpy as np
 from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
 
+from dg_commons import DgSampledSequence
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
@@ -13,6 +14,7 @@ from games import PlayerName, X
 from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands, VehicleState
+from sim.models.vehicle_ligths import LightsCmd, LightsValues
 from sim.sim_vis_extra import DrawableTrajectoryType
 
 
@@ -37,6 +39,10 @@ class LFAgent(Agent):
         self.return_extra: bool = return_extra
         self._emergency: bool = False
         self._my_obs: Optional[X] = None
+        self.lights_test_seq = DgSampledSequence[LightsCmd](
+            timestamps=[0, 2, 4, 6, 8],
+            values=list(LightsValues)
+        )
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -70,7 +76,8 @@ class LFAgent(Agent):
         ddelta = self.steer_controller.get_control(t)
         return VehicleCommands(
             acc=acc,
-            ddelta=ddelta
+            ddelta=ddelta,
+            lights=self.lights_test_seq.at_or_previous(sim_obs.time)
         )
 
     def emergency_subroutine(self) -> VehicleCommands:

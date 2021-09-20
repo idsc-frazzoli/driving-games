@@ -43,7 +43,6 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_shape = b_model.get_footprint()
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
-    # fixme this is an approximation to take the cog from the shape centroid
     a_cog = translation_angle_from_SE2(a_model.get_pose())[0]
     b_cog = translation_angle_from_SE2(b_model.get_pose())[0]
     r_ap = np.array(impact_point.coords[0]) - np.array(a_cog)

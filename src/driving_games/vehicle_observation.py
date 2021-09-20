@@ -4,7 +4,8 @@ from typing import FrozenSet, Mapping, Optional, Union
 from decimal import Decimal as D
 
 from games import Observations, PlayerName
-from .structures import Lights, SE2_disc, VehicleState
+from sim.models.vehicle_ligths import LightsCmd
+from .structures import SE2_disc, VehicleState
 
 __all__ = ["NotSeen", "Seen", "VehicleObservation", "VehicleDirectObservations"]
 
@@ -20,7 +21,7 @@ class Seen:
     x: Optional[int]
     v: Optional[int]
     # if not None, we could also see the light value
-    light: Optional[Lights]
+    light: Optional[LightsCmd]
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
