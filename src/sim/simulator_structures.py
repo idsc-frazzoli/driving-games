@@ -8,7 +8,7 @@ from shapely.geometry import Polygon
 from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence
-from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp
+from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp, UndefinedAtTime
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 from sim.models.model_structures import ModelGeometry, ModelType
@@ -52,7 +52,14 @@ class PlayerLog:
 
     def at_interp(self, t: Timestamp) -> LogEntry:
         """State gets interpolated, commands and extra not."""
-        extra = None if not self.extra else self.extra.at_or_previous(t)
+        if self.extra is not None:
+            try:
+                extra = self.extra.at_or_previous(t)
+            except UndefinedAtTime:
+                extra = None
+        else:
+            extra = None
+
         return LogEntry(state=self.states.at_interp(t),
                         commands=self.actions.at_or_previous(t),
                         extra=extra)
