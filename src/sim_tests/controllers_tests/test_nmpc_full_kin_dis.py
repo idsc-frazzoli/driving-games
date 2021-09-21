@@ -8,7 +8,7 @@ from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, E
 import numpy as np
 
 
-def test_mpckin():
+def test_mpcdis():
     scenario_name: str = "USA_Peach-1_1_T-1"
     # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
     # scenario_name: str = "ARG_Carcarana-1_1_T-1"
@@ -31,15 +31,15 @@ def test_mpckin():
     """ Weighting factor in cost function for varying input """
     dis_technique: str = 'Kinematic RK4'  # 'Kinematic Euler' or 'Kinematic RK4'
     """ Discretization technique """
-    dis_t = 0.05
+    dis_t = 0.01
     """ Discretization interval """
     modeling_variance: np.ndarray = 0.0001*np.eye(5)
     """ Modeling variance matrix """
-    measurement_variance: np.ndarray = 0.001*np.eye(5)
+    measurement_variance: np.ndarray = 0.001*np.eye(5)*0
     """ Measurement variance matrix """
     belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
     """ Modeling variance matrix """
-    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
+    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)*0
     """ Measurement variance matrix """
 
     sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
@@ -72,4 +72,4 @@ def test_mpckin():
     test_pp.to_json()
 
 
-test_mpckin()
+test_mpcdis()

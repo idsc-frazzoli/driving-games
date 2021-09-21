@@ -35,11 +35,11 @@ def test_mpckin_path_var():
     """ Path approximation technique """
     modeling_variance: np.ndarray = 0.0001*np.eye(5)
     """ Modeling variance matrix """
-    measurement_variance: np.ndarray = 0.001*np.eye(5)
+    measurement_variance: np.ndarray = 0.001*np.eye(5)*0
     """ Measurement variance matrix """
     belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
     """ Modeling variance matrix """
-    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
+    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)*0
     """ Measurement variance matrix """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)

@@ -1,15 +1,6 @@
 from casadi import *
-
-
-def kin_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
-    state_x = x + cos(theta) * v * ts
-    state_y = y + sin(theta) * v * ts
-    state_theta = theta + tan(delta) * v * ts / vehicle_geometry.length
-    state_v = v + acc*ts
-    state_delta = delta + v_delta * ts
-    state_s = s + v_s * ts
-
-    return [state_x, state_y, state_theta, state_v, state_delta, state_s]
+from typing import List
+from math import gcd
 
 
 def combine_list(list1, list2, alpha1, alpha2):
@@ -17,26 +8,75 @@ def combine_list(list1, list2, alpha1, alpha2):
     return [alpha1 * x + alpha2 * y for (x, y) in zipped_lists]
 
 
-def rk4(f, param, h: float):
-    k1 = f(param)
-    k2 = f(combine_list(param, k1, 1, h/2))
-    k3 = f(combine_list(param, k2, 1, h/2))
-    k4 = f(combine_list(param, k3, 1, h))
+def kin(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry):
+
+    return \
+        [
+            cos(theta) * v,
+            sin(theta) * v,
+            tan(delta) * v / vehicle_geometry.length,
+            acc,
+            v_delta,
+            v_s
+        ]
+
+
+def euler(state, f, ts: float):
+    rhs = f(state)
+    return combine_list(state, rhs, 1, ts)
+
+
+def rk4(state, f, h: float):
+    k1 = f(state)
+    k2 = f(combine_list(state, k1, 1, h/2))
+    k3 = f(combine_list(state, k2, 1, h/2))
+    k4 = f(combine_list(state, k3, 1, h))
     k = combine_list(combine_list(combine_list(k1, k2, 1, 2), k3, 1, 2), k4, 1, 1)
-    k = [h/6 * i for i in k]
-    return combine_list(param, k, 1, 1)
+    return combine_list(state, k, 1, h/6)
+
+
+def anstrom_euler(state, f, ts: float):
+    n: List[int] = [1, 1, 1, 1, 1, 1]
+    sampling = [[(k+1)*ts/num for k in range(num)] for num in n]
+    lcm = 1
+    for i in n:
+        lcm = lcm * i // gcd(lcm, i)
+
+    t = ts/lcm
+    current_t = 0
+    for i in range(lcm):
+        current_t += t
+        prov_state = state
+        for j in range(len(n)):
+            if any([abs(current_t - val) < 10e-7 for val in sampling[j]]):
+                result = euler(state, f, t*lcm/n[j])
+                prov_state[j] = result[j]
+        state = prov_state
+    return state
 
 
 def kin_rk4(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
     def f(param):
-        return_val = [cos(param[2]) * param[3], sin(param[2]) * param[3],
-                      tan(param[4]) * param[3] / vehicle_geometry.length, acc, v_delta, v_s]
-        return return_val
+        return kin(*param, v_delta, v_s, acc, vehicle_geometry)
 
-    parameters = [x, y, theta, v, delta, s]
-    result = rk4(f, parameters, ts)
-
-    return result
+    state = [x, y, theta, v, delta, s]
+    return rk4(state, f, ts)
 
 
-discretizations = {'Kinematic Euler': kin_euler, 'Kinematic RK4': kin_rk4}
+def kin_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
+    def f(param):
+        return kin(*param, v_delta, v_s, acc, vehicle_geometry)
+
+    state = [x, y, theta, v, delta, s]
+    return euler(state, f, ts)
+
+
+def kin_anstrom_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
+    def f(param):
+        return kin(*param, v_delta, v_s, acc, vehicle_geometry)
+
+    state = [x, y, theta, v, delta, s]
+    return anstrom_euler(state, f, ts)
+
+
+discretizations = {'Kinematic Euler': kin_euler, 'Kinematic RK4': kin_rk4, 'Anstrom Euler': kin_anstrom_euler}

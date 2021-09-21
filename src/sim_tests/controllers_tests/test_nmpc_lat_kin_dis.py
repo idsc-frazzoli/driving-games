@@ -29,21 +29,21 @@ def test_mpckin_dis():
     """ Weighting factor in cost function for having state error """
     input_mult = 1
     """ Weighting factor in cost function for applying input """
-    delta_input_mult = 10-3
+    delta_input_mult = 1e-2
     """ Weighting factor in cost function for varying input """
     technique: str = 'linear'
     """ Path approximation technique """
-    dis_technique: str = 'Kinematic Euler'  # 'Kinematic Euler' or 'Kinematic RK4'
+    dis_technique: str = 'Kinematic RK4'  # 'Kinematic Euler' or 'Kinematic RK4' or 'Anstrom Euler'
     """ Discretization technique """
     dis_t = 0.05
     """ Discretization interval """
     modeling_variance: np.ndarray = 0.0001*np.eye(5)
     """ Modeling variance matrix """
-    measurement_variance: np.ndarray = 0.001*np.eye(5)
+    measurement_variance: np.ndarray = 0.001*np.eye(5)*0
     """ Measurement variance matrix """
     belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
     """ Modeling variance matrix """
-    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
+    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)*0
     """ Measurement variance matrix """
 
     sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
