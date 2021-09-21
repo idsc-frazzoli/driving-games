@@ -11,7 +11,7 @@ from sim import logger, CollisionReport, SimTime
 from sim.agents.agent import Agent
 from sim.collision_utils import CollisionException
 from sim.simulator_structures import *
-from sim.simulator_structures import PlayerLogger
+from sim.simulator_structures import PlayerLogger, PlayerObservations
 
 
 @dataclass
@@ -63,7 +63,11 @@ class Simulator:
         self.last_observations.time = sim_context.time
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
-            self.last_observations.players.update({player_name: model.get_state()})
+            # todo not always necessary to update observations
+            player_obs = PlayerObservations(
+                state=model.get_state(),
+                occupancy=model.get_footprint())
+            self.last_observations.players.update({player_name: player_obs})
         logger.debug(f"Pre update function, sim time {sim_context.time}")
         logger.debug(f"Last observations:\n{self.last_observations}")
         return

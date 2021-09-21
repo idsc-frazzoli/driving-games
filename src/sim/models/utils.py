@@ -29,7 +29,7 @@ def extract_pose_from_state(state: X) -> SE2value:
         return pose
     except Exception:
         msg = "Unable to extract pose from state"
-        ZValueError(msg=msg, state=state, state_type=type(state))
+        raise ZValueError(msg=msg, state=state, state_type=type(state))
 
 
 def extract_vel_from_state(state: X) -> SE2value:
@@ -38,4 +38,4 @@ def extract_vel_from_state(state: X) -> SE2value:
         return vel
     except Exception:
         msg = "Unable to extract vel from state"
-        ZValueError(msg=msg, state=state, state_type=type(state))
+        raise ZValueError(msg=msg, state=state, state_type=type(state))

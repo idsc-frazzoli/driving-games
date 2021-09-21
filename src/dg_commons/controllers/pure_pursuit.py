@@ -7,7 +7,7 @@ import scipy.optimize
 from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2value, translation_angle_from_SE2, angle_from_SE2
 
-from dg_commons.geo import euclidean_between_SE2value
+from dg_commons.geo import norm_between_SE2value
 from dg_commons.planning.lanes import DgLanelet
 
 __all__ = ["PurePursuit", "PurePursuitParam"]
@@ -73,7 +73,7 @@ class PurePursuit:
             """
             beta = self.path.beta_from_along_lane(along_path)
             cp = self.path.center_point(beta)
-            dist = euclidean_between_SE2value(self.pose, cp)
+            dist = norm_between_SE2value(self.pose, cp)
             return np.linalg.norm(dist - lookahead)
 
         min_along_path = self.along_path + self.param.min_distance
