@@ -52,12 +52,9 @@ class PlayerLog:
 
     def at_interp(self, t: Timestamp) -> LogEntry:
         """State gets interpolated, commands and extra not."""
-        if self.extra is not None:
-            try:
-                extra = self.extra.at_or_previous(t)
-            except UndefinedAtTime:
-                extra = None
-        else:
+        try:
+            extra = self.extra.at_or_previous(t)
+        except (UndefinedAtTime, ZValueError):
             extra = None
 
         return LogEntry(state=self.states.at_interp(t),
