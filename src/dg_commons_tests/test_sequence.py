@@ -33,8 +33,8 @@ def test_dg_sampledsequence():
         assert s.XT == float
         assert s.at_or_previous(3.2) == 3
         assert s.at_or_previous(D(3.2)) == 3
-        assert s.at_or_previous(-2) == 1
-        assert s.at_or_previous(D(-2)) == 1
+        assert_raises(UndefinedAtTime, lambda: s.at_or_previous(-2))
+        assert_raises(UndefinedAtTime, lambda: s.at_or_previous(D(-2)))
         assert s.at_or_previous(4.9) == 4
         assert s.at_or_previous(D(4.9)) == 4
         assert s.at_or_previous(6) == 5

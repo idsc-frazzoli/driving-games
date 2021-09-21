@@ -38,6 +38,12 @@ class SimContext:
 
 
 class Simulator:
+    """
+    A simulator has a loop made of 3 main steps:
+        - A pre-update function creating the observations for the agents
+        - An update function which asks the agents the commands and applies them to the dynamics of each model
+        - A post-update function that checks the new states of all the models and resolves collisions
+    """
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
     last_get_commands_ts: SimTime = SimTime('-Infinity')
     last_commands: Dict[PlayerName, U] = {}
@@ -93,8 +99,6 @@ class Simulator:
     def post_update(self, sim_context: SimContext):
         """
         Here all the operations that happen after we have stepped the simulation, e.g. collision checking
-        :param sim_context:
-        :return:
         """
         collision_detected = self._check_collisions(sim_context)
         # after all the computations advance simulation time

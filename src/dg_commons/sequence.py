@@ -82,18 +82,23 @@ class DgSampledSequence(Generic[X]):
             raise UndefinedAtTime(msg)
 
     def at_or_previous(self, t: Timestamp) -> X:
+        """
+        @:return: Value at requested timestamp or at previous.
+        @:raise UndefinedAtTime if there is no previous
+        """
+        if t < self.get_start():
+            msg = f"Could not find at_or_previous with Timestamp: {t} in: {self._timestamps}"
+            raise UndefinedAtTime(msg)
         try:
             return self.at(t)
         except UndefinedAtTime:
-            if t <= self.get_start():
-                return self.at(self.get_start())
-
-        i = bisect_right(self._timestamps, t)
-        return self._values[i - 1]
+            i = bisect_right(self._timestamps, t)
+            return self._values[i - 1]
 
     def at_interp(self, t: Timestamp) -> X:
-        """ Returns value at requested timestamp,
-        Interpolates between timestamps, holds at the extremes"""
+        """ Interpolates between timestamps, holds at the extremes
+        @:return: Value at requested timestamp.
+        """
         if t <= self.get_start():
             return self._values[0]
         elif t >= self.get_end():
@@ -104,20 +109,25 @@ class DgSampledSequence(Generic[X]):
             return self._values[i - 1] * (1 - scale) + self._values[i] * scale
 
     def get_start(self) -> Timestamp:
-        """ Returns the timestamp for start """
+        """
+         @:return: The timestamp for start
+        """
         if not self._timestamps:
             raise ZValueError("Empty sequence")
         return self._timestamps[0]
 
     def get_end(self) -> Timestamp:
-        """ Returns the timestamp for start """
+        """
+         @:return: The timestamp for start
+        """
         if not self._timestamps:
             raise ZValueError("Empty sequence")
         return self._timestamps[-1]
 
     def get_sampling_points(self) -> Tuple[Timestamp]:
         """
-        Returns the lists of sampled timestamps
+        Redundant with .timestamps
+        @:return: The lists of sampled timestamps
         """
         return self._timestamps
 
