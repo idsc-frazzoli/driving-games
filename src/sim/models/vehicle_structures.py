@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Mapping
 
 import numpy as np
 from geometry import SE2_from_xytheta
@@ -67,14 +67,22 @@ class VehicleGeometry(ModelGeometry):
     @cached_property
     def outline(self) -> Tuple[Tuple[float, float], ...]:
         """Outline of the vehicle intended as the whole car body."""
+        tyre_halfw, _ = self.wheel_shape
+        frontbumper, backbumper = self.bumpers_length
+        return ((-self.lr - backbumper, -self.w_half - tyre_halfw), (-self.lr - backbumper, +self.w_half + tyre_halfw),
+                (+self.lf + frontbumper, +self.w_half + tyre_halfw),
+                (+self.lf + frontbumper, -self.w_half - tyre_halfw), (-self.lr - backbumper, -self.w_half - tyre_halfw))
+
+    @cached_property
+    def bumpers_length(self) -> Tuple[float, float]:
+        """Returns size of bumpers from wheels' axle to border
+        @:return: (front,back) """
         tyre_halfw, radius = self.wheel_shape
         if self.vehicle_type in FourWheelsTypes:
             frontbumper = self.lf / 2
         else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
             frontbumper = radius
-        return ((-self.lr - radius, -self.w_half - tyre_halfw), (-self.lr - radius, +self.w_half + tyre_halfw),
-                (+self.lf + frontbumper, +self.w_half + tyre_halfw),
-                (+self.lf + frontbumper, -self.w_half - tyre_halfw), (-self.lr - radius, -self.w_half - tyre_halfw))
+        return frontbumper, radius
 
     @cached_property
     def outline_as_polygon(self) -> Polygon:
@@ -111,6 +119,16 @@ class VehicleGeometry(ModelGeometry):
         else:  # self.vehicle_type == MOTORCYCLE or self.vehicle_type == BICYCLE
             positions = np.array([[self.lf, -self.lr], [0, 0], [1, 1]])
         return positions
+
+    @cached_property
+    def lights_position(self) -> Mapping[str, Tuple[float, float]]:
+        halfwidth, _ = self.wheel_shape
+        frontbumper, backbumper = self.bumpers_length
+        return {"back_left": (-self.lr - backbumper, +self.w_half - halfwidth),
+                "back_right": (-self.lr - backbumper, -self.w_half + halfwidth),
+                "front_left": (self.lf + frontbumper, +self.w_half - halfwidth),
+                "front_right": (self.lf + frontbumper, -self.w_half + halfwidth),
+                }
 
     @cached_property
     def n_wheels(self) -> int:

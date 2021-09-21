@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import asdict
 from enum import IntEnum
 from math import inf
 from typing import Sequence, Tuple, Generic, Optional, List, Union
@@ -6,16 +7,17 @@ from typing import Sequence, Tuple, Generic, Optional, List, Union
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
-from geometry import SE2_from_xytheta
+from geometry import SE2_from_xytheta, SE2value
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection, PathCollection
 from matplotlib.lines import Line2D
-from matplotlib.patches import Polygon
+from matplotlib.patches import Polygon, Circle
 
 from dg_commons.planning.trajectory import Trajectory
 from games import PlayerName, X, U, Y
 from sim.models.pedestrian import PedestrianState, PedestrianGeometry
 from sim.models.vehicle import VehicleState, VehicleGeometry
+from sim.models.vehicle_ligths import LightsColors
 from sim.simulator import SimContext
 from sim.types import Color
 
@@ -36,6 +38,7 @@ class SimRendererABC(Generic[X, U, Y], ABC):
             ax: Axes,
             player_name: PlayerName,
             state: X,
+            lights_colors: LightsColors,
             alpha: float = 1.0,
             box=None
     ):
@@ -44,6 +47,7 @@ class SimRendererABC(Generic[X, U, Y], ABC):
 
 
 class ZOrders(IntEnum):
+    LIGHTS = 34
     MODEL = 35
     PLAYER_NAME = 40
     TRAJECTORY = 45
@@ -70,29 +74,35 @@ class SimRenderer(SimRendererABC):
                     ax: Axes,
                     player_name: PlayerName,
                     state: X,
-                    polygons: Optional[List[Polygon]] = None,
-                    alpha: float = 0.3,
-                    plot_wheels: bool = False) -> List[Polygon]:
+                    lights_colors: Optional[LightsColors],
+                    vehicle_poly: Optional[List[Polygon]] = None,
+                    lights_patches: Optional[List[Circle]] = None,
+                    alpha: float = 0.6,
+                    plot_wheels: bool = False,
+                    plot_ligths: bool = False) -> Tuple[List[Polygon], List[Circle]]:
         """ Draw the player the state. """
 
         mg = self.sim_context.models[player_name].get_geometry()
         if issubclass(type(state), VehicleState):
-            polygons = plot_vehicle(ax=ax,
-                                    player_name=player_name,
-                                    state=state,
-                                    vg=mg,
-                                    alpha=alpha,
-                                    boxes=polygons,
-                                    plot_wheels=plot_wheels)
+            return plot_vehicle(ax=ax,
+                                player_name=player_name,
+                                state=state,
+                                lights_colors=lights_colors,
+                                vg=mg,
+                                alpha=alpha,
+                                vehicle_poly=vehicle_poly,
+                                lights_patches=lights_patches,
+                                plot_wheels=plot_wheels,
+                                plot_ligths=plot_ligths)
         else:
-            polygons = plot_pedestrian(ax=ax,
+            ped_poly = plot_pedestrian(ax=ax,
                                        player_name=player_name,
                                        state=state,
                                        pg=mg,
                                        alpha=alpha,
-                                       boxes=polygons,
+                                       ped_poly=vehicle_poly,
                                        )
-        return polygons
+            return ped_poly, []
 
     def plot_trajectories(self,
                           ax: Axes,
@@ -145,33 +155,69 @@ def plot_trajectories(ax: Axes,
 def plot_vehicle(ax: Axes,
                  player_name: PlayerName,
                  state: VehicleState,
+                 lights_colors: LightsColors,
                  vg: VehicleGeometry,
                  alpha: float,
-                 boxes: Optional[List[Polygon]],
-                 plot_wheels: bool = False) -> List[Polygon]:
+                 vehicle_poly: Optional[List[Polygon]] = None,
+                 lights_patches: Optional[List[Circle]] = None,
+                 plot_wheels: bool = False,
+                 plot_ligths: bool = False) -> Tuple[List[Polygon], List[Circle]]:
+    """"""
     vehicle_outline: Sequence[Tuple[float, float], ...] = vg.outline
     vehicle_color: Color = vg.color
     q = SE2_from_xytheta((state.x, state.y, state.theta))
-    if boxes is None:
+    if vehicle_poly is None:
         vehicle_box = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=ZOrders.MODEL)[0]
-        boxes = [vehicle_box, ]
+        vehicle_poly = [vehicle_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
         ax.text(x4, y4, player_name, zorder=ZOrders.PLAYER_NAME,
                 horizontalalignment="center",
                 verticalalignment="center")
         if plot_wheels:
-            wheels_boxes = [ax.fill([], [], color="dimgray", alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
+            wheels_boxes = [ax.fill([], [], color="k", alpha=alpha, zorder=ZOrders.MODEL)[0] for _ in
                             range(vg.n_wheels)]
-            boxes.extend(wheels_boxes)
+            vehicle_poly.extend(wheels_boxes)
+        if plot_ligths:
+            lights_patches = _plot_lights(ax=ax, q=q, lights_colors=lights_colors, vg=vg)
+
     outline = transform_xy(q, vehicle_outline)
-    boxes[0].set_xy(outline)
+    vehicle_poly[0].set_xy(outline)
+
     if plot_wheels:
         wheels_outlines = vg.get_rotated_wheels_outlines(state.delta)
         wheels_outlines = [q @ w_outline for w_outline in wheels_outlines]
-        for w_idx, wheel in enumerate(boxes[1:]):
+        for w_idx, wheel in enumerate(vehicle_poly[1:]):
             xy_poly = wheels_outlines[w_idx][:2, :].T
             wheel.set_xy(xy_poly)
-    return boxes
+
+    if plot_ligths:
+        light_dict = asdict(lights_colors)
+        for i, name in enumerate(vg.lights_position):
+            light_color = light_dict[name]
+            position = vg.lights_position[name]
+            x2, y2 = transform_xy(q, (position,))[0]
+            lights_patches[i].center = x2, y2
+            lights_patches[i].set_color(light_color)
+
+    return vehicle_poly, lights_patches
+
+
+def _plot_lights(ax: Axes,
+                 q: SE2value,
+                 lights_colors: LightsColors,
+                 vg: VehicleGeometry
+                 ) -> List[Circle]:
+    radius_light = 0.04 * vg.width
+    light_dict = asdict(lights_colors)
+    patches = []
+    for name in vg.lights_position:
+        light_color = light_dict[name]
+        position = vg.lights_position[name]
+        x2, y2 = transform_xy(q, (position,))[0]
+        patch = Circle((x2, y2), radius=radius_light, color=light_color,zorder=ZOrders.LIGHTS)
+        patches.append(patch)
+        ax.add_patch(patch)
+    return patches
 
 
 def plot_pedestrian(ax: Axes,
@@ -179,18 +225,18 @@ def plot_pedestrian(ax: Axes,
                     state: PedestrianState,
                     pg: PedestrianGeometry,
                     alpha: float,
-                    boxes: Optional[List[Polygon]]) -> List[Polygon]:
+                    ped_poly: Optional[List[Polygon]]) -> List[Polygon]:
     q = SE2_from_xytheta((state.x, state.y, state.theta))
-    if boxes is None:
+    if ped_poly is None:
         pedestrian_box = ax.fill([], [], color=pg.color, alpha=alpha, zorder=ZOrders.MODEL)[0]
-        boxes = [pedestrian_box, ]
+        ped_poly = [pedestrian_box, ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
         ax.text(x4, y4, player_name, zorder=ZOrders.PLAYER_NAME, horizontalalignment="center",
                 verticalalignment="center")
     ped_outline: Sequence[Tuple[float, float], ...] = pg.outline
     outline_xy = transform_xy(q, ped_outline)
-    boxes[0].set_xy(outline_xy)
-    return boxes
+    ped_poly[0].set_xy(outline_xy)
+    return ped_poly
 
 
 def plot_history(ax: Axes,

@@ -8,12 +8,12 @@ from shapely.geometry import Polygon
 from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence
-from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp
+from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp, UndefinedAtTime
 from games import PlayerName, X, U
 from sim import SimTime, ImpactLocation
 from sim.models.model_structures import ModelGeometry, ModelType
 
-__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog", "LogEntry"]
+__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog", "LogEntry", "PlayerLogger"]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -37,6 +37,7 @@ class SimObservations:
 
 @dataclass(unsafe_hash=True, frozen=True)
 class LogEntry:
+    """A log entry for a player"""
     state: X
     commands: U
     extra: Any
@@ -50,7 +51,12 @@ class PlayerLog:
     extra: DgSampledSequence[Any]
 
     def at_interp(self, t: Timestamp) -> LogEntry:
-        extra = None if not self.extra else self.extra.at_or_previous(t)
+        """State gets interpolated, commands and extra not."""
+        try:
+            extra = self.extra.at_or_previous(t)
+        except (UndefinedAtTime, ZValueError):
+            extra = None
+
         return LogEntry(state=self.states.at_interp(t),
                         commands=self.actions.at_or_previous(t),
                         extra=extra)
@@ -58,6 +64,7 @@ class PlayerLog:
 
 @dataclass
 class PlayerLogger(Generic[X, U]):
+    """The logger of a player that builds the log"""
     states: DgSampledSequenceBuilder[X] = field(default_factory=DgSampledSequenceBuilder[X])
     actions: DgSampledSequenceBuilder[U] = field(default_factory=DgSampledSequenceBuilder[U])
     extra: DgSampledSequenceBuilder[Any] = field(default_factory=DgSampledSequenceBuilder[Any])

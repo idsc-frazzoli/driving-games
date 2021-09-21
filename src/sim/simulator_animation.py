@@ -7,9 +7,12 @@ from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 from toolz.sandbox import unzip
 
+from dg_commons import Timestamp
 from dg_commons.time import time_function
 from games import PlayerName, X
 from sim import logger
+from sim.models.vehicle import VehicleCommands
+from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors
 from sim.simulator import SimContext
 from sim.simulator_structures import LogEntry
 from sim.simulator_visualisation import SimRenderer, approximate_bounding_box_players, ZOrders
@@ -49,11 +52,12 @@ def create_animation(file_path: str,
     history = {}
     # some parameters
     plot_wheels: bool = True
+    plot_ligths: bool = True
 
     # self.f.set_size_inches(*fig_size)
     def _get_list() -> List:
         # fixme this is supposed to be an iterable of artists
-        return list(chain.from_iterable(states.values())) + list(actions.values()) + \
+        return list(chain.from_iterable(states.values())) + list(chain.from_iterable(actions.values())) + \
                list(extra.values()) + list(traj_lines.values()) + list(traj_points.values()) + list(texts.values())
 
     def init_plot():
@@ -61,12 +65,16 @@ def create_animation(file_path: str,
         with sim_viz.plot_arena(ax=ax):
             init_log_entry: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(time_begin)
             for pname, plog in init_log_entry.items():
-                states[pname] = sim_viz.plot_player(
+                lights_colors: LightsColors = _get_lights_colors_from_cmds(
+                    init_log_entry[pname].commands, t=0)
+                states[pname], actions[pname] = sim_viz.plot_player(
                     ax=ax,
                     state=plog.state,
+                    lights_colors=lights_colors,
                     player_name=pname,
                     alpha=0.7,
-                    plot_wheels=plot_wheels)
+                    plot_wheels=plot_wheels,
+                    plot_ligths=plot_ligths)
                 if plog.extra:
                     try:
                         trajectories, tcolors = unzip(plog.extra)
@@ -90,12 +98,17 @@ def create_animation(file_path: str,
         logger.info(f"Plotting t = {t}\r")
         log_at_t: Mapping[PlayerName, LogEntry] = sim_context.log.at_interp(t)
         for pname, box_handle in states.items():
-            states[pname] = sim_viz.plot_player(
+            lights_colors: LightsColors = _get_lights_colors_from_cmds(
+                log_at_t[pname].commands, t=t)
+            states[pname], actions[pname] = sim_viz.plot_player(
                 ax=ax,
                 player_name=pname,
                 state=log_at_t[pname].state,
-                polygons=box_handle,
-                plot_wheels=plot_wheels)
+                lights_colors=lights_colors,
+                vehicle_poly=box_handle,
+                lights_patches=actions[pname],
+                plot_wheels=plot_wheels,
+                plot_ligths=plot_ligths)
             if log_at_t[pname].extra:
                 try:
                     trajectories, tcolors = unzip(log_at_t[pname].extra)
@@ -151,3 +164,19 @@ def adjust_axes_limits(ax: Axes,
         ax.xlim(plot_limits[0][0], plot_limits[0][1])
         ax.ylim(plot_limits[1][0], plot_limits[1][1])
     return
+
+
+def _get_lights_colors_from_cmds(cmds: VehicleCommands, t: Timestamp) -> LightsColors:
+    """Note that braking lights are out of the agent's control"""
+    try:
+        phases = lightscmd2phases[cmds.lights]
+        lights_colors = get_phased_lights(phases, float(t))
+        if cmds.acc < 0:  # and cmds == NO_LIGHTS:
+            if lights_colors.back_left == red:
+                lights_colors.back_left = red_more
+            if lights_colors.back_right == red:
+                lights_colors.back_right = red_more
+    except AttributeError:
+        # in case the model commands does not have lights command
+        lights_colors = None
+    return lights_colors
