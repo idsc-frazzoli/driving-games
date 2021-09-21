@@ -207,7 +207,7 @@ def _plot_lights(ax: Axes,
                  lights_colors: LightsColors,
                  vg: VehicleGeometry
                  ) -> List[Circle]:
-    radius_light = 0.03 * vg.length * vg.width
+    radius_light = 0.04 * vg.width
     light_dict = asdict(lights_colors)
     patches = []
     for name in vg.lights_position:
