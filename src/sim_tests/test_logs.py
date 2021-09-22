@@ -1,7 +1,7 @@
 from numpy.testing import assert_raises
 from zuper_commons.types import ZValueError
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import SimLog
 
 
