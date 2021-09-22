@@ -4,7 +4,7 @@ from typing import Mapping
 from frozendict import frozendict
 from zuper_commons.types import ZNotImplementedError
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import IMPACT_FRONT, ImpactLocation
 from .collisions import Collision
 from .rectangle import sample_x, rectangle_from_pose, ProjectedCar

@@ -13,8 +13,8 @@ from matplotlib.collections import LineCollection, PathCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Polygon, Circle
 
+from dg_commons import PlayerName, X, U
 from dg_commons.planning.trajectory import Trajectory
-from games import PlayerName, X, U, Y
 from sim.models.pedestrian import PedestrianState, PedestrianGeometry
 from sim.models.vehicle import VehicleState, VehicleGeometry
 from sim.models.vehicle_ligths import LightsColors
@@ -24,7 +24,7 @@ from sim.types import Color
 __all__ = ["SimRenderer"]
 
 
-class SimRendererABC(Generic[X, U, Y], ABC):
+class SimRendererABC(Generic[X, U], ABC):
     """ An artist that can draw the game. """
 
     @abstractmethod
@@ -214,7 +214,7 @@ def _plot_lights(ax: Axes,
         light_color = light_dict[name]
         position = vg.lights_position[name]
         x2, y2 = transform_xy(q, (position,))[0]
-        patch = Circle((x2, y2), radius=radius_light, color=light_color,zorder=ZOrders.LIGHTS)
+        patch = Circle((x2, y2), radius=radius_light, color=light_color, zorder=ZOrders.LIGHTS)
         patches.append(patch)
         ax.add_patch(patch)
     return patches

@@ -8,7 +8,7 @@ from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2value, translation_angle_from_SE2, angle_from_SE2
 
 from dg_commons.geo import norm_between_SE2value
-from dg_commons.planning.lanes import DgLanelet
+from dg_commons.maps.lanes import DgLanelet
 
 __all__ = ["PurePursuit", "PurePursuitParam"]
 

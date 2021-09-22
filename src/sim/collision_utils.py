@@ -8,8 +8,8 @@ from geometry import T2value, SO2value, SO2_from_angle, SE2value
 from shapely.geometry import Polygon, Point, LineString
 from toolz import remove
 
-from dg_commons.planning.lanes import DgLanelet, DgLanePose
-from games import X, PlayerName
+from dg_commons.maps.lanes import DgLanelet, DgLanePose
+from dg_commons import X, PlayerName
 from sim.models.model_structures import ModelGeometry
 
 

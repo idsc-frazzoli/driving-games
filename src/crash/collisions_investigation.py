@@ -7,7 +7,7 @@ import networkx as nx
 from networkx import DiGraph
 
 from crash import logger
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import CollisionReport
 from sim.collision_structures import combine_collision_reports
 

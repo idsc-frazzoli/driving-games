@@ -7,7 +7,7 @@ from duckietown_world import SE2Transform
 from geometry import xytheta_from_SE2
 from networkx import DiGraph
 
-from dg_commons.sequence import DgSampledSequence, X, iterate_with_dt
+from dg_commons.seq.sequence import DgSampledSequence, X, iterate_with_dt
 from sim.models import extract_pose_from_state
 from sim.models.vehicle import VehicleState, VehicleCommands
 

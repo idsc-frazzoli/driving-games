@@ -1,7 +1,7 @@
 from typing import Sequence, Tuple
 
 from dg_commons import DgSampledSequence
-from games import X
+from dg_commons import X
 from sim import Color
 
 DrawableTrajectoryType = Sequence[Tuple[DgSampledSequence[X], Color]]

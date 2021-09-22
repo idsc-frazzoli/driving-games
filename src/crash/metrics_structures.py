@@ -3,7 +3,7 @@ from typing import Mapping
 
 from crash.metrics_malliaris import MalliarisRisk
 from crash.metrics_nieliyang import NieLiYangRisk
-from games import PlayerName
+from dg_commons import PlayerName
 
 
 @dataclass(frozen=True, unsafe_hash=True)

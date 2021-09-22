@@ -9,7 +9,7 @@ from toolz.sandbox import unzip
 
 from dg_commons import Timestamp
 from dg_commons.time import time_function
-from games import PlayerName, X
+from dg_commons import PlayerName, X
 from sim import logger
 from sim.models.vehicle import VehicleCommands
 from sim.models.vehicle_ligths import lightscmd2phases, get_phased_lights, red, red_more, LightsColors

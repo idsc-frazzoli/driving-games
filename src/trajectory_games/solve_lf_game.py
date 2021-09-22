@@ -8,8 +8,8 @@ from duckietown_world import SE2Transform
 from frozendict import frozendict
 
 from _tmp._deprecated.world import LaneSegmentHashable
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from games import PlayerName
+from dg_commons import PlayerName
+from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from games.utils import iterate_dict_combinations
 from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference

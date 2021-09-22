@@ -9,10 +9,10 @@ from imageio import imread
 from matplotlib.collections import LineCollection
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
-from games import PlayerName
-from sim.simulator_visualisation import transform_xy
 from _tmp._deprecated.world import LaneSegmentHashable
 from _tmp._deprecated.world.map_loading import map_directory, load_driving_game_map
+from dg_commons import PlayerName
+from sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
 from .paths import Trajectory
 from .preference import PosetalPreference, WeightedPreference

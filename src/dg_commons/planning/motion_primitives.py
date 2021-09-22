@@ -5,11 +5,10 @@ from typing import List, Tuple, Callable, Set, Optional
 
 import numpy as np
 
-from dg_commons import logger, Timestamp
+from dg_commons import logger, Timestamp, LinSpaceTuple
 from dg_commons.planning.trajectory import Trajectory
 from dg_commons.planning.trajectory_generator_abc import TrajGenerator
 from dg_commons.time import time_function
-from dg_commons.types import LinSpaceTuple
 from sim.models.vehicle import VehicleState, VehicleCommands
 from sim.models.vehicle_utils import VehicleParameters
 

@@ -5,7 +5,7 @@ from duckietown_world.utils import SE2_apply_R2
 from matplotlib import pyplot as plt
 from numpy import linspace
 
-from dg_commons.planning.lanes import DgLanelet
+from dg_commons.maps.lanes import DgLanelet
 from sim.scenarios import load_commonroad_scenario
 
 

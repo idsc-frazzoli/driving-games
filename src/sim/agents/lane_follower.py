@@ -8,9 +8,9 @@ from dg_commons import DgSampledSequence
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
-from dg_commons.planning.lanes import DgLanelet
+from dg_commons.maps.lanes import DgLanelet
 from dg_commons.planning.trajectory import Trajectory
-from games import PlayerName, X
+from dg_commons import PlayerName, X
 from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands, VehicleState

@@ -7,9 +7,8 @@ from geometry import SE2value, T2value
 from shapely.geometry import Polygon
 from zuper_commons.types import ZValueError
 
-from dg_commons import DgSampledSequence
-from dg_commons.sequence import DgSampledSequenceBuilder, Timestamp, UndefinedAtTime
-from games import PlayerName, X, U
+from dg_commons import DgSampledSequence, PlayerName, X, U
+from dg_commons.seq.sequence import DgSampledSequenceBuilder, Timestamp, UndefinedAtTime
 from sim import SimTime, ImpactLocation
 from sim.models.model_structures import ModelGeometry, ModelType
 

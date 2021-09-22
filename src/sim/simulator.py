@@ -6,7 +6,7 @@ from typing import Mapping, Optional, List, Dict
 from commonroad.scenario.scenario import Scenario
 
 from dg_commons.time import time_function
-from games import PlayerName, U
+from dg_commons import PlayerName, U
 from sim import logger, CollisionReport, SimTime
 from sim.agents.agent import Agent
 from sim.collision_utils import CollisionException

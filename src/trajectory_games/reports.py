@@ -1,25 +1,24 @@
 import itertools
+from decimal import Decimal as D
 from time import perf_counter
 from typing import Mapping, Dict, Set, Tuple, List, Optional
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG
 from zuper_commons.text import remove_escapes
-from decimal import Decimal as D
 
-from games import PlayerName
+from dg_commons import PlayerName
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
+from .metrics_def import PlayerOutcome
+from .paths import Trajectory
+from .preference import PosetalPreference
 from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode, SolvedLeaderFollowerGame, \
     SolvedRecursiveLeaderFollowerGame, LeaderFollowerGame, LeaderFollowerGameStage
-from .preference import PosetalPreference
-from .paths import Trajectory
 from .visualization import TrajGameVisualization
-from .metrics_def import PlayerOutcome
-
 
 STACK_JPG = False
 MIME = MIME_JPG if STACK_JPG else MIME_PNG

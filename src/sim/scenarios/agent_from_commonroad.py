@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
@@ -7,7 +7,7 @@ from duckietown_world import SE2Transform
 from geometry import T2value
 from zuper_commons.types import ZException
 
-from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
+from dg_commons.maps.lanes import DgLanelet, LaneCtrPoint
 from sim import Color
 from sim.agents.agent import Agent
 from sim.agents.lane_follower import LFAgent

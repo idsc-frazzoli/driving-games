@@ -8,7 +8,8 @@ from decorator import contextmanager
 from matplotlib import patches
 
 # from matplotlib import image
-from games import GameVisualization, PlayerName
+from dg_commons import PlayerName
+from games import GameVisualization
 from .collisions import Collision
 from .rectangle import SE2_from_VehicleState, get_rectangle_countour, Rectangle, get_resources_used
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
