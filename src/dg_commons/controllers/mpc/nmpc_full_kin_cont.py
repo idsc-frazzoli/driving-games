@@ -10,7 +10,7 @@ __all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam", "NMPCFullKinContAN", "
 
 @dataclass
 class NMPCFullKinContPVParam(FullMPCKinBaseParam):
-    technique: str = 'linear'
+    path_approx_technique: str = 'linear'
     """ Path approximation technique """
 
 
@@ -32,17 +32,17 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.speed_mult * (self.v - speed_ref)**2 + \
-               self.params.input_mult * self.v_delta ** 2 + \
-               self.params.acc_mult * self.a ** 2
+        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.velocity_err_weight * (self.v - speed_ref)**2 + \
+               self.params.steering_vel_weight * self.v_delta ** 2 + \
+               self.params.acceleration_weight * self.a ** 2
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.speed_mult * (self.v - speed_ref)**2
+        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.velocity_err_weight * (self.v - speed_ref)**2
 
     def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.technique](self, current_beta)
+        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
         return self.s, self.traj(self.s), None
 
     def set_scaling(self):
@@ -67,7 +67,7 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
 
 @dataclass
 class NMPCFullKinContANParam(FullMPCKinBaseParam):
-    technique: str = 'linear'
+    path_approx_technique: str = 'linear'
     """ Path Approximation Technique """
 
 
@@ -78,7 +78,7 @@ class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
         super().__init__(params, model_type)
 
         self.path_var = False
-        assert self.params.technique in self.techniques.keys()
+        assert self.params.path_approx_technique in self.techniques.keys()
 
         # Set right right hand side of differential equation for x, y, theta, v, and delta
         self.model.set_rhs('state_x', cos(self.theta) * self.v)
@@ -90,17 +90,17 @@ class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.speed_mult * (self.v - speed_ref) ** 2 + \
-               self.params.input_mult * self.v_delta ** 2 + \
-               self.params.acc_mult * self.a ** 2
+        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.velocity_err_weight * (self.v - speed_ref) ** 2 + \
+               self.params.steering_vel_weight * self.v_delta ** 2 + \
+               self.params.acceleration_weight * self.a ** 2
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.speed_mult * (self.v - speed_ref) ** 2
+        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.velocity_err_weight * (self.v - speed_ref) ** 2
 
     def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.technique](self, current_beta)
+        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
         return self.traj(self.state_x, self.state_y)
 
     def set_scaling(self):

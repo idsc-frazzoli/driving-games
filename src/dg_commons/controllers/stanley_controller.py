@@ -19,7 +19,7 @@ __all__ = ["Stanley", "StanleyParam"]
 
 @dataclass
 class StanleyParam:
-    gain: float = 1
+    stanley_gain: float = 1
     """ Tunable gain """
 
 
@@ -74,4 +74,4 @@ class Stanley:
         # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.alpha, self.lateral, self.front_speed]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-        return self.alpha + atan(self.params.gain*self.lateral/self.front_speed)
+        return self.alpha + atan(self.params.stanley_gain*self.lateral/self.front_speed)

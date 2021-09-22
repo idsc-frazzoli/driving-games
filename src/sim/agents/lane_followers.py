@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from duckietown_world.utils import SE2_apply_R2
@@ -170,3 +170,7 @@ class LFAgentLQR(LFAgent):
         steer_controller: SteeringController = SteeringController() if steer_controller is None else steer_controller
         lqr: LQR = LQR() if controller is None else controller
         super().__init__(lane, lqr, speed_behavior, speed_controller, steer_controller, return_extra)
+
+
+LaneFollowerAgent = Union[LFAgentLQR, LFAgentPP, LFAgentLatMPC, LFAgentFullMPC, LFAgentStanley]
+

@@ -1,67 +1,59 @@
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
-from sim_tests.controllers_tests.test_controller import TestController
-from dg_commons.controllers.speed import SpeedBehavior, SpeedController, SpeedControllerParam, SpeedBehaviorParam
+from dg_commons.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.pure_pursuit_z import PurePursuit, PurePursuitParam
 from dg_commons.controllers.steering_controllers import SCP, SCPParam
 from sim.agents.lane_followers import LFAgentPP
-from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmenParam
+from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
 import numpy as np
+from sim_tests.controllers_tests.test_controller_utils import run_test
+from dg_commons.controllers.full_controller_base import VehicleController
 
 
 def test_pure_pursuit():
-    scenario_name: str = "USA_Peach-1_1_T-1"
-    # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
-    # scenario_name: str = "ARG_Carcarana-1_1_T-1"
-    """Name of the chosen scenario"""
-    vehicle_speed: float = 8
-    """Nominal speed of the vehicle"""
-    k_lookahead: float = 1.8
-    """Scaling constant for speed dependent params"""
-    ddelta_kp: float = 10
-    """Proportional gain ddelta with respect to delta error"""
-    speed_kp: float = 2
-    """Propotioanl gain longitudinal speed controller"""
-    speed_ki: float = 0.005
-    """Integral gain longitudinal speed controller"""
-    speed_kd: float = 0.1
-    """Derivative gain longitudinal speed controller"""
-    modeling_variance: np.ndarray = 0.0001*np.eye(5)
-    """ Modeling variance matrix """
-    measurement_variance: np.ndarray = 0.001*np.eye(5)
-    """ Measurement variance matrix """
-    belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
-    """ Modeling variance matrix """
-    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
-    """ Measurement variance matrix """
+    scenario = "USA_Peach-1_1_T-1"
+    # scenario="ZAM_Tjunction-1_129_T-1"
+    # scenario="ARG_Carcarana-1_1_T-1"
 
-    sp_controller_param: SpeedControllerParam = SpeedControllerParam(kP=speed_kp, kI=speed_ki, kD=speed_kd)
-    sp_controller = {"Name": "Speed Controller", "Controller": SpeedController, "Parameters": sp_controller_param}
-    """Speed Controller"""
-    sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
-    sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
-    """Speed behavior"""
-    pp_param: PurePursuitParam = PurePursuitParam(k_lookahead=k_lookahead)
-    pp_controller = {"Name": "Pure Pursuit Controller", "Controller": PurePursuit, "Parameters": pp_param}
-    """Pure Pursuit Controller"""
-    steering_param: SCPParam = SCPParam(ddelta_kp=ddelta_kp)
-    steering_controller = {"Name": "P controller", "Controller": SCP, "Parameters": steering_param}
-    """Pure Pursuit Controller"""
-    state_estimator_params: ExtendedKalmenParam = ExtendedKalmenParam(actual_meas_var=measurement_variance,
-                                                                      actual_model_var=modeling_variance,
-                                                                      belief_meas_var=belief_measurement_variance,
-                                                                      belief_model_var=belief_modeling_variance
-                                                                      )
-    state_estimator = {"Name": "Extended Kalman", "Estimator": ExtendedKalman, "Parameters": state_estimator_params}
-    """ State Estimator """
-    metrics = [DeviationLateral, DeviationVelocity]
-    """Metrics"""
+    controller = VehicleController(
 
-    test_pp = TestController(scenario_name, "-", metrics, LFAgentPP, pp_controller,
-                             sp_behavior, steering_controller, sp_controller, state_estimator)
-    test_pp.run()
-    test_pp.evaluate_metrics()
-    test_pp.evaluate_metrics_test()
-    test_pp.to_json()
+        controller=PurePursuit,
+        controller_params=PurePursuitParam(
+            k_lookahead=1.8
+        ),
+
+        lf_agent=LFAgentPP,
+
+        longitudinal_controller=SpeedController,
+        longitudinal_controller_params=SpeedControllerParam(
+            kP=1,
+            kI=0.01,
+            kD=0.1
+        ),
+
+        speed_behavior_param=SpeedBehaviorParam(
+            nominal_speed=8
+        ),
+
+        steering_controller=SCP,
+        steering_controller_params=SCPParam(
+            ddelta_kp=10
+        ),
+
+        metrics=[
+            DeviationLateral,
+            DeviationVelocity
+        ],
+
+        state_estimator=ExtendedKalman,
+        state_estimator_params=ExtendedKalmanParam(
+            actual_model_var=0.0001*np.eye(5),
+            actual_meas_var=0.001*np.eye(5)*0,
+            belief_model_var=0.0001*np.eye(5),
+            belief_meas_var=0.001*np.eye(5)*0
+        )
+    )
+
+    run_test(controller, scenario)
 
 
-test_pure_pursuit()
+# test_pure_pursuit()

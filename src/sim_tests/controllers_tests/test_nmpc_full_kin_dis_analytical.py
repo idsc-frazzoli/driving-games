@@ -1,73 +1,54 @@
-from sim_tests.controllers_tests.test_controller import TestController, DT_COMMANDS
-from dg_commons.controllers.speed import SpeedBehavior, SpeedBehaviorParam
+from sim_tests.controllers_tests.test_controller import DT_COMMANDS
+from dg_commons.controllers.speed import SpeedBehaviorParam
 from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContAN, NMPCFullKinContANParam
-from dg_commons.controllers.steering_controllers import SCIdentityParam, SCIdentity
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from sim.agents.lane_followers import LFAgentFullMPC
-from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmenParam
+from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
 import numpy as np
+from sim_tests.controllers_tests.test_controller_utils import run_test
+from dg_commons.controllers.full_controller_base import VehicleController
 
 
-def test_mpckin():
-    scenario_name: str = "USA_Peach-1_1_T-1"
-    # scenario_name: str = "ZAM_Tjunction-1_129_T-1"
-    # scenario_name: str = "ARG_Carcarana-1_1_T-1"
-    """Name of the chosen scenario"""
-    vehicle_speed: float = 8
-    """Nominal speed of the vehicle"""
-    n_horizon = 15
-    """ Horizon Length """
-    t_step = float(DT_COMMANDS)
-    """ Sample Time """
-    state_mult = 1
-    """ Weighting factor in cost function for having state error """
-    input_mult = 1
-    """ Weighting factor in cost function for applying input """
-    speed_mult: float = 1
-    """ Weighting factor in cost function for velocity error """
-    acc_mult: float = 1
-    """ Weighting factor in cost function for acceleration """
-    delta_input_mult = 1e-2
-    """ Weighting factor in cost function for varying input """
-    technique = 'quadratic'
+def test_nmpc_full_kin_analytical():
+    scenario = "USA_Peach-1_1_T-1"
+    # scenario="ZAM_Tjunction-1_129_T-1"
+    # scenario="ARG_Carcarana-1_1_T-1"
 
-    modeling_variance: np.ndarray = 0.0001*np.eye(5)
-    """ Modeling variance matrix """
-    measurement_variance: np.ndarray = 0.001*np.eye(5)
-    """ Measurement variance matrix """
-    belief_modeling_variance: np.ndarray = 0.0001*np.eye(5)
-    """ Modeling variance matrix """
-    belief_measurement_variance: np.ndarray = 0.001*np.eye(5)
-    """ Measurement variance matrix """
+    controller = VehicleController(
 
-    sp_behavior_param: SpeedBehaviorParam = SpeedBehaviorParam(nominal_speed=vehicle_speed)
-    sp_behavior = {"Name": "Speed Behavior", "Behavior": SpeedBehavior, "Parameters": sp_behavior_param}
-    """Speed behavior"""
-    mpc_param: NMPCFullKinContANParam = NMPCFullKinContANParam(n_horizon=n_horizon, t_step=t_step, state_mult=state_mult,
-                                                               input_mult=input_mult, delta_input_mult=delta_input_mult,
-                                                               speed_mult=speed_mult, acc_mult=acc_mult,
-                                                               technique=technique)
-    mpc_controller = {"Name": "MPC Controller", "Controller": NMPCFullKinContAN, "Parameters": mpc_param}
-    """MPC Controller"""
-    steering_param: SCIdentityParam = SCIdentityParam()
-    steering_controller = {"Name": "Identity controller", "Controller": SCIdentity, "Parameters": steering_param}
-    """Pure Pursuit Controller"""
-    metrics = [DeviationLateral, DeviationVelocity]
-    """Metrics"""
-    state_estimator_params: ExtendedKalmenParam = ExtendedKalmenParam(actual_meas_var=measurement_variance,
-                                                                      actual_model_var=modeling_variance,
-                                                                      belief_meas_var=belief_measurement_variance,
-                                                                      belief_model_var=belief_modeling_variance
-                                                                      )
-    state_estimator = {"Name": "Extended Kalman", "Estimator": ExtendedKalman, "Parameters": state_estimator_params}
-    """ State Estimator """
+        controller=NMPCFullKinContAN,
+        controller_params=NMPCFullKinContANParam(
+            n_horizon=15,
+            t_step=float(DT_COMMANDS),
+            position_err_weight=1,
+            steering_vel_weight=1,
+            velocity_err_weight=1,
+            acceleration_weight=1,
+            delta_input_weight=1e-2,
+            path_approx_technique='linear'
+        ),
 
-    test_pp = TestController(scenario_name, "-", metrics, LFAgentFullMPC,
-                             mpc_controller, sp_behavior, steering_controller, state_estimator=state_estimator)
-    test_pp.run()
-    test_pp.evaluate_metrics()
-    test_pp.evaluate_metrics_test()
-    test_pp.to_json()
+        lf_agent=LFAgentFullMPC,
+
+        speed_behavior_param=SpeedBehaviorParam(
+            nominal_speed=8
+        ),
+
+        metrics=[
+            DeviationLateral,
+            DeviationVelocity
+        ],
+
+        state_estimator=ExtendedKalman,
+        state_estimator_params=ExtendedKalmanParam(
+            actual_model_var=0.0001 * np.eye(5),
+            actual_meas_var=0.001 * np.eye(5) * 0,
+            belief_model_var=0.0001 * np.eye(5),
+            belief_meas_var=0.001 * np.eye(5) * 0
+        )
+    )
+
+    run_test(controller, scenario)
 
 
-test_mpckin()
+# test_nmpc_full_kin_analytical()

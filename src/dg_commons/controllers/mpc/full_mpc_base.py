@@ -7,9 +7,9 @@ from dg_commons.controllers.mpc.lateral_mpc_base import VEHICLE_PARAMS, LatMPCKi
 
 @dataclass
 class FullMPCKinBaseParam(LatMPCKinBaseParam):
-    speed_mult: float = 1
+    velocity_err_weight: float = 1
     """ Weighting factor in cost function for velocity error """
-    acc_mult: float = 1
+    acceleration_weight: float = 1
     """ Weighting factor in cost function for acceleration """
     acc_bounds: Tuple[float, float] = VEHICLE_PARAMS.acc_limits
     """ Accelertion bounds """

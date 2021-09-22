@@ -117,11 +117,11 @@ class TestController:
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities)
 
-        report = generate_report(self.sim_context)
+        #report = generate_report(self.sim_context)
         # save report
-        output_dir = "out"
-        report_file = os.path.join(output_dir, f"{name}.html")
-        report.to_html(report_file)
+        #output_dir = "out"
+        #report_file = os.path.join(output_dir, f"{name}.html")
+        #report.to_html(report_file)
 
     def evaluate_metrics_test(self):
         if self.metrics is not None:
@@ -132,8 +132,10 @@ class TestController:
                     plt.plot(res[player].incremental.timestamps, res[player].incremental.values, label=player)
                 plt.title(metric.description)
                 plt.legend()
-                plt.savefig(f"fig{i}")
-                plt.figure()
+                output_dir = "out"
+                fig_file = os.path.join(output_dir, f"{self.controller['Name']}_fig{i}")
+                plt.savefig(fig_file)
+                plt.clf()
         else:
             print("No Metric to Evaluate")
 

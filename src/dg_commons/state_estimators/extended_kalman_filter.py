@@ -16,7 +16,7 @@ lr = geo.lr
 
 
 @dataclass
-class ExtendedKalmenParam:
+class ExtendedKalmanParam:
     actual_model_var: np.ndarray = np.zeros((n_states, n_states))
     """ Actual Modeling variance matrix """
     actual_meas_var: np.ndarray = np.zeros((n_states, n_states))
@@ -30,7 +30,7 @@ class ExtendedKalmenParam:
 
 
 class ExtendedKalman:
-    def __init__(self, dt, x0=None, params=ExtendedKalmenParam()):
+    def __init__(self, dt, x0=None, params=ExtendedKalmanParam()):
         self.actual_model_noise = params.actual_model_var
         self.actual_meas_noise = params.actual_meas_var
         self.belief_model_noise = params.belief_model_var

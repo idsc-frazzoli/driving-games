@@ -7,12 +7,15 @@ import numpy as np
 from typing import Union
 
 
+class Empty:
+    pass
+
+
 class DeviationLateral(Metric):
     description = "This metric describes the deviation from reference path. "
     scale: float = 1.0
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             interval = context.get_interval(player)
             player_pos = context.actual_trajectory[player]
@@ -24,7 +27,7 @@ class DeviationLateral(Metric):
                 position: np.ndarray = np.array([pose.x, pose.y])
                 _, pose_on_lane = dg_traj.find_along_lane_closest_point(position)
                 position_on_lane, _ = translation_angle_from_SE2(pose_on_lane)
-                val.append(float(np.linalg.norm(position-position_on_lane)))
+                val.append(float(np.linalg.norm(position - position_on_lane)))
 
             ret = self.get_evaluated_metric(interval=interval, val=val)
             return ret
@@ -37,7 +40,6 @@ class DeviationVelocity(Metric):
     scale: float = 1.0
 
     def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             interval = context.get_interval(player)
             player_states = context.actual_trajectory[player]
@@ -47,9 +49,12 @@ class DeviationVelocity(Metric):
             for time in interval:
                 player_vel = player_states.at(time).vx
                 target_vel = target_vels.at(time)
-                val.append(float(abs(player_vel-target_vel)))
+                val.append(float(abs(player_vel - target_vel)))
 
             ret = self.get_evaluated_metric(interval=interval, val=val)
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+Metrics = Union[Empty, DeviationVelocity, DeviationLateral]

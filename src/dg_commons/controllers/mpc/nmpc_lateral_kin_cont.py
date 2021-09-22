@@ -8,7 +8,7 @@ __all__ = ["NMPCLatKinContPV", "NMPCLatKinContPVParam", "NMPCLatKinContAN", "NMP
 
 @dataclass
 class NMPCLatKinContPVParam(LatMPCKinBaseParam):
-    technique: str = 'linear'
+    path_approx_technique: str = 'linear'
     """ Path approximation technique """
 
 
@@ -30,14 +30,14 @@ class NMPCLatKinContPV(LatMPCKinBasePathVariable):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.input_mult * self.v_delta ** 2
+        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+               self.params.steering_vel_weight * self.v_delta ** 2
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
         return (target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2
 
     def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.technique](self, current_beta)
+        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
         return self.s, self.traj(self.s), None
 
     def set_scaling(self):
@@ -61,7 +61,7 @@ class NMPCLatKinContPV(LatMPCKinBasePathVariable):
 
 @dataclass
 class NMPCLatKinContANParam(LatMPCKinBaseParam):
-    technique: str = 'linear'
+    path_approx_technique: str = 'linear'
     """ Path Approximation Technique """
 
 
@@ -72,7 +72,7 @@ class NMPCLatKinContAN(LatMPCKinBaseAnalytical):
         super().__init__(params, model_type)
 
         self.path_var = False
-        assert self.params.technique in self.techniques.keys()
+        assert self.params.path_approx_technique in self.techniques.keys()
 
         # Set right right hand side of differential equation for x, y, theta, v, and delta
         self.model.set_rhs('state_x', cos(self.theta) * self.v)
@@ -84,14 +84,14 @@ class NMPCLatKinContAN(LatMPCKinBaseAnalytical):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.state_mult * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-                self.params.input_mult * self.v_delta ** 2
+        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
+                self.params.steering_vel_weight * self.v_delta ** 2
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
         return (target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2
 
     def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.technique](self, current_beta)
+        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
         return self.traj(self.state_x, self.state_y)
 
     def set_scaling(self):

@@ -35,7 +35,7 @@ class LQRParam:
     r: float = 1
     """ Input Multiplier """
     q: np.ndarray = np.identity(2)
-    """ State Multiplier """
+    """State Multiplier """
 
 
 class LQR:

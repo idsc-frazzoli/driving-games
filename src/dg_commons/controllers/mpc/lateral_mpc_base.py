@@ -15,11 +15,11 @@ VEHICLE_PARAMS = VehicleParameters.default_car()
 
 @dataclass
 class LatMPCKinBaseParam(MPCKinBAseParam):
-    state_mult: float = 1
+    position_err_weight: float = 1
     """ Weighting factor in cost function for having state error """
-    input_mult: float = 1
+    steering_vel_weight: float = 1
     """ Weighting factor in cost function for applying input """
-    delta_input_mult: float = 1e-2
+    delta_input_weight: float = 1e-2
     """ Weighting factor in cost function for varying input """
     v_delta_bounds: Tuple[float, float] = (-VEHICLE_PARAMS.ddelta_max, VEHICLE_PARAMS.ddelta_max)
     """ Ddelta Bounds """
@@ -67,7 +67,7 @@ class LatMPCKinBase(MPCKinBase):
         self.mpc.set_objective(mterm=mterm, lterm=lterm)
 
         self.mpc.set_rterm(
-            v_delta=self.params.delta_input_mult
+            v_delta=self.params.delta_input_weight
         )
 
         self.set_bounds()
@@ -120,7 +120,7 @@ class LatMPCKinBaseAnalytical(LatMPCKinBase):
     @abstractmethod
     def __init__(self, params, model_type: str):
         super().__init__(params, model_type)
-        assert self.params.technique in self.techniques.keys()
+        assert self.params.path_approx_technique in self.techniques.keys()
 
     def _get_linear(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
@@ -178,7 +178,7 @@ class LatMPCKinBasePathVariable(LatMPCKinBase):
     @abstractmethod
     def __init__(self, params, model_type: str):
         super().__init__(params, model_type)
-        assert self.params.technique in self.techniques.keys()
+        assert self.params.path_approx_technique in self.techniques.keys()
 
         self.path_var = True
         self.s = self.model.set_variable(var_type='_x', var_name='s', shape=(1, 1))
