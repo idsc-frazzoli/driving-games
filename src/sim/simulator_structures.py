@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import MutableMapping, Generic, Any, Dict, Type, Mapping, Tuple
+from typing import MutableMapping, Generic, Any, Dict, Type, Mapping, Tuple, Optional
 
 from geometry import SE2value, T2value
 from shapely.geometry import Polygon
@@ -29,9 +29,15 @@ class SimParameters:
 
 
 @dataclass
+class PlayerObservations:
+    state: X
+    occupancy: Optional[Polygon]
+
+
+@dataclass
 class SimObservations:
     """The observations from the simulator passed to each agent"""
-    players: MutableMapping[PlayerName, X]
+    players: MutableMapping[PlayerName, PlayerObservations]
     time: SimTime
 
 

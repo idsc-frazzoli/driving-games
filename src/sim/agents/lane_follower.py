@@ -50,7 +50,7 @@ class LFAgent(Agent):
         self.pure_pursuit.update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
-        self._my_obs = sim_obs.players[self.my_name]
+        self._my_obs = sim_obs.players[self.my_name].state
         my_pose: SE2value = SE2_from_xytheta([self._my_obs.x, self._my_obs.y, self._my_obs.theta])
 
         # update observations
