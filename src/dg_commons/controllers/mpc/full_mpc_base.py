@@ -1,16 +1,22 @@
-from dataclasses import dataclass
 from typing import Tuple
 from abc import abstractmethod
+
+import numpy as np
+
 from dg_commons.controllers.mpc.lateral_mpc_base import VEHICLE_PARAMS, LatMPCKinBaseAnalytical, \
     LatMPCKinBasePathVariable, LatMPCKinBaseParam
+from dg_commons.controllers.mpc.mpc_utils import *
 
 
 @dataclass
 class FullMPCKinBaseParam(LatMPCKinBaseParam):
-    velocity_err_weight: float = 1
-    """ Weighting factor in cost function for velocity error """
-    acceleration_weight: float = 1
-    """ Weighting factor in cost function for acceleration """
+    cost: str = "quadratic"
+    """ Cost function """
+    cost_params: CostParameters = quadratic_params(
+        q=SemiDef(matrix=np.eye(3)),
+        r=SemiDef(matrix=np.eye(2))
+    )
+    """ Cost function parameters """
     acc_bounds: Tuple[float, float] = VEHICLE_PARAMS.acc_limits
     """ Accelertion bounds """
     v_bounds: Tuple[float, float] = VEHICLE_PARAMS.vx_limits

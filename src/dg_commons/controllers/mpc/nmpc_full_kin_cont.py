@@ -1,8 +1,7 @@
-from dataclasses import dataclass
-from casadi import *
 from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam, \
     FullMPCKinBaseAnalytical
 from typing import Tuple
+from dg_commons.controllers.mpc.mpc_utils import *
 
 
 __all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam", "NMPCFullKinContAN", "NMPCFullKinContANParam"]
@@ -32,14 +31,18 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.velocity_err_weight * (self.v - speed_ref)**2 + \
-               self.params.steering_vel_weight * self.v_delta ** 2 + \
-               self.params.acceleration_weight * self.a ** 2
+        error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
+        inp = [self.v_delta, self.a]
+
+        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
+        return lterm
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.velocity_err_weight * (self.v - speed_ref)**2
+        error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
+        inp = [self.v_delta, self.a]
+
+        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
+        return mterm
 
     def compute_targets(self, current_beta):
         self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
@@ -90,14 +93,18 @@ class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.velocity_err_weight * (self.v - speed_ref) ** 2 + \
-               self.params.steering_vel_weight * self.v_delta ** 2 + \
-               self.params.acceleration_weight * self.a ** 2
+        error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
+        inp = [self.v_delta, self.a]
+
+        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
+        return lterm
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.velocity_err_weight * (self.v - speed_ref) ** 2
+        error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
+        inp = [self.v_delta, self.a]
+
+        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
+        return mterm
 
     def compute_targets(self, current_beta):
         self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)

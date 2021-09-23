@@ -7,6 +7,7 @@ from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, E
 import numpy as np
 from sim_tests.controllers_tests.test_controller_utils import run_test
 from dg_commons.controllers.full_controller_base import VehicleController
+from dg_commons.utils import SemiDef
 
 
 def test_lqr():
@@ -18,8 +19,8 @@ def test_lqr():
 
         controller=LQR,
         controller_params=LQRParam(
-            r=2.75,
-            q=np.array([[1, 0], [0, 1]])
+            r=SemiDef([0.8]),
+            q=SemiDef(matrix=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0.01]]))
         ),
 
         lf_agent=LFAgentLQR,
@@ -35,10 +36,6 @@ def test_lqr():
             nominal_speed=8
         ),
 
-        steering_controller=SCP,
-        steering_controller_params=SCPParam(
-            ddelta_kp=10
-        ),
 
         metrics=[
             DeviationLateral,
@@ -47,10 +44,10 @@ def test_lqr():
 
         state_estimator=ExtendedKalman,
         state_estimator_params=ExtendedKalmanParam(
-            actual_model_var=0.0001*np.eye(5),
-            actual_meas_var=0.001*np.eye(5)*0,
-            belief_model_var=0.0001*np.eye(5),
-            belief_meas_var=0.001*np.eye(5)*0
+            actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+            actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]])
         )
     )
 

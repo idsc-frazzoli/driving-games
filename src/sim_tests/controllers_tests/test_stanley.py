@@ -7,6 +7,7 @@ from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, E
 import numpy as np
 from sim_tests.controllers_tests.test_controller_utils import run_test
 from dg_commons.controllers.full_controller_base import VehicleController
+from dg_commons.utils import SemiDef
 
 
 def test_stanley():
@@ -46,10 +47,10 @@ def test_stanley():
 
         state_estimator=ExtendedKalman,
         state_estimator_params=ExtendedKalmanParam(
-            actual_model_var=0.0001*np.eye(5),
-            actual_meas_var=0.001*np.eye(5)*0,
-            belief_model_var=0.0001*np.eye(5),
-            belief_meas_var=0.001*np.eye(5)*0
+            actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+            actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]])
         )
     )
 

@@ -32,4 +32,4 @@ def run_test(controller: VehicleController,  scenario_name: str):
     test_pp.run()
     test_pp.evaluate_metrics()
     test_pp.evaluate_metrics_test()
-    test_pp.to_json()
+    # test_pp.to_json()

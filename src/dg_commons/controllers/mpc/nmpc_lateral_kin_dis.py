@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from dg_commons.controllers.mpc.discretization_techniques import discretizations
 from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBaseParam, LatMPCKinBasePathVariable
+from dg_commons.controllers.mpc.mpc_utils import *
+
 
 __all__ = ["NMPCLatKinDisPV", "NMPCLatKinDisPVParam"]
 
@@ -41,11 +43,18 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         self.model.setup()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return self.params.position_err_weight * ((target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2) + \
-               self.params.steering_vel_weight * self.v_delta ** 2
+        error = [target_x - self.state_x, target_y - self.state_y]
+        inp = [self.v_delta]
+
+        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
+        return lterm
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        return (target_x - self.state_x) ** 2 + (target_y - self.state_y) ** 2
+        error = [target_x - self.state_x, target_y - self.state_y]
+        inp = [self.v_delta]
+
+        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
+        return mterm
 
     def compute_targets(self, current_beta):
         self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)

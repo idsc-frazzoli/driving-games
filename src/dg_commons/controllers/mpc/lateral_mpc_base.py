@@ -5,20 +5,24 @@ from geometry import translation_angle_from_SE2
 from dg_commons.planning.lanes import DgLanelet
 from games import X
 import do_mpc
-from dg_commons.controllers.mpc.mpc_utils import *
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import VehicleParameters
 from dg_commons.controllers.mpc.mpc_base import MPCKinBAseParam, MPCKinBase
+from dg_commons.controllers.mpc.mpc_utils import *
+
 
 VEHICLE_PARAMS = VehicleParameters.default_car()
 
 
 @dataclass
 class LatMPCKinBaseParam(MPCKinBAseParam):
-    position_err_weight: float = 1
-    """ Weighting factor in cost function for having state error """
-    steering_vel_weight: float = 1
-    """ Weighting factor in cost function for applying input """
+    cost: str = "quadratic"
+    """ Cost function """
+    cost_params: CostParameters = quadratic_params(
+        q=SemiDef(matrix=np.eye(2)),
+        r=SemiDef(matrix=np.eye(1))
+    )
+    """ Cost function parameters """
     delta_input_weight: float = 1e-2
     """ Weighting factor in cost function for varying input """
     v_delta_bounds: Tuple[float, float] = (-VEHICLE_PARAMS.ddelta_max, VEHICLE_PARAMS.ddelta_max)

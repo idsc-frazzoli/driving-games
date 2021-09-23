@@ -3,6 +3,7 @@ from typing import Optional
 from abc import ABC, abstractmethod
 from games import X
 import do_mpc
+from dg_commons.controllers.mpc.mpc_utils import *
 
 
 @dataclass
@@ -11,6 +12,10 @@ class MPCKinBAseParam:
     """ Horizon Length """
     t_step: float = 0.1
     """ Sample Time """
+    cost: str = None
+    """ Cost function """
+    cost_params: CostParameters = None
+    """ Cost function parameters """
 
 
 class MPCKinBase(ABC):

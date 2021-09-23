@@ -7,6 +7,8 @@ from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, E
 import numpy as np
 from sim_tests.controllers_tests.test_controller_utils import run_test
 from dg_commons.controllers.full_controller_base import VehicleController
+from dg_commons.utils import SemiDef
+from dg_commons.controllers.mpc.mpc_utils import *
 
 
 def test_nmpc_lat_kin_dis():
@@ -20,8 +22,11 @@ def test_nmpc_lat_kin_dis():
         controller_params=NMPCLatKinDisPVParam(
             n_horizon=15,
             t_step=float(DT_COMMANDS),
-            position_err_weight=1,
-            steering_vel_weight=1,
+            cost="quadratic",
+            cost_params=quadratic_params(
+                q=SemiDef(matrix=np.eye(2)),
+                r=SemiDef(matrix=np.eye(1))
+            ),
             delta_input_weight=1e-2,
             dis_technique='Kinematic RK4',  # 'Kinematic Euler' or 'Kinematic RK4' or 'Anstrom Euler'
             path_approx_technique='linear',
@@ -48,10 +53,10 @@ def test_nmpc_lat_kin_dis():
 
         state_estimator=ExtendedKalman,
         state_estimator_params=ExtendedKalmanParam(
-            actual_model_var=0.0001 * np.eye(5),
-            actual_meas_var=0.001 * np.eye(5) * 0,
-            belief_model_var=0.0001 * np.eye(5),
-            belief_meas_var=0.001 * np.eye(5) * 0
+            actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+            actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]])
         )
     )
 

@@ -6,6 +6,7 @@ from sim.models.model_utils import acceleration_constraint
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional
+from dg_commons.utils import SemiDef
 
 geo = VehicleGeometry.default_car()
 params = VehicleParameters.default_car()
@@ -17,25 +18,25 @@ lr = geo.lr
 
 @dataclass
 class ExtendedKalmanParam:
-    actual_model_var: np.ndarray = np.zeros((n_states, n_states))
+    actual_model_var: SemiDef = SemiDef(n_states*[0])
     """ Actual Modeling variance matrix """
-    actual_meas_var: np.ndarray = np.zeros((n_states, n_states))
+    actual_meas_var: SemiDef = SemiDef(n_states*[0])
     """ Actual Measurement variance matrix """
-    belief_model_var: np.ndarray = actual_model_var
+    belief_model_var: SemiDef = SemiDef(matrix=actual_model_var.matrix)
     """ Belief modeling variance matrix """
-    belief_meas_var: np.ndarray = actual_meas_var
+    belief_meas_var: SemiDef = SemiDef(matrix=actual_meas_var.matrix)
     """ Belief measurement variance matrix """
-    initial_variance: np.ndarray = actual_meas_var
+    initial_variance: SemiDef = SemiDef(matrix=actual_meas_var.matrix)
     """ Initial variance matrix """
 
 
 class ExtendedKalman:
     def __init__(self, dt, x0=None, params=ExtendedKalmanParam()):
-        self.actual_model_noise = params.actual_model_var
-        self.actual_meas_noise = params.actual_meas_var
-        self.belief_model_noise = params.belief_model_var
-        self.belief_meas_noise = params.belief_meas_var
-        self.p = params.initial_variance
+        self.actual_model_noise = params.actual_model_var.matrix
+        self.actual_meas_noise = params.actual_meas_var.matrix
+        self.belief_model_noise = params.belief_model_var.matrix
+        self.belief_meas_noise = params.belief_meas_var.matrix
+        self.p = params.initial_variance.matrix
 
         self.state = x0
         self.dt = dt
@@ -57,17 +58,20 @@ class ExtendedKalman:
         # Perturb measurement and reshape
         measurement_k = measurement_k + ExtendedKalman.realization(self.actual_meas_noise)
         meas = measurement_k.as_ndarray().reshape((n_states, 1))
+
         try:
+            self.p = self.p.astype(float)
             helper = np.linalg.inv(np.matmul(np.matmul(h, self.p), h.T) + self.belief_meas_noise)
             k = np.matmul(np.matmul(self.p, h.T), helper)
             state = state + np.matmul(k, (meas - state))
             self.state = VehicleState.from_array(np.matrix.flatten(state))
             self.p = np.matmul(np.eye(n_states)-np.matmul(k, h), self.p)
         except np.linalg.LinAlgError:
+            print("here")
             # assert self.state == measurement_k
             pass
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
     def solve_dequation(self, u_k: VehicleCommands):
 
