@@ -3,16 +3,10 @@ from decimal import Decimal as D
 from fractions import Fraction
 from typing import Tuple
 
-from sim import Color
+from dg_commons import Color
 from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
-    # "Lights",
-    # "NO_LIGHTS",
-    # "LightsValue",
-    # "LIGHTS_HEADLIGHTS",
-    # "LIGHTS_TURN_LEFT",
-    # "LIGHTS_TURN_RIGHT",
     "VehicleCosts",
     "VehicleState",
     "VehicleActions",
@@ -20,29 +14,12 @@ __all__ = [
     "SE2_disc",
 ]
 
-# Lights = NewType("Lights", str)
-# """ The type of light commands. """
-#
-# NO_LIGHTS = Lights("none")
-# """ Lights are off. """
-# LIGHTS_HEADLIGHTS = Lights("headlights")
-# """ The front lights are on. """
-# LIGHTS_TURN_LEFT = Lights("turn_left")
-# """ Blinkers turn left """
-# LIGHTS_TURN_RIGHT = Lights("turn_right")
-# """ Blinkers turn right """
-# LightsValue: AbstractSet[Lights] = frozenset(
-#     {NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT}
-# )
-# """ All possible lights command value"""
-
-
 SE2_disc = Tuple[D, D, D]  # in degrees
 
 
 @dataclass(frozen=True)
 class VehicleCosts:
-    """ The personal costs of the vehicle"""
+    """The personal costs of the vehicle"""
 
     __slots__ = ["duration"]
     duration: D
