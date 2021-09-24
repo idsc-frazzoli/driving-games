@@ -1,35 +1,34 @@
 from typing import Optional
 
 import numpy as np
-from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
 
-from dg_commons import DgSampledSequence
+from dg_commons import PlayerName, X, DgSampledSequence, SE2_apply_T2
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
-from dg_commons.maps.lanes import DgLanelet
+from dg_commons.maps import DgLanelet
 from dg_commons.planning.trajectory import Trajectory
-from dg_commons import PlayerName, X
-from sim import SimObservations
+from sim import SimObservations, DrawableTrajectoryType
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands, VehicleState
 from sim.models.vehicle_ligths import LightsCmd, LightsValues
-from sim.sim_vis_extra import DrawableTrajectoryType
 
 
 class LFAgent(Agent):
-    """ This agent is a simple lane follower tracking the centerline of the given lane
+    """This agent is a simple lane follower tracking the centerline of the given lane
     via a pure pursuit controller. The reference in speed is determined by the speed behavior.
     """
 
-    def __init__(self,
-                 lane: Optional[DgLanelet] = None,
-                 speed_controller: Optional[SpeedController] = None,
-                 speed_behavior: Optional[SpeedBehavior] = None,
-                 pure_pursuit: Optional[PurePursuit] = None,
-                 steer_controller: Optional[SteerController] = None,
-                 return_extra: bool = False):
+    def __init__(
+        self,
+        lane: Optional[DgLanelet] = None,
+        speed_controller: Optional[SpeedController] = None,
+        speed_behavior: Optional[SpeedBehavior] = None,
+        pure_pursuit: Optional[PurePursuit] = None,
+        steer_controller: Optional[SteerController] = None,
+        return_extra: bool = False,
+    ):
         self.ref_lane = lane
         self.speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
         self.speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
@@ -39,10 +38,7 @@ class LFAgent(Agent):
         self.return_extra: bool = return_extra
         self._emergency: bool = False
         self._my_obs: Optional[X] = None
-        self.lights_test_seq = DgSampledSequence[LightsCmd](
-            timestamps=[0, 2, 4, 6, 8],
-            values=list(LightsValues)
-        )
+        self.lights_test_seq = DgSampledSequence[LightsCmd](timestamps=[0, 2, 4, 6, 8], values=list(LightsValues))
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -74,27 +70,31 @@ class LFAgent(Agent):
         delta_ref = self.pure_pursuit.get_desired_steering()
         self.steer_controller.update_reference(delta_ref)
         ddelta = self.steer_controller.get_control(t)
-        return VehicleCommands(
-            acc=acc,
-            ddelta=ddelta,
-            lights=self.lights_test_seq.at_or_previous(sim_obs.time)
-        )
+        return VehicleCommands(acc=acc, ddelta=ddelta, lights=self.lights_test_seq.at_or_previous(sim_obs.time))
 
     def emergency_subroutine(self) -> VehicleCommands:
         pass
 
-    def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
+    def on_get_extra(
+        self,
+    ) -> Optional[DrawableTrajectoryType]:
         if not self.return_extra:
             return None
         _, gpoint = self.pure_pursuit.find_goal_point()
         pgoal = translation_from_SE2(gpoint)
         l = self.pure_pursuit.param.length
-        rear_axle = SE2_apply_R2(self.pure_pursuit.pose, np.array([-l / 2, 0]))
+        rear_axle = SE2_apply_T2(self.pure_pursuit.pose, np.array([-l / 2, 0]))
         traj = Trajectory(
             timestamps=[0, 1],
-            values=[VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
-                    VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0),
-                    ])
-        traj_s = [traj, ]
-        colors = ["gold", ]
+            values=[
+                VehicleState(x=rear_axle[0], y=rear_axle[1], theta=0, vx=0, delta=0),
+                VehicleState(x=pgoal[0], y=pgoal[1], theta=0, vx=1, delta=0),
+            ],
+        )
+        traj_s = [
+            traj,
+        ]
+        colors = [
+            "gold",
+        ]
         return list(zip(traj_s, colors))

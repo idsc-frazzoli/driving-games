@@ -17,6 +17,7 @@ from duckietown_world.world_duckietown.duckietown_map import DuckietownMap
 import geometry as geo
 from scipy.optimize import minimize_scalar
 
+from dg_commons import SE2_apply_T2
 from driving_games.structures import SE2_disc
 from _tmp._deprecated.world.skeleton_graph import get_skeleton_graph
 
@@ -76,10 +77,7 @@ def interpolate_along_lane(lane: LaneSegment, along_lane: float) -> SE2Transform
     return transform
 
 
-def interpolate_along_lane_n_points(
-    lane: LaneSegment,
-    positions_along_lane: List[float]
-) -> List[SE2Transform]:
+def interpolate_along_lane_n_points(lane: LaneSegment, positions_along_lane: List[float]) -> List[SE2Transform]:
     """
     Get pose sequence as a SE2Transform along the center line of a lane. As an input you have to give a sequence in
     ascending order of the parameter of interpolation. They correspond to the position along the lane. If the lane has
@@ -160,16 +158,11 @@ def merge_lanes(lanes: List[LaneSegment]) -> Lane:
     width = lanes[0].width
     # Make a list of all the control points, while making sure that the points that overlap are only taken once
     contr_points_lanes = list(
-        it.chain(
-            *[ls.control_points[:-1] if ls is not lanes[-1]
-              else ls.control_points for ls in lanes]
-        )
+        it.chain(*[ls.control_points[:-1] if ls is not lanes[-1] else ls.control_points for ls in lanes])
     )
 
     # Creating a unified lane segment
-    merged_lane_segments = dw.LaneSegment(
-        width=width, control_points=contr_points_lanes
-    )
+    merged_lane_segments = dw.LaneSegment(width=width, control_points=contr_points_lanes)
     return merged_lane_segments
 
 
@@ -210,10 +203,7 @@ def get_lane_from_node_sequence(m: DuckietownMap, node_sequence: List[NodeName])
     ]
 
     # remove the nodes at the end of the partial paths such that their are only present once
-    path = list(it.chain(
-        *[_path[:-1] if _path is not path_sequence[-1]
-          else _path for _path in path_sequence]
-    ))
+    path = list(it.chain(*[_path[:-1] if _path is not path_sequence[-1] else _path for _path in path_sequence]))
 
     # get the sequence of lanes names
     lane_names = _get_lanes(path=path, graph=topology_graph)
@@ -234,7 +224,7 @@ def _get_lanes(path, graph):
     edges = zip(path[:-1], path[1:])
     lanes = []
     for a, b in edges:
-        lane = graph.get_edge_data(a, b)[0]['lane']
+        lane = graph.get_edge_data(a, b)[0]["lane"]
         lanes.append(lane)
     return lanes
 
@@ -293,8 +283,9 @@ def get_SE2disc_in_ref_from_along_lane(ref: SE2_disc, lane: Lane, along_lane: D)
 
 class LaneSegmentHashable(LaneSegment):
     """
-        Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
+    Wrapper class for a LaneSegment to make it hashable (make it usable for a frozen dataclass, e.g. a state)
     """
+
     time: float = 0.0
 
     @classmethod
@@ -312,9 +303,7 @@ class LaneSegmentHashable(LaneSegment):
         """
         Hash function for the lane segment. The control points and the width of the lane get hashed.
         """
-        ctr_as_SE2_disc = it.chain(
-            *[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points]
-        )
+        ctr_as_SE2_disc = it.chain(*[from_SE2Transform_to_SE2_disc(ctr) for ctr in self.control_points])
         to_hash = *ctr_as_SE2_disc, self.width
         return hash(to_hash)
 
@@ -326,17 +315,16 @@ class LaneSegmentHashable(LaneSegment):
         return lane_pose
 
     def find_along_lane_closest_point(self, p, tol=0.001) -> Tuple[float, geo.SE2value]:
-
         def get_delta(beta):
             q0 = self.center_point(beta)
             t0, _ = geo.translation_angle_from_SE2(q0)
             d = np.linalg.norm(p - t0)
 
             d1 = np.array([0, -d])
-            p1 = SE2_apply_R2(q0, d1)
+            p1 = SE2_apply_T2(q0, d1)
 
             d2 = np.array([0, +d])
-            p2 = SE2_apply_R2(q0, d2)
+            p2 = SE2_apply_T2(q0, d2)
 
             D2 = np.linalg.norm(p2 - p)
             D1 = np.linalg.norm(p1 - p)
