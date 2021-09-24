@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from casadi import *
 from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBasePathVariable, LatMPCKinBaseParam, \
     LatMPCKinBaseAnalytical
-from dg_commons.controllers.mpc.mpc_utils import *
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
 
 __all__ = ["NMPCLatKinContPV", "NMPCLatKinContPVParam", "NMPCLatKinContAN", "NMPCLatKinContANParam"]

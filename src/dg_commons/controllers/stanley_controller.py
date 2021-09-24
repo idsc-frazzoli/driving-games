@@ -71,7 +71,6 @@ class Stanley:
         """
         :return: float the desired wheel angle
         """
-        # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.alpha, self.lateral, self.front_speed]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         return self.alpha + atan(self.params.stanley_gain*self.lateral/self.front_speed)

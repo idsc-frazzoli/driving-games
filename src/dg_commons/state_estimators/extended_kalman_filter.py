@@ -7,6 +7,8 @@ import numpy as np
 from dataclasses import dataclass
 from typing import Optional
 from dg_commons.utils import SemiDef
+import random
+from dg_commons.state_estimators.dropping_trechniques import *
 
 geo = VehicleGeometry.default_car()
 params = VehicleParameters.default_car()
@@ -28,6 +30,9 @@ class ExtendedKalmanParam:
     """ Belief measurement variance matrix """
     initial_variance: SemiDef = SemiDef(matrix=actual_meas_var.matrix)
     """ Initial variance matrix """
+    dropping_technique: type(DroppingTechniques) = LGB
+    """ Dropping Technique """
+    dropping_params: DroppingTechniquesParams = LGBParam()
 
 
 class ExtendedKalman:
@@ -37,6 +42,7 @@ class ExtendedKalman:
         self.belief_model_noise = params.belief_model_var.matrix
         self.belief_meas_noise = params.belief_meas_var.matrix
         self.p = params.initial_variance.matrix
+        self.dropping = params.dropping_technique(params.dropping_params)
 
         self.state = x0
         self.dt = dt
@@ -53,25 +59,26 @@ class ExtendedKalman:
             self.p = self.belief_meas_noise
             return
 
-        h = self.h(self.state)
-        state = self.state.as_ndarray().reshape((n_states, 1))
-        # Perturb measurement and reshape
-        measurement_k = measurement_k + ExtendedKalman.realization(self.actual_meas_noise)
-        meas = measurement_k.as_ndarray().reshape((n_states, 1))
+        if not self.dropping.drop():
+            h = self.h(self.state)
+            state = self.state.as_ndarray().reshape((n_states, 1))
+            # Perturb measurement and reshape
+            measurement_k = measurement_k + ExtendedKalman.realization(self.actual_meas_noise)
+            meas = measurement_k.as_ndarray().reshape((n_states, 1))
 
-        try:
-            self.p = self.p.astype(float)
-            helper = np.linalg.inv(np.matmul(np.matmul(h, self.p), h.T) + self.belief_meas_noise)
-            k = np.matmul(np.matmul(self.p, h.T), helper)
-            state = state + np.matmul(k, (meas - state))
-            self.state = VehicleState.from_array(np.matrix.flatten(state))
-            self.p = np.matmul(np.eye(n_states)-np.matmul(k, h), self.p)
-        except np.linalg.LinAlgError:
-            print("here")
-            # assert self.state == measurement_k
-            pass
-        except Exception as e:
-            print(e)
+            try:
+                self.p = self.p.astype(float)
+                helper = np.linalg.inv(np.matmul(np.matmul(h, self.p), h.T) + self.belief_meas_noise)
+                k = np.matmul(np.matmul(self.p, h.T), helper)
+                state = state + np.matmul(k, (meas - state))
+                self.state = VehicleState.from_array(np.matrix.flatten(state))
+                self.p = np.matmul(np.eye(n_states)-np.matmul(k, h), self.p)
+            except np.linalg.LinAlgError:
+                print("here")
+                # assert self.state == measurement_k
+                pass
+            except Exception as e:
+                print(e)
 
     def solve_dequation(self, u_k: VehicleCommands):
 

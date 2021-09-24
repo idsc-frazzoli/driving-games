@@ -1,7 +1,7 @@
 from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam, \
     FullMPCKinBaseAnalytical
 from typing import Tuple
-from dg_commons.controllers.mpc.mpc_utils import *
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
 
 __all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam", "NMPCFullKinContAN", "NMPCFullKinContANParam"]

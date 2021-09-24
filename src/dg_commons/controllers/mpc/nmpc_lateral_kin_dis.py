@@ -1,8 +1,6 @@
-from dataclasses import dataclass
-from dg_commons.controllers.mpc.discretization_techniques import discretizations
+from dg_commons.controllers.mpc.mpc_utils.discretization_techniques import discretizations
 from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBaseParam, LatMPCKinBasePathVariable
-from dg_commons.controllers.mpc.mpc_utils import *
-
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
 __all__ = ["NMPCLatKinDisPV", "NMPCLatKinDisPVParam"]
 

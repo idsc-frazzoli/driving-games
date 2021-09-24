@@ -1,8 +1,5 @@
-import numpy as np
 from casadi import *
-from dg_commons.utils import SemiDef
-from dataclasses import dataclass
-from typing import Union
+
 
 def linear_param(pos1, angle1, pos2, angle2, pos3, angle3):
     m = (pos1[1] - pos2[1]) / (pos1[0] - pos2[0])
@@ -76,7 +73,6 @@ def solve_quadratic(a, b, c, d):
 
 def mat_mul(X, Y):
 
-
     result = [([0]*len(Y[0]))*len(X)]
 
     # iterate through rows of X
@@ -86,37 +82,3 @@ def mat_mul(X, Y):
             # iterate through rows of Y
             for k in range(len(Y)):
                 result[i][j] += X[i][k] * Y[k][j]
-
-
-class Empty:
-    pass
-
-
-@dataclass
-class quadratic_params:
-    q: SemiDef
-    r: SemiDef
-
-
-def quadratic_cost(x, u, quad_params):
-    r = SX(quad_params.r.matrix)
-    q = SX(quad_params.q.matrix)
-
-    dim_x = len(x)
-    dim_u = len(u)
-    helper1 = GenSX_zeros(dim_x)
-    helper2 = GenSX_zeros(dim_u)
-
-    for i in range(dim_x):
-        helper1[i] = x[i]
-
-    for i in range(dim_u):
-        helper2[i] = u[i]
-
-    return bilin(q, helper1, helper1) + bilin(r, helper2, helper2), bilin(q, helper1, helper1)
-
-
-CostParameters = Union[Empty, quadratic_params]
-costs = {"quadratic": quadratic_cost}
-
-

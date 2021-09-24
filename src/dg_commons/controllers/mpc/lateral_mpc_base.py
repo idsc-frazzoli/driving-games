@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Optional, Mapping, Callable, Tuple
 from abc import abstractmethod
 from geometry import translation_angle_from_SE2
@@ -8,7 +7,8 @@ import do_mpc
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import VehicleParameters
 from dg_commons.controllers.mpc.mpc_base import MPCKinBAseParam, MPCKinBase
-from dg_commons.controllers.mpc.mpc_utils import *
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
+from dg_commons.controllers.mpc.mpc_utils.path_approximation_techniques import *
 
 
 VEHICLE_PARAMS = VehicleParameters.default_car()
@@ -18,7 +18,7 @@ VEHICLE_PARAMS = VehicleParameters.default_car()
 class LatMPCKinBaseParam(MPCKinBAseParam):
     cost: str = "quadratic"
     """ Cost function """
-    cost_params: CostParameters = quadratic_params(
+    cost_params: CostParameters = QuadraticParams(
         q=SemiDef(matrix=np.eye(2)),
         r=SemiDef(matrix=np.eye(1))
     )
@@ -63,7 +63,8 @@ class LatMPCKinBase(MPCKinBase):
 
         self.mpc = do_mpc.controller.MPC(self.model)
         self.mpc.set_param(**self.setup_mpc)
-
+        suppress_ipopt = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
+        self.mpc.set_param(nlpsol_opts=suppress_ipopt)
         target_x, target_y, target_angle = self.compute_targets(current_beta)
         lterm = self.lterm(target_x, target_y, speed_ref)
         mterm = self.mterm(target_x, target_y, speed_ref)

@@ -6,7 +6,8 @@ from sim.agents.lane_followers import LFAgentFullMPC
 from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
 from sim_tests.controllers_tests.test_controller_utils import run_test
 from dg_commons.controllers.full_controller_base import VehicleController
-from dg_commons.controllers.mpc.mpc_utils import *
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
+from dg_commons.state_estimators.dropping_trechniques import *
 
 
 def test_nmpc_full_kin_cont():
@@ -21,7 +22,7 @@ def test_nmpc_full_kin_cont():
             n_horizon=15,
             t_step=float(DT_COMMANDS),
             cost="quadratic",
-            cost_params=quadratic_params(
+            cost_params=QuadraticParams(
                 q=SemiDef(matrix=np.eye(3)),
                 r=SemiDef(matrix=np.eye(2))
             ),
@@ -45,7 +46,11 @@ def test_nmpc_full_kin_cont():
             actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
             actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
             belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
-            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]])
+            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            dropping_technique=LGB,
+            dropping_params=LGBParam(
+                failure_p=0.1
+            )
         )
     )
 

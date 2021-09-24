@@ -1,13 +1,13 @@
 from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
 from dg_commons.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.lqr import LQRParam, LQR
-from dg_commons.controllers.steering_controllers import SCP, SCPParam
 from sim.agents.lane_followers import LFAgentLQR
 from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
 import numpy as np
 from sim_tests.controllers_tests.test_controller_utils import run_test
 from dg_commons.controllers.full_controller_base import VehicleController
 from dg_commons.utils import SemiDef
+from dg_commons.state_estimators.dropping_trechniques import *
 
 
 def test_lqr():
@@ -47,7 +47,11 @@ def test_lqr():
             actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
             actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
             belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
-            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]])
+            belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            dropping_technique=LGB,
+            dropping_params=LGBParam(
+                failure_p=0.0
+            )
         )
     )
 

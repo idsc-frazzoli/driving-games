@@ -1,9 +1,8 @@
-from dataclasses import dataclass
 from typing import Optional
 from abc import ABC, abstractmethod
 from games import X
 import do_mpc
-from dg_commons.controllers.mpc.mpc_utils import *
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
 
 @dataclass
@@ -23,6 +22,7 @@ class MPCKinBase(ABC):
     def __init__(self, params, model_type: str):
         self.params = params
         self.mpc = None
+
         self.setup_mpc = {
             'n_horizon': self.params.n_horizon,
             't_step': self.params.t_step,

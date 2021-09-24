@@ -1,18 +1,15 @@
 from typing import Tuple
 from abc import abstractmethod
-
-import numpy as np
-
 from dg_commons.controllers.mpc.lateral_mpc_base import VEHICLE_PARAMS, LatMPCKinBaseAnalytical, \
     LatMPCKinBasePathVariable, LatMPCKinBaseParam
-from dg_commons.controllers.mpc.mpc_utils import *
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
 
 @dataclass
 class FullMPCKinBaseParam(LatMPCKinBaseParam):
     cost: str = "quadratic"
     """ Cost function """
-    cost_params: CostParameters = quadratic_params(
+    cost_params: CostParameters = QuadraticParams(
         q=SemiDef(matrix=np.eye(3)),
         r=SemiDef(matrix=np.eye(2))
     )
