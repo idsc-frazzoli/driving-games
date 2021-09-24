@@ -12,7 +12,16 @@ from dg_commons.seq.sequence import DgSampledSequenceBuilder, Timestamp, Undefin
 from sim import SimTime, ImpactLocation
 from sim.models.model_structures import ModelGeometry, ModelType
 
-__all__ = ["SimObservations", "SimParameters", "SimModel", "SimLog", "PlayerLog", "LogEntry", "PlayerLogger"]
+__all__ = [
+    "SimObservations",
+    "SimParameters",
+    "SimModel",
+    "SimLog",
+    "PlayerLog",
+    "LogEntry",
+    "PlayerLogger",
+    "PlayerObservations",
+]
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -36,6 +45,7 @@ class PlayerObservations:
 @dataclass
 class SimObservations:
     """The observations from the simulator passed to each agent"""
+
     players: MutableMapping[PlayerName, PlayerObservations]
     time: SimTime
 
@@ -43,6 +53,7 @@ class SimObservations:
 @dataclass(unsafe_hash=True, frozen=True)
 class LogEntry:
     """A log entry for a player"""
+
     state: X
     commands: U
     extra: Any
@@ -51,6 +62,7 @@ class LogEntry:
 @dataclass
 class PlayerLog:
     """A log for a player"""
+
     states: DgSampledSequence[X]
     actions: DgSampledSequence[U]
     extra: DgSampledSequence[Any]
@@ -62,27 +74,28 @@ class PlayerLog:
         except (UndefinedAtTime, ZValueError):
             extra = None
 
-        return LogEntry(state=self.states.at_interp(t),
-                        commands=self.actions.at_or_previous(t),
-                        extra=extra)
+        return LogEntry(state=self.states.at_interp(t), commands=self.actions.at_or_previous(t), extra=extra)
 
 
 @dataclass
 class PlayerLogger(Generic[X, U]):
     """The logger of a player that builds the log"""
+
     states: DgSampledSequenceBuilder[X] = field(default_factory=DgSampledSequenceBuilder[X])
     actions: DgSampledSequenceBuilder[U] = field(default_factory=DgSampledSequenceBuilder[U])
     extra: DgSampledSequenceBuilder[Any] = field(default_factory=DgSampledSequenceBuilder[Any])
 
-    def as_sequence(self, ) -> PlayerLog:
-        return PlayerLog(states=self.states.as_sequence(),
-                         actions=self.actions.as_sequence(),
-                         extra=self.extra.as_sequence())
+    def as_sequence(
+        self,
+    ) -> PlayerLog:
+        return PlayerLog(
+            states=self.states.as_sequence(), actions=self.actions.as_sequence(), extra=self.extra.as_sequence()
+        )
 
 
 class SimLog(Dict[PlayerName, PlayerLog]):
     """The logger for a simulation. For each players it records sampled sequences of states, commands and extra
-     arguments than an agent might want to log."""
+    arguments than an agent might want to log."""
 
     def __setitem__(self, key, value):
         if not isinstance(value, PlayerLog):
@@ -105,19 +118,19 @@ class SimLog(Dict[PlayerName, PlayerLog]):
 class SimModel(ABC, Generic[X, U]):
     _state: X
     """State of the model"""
-    XT: Type[X] = object
+    # XT: Type[X] = object
     """Type of the state"""
     has_collided: bool = False
     """Whether or not the object has already collided"""
 
     @abstractmethod
     def update(self, commands: U, dt: SimTime):
-        """ The model gets updated via this function """
+        """The model gets updated via this function"""
         pass
 
     @abstractmethod
     def get_footprint(self) -> Polygon:
-        """ This returns the footprint of the model that is used for collision checking"""
+        """This returns the footprint of the model that is used for collision checking"""
         pass
 
     @abstractmethod
@@ -127,7 +140,7 @@ class SimModel(ABC, Generic[X, U]):
 
     @abstractmethod
     def get_velocity(self, in_model_frame: bool) -> (T2value, float):
-        """ Get velocity of the model
+        """Get velocity of the model
         :param in_model_frame: whether in body frame, or global frame"""
         pass
 
@@ -157,5 +170,7 @@ class SimModel(ABC, Generic[X, U]):
         return deepcopy(self._state)
 
     @abstractmethod
-    def get_extra_collision_friction_acc(self, ) -> Tuple[float, float, float]:
+    def get_extra_collision_friction_acc(
+        self,
+    ) -> Tuple[float, float, float]:
         pass
