@@ -11,8 +11,9 @@ from dg_commons.maps.lanes import DgLanelet, LaneCtrPoint
 from sim.agents.agent import Agent
 from sim.agents.lane_follower import LFAgent
 from sim.models import Pacejka
-from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn, VehicleParametersDyn
+from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from sim.models.vehicle_structures import VehicleGeometry, CAR
+from sim.models.vehicle_utils import VehicleParameters
 
 
 class NotSupportedConversion(ZException):
@@ -64,7 +65,7 @@ def model_agent_from_dynamic_obstacle(
         a_drag=2,
         color=color,
     )
-    vp = VehicleParametersDyn.default_car()
+    vp = VehicleParameters.default_car()
     model = VehicleModelDyn(
         x0=x0, vg=vg, vp=vp, pacejka_front=Pacejka.default_car_front(), pacejka_rear=Pacejka.default_car_rear()
     )
