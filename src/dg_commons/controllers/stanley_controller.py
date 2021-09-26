@@ -1,17 +1,15 @@
 from dataclasses import dataclass
-from math import sin, atan
-from typing import Optional, Tuple
+from math import atan
+from typing import Optional
 from sim.models.vehicle_structures import VehicleGeometry
-from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleState
-
+from sim.models.vehicle_dynamic import VehicleStateDyn
 import numpy as np
-import scipy.optimize
-from geometry import SE2value, translation_angle_from_SE2, SE2_from_rotation_translation, SE2_from_translation_angle
-from geometry.rotations import SO2_from_angle
-
-from dg_commons.geo import euclidean_between_SE2value
+from geometry import SE2value, SE2_from_translation_angle, translation_angle_scale_from_E2
 from dg_commons.planning.lanes import DgLanelet
-from games import X, U
+from games import X
+from duckietown_world.utils import SE2_apply_R2
+import math
+from duckietown_world import relative_pose
 
 
 __all__ = ["Stanley", "StanleyParam"]
@@ -49,23 +47,35 @@ class Stanley:
         self.path = path
 
     def update_state(self, obs: X):
-        pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
-        tr, ang = translation_angle_from_SE2(pose)
-        rot = SO2_from_angle(ang)
+        tr, ang = [obs.x, obs.y], obs.theta
+        pose = SE2_from_translation_angle(tr, ang)
 
-        delta_tr = np.dot(rot, np.array([self.vehicle_geometry.lf, 0]).T)
-        tr += delta_tr
-        self.front_pose = SE2_from_rotation_translation(rot, tr)
+        front_position = SE2_apply_R2(pose, np.array([self.vehicle_geometry.lf, 0]))
+        front_pose = SE2_from_translation_angle(front_position, ang)
 
-        lanepose = self.path.lane_pose_from_SE2_generic(self.front_pose)
+        lanepose = self.path.lane_pose_from_SE2_generic(front_pose)
         if X == VehicleStateDyn:
             front_speed = np.array(obs.vx, obs.vy) + obs.dtheta*np.array(0, self.vehicle_geometry.lf)
             self.front_speed = np.linalg.norm(front_speed)
         else:
-            self.front_speed = obs.vx/np.cos(obs.delta)
+            self.front_speed = obs.vx/math.cos(obs.delta)
 
         self.alpha = -lanepose.relative_heading
         self.lateral = -lanepose.lateral
+
+        alternative = True
+        if alternative:
+            self.lateral, self.alpha = self.alternative(front_pose)
+
+    def alternative(self, front_pose):
+        p, _, _ = translation_angle_scale_from_E2(front_pose)
+
+        beta, q0 = self.path.find_along_lane_closest_point(p, tol=1e-4)
+        rel = relative_pose(front_pose, q0)
+
+        r, relative_heading, _ = translation_angle_scale_from_E2(rel)
+        lateral = r[1]
+        return lateral, relative_heading
 
     def get_desired_steering(self) -> float:
         """
@@ -73,4 +83,5 @@ class Stanley:
         """
         if any([_ is None for _ in [self.alpha, self.lateral, self.front_speed]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
+
         return self.alpha + atan(self.params.stanley_gain*self.lateral/self.front_speed)

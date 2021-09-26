@@ -28,7 +28,8 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         f = [self.state_x, self.state_y, self.theta, self.v, self.delta, self.s]
         for _ in range(int(self.params.t_step/self.params.dis_t)):
             f = discretizations[self.params.dis_technique](f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta,
-                                                           self.v_s, 0, self.vehicle_geometry, self.params.dis_t)
+                                                           self.v_s, 0, self.vehicle_geometry, self.params.dis_t,
+                                                           self.params.rear_axle)
 
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
         self.model.set_rhs('state_x', f[0])
@@ -55,8 +56,10 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         return mterm
 
     def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
-        return self.s, self.traj(self.s), None
+        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique](self, current_beta)
+        target_x = res[0] if vertical_line else self.s
+        target_y = self.state_y if vertical_line else self.traj(self.s)
+        return target_x, target_y, None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1

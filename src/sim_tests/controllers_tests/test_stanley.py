@@ -19,7 +19,7 @@ def test_stanley():
 
         controller=Stanley,
         controller_params=StanleyParam(
-            stanley_gain=2
+            stanley_gain=3
         ),
 
         lf_agent=LFAgentStanley,

@@ -27,7 +27,8 @@ def test_nmpc_lat_cont_analytical():
                 r=SemiDef(matrix=np.eye(1))
             ),
             delta_input_weight=1e-2,
-            path_approx_technique='linear'
+            path_approx_technique='linear',
+            rear_axle=False
         ),
 
         lf_agent=LFAgentLatMPC,

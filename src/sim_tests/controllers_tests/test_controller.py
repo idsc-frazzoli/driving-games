@@ -117,11 +117,11 @@ class TestController:
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities)
 
-        #report = generate_report(self.sim_context)
+        # report = generate_report(self.sim_context)
         # save report
-        #output_dir = "out"
-        #report_file = os.path.join(output_dir, f"{name}.html")
-        #report.to_html(report_file)
+        # output_dir = "out"
+        # report_file = os.path.join(output_dir, f"{name}.html")
+        # report.to_html(report_file)
 
     def evaluate_metrics_test(self):
         if self.metrics is not None:

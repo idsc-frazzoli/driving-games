@@ -28,6 +28,7 @@ def test_nmpc_lat_kin_cont():
             ),
             delta_input_weight=1e-2,
             path_approx_technique='linear',
+            rear_axle=False
         ),
 
         lf_agent=LFAgentLatMPC,

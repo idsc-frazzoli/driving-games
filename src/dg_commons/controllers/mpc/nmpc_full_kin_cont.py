@@ -21,9 +21,16 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         super().__init__(params, model_type)
 
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
-        self.model.set_rhs('state_x', cos(self.theta) * self.v)
-        self.model.set_rhs('state_y', sin(self.theta) * self.v)
-        self.model.set_rhs('theta', tan(self.delta) * self.v / self.vehicle_geometry.length)
+        dtheta = self.v * tan(self.delta) / self.vehicle_geometry.length
+        if self.params.rear_axle:
+            self.model.set_rhs('state_x', cos(self.theta) * self.v)
+            self.model.set_rhs('state_y', sin(self.theta) * self.v)
+        else:
+            vy = dtheta * self.vehicle_geometry.lr
+            self.model.set_rhs('state_x', self.v * cos(self.theta) - vy * sin(self.theta))
+            self.model.set_rhs('state_y', self.v * sin(self.theta) + vy * cos(self.theta))
+
+        self.model.set_rhs('theta', dtheta)
         self.model.set_rhs('v', self.a)
         self.model.set_rhs('delta', self.v_delta)
         self.model.set_rhs('s', self.v_s)
@@ -45,8 +52,10 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         return mterm
 
     def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
-        return self.s, self.traj(self.s), None
+        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique](self, current_beta)
+        target_x = res[0] if vertical_line else self.s
+        target_y = self.state_y if vertical_line else self.traj(self.s)
+        return target_x, target_y, None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
@@ -84,9 +93,16 @@ class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
         assert self.params.path_approx_technique in self.techniques.keys()
 
         # Set right right hand side of differential equation for x, y, theta, v, and delta
-        self.model.set_rhs('state_x', cos(self.theta) * self.v)
-        self.model.set_rhs('state_y', sin(self.theta) * self.v)
-        self.model.set_rhs('theta', tan(self.delta) * self.v / self.vehicle_geometry.length)
+        dtheta = self.v * tan(self.delta) / self.vehicle_geometry.length
+        if self.params.rear_axle:
+            self.model.set_rhs('state_x', cos(self.theta) * self.v)
+            self.model.set_rhs('state_y', sin(self.theta) * self.v)
+        else:
+            vy = dtheta * self.vehicle_geometry.lr
+            self.model.set_rhs('state_x', self.v * cos(self.theta) - vy * sin(self.theta))
+            self.model.set_rhs('state_y', self.v * sin(self.theta) + vy * cos(self.theta))
+
+        self.model.set_rhs('theta', dtheta)
         self.model.set_rhs('v', self.a)
         self.model.set_rhs('delta', self.v_delta)
 

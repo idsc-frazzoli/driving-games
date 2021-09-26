@@ -27,7 +27,8 @@ def test_nmpc_full_kin_analytical():
                 r=SemiDef(matrix=np.eye(2))
             ),
             delta_input_weight=1e-2,
-            path_approx_technique='linear'
+            path_approx_technique='linear',
+            rear_axle=False
         ),
 
         lf_agent=LFAgentFullMPC,

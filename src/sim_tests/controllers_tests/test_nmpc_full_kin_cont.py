@@ -11,9 +11,9 @@ from dg_commons.state_estimators.dropping_trechniques import *
 
 
 def test_nmpc_full_kin_cont():
-    scenario = "USA_Peach-1_1_T-1"
+    # scenario = "USA_Peach-1_1_T-1"
     # scenario="ZAM_Tjunction-1_129_T-1"
-    # scenario="ARG_Carcarana-1_1_T-1"
+    scenario="ARG_Carcarana-1_1_T-1"
 
     controller = VehicleController(
 
@@ -27,7 +27,8 @@ def test_nmpc_full_kin_cont():
                 r=SemiDef(matrix=np.eye(2))
             ),
             delta_input_weight=1e-2,
-            path_approx_technique='linear'
+            path_approx_technique='linear',
+            rear_axle=False
         ),
 
         lf_agent=LFAgentFullMPC,
@@ -49,7 +50,7 @@ def test_nmpc_full_kin_cont():
             belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
             dropping_technique=LGB,
             dropping_params=LGBParam(
-                failure_p=0.1
+                failure_p=0.0
             )
         )
     )

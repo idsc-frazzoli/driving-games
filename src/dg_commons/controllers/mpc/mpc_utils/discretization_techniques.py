@@ -8,17 +8,23 @@ def combine_list(list1, list2, alpha1, alpha2):
     return [alpha1 * x + alpha2 * y for (x, y) in zipped_lists]
 
 
-def kin(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry):
+def kin(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, rear_axle):
+    return_val = []
+    dtheta = v * tan(delta) / vehicle_geometry.length
+    if rear_axle:
+        return_val.append(cos(theta) * v)
+        return_val.append(sin(theta) * v)
+    else:
+        vy = dtheta * vehicle_geometry.lr
+        return_val.append(v * cos(theta) - vy * sin(theta))
+        return_val.append(v * sin(theta) + vy * cos(theta))
 
-    return \
-        [
-            cos(theta) * v,
-            sin(theta) * v,
-            tan(delta) * v / vehicle_geometry.length,
-            acc,
-            v_delta,
-            v_s
-        ]
+    return_val.append(dtheta)
+    return_val.append(acc)
+    return_val.append(v_delta)
+    return_val.append(v_s)
+
+    return return_val
 
 
 def euler(state, f, ts: float):
@@ -55,25 +61,25 @@ def anstrom_euler(state, f, ts: float):
     return state
 
 
-def kin_rk4(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
+def kin_rk4(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float, rear_axle):
     def f(param):
-        return kin(*param, v_delta, v_s, acc, vehicle_geometry)
+        return kin(*param, v_delta, v_s, acc, vehicle_geometry, rear_axle)
 
     state = [x, y, theta, v, delta, s]
     return rk4(state, f, ts)
 
 
-def kin_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
+def kin_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float, rear_axle):
     def f(param):
-        return kin(*param, v_delta, v_s, acc, vehicle_geometry)
+        return kin(*param, v_delta, v_s, acc, vehicle_geometry, rear_axle)
 
     state = [x, y, theta, v, delta, s]
     return euler(state, f, ts)
 
 
-def kin_anstrom_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float):
+def kin_anstrom_euler(x, y, theta, v, delta, s, v_delta, v_s, acc, vehicle_geometry, ts: float, rear_axle):
     def f(param):
-        return kin(*param, v_delta, v_s, acc, vehicle_geometry)
+        return kin(*param, v_delta, v_s, acc, vehicle_geometry, rear_axle)
 
     state = [x, y, theta, v, delta, s]
     return anstrom_euler(state, f, ts)

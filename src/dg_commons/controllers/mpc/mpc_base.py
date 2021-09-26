@@ -15,6 +15,8 @@ class MPCKinBAseParam:
     """ Cost function """
     cost_params: CostParameters = None
     """ Cost function parameters """
+    rear_axle: bool = False
+    """ Whether to control rear axle position instead of cog """
 
 
 class MPCKinBase(ABC):

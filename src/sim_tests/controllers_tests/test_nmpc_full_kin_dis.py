@@ -29,7 +29,8 @@ def test_nmpc_full_kin_dis():
             delta_input_weight=1e-2,
             dis_technique='Kinematic RK4',  # 'Kinematic Euler' or 'Kinematic RK4' or 'Anstrom Euler'
             path_approx_technique='linear',
-            dis_t=0.05
+            dis_t=0.05,
+            rear_axle=False
         ),
 
         lf_agent=LFAgentFullMPC,
