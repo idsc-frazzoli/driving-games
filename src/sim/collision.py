@@ -4,7 +4,7 @@ import numpy as np
 from geometry import translation_angle_from_SE2
 from shapely.geometry import Polygon
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \

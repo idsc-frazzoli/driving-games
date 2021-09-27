@@ -4,7 +4,7 @@ from typing import Dict
 from nose.tools import eq_, assert_equal
 from zuper_commons.types import ZValueError
 
-from games import PlayerName
+from dg_commons import PlayerName
 from games.utils import valmap
 from possibilities.prob import enumerate_prob_assignments, PossibilityDist, ProbDist, A, expected_value
 from . import logger

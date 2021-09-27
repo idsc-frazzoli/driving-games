@@ -8,7 +8,7 @@ from matplotlib.cm import get_cmap
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import FancyArrowPatch
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import CollisionReport, SimLog
 from sim.collision_utils import velocity_of_P_given_A
 from sim.simulator_structures import LogEntry

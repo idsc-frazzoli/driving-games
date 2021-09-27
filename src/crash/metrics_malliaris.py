@@ -7,7 +7,7 @@ import numpy as np
 from numpy import deg2rad
 from shapely.geometry import Point
 
-from games import X, PlayerName
+from dg_commons import X, PlayerName
 from sim import CollisionReport
 from sim.collision_utils import get_impact_point_direction
 from sim.models import ms2mph

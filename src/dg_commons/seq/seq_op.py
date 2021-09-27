@@ -2,7 +2,7 @@ from operator import add
 
 from toolz import accumulate
 
-from dg_commons.sequence import DgSampledSequence, iterate_with_dt
+from dg_commons.seq.sequence import DgSampledSequence, iterate_with_dt
 
 __all__ = ["seq_accumulate", "seq_integrate"]
 

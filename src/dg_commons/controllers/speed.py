@@ -6,14 +6,13 @@ import numpy as np
 from duckietown_world import relative_pose, SE2Transform
 from geometry import SE2value
 
+from dg_commons import PlayerName
 from dg_commons.controllers.pid import PIDParam, PID
-from games import PlayerName, X
+from games.utils import valmap
+from sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
+from sim.simulator_structures import PlayerObservations
 
 __all__ = ["SpeedControllerParam", "SpeedController", "SpeedBehavior"]
-
-from games.utils import valmap
-
-from sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 
 
 @dataclass
@@ -53,11 +52,11 @@ class SpeedBehavior:
     def __init__(self, my_name: Optional[PlayerName] = None):
         self.params: SpeedBehaviorParam = SpeedBehaviorParam()
         self.my_name: PlayerName = my_name
-        self.agents: Optional[MutableMapping[PlayerName, X]] = None
+        self.agents: Optional[MutableMapping[PlayerName, PlayerObservations]] = None
         self.speed_ref: float = 0
         """ The speed reference"""
 
-    def update_observations(self, agents: MutableMapping[PlayerName, X]):
+    def update_observations(self, agents: MutableMapping[PlayerName, PlayerObservations]):
         self.agents = agents
 
     def get_speed_ref(self, at: float) -> (float, bool):
@@ -66,11 +65,11 @@ class SpeedBehavior:
         (e.g. collision avoidance)
         """
 
-        mypose = extract_pose_from_state(self.agents[self.my_name])
+        mypose = extract_pose_from_state(self.agents[self.my_name].state)
 
-        def rel_pose(other_pose: SE2value) -> SE2Transform:
-            return SE2Transform.from_SE2(relative_pose(
-                mypose, extract_pose_from_state(other_pose)))
+        def rel_pose(other_obs: PlayerObservations) -> SE2Transform:
+            other_pose: SE2value = extract_pose_from_state(other_obs.state)
+            return SE2Transform.from_SE2(relative_pose(mypose, other_pose))
 
         agents_rel_pose: Dict[PlayerName, SE2Transform] = valmap(rel_pose, self.agents)
         yield_to_anyone: bool = self.is_there_anyone_to_yield_to(agents_rel_pose)
@@ -90,7 +89,7 @@ class SpeedBehavior:
             if other_name == self.my_name:
                 continue
             rel = agents_rel_pose[other_name]
-            other_vel = extract_vel_from_state(self.agents[other_name])
+            other_vel = extract_vel_from_state(self.agents[other_name].state)
             rel_distance = np.linalg.norm(rel.p)
             # todo improve with SPOT predictions
             coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and \
@@ -100,12 +99,12 @@ class SpeedBehavior:
         return False
 
     def is_emergency_subroutine_needed(self, agents_rel_pose: Dict[PlayerName, SE2Transform]) -> bool:
-        myvel = self.agents[self.my_name].vx
+        myvel = self.agents[self.my_name].state.vx
         for other_name, _ in self.agents.items():
             if other_name == self.my_name:
                 continue
             rel = agents_rel_pose[other_name]
-            other_vel = extract_vel_from_state(self.agents[other_name])
+            other_vel = extract_vel_from_state(self.agents[other_name].state)
             rel_distance = np.linalg.norm(rel.p)
             coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4 and \
                                          other_vel > self.params.minimum_yield_vel
@@ -121,14 +120,14 @@ class SpeedBehavior:
         If someone is in front with the same orientation, then apply the two seconds rule to adapt reference velocity
          that allows maintaining a safe distance between the vehicles
         """
-        myvel = self.agents[self.my_name].vx
-        candidate_speed_ref = [self.params.nominal_speed,]
+        myvel = self.agents[self.my_name].state.vx
+        candidate_speed_ref = [self.params.nominal_speed, ]
         for other_name, _ in self.agents.items():
             if other_name == self.my_name:
                 continue
             rel = agents_rel_pose[other_name]
             rel_dist = np.linalg.norm(rel.p)
-            other_vel = self.agents[other_name].vx
+            other_vel = self.agents[other_name].state.vx
             in_front_of_me: bool = rel.p[0] > 0.5 and abs(rel.p[1]) <= 1.2 and abs(rel.theta) < pi / 6
             # safety distance at current speed + difference of how it will be in the next second
             dist_to_keep = self._get_min_safety_dist(myvel) + max(myvel - other_vel, 0)

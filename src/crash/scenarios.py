@@ -8,11 +8,10 @@ from geometry import xytheta_from_SE2
 from numpy import deg2rad, linspace
 
 from crash.agents import B1Agent, B2Agent
-from dg_commons import DgSampledSequence
+from dg_commons import DgSampledSequence, PlayerName
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
-from dg_commons.planning.lanes import DgLanelet
-from games import PlayerName
+from dg_commons.maps.lanes import DgLanelet
 from sim import SimTime
 from sim.agents.agent import NPAgent
 from sim.models import kmh2ms, PEDESTRIAN

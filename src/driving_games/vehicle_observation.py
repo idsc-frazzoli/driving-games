@@ -3,7 +3,8 @@ from functools import lru_cache
 from typing import FrozenSet, Mapping, Optional, Union
 from decimal import Decimal as D
 
-from games import Observations, PlayerName
+from dg_commons import PlayerName
+from games import Observations
 from sim.models.vehicle_ligths import LightsCmd
 from .structures import SE2_disc, VehicleState
 

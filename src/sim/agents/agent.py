@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Optional, Any
+from typing import Callable, Optional, Any, TypeVar
 
-from dg_commons import DgSampledSequence
-from games import U, PlayerName, X
+from dg_commons import DgSampledSequence, U, PlayerName, X
 from sim import SimTime
 from sim.simulator_structures import SimObservations
 
-__all__ = ["Agent", "NPAgent", "PolicyAgent"]
+__all__ = ["TAgent", "Agent", "NPAgent", "PolicyAgent"]
+
+TAgent = TypeVar("TAgent", bound="Agent")
 
 
 class Agent(ABC):
@@ -15,16 +16,18 @@ class Agent(ABC):
 
     @abstractmethod
     def on_episode_init(self, my_name: PlayerName):
-        """ This method will get called once for each player at the beginning of the simulation"""
+        """This method will get called once for each player at the beginning of the simulation"""
         pass
 
     @abstractmethod
     def get_commands(self, sim_obs: SimObservations) -> U:
-        """ This method gets called for each player inside the update loop of the simulator"""
+        """This method gets called for each player inside the update loop of the simulator"""
         pass
 
-    def on_get_extra(self, ) -> Optional[Any]:
-        """ This method gets called for each player inside the update loop of the simulator,
+    def on_get_extra(
+        self,
+    ) -> Optional[Any]:
+        """This method gets called for each player inside the update loop of the simulator,
         it is used purely for logging. For example pass all the trajectories that have been generated at that step.
           To return something only at certain timestamps simply return None in the others."""
         pass

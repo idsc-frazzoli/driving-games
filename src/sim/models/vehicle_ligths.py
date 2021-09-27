@@ -4,7 +4,7 @@ from typing import NewType, AbstractSet, Mapping, Tuple
 import numpy as np
 
 from games.utils import fd
-from sim import Color
+from dg_commons import Color
 
 __all__ = [
     "LightsCmd",
@@ -13,7 +13,8 @@ __all__ = [
     "LIGHTS_TURN_LEFT",
     "LIGHTS_TURN_RIGHT",
     "LIGHTS_HAZARD",
-    "LightsColors"
+    "LightsValues",
+    "LightsColors",
 ]
 
 LightsCmd = NewType("LightsCmd", str)
@@ -29,7 +30,8 @@ LIGHTS_TURN_RIGHT = LightsCmd("turn_right")
 LIGHTS_HAZARD = LightsCmd("hazard")
 """Hazard lights"""
 LightsValues: AbstractSet[LightsCmd] = frozenset(
-    {NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT, LIGHTS_HAZARD})
+    {NO_LIGHTS, LIGHTS_HEADLIGHTS, LIGHTS_TURN_LEFT, LIGHTS_TURN_RIGHT, LIGHTS_HAZARD}
+)
 """ All possible lights command value. Only one of these commands can be given at each instant"""
 
 
@@ -47,36 +49,40 @@ red = (0.5, 0.0, 0.0)
 red_more = (1.0, 0.0, 0.0)
 orange = (1.0, 0.5, 0.3)
 
-phase2colors: Mapping[LightsCmd, LightsColors] = fd({
-    NO_LIGHTS: LightsColors(back_left=red, back_right=red, front_left=white, front_right=white),
-    LIGHTS_HEADLIGHTS: LightsColors(back_left=red, back_right=red, front_left=yellow, front_right=yellow),
-    LIGHTS_TURN_LEFT: LightsColors(
-        back_left=orange,
-        back_right=red,
-        front_left=orange,
-        front_right=white,
-    ),
-    LIGHTS_TURN_RIGHT: LightsColors(
-        back_left=red,
-        back_right=orange,
-        front_left=white,
-        front_right=orange,
-    ),
-    LIGHTS_HAZARD: LightsColors(
-        back_left=orange,
-        back_right=orange,
-        front_left=orange,
-        front_right=orange,
-    ),
-})
+phase2colors: Mapping[LightsCmd, LightsColors] = fd(
+    {
+        NO_LIGHTS: LightsColors(back_left=red, back_right=red, front_left=white, front_right=white),
+        LIGHTS_HEADLIGHTS: LightsColors(back_left=red, back_right=red, front_left=yellow, front_right=yellow),
+        LIGHTS_TURN_LEFT: LightsColors(
+            back_left=orange,
+            back_right=red,
+            front_left=orange,
+            front_right=white,
+        ),
+        LIGHTS_TURN_RIGHT: LightsColors(
+            back_left=red,
+            back_right=orange,
+            front_left=white,
+            front_right=orange,
+        ),
+        LIGHTS_HAZARD: LightsColors(
+            back_left=orange,
+            back_right=orange,
+            front_left=orange,
+            front_right=orange,
+        ),
+    }
+)
 
-lightscmd2phases: Mapping[LightsCmd, Tuple[LightsCmd, ...]] = fd({
-    NO_LIGHTS: (NO_LIGHTS,),
-    LIGHTS_HEADLIGHTS: (LIGHTS_HEADLIGHTS,),
-    LIGHTS_TURN_LEFT: (LIGHTS_TURN_LEFT, NO_LIGHTS),
-    LIGHTS_TURN_RIGHT: (LIGHTS_TURN_RIGHT, NO_LIGHTS),
-    LIGHTS_HAZARD: (LIGHTS_HAZARD, NO_LIGHTS),
-})
+lightscmd2phases: Mapping[LightsCmd, Tuple[LightsCmd, ...]] = fd(
+    {
+        NO_LIGHTS: (NO_LIGHTS,),
+        LIGHTS_HEADLIGHTS: (LIGHTS_HEADLIGHTS,),
+        LIGHTS_TURN_LEFT: (LIGHTS_TURN_LEFT, NO_LIGHTS),
+        LIGHTS_TURN_RIGHT: (LIGHTS_TURN_RIGHT, NO_LIGHTS),
+        LIGHTS_HAZARD: (LIGHTS_HAZARD, NO_LIGHTS),
+    }
+)
 
 PHASE_SLOW: float = 0.4
 

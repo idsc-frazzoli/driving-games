@@ -3,30 +3,26 @@ from functools import partial
 from typing import List, Optional, Type
 
 import numpy as np
-from duckietown_world import SE2Transform
 from geometry import xytheta_from_SE2
 from networkx import DiGraph
 
-from dg_commons.sequence import DgSampledSequence, X, iterate_with_dt
+from dg_commons import SE2Transform
+from dg_commons.seq.sequence import DgSampledSequence, X, iterate_with_dt
 from sim.models import extract_pose_from_state
 from sim.models.vehicle import VehicleState, VehicleCommands
 
-__all__ = [
-    "Trajectory",
-    "TrajectoryGraph",
-    "commands_plan_from_trajectory"
-]
+__all__ = ["Trajectory", "TrajectoryGraph", "commands_plan_from_trajectory"]
 
 
 class Trajectory(DgSampledSequence[VehicleState]):
-    """ Container for a trajectory as a sampled sequence """
+    """Container for a trajectory as a sampled sequence"""
 
     @property
     def XT(self) -> Type[X]:
         return VehicleState
 
     def as_path(self) -> List[SE2Transform]:
-        """ Returns cartesian coordinates (SE2) of transition states """
+        """Returns cartesian coordinates (SE2) of transition states"""
         return [SE2Transform(p=np.array([x.x, x.y]), theta=x.theta) for x in self.values]
 
     def apply_SE2transform(self, transform: SE2Transform):
@@ -39,7 +35,7 @@ class Trajectory(DgSampledSequence[VehicleState]):
         f = partial(_applySE2, t=transform)
         return self.transform_values(f=f, YT=VehicleState)
 
-    def is_connectable(self, other: 'Trajectory', tol=1e-3) -> bool:
+    def is_connectable(self, other: "Trajectory", tol=1e-3) -> bool:
         """
         Any primitive whose initial state's velocity and steering angle are equal to those of the current primitive is
         deemed connectable.

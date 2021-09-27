@@ -5,7 +5,8 @@ from typing import Dict, Set
 
 from yaml import safe_load
 
-from games import PlayerName, MonadicPreferenceBuilder
+from dg_commons import PlayerName
+from games import  MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
 

@@ -3,18 +3,26 @@ from math import isclose, pi, atan2
 from typing import Sequence, List
 
 import numpy as np
+from cachetools import cached, LRUCache
 from commonroad.scenario.lanelet import Lanelet
-from duckietown_world import SE2Transform, relative_pose
-from duckietown_world.utils import memoized_reset, SE2_interpolate, SE2_apply_R2
-from duckietown_world.world_duckietown.lane_segment import get_distance_two
-from geometry import SO2value, SO2_from_angle, SE2_from_translation_angle, SE2value, SE2, \
-    translation_angle_scale_from_E2, translation_angle_from_SE2, T2value
+from geometry import (
+    SO2value,
+    SO2_from_angle,
+    SE2_from_translation_angle,
+    SE2value,
+    SE2,
+    translation_angle_scale_from_E2,
+    translation_angle_from_SE2,
+    T2value,
+)
 from scipy.optimize import minimize_scalar
+
+from dg_commons import SE2Transform, relative_pose, SE2_apply_T2, SE2_interpolate, get_distance_SE2
 
 
 @dataclass(unsafe_hash=True)
 class DgLanePose:
-    """ Very detailed information about the "position in the lane". """
+    """Very detailed information about the "position in the lane"."""
 
     # am I "inside" the lane?
     inside: bool
@@ -65,7 +73,7 @@ _rot90: SO2value = SO2_from_angle(pi / 2)
 
 
 class DgLanelet:
-    """ Taking the best from commonroad Lanelet and Duckietown LaneSegment """
+    """Taking the best from commonroad Lanelet and Duckietown LaneSegment"""
 
     def __init__(self, control_points: Sequence[LaneCtrPoint]):
         self.control_points: List[LaneCtrPoint] = list(control_points)
@@ -80,18 +88,16 @@ class DgLanelet:
             tangent = _rot90 @ normal
             theta = atan2(tangent[1], tangent[0])
             q = SE2Transform(p=center, theta=theta)
-            ctr_points.append(LaneCtrPoint(
-                q, r=np.linalg.norm(normal) / 2
-            ))
+            ctr_points.append(LaneCtrPoint(q, r=np.linalg.norm(normal) / 2))
         return DgLanelet(ctr_points)
 
-    @memoized_reset
+    @cached(LRUCache(maxsize=128))
     def get_lane_lengths(self) -> List[float]:
         res = []
         for i in range(len(self.control_points) - 1):
             p0 = self.control_points[i].q
             p1 = self.control_points[i + 1].q
-            sd = get_distance_two(p0.as_SE2(), p1.as_SE2())
+            sd = get_distance_SE2(p0.as_SE2(), p1.as_SE2())
             res.append(sd)
         return res
 
@@ -102,6 +108,7 @@ class DgLanelet:
         return self.lane_pose_from_SE2_generic(qt.as_SE2(), tol=tol)
 
     def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-4) -> DgLanePose:
+        """Note this function performs a local search, not very robust to strange situations"""
         p, _, _ = translation_angle_scale_from_E2(q)
 
         beta, q0 = self.find_along_lane_closest_point(p, tol=tol)
@@ -120,10 +127,10 @@ class DgLanelet:
             d = np.linalg.norm(p - t0)
 
             d1 = np.array([0, -d])
-            p1 = SE2_apply_R2(q0, d1)
+            p1 = SE2_apply_T2(q0, d1)
 
             d2 = np.array([0, +d])
-            p2 = SE2_apply_R2(q0, d2)
+            p2 = SE2_apply_T2(q0, d2)
 
             D2 = np.linalg.norm(p2 - p)
             D1 = np.linalg.norm(p1 - p)
@@ -175,7 +182,7 @@ class DgLanelet:
         )
 
     def along_lane_from_beta(self, beta: float) -> float:
-        """ Returns the position along the lane (parametrized in distance)"""
+        """Returns the position along the lane (parametrized in distance)"""
         lengths = self.get_lane_lengths()
         if beta < 0:
             return beta
@@ -232,22 +239,22 @@ class DgLanelet:
         i = int(np.floor(beta))
 
         if i < 0:
-            q0 = self.control_points[0].q.asmatrix2d().m
+            q0 = self.control_points[0].q.as_SE2()
             q1 = SE2.multiply(q0, SE2_from_translation_angle([0.1, 0], 0))
             alpha = beta
 
         elif i >= n - 1:
-            q0 = self.control_points[-1].q.asmatrix2d().m
+            q0 = self.control_points[-1].q.as_SE2()
             q1 = SE2.multiply(q0, SE2_from_translation_angle([0.1, 0], 0))
             alpha = beta - (n - 1)
         else:
             alpha = beta - i
-            q0 = self.control_points[i].q.asmatrix2d().m
-            q1 = self.control_points[i + 1].q.asmatrix2d().m
+            q0 = self.control_points[i].q.as_SE2()
+            q1 = self.control_points[i + 1].q.as_SE2()
         q = SE2_interpolate(q0, q1, alpha)
         return q
 
-    @memoized_reset
+    @cached(LRUCache(maxsize=128))
     def lane_profile(self, points_per_segment: int = 5) -> List[T2value]:
         """Lane bounds - left and right along the lane"""
         points_left = []
@@ -260,7 +267,7 @@ class DgLanelet:
             r = self.radius(beta)
             delta_left = np.array([0, r])
             delta_right = np.array([0, -r])
-            points_left.append(SE2_apply_R2(q, delta_left))
-            points_right.append(SE2_apply_R2(q, delta_right))
+            points_left.append(SE2_apply_T2(q, delta_left))
+            points_right.append(SE2_apply_T2(q, delta_right))
 
         return points_right + list(reversed(points_left))

@@ -5,21 +5,21 @@ from typing import Mapping, Optional, List, Dict
 from commonroad.scenario.scenario import Scenario
 
 from dg_commons.time import time_function
-from games import PlayerName, U
+from dg_commons import PlayerName, U
 from sim import logger, CollisionReport, SimTime
-from sim.agents.agent import Agent
+from sim.agents.agent import Agent, TAgent
 from sim.collision_utils import CollisionException
 from sim.simulator_structures import *
-from sim.simulator_structures import PlayerLogger
 
 
 @dataclass
 class SimContext:
-    """ The simulation context that keeps track of everything, handle with care as it is passed around by reference and
+    """The simulation context that keeps track of everything, handle with care as it is passed around by reference and
     it is a mutable object"""
+
     scenario: Scenario
     models: Mapping[PlayerName, SimModel]
-    players: Mapping[PlayerName, Agent]
+    players: Mapping[PlayerName, TAgent]
     param: SimParameters
     log: SimLog = field(default_factory=SimLog)
     time: SimTime = SimTime(0)
@@ -43,8 +43,10 @@ class Simulator:
         - An update function which asks the agents the commands and applies them to the dynamics of each model
         - A post-update function that checks the new states of all the models and resolves collisions
     """
+
+    # fixme check if this is okay once you have multple simulators running together
     last_observations: Optional[SimObservations] = SimObservations(players={}, time=Decimal(0))
-    last_get_commands_ts: SimTime = SimTime('-Infinity')
+    last_get_commands_ts: SimTime = SimTime("-Infinity")
     last_commands: Dict[PlayerName, U] = {}
     simlogger: Dict[PlayerName, PlayerLogger] = {}
 
@@ -70,13 +72,15 @@ class Simulator:
         for player_name, model in sim_context.models.items():
             state = model.get_state()
             sim_context.players[player_name].measurement_update(state)
-            self.last_observations.players.update({player_name: sim_context.players[player_name].state})
+            # todo not always necessary to update observations
+            player_obs = PlayerObservations(state=model.get_state(), occupancy=model.get_footprint())
+            self.last_observations.players.update({player_name: player_obs})
         logger.debug(f"Pre update function, sim time {sim_context.time}")
         logger.debug(f"Last observations:\n{self.last_observations}")
         return
 
     def update(self, sim_context: SimContext):
-        """ The real step of the simulation """
+        """The real step of the simulation"""
         t = sim_context.time
         update_commands: bool = (t - self.last_get_commands_ts) >= sim_context.param.dt_commands
         # fixme this can be parallelized later with ProcessPoolExecutor?
@@ -109,10 +113,11 @@ class Simulator:
 
     @staticmethod
     def _maybe_terminate_simulation(sim_context: SimContext):
-        """ Evaluates if the simulation needs to terminate based on the expiration of times"""
-        termination_condition: bool = \
-            sim_context.time > sim_context.param.max_sim_time or \
-            sim_context.time > sim_context.first_collision_ts + sim_context.param.sim_time_after_collision
+        """Evaluates if the simulation needs to terminate based on the expiration of times"""
+        termination_condition: bool = (
+            sim_context.time > sim_context.param.max_sim_time
+            or sim_context.time > sim_context.first_collision_ts + sim_context.param.sim_time_after_collision
+        )
         sim_context.sim_terminated = termination_condition
 
     @staticmethod
@@ -128,6 +133,7 @@ class Simulator:
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
                 from sim.collision import resolve_collision  # import here to avoid circular imports
+
                 try:
                     report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)
                 except CollisionException as e:

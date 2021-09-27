@@ -13,11 +13,7 @@ class PedestrianParameters(ModelParameters):
 
     @classmethod
     def default(cls) -> "PedestrianParameters":
-        # data from https://copradar.com/chapts/references/acceleration.html
-        return PedestrianParameters(vx_limits=(kmh2ms(-5), kmh2ms(20)),
-                                    acc_limits=(-3, 5),
-                                    dtheta_max=math.pi
-                                    )
+        return PedestrianParameters(vx_limits=(kmh2ms(-5), kmh2ms(20)), acc_limits=(-3, 5), dtheta_max=math.pi)
 
     def __post_init__(self):
         super(PedestrianParameters, self).__post_init__()
