@@ -59,4 +59,46 @@ class DeviationVelocity(Metric):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-Metrics = Union[Empty, DeviationVelocity, DeviationLateral]
+class SteeringVelocity(Metric):
+    brief_description = "steering_velocity"
+    description = "This metric describes the commanded steering velocity"
+    scale: float = 1.0
+
+    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            interval = context.commands[player].timestamps
+            commands = context.commands[player]
+
+            val = []
+            for time in interval:
+                steering_vel = commands.at(time).ddelta
+                val.append(float(steering_vel))
+
+            ret = self.get_evaluated_metric(interval=interval, val=val)
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class Acceleration(Metric):
+    brief_description = "acceleration"
+    description = "This metric describes the commanded acceleration"
+    scale: float = 1.0
+
+    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            interval = context.commands[player].timestamps
+            commands = context.commands[player]
+
+            val = []
+            for time in interval:
+                steering_vel = commands.at(time).acc
+                val.append(float(steering_vel))
+
+            ret = self.get_evaluated_metric(interval=interval, val=val)
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+Metrics = Union[Empty, DeviationVelocity, DeviationLateral, SteeringVelocity, Acceleration]

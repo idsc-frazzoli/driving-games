@@ -10,11 +10,11 @@ from sim_tests.controllers_tests.test_stanley import test_stanley
 
 
 test_lqr()
-test_nmpc_full_kin_cont()
+'''test_nmpc_full_kin_cont()
 test_nmpc_full_kin_dis()
 test_nmpc_full_kin_analytical()
 test_nmpc_lat_kin_cont()
 test_nmpc_lat_kin_dis()
 test_nmpc_lat_cont_analytical()
 test_pure_pursuit()
-test_stanley()
+test_stanley()'''

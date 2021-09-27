@@ -1,9 +1,8 @@
-from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
+from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity, SteeringVelocity, Acceleration
 from dg_commons.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.lqr import LQRParam, LQR
 from sim.agents.lane_followers import LFAgentLQR
 from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
-import numpy as np
 from sim_tests.controllers_tests.test_controller_utils import run_test
 from dg_commons.controllers.full_controller_base import VehicleController
 from dg_commons.utils import SemiDef
@@ -39,7 +38,9 @@ def test_lqr():
 
         metrics=[
             DeviationLateral,
-            DeviationVelocity
+            DeviationVelocity,
+            SteeringVelocity,
+            Acceleration
         ],
 
         state_estimator=ExtendedKalman,
