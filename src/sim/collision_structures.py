@@ -6,7 +6,7 @@ from geometry import T2value
 from shapely.geometry import Point, Polygon
 from zuper_commons.types import ZValueError
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import SimTime, ImpactLocation
 
 __all__ = ["IMPACT_EVERYWHERE",

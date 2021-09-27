@@ -5,9 +5,9 @@ from typing import Dict, List, Mapping, Tuple, Optional
 
 from duckietown_world import SE2Transform, LanePose
 
-from dg_commons.seq_op import seq_integrate
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from games import PlayerName
+from dg_commons import PlayerName
+from dg_commons.seq.seq_op import seq_integrate
+from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 

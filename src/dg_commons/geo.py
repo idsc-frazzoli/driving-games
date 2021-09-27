@@ -1,11 +1,18 @@
 from typing import Sequence
 
 import numpy as np
-from geometry import SE2value, translation_from_SE2, SE2, T2value, translation_angle_from_SE2, \
-    SE2_from_translation_angle
+from geometry import (
+    SE2value,
+    translation_from_SE2,
+    SE2,
+    T2value,
+    translation_angle_from_SE2,
+    SE2_from_translation_angle,
+    linear_angular_from_se2,
+)
 
 """
-This structures and operations are are taken from duckietown_world with minor modifications 
+This structures and operations are are taken from duckietown_world with minor modifications
 """
 
 
@@ -37,6 +44,14 @@ def relative_pose(base: SE2value, pose: SE2value) -> SE2value:
     return np.dot(np.linalg.inv(base), pose)
 
 
+def get_distance_SE2(q0: SE2value, q1: SE2value) -> float:
+    # fixme test
+    g = SE2.multiply(SE2.inverse(q0), q1)
+    v = SE2.algebra_from_group(g)
+    linear, angular = linear_angular_from_se2(v)
+    return np.linalg.norm(linear)
+
+
 class SE2Transform:
     def __init__(self, p: Sequence[float], theta: float):
         self.p: np.ndarray = np.array(p, dtype="float64")
@@ -52,7 +67,7 @@ class SE2Transform:
 
     @classmethod
     def from_SE2(cls, q: SE2value) -> "SE2Transform":
-        """ From a matrix """
+        """From a matrix"""
         translation, angle = translation_angle_from_SE2(q)
         return SE2Transform(translation, angle)
 

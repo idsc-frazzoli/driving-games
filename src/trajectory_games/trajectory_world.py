@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Mapping, List, Set
 
-from games import PlayerName
 from _tmp._deprecated.world import LaneSegmentHashable
+from dg_commons import PlayerName
 from .structures import VehicleGeometry
 
 __all__ = ["TrajectoryWorld"]

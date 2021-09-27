@@ -1,6 +1,6 @@
 from typing import Optional
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import logger, SimLog, SimParameters
 from sim.scenarios import load_commonroad_scenario
 from sim.scenarios.agent_from_commonroad import model_agent_from_dynamic_obstacle, NotSupportedConversion

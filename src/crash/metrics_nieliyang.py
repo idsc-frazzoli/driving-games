@@ -3,7 +3,7 @@ from typing import Tuple, Mapping, Dict
 
 import numpy as np
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import CollisionReport
 from sim.models import ms2kmh, ModelType, PEDESTRIAN, BICYCLE
 

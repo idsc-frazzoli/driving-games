@@ -1,10 +1,8 @@
 from decimal import Decimal as D, localcontext
 
-import numpy as np
+from zuper_commons.types import check_isinstance
 
 from games import PersonalRewardStructure
-from geometry import SE2, SE2_from_xytheta
-from zuper_commons.types import check_isinstance
 from .structures import VehicleActions, VehicleCosts, VehicleState
 
 __all__ = ["VehiclePersonalRewardStructureTime"]

@@ -2,9 +2,19 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Tuple, Sequence, NewType
 
-from sim import Color
+from dg_commons import Color
 
-__all__ = ["ModelType", "CAR", "MOTORCYCLE", "BICYCLE", "PEDESTRIAN", "ModelGeometry", "ModelParameters"]
+__all__ = [
+    "ModelType",
+    "CAR",
+    "MOTORCYCLE",
+    "BICYCLE",
+    "PEDESTRIAN",
+    "ModelGeometry",
+    "ModelParameters",
+    "TwoWheelsTypes",
+    "FourWheelsTypes",
+]
 
 ModelType = NewType("ModelType", str)
 CAR = ModelType("car")
@@ -23,7 +33,7 @@ class ModelGeometry(ABC):
     Iz: float
     """ Moment of inertia (used only in the dynamic model) """
     e: float
-    """ Restitution coefficient (used only in collisions energy transfer). 
+    """ Restitution coefficient (used only in collisions energy transfer).
     Ratio of the differences in vehicle speeds before and after the collision -> 0 < e < 1"""
     color: Color
     """ Color must be able to be parsed by matplotlib"""

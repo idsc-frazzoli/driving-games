@@ -4,13 +4,13 @@ from typing import cast, Dict, FrozenSet, FrozenSet as ASet
 
 from frozendict import frozendict
 
+from dg_commons import PlayerName
 from games import (
     Game,
     GamePlayer,
     GameVisualization,
     get_accessible_states,
     JointRewardStructure,
-    PlayerName,
     UncertaintyParams,
 )
 from possibilities import PossibilityMonad

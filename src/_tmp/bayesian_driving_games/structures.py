@@ -1,12 +1,10 @@
 from dataclasses import dataclass, field
 from typing import NewType, List, Mapping, TypeVar
 
-from toolz import valmap
-
-from games import GameSpec
-from possibilities import Poss
+from dg_commons import PlayerName
 from driving_games.structures import VehicleState
 from games.game_def import *
+from possibilities import Poss
 
 __all__ = [
     "PlayerType",

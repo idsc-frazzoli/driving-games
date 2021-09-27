@@ -1,7 +1,7 @@
 import numpy as np
 
 from sim.models.vehicle import VehicleState, VehicleCommands
-from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleParametersDyn, VehicleModelDyn
+from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleParameters, VehicleModelDyn
 
 
 def test_vehicle_state_01():
@@ -26,7 +26,7 @@ def test_vehicledyn_state_01():
 
 
 def test_dyn_params():
-    vp = VehicleParametersDyn.default_car()
+    vp = VehicleParameters.default_car()
     print(vp)
 
 
