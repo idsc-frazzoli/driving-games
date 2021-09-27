@@ -1,7 +1,5 @@
 from typing import Optional, Mapping, Callable, Tuple
 from abc import abstractmethod
-
-import numpy as np
 from geometry import translation_angle_from_SE2, SE2_from_translation_angle
 from dg_commons.planning.lanes import DgLanelet
 from games import X

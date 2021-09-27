@@ -13,7 +13,6 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from games import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
-from crash.reports import generate_report
 from dg_commons.sequence import DgSampledSequence
 from sim import SimTime
 

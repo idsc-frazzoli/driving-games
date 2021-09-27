@@ -5,14 +5,16 @@ def linear_param(pos1, angle1, pos2, angle2, pos3, angle3):
     vertical_line = False
     if abs(pos1[0] - pos2[0]) < 10e-8:
         vertical_line = True
-        res = [pos1[0], sign(pos2[1]-pos1[1])]
+        angle = pi/2 * sign(pos2[1]-pos1[1])
+        res = [pos1[0], sign(pos2[1]-pos1[1]), angle]
 
         def func(x):
             return None
     else:
         m = (pos1[1] - pos2[1]) / (pos1[0] - pos2[0])
         b = pos1[1] - m * pos1[0]
-        res = [m, b]
+        angle = atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])
+        res = [m, b, angle]
 
         def func(x):
             return res[0] * x + res[1]
