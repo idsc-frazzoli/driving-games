@@ -1,7 +1,7 @@
 from sim_tests.controllers_tests.test_controller import DT_COMMANDS
 from dg_commons.controllers.speed import SpeedBehaviorParam
 from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContAN, NMPCFullKinContANParam
-from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity
+from dg_commons.analysis.metrics import DeviationLateral, DeviationVelocity, SteeringVelocity, Acceleration
 from sim.agents.lane_followers import LFAgentFullMPC
 from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
 from sim_tests.controllers_tests.test_controller_utils import run_test
@@ -39,7 +39,9 @@ def test_nmpc_full_kin_analytical():
 
         metrics=[
             DeviationLateral,
-            DeviationVelocity
+            DeviationVelocity,
+            Acceleration,
+            SteeringVelocity
         ],
 
         state_estimator=ExtendedKalman,
@@ -48,6 +50,7 @@ def test_nmpc_full_kin_analytical():
             actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
             belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
             belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            initial_variance=SemiDef(matrix=np.zeros((5, 5))),
             dropping_technique=LGB,
             dropping_params=LGBParam(
                 failure_p=0.0

@@ -3,8 +3,8 @@ from dg_commons.controllers.controller_types import *
 from typing import Optional
 from dg_commons.controllers.pure_pursuit import PurePursuit
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
-from dg_commons.planning.lanes import DgLanelet
-from games import PlayerName, X
+from dg_commons.maps.lanes import DgLanelet
+from dg_commons import PlayerName, X
 from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands
@@ -66,9 +66,9 @@ class LFAgent(Agent):
         self.controller.update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
-        my_obs = sim_obs.players[self.my_name]
-
+        my_obs = self.state
         t = float(sim_obs.time)
+
         self.speed_behavior.update_observations(sim_obs.players)
         speed_ref, emergency = self.speed_behavior.get_speed_ref(t)
 

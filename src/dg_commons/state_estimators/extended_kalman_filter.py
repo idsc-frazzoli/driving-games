@@ -1,25 +1,18 @@
-import math
 from scipy.integrate import solve_ivp
 from sim.models.vehicle import VehicleState, VehicleCommands, VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 from sim.models.model_utils import acceleration_constraint
-import numpy as np
-from dataclasses import dataclass
 from typing import Optional
 from dg_commons.utils import SemiDef
-import random
 from dg_commons.state_estimators.dropping_trechniques import *
-
-geo = VehicleGeometry.default_car()
-params = VehicleParameters.default_car()
-n_states = VehicleState.get_n_states()
-n_commands = VehicleCommands.get_n_commands()
-l = geo.length
-lr = geo.lr
 
 
 @dataclass
 class ExtendedKalmanParam:
+    n_states: int = VehicleState.get_n_states()
+    """ Number of states """
+    n_commands: int = VehicleCommands.get_n_commands()
+    """ Number of commands """
     actual_model_var: SemiDef = SemiDef(n_states*[0])
     """ Actual Modeling variance matrix """
     actual_meas_var: SemiDef = SemiDef(n_states*[0])
@@ -33,6 +26,11 @@ class ExtendedKalmanParam:
     dropping_technique: type(DroppingTechniques) = LGB
     """ Dropping Technique """
     dropping_params: DroppingTechniquesParams = LGBParam()
+    """ Dropping parameters """
+    geometry_params: VehicleGeometry = VehicleGeometry.default_car()
+    """ Vehicle Geometry """
+    vehicle_params: VehicleParameters = VehicleParameters.default_car()
+    """ Vehicle Parameters """
 
 
 class ExtendedKalman:
@@ -43,6 +41,9 @@ class ExtendedKalman:
         self.belief_meas_noise = params.belief_meas_var.matrix
         self.p = params.initial_variance.matrix
         self.dropping = params.dropping_technique(params.dropping_params)
+        self.model_noise = 0
+
+        self.params = params
 
         self.state = x0
         self.dt = dt
@@ -54,9 +55,9 @@ class ExtendedKalman:
         self.state, self.p = self.solve_dequation(u_k)
 
     def update_measurement(self, measurement_k: VehicleState):
+        n_states = self.params.n_states
         if self.state is None:
             self.state = measurement_k
-            self.p = self.belief_meas_noise
             return
 
         if not self.dropping.drop():
@@ -71,6 +72,7 @@ class ExtendedKalman:
                 helper = np.linalg.inv(np.matmul(np.matmul(h, self.p), h.T) + self.belief_meas_noise)
                 k = np.matmul(np.matmul(self.p, h.T), helper)
                 state = state + np.matmul(k, (meas - state))
+
                 self.state = VehicleState.from_array(np.matrix.flatten(state))
                 self.p = np.matmul(np.eye(n_states)-np.matmul(k, h), self.p)
             except np.linalg.LinAlgError:
@@ -81,6 +83,8 @@ class ExtendedKalman:
                 print(e)
 
     def solve_dequation(self, u_k: VehicleCommands):
+        n_states = self.params.n_states
+        n_commands = self.params.n_commands
 
         def vec_to_mat(v):
             return v.reshape(n_states, n_states)
@@ -106,6 +110,7 @@ class ExtendedKalman:
 
             return np.concatenate([dx.as_ndarray(), du, mat_to_vec(dp)])
 
+        self.model_noise = self.realization(self.actual_model_noise)
         state_zero = np.concatenate([self.state.as_ndarray(), u_k.as_ndarray(), mat_to_vec(self.p)])
         result = solve_ivp(fun=_dynamics, t_span=(0.0, float(self.dt)), y0=state_zero)
         if not result.success:
@@ -119,6 +124,8 @@ class ExtendedKalman:
         return new_state, new_p
 
     def f(self, state):
+        l = self.params.geometry_params.length
+        lr = self.params.geometry_params.lr
         s_t = math.sin(state.theta)
         c_t = math.cos(state.theta)
         t_d = math.tan(state.delta)
@@ -135,40 +142,22 @@ class ExtendedKalman:
 
     def dynamics(self, x0: VehicleState, u: VehicleCommands) -> VehicleState:
         """ Kinematic bicycle model, returns state derivative for given control inputs """
-        noise = ExtendedKalman.realization(self.actual_model_noise)
+        l = self.params.geometry_params.length
+        lr = self.params.geometry_params.lr
 
         vx = x0.vx
-        dtheta = vx * math.tan(x0.delta) / geo.length
-        vy = dtheta * geo.lr
+        dtheta = vx * math.tan(x0.delta) / l
+        vy = dtheta * lr
         costh = math.cos(x0.theta)
         sinth = math.sin(x0.theta)
         xdot = vx * costh - vy * sinth
         ydot = vx * sinth + vy * costh
 
-        ddelta = steering_constraint(x0.delta, u.ddelta, params)
-        acc = acceleration_constraint(x0.vx, u.acc, params)
-        return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=acc, delta=ddelta) + noise
+        ddelta = steering_constraint(x0.delta, u.ddelta, self.params.vehicle_params)
+        acc = acceleration_constraint(x0.vx, u.acc, self.params.vehicle_params)
+        return VehicleState(x=xdot, y=ydot, theta=dtheta, vx=acc, delta=ddelta) + self.model_noise
 
     @staticmethod
     def realization(var: np.ndarray):
         dim = int(var.shape[0])
         return VehicleState.from_array(np.random.multivariate_normal(np.zeros(dim), var))
-
-
-'''model_noise = 0.1*np.eye(n_states)
-meas_noise = 0.1*np.zeros((n_states, n_states))
-P0_0 = np.zeros((n_states, n_states))
-dt = 0.1
-x0_0 = VehicleState.from_array(np.zeros(n_states))
-input_k = VehicleCommands.from_array(np.ones(n_commands))
-meas_k = VehicleState.from_array(np.ones(n_states))
-
-test = ExtendedKalman(dt, x0_0, params=ExtendedKalmenParam(model_noise, meas_noise))
-print(test.state)
-print(test.p)
-test.update_prediction(input_k)
-test.update_measurement(meas_k)
-#test.update_measurement(meas_k)
-print(test.state)
-print(test.p)'''
-

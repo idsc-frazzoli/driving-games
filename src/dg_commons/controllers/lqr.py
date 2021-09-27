@@ -1,8 +1,8 @@
 from typing import Optional
 from sim.models.vehicle_structures import VehicleGeometry
 import scipy.optimize
-from dg_commons.planning.lanes import DgLanelet
-from games import X
+from dg_commons.maps.lanes import DgLanelet
+from dg_commons import X
 import scipy.linalg
 from dataclasses import dataclass
 import numpy as np

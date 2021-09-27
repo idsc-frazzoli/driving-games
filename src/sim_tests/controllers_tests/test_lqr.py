@@ -49,6 +49,7 @@ def test_lqr():
             actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
             belief_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
             belief_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+            initial_variance=SemiDef(matrix=np.zeros((5, 5))),
             dropping_technique=LGB,
             dropping_params=LGBParam(
                 failure_p=0.0

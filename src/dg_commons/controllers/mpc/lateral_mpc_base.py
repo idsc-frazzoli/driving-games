@@ -1,8 +1,8 @@
 from typing import Optional, Mapping, Callable, Tuple
 from abc import abstractmethod
 from geometry import translation_angle_from_SE2, SE2_from_translation_angle
-from dg_commons.planning.lanes import DgLanelet
-from games import X
+from dg_commons.maps.lanes import DgLanelet
+from dg_commons import X
 import do_mpc
 from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import VehicleParameters
@@ -10,7 +10,6 @@ from dg_commons.controllers.mpc.mpc_base import MPCKinBAseParam, MPCKinBase
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons.controllers.path_approximation_techniques import *
 from duckietown_world.utils import SE2_apply_R2
-
 
 
 VEHICLE_PARAMS = VehicleParameters.default_car()

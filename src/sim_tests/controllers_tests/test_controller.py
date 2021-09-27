@@ -10,10 +10,10 @@ from dataclasses import fields
 from typing import Optional
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from commonroad.scenario.obstacle import DynamicObstacle
-from games import PlayerName
+from dg_commons import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
-from dg_commons.sequence import DgSampledSequence
+from dg_commons.seq.sequence import DgSampledSequence
 from sim import SimTime
 
 DT: SimTime = SimTime("0.05")

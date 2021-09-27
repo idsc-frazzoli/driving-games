@@ -6,11 +6,11 @@ from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
 from dg_commons.controllers.controller_types import *
 from dg_commons.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.controllers.steer import SteerController
-from dg_commons.planning.lanes import DgLanelet
+from dg_commons.maps.lanes import DgLanelet
 from dg_commons.planning.trajectory import Trajectory
 from sim.agents.lane_follower_z import LFAgent
 from sim.models.vehicle import VehicleState
-from sim.sim_vis_extra import DrawableTrajectoryType
+from sim import SimObservations, DrawableTrajectoryType
 
 
 class LFAgentPP(LFAgent):

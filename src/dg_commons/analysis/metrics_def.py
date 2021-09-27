@@ -1,16 +1,13 @@
-from trajectory_games.metrics_def import EvaluatedMetric, get_integrated, differentiate
+from trajectory_games.metrics_def import EvaluatedMetric, get_integrated
+from dg_commons.maps.lanes import DgLanelet
+from games.game_def import X, U
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from functools import lru_cache
-from typing import Dict, List, Mapping, Tuple, Optional, TypeVar
-
-from duckietown_world import SE2Transform, LanePose
-
-from dg_commons.seq_op import seq_integrate
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from games import PlayerName
-from dg_commons.planning.lanes import DgLanelet, LaneCtrPoint
-from games.game_def import X, U
+from typing import List, Mapping, Union, Optional
+from dg_commons import PlayerName
+from dg_commons.seq.sequence import Timestamp, DgSampledSequence
+from sim.models.vehicle_utils import VehicleParameters
+from sim.models.vehicle import VehicleGeometry
 
 
 @dataclass
@@ -26,6 +23,22 @@ class MetricEvaluationContext:
 
     target_velocities: Mapping[PlayerName, DgSampledSequence[float]]
     """ Planned velocities """
+
+    vehicle_params: Optional[Mapping[PlayerName, VehicleParameters]] = None
+    """ Vehicle parameters """
+
+    geometry_params: Optional[Mapping[PlayerName, VehicleGeometry]] = None
+    """ Vehicle parameters """
+
+    def __post_init__(self):
+        self.n_players: int = len(self.planned_lanes.keys())
+        """ Number of players """
+
+        self.vehicle_params = dict(zip(self.planned_lanes.keys(), self.n_players*[VehicleParameters.default_car()])) \
+            if self.vehicle_params is None else self.vehicle_params
+
+        self.geometry_params = dict(zip(self.planned_lanes.keys(), self.n_players*[VehicleGeometry.default_car()])) \
+            if self.geometry_params is None else self.geometry_params
 
     def get_interval(self, player: PlayerName) -> List[Timestamp]:
         return self.actual_trajectory[player].get_sampling_points()

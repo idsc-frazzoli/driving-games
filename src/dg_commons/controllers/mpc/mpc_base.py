@@ -1,6 +1,6 @@
 from typing import Optional
 from abc import ABC, abstractmethod
-from games import X
+from dg_commons import X
 import do_mpc
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 

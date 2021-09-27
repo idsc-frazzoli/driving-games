@@ -5,8 +5,8 @@ from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_dynamic import VehicleStateDyn
 import numpy as np
 from geometry import SE2value, SE2_from_translation_angle, translation_angle_scale_from_E2, translation_angle_from_SE2
-from dg_commons.planning.lanes import DgLanelet
-from games import X
+from dg_commons.maps.lanes import DgLanelet
+from dg_commons import X
 from duckietown_world.utils import SE2_apply_R2
 import math
 from duckietown_world import relative_pose
