@@ -12,6 +12,7 @@ class Empty:
 
 
 class DeviationLateral(Metric):
+    brief_description = "deviation_lateral"
     description = "This metric describes the deviation from reference path. "
     scale: float = 1.0
 
@@ -36,6 +37,7 @@ class DeviationLateral(Metric):
 
 
 class DeviationVelocity(Metric):
+    brief_description = "deviation_velocity"
     description = "This metric describes the deviation from reference velocity. "
     scale: float = 1.0
 

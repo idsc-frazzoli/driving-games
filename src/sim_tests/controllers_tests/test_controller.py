@@ -131,9 +131,16 @@ class TestController:
                     plt.plot(res[player].incremental.timestamps, res[player].incremental.values, label=player)
                 plt.title(metric.description)
                 plt.legend()
+
                 output_dir = "out"
-                fig_file = os.path.join(output_dir, f"{self.controller['Name']}_fig{i}")
+                output_folder = self.controller['Name']
+                fig_name = metric.brief_description
+                folder = os.path.join(output_dir, output_folder)
+                if not os.path.exists(folder):
+                    os.makedirs(folder)
+                fig_file = os.path.join(folder, fig_name)
                 plt.savefig(fig_file)
+
                 plt.clf()
         else:
             print("No Metric to Evaluate")
