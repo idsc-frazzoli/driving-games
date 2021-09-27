@@ -10,7 +10,7 @@ from games import X
 from duckietown_world.utils import SE2_apply_R2
 import math
 from duckietown_world import relative_pose
-from dg_commons.controllers.mpc.mpc_utils.path_approximation_techniques import linear_param
+from dg_commons.controllers.path_approximation_techniques import linear_param
 
 
 __all__ = ["Stanley", "StanleyParam"]
@@ -70,16 +70,14 @@ class Stanley:
         path_approx = True
         if path_approx:
             pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-            res, func, vertical_line = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+            res, _, _, closest_point_func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
             angle = res[2]
             self.alpha = angle - obs.theta
-            if vertical_line:
-                self.lateral = res[0] - front_position[0]
-            else:
-                x_val = (front_position[0] + res[0] * (front_position[1] - res[1])) / (1 + res[0] ** 2)
-                y_val = (res[0] ** 2 * front_position[1] + res[0] * front_position[0] + res[1]) / (1 + res[0] ** 2)
-                self.lateral = - (x_val - front_position[0])*math.sin(obs.theta) + \
-                                 (y_val - front_position[1])*math.cos(obs.theta)
+
+            closest_point = closest_point_func(front_position)
+            self.lateral = - (closest_point[0] - front_position[0]) * math.sin(obs.theta) + \
+                             (closest_point[1] - front_position[1]) * math.cos(obs.theta)
+
         else:
             rel = relative_pose(front_pose, q0)
 

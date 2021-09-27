@@ -2,14 +2,16 @@ from typing import Optional
 from sim.models.vehicle_structures import VehicleGeometry
 import scipy.optimize
 from dg_commons.planning.lanes import DgLanelet
-from games import X, U
+from games import X
 import scipy.linalg
 from dataclasses import dataclass
 import numpy as np
 from duckietown_world import relative_pose
-from duckietown_world.utils import  SE2_apply_R2
-from geometry import  SE2_from_translation_angle,  translation_angle_from_SE2
+from duckietown_world.utils import SE2_apply_R2
+from geometry import SE2_from_translation_angle,  translation_angle_from_SE2, translation_angle_scale_from_E2
 from dg_commons.utils import SemiDef
+from dg_commons.controllers.path_approximation_techniques import linear_param
+import math
 
 
 __all__ = ["LQR", "LQRParam"]
@@ -52,7 +54,8 @@ class LQR:
         self.u: np.ndarray
         self.params: LQRParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
-        self.pose = None
+        self.back_pose = None
+        self.speed: Optional[float] = None
         # logger.debug("Pure pursuit params: \n", self.param)
 
     def update_path(self, path: DgLanelet):
@@ -62,32 +65,64 @@ class LQR:
     def update_state(self, obs: X):
         pose = SE2_from_translation_angle(np.array([obs.x, obs.y]), obs.theta)
 
-        position = SE2_apply_R2(pose, np.array([-self.vehicle_geometry.lr, 0]))
+        back_position = SE2_apply_R2(pose, np.array([-self.vehicle_geometry.lr, 0]))
         angle = obs.theta
-        self.pose = SE2_from_translation_angle(position, angle)
+        self.back_pose = SE2_from_translation_angle(back_position, angle)
+        self.speed = obs.vx
 
-        beta, q0 = self.path.find_along_lane_closest_point(position, tol=1e-4)
-        rel = relative_pose(q0, self.pose)
+        p, _, _ = translation_angle_scale_from_E2(self.back_pose)
+        beta, q0 = self.path.find_along_lane_closest_point(back_position, tol=1e-4)
 
-        r, relative_heading = translation_angle_from_SE2(rel)
-        lateral = r[1]
+        path_approx = True
+        if path_approx:
+            pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
+            res, _, _, closest_point_func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+            angle = res[2]
+            relative_heading = - angle + obs.theta
+
+            closest_point = closest_point_func(back_position)
+            lateral = (closest_point[0] - back_position[0]) * math.sin(obs.theta) - \
+                      (closest_point[1] - back_position[1]) * math.cos(obs.theta)
+        else:
+            rel = relative_pose(q0, self.back_pose)
+            r, relative_heading = translation_angle_from_SE2(rel)
+            lateral = r[1]
+
         error = np.array([[lateral], [relative_heading], [obs.delta]])
-
-        speed = obs.vx
 
         feed_forward = 0
 
-        a = np.array([[0, speed, 0], [0, 0, speed/self.vehicle_geometry.length], [0, 0, 0]])
+        a = np.array([[0, self.speed, 0], [0, 0, self.speed/self.vehicle_geometry.length], [0, 0, 0]])
         b = np.array([[0], [0], [1]])
         k, _, _ = lqr(a, b, self.params.q, self.params.r)
         self.u = -np.matmul(k, error) + feed_forward
+
+    def next_pos(self, current_beta):
+        along_lane = self.path.along_lane_from_beta(current_beta)
+        k = 2
+        delta_step = self.speed * 0.1 * k
+        along_lane1 = along_lane + delta_step / 2
+        along_lane2 = along_lane1 + delta_step / 2
+
+        beta1, beta2, beta3 = current_beta, self.path.beta_from_along_lane(along_lane1), \
+                              self.path.beta_from_along_lane(along_lane2)
+
+        q1 = self.path.center_point(beta1)
+        q2 = self.path.center_point(beta2)
+        q3 = self.path.center_point(beta3)
+
+        pos1, angle1 = translation_angle_from_SE2(q1)
+        pos2, angle2 = translation_angle_from_SE2(q2)
+        pos3, angle3 = translation_angle_from_SE2(q3)
+        self.target_position = pos3
+        return pos1, angle1, pos2, angle2, pos3, angle3
 
     def get_desired_steering(self) -> float:
         """
         :return: float the desired wheel angle
         """
         # todo fixme this controller is not precise, as we use the cog rather than the base link
-        if any([_ is None for _ in [self.pose, self.path]]):
+        if any([_ is None for _ in [self.back_pose, self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
 
         return self.u

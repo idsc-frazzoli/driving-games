@@ -8,7 +8,7 @@ from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import VehicleParameters
 from dg_commons.controllers.mpc.mpc_base import MPCKinBAseParam, MPCKinBase
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
-from dg_commons.controllers.mpc.mpc_utils.path_approximation_techniques import *
+from dg_commons.controllers.path_approximation_techniques import *
 from duckietown_world.utils import SE2_apply_R2
 
 
@@ -139,57 +139,33 @@ class LatMPCKinBaseAnalytical(LatMPCKinBase):
 
     def _get_linear(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res, f, vertical_line = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, f, _, closest_point = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
 
         self.current_f = f
 
-        if vertical_line:
-            def func(x, y):
-                return res[0], y, pi/2*res[1]
-        else:
-            def func(x, y):
-                x_val = (x + res[0] * (y - res[1])) / (1 + res[0] ** 2)
-                y_val = (res[0] ** 2 * y + res[0] * x + res[1]) / (1 + res[0] ** 2)
-                angle = atan(res[0])
-                angle = angle + pi if (res[0] > 0 and pos2[1] < pos1[1]) or (
-                            res[0] < 0 and pos1[1] < pos2[1]) else angle
-                return x_val, y_val, angle
+        def func(x, y):
+            pos = closest_point([x, y])
+            return pos[0], pos[1], res[2]
 
         return func
 
     def _get_quadratic(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res, f, vertical_line = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, f, vertical_line, closest_point = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
         a, b, c = res[0], res[1], res[2]
         self.current_f = f
 
         if vertical_line:
             def func(x, y):
-                return res[0], y, pi/2*res[1]
+                pos = closest_point([x, y])
+                return pos[0], pos[1], res[2]
         else:
             if abs(2*a*pos2[0]) / abs(2*a*pos2[0] + b) < 5*10e-2:
                 return self._get_linear(beta)
 
             def func(x, y):
-                a1 = 2*a**2
-                a2 = (3*a*b)
-                a3 = (1 - 2 * a * y + b ** 2 + 2 * a * c)
-                a4 = (c*b - y * b - x)
-                sols = solve_quadratic(a1, a2, a3, a4)
-                dists_list = [power(x_c-x, 2) + power(f(x_c)-y, 2) for x_c in sols]
-                dists = SX(4, 1)
-                dists[0, 0] = dists_list[0]
-                dists[1, 0] = dists_list[1]
-                dists[2, 0] = dists_list[2]
-                dists[3, 0] = dists_list[3]
-
-                min_dist = mmin(dists)
-                x_sol = casadi.inf
-                for sol in sols:
-                    current_dist = power(sol-x, 2) + power(f(sol)-y, 2)
-                    x_sol = if_else(current_dist == min_dist, sol, x_sol)
-
-                return x_sol, f(x_sol), None
+                pos = closest_point([x, y])
+                return pos[0], pos[1], None
 
         return func
 
@@ -209,21 +185,21 @@ class LatMPCKinBasePathVariable(LatMPCKinBase):
 
     def _get_linear_func(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res, func, vertical_line = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, func, vertical_line, _ = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
         self.current_f = func
 
         return res, func, vertical_line
 
     def _get_cubic_func(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res, func, vertical_line = cubic_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, func, vertical_line, _ = cubic_param(pos1, angle1, pos2, angle2, pos3, angle3)
         self.current_f = func
 
         return res, func, vertical_line
 
     def _get_quadratic_func(self, beta):
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
-        res, func, vertical_line = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
+        res, func, vertical_line, _ = quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)
         self.current_f = func
 
         return res, func, vertical_line

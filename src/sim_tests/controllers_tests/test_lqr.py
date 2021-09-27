@@ -19,7 +19,7 @@ def test_lqr():
 
         controller=LQR,
         controller_params=LQRParam(
-            r=SemiDef([0.8]),
+            r=SemiDef([0.5]),
             q=SemiDef(matrix=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0.01]]))
         ),
 
