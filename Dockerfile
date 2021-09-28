@@ -14,5 +14,9 @@ ENV DISABLE_CONTRACTS=1
 
 RUN pipdeptree
 RUN python setup.py develop --no-deps
+
 RUN dg-demo --help
+
+RUN crash-exp --help
+
 CMD ["dg-demo"]

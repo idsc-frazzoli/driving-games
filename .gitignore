@@ -14,11 +14,10 @@ errors
 evaluator.log
 trace-cover
 out/
-out-docker
+out-docker/
 .coverage.dorothy.*
 .coverage.thinkpad-p51s.*
 .compmake_history.txt
 *graphml
-.idea
+.idea/
 venv
-

@@ -7,9 +7,11 @@ from typing import FrozenSet, Dict, List
 
 import numpy as np
 from geometry import SE2_from_xytheta
+from typing import FrozenSet, Tuple, Dict
+
 from yaml import safe_load
 
-from sim import Color
+from dg_commons import Color
 from .config import config_dir
 
 __all__ = [
@@ -20,9 +22,12 @@ __all__ = [
 ]
 
 
+# todo deprecated use things from dg_commons
+
+
 @dataclass
 class VehicleGeometry:
-    """ Geometry parameters of the vehicle"""
+    """Geometry parameters of the vehicle"""
 
     m: float
     """ Car Mass [kg] """
@@ -49,7 +54,7 @@ class VehicleGeometry:
 
     @classmethod
     def load_colour(cls, name: str) -> Color:
-        """ Load the colour name from the possible colour configs"""
+        """Load the colour name from the possible colour configs"""
 
         if len(name) == 0:
             return "gray"
@@ -57,7 +62,7 @@ class VehicleGeometry:
 
     @classmethod
     def from_config(cls, name: str) -> "VehicleGeometry":
-        """ Load the vehicle geometry from the possible vehicle configs"""
+        """Load the vehicle geometry from the possible vehicle configs"""
         if len(name) == 0:
             return cls.default()
         cls._load_all_configs()
@@ -83,9 +88,13 @@ class VehicleGeometry:
     def wheel_outline(self):
         halfwidth, radius = self.wheel_shape
         # fixme uniform points handlings to native list of tuples
-        return np.array([[radius, -radius, -radius, radius, radius],
-                         [-halfwidth, -halfwidth, halfwidth, halfwidth, -halfwidth],
-                         [1, 1, 1, 1, 1]])
+        return np.array(
+            [
+                [radius, -radius, -radius, radius, radius],
+                [-halfwidth, -halfwidth, halfwidth, halfwidth, -halfwidth],
+                [1, 1, 1, 1, 1],
+            ]
+        )
 
     @cached_property
     def wheels_position(self) -> np.ndarray:
@@ -93,10 +102,12 @@ class VehicleGeometry:
         backwardshift = self.l / 4
         # return 4 wheels position (always the first half are the front ones)
         positions = np.array(
-            [[self.l - radius - backwardshift, self.l - radius - backwardshift, -self.l + radius,
-              -self.l + radius],
-             [self.w - halfwidth, -self.w + halfwidth, self.w - halfwidth,
-              -self.w + halfwidth], [1, 1, 1, 1]])
+            [
+                [self.l - radius - backwardshift, self.l - radius - backwardshift, -self.l + radius, -self.l + radius],
+                [self.w - halfwidth, -self.w + halfwidth, self.w - halfwidth, -self.w + halfwidth],
+                [1, 1, 1, 1],
+            ]
+        )
         return positions
 
     def get_rotated_wheels_outlines(self, delta: float) -> List[np.ndarray]:
@@ -211,15 +222,20 @@ class VehicleState:
         def check(val: float) -> bool:
             return abs(val) < tol
 
-        if check(diff.x) and check(diff.y) and check(diff.th) and \
-                check(diff.v) and check(diff.th) and abs(diff.t) < 1e-3:
+        if (
+            check(diff.x)
+            and check(diff.y)
+            and check(diff.th)
+            and check(diff.v)
+            and check(diff.th)
+            and abs(diff.t) < 1e-3
+        ):
             return True
         return False
 
     @classmethod
     def default(cls) -> "VehicleState":
-        state = VehicleState(x=0.0, y=0.0, th=math.pi / 2.0,
-                             v=10.0, st=0.0, t=D("0"))
+        state = VehicleState(x=0.0, y=0.0, th=math.pi / 2.0, v=10.0, st=0.0, t=D("0"))
         return state
 
     @classmethod

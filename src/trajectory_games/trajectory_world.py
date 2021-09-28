@@ -6,7 +6,8 @@ from shapely.geometry import Polygon
 
 from dg_commons.planning.lanes import DgLanelet
 
-from games import PlayerName
+from _tmp._deprecated.world import LaneSegmentHashable
+from dg_commons import PlayerName
 from .structures import VehicleGeometry
 
 __all__ = ["TrajectoryWorld"]
@@ -14,7 +15,7 @@ __all__ = ["TrajectoryWorld"]
 
 @dataclass
 class TrajectoryWorld:
-    """ Object holding all info about the world """
+    """Object holding all info about the world"""
 
     map_name: str
     """ Map name for the world """
@@ -29,9 +30,9 @@ class TrajectoryWorld:
     """ Reference lanes for each player """
 
     def __post_init__(self):
-        assert self.lanes.keys() == self.geo.keys(), (
-            f"Keys do not match: lanes = {self.lanes.keys()}, geo = {self.geo.keys()}"
-        )
+        assert (
+            self.lanes.keys() == self.geo.keys()
+        ), f"Keys do not match: lanes = {self.lanes.keys()}, geo = {self.geo.keys()}"
 
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())

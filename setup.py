@@ -18,15 +18,15 @@ def get_version(filename):
 
 
 install_requires = [
-    'scipy',
-    'seaborn',
-    'PyGeometry-z6',
-    'zuper-commons-z6>=6.0.19',
-    'quickapp-z6>=6,<7',
-    'compmake-z6>=6.0.8,<7',
-    'reprep-z6>=6.0.3,<7',
-    'networkx>=2.4',
-    'zuper-typing-z6>=6.1',
+    "scipy",
+    "matplotlib",
+    "PyGeometry-z6",
+    "zuper-commons-z6>=6.0.19",
+    "quickapp-z6>=6,<7",
+    "compmake-z6>=6.0.8,<7",
+    "reprep-z6>=6.0.3,<7",
+    "networkx>=2.4",
+    "zuper-typing-z6>=6.1",
 ]
 
 module = "driving_games"
@@ -41,7 +41,12 @@ setup(
     packages=[module],
     version=version,
     zip_safe=False,
-    entry_points={"console_scripts": ["dg-demo = games_zoo:dg_demo",
-                                      "posets-exp = trajectory_games_tests:run_ral_exp"]},
+    entry_points={
+        "console_scripts": [
+            "dg-demo = games_zoo:dg_demo",
+            "crash-exp = crash:run_crashing_experiments",
+            "posets-exp = trajectory_games_tests:run_ral_exp",
+        ]
+    },
     install_requires=install_requires,
 )

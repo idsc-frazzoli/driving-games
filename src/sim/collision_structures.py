@@ -1,11 +1,12 @@
-from dataclasses import dataclass
-from typing import Mapping, Sequence, Tuple
+from dataclasses import dataclass, replace
+from typing import Mapping, Tuple, Dict, List
 
 import numpy as np
 from geometry import T2value
 from shapely.geometry import Point, Polygon
+from zuper_commons.types import ZValueError
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import SimTime, ImpactLocation
 
 __all__ = ["IMPACT_EVERYWHERE",
@@ -15,6 +16,7 @@ __all__ = ["IMPACT_EVERYWHERE",
            "IMPACT_RIGHT",
            "CollisionReportPlayer",
            "CollisionReport",
+           "combine_collision_reports"
            ]
 
 IMPACT_EVERYWHERE = ImpactLocation("everywhere")
@@ -26,7 +28,7 @@ IMPACT_RIGHT = ImpactLocation('right')
 
 @dataclass(frozen=True, unsafe_hash=True)
 class CollisionReportPlayer:
-    locations: Sequence[Tuple[ImpactLocation, Polygon]]
+    locations: List[Tuple[ImpactLocation, Polygon]]
     """ Location of the impact """
     at_fault: bool
     """ At fault is defined as...."""
@@ -50,3 +52,25 @@ class CollisionReport:
     """Normal of impact"""
     at_time: SimTime
     """ Sim time at which the collision occurred"""
+
+
+def combine_collision_reports(r1: CollisionReport, r2: CollisionReport) -> CollisionReport:
+    """ This function "sums" collision reports.
+    While the simulation generates a collision report at every simulation step, oftentimes it's convenient to
+    reduce them to an "accident" report.
+    """
+    if r1.players.keys() != r2.players.keys():
+        raise ZValueError("Cannot combine collision reports with different players",
+                          report1=r1, report2=r2)
+    # impact point, normal are propagated according to the first report
+    first_report, second_report = (r1, r2) if r1.at_time <= r2.at_time else (r2, r1)
+    combined_players_report: Dict[PlayerName, CollisionReportPlayer] = {}
+    for p in first_report.players:
+        r1_player, r2_player = first_report.players[p], second_report.players[p]
+        combined_players_report[p] = replace(
+            r1_player,
+            locations=r1_player.locations + r2_player.locations,
+            velocity_after=r2_player.velocity_after,
+            energy_delta=r1_player.energy_delta + r2_player.energy_delta)
+    return replace(first_report,
+                   players=combined_players_report)

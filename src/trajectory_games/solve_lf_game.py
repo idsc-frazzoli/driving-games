@@ -16,9 +16,17 @@ from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Pr
 from games import PlayerName
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
 from .structures import VehicleState, VehicleGeometry
-from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame, \
-    SolvedLeaderFollowerGame, LeaderFollowerGameSolvingContext, LeaderFollowerGameNode, LeaderFollowerGameStage, \
-    LeaderFollowerGame, preprocess_full_game, SolvedRecursiveLeaderFollowerGame
+from .trajectory_game import (
+    SolvedTrajectoryGameNode,
+    SolvedTrajectoryGame,
+    SolvedLeaderFollowerGame,
+    LeaderFollowerGameSolvingContext,
+    LeaderFollowerGameNode,
+    LeaderFollowerGameStage,
+    LeaderFollowerGame,
+    preprocess_full_game,
+    SolvedRecursiveLeaderFollowerGame,
+)
 from dg_commons.sequence import Timestamp, DgSampledSequence
 from .paths import Trajectory
 from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
@@ -27,8 +35,9 @@ from .solve import get_best_responses
 
 
 def init_eval_metric(evalm: EvaluatedMetric, total: float = 0.0) -> EvaluatedMetric:
-    return EvaluatedMetric(title=evalm.title, description=evalm.description, total=total,
-                           incremental=None, cumulative=None)
+    return EvaluatedMetric(
+        title=evalm.title, description=evalm.description, total=total, incremental=None, cumulative=None
+    )
 
 
 def calculate_expectation(outcomes: List[PlayerOutcome]) -> PlayerOutcome:
@@ -60,8 +69,9 @@ def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOut
             elif comp == SECOND_PREFERRED:
                 ac_worst.remove(out2)
 
-    join: Dict[Metric, EvaluatedMetric] = {m: init_eval_metric(evalm=em, total=-math.inf) for m, em in
-                                           outcomes[0].items()}
+    join: Dict[Metric, EvaluatedMetric] = {
+        m: init_eval_metric(evalm=em, total=-math.inf) for m, em in outcomes[0].items()
+    }
     # TODO[SIR]: This can be improved to calc more accurate joins
     for out in ac_worst:
         for m, em in out.items():
@@ -70,9 +80,9 @@ def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOut
     return frozendict(join)
 
 
-def get_best_actions(pref: Preference, actions: Set[Trajectory],
-                     outcomes: Callable[[Trajectory], PlayerOutcome]) \
-        -> Set[Trajectory]:
+def get_best_actions(
+    pref: Preference, actions: Set[Trajectory], outcomes: Callable[[Trajectory], PlayerOutcome]
+) -> Set[Trajectory]:
     ba_pref: Set[Trajectory] = set(actions)
     for act_1 in frozenset(ba_pref):
         if act_1 not in ba_pref:
@@ -89,8 +99,7 @@ def get_best_actions(pref: Preference, actions: Set[Trajectory],
     return ba_pref
 
 
-def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
-        -> SolvedLeaderFollowerGame:
+def solve_leader_follower(context: LeaderFollowerGameSolvingContext) -> SolvedLeaderFollowerGame:
     lf = context.lf
 
     if not context.solver_params.use_best_response:
@@ -123,9 +132,9 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
         br_pref[l_act], agg_out_l[l_act] = {}, {}
         joint_act: Dict[PlayerName, Trajectory] = {lf.leader: l_act, lf.follower: foll_act_1}
         for p_f in lf.prefs_follower_est.support():
-            _, br = get_best_responses(joint_actions=joint_act, context=context,
-                                       player=lf.follower, done_p=set(),
-                                       player_pref=p_f)
+            _, br = get_best_responses(
+                joint_actions=joint_act, context=context, player=lf.follower, done_p=set(), player_pref=p_f
+            )
 
             outcomes_l: List[PlayerOutcome] = []
             # outcomes_f: List[PlayerOutcome] = []
@@ -147,11 +156,11 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
     best_actions: Dict[Preference, Set[Trajectory]] = {}
     all_actions: Set[Trajectory] = set()
     for p_f in lf.prefs_follower_est.support():
+
         def get_outcomes(action: Trajectory) -> PlayerOutcome:
             return agg_out_l[action][p_f]
 
-        ba_pref: Set[Trajectory] = get_best_actions(pref=lf.pref_leader, actions=lead_actions,
-                                                    outcomes=get_outcomes)
+        ba_pref: Set[Trajectory] = get_best_actions(pref=lf.pref_leader, actions=lead_actions, outcomes=get_outcomes)
         best_actions[p_f] = ba_pref
         all_actions |= ba_pref
 
@@ -164,8 +173,7 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
         outcomes_l: List[PlayerOutcome] = list(agg_out_l[l_act].values())
         agg_meet_l[l_act] = agg_func(outcomes=outcomes_l)
 
-    best_actions_meet = get_best_actions(pref=lf.pref_leader, actions=lead_actions,
-                                         outcomes=agg_meet_l.__getitem__)
+    best_actions_meet = get_best_actions(pref=lf.pref_leader, actions=lead_actions, outcomes=agg_meet_l.__getitem__)
     all_actions |= best_actions_meet
 
     toc = perf_counter() - tic
@@ -180,16 +188,15 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) \
             for act in iterate_dict_combinations({lf.leader: {l_act}, lf.follower: br_pref[l_act][p_f]}):
                 out = context.game_outcomes(act)
                 solved_game.add(SolvedTrajectoryGameNode(actions=act, outcomes=out))
-            pref_nodes[p_f] = LeaderFollowerGameNode(nodes=solved_game,
-                                                     agg_lead_outcome=agg_out_l[l_act][p_f])
+            pref_nodes[p_f] = LeaderFollowerGameNode(nodes=solved_game, agg_lead_outcome=agg_out_l[l_act][p_f])
         game_nodes[l_act] = pref_nodes
 
     toc = perf_counter() - tic1
     print(f"\tGame solving time = {toc:.2f} s")
 
-    return SolvedLeaderFollowerGame(lf=deepcopy(lf), games=game_nodes,
-                                    best_leader_actions=best_actions,
-                                    meet_leader_actions=best_actions_meet)
+    return SolvedLeaderFollowerGame(
+        lf=deepcopy(lf), games=game_nodes, best_leader_actions=best_actions, meet_leader_actions=best_actions_meet
+    )
 
 
 def update_follower_prefs(stage: LeaderFollowerGameStage, ps: PossibilityMonad) -> Poss[Preference]:
@@ -197,34 +204,33 @@ def update_follower_prefs(stage: LeaderFollowerGameStage, ps: PossibilityMonad) 
     node = stage.game_node
     possible_prefs: Set[Preference] = set()
     for p_f in lf.prefs_follower_est.support():
-        _, br = get_best_responses(joint_actions=node.actions, context=stage.context,
-                                   player=lf.follower, done_p=set(),
-                                   player_pref=p_f)
+        _, br = get_best_responses(
+            joint_actions=node.actions, context=stage.context, player=lf.follower, done_p=set(), player_pref=p_f
+        )
         if node.actions[lf.follower] in br:
             possible_prefs.add(p_f)
 
     return ps.lift_many(possible_prefs)
 
 
-def solve_recursive_game_stage(game: LeaderFollowerGame,
-                               context: LeaderFollowerGameSolvingContext) \
-        -> LeaderFollowerGameStage:
+def solve_recursive_game_stage(
+    game: LeaderFollowerGame, context: LeaderFollowerGameSolvingContext
+) -> LeaderFollowerGameStage:
     assert game.lf.pref_follower_real is not None
     # Solve leader game and select action
     lf_game = solve_leader_follower(context=context)
     act_leader = choice(list(lf_game.meet_leader_actions))
 
     # Select a BR as action for follower
-    joint_act = {game.lf.leader: act_leader,
-                 game.lf.follower: next(iter(context.player_actions[game.lf.follower]))}
+    joint_act = {game.lf.leader: act_leader, game.lf.follower: next(iter(context.player_actions[game.lf.follower]))}
 
     br_all: Set[Trajectory] = set()
     br: Set[Trajectory] = set()
 
     def get_br(pref: Preference):
-        _, br_pref = get_best_responses(joint_actions=joint_act, context=context,
-                                        player=game.lf.follower, done_p=set(),
-                                        player_pref=pref)
+        _, br_pref = get_best_responses(
+            joint_actions=joint_act, context=context, player=game.lf.follower, done_p=set(), player_pref=pref
+        )
         return br_pref
 
     for p_f in context.lf.prefs_follower_est.support():
@@ -244,25 +250,29 @@ def solve_recursive_game_stage(game: LeaderFollowerGame,
 
     # Simulate game forward for one timestep
     states = {pname: player.state for pname, player in game.game_players.items()}
-    stage = LeaderFollowerGameStage(lf=deepcopy(game.lf), context=context,
-                                    lf_game=lf_game, game_node=game_node,
-                                    best_responses_pred=br_all,
-                                    states=states, time=act_leader.get_start())
+    stage = LeaderFollowerGameStage(
+        lf=deepcopy(game.lf),
+        context=context,
+        lf_game=lf_game,
+        game_node=game_node,
+        best_responses_pred=br_all,
+        states=states,
+        time=act_leader.get_start(),
+    )
     for pname, state in simulate_recursive_game_stage(game=game, stage=stage).items():
         game.game_players[pname].state = state
 
     # Update estimate of follower prefs using action as measurement
     if game.lf.update_prefs:
         game.lf.prefs_follower_est = update_follower_prefs(stage=stage, ps=game.ps)
-        print(f"Updated Estimated Preferences - remaining = "
-              f"{len(game.lf.prefs_follower_est.support())} types")
+        print(f"Updated Estimated Preferences - remaining = " f"{len(game.lf.prefs_follower_est.support())} types")
 
     return stage
 
 
-def simulate_recursive_game_stage(game: LeaderFollowerGame,
-                                  stage: LeaderFollowerGameStage) \
-        -> Mapping[PlayerName, Poss[VehicleState]]:
+def simulate_recursive_game_stage(
+    game: LeaderFollowerGame, stage: LeaderFollowerGameStage
+) -> Mapping[PlayerName, Poss[VehicleState]]:
     states: Dict[PlayerName, Poss[VehicleState]] = {}
     for pname, player in game.game_players.items():
         act = stage.game_node.actions[pname]
@@ -309,8 +319,7 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
     print(f"\n\nCalculating aggregate trajectories and outcomes")
     # Concatenate simulated sections of trajectories to get overall driven trajectories
     times: List[Timestamp] = [stage.time for stage in stage_seq]
-    states_traj: Mapping[PlayerName, Dict[Timestamp, VehicleState]] = \
-        {pname: {} for pname in game.game_players.keys()}
+    states_traj: Mapping[PlayerName, Dict[Timestamp, VehicleState]] = {pname: {} for pname in game.game_players.keys()}
     lanes: Dict[PlayerName, DgLanelet] = {}
     goals: Dict[PlayerName, Optional[Polygon]] = {}
     for i in range(len(stage_seq)):
@@ -324,12 +333,15 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
             lanes[pname], goals[pname] = lane, goal
 
     # Trim trajectory of leader till terminal progress and follower till same time
-    traj_lead = Trajectory(values=list(states_traj[game.lf.leader].values()),
-                           lane=lanes[game.lf.leader], goal=goals[game.lf.leader])
-    traj_foll = Trajectory(values=list(states_traj[game.lf.follower].values())[:len(traj_lead)],
-                           lane=lanes[game.lf.follower], goal=goals[game.lf.follower])
-    traj: Mapping[PlayerName, Trajectory] = \
-        {game.lf.leader: traj_lead, game.lf.follower: traj_foll}
+    traj_lead = Trajectory(
+        values=list(states_traj[game.lf.leader].values()), lane=lanes[game.lf.leader], goal=goals[game.lf.leader]
+    )
+    traj_foll = Trajectory(
+        values=list(states_traj[game.lf.follower].values())[: len(traj_lead)],
+        lane=lanes[game.lf.follower],
+        goal=goals[game.lf.follower],
+    )
+    traj: Mapping[PlayerName, Trajectory] = {game.lf.leader: traj_lead, game.lf.follower: traj_foll}
 
     # Calculate aggregated outcomes for the driven trajectories
     agg_outcomes = game.get_outcomes(traj)
@@ -340,5 +352,6 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
     toc = perf_counter() - tic
     print(f"Recursive solution complete. Total time = {toc:.2f} s\n\n")
 
-    return SolvedRecursiveLeaderFollowerGame(lf=deepcopy(game.lf), aggregated_node=agg_node,
-                                             stages=DgSampledSequence(timestamps=times, values=stage_seq))
+    return SolvedRecursiveLeaderFollowerGame(
+        lf=deepcopy(game.lf), aggregated_node=agg_node, stages=DgSampledSequence(timestamps=times, values=stage_seq)
+    )

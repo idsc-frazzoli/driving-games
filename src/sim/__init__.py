@@ -6,6 +6,6 @@ logger = ZLogger(__name__)
 
 logger.setLevel(level=INFO)
 
-from .types import *
+from .sim_types import *
 from .simulator_structures import *
 from .collision_structures import *

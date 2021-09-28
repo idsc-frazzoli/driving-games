@@ -1,23 +1,30 @@
 from copy import deepcopy
-from functools import partial
-from typing import Dict, Set, FrozenSet, Mapping, Optional
-from time import perf_counter
-
 from dataclasses import dataclass
+from functools import partial
+from time import perf_counter
+from typing import Dict, Set, FrozenSet, Mapping, Optional
+
 from frozendict import frozendict
 
-from games import PlayerName, PURE_STRATEGIES, BAIL_MNE
+from dg_commons import PlayerName
+from dg_commons.seq.sequence import Timestamp, DgSampledSequence
+from games import PURE_STRATEGIES, BAIL_MNE
 from games.utils import iterate_dict_combinations
 from possibilities import Poss
 from preferences import Preference
-
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from .structures import VehicleState, VehicleGeometry
-from .paths import Trajectory
-from .trajectory_world import TrajectoryWorld
+from .game_def import (
+    Game,
+    GamePlayer,
+    SolvingContext,
+    SolvedGameNode,
+    StaticSolverParams,
+    EXP_ACCOMP,
+    AntichainComparison,
+)
 from .metrics_def import PlayerOutcome
-from .game_def import Game, GamePlayer, SolvingContext, SolvedGameNode, StaticSolverParams, EXP_ACCOMP, \
-    AntichainComparison
+from .paths import Trajectory
+from .structures import VehicleState, VehicleGeometry
+from .trajectory_world import TrajectoryWorld
 
 __all__ = [
     "JointPureTraj",
@@ -41,16 +48,12 @@ JointPureTraj = Mapping[PlayerName, Trajectory]
 
 
 @dataclass
-class TrajectoryGamePlayer(GamePlayer[VehicleState, Trajectory,
-                                      TrajectoryWorld, PlayerOutcome,
-                                      VehicleGeometry]):
+class TrajectoryGamePlayer(GamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
     pass
 
 
 @dataclass
-class TrajectoryGame(Game[VehicleState, Trajectory,
-                          TrajectoryWorld, PlayerOutcome,
-                          VehicleGeometry]):
+class TrajectoryGame(Game[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
     pass
 
 
@@ -104,7 +107,7 @@ class LeaderFollowerGameNode:
 
 @dataclass(unsafe_hash=True)
 class SolvedLeaderFollowerGame:
-    """ Single stage solution of the game """
+    """Single stage solution of the game"""
 
     lf: LeaderFollowerParams
     """ Game params"""
@@ -118,7 +121,7 @@ class SolvedLeaderFollowerGame:
 
 @dataclass
 class LeaderFollowerGameStage:
-    """ Single stage of the game """
+    """Single stage of the game"""
 
     lf: LeaderFollowerParams
     """ Game params """
@@ -139,7 +142,7 @@ class LeaderFollowerGameStage:
 
 @dataclass
 class SolvedRecursiveLeaderFollowerGame:
-    """ Entire recursive multistage game as a sequence of stages """
+    """Entire recursive multistage game as a sequence of stages"""
 
     lf: LeaderFollowerParams
     stages: DgSampledSequence[LeaderFollowerGameStage]
@@ -155,7 +158,7 @@ def compute_outcomes(iterable, sgame: Game):
 
 
 def compute_actions(sgame: Game) -> Mapping[PlayerName, FrozenSet[Trajectory]]:
-    """ Generate the trajectories for each player (i.e. get the available actions) """
+    """Generate the trajectories for each player (i.e. get the available actions)"""
     print("\nGenerating Trajectories:")
     available_traj: Dict[PlayerName, FrozenSet[Trajectory]] = {}
     for player_name, game_player in sgame.game_players.items():
@@ -214,12 +217,17 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
     else:
         ac_comp = EXP_ACCOMP
 
-    solver_params = StaticSolverParams(admissible_strategies=PURE_STRATEGIES,
-                                       strategy_multiple_nash=BAIL_MNE,
-                                       antichain_comparison=ac_comp, use_best_response=True)
+    solver_params = StaticSolverParams(
+        admissible_strategies=PURE_STRATEGIES,
+        strategy_multiple_nash=BAIL_MNE,
+        antichain_comparison=ac_comp,
+        use_best_response=True,
+    )
     kwargs = {
-        "player_actions": actions, "game_outcomes": sgame.get_outcomes,
-        "outcome_pref": pref, "solver_params": solver_params
+        "player_actions": actions,
+        "game_outcomes": sgame.get_outcomes,
+        "outcome_pref": pref,
+        "solver_params": solver_params,
     }
     if isinstance(sgame, LeaderFollowerGame):
         context = LeaderFollowerGameSolvingContext(**kwargs, lf=deepcopy(sgame.lf))

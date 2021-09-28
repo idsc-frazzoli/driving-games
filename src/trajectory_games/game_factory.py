@@ -9,6 +9,8 @@ from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
 from yaml import safe_load
 
+from dg_commons import PlayerName
+from games import MonadicPreferenceBuilder
 from dg_commons.planning.lanes import DgLanelet
 from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
@@ -18,6 +20,8 @@ from world import SE2Transform
 from .config import config_dir
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
+from .structures import VehicleGeometry, VehicleState, TrajectoryParams
+from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
@@ -25,6 +29,7 @@ from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowe
 from .trajectory_generator import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
+from _tmp._deprecated.world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",
@@ -32,7 +37,7 @@ __all__ = [
 ]
 
 players_file = os.path.join(config_dir_ral, "players.yaml")
-#leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
+# leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
 # with open(leader_follower_file) as load_file:
@@ -71,13 +76,13 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
         state_init = np.array([state.x, state.y])
 
         if pconfig["goals"] is None:
-            lanes_all = DgLanelet.from_start(lane_network=lane_network, start=state_init,
-                                             max_length=config["goal"]["max_length"])
+            lanes_all = DgLanelet.from_start(
+                lane_network=lane_network, start=state_init, max_length=config["goal"]["max_length"]
+            )
             lanes[pname] = list((lane, None) for lane in lanes_all)
         else:
             goals = list(np.array(goal) for goal in pconfig["goals"])
-            lanes_all = DgLanelet.from_ends(lane_network=lane_network, start=state_init,
-                                            goals=goals)
+            lanes_all = DgLanelet.from_ends(lane_network=lane_network, start=state_init, goals=goals)
             lanes[pname] = []
             for lane, goal in zip(lanes_all, goals):
                 lanes[pname].append((lane, get_goal_polygon(lanelet=lane, goal=goal)))
@@ -104,9 +109,13 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
 
     world = TrajectoryWorld(map_name=config["map_name"], scenario=scenario, geo=geometries, lanes=lanes)
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
-    game = TrajectoryGame(world=world, game_players=players, ps=ps,
-                          get_outcomes=get_outcomes,
-                          game_vis=TrajGameVisualization(world=world, plot_limits=config["plot_limits"]))
+    game = TrajectoryGame(
+        world=world,
+        game_players=players,
+        ps=ps,
+        get_outcomes=get_outcomes,
+        game_vis=TrajGameVisualization(world=world, plot_limits=config["plot_limits"]),
+    )
     toc = perf_counter() - tic
     print(f"Game creation time = {toc:.2f} s")
     return game
@@ -129,27 +138,31 @@ def get_leader_follower_game() -> LeaderFollowerGame:
     prefs_follower = [get_pref1(name=p) for p in config_lf["prefs_follower_est"]]
     prefs_follower_est = game.ps.lift_many(prefs_follower)
 
-    lf = LeaderFollowerParams(leader=PlayerName(config_lf["leader"]),
-                              follower=PlayerName(config_lf["follower"]),
-                              pref_leader=pref_leader,
-                              prefs_follower_est=prefs_follower_est,
-                              pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
-                              antichain_comparison=ac_comp[ac_cfg],
-                              solve_time=float(config_lf["solve_time"]),
-                              simulation_step=float(config_lf["simulation_step"]),
-                              update_prefs=config_lf["update_prefs"])
+    lf = LeaderFollowerParams(
+        leader=PlayerName(config_lf["leader"]),
+        follower=PlayerName(config_lf["follower"]),
+        pref_leader=pref_leader,
+        prefs_follower_est=prefs_follower_est,
+        pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
+        antichain_comparison=ac_comp[ac_cfg],
+        solve_time=float(config_lf["solve_time"]),
+        simulation_step=float(config_lf["simulation_step"]),
+        update_prefs=config_lf["update_prefs"],
+    )
 
     # Init pref dict with the correct order of follower prefs from list instead of set
-    all_prefs: Dict[PlayerName, Set[PosetalPreference]] = {
-        lf.leader: {pref_leader},
-        lf.follower: set(prefs_follower)
-    }
+    all_prefs: Dict[PlayerName, Set[PosetalPreference]] = {lf.leader: {pref_leader}, lf.follower: set(prefs_follower)}
     game.game_vis.init_pref_dict(values=all_prefs)
     pref_dict_f = game.game_vis.get_pref_dict(player=lf.follower)
     for p_f in prefs_follower:
         _ = pref_dict_f[p_f]
 
-    game_lf = LeaderFollowerGame(world=game.world, game_players=game.game_players,
-                                 ps=game.ps, get_outcomes=game.get_outcomes,
-                                 game_vis=game.game_vis, lf=lf)
+    game_lf = LeaderFollowerGame(
+        world=game.world,
+        game_players=game.game_players,
+        ps=game.ps,
+        get_outcomes=game.get_outcomes,
+        game_vis=game.game_vis,
+        lf=lf,
+    )
     return game_lf

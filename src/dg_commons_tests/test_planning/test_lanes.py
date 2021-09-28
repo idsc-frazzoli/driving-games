@@ -1,11 +1,11 @@
 from typing import Hashable
 
 import numpy as np
-from duckietown_world.utils import SE2_apply_R2
 from matplotlib import pyplot as plt
 from numpy import linspace
 
-from dg_commons.planning.lanes import DgLanelet
+from dg_commons import SE2_apply_T2
+from dg_commons.maps.lanes import DgLanelet
 from sim.scenarios import load_commonroad_scenario
 
 
@@ -32,8 +32,8 @@ def test_lane_vis():
             radius = lane.radius(beta)
             delta_left = np.array([0, radius])
             delta_right = np.array([0, -radius])
-            left = SE2_apply_R2(q, delta_left)
-            right = SE2_apply_R2(q, delta_right)
+            left = SE2_apply_T2(q, delta_left)
+            right = SE2_apply_T2(q, delta_right)
             plt.plot(*left, "o")
             plt.plot(*right, "x")
             plt.gca().set_aspect("equal")

@@ -35,10 +35,9 @@ d = "out/tests/"
 filename = "r_game_all.html"
 
 
-def create_reports(game: TrajectoryGame,
-                   nash_eq: Mapping[str, SolvedTrajectoryGame],
-                   r_game: Report,
-                   gif: bool = plot_gif):
+def create_reports(
+    game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], r_game: Report, gif: bool = plot_gif
+):
     if not only_traj:
         print(", ".join(f"{k.capitalize()} = {len(v)}" for k, v in nash_eq.items()))
         r_game.add_child(report_nash_eq(game=game, nash_eq=nash_eq, plot_gif=gif))
@@ -55,8 +54,9 @@ def report_single(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGa
 
 
 def report_times():
-    from world import LaneSegmentHashable
+    from _tmp._deprecated.world import LaneSegmentHashable
     from trajectory_games.metrics import CollisionEnergy, MinimumClearance
+
     print(f"LanePose time = {LaneSegmentHashable.time:.2f} s")
     coll, clear = CollisionEnergy(), MinimumClearance()
     print(f"Collision time = {coll.time:.2f} s")
@@ -87,8 +87,7 @@ def test_trajectory_game_best_response():
     if only_traj:
         nash_eq = {}
     else:
-        nash_eq: Mapping[str, SolvedTrajectoryGame] = \
-            iterative_best_response(context=context, n_runs=n_runs)
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = iterative_best_response(context=context, n_runs=n_runs)
         game.game_vis.init_plot_dict(values=nash_eq["weak"])
     report_single(game=game, nash_eq=nash_eq, folder=folder)
 
@@ -116,8 +115,7 @@ def test_trajectory_game_lexi():
                 a = 2
 
             context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
-            nash_eq: Mapping[str, SolvedTrajectoryGame] = \
-                iterative_best_response(context=context, n_runs=1)
+            nash_eq: Mapping[str, SolvedTrajectoryGame] = iterative_best_response(context=context, n_runs=1)
             game.game_vis.init_plot_dict(values=nash_eq["weak"])
             r_game = Report(f"State={i + 1}, Pref={j + 1}")
             r_game.add_child(report_game_visualization(game=game))
@@ -195,8 +193,8 @@ def test_leader_follower_recursive():
     r_game.to_html(join(d, folder + filename))
 
 
-if __name__ == '__main__':
-    d = 'trajectory_games_tests/' + d
+if __name__ == "__main__":
+    d = "trajectory_games_tests/" + d
     # test_trajectory_game_brute_force()
     # test_trajectory_game_best_response()
     test_trajectory_game_levels()

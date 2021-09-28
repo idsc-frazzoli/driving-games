@@ -6,6 +6,7 @@ from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tup
 
 from frozendict import frozendict
 
+from dg_commons import PlayerName, U, X, RP, RJ, Y
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 from zuper_commons.types import check_isinstance, ZValueError
@@ -13,11 +14,6 @@ from . import GameConstants
 
 __all__ = [
     "Dynamics",
-    "Y",
-    "X",
-    "U",
-    "RP",
-    "RJ",
     "SR",
     "P",
     "Observations",
@@ -26,7 +22,6 @@ __all__ = [
     "JointMixedActions",
     "JointRewardStructure",
     "PersonalRewardStructure",
-    "PlayerName",
     "Combined",
     "UncertainCombined",
     "MonadicPreferenceBuilder",
@@ -38,23 +33,23 @@ __all__ = [
     "GameVisualization",
 ]
 
-PlayerName = NewType("PlayerName", str)
-""" Strings that represent player's names/IDs. """
+# PlayerName = NewType("PlayerName", str)
+# """ Strings that represent player's names/IDs. """
+#
+# X = TypeVar("X")
+# """ Generic variable for a player's state."""
+#
+# U = TypeVar("U")
+# """ Generic variable for a player's commands. """
 
-X = TypeVar("X")
-""" Generic variable for a player's state."""
-
-U = TypeVar("U")
-""" Generic variable for a player's commands. """
-
-Y = TypeVar("Y")
-""" Generic variable for the player's observations. """
-
-RP = TypeVar("RP")
-""" Generic variable for the Personal Reward. """
-
-RJ = TypeVar("RJ")
-""" Generic variable for the Joint Reward. """
+# Y = TypeVar("Y")
+# """ Generic variable for the player's observations. """
+#
+# RP = TypeVar("RP")
+# """ Generic variable for the Personal Reward. """
+#
+# RJ = TypeVar("RJ")
+# """ Generic variable for the Joint Reward. """
 
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
@@ -232,7 +227,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         commands: Optional[U],
         opacity: float = 1.0,
     ):
-        """ Draw the player at a certain state doing certain commands (if givne)"""
+        """ Draw the player at a certain state doing certain commands (if given)"""
         pass
 
     @abstractmethod

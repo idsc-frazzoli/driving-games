@@ -6,9 +6,9 @@ from typing import Dict, List, Mapping, Tuple, Optional
 from duckietown_world import SE2Transform
 
 from dg_commons.planning.lanes import DgLanePose
-from dg_commons.seq_op import seq_integrate
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from games import PlayerName
+from dg_commons import PlayerName
+from dg_commons.seq.seq_op import seq_integrate
+from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 
@@ -19,7 +19,7 @@ __all__ = [
     "PlayerOutcome",
     "MetricEvaluationResult",
     "TrajGameOutcome",
-    "differentiate"
+    "differentiate",
 ]
 
 
@@ -34,7 +34,7 @@ class MetricEvaluationContext:
     """ Internal data """
     _points_cart: Mapping[PlayerName, List[SE2Transform]] = None
     _points_curv: Mapping[PlayerName, List[DgLanePose]] = None
-    """ Sampled vehicle states for each player 
+    """ Sampled vehicle states for each player
         Cache and reuse for all rules."""
 
     _cache_cart: Dict[Trajectory, List[SE2Transform]] = None
@@ -89,12 +89,12 @@ class EvaluatedMetric:
     cumulative: DgSampledSequence
 
     def __init__(
-            self,
-            title: str,
-            description: str,
-            total: float,
-            incremental: Optional[DgSampledSequence],
-            cumulative: Optional[DgSampledSequence],
+        self,
+        title: str,
+        description: str,
+        total: float,
+        incremental: Optional[DgSampledSequence],
+        cumulative: Optional[DgSampledSequence],
     ):
         self.title = title
         self.description = description
@@ -114,8 +114,7 @@ class EvaluatedMetric:
     @lru_cache(None)
     def add(m1: "EvaluatedMetric", m2: "EvaluatedMetric") -> "EvaluatedMetric":
         if m1.title != m2.title:
-            raise NotImplementedError(f"add implemented only for same metric, "
-                                      f"received {m1.title, m2.title}")
+            raise NotImplementedError(f"add implemented only for same metric, " f"received {m1.title, m2.title}")
 
         if m1.incremental is None:
             inc = None
@@ -132,11 +131,12 @@ class EvaluatedMetric:
         else:
             times_c = m1.cumulative.timestamps + m2.cumulative.timestamps
             c_end = m1.cumulative.values[-1]
-            vals_c = m1.cumulative.values + [v + c_end for v in m2.cumulative.values]
+            vals_c = m1.cumulative.values + tuple([v + c_end for v in m2.cumulative.values])
             cum = DgSampledSequence(timestamps=times_c, values=vals_c)
 
-        return EvaluatedMetric(title=m1.title, description=m1.description,
-                               total=m1.total + m2.total, incremental=inc, cumulative=cum)
+        return EvaluatedMetric(
+            title=m1.title, description=m1.description, total=m1.total + m2.total, incremental=inc, cumulative=cum
+        )
 
     __radd__ = __add__
 
@@ -153,9 +153,7 @@ def get_integrated(sequence: DgSampledSequence[float]) -> Tuple[DgSampledSequenc
 
 def differentiate(val: List[float], t: List[Timestamp]) -> List[float]:
     if len(val) != len(t):
-        msg = "values and times have different sizes - ({},{})," " can't differentiate".format(
-            len(val), len(t)
-        )
+        msg = "values and times have different sizes - ({},{})," " can't differentiate".format(len(val), len(t))
         raise ValueError(msg)
 
     def func_diff(i: int) -> float:
@@ -182,13 +180,18 @@ class Metric(metaclass=ABCMeta):
 
     @abstractmethod
     def evaluate(self, context: MetricEvaluationContext) -> "MetricEvaluationResult":
-        """ Evaluates the metric for all players given a context. """
+        """Evaluates the metric for all players given a context."""
 
     def get_evaluated_metric(self, interval: List[Timestamp], val: List[float]) -> EvaluatedMetric:
         incremental = DgSampledSequence[float](interval, val)
         cumulative, total = get_integrated(incremental)
-        ret = EvaluatedMetric(title=type(self).__name__, description=self.description,
-                              total=total, incremental=incremental, cumulative=cumulative)
+        ret = EvaluatedMetric(
+            title=type(self).__name__,
+            description=self.description,
+            total=total,
+            incremental=incremental,
+            cumulative=cumulative,
+        )
         return ret
 
 

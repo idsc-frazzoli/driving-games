@@ -1,7 +1,7 @@
 import math
 from dataclasses import dataclass, replace
 from decimal import Decimal
-from typing import Type, Mapping
+from typing import Type, Mapping, TypeVar
 
 import numpy as np
 from frozendict import frozendict
@@ -11,8 +11,10 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
 from sim import logger, ImpactLocation, IMPACT_RIGHT, IMPACT_LEFT, IMPACT_BACK, IMPACT_FRONT
+from sim.models import ModelType, CAR
 from sim.models.model_utils import acceleration_constraint
-from sim.models.vehicle_structures import VehicleGeometry, CAR
+from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
+from sim.models.vehicle_structures import VehicleGeometry
 from sim.models.vehicle_utils import steering_constraint, VehicleParameters
 from sim.simulator_structures import SimModel
 
@@ -23,6 +25,8 @@ class VehicleCommands:
     """ Acceleration [m/s^2] """
     ddelta: float
     """ Steering rate [rad/s] (delta derivative) """
+    lights: LightsCmd = NO_LIGHTS
+    # todo add horn
     idx = frozendict({"acc": 0, "ddelta": 1})
     """ Dictionary to get correct values from numpy arrays"""
 
@@ -32,9 +36,7 @@ class VehicleCommands:
 
     def __add__(self, other: "VehicleCommands") -> "VehicleCommands":
         if type(other) == type(self):
-            return replace(self,
-                           acc=self.acc + other.acc,
-                           ddelta=self.ddelta + other.ddelta)
+            return replace(self, acc=self.acc + other.acc, ddelta=self.ddelta + other.ddelta)
         else:
             raise NotImplementedError
 
@@ -52,16 +54,15 @@ class VehicleCommands:
         return self * (1 / val)
 
     def as_ndarray(self) -> np.ndarray:
-        return np.array([
-            self.acc,
-            self.ddelta
-        ])
+        return np.array([self.acc, self.ddelta])
 
     @classmethod
     def from_array(cls, z: np.ndarray):
         assert cls.get_n_commands() == z.size == z.shape[0], f"z vector {z} cannot initialize VehicleInputs."
-        return VehicleCommands(acc=z[cls.idx["acc"]],
-                               ddelta=z[cls.idx["ddelta"]])
+        return VehicleCommands(acc=z[cls.idx["acc"]], ddelta=z[cls.idx["ddelta"]])
+
+
+TVehicleState = TypeVar("TVehicleState", bound="VehicleState")
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -85,13 +86,14 @@ class VehicleState:
 
     def __add__(self, other: "VehicleState") -> "VehicleState":
         if type(other) == type(self):
-            return replace(self,
-                           x=self.x + other.x,
-                           y=self.y + other.y,
-                           theta=self.theta + other.theta,
-                           vx=self.vx + other.vx,
-                           delta=self.delta + other.delta
-                           )
+            return replace(
+                self,
+                x=self.x + other.x,
+                y=self.y + other.y,
+                theta=self.theta + other.theta,
+                vx=self.vx + other.vx,
+                delta=self.delta + other.delta,
+            )
         else:
             raise NotImplementedError
 
@@ -101,13 +103,14 @@ class VehicleState:
         return self + (other * -1.0)
 
     def __mul__(self, val: float) -> "VehicleState":
-        return replace(self,
-                       x=self.x * val,
-                       y=self.y * val,
-                       theta=self.theta * val,
-                       vx=self.vx * val,
-                       delta=self.delta * val,
-                       )
+        return replace(
+            self,
+            x=self.x * val,
+            y=self.y * val,
+            theta=self.theta * val,
+            vx=self.vx * val,
+            delta=self.delta * val,
+        )
 
     __rmul__ = __mul__
 
@@ -118,30 +121,25 @@ class VehicleState:
         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("idx")})
 
     def as_ndarray(self) -> np.ndarray:
-        return np.array([
-            self.x,
-            self.y,
-            self.theta,
-            self.vx,
-            self.delta
-        ])
+        return np.array([self.x, self.y, self.theta, self.vx, self.delta])
 
     @classmethod
     def from_array(cls, z: np.ndarray):
         assert cls.get_n_states() == z.size == z.shape[0], f"z vector {z} cannot initialize VehicleState."
-        return VehicleState(x=z[cls.idx["x"]],
-                            y=z[cls.idx["y"]],
-                            theta=z[cls.idx["theta"]],
-                            vx=z[cls.idx["vx"]],
-                            delta=z[cls.idx["delta"]])
+        return VehicleState(
+            x=z[cls.idx["x"]],
+            y=z[cls.idx["y"]],
+            theta=z[cls.idx["theta"]],
+            vx=z[cls.idx["vx"]],
+            delta=z[cls.idx["delta"]],
+        )
 
 
-class VehicleModel(SimModel[VehicleState, VehicleCommands]):
-
-    def __init__(self, x0: VehicleState, vg: VehicleGeometry, vp: VehicleParameters):
-        self._state: VehicleState = x0
+class VehicleModel(SimModel[TVehicleState, VehicleCommands]):
+    def __init__(self, x0: TVehicleState, vg: VehicleGeometry, vp: VehicleParameters):
+        self._state: TVehicleState = x0
         """ Current state of the model"""
-        self.XT: Type[VehicleState] = type(x0)
+        self.XT: Type[TVehicleState] = type(x0)
         """ State type"""
         self.vg: VehicleGeometry = vg
         """ The vehicle's geometry parameters"""
@@ -156,6 +154,10 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
     def default_car(cls, x0: VehicleState):
         return VehicleModel(x0=x0, vg=VehicleGeometry.default_car(), vp=VehicleParameters.default_car())
 
+    @classmethod
+    def default_truck(cls, x0: VehicleState):
+        return VehicleModel(x0=x0, vg=VehicleGeometry.default_truck(), vp=VehicleParameters.default_truck())
+
     def update(self, commands: VehicleCommands, dt: Decimal):
         """
         Perform initial value problem integration
@@ -168,8 +170,9 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
             if self.has_collided and not self.vg.vehicle_type == CAR:
                 actions = VehicleCommands(acc=0, ddelta=0)
             else:
-                actions = VehicleCommands(acc=y[VehicleCommands.idx["acc"] + n_states],
-                                          ddelta=y[VehicleCommands.idx["ddelta"] + n_states])
+                actions = VehicleCommands(
+                    acc=y[VehicleCommands.idx["acc"] + n_states], ddelta=y[VehicleCommands.idx["ddelta"] + n_states]
+                )
             return state, actions
 
         def _dynamics(t, y):
@@ -190,7 +193,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
         return
 
     def dynamics(self, x0: VehicleState, u: VehicleCommands) -> VehicleState:
-        """ Kinematic bicycle model, returns state derivative for given control inputs """
+        """Kinematic bicycle model, returns state derivative for given control inputs"""
         vx = x0.vx
         dtheta = vx * math.tan(x0.delta) / self.vg.length
         vy = dtheta * self.vg.lr
@@ -205,7 +208,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def get_footprint(self) -> Polygon:
         """Returns current footprint of the vehicle (mainly for collision checking)"""
-        footprint = Polygon(self.vg.outline)
+        footprint = self.vg.outline_as_polygon
         transform = self.get_pose()
         matrix_coeff = transform[0, :2].tolist() + transform[1, :2].tolist() + transform[:2, 2].tolist()
         footprint = affine_transform(footprint, matrix_coeff)
@@ -221,7 +224,7 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
             IMPACT_RIGHT: Polygon([cxy, vertices[0], vertices[3], cxy]),
             IMPACT_LEFT: Polygon([cxy, vertices[1], vertices[2], cxy]),
             IMPACT_BACK: Polygon([cxy, vertices[0], vertices[1], cxy]),
-            IMPACT_FRONT: Polygon([cxy, vertices[2], vertices[3], cxy])
+            IMPACT_FRONT: Polygon([cxy, vertices[2], vertices[3], cxy]),
         }
         for shape in impact_locations.values():
             assert shape.is_valid
@@ -247,8 +250,18 @@ class VehicleModel(SimModel[VehicleState, VehicleCommands]):
 
     def set_velocity(self, vel: T2value, omega: float, in_model_frame: bool):
         if not in_model_frame:
-            rot: SO2value = SO2_from_angle(- self._state.theta)
+            rot: SO2value = SO2_from_angle(-self._state.theta)
             vel = rot @ vel
         self._state.vx = vel[0]
-        logger.warn("It is NOT possible to set the lateral and rotational velocity for this model\n"
-                    "Try using the dynamic model.")
+        logger.warn(
+            "It is NOT possible to set the lateral and rotational velocity for this model\n"
+            "Try using the dynamic model."
+        )
+
+    @property
+    def model_type(self) -> ModelType:
+        return self.vg.vehicle_type
+
+    def get_extra_collision_friction_acc(self):
+        # this model is not dynamic
+        pass

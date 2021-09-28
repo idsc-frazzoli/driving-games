@@ -1,20 +1,16 @@
 from typing import List, Optional, Tuple
 
 import numpy as np
+from geometry import translation_angle_from_SE2
 from shapely.geometry import Polygon
 
-from games import PlayerName
+from dg_commons import PlayerName
 from sim import ImpactLocation, CollisionReport, logger, SimModel
 from sim.collision_structures import CollisionReportPlayer
 from sim.collision_utils import compute_impact_geometry, \
     velocity_after_collision, kinetic_energy, compute_impulse_response, rot_velocity_after_collision, \
-    velocity_of_P_given_A, CollisionException
+    velocity_of_P_given_A, CollisionException, chek_who_is_at_fault
 from sim.simulator import SimContext
-
-
-def is_a_at_fault():
-    # todo this will need to be implemented with some better logic
-    return False
 
 
 def impact_locations_from_polygons(a_model: SimModel, b_model: SimModel) -> List[Tuple[ImpactLocation, Polygon]]:
@@ -47,9 +43,10 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_shape = b_model.get_footprint()
     # Compute collision geometry
     impact_normal, impact_point = compute_impact_geometry(a_shape, b_shape)
-    # fixme this is an approximation to take the cog from the shape centroid
-    r_ap = np.array(impact_point.coords[0]) - np.array(a_shape.centroid.coords[0])
-    r_bp = np.array(impact_point.coords[0]) - np.array(b_shape.centroid.coords[0])
+    a_cog = translation_angle_from_SE2(a_model.get_pose())[0]
+    b_cog = translation_angle_from_SE2(b_model.get_pose())[0]
+    r_ap = np.array(impact_point.coords[0]) - np.array(a_cog)
+    r_bp = np.array(impact_point.coords[0]) - np.array(b_cog)  # b_shape.centroid.coords[0])
     a_vel, a_omega = a_model.get_velocity(in_model_frame=False)
     b_vel, b_omega = b_model.get_velocity(in_model_frame=False)
     a_vel_atP = velocity_of_P_given_A(a_vel, a_omega, r_ap)
@@ -69,8 +66,10 @@ def resolve_collision(a: PlayerName, b: PlayerName, sim_context: SimContext) -> 
     b_locations = impact_locations_from_polygons(b_model, a_model)
 
     # Check who is at fault
-    a_fault: bool = is_a_at_fault()
-    b_fault: bool = is_a_at_fault()
+    who_is_at_fault = chek_who_is_at_fault({a: a_model.get_pose(), b: b_model.get_pose()},
+                                           impact_point=impact_point,
+                                           lanelet_network=sim_context.scenario.lanelet_network)
+    a_fault, b_fault = who_is_at_fault[a], who_is_at_fault[b]
 
     # Compute impulse resolution
     a_geom = a_model.get_geometry()

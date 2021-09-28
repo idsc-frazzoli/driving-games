@@ -12,7 +12,9 @@ from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 from shapely.geometry import Polygon
 
 from dg_commons.planning.lanes import DgLanelet
-from games import PlayerName
+from _tmp._deprecated.world import LaneSegmentHashable
+from _tmp._deprecated.world.map_loading import map_directory, load_driving_game_map
+from dg_commons import PlayerName
 from sim import Color
 from sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
@@ -29,14 +31,19 @@ Collision = None
 
 
 class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
-    """ Visualization for the trajectory games"""
+    """Visualization for the trajectory games"""
 
     world: TrajectoryWorld
     commonroad_renderer: MPRenderer
 
-    def __init__(self, world: TrajectoryWorld, ax: Axes = None,
-                 plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto",
-                 *args, **kwargs):
+    def __init__(
+        self,
+        world: TrajectoryWorld,
+        ax: Axes = None,
+        plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto",
+        *args,
+        **kwargs,
+    ):
         self.world = world
         self.plot_limits = plot_limits
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
@@ -46,42 +53,54 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
         self.commonroad_renderer.ax = axis
         self.commonroad_renderer.f = axis.figure
-        self.world.scenario.lanelet_network.draw(self.commonroad_renderer,
-                                                 draw_params={"traffic_light": {"draw_traffic_lights": False}})
+        self.world.scenario.lanelet_network.draw(
+            self.commonroad_renderer, draw_params={"traffic_light": {"draw_traffic_lights": False}}
+        )
         self.commonroad_renderer.render()
         yield
 
-    def plot_player(self, axis, player_name: PlayerName,
-                    state: VehicleState, alpha: float = 0.95, box=None):
-        """ Draw the player and his action set at a certain state. """
+    def plot_player(self, axis, player_name: PlayerName, state: VehicleState, alpha: float = 0.95, box=None):
+        """Draw the player and his action set at a certain state."""
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
-        box = plot_car(axis=axis, player_name=player_name,
-                       state=state, vg=vg, alpha=alpha, box=box)
+        box = plot_car(axis=axis, player_name=player_name, state=state, vg=vg, alpha=alpha, box=box)
         return box
 
-    def plot_equilibria(self, axis, actions: FrozenSet[Trajectory],
-                        colour: Color,
-                        width: float = .9, alpha: float = 1.0,
-                        ticks: bool = True, scatter: bool = True, plot_lanes=True):
+    def plot_equilibria(
+        self,
+        axis,
+        actions: FrozenSet[Trajectory],
+        colour: Color,
+        width: float = 0.9,
+        alpha: float = 1.0,
+        ticks: bool = True,
+        scatter: bool = True,
+        plot_lanes=True,
+    ):
 
-        self.plot_actions(axis=axis, actions=actions,
-                          colour=colour, width=width,
-                          alpha=alpha, ticks=ticks, plot_lanes=plot_lanes)
+        self.plot_actions(
+            axis=axis, actions=actions, colour=colour, width=width, alpha=alpha, ticks=ticks, plot_lanes=plot_lanes
+        )
 
         if scatter:
             size = np.linalg.norm(axis.bbox.size) / 2000.0
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
-                scatter = axis.scatter(x, y, s=size, c=vel, marker=".", cmap='PuRd',
-                                       vmin=2.0, vmax=10.0, zorder=ZOrder.scatter)
+                scatter = axis.scatter(
+                    x, y, s=size, c=vel, marker=".", cmap="PuRd", vmin=2.0, vmax=10.0, zorder=ZOrder.scatter
+                )
                 # plt.colorbar(scatter, ax=axis)
 
-    def plot_pref(self, axis, pref: PosetalPreference,
-                  pname: PlayerName, origin: Tuple[float, float],
-                  labels: Mapping[WeightedPreference, str] = None,
-                  add_title: bool = True):
+    def plot_pref(
+        self,
+        axis,
+        pref: PosetalPreference,
+        pname: PlayerName,
+        origin: Tuple[float, float],
+        labels: Mapping[WeightedPreference, str] = None,
+        add_title: bool = True,
+    ):
 
         X, Y = origin
         G: DiGraph = pref.graph
@@ -97,15 +116,13 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             labels = {n: str(n) for n in G.nodes}
             text = "_pref"
         else:
-            assert len(G.nodes) == len(labels.keys()), \
-                f"Size mismatch between nodes ({len(G.nodes)}) and" \
-                f" labels ({len(labels.keys())})"
+            assert len(G.nodes) == len(labels.keys()), (
+                f"Size mismatch between nodes ({len(G.nodes)}) and" f" labels ({len(labels.keys())})"
+            )
             for n in G.nodes:
-                assert n in labels.keys(), \
-                    f"Node {n} not present in keys - {labels.keys()}"
+                assert n in labels.keys(), f"Node {n} not present in keys - {labels.keys()}"
             text = "_outcomes"
-        draw_networkx_edges(G, pos=pos, edgelist=G.edges(),
-                            ax=axis, arrows=True, arrowstyle="-")
+        draw_networkx_edges(G, pos=pos, edgelist=G.edges(), ax=axis, arrows=True, arrowstyle="-")
 
         draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
         if add_title:
@@ -113,11 +130,18 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             axis.set_ylim(top=Y + 15.0)
             # I suspect here we have the problems
 
-    def plot_actions(self, axis: Axes, actions: FrozenSet[Trajectory],
-                     lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
-                     colour: Color = None,
-                     width: float = .7, alpha: float = 1.0,
-                     ticks: bool = True, lines=None, plot_lanes=True,) -> LineCollection:
+    def plot_actions(
+        self,
+        axis: Axes,
+        actions: FrozenSet[Trajectory],
+        lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
+        colour: Color = None,
+        width: float = 0.7,
+        alpha: float = 1.0,
+        ticks: bool = True,
+        lines=None,
+        plot_lanes=True,
+    ) -> LineCollection:
         if lanes is None:
             lanes: Dict[DgLanelet, Optional[Polygon]] = {}
             for traj in actions:
@@ -156,19 +180,21 @@ class ZOrder:
     player_name = 100
 
 
-def plot_car(axis, player_name: PlayerName, state: VehicleState,
-             vg: VehicleGeometry, alpha: float, box, plot_wheels: bool = True):
+def plot_car(
+    axis, player_name: PlayerName, state: VehicleState, vg: VehicleGeometry, alpha: float, box, plot_wheels: bool = True
+):
     L = vg.l
     W = vg.w
     car_color = vg.colour
-    car: Sequence[Tuple[float, float], ...] = \
-        ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
+    car: Sequence[Tuple[float, float], ...] = ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
     xy_theta = (state.x, state.y, state.th)
     q = SE2_from_xytheta(xy_theta)
     car = transform_xy(q, car)
     if box is None:
-        vehicle_box, = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
-        box = [vehicle_box, ]
+        (vehicle_box,) = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
+        box = [
+            vehicle_box,
+        ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
 
         # axis.text(x4 + 1, y4,
@@ -190,8 +216,9 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     return box
 
 
-def colorline(x, y, z=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0, 1.0), linewidth=.8,
-              alpha=.9) -> LineCollection:
+def colorline(
+    x, y, z=None, cmap=plt.get_cmap("copper"), norm=plt.Normalize(0.0, 1.0), linewidth=0.8, alpha=0.9
+) -> LineCollection:
     """
     Plot a colored line with coordinates x and y
     Optionally specify colors in the array z
@@ -209,8 +236,9 @@ def colorline(x, y, z=None, cmap=plt.get_cmap('copper'), norm=plt.Normalize(0.0,
     z = np.asarray(z)
 
     segments = make_segments(x, y)
-    return LineCollection(segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha,
-                          zorder=ZOrder.actions)
+    return LineCollection(
+        segments, array=z, cmap=cmap, norm=norm, linewidth=linewidth, alpha=alpha, zorder=ZOrder.actions
+    )
 
 
 def make_segments(x, y):

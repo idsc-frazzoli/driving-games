@@ -6,10 +6,8 @@ from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tup
 
 from matplotlib.collections import LineCollection
 
+from dg_commons import PlayerName, U, X
 from games import (
-    PlayerName,
-    U,
-    X,
     P,
     JointPureActions,
     MonadicPreferenceBuilder,
@@ -34,7 +32,7 @@ __all__ = [
     "SolvingContext",
     "AntichainComparison",
     "EXP_ACCOMP",
-    "JOIN_ACCOMP"
+    "JOIN_ACCOMP",
 ]
 
 from sim import Color
@@ -51,11 +49,11 @@ JointOutcome = Mapping[PlayerName, P]
 
 
 class ActionGraph(Generic[U], ABC):
-    """ Dynamic action graph"""
+    """Dynamic action graph"""
 
 
 class ActionSetGenerator(Generic[X, U, W], ABC):
-    """ A generic generator for the possible actions """
+    """A generic generator for the possible actions"""
 
     @abstractmethod
     def get_actions_static(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
@@ -66,7 +64,8 @@ Key = TypeVar("Key")
 
 
 class PlotStackDictionary(Generic[Key]):
-    """ Dictionary to stack plots together at fixed places """
+    """Dictionary to stack plots together at fixed places"""
+
     rows: int
     cols: int
     next_idx: int
@@ -74,8 +73,8 @@ class PlotStackDictionary(Generic[Key]):
 
     def __init__(self, values: Set[Key], row: bool = False):
         """
-            Construct a dictionary using all possible keys and bool for fixed row size
-            Requires only the type of key to typeset and the number of keys
+        Construct a dictionary using all possible keys and bool for fixed row size
+        Requires only the type of key to typeset and the number of keys
         """
         n_nodes = len(values)
         assert n_nodes > 0
@@ -88,7 +87,7 @@ class PlotStackDictionary(Generic[Key]):
         return self.rows, self.cols
 
     def __getitem__(self, item: Key) -> Tuple[int, int]:
-        """ Returns the index of a key if available, else sets a new position and returns """
+        """Returns the index of a key if available, else sets a new position and returns"""
         if item in self.indices:
             return self.indices[item]
         if self.next_idx >= self.rows * self.cols:
@@ -104,7 +103,8 @@ class PlotStackDictionary(Generic[Key]):
 
 
 class GameVisualization(Generic[X, U, W], ABC):
-    """ A generic game visualization interface """
+    """A generic game visualization interface"""
+
     plot_dict: Optional[PlotStackDictionary] = None
     """ Dictionary for stacking game plots together """
 
@@ -126,15 +126,19 @@ class GameVisualization(Generic[X, U, W], ABC):
         pass
 
     @abstractmethod
-    def plot_equilibria(self, axis, actions: FrozenSet[U],
-                        colour: Color, **kwargs):
+    def plot_equilibria(self, axis, actions: FrozenSet[U], colour: Color, **kwargs):
         pass
 
     @abstractmethod
-    def plot_pref(self, axis, pref: Preference[P], pname: PlayerName,
-                  origin: Tuple[float, float],
-                  labels: Mapping[str, str] = None,
-                  **kwargs):
+    def plot_pref(
+        self,
+        axis,
+        pref: Preference[P],
+        pname: PlayerName,
+        origin: Tuple[float, float],
+        labels: Mapping[str, str] = None,
+        **kwargs,
+    ):
         pass
 
     def init_plot_dict(self, values: Set[Key]):
@@ -146,8 +150,7 @@ class GameVisualization(Generic[X, U, W], ABC):
         return self.plot_dict
 
     def init_pref_dict(self, values: Mapping[PlayerName, Set[Key]]):
-        self.pref_dict = {pname: PlotStackDictionary[Key](values=vals, row=True)
-                          for pname, vals in values.items()}
+        self.pref_dict = {pname: PlotStackDictionary[Key](values=vals, row=True) for pname, vals in values.items()}
 
     def get_pref_dict(self, player: PlayerName) -> PlotStackDictionary:
         if self.pref_dict is None:
@@ -159,7 +162,7 @@ class GameVisualization(Generic[X, U, W], ABC):
 
 @dataclass
 class GamePlayer(Generic[X, U, W, P, G]):
-    """ Information about one player. """
+    """Information about one player."""
 
     name: PlayerName
     """The player's name"""
@@ -194,7 +197,7 @@ class Game(Generic[X, U, W, P, G]):
 
 @dataclass(frozen=True, unsafe_hash=True)
 class SolvedGameNode(Generic[U, P]):
-    """ Solved node of the game"""
+    """Solved node of the game"""
 
     actions: JointPureActions
     """ The final converged equilibrium actions """
@@ -225,7 +228,7 @@ class StaticSolverParams(SolverParams):
 
 @dataclass
 class SolvingContext(Generic[X, U, W, P]):
-    """ Context for the solution of the game"""
+    """Context for the solution of the game"""
 
     player_actions: Mapping[PlayerName, FrozenSet[U]]
     """ All possible actions for each player"""
@@ -238,4 +241,3 @@ class SolvingContext(Generic[X, U, W, P]):
 
     solver_params: StaticSolverParams
     """Solver parameters"""
-

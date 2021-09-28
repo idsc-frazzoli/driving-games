@@ -20,11 +20,11 @@ __all__ = [
 
 
 class Trajectory:
-    """ Container for a trajectory - sequence of vehicle states """
+    """Container for a trajectory - sequence of vehicle states"""
 
     traj: List["Trajectory"]
     """ A trajectory can also be made up of multiple smaller trajectories.
-        This is used for evaluation of trajectory metrics where the 
+        This is used for evaluation of trajectory metrics where the
         outcomes are cached using the trajectory as the key """
 
     states: DgSampledSequence[VehicleState]
@@ -34,10 +34,13 @@ class Trajectory:
     goal: Optional[Polygon]
     """ The goal region for the trajectory """
 
-    def __init__(self, values: List[Union[VehicleState, "Trajectory"]],
-                 lane: DgLanelet,
-                 goal: Optional[Polygon] = None,
-                 states: Optional[Tuple[VehicleState, VehicleState]] = None):
+    def __init__(
+        self,
+        values: List[Union[VehicleState, "Trajectory"]],
+        lane: DgLanelet,
+        goal: Optional[Polygon] = None,
+        states: Optional[Tuple[VehicleState, VehicleState]] = None,
+    ):
         assert len(values) > 0
         self.lane = lane
         self.goal = goal
@@ -58,8 +61,12 @@ class Trajectory:
 
     @staticmethod
     @cached(cache={}, key=lambda states, lane, values, goal: cachetools.keys.hashkey((states, lane)))
-    def create(states: Tuple[VehicleState, VehicleState], lane: DgLanelet,
-               values: List[VehicleState], goal: Optional[Polygon] = None):
+    def create(
+        states: Tuple[VehicleState, VehicleState],
+        lane: DgLanelet,
+        values: List[VehicleState],
+        goal: Optional[Polygon] = None,
+    ):
         return Trajectory(values=values, lane=lane, goal=goal, states=states)
 
     @staticmethod
@@ -74,7 +81,7 @@ class Trajectory:
 
     @staticmethod
     def trim_trajectory(states: List[VehicleState], goal: Optional[Polygon]) -> bool:
-        """ Trims trajectory till goal region (if longer) and returns if trimming was performed or not """
+        """Trims trajectory till goal region (if longer) and returns if trimming was performed or not"""
         if goal is None:
             return False
         goal_idx = Trajectory.get_in_goal_index(states=states, goal=goal)
@@ -109,11 +116,11 @@ class Trajectory:
         return self.traj
 
     def get_sampling_points(self) -> List[Timestamp]:
-        """ Returns timestamps of trajectory points """
+        """Returns timestamps of trajectory points"""
         return self.states.get_sampling_points()
 
     def get_path_sampled(self) -> List[SE2Transform]:
-        """ Returns cartesian coordinates (SE2) of transition states """
+        """Returns cartesian coordinates (SE2) of transition states"""
         return self.state_to_se2_list(self.states._values)
 
     def get_start(self) -> Timestamp:
@@ -139,7 +146,7 @@ class Trajectory:
         return str(states)
 
     def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
-        """ Combines trajectories into a bigger trajectory """
+        """Combines trajectories into a bigger trajectory"""
         if other is None:
             return self
         x1, x2 = self.at(self.get_end()), other.at(other.get_start())
@@ -149,14 +156,17 @@ class Trajectory:
         return Trajectory(values=self.traj + other.traj, lane=lane, goal=goal)
 
     def starts_with(self, start: "Trajectory") -> bool:
-        if len(start) > len(self): return False
+        if len(start) > len(self):
+            return False
         for t in start.get_sampling_points():
-            if start.at(t) != self.at(t): return False
+            if start.at(t) != self.at(t):
+                return False
         return True
 
 
 class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
-    """ Structure for storing a graph of trajectory states """
+    """Structure for storing a graph of trajectory states"""
+
     origin: VehicleState
     """ Origin of the graph of states """
     lane: DgLanelet
@@ -193,8 +203,7 @@ class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):
         if source not in self.nodes:
             raise ValueError(f"Source node ({source}) not in graph!")
 
-        successors = [self.get_trajectory_edge(source=source, target=target)
-                      for target in self.successors(source)]
+        successors = [self.get_trajectory_edge(source=source, target=target) for target in self.successors(source)]
         return frozenset(successors)
 
     def get_trajectory_edge(self, source: VehicleState, target: VehicleState) -> Trajectory:
