@@ -4,17 +4,13 @@ from typing import Optional
 from reprep import MIME_GIF, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
+
+from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
 from .game_def import JointState, RJ, RP, U, X, Y, SR
 from .simulate import Simulation
-from games.solve.solution_structures import GamePreprocessed, Solutions
 
 __all__ = ["report_solutions"]
-
-
-# def good_id(s: str) -> str:
-#     s = s.replace("-", "_")
-#     return s
 
 
 def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, U, Y, RP, RJ, SR]):
@@ -116,7 +112,7 @@ def get_next_state(gp, s0, actions, dt2):
     next_state = {}
     for player_name, action in actions.items():
         player_state = s0[player_name]
-        dynamics = gp.game.players[player_name].dynamics
+        dynamics = gp.game.malliaris[player_name].dynamics
         suc = dynamics.successors(player_state, dt2)
 
         if not action in suc:
@@ -130,10 +126,10 @@ def get_next_state(gp, s0, actions, dt2):
 
 
 def create_log_animation(
-    gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
-    sim: Simulation[X, U, Y, RP, RJ],
-    fn: str,
-    upsample_log: Optional[int],
+        gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
+        sim: Simulation[X, U, Y, RP, RJ],
+        fn: str,
+        upsample_log: Optional[int],
 ):
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation

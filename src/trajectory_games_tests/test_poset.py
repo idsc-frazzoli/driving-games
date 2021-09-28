@@ -1,13 +1,13 @@
 import itertools
 from copy import deepcopy
-from typing import Set, Dict, Tuple
 from decimal import Decimal as D
+from typing import Set, Dict, Tuple
 
 from networkx import DiGraph, topological_sort, has_path
 from nose.tools import assert_equal
 
-from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, SampledSequence, WeightedPreference
-
+from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
+from trajectory_games import PosetalPreference, Metric, EvaluatedMetric, DgSampledSequence, WeightedPreference
 from trajectory_games.metrics import (
     get_metrics_set,
     EpisodeTime,
@@ -18,12 +18,9 @@ from trajectory_games.metrics import (
     LongitudinalAcceleration,
     LateralComfort,
     SteeringAngle,
-    SteeringRate,
     CollisionEnergy,
     MinimumClearance,
 )
-
-from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
 
 
 def test_poset():
@@ -36,8 +33,8 @@ def test_poset():
         total=0.0,
         description="",
         title="",
-        incremental=SampledSequence([], []),
-        cumulative=SampledSequence([], []),
+        incremental=DgSampledSequence([], []),
+        cumulative=DgSampledSequence([], []),
     )
 
     p_def: Dict[Metric, EvaluatedMetric] = {metric: deepcopy(default) for metric in metrics}
@@ -154,7 +151,6 @@ def compare_posets(A: PosetalPreference, B: PosetalPreference) -> ComparisonOutc
 
 
 def check_subset(A: PosetalPreference, B: PosetalPreference) -> bool:
-
     # Check if node is a weighted node or not
     def check_weighted(wnode: WeightedPreference) -> bool:
         total: int = sum([w > D("0") for _, w in wnode.weights.items()])
@@ -206,7 +202,7 @@ def check_subset(A: PosetalPreference, B: PosetalPreference) -> bool:
 
     # Ensure all lexi in A are still lexi in B
     sorted_a = list(topological_sort(G=graph_a))
-    for i in range(0, len(sorted_a)-1):
+    for i in range(0, len(sorted_a) - 1):
         i_node = sorted_a[i]
         for j in range(i, len(sorted_a)):
             j_node = sorted_a[j]
@@ -218,9 +214,8 @@ def check_subset(A: PosetalPreference, B: PosetalPreference) -> bool:
 
 
 def test_compare_posets():
-
     # Initialise prefs (pref[0] is empty)
-    prefs = [PosetalPreference(pref_str="NoPreference", use_cache=False)] +\
+    prefs = [PosetalPreference(pref_str="NoPreference", use_cache=False)] + \
             [PosetalPreference(pref_str=f"comp_{i}", use_cache=False) for i in range(1, 15)]
 
     results: Dict[Tuple[int, int], ComparisonOutcome] = {

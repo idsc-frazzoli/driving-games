@@ -4,30 +4,29 @@ from typing import cast, Dict, FrozenSet, FrozenSet as ASet
 
 from frozendict import frozendict
 
+from dg_commons import PlayerName
 from games import (
     Game,
     GamePlayer,
     GameVisualization,
     get_accessible_states,
     JointRewardStructure,
-    PlayerName,
     UncertaintyParams,
 )
 from possibilities import PossibilityMonad
+from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 from .collisions import Collision
 from .joint_reward import VehicleJointReward
 from .personal_reward import VehiclePersonalRewardStructureTime
 from .preferences_coll_time import VehiclePreferencesCollTime
 from .rectangle import Rectangle
 from .structures import (
-    Lights,
-    NO_LIGHTS,
     VehicleActions,
     VehicleCosts,
     VehicleGeometry,
     VehicleState,
 )
-from .vehicle_dynamics import VehicleDynamics
+from .vehicle_dynamics import VehicleTrackDynamics
 from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 
@@ -47,7 +46,7 @@ class TwoVehicleSimpleParams:
     max_wait: D
     available_accels: FrozenSet[D]
     collision_threshold: float
-    light_actions: FrozenSet[Lights]
+    light_actions: FrozenSet[LightsCmd]
     dt: D
     # initial positions
     first_progress: D
@@ -95,7 +94,7 @@ def get_two_vehicle_game(
         ref=p2_ref, x=D(vehicles_params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
     )
     p2_initial = ps.unit(p2_x)
-    p1_dynamics = VehicleDynamics(
+    p1_dynamics = VehicleTrackDynamics(
         max_speed=max_speed,
         max_wait=max_wait,
         available_accels=available_accels,
@@ -107,7 +106,7 @@ def get_two_vehicle_game(
         shared_resources_ds=vehicles_params.shared_resources_ds,
         poss_monad=ps,
     )
-    p2_dynamics = VehicleDynamics(
+    p2_dynamics = VehicleTrackDynamics(
         min_speed=min_speed,
         max_speed=max_speed,
         max_wait=max_wait,

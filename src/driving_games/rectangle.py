@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from decimal import Decimal as D
 from itertools import product
 from typing import List, Tuple, FrozenSet, Iterable
-import numpy as np
 
+import numpy as np
 from geometry import xytheta_from_SE2, SE2_from_xytheta, SE2
 from zuper_commons.types import ZNotImplementedError
 
+from . import logger
 from .structures import VehicleState, VehicleGeometry, SE2_disc
 
 __all__ = [
@@ -22,6 +23,8 @@ __all__ = [
 from games.utils import fs
 
 Coordinates = Tuple[D, D]
+
+logger.info(f"This file is deprecated {__name__}")
 
 
 @dataclass(frozen=True)
@@ -155,6 +158,7 @@ def get_vehicle_points(vs: VehicleState, vg: VehicleGeometry) -> FrozenSet[Coord
 def get_resources_used(vs: VehicleState, vg: VehicleGeometry, ds: D) -> FrozenSet[Rectangle]:
     """ Gets the rectangles that contain the vehicle. """
     points = get_vehicle_points(vs, vg)
+    # todo use polygons from shapely for resources
 
     rectangles = rectangles_from_points(points, ds)
     return rectangles

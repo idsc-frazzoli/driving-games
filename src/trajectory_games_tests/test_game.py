@@ -1,8 +1,8 @@
+import os
 from copy import deepcopy
 from os.path import join
 from typing import Mapping, Dict
 
-import os
 from reprep import Report
 from yaml import safe_load
 
@@ -29,8 +29,8 @@ from trajectory_games import (
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
-plot_gif = True                 # gif vs image for viz
-only_traj = False               # Only trajectory generation vs full game
+plot_gif = True  # gif vs image for viz
+only_traj = False  # Only trajectory generation vs full game
 d = "out/tests/"
 filename = "r_game_all.html"
 
@@ -58,7 +58,7 @@ def report_single(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGa
 
 
 def report_times():
-    from world import LaneSegmentHashable
+    from _tmp._deprecated.world import LaneSegmentHashable
     from trajectory_games.metrics import CollisionEnergy, MinimumClearance
     print(f"LanePose time = {LaneSegmentHashable.time:.2f} s")
     coll, clear = CollisionEnergy(), MinimumClearance()
@@ -82,7 +82,7 @@ def test_trajectory_game_brute_force():
 
 def test_trajectory_game_best_response():
     folder = "best_response/"
-    n_runs = 100      # Number of random runs for best response
+    n_runs = 100  # Number of random runs for best response
 
     game: TrajectoryGame = get_trajectory_game(config_str="basic")
     context: SolvingContext = preprocess_player(sgame=game, only_traj=only_traj)
@@ -111,7 +111,8 @@ def test_trajectory_game_lexi():
     pname = next(iter(game.game_players.keys()))
     player = game.game_players[pname]
     for i in range(len(states)):
-        player.state = game.ps.unit(VehicleState.from_config(name=states[i], lane=next(iter(game.world.get_lanes(pname)))))
+        player.state = game.ps.unit(
+            VehicleState.from_config(name=states[i], lane=next(iter(game.world.get_lanes(pname)))))
         for j in range(len(prefs)):
             try:
                 player.preference = PosetalPreference(pref_str=prefs[j], use_cache=False)
@@ -122,7 +123,7 @@ def test_trajectory_game_lexi():
             nash_eq: Mapping[str, SolvedTrajectoryGame] = \
                 iterative_best_response(context=context, n_runs=1)
             game.game_vis.init_plot_dict(values=nash_eq["weak"])
-            r_game = Report(f"State={i+1}, Pref={j+1}")
+            r_game = Report(f"State={i + 1}, Pref={j + 1}")
             r_game.add_child(report_game_visualization(game=game))
             create_reports(game=game, nash_eq=nash_eq, r_game=r_game)
             player_prefs = {p.name: p.preference for p in game.game_players.values()}
@@ -162,7 +163,7 @@ def test_trajectory_game_levels():
 
     nash_eqf: Mapping[str, SolvedTrajectoryGame] = None
     for i in range(1, 5):
-        nash_eqf = play_stage(stage=i+1)
+        nash_eqf = play_stage(stage=i + 1)
 
     r_game = Report()
     r_game.add_child(report_game_visualization(game=game))

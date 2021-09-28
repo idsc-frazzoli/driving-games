@@ -1,23 +1,22 @@
-from numbers import Number
+import os
 from typing import Sequence, Tuple, Mapping, FrozenSet, Set
 
 import numpy as np
-import os
 from decorator import contextmanager
 from duckietown_world import DuckietownMap
+from geometry import SE2_from_xytheta
 from imageio import imread
 from matplotlib.collections import LineCollection
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
-from games import PlayerName
-from geometry import SE2_from_xytheta
-
-from world import LaneSegmentHashable
-from world.map_loading import map_directory, load_driving_game_map
-from .structures import VehicleGeometry, VehicleState
-from .paths import Trajectory
+from _tmp._deprecated.world import LaneSegmentHashable
+from _tmp._deprecated.world.map_loading import map_directory, load_driving_game_map
+from dg_commons import PlayerName
+from sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
+from .paths import Trajectory
 from .preference import PosetalPreference, WeightedPreference
+from .structures import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TrajGameVisualization"]
@@ -72,7 +71,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                           alpha=alpha, ticks=ticks)
 
         if scatter:
-            size = (axis.bbox.height/400.0)**2
+            size = (axis.bbox.height / 400.0) ** 2
             for path in actions:
                 vals = [(x.x, x.y, x.v) for _, x in path]
                 x, y, vel = zip(*vals)
@@ -97,11 +96,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             labels = {n: str(n) for n in G.nodes}
             text = "_pref"
         else:
-            assert len(G.nodes) == len(labels.keys()),\
+            assert len(G.nodes) == len(labels.keys()), \
                 f"Size mismatch between nodes ({len(G.nodes)}) and" \
                 f" labels ({len(labels.keys())})"
             for n in G.nodes:
-                assert n in labels.keys(),\
+                assert n in labels.keys(), \
                     f"Node {n} not present in keys - {labels.keys()}"
             text = "_outcomes"
         draw_networkx_edges(G, pos=pos, edgelist=G.edges(),
@@ -109,8 +108,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
         draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
         if add_title:
-            axis.text(x=X, y=Y+10.0, s=pname + text, ha="center", va="center")
-            axis.set_ylim(top=Y+15.0)
+            axis.text(x=X, y=Y + 10.0, s=pname + text, ha="center", va="center")
+            axis.set_ylim(top=Y + 15.0)
 
     def plot_actions(self, axis, actions: FrozenSet[Trajectory],
                      colour: VehicleGeometry.COLOUR = None,
@@ -133,7 +132,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
         if lines is None:
             if colour is None:
-                colour = (0.0, 0.0, 0.0)    # Black
+                colour = (0.0, 0.0, 0.0)  # Black
             lines = LineCollection(segments=[], colors=colour,
                                    linewidths=width, alpha=alpha)
             lines.set_zorder(5)
@@ -153,25 +152,16 @@ def plot_car(axis, player_name: PlayerName, state: VehicleState,
     L = vg.l
     W = vg.w
     car_color = vg.colour
-    car: Tuple[Tuple[float, float], ...] = \
+    car: Sequence[Tuple[float, float], ...] = \
         ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
     xy_theta = (state.x, state.y, state.th)
     q = SE2_from_xytheta(xy_theta)
-    x1, y1 = get_transformed_xy(q, car)
+    car = transform_xy(q, car)
     if box is None:
         box, = axis.fill([], [], color=car_color, alpha=alpha, zorder=10)
-        x4, y4 = get_transformed_xy(q, ((0, 0),))
+        x4, y4 = transform_xy(q, ((0, 0),))[0]
         axis.text(x4, y4, player_name, zorder=25,
                   horizontalalignment="center",
                   verticalalignment="center")
-    box.set_xy(np.array(list(zip(x1, y1))))
+    box.set_xy(np.array(car))
     return box
-
-
-def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
-    car = tuple((x, y, 1) for x, y in points)
-    car = np.float_(car).T
-    points = q @ car
-    x = points[0, :]
-    y = points[1, :]
-    return x, y

@@ -6,10 +6,8 @@ from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tup
 
 from matplotlib.collections import LineCollection
 
+from dg_commons import PlayerName, U, X
 from games import (
-    PlayerName,
-    U,
-    X,
     P,
     JointPureActions,
     MonadicPreferenceBuilder,

@@ -2,18 +2,17 @@ import os
 from os.path import join
 from typing import Dict, Set
 
+import geometry as geo
+import numpy as np
 from reprep import Report
 from yaml import safe_load
-import numpy as np
-import geometry as geo
 
-from games import PlayerName
+from _tmp._deprecated.world import load_driving_game_map, get_lane_from_node_sequence, LaneSegmentHashable
+from dg_commons import PlayerName
 from trajectory_games import config_dir, TrajGameVisualization, TrajectoryWorld, VehicleGeometry
-from world import load_driving_game_map, get_lane_from_node_sequence, LaneSegmentHashable
 
 
 def test_lanes():
-
     map_name = "4way-double-intersection-only"
     lanes_file = os.path.join(config_dir, "lanes.yaml")
     with open(lanes_file) as load_file:
@@ -25,8 +24,8 @@ def test_lanes():
     geometries: Dict[PlayerName, VehicleGeometry] = {}
 
     def wrap(ang: float) -> float:
-        while ang > +np.pi: ang -= 2*np.pi
-        while ang < -np.pi: ang += 2*np.pi
+        while ang > +np.pi: ang -= 2 * np.pi
+        while ang < -np.pi: ang += 2 * np.pi
         return abs(ang)
 
     i = 1
@@ -41,7 +40,7 @@ def test_lanes():
             beta2, point2 = lane.find_along_lane_closest_point(p1)
             along2 = lane.along_lane_from_beta(beta2)
             p2, r2, _ = geo.translation_angle_scale_from_E2(point2)
-            if abs(beta1 - beta2) > 0.1 or abs(along1 - along2) > 0.5 or wrap(r1-r2) > 0.1:
+            if abs(beta1 - beta2) > 0.1 or abs(along1 - along2) > 0.5 or wrap(r1 - r2) > 0.1:
                 print(f"Warning, points aren't equal: \n\tbeta = {beta1, beta2} "
                       f"\n\talong = {along1, along2} \n\tangle = {r1, r2}")
                 good = False
@@ -54,7 +53,7 @@ def test_lanes():
             geometries[player] = VehicleGeometry(m=100.0, w=1.0, l=1.0, colour=(1, 0, 0))
             i += 1
 
-    print(f"\n\nTotal bad lanes = {i-1}")
+    print(f"\n\nTotal bad lanes = {i - 1}")
     world = TrajectoryWorld(map_name=map_name, geo=geometries, lanes=lanes)
     viz = TrajGameVisualization(world=world)
 
@@ -69,4 +68,3 @@ def test_lanes():
 
 if __name__ == '__main__':
     test_lanes()
-

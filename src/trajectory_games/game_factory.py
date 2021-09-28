@@ -5,13 +5,13 @@ from typing import Dict, Set
 
 from yaml import safe_load
 
-from games import PlayerName, MonadicPreferenceBuilder
+from dg_commons import PlayerName
+from games import  MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
 
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .config import config_dir
-from .sequence import Timestamp
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
@@ -19,7 +19,7 @@ from .preference import PosetalPreference
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
-from world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
+from _tmp._deprecated.world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",
@@ -105,8 +105,8 @@ def get_leader_follower_game() -> LeaderFollowerGame:
                               prefs_follower_est=prefs_follower_est,
                               pref_follower_real=get_pref1(name=config_lf["pref_follower_real"]),
                               antichain_comparison=ac_comp[ac_cfg],
-                              solve_time=Timestamp(config_lf["solve_time"]),
-                              simulation_step=Timestamp(config_lf["simulation_step"]),
+                              solve_time=float(config_lf["solve_time"]),
+                              simulation_step=float(config_lf["simulation_step"]),
                               terminal_progress=config_lf["terminal_progress"],
                               update_prefs=config_lf["update_prefs"])
 

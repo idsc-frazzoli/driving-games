@@ -9,8 +9,8 @@ from duckietown_world import relative_pose
 from duckietown_world.utils import SE2_apply_R2
 from scipy.optimize import minimize
 
-from games import PlayerName
-from world import LaneSegmentHashable
+from dg_commons import PlayerName
+from _tmp._deprecated.world import LaneSegmentHashable
 from .structures import VehicleState, TrajectoryParams, VehicleActions
 from .game_def import ActionSetGenerator
 from .paths import FinalPoint, Trajectory, TrajectoryGraph
