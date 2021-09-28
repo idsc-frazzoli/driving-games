@@ -6,7 +6,7 @@ from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tup
 
 from matplotlib.collections import LineCollection
 
-from dg_commons import PlayerName, U, X
+from dg_commons import PlayerName, U, X, Color
 from games import (
     P,
     JointPureActions,
@@ -35,7 +35,6 @@ __all__ = [
     "JOIN_ACCOMP",
 ]
 
-from sim import Color
 
 W = TypeVar("W")
 """Generic variable for a world"""

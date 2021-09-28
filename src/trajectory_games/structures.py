@@ -3,12 +3,11 @@ import os
 from dataclasses import dataclass
 from decimal import Decimal as D
 from functools import cached_property
-from typing import FrozenSet, Dict, List
+from typing import FrozenSet, Dict
+from typing import List
 
 import numpy as np
 from geometry import SE2_from_xytheta
-from typing import FrozenSet, Tuple, Dict
-
 from yaml import safe_load
 
 from dg_commons import Color

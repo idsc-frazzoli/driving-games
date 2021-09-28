@@ -8,8 +8,8 @@ from duckietown_world import SE2Transform
 from networkx import DiGraph, has_path, shortest_path
 from shapely.geometry import Polygon, Point
 
-from dg_commons.planning.lanes import DgLanelet
-from dg_commons.sequence import Timestamp, DgSampledSequence
+from dg_commons.maps import DgLanelet
+from dg_commons.seq import Timestamp, DgSampledSequence
 from .game_def import ActionGraph
 from .structures import VehicleState
 

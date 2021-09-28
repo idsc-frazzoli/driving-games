@@ -9,19 +9,14 @@ from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
 from yaml import safe_load
 
-from dg_commons import PlayerName
+from dg_commons import PlayerName, SE2Transform
+from dg_commons.maps import DgLanelet
 from games import MonadicPreferenceBuilder
-from dg_commons.planning.lanes import DgLanelet
-from games import PlayerName, MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
 from sim.scenarios import load_commonroad_scenario
-from world import SE2Transform
-from .config import config_dir
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
-from .structures import VehicleGeometry, VehicleState, TrajectoryParams
-from .trajectory_generator import TransitionGenerator
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
@@ -29,7 +24,6 @@ from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowe
 from .trajectory_generator import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
-from _tmp._deprecated.world import load_driving_game_map, LaneSegmentHashable, get_lane_from_node_sequence
 
 __all__ = [
     "get_trajectory_game",
@@ -40,6 +34,8 @@ players_file = os.path.join(config_dir_ral, "players.yaml")
 # leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
+
+
 # with open(leader_follower_file) as load_file:
 #     config_lf = safe_load(load_file)["leader_follower"]
 

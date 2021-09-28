@@ -11,19 +11,15 @@ from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG, MIME_PD
 from shapely.geometry import Polygon
 from zuper_commons.text import remove_escapes
 
-from dg_commons.planning.lanes import DgLanelet
-from dg_commons import PlayerName
+from dg_commons import PlayerName, Color
+from dg_commons.maps import DgLanelet
 from preferences import Preference
-from sim import Color
 from sim.simulator_animation import adjust_axes_limits
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from .metrics_def import PlayerOutcome
 from .paths import Trajectory
 from .preference import PosetalPreference
 from .structures import VehicleState
-from .metrics_def import PlayerOutcome
-from .paths import Trajectory
-from .preference import PosetalPreference
 from .trajectory_game import (
     SolvedTrajectoryGame,
     SolvedTrajectoryGameNode,
@@ -32,7 +28,7 @@ from .trajectory_game import (
     LeaderFollowerGame,
     LeaderFollowerGameStage,
 )
-from .visualization import TrajGameVisualization, tone_down_color, ZOrder
+from .visualization import tone_down_color, ZOrder
 
 EXPORT_PDF = True
 from .visualization import TrajGameVisualization

@@ -8,13 +8,17 @@ from duckietown_world import SE2Transform
 from frozendict import frozendict
 from shapely.geometry import Polygon
 
-from dg_commons.planning.lanes import DgLanelet
+from dg_commons import PlayerName
+from dg_commons.maps import DgLanelet
+from dg_commons.seq import Timestamp, DgSampledSequence
 from games.utils import iterate_dict_combinations
 from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
-
-from games import PlayerName
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
+from .metrics import Clearance
+from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
+from .paths import Trajectory
+from .solve import get_best_responses
 from .structures import VehicleState, VehicleGeometry
 from .trajectory_game import (
     SolvedTrajectoryGameNode,
@@ -27,11 +31,6 @@ from .trajectory_game import (
     preprocess_full_game,
     SolvedRecursiveLeaderFollowerGame,
 )
-from dg_commons.sequence import Timestamp, DgSampledSequence
-from .paths import Trajectory
-from .metrics_def import PlayerOutcome, Metric, EvaluatedMetric
-from .metrics import Clearance
-from .solve import get_best_responses
 
 
 def init_eval_metric(evalm: EvaluatedMetric, total: float = 0.0) -> EvaluatedMetric:

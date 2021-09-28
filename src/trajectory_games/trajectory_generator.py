@@ -1,21 +1,20 @@
 import math
 from time import perf_counter
 from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Optional
-import numpy as np
 
 import geometry as geo
+import numpy as np
 from duckietown_world import relative_pose
 from duckietown_world.utils import SE2_apply_R2
 from scipy.optimize import minimize
 
-from dg_commons.planning.lanes import DgLanelet
 from dg_commons import PlayerName
-from _tmp._deprecated.world import LaneSegmentHashable
-from .structures import VehicleState, TrajectoryParams, VehicleActions
+from dg_commons.maps import DgLanelet
+from .bicycle_dynamics import BicycleDynamics
 from .game_def import ActionSetGenerator
 from .paths import Trajectory, TrajectoryGraph
+from .structures import VehicleState, TrajectoryParams, VehicleActions
 from .trajectory_world import TrajectoryWorld
-from .bicycle_dynamics import BicycleDynamics
 
 __all__ = ["TransitionGenerator"]
 

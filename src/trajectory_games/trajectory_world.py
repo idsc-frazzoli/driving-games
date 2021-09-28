@@ -4,10 +4,8 @@ from typing import Mapping, List, Optional, Tuple
 from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
 
-from dg_commons.planning.lanes import DgLanelet
-
-from _tmp._deprecated.world import LaneSegmentHashable
 from dg_commons import PlayerName
+from dg_commons.maps import DgLanelet
 from .structures import VehicleGeometry
 
 __all__ = ["TrajectoryWorld"]
