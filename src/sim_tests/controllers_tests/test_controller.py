@@ -15,6 +15,7 @@ from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
 from dg_commons.seq.sequence import DgSampledSequence
 from sim import SimTime
+from crash.reports import generate_report
 
 DT: SimTime = SimTime("0.05")
 DT_COMMANDS: SimTime = SimTime("0.1")
@@ -122,35 +123,15 @@ class TestController:
         # report_file = os.path.join(output_dir, f"{name}.html")
         # report.to_html(report_file)
 
-    def evaluate_metrics_test(self):
-        if self.metrics is not None:
-            for i, metric in enumerate(self.metrics):
-                for player in self.sim_context.players.keys():
-                    met = metric()
-                    res = met.evaluate(self.metrics_context)
-                    plt.plot(res[player].incremental.timestamps, res[player].incremental.values, label=player)
-                plt.title(metric.description)
-                plt.legend()
-
-                output_dir = "out"
-                output_folder = self.controller['Name']
-                fig_name = metric.brief_description
-                folder = os.path.join(output_dir, output_folder)
-                if not os.path.exists(folder):
-                    os.makedirs(folder)
-                fig_file = os.path.join(folder, fig_name)
-                plt.savefig(fig_file)
-
-                plt.clf()
-        else:
-            print("No Metric to Evaluate")
-
     def evaluate_metrics(self):
+        controller_name = self.controller['Name']
+        output_dir = os.path.join("out", controller_name)
+
         if self.metrics is not None:
             self.result = []
             for metric in self.metrics:
                 met = metric()
-                self.result.append(met.evaluate(self.metrics_context))
+                self.result.append(met.evaluate(self.metrics_context, plot=True, output_dir=output_dir))
         else:
             print("No Metric to Evaluate")
 

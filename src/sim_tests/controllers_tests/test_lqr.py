@@ -10,9 +10,9 @@ from dg_commons.state_estimators.dropping_trechniques import *
 
 
 def test_lqr():
-    scenario = "USA_Peach-1_1_T-1"
+    # scenario = "USA_Peach-1_1_T-1"
     # scenario="ZAM_Tjunction-1_129_T-1"
-    # scenario="ARG_Carcarana-1_1_T-1"
+    scenario="ARG_Carcarana-1_1_T-1"
 
     controller = VehicleController(
 
@@ -34,7 +34,6 @@ def test_lqr():
         speed_behavior_param=SpeedBehaviorParam(
             nominal_speed=8
         ),
-
 
         metrics=[
             DeviationLateral,

@@ -31,5 +31,4 @@ def run_test(controller: VehicleController,  scenario_name: str):
                              sp_behavior, steering_controller, longitudinal_controller, state_estimator)
     test_pp.run()
     test_pp.evaluate_metrics()
-    test_pp.evaluate_metrics_test()
     # test_pp.to_json()
