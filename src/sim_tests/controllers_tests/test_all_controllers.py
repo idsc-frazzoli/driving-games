@@ -9,9 +9,9 @@ from sim_tests.controllers_tests.test_pure_pursuit import test_pure_pursuit
 from sim_tests.controllers_tests.test_stanley import test_stanley
 
 
-#test_lqr()
-test_nmpc_full_kin_cont()
-'''test_nmpc_full_kin_dis()
+test_lqr()
+'''test_nmpc_full_kin_cont()
+test_nmpc_full_kin_dis()
 test_nmpc_full_kin_analytical()
 test_nmpc_lat_kin_cont()
 test_nmpc_lat_kin_dis()

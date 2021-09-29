@@ -79,6 +79,7 @@ class MetricEvaluationContext:
 class Metric(metaclass=ABCMeta):
     _instances = {}
     brief_description: str
+    file_name: str
     description: str
     scale: float
 
@@ -99,25 +100,36 @@ class Metric(metaclass=ABCMeta):
                               total=total, incremental=incremental, cumulative=cumulative)
         return ret
 
-    def save_fig(self, output_dir, name=None, dpi=None):
+    def plot_increment_cumulative(self, result, context: MetricEvaluationContext, output_dir):
+        fig, axs = plt.subplots(2, sharex=True, sharey=True)
+        for player in context.get_players():
+            stamps = result[player].incremental.timestamps
+            axs[0].plot(stamps, result[player].incremental.values, label=player)
+            axs[0].set_title("Absolute " + self.brief_description)
+            axs[1].plot(result[player].cumulative.timestamps, result[player].cumulative.values, label=player)
+            axs[1].set_title("Integral " + self.brief_description)
+        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+                   fancybox=True, shadow=True, ncol=5)
+
+        for ax in fig.get_axes():
+            ax.label_outer()
+        Metric.save_fig(output_dir, title="", name=self.file_name + "_absolute", fig=fig)
+        return stamps
+
+    @staticmethod
+    def save_fig(output_dir, title, name, dpi=None, fig=plt):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-          fancybox=True, shadow=True, ncol=5)
+        fig.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+                   fancybox=True, shadow=True, ncol=5)
+        try:
+            fig.title(title)
+        except:
+            fig.suptitle(title)
+        fig_file = os.path.join(output_dir, name)
 
-        if name is not None:
-            fig_file = os.path.join(output_dir, name)
-            plt.title(name)
-        else:
-            fig_file = os.path.join(output_dir, self.brief_description)
-            plt.title(self.description)
-
-        if dpi:
-            plt.savefig(fig_file, dpi=dpi)
-        else:
-            plt.savefig(fig_file)
-
+        fig.savefig(fig_file, dpi=dpi)
         plt.clf()
 
 

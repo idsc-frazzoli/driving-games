@@ -18,20 +18,20 @@ def test_nmpc_full_kin_cont():
     controller = VehicleController(
 
         controller=NMPCFullKinContPV,
+        lf_agent=LFAgentFullMPC,
+
         controller_params=NMPCFullKinContPVParam(
             n_horizon=15,
             t_step=float(DT_COMMANDS),
-            cost="quadratic",
+            delta_input_weight=1e-2,
+            cost='quadratic',
             cost_params=QuadraticParams(
                 q=SemiDef(matrix=np.eye(3)),
                 r=SemiDef(matrix=np.eye(2))
             ),
-            delta_input_weight=1e-2,
             path_approx_technique='linear',
             rear_axle=False
         ),
-
-        lf_agent=LFAgentFullMPC,
 
         speed_behavior_param=SpeedBehaviorParam(
             nominal_speed=8
@@ -53,7 +53,7 @@ def test_nmpc_full_kin_cont():
             initial_variance=SemiDef(matrix=np.zeros((5, 5))),
             dropping_technique=LGB,
             dropping_params=LGBParam(
-                failure_p=0
+                failure_p=0.0
             )
         )
     )

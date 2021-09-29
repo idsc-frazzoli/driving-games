@@ -13,22 +13,26 @@ class Empty:
 
 
 class DeviationLateral(Metric):
-    brief_description = "deviation_lateral"
+    brief_description: str = "Lateral Deviation"
+    file_name = brief_description.replace(" ", "_").lower()
     description = "This metric describes the deviation from reference path. "
     scale: float = 1.0
+    relative = {}
 
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
+
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             interval = context.get_interval(player)
             player_lane_pos = context.get_lane_poses(player)
 
-            val = []
+            relative = []
             for time in interval:
                 lane_pose = player_lane_pos.at(time)
-                val.append(float(lane_pose.lateral))
-
-            ret = self.get_evaluated_metric(interval=interval, val=val)
+                relative.append(float(lane_pose.lateral))
+            self.relative[player] = relative
+            absolute = [abs(v) for v in relative]
+            ret = self.get_evaluated_metric(interval=interval, val=absolute)
             return ret
 
         result = get_evaluated_metric(context.get_players(), calculate_metric)
@@ -37,10 +41,12 @@ class DeviationLateral(Metric):
         return result
 
     def plot(self, result, context: MetricEvaluationContext, output_dir):
+        stamps = self.plot_increment_cumulative(result, context, output_dir)
 
         for player in context.get_players():
-            plt.plot(result[player].incremental.timestamps, result[player].incremental.values, label=player)
-        self.save_fig(output_dir)
+            plt.plot(stamps, self.relative[player], label=player)
+
+        Metric.save_fig(output_dir, title=self.description, name=self.file_name)
 
         for i, player in enumerate(context.get_players()):
             center_points = [point.q.p for point in context.planned_lanes[player].control_points]
@@ -73,13 +79,15 @@ class DeviationLateral(Metric):
             plt.plot(x_center, y_center, '--', linewidth=0.5, color="lightgray", label='Center Line')
             plt.plot(x_trajectory, y_trajectory, 'r', linewidth=0.5, label='Trajectory')
 
-            self.save_fig(output_dir, name=player, dpi=1000)
+            Metric.save_fig(output_dir, title=player, name=player, dpi=200)
 
 
 class DeviationVelocity(Metric):
-    brief_description = "deviation_velocity"
+    brief_description = "Velocity Deviation"
+    file_name = brief_description.replace(" ", "_").lower()
     description = "This metric describes the deviation from reference velocity. "
     scale: float = 1.0
+    relative = {}
 
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
@@ -88,13 +96,15 @@ class DeviationVelocity(Metric):
             player_states = context.actual_trajectory[player]
             target_vels = context.target_velocities[player]
 
-            val = []
+            relative = []
             for time in interval:
                 player_vel = player_states.at(time).vx
                 target_vel = target_vels.at(time)
-                val.append(float(abs(player_vel - target_vel)))
+                relative.append(float(player_vel - target_vel))
 
-            ret = self.get_evaluated_metric(interval=interval, val=val)
+            self.relative[player] = relative
+            absolute = [abs(v) for v in relative]
+            ret = self.get_evaluated_metric(interval=interval, val=absolute)
             return ret
 
         result = get_evaluated_metric(context.get_players(), calculate_metric)
@@ -103,16 +113,28 @@ class DeviationVelocity(Metric):
         return result
 
     def plot(self, result, context: MetricEvaluationContext, output_dir):
+        stamps = self.plot_increment_cumulative(result, context, output_dir)
+
         for player in context.get_players():
             plt.plot(result[player].incremental.timestamps, result[player].incremental.values, label=player)
 
-        self.save_fig(output_dir)
+        Metric.save_fig(output_dir, name=self.brief_description, title=self.description)
+
+        for player in context.get_players():
+            deviations = [self.relative[player][i] + context.target_velocities[player].values[i]
+                          for i, _ in enumerate(self.relative[player])]
+            plt.plot(stamps, deviations, label=player)
+            plt.plot(stamps, context.target_velocities[player].values, "--", color="lightgray")
+
+        Metric.save_fig(output_dir, title=self.description, name=self.file_name)
 
 
 class SteeringVelocity(Metric):
-    brief_description = "steering_velocity"
+    brief_description = "Steering Velocity"
+    file_name = brief_description.replace(" ", "_").lower()
     description = "This metric describes the commanded steering velocity"
     scale: float = 1.0
+    relative = {}
 
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
@@ -122,15 +144,17 @@ class SteeringVelocity(Metric):
             states = context.actual_trajectory[player]
             vehicle_params = context.vehicle_params[player]
 
-            val = []
+            relative = []
             for time in interval:
                 theta = float(states.at(time).delta)
                 steering_vel = float(commands.at(time).ddelta)
                 logging.disable()
-                val.append(steering_constraint(theta, steering_vel, vehicle_params))
+                relative.append(steering_constraint(theta, steering_vel, vehicle_params))
                 logging.disable(logging.NOTSET)
 
-            ret = self.get_evaluated_metric(interval=interval, val=val)
+            self.relative[player] = relative
+            absolute = [abs(v) for v in relative]
+            ret = self.get_evaluated_metric(interval=interval, val=absolute)
             return ret
 
         result = get_evaluated_metric(context.get_players(), calculate_metric)
@@ -139,9 +163,10 @@ class SteeringVelocity(Metric):
         return result
 
     def plot(self, result, context: MetricEvaluationContext, output_dir):
+        stamps = self.plot_increment_cumulative(result, context, output_dir)
+
         for player in context.get_players():
-            stamps = result[player].incremental.timestamps
-            plt.plot(stamps, result[player].incremental.values, label=player)
+            plt.plot(stamps, self.relative[player], label=player)
 
         max_value = context.vehicle_params[player].ddelta_max
         min_value = - max_value
@@ -149,13 +174,15 @@ class SteeringVelocity(Metric):
         plt.plot(stamps, n * [max_value], '--', color='lightgray', label='limits')
         plt.plot(stamps, n * [min_value], '--', color='lightgray')
 
-        self.save_fig(output_dir)
+        Metric.save_fig(output_dir, name=self.file_name, title=self.description)
 
 
 class Acceleration(Metric):
-    brief_description = "acceleration"
+    brief_description = "Acceleration"
+    file_name = brief_description.replace(" ", "_").lower()
     description = "This metric describes the commanded acceleration"
     scale: float = 1.0
+    relative = {}
 
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
@@ -165,15 +192,17 @@ class Acceleration(Metric):
             states = context.actual_trajectory[player]
             vehicle_params = context.vehicle_params[player]
 
-            val = []
+            relative = []
             for time in interval:
                 speed = states.at(time).vx
                 acc = float(commands.at(time).acc)
                 logging.disable()
-                val.append(acceleration_constraint(speed, acc, vehicle_params))
+                relative.append(acceleration_constraint(speed, acc, vehicle_params))
                 logging.disable(logging.NOTSET)
 
-            ret = self.get_evaluated_metric(interval=interval, val=val)
+            self.relative[player] = relative
+            absolute = [abs(v) for v in relative]
+            ret = self.get_evaluated_metric(interval=interval, val=absolute)
             return ret
 
         result = get_evaluated_metric(context.get_players(), calculate_metric)
@@ -182,9 +211,10 @@ class Acceleration(Metric):
         return result
 
     def plot(self, result, context: MetricEvaluationContext, output_dir):
+        stamps = self.plot_increment_cumulative(result, context, output_dir)
+
         for player in context.get_players():
-            stamps = result[player].incremental.timestamps
-            plt.plot(stamps, result[player].incremental.values, label=player)
+            plt.plot(stamps, self.relative[player], label=player)
 
         acc_limits = context.vehicle_params[player].acc_limits
         min_value, max_value = acc_limits[0], acc_limits[1]
@@ -192,7 +222,7 @@ class Acceleration(Metric):
         plt.plot(stamps, n * [max_value], '--', color='lightgray', label='limits')
         plt.plot(stamps, n * [min_value], '--', color='lightgray')
 
-        self.save_fig(output_dir)
+        Metric.save_fig(output_dir, name=self.file_name, title=self.description)
 
 
 Metrics = Union[Empty, DeviationVelocity, DeviationLateral, SteeringVelocity, Acceleration]
