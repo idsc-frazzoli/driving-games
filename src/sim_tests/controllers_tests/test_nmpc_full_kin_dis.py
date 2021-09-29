@@ -10,11 +10,7 @@ from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons.state_estimators.dropping_trechniques import *
 
 
-def test_nmpc_full_kin_dis():
-    scenario = "USA_Peach-1_1_T-1"
-    # scenario="ZAM_Tjunction-1_129_T-1"
-    # scenario="ARG_Carcarana-1_1_T-1"
-
+def test_nmpc_full_kin_dis(scenario):
     controller = VehicleController(
 
         controller=NMPCFullKinDisPV,

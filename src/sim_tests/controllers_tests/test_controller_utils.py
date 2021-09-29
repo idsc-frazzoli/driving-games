@@ -1,9 +1,10 @@
 from dg_commons.controllers.full_controller_base import VehicleController
 from sim_tests.controllers_tests.test_controller import TestController
 from dg_commons.controllers.speed import SpeedBehavior
+from sim_tests.controllers_tests.controller_scenarios.scenario_to_test import ScenarioData
 
 
-def run_test(controller: VehicleController,  scenario_name: str):
+def run_test(controller: VehicleController,  scenario: ScenarioData):
 
     sp_behavior = {"Name": "Speed Behavior",
                    "Behavior": SpeedBehavior,
@@ -27,7 +28,7 @@ def run_test(controller: VehicleController,  scenario_name: str):
                        "Parameters": controller.state_estimator_params} \
         if controller.state_estimator is not None else None
 
-    test_pp = TestController(scenario_name, "-", controller.metrics, controller.lf_agent, main_controller,
+    test_pp = TestController(scenario, "-", controller.metrics, controller.lf_agent, main_controller,
                              sp_behavior, steering_controller, longitudinal_controller, state_estimator)
     test_pp.run()
     test_pp.evaluate_metrics()

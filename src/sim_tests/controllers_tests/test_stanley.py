@@ -10,11 +10,7 @@ from dg_commons.utils import SemiDef
 from dg_commons.state_estimators.dropping_trechniques import *
 
 
-def test_stanley():
-    scenario = "USA_Peach-1_1_T-1"
-    # scenario="ZAM_Tjunction-1_129_T-1"
-    # scenario="ARG_Carcarana-1_1_T-1"
-
+def test_stanley(scenario):
     controller = VehicleController(
 
         controller=Stanley,
