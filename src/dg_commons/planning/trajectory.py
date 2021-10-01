@@ -1,17 +1,17 @@
 from dataclasses import replace
 from functools import partial
-from typing import List, Optional, Type
+from typing import List, Optional, Type, Mapping
 
 import numpy as np
 from geometry import xytheta_from_SE2
 from networkx import DiGraph
 
-from dg_commons import SE2Transform
-from dg_commons.seq.sequence import DgSampledSequence, X, iterate_with_dt
+from dg_commons import SE2Transform, PlayerName, X
+from dg_commons.seq.sequence import DgSampledSequence, iterate_with_dt
 from sim.models import extract_pose_from_state
 from sim.models.vehicle import VehicleState, VehicleCommands
 
-__all__ = ["Trajectory", "TrajectoryGraph", "commands_plan_from_trajectory"]
+__all__ = ["Trajectory", "JointTrajectories", "TrajectoryGraph", "commands_plan_from_trajectory"]
 
 
 class Trajectory(DgSampledSequence[VehicleState]):
@@ -54,6 +54,9 @@ class Trajectory(DgSampledSequence[VehicleState]):
         """"""
         # todo
         pass
+
+
+JointTrajectories = Mapping[PlayerName, Trajectory]
 
 
 def commands_plan_from_trajectory(trajectory: Trajectory) -> DgSampledSequence[VehicleCommands]:
