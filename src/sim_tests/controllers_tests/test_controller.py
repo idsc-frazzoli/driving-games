@@ -13,8 +13,8 @@ from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 import os
 from dg_commons.seq.sequence import DgSampledSequence
 from sim import SimTime
-from crash.reports import generate_report
 from sim_tests.controllers_tests.controller_scenarios.scenario_to_test import ScenarioData
+from crash.reports import generate_report
 
 DT: SimTime = SimTime("0.05")
 DT_COMMANDS: SimTime = SimTime("0.1")
@@ -38,8 +38,9 @@ class TestController:
         self.state_estimator = state_estimator
 
         players, models = {}, {}
-        for i, dyn_obs in enumerate(scenario.scenario.dynamic_obstacles):
-            if i in scenario.cars_idx:
+        dyn_obstacles = scenario.scenario.dynamic_obstacles
+        for i, dyn_obs in enumerate(dyn_obstacles):
+            if scenario.cars_idx is None or i in scenario.cars_idx:
                 agent = self._agent_from_dynamic_obstacle(dyn_obs)
                 model, estimator = self._model_se_from_dynamic_obstacle(dyn_obs, False)
                 agent.set_state_estimator(estimator)
@@ -85,7 +86,7 @@ class TestController:
         vel_0 = dyn_obs.prediction.trajectory.state_list[0].velocity
         dtheta = orient_1 - orient_0
         l = dyn_obs.obstacle_shape.length
-        delta_0 = math.atan(l * dtheta / vel_0)
+        delta_0 = math.atan(l * dtheta / vel_0) if vel_0 > 10e-6 else 0
 
         state_estimator = None
         if is_dynamic:
@@ -121,10 +122,10 @@ class TestController:
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities)
 
-        report = generate_report(self.sim_context)
+        # report = generate_report(self.sim_context)
         # save report
-        report_file = os.path.join(self.output_dir, f"{name}.html")
-        report.to_html(report_file)
+        # report_file = os.path.join(self.output_dir, f"{name}.html")
+        # report.to_html(report_file)
 
     def evaluate_metrics(self):
 

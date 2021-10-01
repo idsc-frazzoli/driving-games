@@ -10,13 +10,15 @@ from sim_tests.controllers_tests.test_stanley import test_stanley
 from sim_tests.controllers_tests.controller_scenarios.scenario_to_test import scenarios
 
 
-for key in scenarios.keys():
-    test_lqr(scenarios[key])
-    test_nmpc_full_kin_cont(scenarios[key])
-    test_nmpc_full_kin_dis(scenarios[key])
-    test_nmpc_full_kin_analytical(scenarios[key])
-    test_nmpc_lat_kin_cont(scenarios[key])
-    test_nmpc_lat_kin_dis(scenarios[key])
-    test_nmpc_lat_cont_analytical(scenarios[key])
-    test_pure_pursuit(scenarios[key])
-    test_stanley(scenarios[key])
+key = "race"
+scenario = scenarios[key]
+
+#test_lqr(scenario)
+test_nmpc_full_kin_cont(scenario)
+'''test_nmpc_full_kin_dis(scenario)
+test_nmpc_full_kin_analytical(scenario)
+test_nmpc_lat_kin_cont(scenario)
+test_nmpc_lat_kin_dis(scenario)
+test_nmpc_lat_cont_analytical(scenario)
+test_pure_pursuit(scenario)
+test_stanley(scenario)'''

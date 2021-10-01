@@ -1,16 +1,33 @@
-from sim.scenarios.utils import load_commonroad_scenario
+from sim.scenarios.utils import load_commonroad_scenario, Scenario
 from sim.scenarios.agent_from_commonroad import *
 from dg_commons import PlayerName
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 import os
 from crash.reports import generate_report
+from sim_tests.controllers_tests.controller_scenarios.utils import race_track_generate_dyn_obs
+
+
+def race_track(scenario: Scenario):
+    players, models = {}, {}
+    lanelet_net = scenario.lanelet_network
+
+    dyn_obs = race_track_generate_dyn_obs(scenario)
+
+    model1, agent1 = model_agent_from_dynamic_obstacle(dyn_obs[0], lanelet_net)
+    player_name = PlayerName(f"Player0")
+    players.update({player_name: agent1})
+    models.update({player_name: model1})
+    return players, models
 
 
 def visualize_scenario(scenario_name: str):
     scenario, _ = load_commonroad_scenario(scenario_name)
     lanelet_net = scenario.lanelet_network
-
     players, models = {}, {}
+
+    if scenario_name == "DEU_Hhr-1_1":
+        players, models = race_track(scenario)
+
     for i, dyn_obs in enumerate(scenario.dynamic_obstacles):
         if dyn_obs.obstacle_type is not ObstacleType.CAR:
             continue
@@ -36,5 +53,5 @@ def visualize_scenario(scenario_name: str):
     report.to_html(report_file)
 
 
-scenario_name = "ZAM_Tjunction-1_320_T-1"
+scenario_name = "DEU_Hhr-1_1"
 visualize_scenario(scenario_name)
