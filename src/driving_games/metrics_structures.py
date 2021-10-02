@@ -24,6 +24,8 @@ __all__ = [
 class EvaluatedMetric:
     name: str
     value: float
+    """Total value of the metric cost.
+    It is usually the min/max/avg/integral/cumsum of the pointwise evaluation of the metric"""
     pointwise: Optional[DgSampledSequence] = None
 
     def __repr__(self):

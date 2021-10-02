@@ -1,6 +1,6 @@
 from dataclasses import replace
 from functools import partial
-from typing import List, Optional, Type, Mapping
+from typing import List, Optional, Type, Mapping, Set, Iterator
 
 import numpy as np
 from geometry import xytheta_from_SE2
@@ -69,5 +69,13 @@ def commands_plan_from_trajectory(trajectory: Trajectory) -> DgSampledSequence[V
 
 
 class TrajectoryGraph(DiGraph):
+    # https://networkx.org/documentation/stable/reference/algorithms/dag.html
     pass
+    # todo missing sampling time to have proper trajectories
+
     # todo
+    def get_all_trajectories(self) -> Set[Trajectory]:
+        pass
+
+    def iterate_all_trajectories(self) -> Iterator[Trajectory]:
+        pass

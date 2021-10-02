@@ -209,7 +209,7 @@ def gif_eq(
         for pname, pref in prefs.items():
             metrics: Dict[str, str] = {}
             outcomes = node_eq.outcomes[pname]
-            for met in pref.graph.nodes:
+            for met in pref.G.nodes:
                 metrics[met] = str(round(float(met.evaluate(outcomes)), 2))
             game.game_vis.plot_pref(axis=ax, pref=pref, pname=pname, origin=(n, 0.0), labels=metrics)
             n = n + 200

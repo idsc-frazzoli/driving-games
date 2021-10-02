@@ -5,6 +5,7 @@ from decimal import Decimal as D, localcontext
 from zuper_commons.types import check_isinstance
 
 from _tmp.bayesian_driving_games.structures import PlayerType, AGGRESSIVE, CAUTIOUS, NEUTRAL, BayesianGamePlayer
+from dg_commons import PlayerName
 from driving_games import (
     VehicleState,
     VehicleActions,
@@ -15,7 +16,7 @@ from driving_games import (
 from driving_games.collisions_check import (
     collision_check,
 )
-from games import JointRewardStructure, PlayerName, PersonalRewardStructure
+from games import JointRewardStructure, PersonalRewardStructure
 
 
 class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
