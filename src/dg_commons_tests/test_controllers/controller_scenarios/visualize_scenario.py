@@ -4,16 +4,15 @@ from dg_commons import PlayerName
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 import os
 from crash.reports import generate_report
-from sim_tests.controllers_tests.controller_scenarios.utils import race_track_generate_dyn_obs
+from dg_commons_tests.test_controllers.controller_scenarios.utils import race_track_generate_dyn_obs
 from sim import SimTime
-
 
 
 def race_track(scenario: Scenario):
     players, models = {}, {}
     lanelet_net = scenario.lanelet_network
 
-    dyn_obs = race_track_generate_dyn_obs(scenario, 60)
+    dyn_obs = race_track_generate_dyn_obs(scenario, 43)
 
     model1, agent1 = model_agent_from_dynamic_obstacle(dyn_obs[0], lanelet_net)
     player_name = PlayerName(f"Player0")

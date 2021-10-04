@@ -1,6 +1,6 @@
-from sim_tests.controllers_tests.controllers_to_test import *
-from sim_tests.controllers_tests.controller_scenarios.scenario_to_test import scenarios
-from sim_tests.controllers_tests.controller_test_utils import Select, TestInstance
+from dg_commons_tests.test_controllers.controllers_to_test import *
+from dg_commons_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios
+from dg_commons_tests.test_controllers.controller_test_utils import Select, TestInstance
 from dg_commons.analysis.metrics import *
 
 
@@ -25,6 +25,7 @@ scenarios_to_test = [Select(scenarios["lane_change_left"], False),
                      Select(scenarios["turn_90_left"], False),
                      Select(scenarios["small_snake"], False),
                      Select(scenarios["u-turn"], True),
+                     Select(scenarios["left_cont_curve"], True),
                      Select(scenarios["race"], False)]
 
 controllers_to_test = [

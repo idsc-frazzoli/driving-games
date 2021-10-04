@@ -74,6 +74,10 @@ class Stanley:
             angle = res[2]
 
             self.alpha = angle - obs.theta
+            if self.alpha > math.pi:
+                self.alpha = -(2*math.pi - self.alpha)
+            elif self.alpha < - math.pi:
+                self.alpha = 2*math.pi + self.alpha
 
             closest_point = closest_point_func(front_position)
             self.lateral = - (closest_point[0] - front_position[0]) * math.sin(obs.theta) + \

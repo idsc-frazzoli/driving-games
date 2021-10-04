@@ -79,6 +79,10 @@ class LQR:
             res, _, _, closest_point_func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
             angle = res[2]
             relative_heading = - angle + obs.theta
+            if relative_heading > math.pi:
+                relative_heading = -(2*math.pi - relative_heading)
+            elif relative_heading < - math.pi:
+                relative_heading = 2*math.pi + relative_heading
 
             closest_point = closest_point_func(back_position)
             lateral = (closest_point[0] - back_position[0]) * math.sin(obs.theta) - \

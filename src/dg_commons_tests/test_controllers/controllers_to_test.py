@@ -2,7 +2,7 @@ from sim.agents.lane_followers import *
 from dg_commons.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
 from dg_commons.controllers.full_controller_base import VehicleController
-from sim_tests.controllers_tests.test_controller import DT_COMMANDS
+from dg_commons_tests.test_controllers.controller_test_utils import DT_COMMANDS
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons.state_estimators.dropping_trechniques import *
 
