@@ -65,7 +65,7 @@ class LatMPCKinBase(MPCKinBase):
 
     def update_state(self, obs: Optional[X] = None, speed_ref: Optional[float] = None):
         self.current_position = self.rear_axle_position(obs) if self.params.rear_axle else self.cog_position(obs)
-        current_beta, _ = self.path.find_along_lane_closest_point(self.current_position)
+        current_beta, _ = self.path.find_along_lane_closest_point(self.current_position, global_sol=True)
         self.current_speed = obs.vx
         s0, _ = translation_angle_from_SE2(self.path.center_point(current_beta))
 

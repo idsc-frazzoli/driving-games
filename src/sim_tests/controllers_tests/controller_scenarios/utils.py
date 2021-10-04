@@ -7,9 +7,8 @@ from sim.scenarios.agent_from_commonroad import *
 import matplotlib.pyplot as plt
 
 
-def race_track_generate_dyn_obs(scenario: Scenario):
+def race_track_generate_dyn_obs(scenario: Scenario, starting_position: float = 0):
     lanelets = scenario.lanelet_network.lanelets
-    starting_position: float = 40
     states = []
     n_states = []
 

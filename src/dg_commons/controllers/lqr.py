@@ -71,7 +71,7 @@ class LQR:
         self.speed = obs.vx
 
         p, _, _ = translation_angle_scale_from_E2(self.back_pose)
-        beta, q0 = self.path.find_along_lane_closest_point(back_position, tol=1e-4)
+        beta, q0 = self.path.find_along_lane_closest_point(back_position, tol=1e-4, global_sol=True)
 
         path_approx = True
         if path_approx:
@@ -94,8 +94,11 @@ class LQR:
 
         a = np.array([[0, self.speed, 0], [0, 0, self.speed/self.vehicle_geometry.length], [0, 0, 0]])
         b = np.array([[0], [0], [1]])
-        k, _, _ = lqr(a, b, self.params.q, self.params.r)
-        self.u = -np.matmul(k, error) + feed_forward
+        try:
+            k, _, _ = lqr(a, b, self.params.q, self.params.r)
+            self.u = -np.matmul(k, error) + feed_forward
+        except np.linalg.LinAlgError:
+            self.u = 0
 
     def next_pos(self, current_beta):
         along_lane = self.path.along_lane_from_beta(current_beta)

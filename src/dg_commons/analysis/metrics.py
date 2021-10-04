@@ -225,4 +225,8 @@ class Acceleration(Metric):
         Metric.save_fig(output_dir, name=self.file_name, title=self.description)
 
 
-Metrics = Union[Empty, DeviationVelocity, DeviationLateral, SteeringVelocity, Acceleration]
+# Workaround to have a list of all metrics types available
+metrics_list = [DeviationVelocity, DeviationLateral, SteeringVelocity, Acceleration]
+Metrics = Union[Empty]
+for metric in metrics_list:
+    Metrics = Union[Metrics, metric]

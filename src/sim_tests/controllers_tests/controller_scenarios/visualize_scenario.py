@@ -5,13 +5,15 @@ from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 import os
 from crash.reports import generate_report
 from sim_tests.controllers_tests.controller_scenarios.utils import race_track_generate_dyn_obs
+from sim import SimTime
+
 
 
 def race_track(scenario: Scenario):
     players, models = {}, {}
     lanelet_net = scenario.lanelet_network
 
-    dyn_obs = race_track_generate_dyn_obs(scenario)
+    dyn_obs = race_track_generate_dyn_obs(scenario, 60)
 
     model1, agent1 = model_agent_from_dynamic_obstacle(dyn_obs[0], lanelet_net)
     player_name = PlayerName(f"Player0")
@@ -37,7 +39,7 @@ def visualize_scenario(scenario_name: str):
         players.update({player_name: agent})
         models.update({player_name: model})
 
-    sim_parameters: SimParameters = SimParameters()
+    sim_parameters: SimParameters = SimParameters(max_sim_time=SimTime(10))
     sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
                                          param=sim_parameters, log=SimLog())
 

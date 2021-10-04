@@ -14,7 +14,10 @@ import os
 from dg_commons.seq.sequence import DgSampledSequence
 from sim import SimTime
 from sim_tests.controllers_tests.controller_scenarios.scenario_to_test import ScenarioData
+from dg_commons.controllers.full_controller_base import VehicleController
+from dg_commons.controllers.speed import SpeedBehavior
 from crash.reports import generate_report
+
 
 DT: SimTime = SimTime("0.05")
 DT_COMMANDS: SimTime = SimTime("0.1")
@@ -23,19 +26,14 @@ assert DT_COMMANDS % DT == SimTime(0)
 
 class TestController:
 
-    def __init__(self, scenario: ScenarioData, vehicle_model: str, metrics, agent, controller,
-                 speed_behavior, steering_controller, longitudinal_controller=None, state_estimator=None):
+    def __init__(self, scenario: ScenarioData, metrics, controller: VehicleController,
+                 vehicle_model: Optional[str] = None):
 
         self.scenario: ScenarioData = scenario
         self.lanelet_net = scenario.scenario.lanelet_network
-        self.agent = agent
-
+        self.agent = controller.lf_agent
         self.controller = controller
-        self.longitudinal_controller = longitudinal_controller
-        self.speed_behavior = speed_behavior
-        self.steering_controller = steering_controller
         self.vehicle_model = vehicle_model
-        self.state_estimator = state_estimator
 
         players, models = {}, {}
         dyn_obstacles = scenario.scenario.dynamic_obstacles
@@ -57,22 +55,22 @@ class TestController:
         self.result = []
         self.simulator: Simulator = Simulator()
 
-        controller_name = self.controller['Name']
+        controller_name = self.controller.controller.__name__
         self.output_dir = os.path.join("out", controller_name, self.scenario.fig_name)
 
     def _agent_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
+        controller = self.controller.controller(self.controller.controller_params)
+        speed_behavior = SpeedBehavior()
+        speed_behavior.params = self.controller.speed_behavior_param
+        steering_controller = self.controller.steering_controller()
+        steering_controller.params = self.controller.steering_controller_params
 
-        controller = self.controller["Controller"](self.controller["Parameters"])
-        speed_behavior = self.speed_behavior["Behavior"]()
-        speed_behavior.params = self.speed_behavior["Parameters"]
-        steering_controller = self.steering_controller["Controller"]()
-        steering_controller.params = self.steering_controller["Parameters"]
         dg_lane = infer_lane_from_dyn_obs(dyn_obs, self.lanelet_net)
         longitudinal_controller = None
 
-        if self.longitudinal_controller:
-            longitudinal_controller = self.longitudinal_controller["Controller"]()
-            longitudinal_controller.params = self.longitudinal_controller["Parameters"]
+        if self.controller.longitudinal_controller:
+            longitudinal_controller = self.controller.longitudinal_controller()
+            longitudinal_controller.params = self.controller.longitudinal_controller_params
 
         agent = self.agent(dg_lane, controller=controller, speed_behavior=speed_behavior,
                            speed_controller=longitudinal_controller, steer_controller=steering_controller,
@@ -99,8 +97,8 @@ class TestController:
                               theta=dyn_obs.initial_state.orientation, vx=dyn_obs.initial_state.velocity,
                               delta=delta_0)
             model = VehicleModel.default_car(x0=x0)
-            if self.state_estimator:
-                state_estimator = self.state_estimator['Estimator'](DT, params=self.state_estimator["Parameters"])
+            if self.controller.state_estimator:
+                state_estimator = self.controller.state_estimator(DT, params=self.controller.state_estimator_params)
 
         return model, state_estimator
 
@@ -108,7 +106,7 @@ class TestController:
         self.simulator.run(self.sim_context)
         name = "simulation"
 
-        nominal_velocity = self.speed_behavior["Parameters"].nominal_speed
+        nominal_velocity = self.controller.speed_behavior_param.nominal_speed
         dg_lanelets = {}
         states = {}
         commands = {}

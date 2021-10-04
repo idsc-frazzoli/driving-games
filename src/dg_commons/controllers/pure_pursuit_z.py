@@ -53,7 +53,7 @@ class PurePursuit:
 
     def update_state(self, obs: X):
         self.pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
-        lanepose = self.path.lane_pose_from_SE2_generic(self.pose)
+        lanepose = self.path.lane_pose_from_SE2_generic(self.pose, global_sol=True)
         self.along_path = lanepose.along_lane
 
     def find_goal_point(self) -> Tuple[float, SE2value]:

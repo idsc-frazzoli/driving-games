@@ -1,10 +1,8 @@
 from dg_commons.controllers.controller_types import *
 from dg_commons.state_estimators.estimator_types import *
-from dg_commons.analysis.metrics import *
-from dg_commons.state_estimators.dropping_trechniques import *
 from sim.agents.lane_followers import LaneFollowerAgent
 from dataclasses import dataclass
-from typing import Union, Optional, List, get_args
+from typing import Union, Optional, get_args
 
 
 @dataclass
@@ -30,8 +28,6 @@ class VehicleController:
 
     state_estimator_params: Optional[EstimatorsParams] = None
 
-    metrics: Optional[List[type(Metrics)]] = None
-
     def __post_init__(self):
         decoupled: bool = self.controller in get_args(LateralController) and \
                           self.longitudinal_controller in get_args(LongitudinalController)
@@ -50,4 +46,3 @@ class VehicleController:
 
         if self.state_estimator is not None:
             assert self.state_estimator_params is not None
-

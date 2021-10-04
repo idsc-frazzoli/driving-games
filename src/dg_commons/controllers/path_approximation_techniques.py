@@ -4,6 +4,7 @@ from casadi import *
 def vertical_line_param(pos1, pos2):
     vertical_line = True
     angle = pi / 2 * sign(pos2[1] - pos1[1])
+    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
     res = [pos1[0], sign(pos2[1] - pos1[1]), angle]
 
     def func(x):
@@ -24,7 +25,8 @@ def linear_param(pos1, angle1, pos2, angle2, pos3, angle3):
 
     m = (pos1[1] - pos2[1]) / (pos1[0] - pos2[0])
     b = pos1[1] - m * pos1[0]
-    angle = atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])
+    angle = atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])  # returns a value in [-pi, pi]
+    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
     res = [m, b, angle]
 
     def func(x):

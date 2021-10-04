@@ -65,13 +65,14 @@ class Stanley:
             self.speed = obs.vx
 
         p, _, _ = translation_angle_scale_from_E2(front_pose)
-        beta, q0 = self.path.find_along_lane_closest_point(p, tol=1e-4)
+        beta, q0 = self.path.find_along_lane_closest_point(p, tol=1e-4, global_sol=True)
 
         path_approx = True
         if path_approx:
             pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
             res, _, _, closest_point_func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
             angle = res[2]
+
             self.alpha = angle - obs.theta
 
             closest_point = closest_point_func(front_position)
@@ -86,7 +87,7 @@ class Stanley:
 
     def next_pos(self, current_beta):
         along_lane = self.path.along_lane_from_beta(current_beta)
-        k = 2
+        k = 10
         delta_step = self.speed * 0.1 * k
         along_lane1 = along_lane + delta_step / 2
         along_lane2 = along_lane1 + delta_step / 2
