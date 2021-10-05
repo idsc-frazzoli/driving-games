@@ -42,6 +42,7 @@ class LatMPCKinBase(MPCKinBase):
         self.u = None
         self.path_var = False
         self.current_speed = None
+        self.current_beta = None
 
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
 
@@ -65,15 +66,19 @@ class LatMPCKinBase(MPCKinBase):
 
     def update_state(self, obs: Optional[X] = None, speed_ref: Optional[float] = None):
         self.current_position = self.rear_axle_position(obs) if self.params.rear_axle else self.cog_position(obs)
-        current_beta, _ = self.path.find_along_lane_closest_point(self.current_position, global_sol=True)
+
+        control_sol_params = self.path.ControlSolParams(obs.vx, self.params.t_step)
+        self.current_beta, _ = self.path.find_along_lane_closest_point(self.current_position,
+                                                                       control_sol=control_sol_params)
+
         self.current_speed = obs.vx
-        s0, _ = translation_angle_from_SE2(self.path.center_point(current_beta))
+        s0, _ = translation_angle_from_SE2(self.path.center_point(self.current_beta))
 
         self.mpc = do_mpc.controller.MPC(self.model)
         self.mpc.set_param(**self.setup_mpc)
         suppress_ipopt = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
         self.mpc.set_param(nlpsol_opts=suppress_ipopt)
-        target_x, target_y, target_angle = self.compute_targets(current_beta)
+        target_x, target_y, target_angle = self.compute_targets(self.current_beta)
         lterm = self.lterm(target_x, target_y, speed_ref)
         mterm = self.mterm(target_x, target_y, speed_ref)
 

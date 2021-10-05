@@ -26,6 +26,7 @@ class PurePursuitParam:
     """Max extra distance to look for the closest point on the ref path"""
     length: float = 3.5
     """Length of the vehicle"""
+    t_step: float = 0.1
 
 
 class PurePursuit:
@@ -44,6 +45,7 @@ class PurePursuit:
         self.pose: Optional[SE2value] = None
         self.along_path: Optional[float] = None
         self.speed: float = 0
+        self.current_beta = None
         self.params: PurePursuitParam = params
         # logger.debug("Pure pursuit params: \n", self.param)
 
@@ -53,8 +55,11 @@ class PurePursuit:
 
     def update_state(self, obs: X):
         self.pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
-        lanepose = self.path.lane_pose_from_SE2_generic(self.pose, global_sol=True)
+
+        control_sol_params = self.path.ControlSolParams(obs.vx, self.params.t_step)
+        lanepose = self.path.lane_pose_from_SE2_generic(self.pose, control_sol=control_sol_params)
         self.along_path = lanepose.along_lane
+        self.current_beta = self.path.beta_from_along_lane(self.along_path)
 
     def find_goal_point(self) -> Tuple[float, SE2value]:
         """

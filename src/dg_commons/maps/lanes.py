@@ -1,11 +1,10 @@
 import math
 from dataclasses import dataclass
 from math import isclose, pi, atan2
-from typing import Sequence, List
+from typing import Sequence, List, Optional
 
 import numpy as np
 from cachetools import cached, LRUCache
-from casadi import if_else
 from commonroad.scenario.lanelet import Lanelet
 from geometry import (
     SO2value,
@@ -17,7 +16,7 @@ from geometry import (
     translation_angle_from_SE2,
     T2value,
 )
-from scipy.optimize import minimize_scalar, basinhopping
+from scipy.optimize import minimize_scalar
 
 from dg_commons import SE2Transform, relative_pose, SE2_apply_T2, SE2_interpolate, get_distance_SE2
 
@@ -79,7 +78,7 @@ class DgLanelet:
 
     def __init__(self, control_points: Sequence[LaneCtrPoint]):
         self.control_points: List[LaneCtrPoint] = list(control_points)
-        self.previous_sol = None
+        self.previous_along_lane = None
 
     @classmethod
     def from_commonroad_lanelet(cls, lanelet: Lanelet) -> "DgLanelet":
@@ -110,11 +109,18 @@ class DgLanelet:
     def lane_pose_from_SE2Transform(self, qt: SE2Transform, tol: float = 1e-4) -> DgLanePose:
         return self.lane_pose_from_SE2_generic(qt.as_SE2(), tol=tol)
 
-    def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-4, global_sol: bool = False) -> DgLanePose:
+    @dataclass
+    class ControlSolParams:
+        current_v: float
+        dt: float
+        safety_factor: float = 1.2
+
+    def lane_pose_from_SE2_generic(self, q: SE2value, tol: float = 1e-4,
+                                   control_sol: Optional[ControlSolParams] = None) -> DgLanePose:
         """Note this function performs a local search, not very robust to strange situations"""
         p, _, _ = translation_angle_scale_from_E2(q)
 
-        beta, q0 = self.find_along_lane_closest_point(p, tol=tol, global_sol=global_sol)
+        beta, q0 = self.find_along_lane_closest_point(p, tol=tol, control_sol=control_sol)
         along_lane = self.along_lane_from_beta(beta)
         rel = relative_pose(q0, q)
 
@@ -123,7 +129,8 @@ class DgLanelet:
 
         return self.lane_pose(along_lane=along_lane, relative_heading=relative_heading, lateral=lateral)
 
-    def find_along_lane_closest_point(self, p: T2value, tol: float = 1e-7, global_sol: bool = False):
+    def find_along_lane_closest_point(self, p: T2value, tol: float = 1e-7,
+                                      control_sol: Optional[ControlSolParams] = None):
         def get_delta(beta):
             q0 = self.center_point(beta)
             t0, _ = translation_angle_from_SE2(q0)
@@ -141,21 +148,31 @@ class DgLanelet:
             return res
 
         bracket = (-1.0, len(self.control_points))
-        if global_sol:
-            beta0 = self.find_along_lane_closest_point_global(bracket, get_delta, tol)
+        if control_sol:
+            beta0 = self.find_along_lane_closest_point_control(bracket, get_delta, control_sol, tol)
         else:
             res0 = minimize_scalar(get_delta, bracket=bracket, tol=tol)
             beta0 = res0.x
 
-        self.previous_sol = beta0
         q = self.center_point(beta0)
+        self.previous_along_lane = self.along_lane_from_beta(beta0)
         return beta0, q
 
-    def find_along_lane_closest_point_global(self, bracket, func, tol: float = 1e-7):
+    def find_along_lane_closest_point_control(self, bracket, func, params: ControlSolParams, tol: float = 1e-7):
         factor = 1
-        n_samples = int(len(self.control_points)*factor)
+        bracket = list(bracket)
+        n_samples = int(len(self.control_points) * factor)
+        bracket_len_b = bracket[1] - bracket[0]
+
+        use_guess = True
+        if use_guess and self.previous_along_lane:
+            neg_delta, pos_delta = -10, params.current_v*params.dt*params.safety_factor
+            if self.previous_along_lane + pos_delta >= 0:
+                bracket[0] = max(self.beta_from_along_lane(self.previous_along_lane+neg_delta), bracket[0])
+                bracket[1] = min(self.beta_from_along_lane(self.previous_along_lane+pos_delta), bracket[1])
 
         bracket_len = bracket[1]-bracket[0]
+        n_samples = max(2, int(n_samples * bracket_len / bracket_len_b))
         samples = np.linspace(bracket[0], bracket[1], n_samples)
         beta = 0
         cost = math.inf

@@ -9,9 +9,10 @@ from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from sim.models.vehicle_utils import VehicleParameters
 from sim.models.vehicle import VehicleGeometry
 from duckietown_world import SE2Transform, LanePose
-from geometry import SE2_from_translation_angle
+from dg_commons import SE2Transform, relative_pose
 import os
 import matplotlib.pyplot as plt
+from geometry import translation_angle_scale_from_E2, SE2_from_translation_angle
 
 
 @dataclass
@@ -27,6 +28,9 @@ class MetricEvaluationContext:
 
     target_velocities: Mapping[PlayerName, DgSampledSequence[float]]
     """ Planned velocities """
+
+    betas: Mapping[PlayerName, DgSampledSequence[float]]
+    """ Where on the lane """
 
     vehicle_params: Optional[Mapping[PlayerName, VehicleParameters]] = None
     """ Vehicle parameters """
@@ -46,25 +50,38 @@ class MetricEvaluationContext:
 
         poses: Dict[PlayerName, List[SE2Transform]] = {}
         lane_poses: Dict[PlayerName, DgSampledSequence[LanePose]] = {}
-        for player, Sstate in self.actual_trajectory.items():
-            intervals = self.actual_trajectory[player].get_sampling_points()
+
+        for player, betas in self.betas.items():
+            intervals = self.betas[player].get_sampling_points()
+            path = self.planned_lanes[player]
             helper1 = []
             helper2 = []
             for time in intervals:
-                state = Sstate.at(time)
-                pose = SE2Transform([state.x, state.y], state.theta)
-                lane_pose = self.planned_lanes[player].lane_pose_from_SE2_generic(pose.as_SE2(), 1e-4)
-                helper1.append(pose)
+                beta = betas.at(time)
+                state = self.actual_trajectory[player].at(time)
+
+                position, angle = [state.x, state.y], state.theta
+                q = SE2_from_translation_angle(position, angle)
+                q0 = path.center_point(beta)
+
+                along_lane = path.along_lane_from_beta(beta)
+                rel = relative_pose(q, q0)
+                r, relative_heading, _ = translation_angle_scale_from_E2(rel)
+                lateral = r[1]
+
+                lane_pose = path.lane_pose(along_lane=along_lane, relative_heading=relative_heading, lateral=lateral)
+
+                helper1.append(SE2Transform(position, angle))
                 helper2.append(lane_pose)
 
             poses[player] = helper1
             lane_poses[player] = DgSampledSequence(values=helper2, timestamps=intervals)
 
-        self._pose = poses
-        self._lane_pose = lane_poses
+            self._pose = poses
+            self._lane_pose = lane_poses
 
     def get_interval(self, player: PlayerName) -> List[Timestamp]:
-        return self.actual_trajectory[player].get_sampling_points()
+        return self.actual_trajectory[player].get_sampling_points(), self.commands[player].get_sampling_points()
 
     def get_players(self) -> List[PlayerName]:
         return list(self.actual_trajectory.keys())

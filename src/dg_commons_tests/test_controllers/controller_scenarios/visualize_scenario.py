@@ -12,7 +12,7 @@ def race_track(scenario: Scenario):
     players, models = {}, {}
     lanelet_net = scenario.lanelet_network
 
-    dyn_obs = race_track_generate_dyn_obs(scenario, 43)
+    dyn_obs = race_track_generate_dyn_obs(scenario, 60, 10)
 
     model1, agent1 = model_agent_from_dynamic_obstacle(dyn_obs[0], lanelet_net)
     player_name = PlayerName(f"Player0")
@@ -47,11 +47,11 @@ def visualize_scenario(scenario_name: str):
     simulator.run(sim_context)
     name = "test_" + scenario_name
 
-    report = generate_report(sim_context)
+    '''report = generate_report(sim_context)
     # save report
     output_dir = "out"
     report_file = os.path.join(output_dir, f"{name}.html")
-    report.to_html(report_file)
+    report.to_html(report_file)'''
 
 
 scenario_name = "DEU_Hhr-1_1"

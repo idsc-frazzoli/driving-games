@@ -45,6 +45,8 @@ class LFAgent(Agent):
         self.state_estimator = None
         self.commands = None
 
+        self.betas = []
+
     def set_state_estimator(self, state_estimator):
         self.state_estimator = state_estimator
 
@@ -83,6 +85,7 @@ class LFAgent(Agent):
         else:
             acc, ddelta = self._get_coupled_commands(my_obs, speed_ref, t)
 
+        self.betas.append(self.controller.current_beta)
         self.commands = VehicleCommands(acc=acc, ddelta=ddelta)
         return self.commands
 

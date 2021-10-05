@@ -23,7 +23,7 @@ class DeviationLateral(Metric):
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            interval = context.get_interval(player)
+            _, interval = context.get_interval(player)
             player_lane_pos = context.get_lane_poses(player)
 
             relative = []
@@ -92,7 +92,7 @@ class DeviationVelocity(Metric):
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            interval = context.get_interval(player)
+            interval, _ = context.get_interval(player)
             player_states = context.actual_trajectory[player]
             target_vels = context.target_velocities[player]
 
@@ -139,7 +139,7 @@ class SteeringVelocity(Metric):
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            interval = context.commands[player].timestamps
+            _, interval = context.get_interval(player)
             commands = context.commands[player]
             states = context.actual_trajectory[player]
             vehicle_params = context.vehicle_params[player]
@@ -187,7 +187,7 @@ class Acceleration(Metric):
     def evaluate(self, context: MetricEvaluationContext,
                  plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            interval = context.commands[player].timestamps
+            _, interval = context.get_interval(player)
             commands = context.commands[player]
             states = context.actual_trajectory[player]
             vehicle_params = context.vehicle_params[player]

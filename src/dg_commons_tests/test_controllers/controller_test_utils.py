@@ -139,14 +139,17 @@ class TestController:
         states = {}
         commands = {}
         velocities = {}
+        betas = {}
         for key in self.sim_context.log.keys():
             dg_lanelets[key] = self.sim_context.players[key].ref_lane
             states[key] = self.sim_context.log[key].states
             commands[key] = self.sim_context.log[key].actions
-            timestamps = states[key].timestamps
-            velocities[key] = DgSampledSequence(timestamps, len(timestamps)*[nominal_velocity])
+            dt_timestamps = states[key].timestamps
+            dt_commands_timestamps = self.sim_context.log[key].actions.timestamps
+            velocities[key] = DgSampledSequence(dt_timestamps, len(dt_timestamps)*[nominal_velocity])
+            betas[key] = DgSampledSequence(dt_commands_timestamps, self.sim_context.players[key].betas)
 
-        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities)
+        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities, betas)
 
         # report = generate_report(self.sim_context)
         # save report

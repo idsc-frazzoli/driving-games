@@ -11,7 +11,8 @@ TestLQR = VehicleController(
             controller=LQR,
             controller_params=LQRParam(
                 r=SemiDef([0.5]),
-                q=SemiDef(matrix=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0.01]]))
+                q=SemiDef(matrix=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0.01]])),
+                t_step=float(DT_COMMANDS)
             ),
 
             lf_agent=LFAgentLQR,
@@ -216,7 +217,8 @@ TestPurePursuit = VehicleController(
 
         controller=PurePursuit,
         controller_params=PurePursuitParam(
-            k_lookahead=1.8
+            k_lookahead=1.8,
+            t_step=float(DT_COMMANDS)
         ),
 
         lf_agent=LFAgentPP,
@@ -246,7 +248,8 @@ TestStanley = VehicleController(
 
         controller=Stanley,
         controller_params=StanleyParam(
-            stanley_gain=2
+            stanley_gain=2,
+            t_step=float(DT_COMMANDS)
         ),
 
         lf_agent=LFAgentStanley,

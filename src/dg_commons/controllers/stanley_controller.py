@@ -20,6 +20,7 @@ __all__ = ["Stanley", "StanleyParam"]
 class StanleyParam:
     stanley_gain: float = 1
     """ Tunable gain """
+    t_step: float = 0.1
 
 
 class Stanley:
@@ -38,6 +39,7 @@ class Stanley:
         self.front_pose: Optional[SE2value] = None
         self.speed: Optional[float] = None
         self.alpha: Optional[float] = None
+        self.current_beta = None
         self.lateral: Optional[float] = None
         self.params: StanleyParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
@@ -65,11 +67,13 @@ class Stanley:
             self.speed = obs.vx
 
         p, _, _ = translation_angle_scale_from_E2(front_pose)
-        beta, q0 = self.path.find_along_lane_closest_point(p, tol=1e-4, global_sol=True)
+
+        control_sol_params = self.path.ControlSolParams(obs.vx, self.params.t_step)
+        self.current_beta, q0 = self.path.find_along_lane_closest_point(p, tol=1e-4, control_sol=control_sol_params)
 
         path_approx = True
         if path_approx:
-            pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(beta)
+            pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
             res, _, _, closest_point_func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
             angle = res[2]
 

@@ -7,7 +7,7 @@ from sim.scenarios.agent_from_commonroad import *
 import matplotlib.pyplot as plt
 
 
-def race_track_generate_dyn_obs(scenario: Scenario, starting_position: float = 0):
+def race_track_generate_dyn_obs(scenario: Scenario, starting_position: float = 0, length_perc: float = 100):
     lanelets = scenario.lanelet_network.lanelets
     states = []
     n_states = []
@@ -29,15 +29,22 @@ def race_track_generate_dyn_obs(scenario: Scenario, starting_position: float = 0
     further_separation = 2
     n_lanelet = int(len(lanelets)*starting_position/100)
     n_center = sum(n_states[:n_lanelet])-1+further_separation
-    states = states[n_center:] + states[:(n_center-1-further_separation)]
 
-    x, y = [q.position[0] for q in states], [q.position[1] for q in states]
+    dec_states = states[n_center:]
+    length = int(len(states) * length_perc / 100)
+    n_add_states = length - len(dec_states)
+    if n_add_states <= 0:
+        dec_states = states[n_center:(n_center+length)]
+    else:
+        dec_states = dec_states + states[:n_add_states]
+
+    x, y = [q.position[0] for q in dec_states], [q.position[1] for q in dec_states]
     plt.scatter([x[0], x[-1]], [y[0], y[-1]])
     plt.plot(x, y)
     plt.savefig("Test")
 
-    initial_state = states[0]
-    trajectory = Trajectory(0, states)
+    initial_state = dec_states[0]
+    trajectory = Trajectory(0, dec_states)
 
     dyn_obs = DynamicObstacle(obstacle_id=0, obstacle_type=ObstacleType.CAR,
                               obstacle_shape=Rectangle(1, 1), initial_state=initial_state,
