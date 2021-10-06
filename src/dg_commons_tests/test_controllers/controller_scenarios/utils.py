@@ -38,10 +38,10 @@ def race_track_generate_dyn_obs(scenario: Scenario, starting_position: float = 0
     else:
         dec_states = dec_states + states[:n_add_states]
 
-    x, y = [q.position[0] for q in dec_states], [q.position[1] for q in dec_states]
+    '''x, y = [q.position[0] for q in dec_states], [q.position[1] for q in dec_states]
     plt.scatter([x[0], x[-1]], [y[0], y[-1]])
     plt.plot(x, y)
-    plt.savefig("Test")
+    plt.savefig("Test")'''
 
     initial_state = dec_states[0]
     trajectory = Trajectory(0, dec_states)

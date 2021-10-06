@@ -22,23 +22,23 @@ state_estimator_params = ExtendedKalmanParam(
 
 
 scenarios_to_test = [Select(scenarios["lane_change_left"], False),
-                     Select(scenarios["turn_90_right"], False),
+                     Select(scenarios["turn_90_right"], True),
                      Select(scenarios["turn_90_left"], False),
                      Select(scenarios["small_snake"], False),
                      Select(scenarios["u-turn"], False),
                      Select(scenarios["left_cont_curve"], False),
-                     Select(scenarios["race"], True)]
+                     Select(scenarios["race"], False)]
 
 controllers_to_test = [
     Select(TestLQR, False),
     Select(TestPurePursuit, False),
     Select(TestStanley, False),
     Select(TestNMPCFullKinContPV, True),
-    Select(TestNMPCFullKinDisPV, False),
-    Select(TestNMPCFullKinContAN, False),
-    Select(TestNMPCLatKinContPV, False),
-    Select(TestNMPCLatKinDisPV, False),
-    Select(TestNMPCLatKinContAN, False)
+    Select(TestNMPCFullKinDisPV, True),
+    Select(TestNMPCFullKinContAN, True),
+    Select(TestNMPCLatKinContPV, True),
+    Select(TestNMPCLatKinDisPV, True),
+    Select(TestNMPCLatKinContAN, True)
 ]
 
 metrics_to_test = [

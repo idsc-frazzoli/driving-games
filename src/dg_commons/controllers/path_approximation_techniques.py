@@ -1,63 +1,27 @@
 from casadi import *
+from typing import Callable, Mapping
 
 
 def vertical_line_param(pos1, pos2):
-    vertical_line = True
-    angle = pi / 2 * sign(pos2[1] - pos1[1])
-    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
-    res = [pos1[0], sign(pos2[1] - pos1[1]), angle]
-
-    def func(x):
-        return None
-
-    def closest_point(pos):
-        x_val = res[0]
-        y_val = pos[1]
-        return x_val, y_val
-
-    return res, func, vertical_line, closest_point
+    vertical = True
+    return pos1[0], sign(pos2[1] - pos1[1]), vertical
 
 
 def linear_param(pos1, angle1, pos2, angle2, pos3, angle3):
-    vertical_line = False
+    vertical = False
     if abs(pos1[0] - pos2[0]) < 10e-8:
         return vertical_line_param(pos1, pos2)
 
     m = (pos1[1] - pos2[1]) / (pos1[0] - pos2[0])
     b = pos1[1] - m * pos1[0]
     angle = atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])  # returns a value in [-pi, pi]
-    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
-    res = [m, b, angle]
+    angle = 2 * pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
 
-    def func(x):
-        return res[0] * x + res[1]
-
-    def closest_point(pos):
-        x_val = (pos[0] + res[0] * (pos[1] - res[1])) / (1 + res[0] ** 2)
-        y_val = (res[0] ** 2 * pos[1] + res[0] * pos[0] + res[1]) / (1 + res[0] ** 2)
-        return [x_val, y_val]
-
-    return res, func, vertical_line, closest_point
-
-
-def cubic_param(pos1, angle1, pos2, angle2, pos3, angle3):
-    vertical_line = False
-    if abs(pos1[0] - pos2[0]) < 10e-8 and abs(pos2[0] - pos3[0]) < 10e-8:
-        return vertical_line_param(pos1, pos2)
-
-    A = np.array([[pos1[0] ** 3, pos1[0] ** 2, pos1[0], 1], [pos3[0] ** 3, pos3[0] ** 2, pos3[0], 1],
-                  [3 * pos1[0] ** 2, 2 * pos1[0], 1, 0], [3 * pos3[0] ** 2, 2 * pos3[0], 1, 0]])
-    b = np.array([[pos1[1]], [pos3[1]], [tan(angle1)], [tan(angle3)]])
-    res = np.linalg.solve(A, b)
-
-    def func(x):
-        return res[0] * x ** 3 + res[1] * x ** 2 + res[2] * x + res[3]
-
-    return res, func, vertical_line, None
+    return m, b, angle, vertical
 
 
 def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3, pref='var3'):
-    vertical_line = False
+    vertical = False
     if abs(pos1[0] - pos2[0]) < 10e-8 and abs(pos2[0] - pos3[0]) < 10e-8:
         return vertical_line_param(pos1, pos2)
 
@@ -74,10 +38,59 @@ def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3, pref='var3'):
 
     res = np.linalg.lstsq(A, b)[0]
 
-    def func(x):
-        return res[0] * x ** 2 + res[1] * x + res[2]
+    return res[0][0], res[1][0], res[2][0], vertical
 
-    a, b, c = res[0], res[1], res[2]
+
+def cubic_param(pos1, angle1, pos2, angle2, pos3, angle3):
+    vertical = False
+    '''if abs(pos1[0] - pos2[0]) < 10e-8 and abs(pos2[0] - pos3[0]) < 10e-8:
+        return vertical_line_param(pos1, pos2)'''
+
+    A = np.array([[pos1[0] ** 3, pos1[0] ** 2, pos1[0], 1], [pos3[0] ** 3, pos3[0] ** 2, pos3[0], 1],
+                  [3 * pos1[0] ** 2, 2 * pos1[0], 1, 0], [3 * pos3[0] ** 2, 2 * pos3[0], 1, 0]])
+    b = np.array([[pos1[1]], [pos3[1]], [tan(angle1)], [tan(angle3)]])
+    res = np.linalg.lstsq(A, b)[0]
+    return res[0][0], res[1][0], res[2][0], res[3][0], vertical
+
+
+def vertical_line(x, s):
+    vertical_line = True
+    angle = pi / 2 * s
+    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
+    res = [x, s, angle]
+
+    def func(x):
+        return None
+
+    def closest_point(pos):
+        x_val = res[0]
+        y_val = pos[1]
+        return x_val, y_val
+
+    return res, func, vertical_line, closest_point
+
+
+def linear(m, b, angle):
+    vertical = False
+
+    res = [m, b, angle]
+
+    def func(x):
+        return res[0] * x + res[1]
+
+    def closest_point(pos):
+        x_val = (pos[0] + res[0] * (pos[1] - res[1])) / (1 + res[0] ** 2)
+        y_val = (res[0] ** 2 * pos[1] + res[0] * pos[0] + res[1]) / (1 + res[0] ** 2)
+        return [x_val, y_val]
+
+    return res, func, vertical, closest_point
+
+
+def quadratic(a, b, c):
+    res = [a, b, c]
+
+    def func(x):
+        return a * x ** 2 + b * x + c
 
     def closest_point(pos):
         a1 = 2 * a ** 2
@@ -101,6 +114,16 @@ def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3, pref='var3'):
         return [x_sol, func(x_sol)]
 
     return res, func, vertical_line, closest_point
+
+
+def cubic(a, b, c, d):
+    vertical = False
+    res = [a, b, c, d]
+
+    def func(x):
+        return res[0] * x ** 3 + res[1] * x ** 2 + res[2] * x + res[3]
+
+    return res, func, vertical, None
 
 
 def cuberoot(x):
@@ -139,3 +162,4 @@ def mat_mul(X, Y):
             # iterate through rows of Y
             for k in range(len(Y)):
                 result[i][j] += X[i][k] * Y[k][j]
+

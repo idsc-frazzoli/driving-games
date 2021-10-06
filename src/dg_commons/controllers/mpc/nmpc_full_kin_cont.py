@@ -1,3 +1,5 @@
+import casadi
+
 from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam, \
     FullMPCKinBaseAnalytical
 from typing import Tuple
@@ -9,8 +11,7 @@ __all__ = ["NMPCFullKinContPV", "NMPCFullKinContPVParam", "NMPCFullKinContAN", "
 
 @dataclass
 class NMPCFullKinContPVParam(FullMPCKinBaseParam):
-    path_approx_technique: str = 'linear'
-    """ Path approximation technique """
+    pass
 
 
 class NMPCFullKinContPV(FullMPCKinBasePathVariable):
@@ -34,8 +35,10 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         self.model.set_rhs('v', self.a)
         self.model.set_rhs('delta', self.v_delta)
         self.model.set_rhs('s', self.v_s)
-
+        self.model.set_rhs('beta', SX.zeros(self.n_params, 1))
+        self.model.set_rhs('speed_ref', casadi.SX(0))
         self.model.setup()
+        self.set_up_mpc()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
         error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
@@ -51,11 +54,12 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
         return mterm
 
-    def compute_targets(self, current_beta):
-        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique](self, current_beta)
-        target_x = res[0] if vertical_line else self.s
+    def compute_targets(self):
+        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique][1](self, self.par)
+        '''target_x = res[0] if vertical_line else self.s
         target_y = self.state_y if vertical_line else self.traj(self.s)
-        return target_x, target_y, None
+        return target_x, target_y, None'''
+        return self.s, self.traj(self.s), None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
@@ -71,7 +75,6 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
         """
         :return: float the desired wheel angle
         """
-        # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         return self.u[0][0], self.u[2][0]
@@ -79,8 +82,7 @@ class NMPCFullKinContPV(FullMPCKinBasePathVariable):
 
 @dataclass
 class NMPCFullKinContANParam(FullMPCKinBaseParam):
-    path_approx_technique: str = 'linear'
-    """ Path Approximation Technique """
+    pass
 
 
 class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
@@ -105,8 +107,10 @@ class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
         self.model.set_rhs('theta', dtheta)
         self.model.set_rhs('v', self.a)
         self.model.set_rhs('delta', self.v_delta)
-
+        self.model.set_rhs('beta', SX.zeros(self.n_params, 1))
+        self.model.set_rhs('speed_ref', casadi.SX(0))
         self.model.setup()
+        self.set_up_mpc()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
         error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
@@ -122,8 +126,8 @@ class NMPCFullKinContAN(FullMPCKinBaseAnalytical):
         _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
         return mterm
 
-    def compute_targets(self, current_beta):
-        self.traj = self.techniques[self.params.path_approx_technique](self, current_beta)
+    def compute_targets(self):
+        self.traj = self.techniques[self.params.path_approx_technique][1](self, self.par)
         return self.traj(self.state_x, self.state_y)
 
     def set_scaling(self):

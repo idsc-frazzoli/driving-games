@@ -185,6 +185,7 @@ class DgLanelet:
 
         interval = bracket_len / (n_samples - 1)
         bracket = (beta - interval, beta + interval)
+        bracket = (bracket[0], bracket[1])
 
         res0 = minimize_scalar(func, bracket=bracket, tol=tol)
         beta = res0.x

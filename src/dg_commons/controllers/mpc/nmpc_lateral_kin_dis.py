@@ -38,8 +38,11 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         self.model.set_rhs('v', f[3])
         self.model.set_rhs('delta', f[4])
         self.model.set_rhs('s', f[5])
+        self.model.set_rhs('beta', self.par)
+        self.model.set_rhs('speed_ref', self.nominal_speed)
 
         self.model.setup()
+        self.set_up_mpc()
 
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
         error = [target_x - self.state_x, target_y - self.state_y]
@@ -55,11 +58,12 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
         return mterm
 
-    def compute_targets(self, current_beta):
-        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique](self, current_beta)
-        target_x = res[0] if vertical_line else self.s
+    def compute_targets(self):
+        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique][1](self, self.par)
+        '''target_x = res[0] if vertical_line else self.s
         target_y = self.state_y if vertical_line else self.traj(self.s)
-        return target_x, target_y, None
+        return target_x, target_y, None'''
+        return self.s, self.traj(self.s), None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
