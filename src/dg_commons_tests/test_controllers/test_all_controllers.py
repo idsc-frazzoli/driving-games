@@ -34,11 +34,11 @@ controllers_to_test = [
     Select(TestPurePursuit, False),
     Select(TestStanley, False),
     Select(TestNMPCFullKinContPV, True),
-    Select(TestNMPCFullKinDisPV, True),
-    Select(TestNMPCFullKinContAN, True),
-    Select(TestNMPCLatKinContPV, True),
-    Select(TestNMPCLatKinDisPV, True),
-    Select(TestNMPCLatKinContAN, True)
+    Select(TestNMPCFullKinDisPV, False),
+    Select(TestNMPCFullKinContAN, False),
+    Select(TestNMPCLatKinContPV, False),
+    Select(TestNMPCLatKinDisPV, False),
+    Select(TestNMPCLatKinContAN, False)
 ]
 
 metrics_to_test = [

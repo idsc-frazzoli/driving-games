@@ -37,7 +37,7 @@ class NMPCLatKinContPV(LatMPCKinBasePathVariable):
         self.set_up_mpc()
 
     def compute_targets(self):
-        res, current_trajectory = self.techniques[self.approx_type][1](self, self.params)
+        res, current_trajectory = self.techniques[self.approx_type][1](self, self.path_params)
         return self.s, current_trajectory(self.s), None
 
     def set_scaling(self):
@@ -90,7 +90,7 @@ class NMPCLatKinContAN(LatMPCKinBaseAnalytical):
         self.set_up_mpc()
 
     def compute_targets(self):
-        current_trajectory = self.techniques[self.approx_type][1](self, self.params)
+        current_trajectory = self.techniques[self.approx_type][1](self, self.path_params)
         return current_trajectory(self.state_x, self.state_y)
 
     def set_scaling(self):

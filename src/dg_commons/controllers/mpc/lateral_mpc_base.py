@@ -191,6 +191,7 @@ class LatMPCKinBasePathVariable(LatMPCKinBase):
         self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
 
     def _get_linear_func(self, params):
+        print(params)
         res, func, _ = linear(params[0, 0], params[1, 0], params[2, 0])
         self.current_f = func
 
