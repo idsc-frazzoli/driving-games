@@ -1,48 +1,56 @@
-from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBasePathVariable, FullMPCKinBaseParam
+from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBaseParam, FullMPCKinBase
 from dg_commons.controllers.mpc.mpc_utils.discretization_techniques import discretizations
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
-__all__ = ["NMPCFullKinDisPV", "NMPCFullKinDisPVParam"]
+__all__ = ["NMPCFullKinDis", "NMPCFullKinDisParam"]
 
 
 @dataclass
-class NMPCFullKinDisPVParam(FullMPCKinBaseParam):
+class NMPCFullKinDisParam(FullMPCKinBaseParam):
     dis_technique: str = 'Kinematic Euler'
     """ Discretization technique """
     dis_t: float = 0.01
     """ Discretization Time Step """
 
 
-class NMPCFullKinDisPV(FullMPCKinBasePathVariable):
+class NMPCFullKinDis(FullMPCKinBase):
     """ Nonlinear MPC for full control of vehicle. Kinematic model with prior discretization """
 
-    def __init__(self, params: NMPCFullKinDisPVParam = NMPCFullKinDisPVParam()):
+    def __init__(self, params: NMPCFullKinDisParam = NMPCFullKinDisParam()):
         model_type = 'discrete'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
         assert self.params.dis_technique in discretizations.keys()
         assert self.params.t_step % self.params.dis_t < 10e-10
 
-        f = [self.state_x, self.state_y, self.theta, self.v, self.delta, self.s]
-        for _ in range(int(self.params.t_step/self.params.dis_t)):
-            f = discretizations[self.params.dis_technique](f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta,
-                                                           self.v_s, self.a, self.params.vehicle_geometry, self.params.dis_t,
-                                                           self.params.rear_axle)
+        f = [self.state_x, self.state_y, self.theta, self.v, self.delta, 0]
+        f[-1] = 0 if self.params.analytical else self.s
+
+        for _ in range(int(self.params.t_step / self.params.dis_t)):
+            dis_input = [f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta, 0, self.a,
+                         self.params.vehicle_geometry, self.params.dis_t, self.params.rear_axle]
+            dis_input[7] = 0 if self.params.analytical else self.v_s
+            f = discretizations[self.params.dis_technique](*dis_input)
 
         self.model.set_rhs('state_x', f[0])
         self.model.set_rhs('state_y', f[1])
         self.model.set_rhs('theta', f[2])
         self.model.set_rhs('v', f[3])
         self.model.set_rhs('delta', f[4])
-        self.model.set_rhs('s', f[5])
+        if not self.params.analytical:
+            self.model.set_rhs('s', f[5])
         """ Set right right hand side of difference equation for x, y, theta, v, delta and s """
 
         self.model.setup()
         self.set_up_mpc()
 
     def compute_targets(self):
-        res, current_trajectory = self.techniques[self.approx_type][1](self, self.path_params)
-        return self.s, current_trajectory(self.s), None
+        if self.params.analytical:
+            self.path_approx.update_from_parameters(self.path_params)
+            return *self.path_approx.closest_point_on_path([self.state_x, self.state_y]), None
+        else:
+            self.path_approx.update_from_parameters(self.path_params)
+            return self.s, self.path_approx.function(self.s), None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
@@ -60,4 +68,7 @@ class NMPCFullKinDisPV(FullMPCKinBasePathVariable):
         # todo fixme this controller is not precise, as we use the cog rather than the base link
         if any([_ is None for _ in [self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-        return self.u[0][0], self.u[2][0]
+        try:
+            return self.u[0][0], self.u[2][0]
+        except IndexError:
+            return self.u[0][0], self.u[1][0]

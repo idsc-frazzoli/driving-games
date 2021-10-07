@@ -1,12 +1,12 @@
 from dg_commons.controllers.mpc.mpc_utils.discretization_techniques import discretizations
-from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBaseParam, LatMPCKinBasePathVariable
+from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBaseParam, LatMPCKinBase
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
-__all__ = ["NMPCLatKinDisPV", "NMPCLatKinDisPVParam"]
+__all__ = ["NMPCLatKinDis", "NMPCLatKinDisParam"]
 
 
 @dataclass
-class NMPCLatKinDisPVParam(LatMPCKinBaseParam):
+class NMPCLatKinDisParam(LatMPCKinBaseParam):
     path_approx_technique: str = 'linear'
     """ Path approximation technique """
     dis_technique: str = 'Kinematic Euler'
@@ -15,21 +15,24 @@ class NMPCLatKinDisPVParam(LatMPCKinBaseParam):
     """ Discretization Time Step """
 
 
-class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
+class NMPCLatKinDis(LatMPCKinBase):
     """ Nonlinear MPC for lateral control of vehicle. Kinematic model with prior discretization """
 
-    def __init__(self, params: NMPCLatKinDisPVParam = NMPCLatKinDisPVParam()):
+    def __init__(self, params: NMPCLatKinDisParam = NMPCLatKinDisParam()):
         model_type = 'discrete'  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
 
         assert self.params.dis_technique in discretizations.keys()
         assert self.params.t_step % self.params.dis_t < 10e-10
 
-        f = [self.state_x, self.state_y, self.theta, self.v, self.delta, self.s]
+        f = [self.state_x, self.state_y, self.theta, self.v, self.delta, 0]
+        f[-1] = 0 if self.params.analytical else self.s
+
         for _ in range(int(self.params.t_step/self.params.dis_t)):
-            f = discretizations[self.params.dis_technique](f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta,
-                                                           self.v_s, 0, self.params.vehicle_geometry, self.params.dis_t,
-                                                           self.params.rear_axle)
+            dis_input = [f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta, 0, 0,
+                         self.params.vehicle_geometry, self.params.dis_t, self.params.rear_axle]
+            dis_input[7] = 0 if self.params.analytical else self.v_s
+            f = discretizations[self.params.dis_technique](*dis_input)
 
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
         self.model.set_rhs('state_x', f[0])
@@ -37,14 +40,19 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         self.model.set_rhs('theta', f[2])
         self.model.set_rhs('v', f[3])
         self.model.set_rhs('delta', f[4])
-        self.model.set_rhs('s', f[5])
+        if not self.params.analytical:
+            self.model.set_rhs('s', f[5])
 
         self.model.setup()
         self.set_up_mpc()
 
     def compute_targets(self):
-        res, current_trajectory = self.techniques[self.approx_type][1](self, self.path_params)
-        return self.s, current_trajectory(self.s), None
+        if self.params.analytical:
+            self.path_approx.update_from_parameters(self.path_params)
+            return *self.path_approx.closest_point_on_path([self.state_x, self.state_y]), None
+        else:
+            self.path_approx.update_from_parameters(self.path_params)
+            return self.s, self.path_approx.function(self.s), None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1

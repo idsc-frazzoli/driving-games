@@ -4,21 +4,18 @@ from dg_commons.controllers.stanley_controller import Stanley, StanleyParam
 from dg_commons.controllers.speed import SpeedController, SpeedBehavior, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons.controllers.steering_controllers import SCP, SCIdentity, SCIdentityParam, SCPParam
 from dg_commons.controllers.lqr import LQR, LQRParam
-from dg_commons.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinContPV, NMPCLatKinContPVParam, NMPCLatKinContAN,\
-    NMPCLatKinContANParam
-from dg_commons.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDisPV, NMPCLatKinDisPVParam
-from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinContPV, NMPCFullKinContPVParam,\
-    NMPCFullKinContANParam, NMPCFullKinContAN
-from dg_commons.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDisPV, NMPCFullKinDisPVParam
+from dg_commons.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinCont, NMPCLatKinContParam
+from dg_commons.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDis, NMPCLatKinDisParam
+from dg_commons.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinCont, NMPCFullKinContParam
+from dg_commons.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDis, NMPCFullKinDisParam
 
 
 class Empty:
     pass
 
 
-LateralController = Union[Empty, PurePursuit, Stanley, LQR, NMPCLatKinContAN, NMPCLatKinContPV, NMPCLatKinDisPV]
-LateralControllerParam = Union[Empty, PurePursuitParam, StanleyParam, LQRParam, NMPCLatKinContANParam,
-                               NMPCLatKinContPVParam, NMPCLatKinDisPVParam]
+LateralController = Union[Empty, PurePursuit, Stanley, LQR, NMPCLatKinCont, NMPCLatKinCont, NMPCLatKinDis]
+LateralControllerParam = Union[Empty, PurePursuitParam, StanleyParam, LQRParam, NMPCLatKinContParam, NMPCLatKinDisParam]
 
 LongitudinalController = Union[Empty, SpeedController]
 LongitudinalControllerParam = Union[Empty, SpeedControllerParam]
@@ -29,5 +26,5 @@ LongitudinalBehaviorParam = Union[Empty, SpeedBehaviorParam]
 SteeringController = Union[Empty, SCP, SCIdentity]
 SteeringControllerParam = Union[Empty, SCPParam, SCIdentityParam]
 
-LatAndLonController = Union[Empty, NMPCFullKinDisPV, NMPCFullKinContPV, NMPCFullKinContAN]
-LatAndLonControllerParam = Union[Empty, NMPCFullKinContPVParam, NMPCFullKinDisPVParam, NMPCFullKinContANParam]
+LatAndLonController = Union[Empty, NMPCFullKinDis, NMPCFullKinCont]
+LatAndLonControllerParam = Union[Empty, NMPCFullKinContParam, NMPCFullKinDisParam]

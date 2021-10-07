@@ -83,8 +83,7 @@ class TestController:
         self.result = []
         self.simulator: Simulator = Simulator()
 
-        controller_name = self.controller.controller.__name__
-        self.output_dir = os.path.join("out", controller_name, self.scenario.fig_name)
+        self.output_dir = os.path.join("out", self.controller.folder_name, self.scenario.fig_name)
 
     def _agent_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
         controller = self.controller.controller(self.controller.controller_params)

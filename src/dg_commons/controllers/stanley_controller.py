@@ -11,6 +11,7 @@ from duckietown_world.utils import SE2_apply_R2
 import math
 from duckietown_world import relative_pose
 from dg_commons.controllers.path_approximation_techniques import linear_param, linear
+from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 
 
 __all__ = ["Stanley", "StanleyParam"]
@@ -43,6 +44,7 @@ class Stanley:
         self.lateral: Optional[float] = None
         self.params: StanleyParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
+        self.path_approx = LinearPath()
         # logger.debug("Pure pursuit params: \n", self.param)
 
     def update_path(self, path: DgLanelet):
@@ -74,8 +76,10 @@ class Stanley:
         path_approx = True
         if path_approx:
             pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
-            params = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
-            res, _, closest_point_func = linear(params[0], params[1], params[2])
+            self.path_approx.update_from_data(pos1, angle1, pos2, angle2, pos3, angle3)
+            res = self.path_approx.parameters
+            closest_point_func = self.path_approx.closest_point_on_path
+
             angle = res[2]
 
             self.alpha = angle - obs.theta

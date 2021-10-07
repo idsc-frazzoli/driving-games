@@ -1,7 +1,6 @@
 from typing import Tuple
 from abc import abstractmethod
-from dg_commons.controllers.mpc.lateral_mpc_base import vehicle_params, LatMPCKinBaseAnalytical, \
-    LatMPCKinBasePathVariable, LatMPCKinBaseParam
+from dg_commons.controllers.mpc.lateral_mpc_base import vehicle_params, LatMPCKinBase, LatMPCKinBaseParam
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 
 
@@ -19,33 +18,7 @@ class FullMPCKinBaseParam(LatMPCKinBaseParam):
     v_bounds: Tuple[float, float] = vehicle_params.vx_limits
 
 
-class FullMPCKinBaseAnalytical(LatMPCKinBaseAnalytical):
-    @abstractmethod
-    def __init__(self, params, model_type: str):
-        super().__init__(params, model_type)
-        self.a = self.model.set_variable(var_type='_u', var_name='a')
-
-    def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
-        inp = [self.v_delta, self.a]
-        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
-        return lterm
-
-    def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
-        inp = [self.v_delta, self.a]
-        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
-        return mterm
-
-    def set_bounds(self):
-        super().set_bounds()
-        self.mpc.bounds['lower', '_x', 'v'] = self.params.v_bounds[0]
-        self.mpc.bounds['upper', '_x', 'v'] = self.params.v_bounds[1]
-        self.mpc.bounds['lower', '_u', 'a'] = self.params.acc_bounds[0]
-        self.mpc.bounds['upper', '_u', 'a'] = self.params.acc_bounds[1]
-
-
-class FullMPCKinBasePathVariable(LatMPCKinBasePathVariable):
+class FullMPCKinBase(LatMPCKinBase):
     @abstractmethod
     def __init__(self, params, model_type: str):
         super().__init__(params, model_type)

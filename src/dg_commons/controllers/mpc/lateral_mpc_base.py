@@ -1,5 +1,4 @@
-from typing import Optional, Tuple, Mapping, Callable
-from abc import abstractmethod
+from typing import Tuple
 from geometry import translation_angle_from_SE2, SE2_from_translation_angle
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons import X
@@ -8,6 +7,7 @@ from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons.controllers.path_approximation_techniques import *
 from duckietown_world.utils import SE2_apply_R2
 from sim.models.vehicle_utils import VehicleParameters
+from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 
 vehicle_params = VehicleParameters.default_car()
 
@@ -27,8 +27,9 @@ class LatMPCKinBaseParam(MPCKinBAseParam):
     delta_bounds: Tuple[float, float] = (-vehicle_params.default_car().delta_max,
                                          vehicle_params.default_car().delta_max)
     """ Steering Bounds """
-    path_approx_technique: str = 'linear'
+    path_approx_technique: PathApproximationTechniques = LinearPath()
     """ Path approximation technique """
+    analytical: bool = False
 
 
 class LatMPCKinBase(MPCKinBase):
@@ -41,17 +42,20 @@ class LatMPCKinBase(MPCKinBase):
         """ Current input to the system """
 
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
-        self.n_params = int(self.techniques[self.params.path_approx_technique][2])
-        self.path_params = self.model.set_variable(var_type='_tvp', var_name='path_params', shape=(self.n_params, 1))
-        self.path_parameters = self.n_params*[0]
+        self.path_approx: PathApproximationTechniques = self.params.path_approx_technique()
+        self.path_params = self.model.set_variable(var_type='_tvp', var_name='path_params',
+                                                   shape=(self.path_approx.n_params, 1))
+        self.path_parameters = self.path_approx.n_params*[0]
 
         self.current_position, self.current_speed, self.current_beta, self.current_f = None, None, None, None
         """ Current position and speed of the vehicle, current position on DgLanelet and current approx trajectory """
 
         self.prediction_x, self.prediction_y, self.target_position = None, None, None
 
-        self.path_var = False
         self.approx_type = self.params.path_approx_technique
+        if not self.params.analytical:
+            self.s = self.model.set_variable(var_type='_x', var_name='s', shape=(1, 1))
+            self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
 
     def func(self, t_now):
         temp = [self.speed_ref] + self.path_parameters
@@ -78,16 +82,15 @@ class LatMPCKinBase(MPCKinBase):
                                                                        control_sol=control_sol_params)
         """ Update current state of the vehicle """
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
-        params = list(self.techniques[self.params.path_approx_technique][0](pos1, angle1, pos2, angle2, pos3, angle3))
-        self.approx_type: str = params[-1]
+        self.path_approx.update_from_data(pos1, angle1, pos2, angle2, pos3, angle3)
+        params = self.path_approx.parameters
         """ Generate current path approximation """
         self.speed_ref = speed_ref
-        self.path_parameters = params[:int(self.techniques[self.approx_type][2])]
+        self.path_parameters = params[:self.path_approx.n_params]
 
-        x0 = np.array([self.current_position[0], self.current_position[1], obs.theta,
-                       self.current_speed, obs.delta, pos1[0]]).reshape(-1, 1) if self.path_var else \
-             np.array([self.current_position[0], self.current_position[1], obs.theta,
-                       self.current_speed, obs.delta]).reshape(-1, 1)
+        x0_temp = [self.current_position[0], self.current_position[1], obs.theta, self.current_speed, obs.delta]
+        x0_temp = x0_temp if self.params.analytical else x0_temp + [pos1[0]]
+        x0 = np.array(x0_temp).reshape(-1, 1)
         """ Define initial condition """
         self.mpc.x0 = x0
         self.mpc.set_initial_guess()
@@ -139,76 +142,6 @@ class LatMPCKinBase(MPCKinBase):
         self.mpc.bounds['lower', '_x', 'delta'] = self.params.delta_bounds[0]
         self.mpc.bounds['upper', '_x', 'delta'] = self.params.delta_bounds[1]
 
-    @property
-    @abstractmethod
-    def techniques(self) -> Mapping[str, Tuple[Callable, Callable, int]]:
-        pass
-
     def store_extra(self):
         self.prediction_x = self.mpc.data.prediction(('_x', 'state_x', 0))[0]
         self.prediction_y = self.mpc.data.prediction(('_x', 'state_y', 0))[0]
-
-
-class LatMPCKinBaseAnalytical(LatMPCKinBase):
-    @abstractmethod
-    def __init__(self, params, model_type: str):
-        super().__init__(params, model_type)
-        assert self.params.path_approx_technique in self.techniques.keys()
-
-    def _get_linear(self, params):
-        res, f, closest_point = linear(params[0, 0], params[1, 0], params[2, 0])
-        self.current_f = f
-
-        def func(x, y):
-            pos = closest_point([x, y])
-            return pos[0], pos[1], res[2]
-
-        return func
-
-    def _get_quadratic(self, params):
-        a, b, c = params[0, 0], params[1, 0], params[2, 0]
-        res, f, closest_point = quadratic(a, b, c)
-        self.current_f = f
-
-        def func(x, y):
-            pos = closest_point([x, y])
-            return pos[0], pos[1], None
-
-        return func
-
-    techniques = {'linear': [linear_param, _get_linear, 3],
-                  'quadratic': [quadratic_param, _get_quadratic, 3]}
-
-
-class LatMPCKinBasePathVariable(LatMPCKinBase):
-    @abstractmethod
-    def __init__(self, params, model_type: str):
-        super().__init__(params, model_type)
-        assert self.params.path_approx_technique in self.techniques.keys()
-
-        self.path_var = True
-        self.s = self.model.set_variable(var_type='_x', var_name='s', shape=(1, 1))
-        self.v_s = self.model.set_variable(var_type='_u', var_name='v_s')
-
-    def _get_linear_func(self, params):
-        print(params)
-        res, func, _ = linear(params[0, 0], params[1, 0], params[2, 0])
-        self.current_f = func
-
-        return res, func
-
-    def _get_cubic_func(self, params):
-        res, func, _ = cubic(params[0, 0], params[1, 0], params[2, 0], params[3, 0])
-        self.current_f = func
-
-        return res, func
-
-    def _get_quadratic_func(self, params):
-        res, func, _ = quadratic(params[0, 0], params[1, 0], params[2, 0])
-        self.current_f = func
-
-        return res, func
-
-    techniques = {'linear': [linear_param, _get_linear_func, 3],
-                  'quadratic': [quadratic_param, _get_quadratic_func, 3],
-                  'cubic': [cubic_param, _get_cubic_func, 4]}

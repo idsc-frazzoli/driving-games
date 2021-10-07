@@ -3,6 +3,7 @@ from dg_commons.state_estimators.estimator_types import *
 from sim.agents.lane_followers import LaneFollowerAgent
 from dataclasses import dataclass
 from typing import Union, Optional, get_args
+import os
 
 
 @dataclass
@@ -28,7 +29,12 @@ class VehicleController:
 
     state_estimator_params: Optional[EstimatorsParams] = None
 
+    _extra_folder_name: str = ""
+
     def __post_init__(self):
+        self._extra_folder_name = self.extra_folder_name
+        self.folder_name = os.path.join(self.controller.__name__, self._extra_folder_name)
+
         decoupled: bool = self.controller in get_args(LateralController) and \
                           self.longitudinal_controller in get_args(LongitudinalController)
 
@@ -46,3 +52,12 @@ class VehicleController:
 
         if self.state_estimator is not None:
             assert self.state_estimator_params is not None
+
+    @property
+    def extra_folder_name(self):
+        return self._extra_folder_name
+
+    @extra_folder_name.setter
+    def extra_folder_name(self, name):
+        self._extra_folder_name = name
+        self.folder_name = os.path.join(self.controller.__name__, name)

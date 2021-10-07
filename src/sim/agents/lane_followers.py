@@ -82,9 +82,9 @@ class LFAgentFullMPC(LFAgent):
             values1.append(VehicleState(x=self.controller.prediction_x[i][0],
                                         y=self.controller.prediction_y[i][0], theta=0, vx=0, delta=0))
 
-        for i in range(N):
+        '''for i in range(N):
             values2.append(VehicleState(x=x_samples[i], y=self.controller.current_f(x_samples[i]), theta=0, vx=0, delta=0))
-            timestamps2.append(i / N * n_horizon * dt)
+            timestamps2.append(i / N * n_horizon * dt)'''
 
 
         traj1 = Trajectory(timestamps=timestamps1, values=values1)
@@ -129,10 +129,10 @@ class LFAgentLatMPC(LFAgent):
             values1.append(VehicleState(x=self.controller.prediction_x[i][0],
                                         y=self.controller.prediction_y[i][0], theta=0, vx=0, delta=0))
 
-        for i in range(N):
+        '''for i in range(N):
             values2.append(
                 VehicleState(x=x_samples[i], y=self.controller.current_f(x_samples[i]), theta=0, vx=0, delta=0))
-            timestamps2.append(i / N * n_horizon * dt)
+            timestamps2.append(i / N * n_horizon * dt)'''
 
         traj1 = Trajectory(timestamps=timestamps1, values=values1)
         traj2 = Trajectory(timestamps=timestamps2, values=values2)
