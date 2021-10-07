@@ -14,7 +14,6 @@ import math
 from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 
 
-
 __all__ = ["LQR", "LQRParam"]
 
 

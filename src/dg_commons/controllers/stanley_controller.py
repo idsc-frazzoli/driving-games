@@ -10,7 +10,6 @@ from dg_commons import X
 from duckietown_world.utils import SE2_apply_R2
 import math
 from duckietown_world import relative_pose
-from dg_commons.controllers.path_approximation_techniques import linear_param, linear
 from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 
 

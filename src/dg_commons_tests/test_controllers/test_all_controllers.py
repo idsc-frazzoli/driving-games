@@ -35,8 +35,8 @@ state_estimator_params = ExtendedKalmanParam(
     )
 )
 
-scenarios_to_test = [Select(scenarios["lane_change_left"], True),
-                     Select(scenarios["turn_90_right"], False),
+scenarios_to_test = [Select(scenarios["lane_change_left"], False),
+                     Select(scenarios["turn_90_right"], True),
                      Select(scenarios["turn_90_left"], False),
                      Select(scenarios["small_snake"], False),
                      Select(scenarios["u-turn"], False),
@@ -146,16 +146,6 @@ controller_list = list(dict.fromkeys(controllers))
 integer_values = [i+1 for i in range(len(scenario_list))]
 mapping = dict(zip(scenario_list, integer_values))
 
-
-def create_plots(ch_name, ch_times, ch_scenarios):
-    scenario_values = [mapping[c] for c in ch_scenarios]
-    plt.scatter(scenario_values, ch_times, label=ch_name)
-    plt.scatter([integer_values[-1] + int(n_scenarios/2)], [0])
-    plt.title("Timing")
-    plt.ylabel("Time [s]")
-    plt.xlabel("Scenarios")
-
-
 create_histograms(name, times, controllers)
 
 for scene in scenario_list:
@@ -165,14 +155,37 @@ for scene in scenario_list:
     name = "STATISTICS ABOUT " + scene.upper()
     create_histograms(name, scene_times, scene_controllers)
 
+'''
+def create_plots(ch_name, ch_times, ch_scenarios):
+    scenario_values = [mapping[c] for c in ch_scenarios]
+    plt.scatter(scenario_values, ch_times, label=ch_name)
+    plt.scatter([integer_values[-1] + int(n_scenarios/2)], [0])
+    plt.title("Timing")
+    plt.ylabel("Time [s]")
+    plt.xlabel("Scenarios")
+
+
 for contr in controller_list:
     temp = [(times[i], scenarios[i]) for i, t in enumerate(controllers) if t == contr]
     contr_times = [i[0] for i in temp]
     contr_scenario = [i[1] for i in temp]
     create_plots(contr, contr_times, contr_scenario)
-plt.xticks(integer_values, scenario_list)
+# plt.xticks(integer_values, scenario_list)
+plt.xticks(integer_values)
 plt.legend(bbox_to_anchor=(1.1, 1.05))
+col_labels = ['val']
+row_labels = scenario_list
+table_vals = [integer_values]
+# the rectangle is where I want to place the table
+the_table = plt.table(cellText=table_vals,
+                      colWidths=[0.1]*3,
+                      rowLabels=row_labels,
+                      colLabels=col_labels,
+                      loc='right')
+plt.text(12, 3.4, '', size=8)
+
 plt.savefig(os.path.join(output_dir, "timing"))
+'''
 
 json_filename = os.path.join(output_dir, "timing_data.json")
 json_file = open(json_filename, "w")
