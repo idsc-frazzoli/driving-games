@@ -1,15 +1,19 @@
 from casadi import *
-from typing import Callable, Mapping
 
 
 def vertical_line_param(pos1, pos2):
-    vertical = True
-    return pos1[0], sign(pos2[1] - pos1[1]), vertical
+    s = sign(pos2[1] - pos1[1])
+    angle = pi / 2 * s
+    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
+
+    m = s*10e3
+    b = pos2[1] - m * pos2[0]
+
+    return m, b, angle, 'linear'
 
 
 def linear_param(pos1, angle1, pos2, angle2, pos3, angle3):
-    vertical = False
-    if abs(pos1[0] - pos2[0]) < 10e-8:
+    if abs(pos1[0] - pos2[0]) == 0:
         return vertical_line_param(pos1, pos2)
 
     m = (pos1[1] - pos2[1]) / (pos1[0] - pos2[0])
@@ -17,13 +21,12 @@ def linear_param(pos1, angle1, pos2, angle2, pos3, angle3):
     angle = atan2(pos2[1] - pos1[1], pos2[0] - pos1[0])  # returns a value in [-pi, pi]
     angle = 2 * pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
 
-    return m, b, angle, vertical
+    return m, b, angle, 'linear'
 
 
 def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3, pref='var3'):
-    vertical = False
-    if abs(pos1[0] - pos2[0]) < 10e-8 and abs(pos2[0] - pos3[0]) < 10e-8:
-        return vertical_line_param(pos1, pos2)
+    '''if abs(pos1[0] - pos2[0]) == 0 and abs(pos2[0] - pos3[0]):
+        return vertical_line_param(pos1, pos2)'''
 
     if pref == 'var1':
         A = np.array([[pos1[0] ** 2, pos1[0], 1], [pos2[0] ** 2, pos2[0], 1], [pos3[0] ** 2, pos3[0], 1]])
@@ -37,42 +40,32 @@ def quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3, pref='var3'):
         b = np.array([[pos1[1]], [pos2[1]], [pos3[1]], [tan(angle1)], [tan(angle2)], [tan(angle3)]])
 
     res = np.linalg.lstsq(A, b)[0]
+    a, b, c = res[0][0], res[1][0], res[2][0]
 
-    return res[0][0], res[1][0], res[2][0], vertical
+    '''if abs(2 * a * pos2[0]) / abs(2 * a * pos2[0] + b) < 5 * 10e-2:
+        return linear_param(pos1, angle1, pos2, angle2, pos3, angle3)'''
+
+    return a, b, c, 'quadratic'
 
 
 def cubic_param(pos1, angle1, pos2, angle2, pos3, angle3):
-    vertical = False
-    '''if abs(pos1[0] - pos2[0]) < 10e-8 and abs(pos2[0] - pos3[0]) < 10e-8:
+    '''if abs(pos1[0] - pos2[0]) == 0 and abs(pos2[0] - pos3[0]):
         return vertical_line_param(pos1, pos2)'''
 
     A = np.array([[pos1[0] ** 3, pos1[0] ** 2, pos1[0], 1], [pos3[0] ** 3, pos3[0] ** 2, pos3[0], 1],
                   [3 * pos1[0] ** 2, 2 * pos1[0], 1, 0], [3 * pos3[0] ** 2, 2 * pos3[0], 1, 0]])
     b = np.array([[pos1[1]], [pos3[1]], [tan(angle1)], [tan(angle3)]])
     res = np.linalg.lstsq(A, b)[0]
-    return res[0][0], res[1][0], res[2][0], res[3][0], vertical
 
+    a, b, c, d = res[0][0], res[1][0], res[2][0], res[3][0]
 
-def vertical_line(x, s):
-    vertical_line = True
-    angle = pi / 2 * s
-    angle = 2*pi + angle if angle < 0 else angle  # returns a value in [0, 2pi]
-    res = [x, s, angle]
+    '''if abs(3 * a * pos2[0] ** 2) / abs(3 * a * pos2[0] ** 2 + 2 * b * pos2[0] + c) < 5 * 10e-2:
+        return quadratic_param(pos1, angle1, pos2, angle2, pos3, angle3)'''
 
-    def func(x):
-        return None
-
-    def closest_point(pos):
-        x_val = res[0]
-        y_val = pos[1]
-        return x_val, y_val
-
-    return res, func, vertical_line, closest_point
+    return a, b, c, d, 'cubic'
 
 
 def linear(m, b, angle):
-    vertical = False
-
     res = [m, b, angle]
 
     def func(x):
@@ -83,7 +76,7 @@ def linear(m, b, angle):
         y_val = (res[0] ** 2 * pos[1] + res[0] * pos[0] + res[1]) / (1 + res[0] ** 2)
         return [x_val, y_val]
 
-    return res, func, vertical, closest_point
+    return res, func, closest_point
 
 
 def quadratic(a, b, c):
@@ -113,17 +106,16 @@ def quadratic(a, b, c):
 
         return [x_sol, func(x_sol)]
 
-    return res, func, vertical_line, closest_point
+    return res, func, closest_point
 
 
 def cubic(a, b, c, d):
-    vertical = False
     res = [a, b, c, d]
 
     def func(x):
         return res[0] * x ** 3 + res[1] * x ** 2 + res[2] * x + res[3]
 
-    return res, func, vertical, None
+    return res, func, None
 
 
 def cuberoot(x):

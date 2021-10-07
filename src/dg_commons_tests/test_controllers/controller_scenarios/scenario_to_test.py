@@ -40,5 +40,6 @@ scenarios = {
     "small_snake": ScenarioData("ZAM_Tjunction-1_320_T-1", "small_snake", [3], simulation_time=6),
     "u-turn": ScenarioData("DEU_Hhr-1_1", "u-turn", [0],  simulation_time=30, race_params=[43, 10]),
     "left_cont_curve": ScenarioData("DEU_Hhr-1_1", "left_cont_curve", [0], simulation_time=15, race_params=[60, 10]),
+    "vertical": ScenarioData("USA_Peach-3_2_T-1", "vertical", [4, 7], simulation_time=7),
     "race": ScenarioData("DEU_Hhr-1_1", "race", [0],  simulation_time=180, race_params=[0, 95])
 }

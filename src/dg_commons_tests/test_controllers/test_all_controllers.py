@@ -2,7 +2,7 @@ from dg_commons_tests.test_controllers.controllers_to_test import *
 from dg_commons_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios
 from dg_commons_tests.test_controllers.controller_test_utils import Select, TestInstance
 from dg_commons.analysis.metrics import *
-
+import time
 
 state_estimator = ExtendedKalman
 state_estimator_params = ExtendedKalmanParam(
@@ -20,13 +20,13 @@ state_estimator_params = ExtendedKalmanParam(
     )
 )
 
-
 scenarios_to_test = [Select(scenarios["lane_change_left"], False),
                      Select(scenarios["turn_90_right"], True),
                      Select(scenarios["turn_90_left"], False),
                      Select(scenarios["small_snake"], False),
                      Select(scenarios["u-turn"], False),
                      Select(scenarios["left_cont_curve"], False),
+                     Select(scenarios["vertical"], False),
                      Select(scenarios["race"], False)]
 
 controllers_to_test = [
@@ -55,9 +55,10 @@ assert all([contr in contr_to_test for contr in helper])
 helper = [item.item for item in metrics_to_test]
 assert all([metr in helper for metr in metrics_list])
 assert all([metr in metrics_list for metr in helper])
-
-
 metrics_to_test = [met.item for met in metrics_to_test if met.test]
+
+t1 = time.time()
+
 for controllers_to_test in controllers_to_test:
     if controllers_to_test.test:
         controllers_to_test.item.state_estimator = state_estimator
@@ -65,5 +66,11 @@ for controllers_to_test in controllers_to_test:
         for scenario_to_test in scenarios_to_test:
             if scenario_to_test.test:
                 scenario = scenario_to_test.item
+                print("[Testing]...")
+                print("Controller: ", controllers_to_test.item.controller.__name__)
+                print("Scenario: ", scenario.fig_name)
                 test = TestInstance(controllers_to_test.item, metric=metrics_to_test, scenario=scenario_to_test.item)
                 test.run()
+
+t2 = time.time()
+print("The whole process took: ", t2-t1, " seconds")

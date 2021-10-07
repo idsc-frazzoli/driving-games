@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from dg_commons import X
 import do_mpc
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
+from sim.models.vehicle_structures import VehicleGeometry
 
 
 @dataclass
@@ -15,8 +16,11 @@ class MPCKinBAseParam:
     """ Cost function """
     cost_params: CostParameters = None
     """ Cost function parameters """
+    delta_input_weight: float = 1e-2
+    """ Weighting factor in cost function for varying input """
     rear_axle: bool = False
     """ Whether to control rear axle position instead of cog """
+    vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
 
 
 class MPCKinBase(ABC):
@@ -38,6 +42,40 @@ class MPCKinBase(ABC):
         self.v = self.model.set_variable(var_type='_x', var_name='v', shape=(1, 1))
         self.delta = self.model.set_variable(var_type='_x', var_name='delta', shape=(1, 1))
 
+        self.target_speed = self.model.set_variable(var_type='_tvp', var_name='target_speed', shape=(1, 1))
+        self.speed_ref = 0
+
+    def __post_init__(self):
+        assert self.mpc is not None
+
+    def set_up_mpc(self):
+        self.mpc = do_mpc.controller.MPC(self.model)
+        self.mpc.set_param(**self.setup_mpc)
+        suppress_ipopt = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
+        self.mpc.set_param(nlpsol_opts=suppress_ipopt)
+        target_x, target_y, target_angle = self.compute_targets()
+
+        lterm = self.lterm(target_x, target_y, self.target_speed)
+        mterm = self.mterm(target_x, target_y, self.target_speed)
+
+        self.mpc.set_objective(mterm=mterm, lterm=lterm)
+
+        self.mpc.set_rterm(
+            v_delta=self.params.delta_input_weight
+        )
+
+        self.set_bounds()
+        self.set_scaling()
+
+        self.tvp_temp = self.mpc.get_tvp_template()
+        self.mpc.set_tvp_fun(self.func)
+
+        self.mpc.setup()
+
+    def func(self, t_now):
+        self.tvp_temp['_tvp', :] = np.array([self.speed_ref])
+        return self.tvp_temp
+
     @abstractmethod
     def update_state(self, obs: Optional[X] = None, speed_ref: Optional[float] = None):
         pass
@@ -56,4 +94,8 @@ class MPCKinBase(ABC):
 
     @abstractmethod
     def set_scaling(self):
+        pass
+
+    @abstractmethod
+    def compute_targets(self):
         pass

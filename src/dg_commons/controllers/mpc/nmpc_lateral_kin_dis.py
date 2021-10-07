@@ -28,7 +28,7 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         f = [self.state_x, self.state_y, self.theta, self.v, self.delta, self.s]
         for _ in range(int(self.params.t_step/self.params.dis_t)):
             f = discretizations[self.params.dis_technique](f[0], f[1], f[2], f[3], f[4], f[5], self.v_delta,
-                                                           self.v_s, 0, self.vehicle_geometry, self.params.dis_t,
+                                                           self.v_s, 0, self.params.vehicle_geometry, self.params.dis_t,
                                                            self.params.rear_axle)
 
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
@@ -38,32 +38,13 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         self.model.set_rhs('v', f[3])
         self.model.set_rhs('delta', f[4])
         self.model.set_rhs('s', f[5])
-        self.model.set_rhs('beta', self.par)
-        self.model.set_rhs('speed_ref', self.nominal_speed)
 
         self.model.setup()
         self.set_up_mpc()
 
-    def lterm(self, target_x, target_y, speed_ref, target_angle=None):
-        error = [target_x - self.state_x, target_y - self.state_y]
-        inp = [self.v_delta]
-
-        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
-        return lterm
-
-    def mterm(self, target_x, target_y, speed_ref, target_angle=None):
-        error = [target_x - self.state_x, target_y - self.state_y]
-        inp = [self.v_delta]
-
-        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
-        return mterm
-
     def compute_targets(self):
-        res, self.traj, vertical_line = self.techniques[self.params.path_approx_technique][1](self, self.par)
-        '''target_x = res[0] if vertical_line else self.s
-        target_y = self.state_y if vertical_line else self.traj(self.s)
-        return target_x, target_y, None'''
-        return self.s, self.traj(self.s), None
+        res, current_trajectory = self.techniques[self.approx_type][1](self, self.params)
+        return self.s, current_trajectory(self.s), None
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
@@ -71,7 +52,6 @@ class NMPCLatKinDisPV(LatMPCKinBasePathVariable):
         self.mpc.scaling['_x', 'theta'] = 1
         self.mpc.scaling['_x', 'v'] = 1
         self.mpc.scaling['_x', 'delta'] = 1
-        # self.mpc.scaling['_x', 's'] = 1
         self.mpc.scaling['_u', 'v_delta'] = 1
 
     def get_desired_steering(self) -> float:

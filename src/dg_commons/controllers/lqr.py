@@ -10,7 +10,7 @@ from duckietown_world import relative_pose
 from duckietown_world.utils import SE2_apply_R2
 from geometry import SE2_from_translation_angle,  translation_angle_from_SE2, translation_angle_scale_from_E2
 from dg_commons.utils import SemiDef
-from dg_commons.controllers.path_approximation_techniques import linear_param
+from dg_commons.controllers.path_approximation_techniques import linear_param, linear
 import math
 
 
@@ -80,7 +80,8 @@ class LQR:
         path_approx = True
         if path_approx:
             pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
-            res, _, _, closest_point_func = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+            params = linear_param(pos1, angle1, pos2, angle2, pos3, angle3)
+            res, _, closest_point_func = linear(params[0], params[1], params[2])
             angle = res[2]
             relative_heading = - angle + obs.theta
             if relative_heading > math.pi:

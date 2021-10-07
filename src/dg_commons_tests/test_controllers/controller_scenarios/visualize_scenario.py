@@ -38,7 +38,7 @@ def visualize_scenario(scenario_name: str):
         players.update({player_name: agent})
         models.update({player_name: model})
 
-    sim_parameters: SimParameters = SimParameters(max_sim_time=SimTime(10))
+    sim_parameters: SimParameters = SimParameters(max_sim_time=SimTime(6))
     sim_context: SimContext = SimContext(scenario=scenario, models=models, players=players,
                                          param=sim_parameters, log=SimLog())
 
@@ -47,12 +47,12 @@ def visualize_scenario(scenario_name: str):
     simulator.run(sim_context)
     name = "test_" + scenario_name
 
-    '''report = generate_report(sim_context)
+    report = generate_report(sim_context)
     # save report
     output_dir = "out"
     report_file = os.path.join(output_dir, f"{name}.html")
-    report.to_html(report_file)'''
+    report.to_html(report_file)
 
 
-scenario_name = "DEU_Hhr-1_1"
+scenario_name = "USA_Peach-3_2_T-1"
 visualize_scenario(scenario_name)
