@@ -11,6 +11,8 @@ class NMPCFullKinContParam(FullMPCKinBaseParam):
 
 
 class NMPCFullKinCont(FullMPCKinBase):
+    USE_STEERING_VELOCITY: bool = True
+
     """ Nonlinear MPC for full control of vehicle. Kinematic model without prior discretization """
 
     def __init__(self, params: NMPCFullKinContParam = NMPCFullKinContParam()):

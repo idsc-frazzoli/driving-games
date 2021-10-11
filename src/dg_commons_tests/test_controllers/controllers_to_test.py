@@ -8,7 +8,6 @@ from dg_commons.state_estimators.dropping_trechniques import *
 from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 import copy
 
-
 TestLQR = VehicleController(
             controller=LQR,
             controller_params=LQRParam(
@@ -16,8 +15,6 @@ TestLQR = VehicleController(
                 q=SemiDef(matrix=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0.01]])),
                 t_step=float(DT_COMMANDS)
             ),
-
-            lf_agent=LFAgentLQR,
 
             longitudinal_controller=SpeedController,
             longitudinal_controller_params=SpeedControllerParam(
@@ -37,7 +34,6 @@ TestLQR = VehicleController(
 TestNMPCFullKinContPV = VehicleController(
 
         controller=NMPCFullKinCont,
-        lf_agent=LFAgentFullMPC,
 
         controller_params=NMPCFullKinContParam(
             n_horizon=15,
@@ -86,8 +82,6 @@ TestNMPCFullKinDisPV = VehicleController(
             analytical=False
         ),
 
-        lf_agent=LFAgentFullMPC,
-
         speed_behavior_param=SpeedBehaviorParam(
             nominal_speed=8
         ),
@@ -118,8 +112,6 @@ TestNMPCLatKinContPV = VehicleController(
             rear_axle=False,
             analytical=False
         ),
-
-        lf_agent=LFAgentLatMPC,
 
         longitudinal_controller=SpeedController,
         longitudinal_controller_params=SpeedControllerParam(
@@ -161,8 +153,6 @@ TestNMPCLatKinDisPV = VehicleController(
             analytical=False
         ),
 
-        lf_agent=LFAgentLatMPC,
-
         longitudinal_controller=SpeedController,
         longitudinal_controller_params=SpeedControllerParam(
             kP=1,
@@ -193,8 +183,6 @@ TestPurePursuit = VehicleController(
             t_step=float(DT_COMMANDS)
         ),
 
-        lf_agent=LFAgentPP,
-
         longitudinal_controller=SpeedController,
         longitudinal_controller_params=SpeedControllerParam(
             kP=1,
@@ -223,8 +211,6 @@ TestStanley = VehicleController(
             stanley_gain=2,
             t_step=float(DT_COMMANDS)
         ),
-
-        lf_agent=LFAgentStanley,
 
         longitudinal_controller=SpeedController,
         longitudinal_controller_params=SpeedControllerParam(

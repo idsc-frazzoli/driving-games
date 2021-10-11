@@ -11,16 +11,18 @@ from duckietown_world.utils import SE2_apply_R2
 import math
 from duckietown_world import relative_pose
 from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
+from dg_commons.utils import BaseParams
+from typing import Union, List
 
 
 __all__ = ["Stanley", "StanleyParam"]
 
 
 @dataclass
-class StanleyParam:
-    stanley_gain: float = 1
+class StanleyParam(BaseParams):
+    stanley_gain: Union[List[float], float] = 1
     """ Tunable gain """
-    t_step: float = 0.1
+    t_step: Union[List[float], float] = 0.1
 
 
 class Stanley:
@@ -29,6 +31,7 @@ class Stanley:
     /AMOD_2020/20201019-05%20-%20ETHZ%20-%20Control%20in%20Duckietown%20(PID).pdf
     Note there is an error in computation of alpha (order needs to be inverted)
     """
+    USE_STEERING_VELOCITY: bool = False
 
     def __init__(self, params: StanleyParam = StanleyParam()):
         """

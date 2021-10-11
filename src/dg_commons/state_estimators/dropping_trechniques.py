@@ -1,9 +1,10 @@
 import random
 from dataclasses import dataclass
-from typing import Union, Callable
+from typing import Union, Callable, List
 import math
 import scipy
 import numpy as np
+from dg_commons.utils import BaseParams
 
 
 class Empty:
@@ -11,12 +12,16 @@ class Empty:
 
 
 @dataclass
-class LGBParam:
-    failure_p: float = 0
+class LGBParam(BaseParams):
+    failure_p: Union[List[float], float] = 0
     """ Failure Probability """
 
     def __post_init__(self):
-        assert 1 >= self.failure_p >= 0
+        if isinstance(self.failure_p, list):
+            all(1 >= i >= 0 for i in self.failure_p)
+        else:
+            assert 1 >= self.failure_p >= 0
+        super().__post_init__()
 
 
 class LGB:
@@ -44,19 +49,33 @@ class LGB:
 
 @dataclass
 class LGMParam(LGBParam):
-    recovery_p: float = 0
+    recovery_p: Union[float, List[float]] = 0
     """ Recovery Probability """
     def __post_init__(self):
         super().__post_init__()
-        assert 1 >= self.recovery_p >= 0
+        f_list = isinstance(self.failure_p, list)
+        r_list = isinstance(self.recovery_p, list)
 
-        mat = np.array([[1-self.failure_p, self.failure_p], [self.recovery_p, 1-self.recovery_p]])
+        temp_f = self.failure_p if f_list else [self.failure_p]
+        temp_r = self.recovery_p if r_list else [self.recovery_p]
+        self.expected_value = []
+        for i in temp_f:
+            for j in temp_r:
+                self.expected_value.append(self.process_instance(i, j))
+        super().__post_init__()
+
+    @staticmethod
+    def process_instance(f, r):
+        assert 1 >= r >= 0
+
+        mat = np.array([[1-f, f], [r, 1-r]])
         eigval, eigvecl, eigvecr = scipy.linalg.eig(mat, left=True)
 
         steady_mat = np.matmul(np.matmul(eigvecl, np.diag([0 if eig < 1 else 1 for eig in eigval])),
                                scipy.linalg.inv(eigvecl))
         steady_values = np.matmul(steady_mat, np.array([[1], [0]]))
-        self.expected_value = steady_values[0]*1 + 0*steady_values[1]
+        expected_value = steady_values[0]*1 + 0*steady_values[1]
+        return expected_value
 
 
 class LGM:
@@ -90,11 +109,16 @@ class LGM:
 
 
 @dataclass
-class ExponentialParams:
-    lamb: float = 1
+class ExponentialParams(BaseParams):
+    lamb: Union[List[float], float] = 1
 
     def __post_init__(self):
-        assert self.lamb > 0
+        if isinstance(self.lamb, list):
+            for i in self.lamb:
+                assert i > 0
+        else:
+            assert self.lamb > 0
+        super().__post_init__()
 
 
 class Exponential:
@@ -117,12 +141,12 @@ PDistributionParams = Union[Empty, ExponentialParams]
 
 
 @dataclass
-class LGSMParam:
-    failure_distribution: type(PDistribution) = Exponential
-    failure_params: PDistributionParams = ExponentialParams()
-    recovery_distribution: type(PDistribution) = Exponential
-    recovery_params: PDistributionParams = ExponentialParams()
-    dt: float = 0.1
+class LGSMParam(BaseParams):
+    failure_distribution: Union[List[type(PDistribution)], type(PDistribution)] = Exponential
+    failure_params: Union[List[PDistributionParams], PDistributionParams] = ExponentialParams()
+    recovery_distribution: Union[List[type(PDistribution)], type(PDistribution)] = Exponential
+    recovery_params: Union[List[PDistributionParams], PDistributionParams] = ExponentialParams()
+    dt: Union[List[float], float] = 0.1
 
 
 class LGSM:

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Union
 from sim.models.vehicle_structures import VehicleGeometry
 import scipy.optimize
 from dg_commons.maps.lanes import DgLanelet
@@ -12,6 +12,7 @@ from geometry import SE2_from_translation_angle,  translation_angle_from_SE2, tr
 from dg_commons.utils import SemiDef
 import math
 from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
+from dg_commons.utils import BaseParams
 
 
 __all__ = ["LQR", "LQRParam"]
@@ -35,15 +36,17 @@ def lqr(a, b, q, r):
 
 
 @dataclass
-class LQRParam:
-    r: SemiDef = SemiDef([1])
+class LQRParam(BaseParams):
+    r: Union[List[SemiDef], SemiDef] = SemiDef([1])
     """ Input Multiplier """
-    q: SemiDef = SemiDef(matrix=np.identity(3))
+    q: Union[List[SemiDef], SemiDef] = SemiDef(matrix=np.identity(3))
     """State Multiplier """
-    t_step: float = 0.1
+    t_step: Union[List[float], float] = 0.1
 
 
 class LQR:
+
+    USE_STEERING_VELOCITY: bool = True
 
     def __init__(self, params: LQRParam = LQRParam()):
         """
@@ -58,6 +61,7 @@ class LQR:
         self.speed: Optional[float] = None
         self.current_beta = None
         self.path_approx = LinearPath()
+
         # logger.debug("Pure pursuit params: \n", self.param)
 
     def update_path(self, path: DgLanelet):

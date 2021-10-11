@@ -125,7 +125,7 @@ class TestController:
                               delta=delta_0)
             model = VehicleModel.default_car(x0=x0)
             if self.controller.state_estimator:
-                state_estimator = self.controller.state_estimator(DT, params=self.controller.state_estimator_params)
+                state_estimator = self.controller.state_estimator(params=self.controller.state_estimator_params)
 
         return model, state_estimator
 

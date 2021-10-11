@@ -1,6 +1,8 @@
 from dg_commons_tests.test_controllers.controllers_to_test import *
+from dg_commons_tests.test_controllers.controller_test_utils import DT
 from dg_commons_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios
 from dg_commons_tests.test_controllers.controller_test_utils import Select, TestInstance
+from dg_commons.state_estimators.estimator_types import *
 from dg_commons.analysis.metrics import *
 import time
 import matplotlib.pyplot as plt
@@ -19,8 +21,8 @@ class Verbosity:
 
 verbosity: Verbosity = Verbosity(2)
 
-state_estimator = ExtendedKalman
-state_estimator_params = ExtendedKalmanParam(
+state_estimator: type(Estimators) = ExtendedKalman
+state_estimator_params: EstimatorsParams = ExtendedKalmanParam(
     actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
     actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
 
@@ -32,26 +34,27 @@ state_estimator_params = ExtendedKalmanParam(
     dropping_technique=LGB,
     dropping_params=LGBParam(
         failure_p=0.0
-    )
+    ),
+    t_step=DT
 )
 
-scenarios_to_test = [Select(scenarios["lane_change_left"], False),
+scenarios_to_test = [Select(scenarios["lane_change_left"], True),
                      Select(scenarios["turn_90_right"], True),
-                     Select(scenarios["turn_90_left"], False),
-                     Select(scenarios["small_snake"], False),
-                     Select(scenarios["u-turn"], False),
-                     Select(scenarios["left_cont_curve"], False),
-                     Select(scenarios["vertical"], False),
+                     Select(scenarios["turn_90_left"], True),
+                     Select(scenarios["small_snake"], True),
+                     Select(scenarios["u-turn"], True),
+                     Select(scenarios["left_cont_curve"], True),
+                     Select(scenarios["vertical"], True),
                      Select(scenarios["race"], False)]
 
 controllers_to_test = [
     Select(TestLQR, True),
     Select(TestPurePursuit, True),
     Select(TestStanley, True),
-    Select(TestNMPCFullKinContPV, False), Select(TestNMPCFullKinContAN, False),
-    Select(TestNMPCFullKinDisPV, False), Select(TestNMPCFullKinDisAN, False),
-    Select(TestNMPCLatKinContPV, False), Select(TestNMPCLatKinContAN, False),
-    Select(TestNMPCLatKinDisPV, False), Select(TestNMPCLatKinDisAN, False)
+    Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, True),
+    Select(TestNMPCFullKinDisPV, True), Select(TestNMPCFullKinDisAN, True),
+    Select(TestNMPCLatKinContPV, True), Select(TestNMPCLatKinContAN, True),
+    Select(TestNMPCLatKinDisPV, True), Select(TestNMPCLatKinDisAN, True)
 ]
 
 metrics_to_test = [
@@ -114,6 +117,7 @@ for controllers_to_test in controllers_to_test:
 t2 = time.time()
 if verbosity.val > 0:
     print("The whole process took {} seconds".format(round(t2 - t1, 3)))
+    print(sum(times))
 
 name = "OVERALL STATISTICS"
 output_dir =os.path.join("out", "simulation_timing_statistics")

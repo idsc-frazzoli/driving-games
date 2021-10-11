@@ -1,7 +1,9 @@
-from dataclasses import dataclass
-from typing import Optional, List
+from dataclasses import dataclass, fields
+from typing import Optional, List, Callable, Union, TypeVar, Type, NewType, Any, Generic, Sequence
 import numpy as np
 import scipy.linalg
+from abc import ABC
+import itertools
 
 
 @dataclass
@@ -64,3 +66,58 @@ class SemiDef:
         other.eig.sort()
 
         return all(self.eig[i] <= other.eig[i] for i, _ in enumerate(self.eig))
+
+
+def func(values):
+    return True
+
+
+@dataclass
+class BaseParams(ABC):
+    condition: Callable = func
+
+    def __post_init__(self):
+        lists = []
+        for field in fields(self):
+            values = getattr(self, field.name)
+            lists.append(self.process_mutually_exclusive_values(values))
+
+        self.xplets = list(itertools.product(*lists))
+        self.n_total = len(self.xplets)
+
+    def process_mutually_exclusive_values(self, values):
+        return_values = []
+
+        def process_single_value(inst):
+            if self.is_nested(inst):
+                for val in inst.gen():
+                    return_values.append(val)
+            else:
+                return_values.append(inst)
+
+        if isinstance(values, list):
+            for value in values:
+                process_single_value(value)
+        else:
+            process_single_value(values)
+
+        return return_values
+
+    @staticmethod
+    def is_nested(value):
+        try:
+            value.get_count()
+            return True
+        except AttributeError:
+            return False
+
+    def get_count(self):
+        return self.n_total
+
+    def gen(self):
+        for xplet in self.xplets:
+            if self.condition(xplet):
+                new_instance = BaseParams()
+                new_instance.__class__ = type(self)
+                new_instance.__init__(*xplet)
+                yield new_instance

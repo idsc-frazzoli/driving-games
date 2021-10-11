@@ -1,21 +1,23 @@
 from dg_commons.controllers.mpc.mpc_utils.discretization_techniques import discretizations
 from dg_commons.controllers.mpc.lateral_mpc_base import LatMPCKinBaseParam, LatMPCKinBase
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
+from typing import List
 
 __all__ = ["NMPCLatKinDis", "NMPCLatKinDisParam"]
 
 
 @dataclass
 class NMPCLatKinDisParam(LatMPCKinBaseParam):
-    path_approx_technique: str = 'linear'
+    path_approx_technique: Union[List[str], str] = 'linear'
     """ Path approximation technique """
-    dis_technique: str = 'Kinematic Euler'
+    dis_technique: Union[List[str], str] = 'Kinematic Euler'
     """ Discretization technique """
-    dis_t: float = 0.1
+    dis_t: Union[List[float], float] = 0.1
     """ Discretization Time Step """
 
 
 class NMPCLatKinDis(LatMPCKinBase):
+    USE_STEERING_VELOCITY: bool = True
     """ Nonlinear MPC for lateral control of vehicle. Kinematic model with prior discretization """
 
     def __init__(self, params: NMPCLatKinDisParam = NMPCLatKinDisParam()):

@@ -14,7 +14,7 @@ class Empty:
     pass
 
 
-LateralController = Union[Empty, PurePursuit, Stanley, LQR, NMPCLatKinCont, NMPCLatKinCont, NMPCLatKinDis]
+LateralController = Union[Empty, PurePursuit, Stanley, LQR, NMPCLatKinCont, NMPCLatKinDis]
 LateralControllerParam = Union[Empty, PurePursuitParam, StanleyParam, LQRParam, NMPCLatKinContParam, NMPCLatKinDisParam]
 
 LongitudinalController = Union[Empty, SpeedController]

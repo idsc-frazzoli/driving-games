@@ -1,9 +1,142 @@
 from dg_commons.controllers.controller_types import *
-from dg_commons.state_estimators.estimator_types import *
-from sim.agents.lane_followers import LaneFollowerAgent
-from dataclasses import dataclass
-from typing import Union, Optional, get_args
+from sim.agents.lane_followers import MapsConLF
+from typing import Optional, get_args
 import os
+from dg_commons.state_estimators.estimator_types import *
+from dg_commons.state_estimators.dropping_trechniques import *
+
+
+def func(arguments):
+    return True
+
+
+@dataclass
+class VehicleControllerList:
+
+    controller: List[type(Union[LateralController, LatAndLonController])]
+
+    controller_params: List[Union[LateralControllerParam, LatAndLonControllerParam]]
+
+    speed_behavior_param: SpeedBehaviorParam
+
+    longitudinal_controller: List[Optional[type(LongitudinalController)]] = None
+
+    longitudinal_controller_params: List[Optional[LongitudinalControllerParam]] = None
+
+    steering_controller: List[Optional[type(SteeringController)]] = None
+
+    steering_controller_params: List[Optional[SteeringControllerParam]] = None
+
+    state_estimator: List[Optional[type(Estimators)]] = None
+
+    state_estimator_params: List[Optional[EstimatorsParams]] = None
+
+    condition: Callable = func
+
+    def __post_init__(self):
+        self.controller = self.to_list(self.controller)
+        self.controller_params = self.to_list(self.controller_params)
+        self.longitudinal_controller = self.to_list(self.longitudinal_controller)
+        self.longitudinal_controller_params = self.to_list(self.longitudinal_controller_params)
+        self.steering_controller = self.to_list(self.steering_controller)
+        self.steering_controller_params = self.to_list(self.steering_controller_params)
+        self.state_estimator = self.to_list(self.state_estimator)
+        self.state_estimator_params = self.to_list(self.state_estimator_params)
+
+        assert len(self.controller) == len(self.controller_params)
+        n_controller = len(self.controller)
+        assert len(self.longitudinal_controller) == len(self.longitudinal_controller_params)
+        n_longi = len(self.longitudinal_controller)
+        assert len(self.steering_controller) == len(self.steering_controller_params)
+        n_steer = len(self.steering_controller)
+
+        assert n_controller != 0
+        self.triplets = []
+        self.n_total = 0
+        for i, controller in enumerate(self.controller):
+            n_controller_count = self.controller_params[i].get_count()
+            if controller in get_args(LateralController):
+                assert n_longi != 0
+                for j, longi_params in enumerate(self.longitudinal_controller_params):
+                    n_longi_count = longi_params.get_count()
+                    if controller.USE_STEERING_VELOCITY:
+                        self.triplets.append((i, j, None))
+                        self.n_total += n_controller_count*n_longi_count
+                    else:
+                        assert n_steer != 0
+                        for k, steer_params in enumerate(self.steering_controller_params):
+                            n_steer_count = steer_params.get_count()
+                            self.triplets.append((i, j, k))
+                            self.n_total += n_controller_count*n_longi_count*n_steer_count
+            else:
+                if controller.USE_STEERING_VELOCITY:
+                    self.triplets.append((i, None, None))
+                    self.n_total += n_controller_count
+                else:
+                    assert n_steer != 0
+                    for k, steer_params in enumerate(self.steering_controller_params):
+                        n_steer_count = steer_params.get_count()
+                        self.triplets.append((i, None, k))
+                        self.n_total += n_controller_count*n_steer_count
+
+        n_state_est = 0
+        for count, se in enumerate(self.state_estimator):
+            if se is not None:
+                n_state_est += self.state_estimator_params[count].get_count()
+            else:
+                n_state_est = 1
+                break
+        n_speed_behavior = self.speed_behavior_param.get_count()
+
+        self.n_total = self.n_total*n_state_est*n_speed_behavior
+        self.n_triplets = len(self.triplets)
+
+    @staticmethod
+    def to_list(val):
+        val = val if isinstance(val, list) else [val]
+        return val
+
+    def get_count(self):
+        return self.n_total
+
+    def gen(self):
+        counter = 0
+        for i in range(self.n_triplets):
+            triplet = self.triplets[i]
+            c_idx, l_idx, s_idx = triplet[0], triplet[1], triplet[2]
+
+            controller = self.controller[c_idx]
+            controller_params = self.controller_params[c_idx].gen()
+
+            longi = self.longitudinal_controller[l_idx] if l_idx is not None else [None]
+            longi_params = self.longitudinal_controller_params[l_idx].gen() if l_idx is not None else [None]
+
+            steer = self.steering_controller[s_idx] if s_idx is not None else [SCIdentity]
+            steer_params = self.steering_controller_params[s_idx].gen() if s_idx is not None else [SCIdentityParam()]
+
+            for controller_param in controller_params:
+                for steer_param in steer_params:
+                    for longi_param in longi_params:
+                        for speed_behavior_param in self.speed_behavior_param.gen():
+                            for count, state_estimator in enumerate(self.state_estimator):
+                                for state_estimator_param in self.state_estimator_params[count].gen():
+                                    counter += 1
+                                    res = VehicleController(
+                                        controller=controller,
+                                        controller_params=controller_param,
+                                        speed_behavior_param=speed_behavior_param,
+                                        steering_controller=steer,
+                                        steering_controller_params=steer_param,
+                                        longitudinal_controller=longi,
+                                        longitudinal_controller_params=longi_param,
+                                        state_estimator=state_estimator,
+                                        state_estimator_params=state_estimator_param,
+                                        )
+                                    if self.condition(res):
+                                        yield res
+
+        print("Calculated Total:", self.n_total)
+        print("In the End: ", counter)
 
 
 @dataclass
@@ -12,8 +145,6 @@ class VehicleController:
     controller: type(Union[LateralController, LatAndLonController])
 
     controller_params: Union[LateralControllerParam, LatAndLonControllerParam]
-
-    lf_agent: type(LaneFollowerAgent)
 
     speed_behavior_param: SpeedBehaviorParam
 
@@ -52,6 +183,8 @@ class VehicleController:
 
         if self.state_estimator is not None:
             assert self.state_estimator_params is not None
+
+        self.lf_agent = MapsConLF[self.controller]
 
     @property
     def extra_folder_name(self):

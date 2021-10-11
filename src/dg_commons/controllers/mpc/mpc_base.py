@@ -1,26 +1,27 @@
-from typing import Optional
+from typing import Optional, List
 from abc import ABC, abstractmethod
 from dg_commons import X
 import do_mpc
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 from sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.utils import BaseParams
 
 
 @dataclass
-class MPCKinBAseParam:
-    n_horizon: int = 15
+class MPCKinBAseParam(BaseParams):
+    n_horizon: Union[List[int], int] = 15
     """ Horizon Length """
-    t_step: float = 0.1
+    t_step: Union[List[float], float] = 0.1
     """ Sample Time """
-    cost: str = None
+    cost: Union[List[str], str] = None
     """ Cost function """
-    cost_params: CostParameters = None
+    cost_params: Union[List[CostParameters], CostParameters] = None
     """ Cost function parameters """
-    delta_input_weight: float = 1e-2
+    delta_input_weight: Union[List[float], float] = 1e-2
     """ Weighting factor in cost function for varying input """
-    rear_axle: bool = False
+    rear_axle: Union[List[bool], bool] = False
     """ Whether to control rear axle position instead of cog """
-    vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
+    vehicle_geometry: Union[List[VehicleGeometry], VehicleGeometry] = VehicleGeometry.default_car()
 
 
 class MPCKinBase(ABC):

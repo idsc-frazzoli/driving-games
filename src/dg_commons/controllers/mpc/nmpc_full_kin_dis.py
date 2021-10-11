@@ -1,19 +1,21 @@
 from dg_commons.controllers.mpc.full_mpc_base import FullMPCKinBaseParam, FullMPCKinBase
 from dg_commons.controllers.mpc.mpc_utils.discretization_techniques import discretizations
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
+from typing import List
 
 __all__ = ["NMPCFullKinDis", "NMPCFullKinDisParam"]
 
 
 @dataclass
 class NMPCFullKinDisParam(FullMPCKinBaseParam):
-    dis_technique: str = 'Kinematic Euler'
+    dis_technique: Union[List[str], str] = 'Kinematic Euler'
     """ Discretization technique """
-    dis_t: float = 0.01
+    dis_t: Union[List[float], float] = 0.01
     """ Discretization Time Step """
 
 
 class NMPCFullKinDis(FullMPCKinBase):
+    USE_STEERING_VELOCITY: bool = True
     """ Nonlinear MPC for full control of vehicle. Kinematic model with prior discretization """
 
     def __init__(self, params: NMPCFullKinDisParam = NMPCFullKinDisParam()):

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from math import sin, atan
-from typing import Optional, Tuple
-
+from typing import Optional, Tuple, Union, List
 import numpy as np
 import scipy.optimize
 from geometry import SE2value, translation_angle_from_SE2, SE2_from_translation_angle, angle_from_SE2
@@ -9,24 +8,25 @@ from duckietown_world.utils import SE2_apply_R2
 from dg_commons.geo import norm_between_SE2value
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons import X
+from dg_commons.utils import BaseParams
 
 
 __all__ = ["PurePursuit", "PurePursuitParam"]
 
 
 @dataclass
-class PurePursuitParam:
-    look_ahead_minmax: Tuple[float, float] = (3, 30)
+class PurePursuitParam(BaseParams):
+    look_ahead_minmax: Union[List[Tuple[float, float]], Tuple[float, float]] = (3, 30)
     """min and max lookahead"""
-    k_lookahead: float = 1.8
+    k_lookahead: Union[List[float], float] = 1.8
     """Scaling constant for speed dependent params"""
-    min_distance: float = 0.1
+    min_distance: Union[List[float], float] = 0.1
     """Min initial progress to look for the next goal point"""
-    max_extra_distance: float = 5
+    max_extra_distance: Union[List[float], float] = 5
     """Max extra distance to look for the closest point on the ref path"""
-    length: float = 3.5
+    length: Union[List[float], float] = 3.5
     """Length of the vehicle"""
-    t_step: float = 0.1
+    t_step: Union[List[float], float] = 0.1
 
 
 class PurePursuit:
@@ -35,6 +35,7 @@ class PurePursuit:
     /AMOD_2020/20201019-05%20-%20ETHZ%20-%20Control%20in%20Duckietown%20(PID).pdf
     Note there is an error in computation of alpha (order needs to be inverted)
     """
+    USE_STEERING_VELOCITY: bool = False
 
     def __init__(self, params: PurePursuitParam = PurePursuitParam()):
         """

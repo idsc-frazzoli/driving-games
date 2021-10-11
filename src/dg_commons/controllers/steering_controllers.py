@@ -1,16 +1,12 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union, List
 from abc import ABC, abstractmethod
-
-
-@dataclass
-class BaseParam:
-    pass
+from dg_commons.utils import BaseParams
 
 
 class BaseClass(ABC):
     @abstractmethod
-    def __init__(self, base_param: BaseParam):
+    def __init__(self, base_param: BaseParams):
         pass
 
     @abstractmethod
@@ -19,7 +15,7 @@ class BaseClass(ABC):
 
 
 @dataclass
-class SCIdentityParam(BaseParam):
+class SCIdentityParam(BaseParams):
     pass
 
 
@@ -32,8 +28,8 @@ class SCIdentity(BaseClass):
 
 
 @dataclass
-class SCPParam(BaseParam):
-    ddelta_kp: float = 10
+class SCPParam(BaseParams):
+    ddelta_kp: Union[List[float], float] = 10
 
 
 class SCP(BaseClass):

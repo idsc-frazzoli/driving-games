@@ -1,16 +1,14 @@
-from typing import Optional, Union
+from typing import Optional, Union, Mapping
 
 import numpy as np
 from duckietown_world.utils import SE2_apply_R2
-from geometry import SE2_from_xytheta, SE2value, translation_from_SE2
-from dg_commons.controllers.controller_types import *
-from dg_commons.controllers.speed import SpeedBehavior, SpeedController
-from dg_commons.controllers.steer import SteerController
+from geometry import translation_from_SE2
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons.planning.trajectory import Trajectory
 from sim.agents.lane_follower_z import LFAgent
 from sim.models.vehicle import VehicleState
 from sim import SimObservations, DrawableTrajectoryType
+from dg_commons.controllers.controller_types import *
 
 
 class LFAgentPP(LFAgent):
@@ -59,7 +57,7 @@ class LFAgentFullMPC(LFAgent):
         speed_controller = None
         speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
         steer_controller: SteeringController = SteeringController() if steer_controller is None else steer_controller
-        full_mpc: LatAndLonController = NMPCFullKinContPV() if controller is None else controller
+        full_mpc: LatAndLonController = NMPCFullKinCont() if controller is None else controller
         super().__init__(lane, full_mpc, speed_behavior, speed_controller, steer_controller, return_extra)
 
     def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
@@ -106,7 +104,7 @@ class LFAgentLatMPC(LFAgent):
         speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
         speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
         steer_controller: SteeringController = SteeringController() if steer_controller is None else steer_controller
-        lat_mpc: LateralController = NMPCLatKinContPV() if controller is None else controller
+        lat_mpc: LateralController = NMPCLatKinCont() if controller is None else controller
         super().__init__(lane, lat_mpc, speed_behavior, speed_controller, steer_controller, return_extra)
 
     def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
@@ -173,4 +171,10 @@ class LFAgentLQR(LFAgent):
 
 
 LaneFollowerAgent = Union[LFAgentLQR, LFAgentPP, LFAgentLatMPC, LFAgentFullMPC, LFAgentStanley]
-
+MapsConLF: Mapping[type(Union[LateralController, LatAndLonController]), type(LaneFollowerAgent)] = {
+    LQR: LFAgentLQR,
+    PurePursuit: LFAgentPP,
+    Stanley: LFAgentStanley,
+    NMPCLatKinCont: LFAgentLatMPC, NMPCLatKinDis: LFAgentLatMPC,
+    NMPCFullKinCont: LFAgentFullMPC, NMPCFullKinDis: LFAgentFullMPC
+}

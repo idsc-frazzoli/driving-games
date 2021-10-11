@@ -5,36 +5,39 @@ from sim.models.model_utils import acceleration_constraint
 from typing import Optional
 from dg_commons.utils import SemiDef
 from dg_commons.state_estimators.dropping_trechniques import *
+from dg_commons.utils import BaseParams
+from typing import List
 
 
 @dataclass
-class ExtendedKalmanParam:
-    n_states: int = VehicleState.get_n_states()
+class ExtendedKalmanParam(BaseParams):
+    n_states: Union[List[int], int] = VehicleState.get_n_states()
     """ Number of states """
-    n_commands: int = VehicleCommands.get_n_commands()
+    n_commands: Union[List[int], int] = VehicleCommands.get_n_commands()
     """ Number of commands """
-    actual_model_var: SemiDef = SemiDef(n_states*[0])
+    actual_model_var: Union[List[SemiDef], SemiDef] = SemiDef(n_states * [0])
     """ Actual Modeling variance matrix """
-    actual_meas_var: SemiDef = SemiDef(n_states*[0])
+    actual_meas_var: Union[List[SemiDef], SemiDef] = SemiDef(n_states * [0])
     """ Actual Measurement variance matrix """
-    belief_model_var: SemiDef = SemiDef(matrix=actual_model_var.matrix)
+    belief_model_var: Union[List[SemiDef], SemiDef] = actual_model_var
     """ Belief modeling variance matrix """
-    belief_meas_var: SemiDef = SemiDef(matrix=actual_meas_var.matrix)
+    belief_meas_var: Union[List[SemiDef], SemiDef] = actual_meas_var
     """ Belief measurement variance matrix """
-    initial_variance: SemiDef = SemiDef(matrix=actual_meas_var.matrix)
+    initial_variance: Union[List[SemiDef], SemiDef] = actual_model_var
     """ Initial variance matrix """
-    dropping_technique: type(DroppingTechniques) = LGB
+    dropping_technique: Union[List[type(DroppingTechniques)], type(DroppingTechniques)] = LGB
     """ Dropping Technique """
-    dropping_params: DroppingTechniquesParams = LGBParam()
+    dropping_params: Union[List[DroppingTechniquesParams], DroppingTechniquesParams] = LGBParam()
     """ Dropping parameters """
-    geometry_params: VehicleGeometry = VehicleGeometry.default_car()
+    geometry_params: Union[List[VehicleGeometry], VehicleGeometry] = VehicleGeometry.default_car()
     """ Vehicle Geometry """
-    vehicle_params: VehicleParameters = VehicleParameters.default_car()
+    vehicle_params: Union[List[VehicleParameters], VehicleParameters] = VehicleParameters.default_car()
     """ Vehicle Parameters """
+    t_step: Union[List[float], float] = 0.1
 
 
 class ExtendedKalman:
-    def __init__(self, dt, x0=None, params=ExtendedKalmanParam()):
+    def __init__(self, x0=None, params=ExtendedKalmanParam()):
         self.actual_model_noise = params.actual_model_var.matrix
         self.actual_meas_noise = params.actual_meas_var.matrix
         self.belief_model_noise = params.belief_model_var.matrix
@@ -46,7 +49,7 @@ class ExtendedKalman:
         self.params = params
 
         self.state = x0
-        self.dt = dt
+        self.dt = self.params.t_step
 
     def update_prediction(self, u_k: Optional[VehicleCommands]):
         if self.state is None or u_k is None:
@@ -76,7 +79,6 @@ class ExtendedKalman:
                 self.state = VehicleState.from_array(np.matrix.flatten(state))
                 self.p = np.matmul(np.eye(n_states)-np.matmul(k, h), self.p)
             except np.linalg.LinAlgError:
-                print("here")
                 # assert self.state == measurement_k
                 pass
             except Exception as e:

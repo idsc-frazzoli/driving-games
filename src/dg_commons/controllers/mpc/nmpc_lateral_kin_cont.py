@@ -11,6 +11,7 @@ class NMPCLatKinContParam(LatMPCKinBaseParam):
 
 
 class NMPCLatKinCont(LatMPCKinBase):
+    USE_STEERING_VELOCITY: bool = True
     """ Nonlinear MPC for lateral control of vehicle. Kinematic model without prior discretization """
 
     def __init__(self, params: NMPCLatKinContParam = NMPCLatKinContParam()):

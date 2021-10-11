@@ -7,7 +7,7 @@ from dg_commons import logger
 
 
 @dataclass
-class PIDParam:
+class PIDParam(BaseException):
     kP: float
     kI: float
     kD: float
