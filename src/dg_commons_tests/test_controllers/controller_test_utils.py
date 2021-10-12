@@ -1,26 +1,29 @@
-from dataclasses import dataclass
-from typing import Union
-from dg_commons.analysis.metrics import Metrics
-from typing import List
-import math
-import numpy as np
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 from sim.models.vehicle import VehicleModel, VehicleState
-from dg_commons.analysis.metrics_def import MetricEvaluationContext
-import json
-from dataclasses import fields
-from typing import Optional
+from dataclasses import fields, dataclass
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from commonroad.scenario.obstacle import DynamicObstacle
-from dg_commons import PlayerName
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
-import os
 from dg_commons.seq.sequence import DgSampledSequence
 from sim import SimTime
 from dg_commons_tests.test_controllers.controller_scenarios.scenario_to_test import ScenarioData
-from dg_commons.controllers.full_controller_base import VehicleController
-from dg_commons.controllers.speed import SpeedBehavior
-from crash.reports import generate_report
+from dg_commons_tests.test_controllers.controllers_to_test import *
+from dg_commons.analysis.metrics import *
+import matplotlib.pyplot as plt
+from dg_commons_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios
+from typing import List
+import os
+import math
+
+
+class Verbosity:
+    def __init__(self, val: int):
+        assert val in [0, 1, 2]
+        self._val = val
+
+    @property
+    def val(self):
+        return self._val
 
 
 @dataclass
@@ -41,21 +44,11 @@ class TestInstance:
 
     scenario: ScenarioData
 
-    dt_commands: Optional[List[float]] = None
-    avg_t: Optional[float] = None
-    std_t: Optional[float] = None
-
     def run(self):
         test = TestController(scenario=self.scenario, metrics=self.metric, controller=self.controller)
         test.run()
         test.evaluate_metrics()
-        self.dt_commands = []
-        for key in test.dt_commands.keys():
-            self.dt_commands += test.dt_commands[key]
-        round_term = 4
-        self.avg_t = round(float(np.average(np.array(self.dt_commands))), round_term)
-        self.std_t = round(float(np.std(np.array(self.dt_commands))), round_term)
-        self.dt_commands = [round(dt, round_term) for dt in self.dt_commands]
+        return test.result
 
 
 DT: SimTime = SimTime("0.05")
@@ -95,7 +88,6 @@ class TestController:
         self.simulator: Simulator = Simulator()
 
         self.output_dir = os.path.join("out", self.controller.folder_name, self.scenario.fig_name)
-        self.dt_commands = {}
 
     def _agent_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
         controller = self.controller.controller(self.controller.controller_params)
@@ -151,6 +143,7 @@ class TestController:
         commands = {}
         velocities = {}
         betas = {}
+        dt_commands = {}
         for key in self.sim_context.log.keys():
             dg_lanelets[key] = self.sim_context.players[key].ref_lane
             states[key] = self.sim_context.log[key].states
@@ -159,9 +152,10 @@ class TestController:
             dt_commands_timestamps = self.sim_context.log[key].actions.timestamps
             velocities[key] = DgSampledSequence(dt_timestamps, len(dt_timestamps)*[nominal_velocity])
             betas[key] = DgSampledSequence(dt_commands_timestamps, self.sim_context.players[key].betas)
-            self.dt_commands[key] = self.sim_context.players[key].dt_commands
+            dt_commands[key] = DgSampledSequence(dt_commands_timestamps, self.sim_context.players[key].dt_commands)
 
-        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities, betas)
+        self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands,
+                                                       velocities, dt_commands, betas)
 
         # report = generate_report(self.sim_context)
         # save report
@@ -178,49 +172,75 @@ class TestController:
         else:
             print("No Metric to Evaluate")
 
-    def to_json(self):
-        key_string = ""
 
-        def dict_key_from_dataclass(data):
-            res = {"Name": data["Name"]}
-            key_str = str(data["Name"])
-            for field in fields(data["Parameters"]):
-                value = getattr(data["Parameters"], field.name)
-                value = value.tolist() if type(value) == np.ndarray else value
-                res[field.name] = value
-                key_str += str(value)
-            return res, key_str
+class DataCollect:
+    def __init__(self, keys):
+        self.data = {key: [] for key in keys}
+        self.controllers = []
+        self.scenarios = []
+        self.timing = {}
 
-        lateral_dict, key_str = dict_key_from_dataclass(self.controller)
-        key_string += key_str
-        if self.longitudinal_controller:
-            longitudinal_dict, key_str = dict_key_from_dataclass(self.longitudinal_controller)
-            key_string += key_str
-        else:
-            longitudinal_dict = {}
-        steering_dict, key_str = dict_key_from_dataclass(self.steering_controller)
-        key_string += key_str
+    def collect_data(self, dict_name, result, scenario_fig_name, percentage, controller_folder_name, verbosity):
+        self.timing[dict_name] = {}
+        helper = {key: [] for key in self.data.keys()}
+        if verbosity.val > 0:
+            print("[Testing]...")
+            print("[Controller]...", controller_folder_name)
+            print("[Scenario]...", scenario_fig_name)
+            print("[Percentage]...", percentage, "%")
+            for key in result[0].keys():
+                print()
+                print("[Results for {}]...".format(key))
+                for item in result:
+                    if item[key].title == DTForCommand.__name__:
+                        delta = round(float(np.average(np.array(item[key].incremental.values))), 4)
+                        print(DTForCommand.__name__, " = {}".format(delta))
+                        helper[DTForCommand.__name__].append(delta)
+                    else:
+                        helper[item[key].title].append(item[key].total)
+                        print(item[key])
 
-        metric_dict = {}
-        for i, metric in enumerate(self.metrics):
-            metric_dict["Name"] = metric.description
-            key_string += str(metric.description)
-            result = self.result[i]
-            player_dict = {}
-            for player in self.sim_context.players.keys():
-                player_dict["Total"] = result[player].total
-                player_dict["IncrementalT"] = [float(i) for i in result[player].incremental.timestamps]
-                player_dict["IncrementalV"] = result[player].incremental.values
-                player_dict["CumulativeT"] = [float(i) for i in result[player].cumulative.timestamps]
-                player_dict["CumulativeV"] = result[player].cumulative.values
-                metric_dict[f"Results {player}"] = player_dict
+        for key in self.data.keys():
+            self.data[key].append(np.average(np.array(helper[key])))
+        self.controllers.append(controller_folder_name)
+        self.scenarios.append(scenario_fig_name)
+        self.timing[dict_name][scenario_fig_name] = np.average(np.array(helper[DTForCommand.__name__]))
 
-        json_dict = {"LateralController": lateral_dict, "LongitudinalController": longitudinal_dict,
-                     "SteeringController": steering_dict, "Results": metric_dict}
+    def show_data(self, verbosity):
+        name = "OVERALL STATISTICS"
+        output_dir = os.path.join("out", "simulation_timing_statistics")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
 
-        json_object = json.dumps(json_dict, indent=4)
-        with open("results.json", "w") as outfile:
-            outfile.write(json_object)
-        key_string = key_string.replace(" ", "")
-        print(key_string)
+        def show_results(ch_name, data, ch_controllers, plots=False):
+            if verbosity.val > 1:
+                print(ch_name)
 
+            for key in data.keys():
+                if verbosity.val > 1:
+                    minimum = min(data[key])
+                    idx_min = data[key].index(minimum)
+                    maximum = max(data[key])
+                    idx_max = data[key].index(maximum)
+                    print("Total/Average {}: {}".format(key, round(sum(data[key]) / len(data[key]), 3)))
+                    max_scene = ", Scenario: " + self.scenarios[idx_max] if ch_name == "OVERALL STATISTICS" else ""
+                    print("Max {} is {} for: ".format(key, round(maximum, 3)),
+                          " Controller: {}{}".format(ch_controllers[idx_max], max_scene))
+                    min_scene = ", Scenario: " + self.scenarios[idx_min] if name == "OVERALL STATISTICS" else ""
+                    print("Min {} is {} for: ".format(key, round(minimum, 3)),
+                          " Controller: {}{}".format(ch_controllers[idx_min], min_scene))
+                    print()
+                if plots:
+                    plt.hist(data[key])
+                    plt.title(ch_name + " " + key)
+                    plt.savefig(os.path.join(output_dir, ch_name + key))
+                    plt.clf()
+
+        scenario_list = list(dict.fromkeys(self.scenarios))
+        show_results(name, self.data, self.controllers)
+        for scene in scenario_list:
+            helper = [i for i, t in enumerate(self.scenarios) if t == scene]
+            temp_data = {key: [self.data[key][i] for i in helper] for key in self.data.keys()}
+            temp_controller = [self.controllers[i] for i in helper]
+            name = "STATISTICS ABOUT " + scene.upper()
+            show_results(name, temp_data, temp_controller)

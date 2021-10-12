@@ -29,6 +29,9 @@ class MetricEvaluationContext:
     target_velocities: Mapping[PlayerName, DgSampledSequence[float]]
     """ Planned velocities """
 
+    dt_commands: Mapping[PlayerName, DgSampledSequence[float]]
+    """ Time required for a command """
+
     betas: Mapping[PlayerName, DgSampledSequence[float]]
     """ Where on the lane """
 

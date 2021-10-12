@@ -225,8 +225,37 @@ class Acceleration(Metric):
         Metric.save_fig(output_dir, name=self.file_name, title=self.description)
 
 
+class DTForCommand(Metric):
+    brief_description = "DTForCommand"
+    file_name = brief_description.replace(" ", "_").lower()
+    description = "This metric describes the time required to formulate a command"
+    scale: float = 1.0
+
+    def evaluate(self, context: MetricEvaluationContext,
+                 plot: bool = False, output_dir: str = '') -> MetricEvaluationResult:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            _, interval = context.get_interval(player)
+            dt_commands = context.dt_commands[player]
+
+            vals = []
+            for time in interval:
+                dt = dt_commands.at(time)
+                vals.append(dt)
+
+            ret = self.get_evaluated_metric(interval=interval, val=vals)
+            return ret
+
+        result = get_evaluated_metric(context.get_players(), calculate_metric)
+        if plot:
+            self.plot(result, context, output_dir)
+        return result
+
+    def plot(self, result, context: MetricEvaluationContext, output_dir):
+        self.plot_increment_cumulative(result, context, output_dir)
+
+
 # Workaround to have a list of all metrics types available
-metrics_list = [DeviationVelocity, DeviationLateral, SteeringVelocity, Acceleration]
+metrics_list = [DeviationVelocity, DeviationLateral, SteeringVelocity, Acceleration, DTForCommand]
 Metrics = Union[Empty]
 for metric in metrics_list:
     Metrics = Union[Metrics, metric]

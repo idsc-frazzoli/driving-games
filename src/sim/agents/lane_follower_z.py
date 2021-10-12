@@ -1,4 +1,7 @@
 from typing import Tuple, get_args
+
+import numpy as np
+
 from dg_commons.controllers.controller_types import *
 from typing import Optional
 from dg_commons.controllers.pure_pursuit import PurePursuit
