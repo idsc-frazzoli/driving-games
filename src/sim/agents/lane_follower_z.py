@@ -8,6 +8,7 @@ from dg_commons import PlayerName, X
 from sim import SimObservations
 from sim.agents.agent import Agent
 from sim.models.vehicle import VehicleCommands
+import time
 
 
 class LFAgent(Agent):
@@ -46,6 +47,7 @@ class LFAgent(Agent):
         self.commands = None
 
         self.betas = []
+        self.dt_commands = []
 
     def set_state_estimator(self, state_estimator):
         self.state_estimator = state_estimator
@@ -68,6 +70,7 @@ class LFAgent(Agent):
         self.controller.update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
+        t1 = time.time()
         my_obs = self.state
         t = float(sim_obs.time)
 
@@ -87,6 +90,8 @@ class LFAgent(Agent):
 
         self.betas.append(self.controller.current_beta)
         self.commands = VehicleCommands(acc=acc, ddelta=ddelta)
+        t2 = time.time()
+        self.dt_commands.append(t2-t1)
         return self.commands
 
     def _get_decoupled_commands(self, my_obs: X, speed_ref: float, t: float) -> Tuple[float, float]:

@@ -64,12 +64,12 @@ if verbosity.val > 0:
     print("[Testing Cases]... There are {} testing cases".format(steps))
 
 counter = 0
-t1 = time.time()
 times = []
 controllers = []
 scenarios = []
 timing = {}
 
+t1 = time.time()
 for controllers_to_test in controllers_to_test:
     if controllers_to_test.test:
         it = 0
@@ -83,11 +83,9 @@ for controllers_to_test in controllers_to_test:
                     timing[dict_name] = {}
                     counter += 1
                     scenario = scenario_to_test.item
-                    t3 = time.time()
                     test = TestInstance(controller_to_test, metric=metrics_to_test, scenario=scenario_to_test.item)
                     test.run()
-                    t4 = time.time()
-                    delta = t4 - t3
+                    delta = test.avg_t
                     if verbosity.val > 0:
                         print("[Testing]...")
                         print("[Controller]...", controllers_to_test.item.folder_name)
@@ -100,7 +98,6 @@ for controllers_to_test in controllers_to_test:
                     scenarios.append(scenario.fig_name)
                     timing[dict_name][scenario.fig_name] = delta
                     """ For post processing """
-
 t2 = time.time()
 if verbosity.val > 0:
     print("The whole process took {} seconds".format(round(t2 - t1, 3)))

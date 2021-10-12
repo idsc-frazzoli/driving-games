@@ -41,10 +41,21 @@ class TestInstance:
 
     scenario: ScenarioData
 
+    dt_commands: Optional[List[float]] = None
+    avg_t: Optional[float] = None
+    std_t: Optional[float] = None
+
     def run(self):
         test = TestController(scenario=self.scenario, metrics=self.metric, controller=self.controller)
         test.run()
         test.evaluate_metrics()
+        self.dt_commands = []
+        for key in test.dt_commands.keys():
+            self.dt_commands += test.dt_commands[key]
+        round_term = 4
+        self.avg_t = round(float(np.average(np.array(self.dt_commands))), round_term)
+        self.std_t = round(float(np.std(np.array(self.dt_commands))), round_term)
+        self.dt_commands = [round(dt, round_term) for dt in self.dt_commands]
 
 
 DT: SimTime = SimTime("0.05")
@@ -84,6 +95,7 @@ class TestController:
         self.simulator: Simulator = Simulator()
 
         self.output_dir = os.path.join("out", self.controller.folder_name, self.scenario.fig_name)
+        self.dt_commands = {}
 
     def _agent_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
         controller = self.controller.controller(self.controller.controller_params)
@@ -147,6 +159,7 @@ class TestController:
             dt_commands_timestamps = self.sim_context.log[key].actions.timestamps
             velocities[key] = DgSampledSequence(dt_timestamps, len(dt_timestamps)*[nominal_velocity])
             betas[key] = DgSampledSequence(dt_commands_timestamps, self.sim_context.players[key].betas)
+            self.dt_commands[key] = self.sim_context.players[key].dt_commands
 
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands, velocities, betas)
 
