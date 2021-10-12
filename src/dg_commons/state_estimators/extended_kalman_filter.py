@@ -35,6 +35,17 @@ class ExtendedKalmanParam(BaseParams):
     """ Vehicle Parameters """
     t_step: Union[List[float], float] = 0.1
 
+    def __post_init__(self):
+        if isinstance(self.dropping_params, list):
+            assert len(self.dropping_technique) == len(self.dropping_params)
+            for i, technique in enumerate(self.dropping_technique):
+                assert DroppingMaps[technique] == type(self.dropping_params[i])
+
+        else:
+            assert DroppingMaps[self.dropping_technique] == type(self.dropping_params)
+
+        super().__post_init__()
+
 
 class ExtendedKalman:
     def __init__(self, x0=None, params=ExtendedKalmanParam()):

@@ -14,22 +14,22 @@ vehicle_params = VehicleParameters.default_car()
 
 @dataclass
 class LatMPCKinBaseParam(MPCKinBAseParam):
-    cost: str = "quadratic"
+    cost: Union[List[str], str] = "quadratic"
     """ Cost function """
-    cost_params: CostParameters = QuadraticParams(
+    cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams(
         q=SemiDef(matrix=np.eye(2)),
         r=SemiDef(matrix=np.eye(1))
     )
     """ Cost function parameters """
-    v_delta_bounds: Tuple[float, float] = (-vehicle_params.ddelta_max,
-                                           vehicle_params.ddelta_max)
+    v_delta_bounds: Union[List[Tuple[float, float]], Tuple[float, float]] = (-vehicle_params.ddelta_max,
+                                                                             vehicle_params.ddelta_max)
     """ Ddelta Bounds """
-    delta_bounds: Tuple[float, float] = (-vehicle_params.default_car().delta_max,
-                                         vehicle_params.default_car().delta_max)
+    delta_bounds: Union[List[Tuple[float, float]], Tuple[float, float]] = (-vehicle_params.default_car().delta_max,
+                                                                           vehicle_params.default_car().delta_max)
     """ Steering Bounds """
-    path_approx_technique: PathApproximationTechniques = LinearPath()
+    path_approx_technique: Union[List[PathApproximationTechniques], PathApproximationTechniques] = LinearPath()
     """ Path approximation technique """
-    analytical: bool = False
+    analytical: Union[List[bool], bool] = False
 
 
 class LatMPCKinBase(MPCKinBase):

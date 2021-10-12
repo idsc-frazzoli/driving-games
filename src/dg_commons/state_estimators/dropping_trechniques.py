@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass
-from typing import Union, Callable, List
+from typing import Union, Callable, List, Dict
 import math
 import scipy
 import numpy as np
@@ -204,3 +204,9 @@ class LGSM:
 
 DroppingTechniques = Union[Empty, LGB, LGM, LGSM]
 DroppingTechniquesParams = Union[Empty, LGBParam, LGMParam, LGSMParam]
+
+DroppingMaps: Dict[type(DroppingTechniques), type(DroppingTechniquesParams)] = {
+    LGB: LGBParam,
+    LGM: LGMParam,
+    LGSM: LGSMParam
+}

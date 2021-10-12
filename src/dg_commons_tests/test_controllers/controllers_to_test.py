@@ -1,12 +1,31 @@
 from sim.agents.lane_followers import *
 from dg_commons.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons.state_estimators.extended_kalman_filter import ExtendedKalman, ExtendedKalmanParam
+from dg_commons.state_estimators.estimator_types import *
 from dg_commons.controllers.full_controller_base import VehicleController
-from dg_commons_tests.test_controllers.controller_test_utils import DT_COMMANDS
+from dg_commons_tests.test_controllers.controller_test_utils import DT_COMMANDS, DT
 from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons.state_estimators.dropping_trechniques import *
 from dg_commons.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 import copy
+
+
+state_estimator: type(Estimators) = ExtendedKalman
+state_estimator_params: EstimatorsParams = ExtendedKalmanParam(
+    actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+    actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+
+    belief_model_var=SemiDef([i * 1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
+    belief_meas_var=SemiDef([i * 0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
+
+    initial_variance=SemiDef(matrix=np.zeros((5, 5))),
+
+    dropping_technique=LGB,
+    dropping_params=LGBParam(
+        failure_p=0.0,
+    ),
+    t_step=DT
+)
+
 
 TestLQR = VehicleController(
             controller=LQR,
@@ -24,15 +43,15 @@ TestLQR = VehicleController(
             ),
 
             speed_behavior_param=SpeedBehaviorParam(
-                nominal_speed=8
+                nominal_speed=8,
             ),
 
-            state_estimator=None,
-            state_estimator_params=None
+            state_estimator=state_estimator,
+            state_estimator_params=state_estimator_params
         )
 
-TestNMPCFullKinContPV = VehicleController(
 
+TestNMPCFullKinContPV = VehicleController(
         controller=NMPCFullKinCont,
 
         controller_params=NMPCFullKinContParam(
@@ -46,20 +65,24 @@ TestNMPCFullKinContPV = VehicleController(
             ),
             path_approx_technique=LinearPath,
             rear_axle=False,
-            analytical=False
+            analytical=False,
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
             nominal_speed=8
         ),
 
-        state_estimator=None,
-        state_estimator_params=None,
+        state_estimator=state_estimator,
+        state_estimator_params=state_estimator_params,
     )
 TestNMPCFullKinContPV.extra_folder_name = "path_variable"
 
 TestNMPCFullKinContAN = copy.deepcopy(TestNMPCFullKinContPV)
-TestNMPCFullKinContAN.controller_params.analytical = True
+if isinstance(TestNMPCFullKinContAN.controller_params, list):
+    for i in range(len(TestNMPCFullKinContAN.controller_params)):
+        TestNMPCFullKinContAN.controller_params[i].analytical = True
+else:
+    TestNMPCFullKinContAN.controller_params.analytical = True
 TestNMPCFullKinContAN.extra_folder_name = "analytical"
 
 
@@ -83,16 +106,20 @@ TestNMPCFullKinDisPV = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8
+            nominal_speed=8,
         ),
 
-        state_estimator=None,
-        state_estimator_params=None,
+        state_estimator=state_estimator,
+        state_estimator_params=state_estimator_params,
 )
 TestNMPCFullKinDisPV.extra_folder_name = "path_variable"
 
 TestNMPCFullKinDisAN = copy.deepcopy(TestNMPCFullKinDisPV)
-TestNMPCFullKinDisAN.controller_params.analytical = True
+if isinstance(TestNMPCFullKinDisAN.controller_params, list):
+    for i in range(len(TestNMPCFullKinDisAN.controller_params)):
+        TestNMPCFullKinDisAN.controller_params[i].analytical = True
+else:
+    TestNMPCFullKinDisAN.controller_params.analytical = True
 TestNMPCFullKinDisAN.extra_folder_name = "analytical"
 
 
@@ -124,14 +151,18 @@ TestNMPCLatKinContPV = VehicleController(
             nominal_speed=8
         ),
 
-        state_estimator=None,
-        state_estimator_params=None,
+        state_estimator=state_estimator,
+        state_estimator_params=state_estimator_params,
 
 )
 TestNMPCLatKinContPV.extra_folder_name = "path_variable"
 
 TestNMPCLatKinContAN = copy.deepcopy(TestNMPCLatKinContPV)
-TestNMPCLatKinContAN.controller_params.analytical = True
+if isinstance(TestNMPCLatKinContAN.controller_params, list):
+    for i in range(len(TestNMPCLatKinContAN.controller_params)):
+        TestNMPCLatKinContAN.controller_params[i].analytical = True
+else:
+    TestNMPCLatKinContAN.controller_params.analytical = True
 TestNMPCLatKinContAN.extra_folder_name = "analytical"
 
 
@@ -164,14 +195,18 @@ TestNMPCLatKinDisPV = VehicleController(
             nominal_speed=8
         ),
 
-        state_estimator=None,
-        state_estimator_params=None,
+        state_estimator=state_estimator,
+        state_estimator_params=state_estimator_params,
 
 )
 TestNMPCLatKinDisPV.extra_folder_name = "path_variable"
 
 TestNMPCLatKinDisAN = copy.deepcopy(TestNMPCLatKinDisPV)
-TestNMPCLatKinDisAN.controller_params.analytical = True
+if isinstance(TestNMPCLatKinDisAN.controller_params, list):
+    for i in range(len(TestNMPCLatKinDisAN.controller_params)):
+        TestNMPCLatKinDisAN.controller_params[i].analytical = True
+else:
+    TestNMPCLatKinDisAN.controller_params.analytical = True
 TestNMPCLatKinDisAN.extra_folder_name = "analytical"
 
 
@@ -196,11 +231,11 @@ TestPurePursuit = VehicleController(
 
         steering_controller=SCP,
         steering_controller_params=SCPParam(
-            ddelta_kp=10
+            ddelta_kp=10,
         ),
 
-        state_estimator=None,
-        state_estimator_params=None
+        state_estimator=state_estimator,
+        state_estimator_params=state_estimator_params
     )
 
 
@@ -220,16 +255,16 @@ TestStanley = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8
+            nominal_speed=8,
         ),
 
         steering_controller=SCP,
         steering_controller_params=SCPParam(
-            ddelta_kp=10
+            ddelta_kp=10,
         ),
 
-        state_estimator=None,
-        state_estimator_params=None
+        state_estimator=state_estimator,
+        state_estimator_params=state_estimator_params
     )
 
 contr_to_test = [TestLQR, TestStanley, TestPurePursuit,

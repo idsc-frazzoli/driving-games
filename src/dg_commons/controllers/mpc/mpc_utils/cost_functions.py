@@ -1,7 +1,9 @@
+import numpy as np
 from casadi import *
 from dg_commons.utils import SemiDef
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, List, Dict
+from dg_commons.utils import BaseParams
 
 
 class Empty:
@@ -9,9 +11,14 @@ class Empty:
 
 
 @dataclass
-class QuadraticParams:
-    q: SemiDef
-    r: SemiDef
+class QuadraticParams(BaseParams):
+    q: Union[List[SemiDef], SemiDef] = SemiDef([0])
+    r: Union[List[SemiDef], SemiDef] = SemiDef([0])
+
+
+@dataclass
+class TestParams(BaseParams):
+    a: float = 1
 
 
 def quadratic_cost(x, u, quad_params):
@@ -31,6 +38,12 @@ def quadratic_cost(x, u, quad_params):
 
     return bilin(q, helper1, helper1) + bilin(r, helper2, helper2), bilin(q, helper1, helper1)
 
+def f():
+    return
 
-CostParameters = Union[Empty, QuadraticParams]
-costs = {"quadratic": quadratic_cost}
+
+CostParameters = Union[Empty, QuadraticParams, TestParams]
+costs = {"quadratic": quadratic_cost, "Test": f}
+MapCostParam: Dict[str, type(CostParameters)] = {"quadratic": QuadraticParams, "Test": TestParams}
+
+assert set(costs.keys()) == set(MapCostParam.keys())

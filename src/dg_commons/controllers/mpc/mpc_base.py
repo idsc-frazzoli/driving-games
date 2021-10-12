@@ -23,6 +23,17 @@ class MPCKinBAseParam(BaseParams):
     """ Whether to control rear axle position instead of cog """
     vehicle_geometry: Union[List[VehicleGeometry], VehicleGeometry] = VehicleGeometry.default_car()
 
+    def __post_init__(self):
+        if isinstance(self.cost, list):
+            assert len(self.cost) == len(self.cost_params)
+            for i, technique in enumerate(self.cost):
+                assert MapCostParam[technique] == type(self.cost_params[i])
+
+        else:
+            assert MapCostParam[self.cost] == type(self.cost_params)
+
+        super().__post_init__()
+
 
 class MPCKinBase(ABC):
     @abstractmethod

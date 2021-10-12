@@ -4,6 +4,7 @@ import numpy as np
 import scipy.linalg
 from abc import ABC
 import itertools
+import copy
 
 
 @dataclass
@@ -78,12 +79,30 @@ class BaseParams(ABC):
 
     def __post_init__(self):
         lists = []
+        single_list = []
         for field in fields(self):
             values = getattr(self, field.name)
-            lists.append(self.process_mutually_exclusive_values(values))
+            res = self.process_mutually_exclusive_values(values)
+            lists.append(res)
+            single_list.append(len(res) == 1)
 
         self.xplets = list(itertools.product(*lists))
-        self.n_total = len(self.xplets)
+        self.is_single = all(single_list)
+        if self.is_single:
+            self.n_total = 1
+        else:
+            helper = copy.deepcopy(self.xplets)
+            counter = 0
+            for xplet in self.xplets:
+                counter += 1
+                try:
+                    new_instance = self.__new__(type(self))
+                    new_instance.__init__(*xplet)
+                except Exception as e:
+                    helper.remove(xplet)
+
+            self.xplets = helper
+            self.n_total = len(self.xplets)
 
     def process_mutually_exclusive_values(self, values):
         return_values = []
@@ -100,7 +119,6 @@ class BaseParams(ABC):
                 process_single_value(value)
         else:
             process_single_value(values)
-
         return return_values
 
     @staticmethod
@@ -115,9 +133,8 @@ class BaseParams(ABC):
         return self.n_total
 
     def gen(self):
-        for xplet in self.xplets:
-            if self.condition(xplet):
-                new_instance = BaseParams()
-                new_instance.__class__ = type(self)
-                new_instance.__init__(*xplet)
-                yield new_instance
+            for xplet in self.xplets:
+                if self.condition(xplet):
+                    new_instance = self.__new__(type(self))
+                    new_instance.__init__(*xplet)
+                    yield new_instance

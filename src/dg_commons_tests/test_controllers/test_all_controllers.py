@@ -21,23 +21,6 @@ class Verbosity:
 
 verbosity: Verbosity = Verbosity(2)
 
-state_estimator: type(Estimators) = ExtendedKalman
-state_estimator_params: EstimatorsParams = ExtendedKalmanParam(
-    actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
-    actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
-
-    belief_model_var=SemiDef([i * 1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
-    belief_meas_var=SemiDef([i * 0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
-
-    initial_variance=SemiDef(matrix=np.zeros((5, 5))),
-
-    dropping_technique=LGB,
-    dropping_params=LGBParam(
-        failure_p=0.0
-    ),
-    t_step=DT
-)
-
 scenarios_to_test = [Select(scenarios["lane_change_left"], True),
                      Select(scenarios["turn_90_right"], True),
                      Select(scenarios["turn_90_left"], True),
@@ -74,7 +57,7 @@ assert all([metr in metrics_list for metr in helper])
 metrics_to_test = [met.item for met in metrics_to_test if met.test]
 
 n_scenarios = sum([1 for s in scenarios_to_test if s.test])
-n_controllers = sum([1 for s in controllers_to_test if s.test])
+n_controllers = sum([s.item.get_count() for s in controllers_to_test if s.test])
 steps: int = n_controllers*n_scenarios
 
 if verbosity.val > 0:
@@ -89,38 +72,41 @@ timing = {}
 
 for controllers_to_test in controllers_to_test:
     if controllers_to_test.test:
-        timing[controllers_to_test.item.folder_name] = {}
-        controllers_to_test.item.state_estimator = state_estimator
-        controllers_to_test.item.state_estimator_params = state_estimator_params
-        for scenario_to_test in scenarios_to_test:
-            if scenario_to_test.test:
-                counter += 1
-                scenario = scenario_to_test.item
-                t3 = time.time()
-                test = TestInstance(controllers_to_test.item, metric=metrics_to_test, scenario=scenario_to_test.item)
-                test.run()
-                t4 = time.time()
-                delta = t4 - t3
-                if verbosity.val > 0:
-                    print("[Testing]...")
-                    print("[Controller]...", controllers_to_test.item.folder_name)
-                    print("[Scenario]...", scenario.fig_name)
-                    print("[Percentage]...", round(counter/steps*100, 3), "%")
-                    print("[Time]... took {} seconds".format(round(delta, 3)))
+        it = 0
+        for controller_to_test in controllers_to_test.item.gen():
+            controller_to_test.add_sub_folder("Test{}".format(it))
+            root_name = controller_to_test.folder_name + "Test{}".format(it)
+            it += 1
+            for scenario_to_test in scenarios_to_test:
+                if scenario_to_test.test:
+                    dict_name = root_name + scenario_to_test.item.fig_name
+                    timing[dict_name] = {}
+                    counter += 1
+                    scenario = scenario_to_test.item
+                    t3 = time.time()
+                    test = TestInstance(controller_to_test, metric=metrics_to_test, scenario=scenario_to_test.item)
+                    test.run()
+                    t4 = time.time()
+                    delta = t4 - t3
+                    if verbosity.val > 0:
+                        print("[Testing]...")
+                        print("[Controller]...", controllers_to_test.item.folder_name)
+                        print("[Scenario]...", scenario.fig_name)
+                        print("[Percentage]...", round(counter/steps*100, 3), "%")
+                        print("[Time]... took {} seconds".format(round(delta, 3)))
 
-                times.append(delta)
-                controllers.append(controllers_to_test.item.folder_name)
-                scenarios.append(scenario.fig_name)
-                timing[controllers_to_test.item.folder_name][scenario.fig_name] = delta
-                """ For post processing """
+                    times.append(delta)
+                    controllers.append(controllers_to_test.item.folder_name)
+                    scenarios.append(scenario.fig_name)
+                    timing[dict_name][scenario.fig_name] = delta
+                    """ For post processing """
 
 t2 = time.time()
 if verbosity.val > 0:
     print("The whole process took {} seconds".format(round(t2 - t1, 3)))
-    print(sum(times))
 
 name = "OVERALL STATISTICS"
-output_dir =os.path.join("out", "simulation_timing_statistics")
+output_dir = os.path.join("out", "simulation_timing_statistics")
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 
@@ -128,16 +114,18 @@ if not os.path.exists(output_dir):
 def create_histograms(ch_name, ch_times, ch_controllers):
     if verbosity.val > 1:
         print(ch_name)
-        print()
         print("Average: {} seconds".format(round(sum(ch_times) / len(ch_times), 3)))
         maximum = max(ch_times)
         idx = ch_times.index(maximum)
+        scene = ", Scenario: " + scenarios[idx] if name == "OVERALL STATISTICS" else ""
         print("Max is {} for: ".format(round(maximum, 3)),
-              " Controller: {}, Scenario: {}".format(ch_controllers[idx], scenarios[idx]))
+              " Controller: {}{}".format(ch_controllers[idx], scene))
         minimum = min(ch_times)
         idx = ch_times.index(minimum)
+        scene = ", Scenario: " + scenarios[idx] if name == "OVERALL STATISTICS" else ""
         print("Min is {} for: ".format(round(minimum, 3)),
-              " Controller: {}, Scenario: {}".format(ch_controllers[idx], scenarios[idx]))
+              " Controller: {}{}".format(ch_controllers[idx], scene))
+        print()
     plt.hist(ch_times)
     plt.title(ch_name)
     plt.xlabel("Time [s]")
