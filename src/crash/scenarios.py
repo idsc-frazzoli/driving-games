@@ -4,7 +4,6 @@ from typing import List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
-from commonroad.visualization.mp_renderer import MPRenderer
 from dg_commons import DgSampledSequence, PlayerName
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
@@ -122,11 +121,6 @@ def get_scenario_illegal_turn() -> SimContext:
 def get_scenario_suicidal_pedestrian() -> SimContext:
     scenario_name = "USA_Peach-1_1_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
-    # scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
-
-    rnd = MPRenderer()
-    scenario.draw(rnd)
-    rnd.render(filename="scenariodebug.png")
 
     x0_p3 = PedestrianState(x=18, y=-15, theta=deg2rad(180), vx=0)
     x0_p1 = VehicleStateDyn(x=8, y=-37, theta=deg2rad(92), vx=kmh2ms(40), delta=0)
