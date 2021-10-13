@@ -134,7 +134,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
     x0_p4 = VehicleStateDyn(x=14, y=-37, theta=deg2rad(92), vx=kmh2ms(30), delta=0)
     x0_p5 = VehicleStateDyn(x=4, y=-10, theta=deg2rad(-88), vx=kmh2ms(30), delta=0)
 
-    x0_ego = VehicleStateDyn(x=x0_p2.x - 8, y=x0_p2.y, theta=0.00, vx=kmh2ms(50), delta=0)
+    x0_ego = VehicleStateDyn(x=x0_p2.x, y=x0_p2.y - 8, theta=deg2rad(92), vx=kmh2ms(50), delta=0)
     vg_ego = VehicleGeometry.default_car(color="firebrick")
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = vg_ego
