@@ -9,24 +9,35 @@ from dg_commons.controllers.pid import PIDParam, PID
 from games.utils import valmap
 from sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 from sim.simulator_structures import PlayerObservations
+from dg_commons_dev.utils import BaseParams
 
 __all__ = ["SpeedControllerParam", "SpeedController", "SpeedBehavior"]
 
 
 @dataclass
-class SpeedControllerParam(PIDParam):
+class SpeedControllerParam(BaseParams, PIDParam):
     """Default values are tuned roughly for a default car model"""
-    kP: float = 4
-    kI: float = 0.01
-    kD: float = 0.1
-    antiwindup: Tuple[float, float] = (-2, 2)
-    setpoint_minmax: Tuple[float, float] = (-kmh2ms(10), kmh2ms(150))
-    output_minmax: Tuple[float, float] = (-8, 5)  # acc minmax
+    kP: Union[float, List[float]] = 4
+    kI: Union[float, List[float]] = 0.01
+    kD: Union[float, List[float]] = 0.1
+    antiwindup: Union[Tuple[float, float], List[Tuple[float, float]]] = (-2, 2)
+    setpoint_minmax: Union[Tuple[float, float], List[Tuple[float, float]]] = (-kmh2ms(10), kmh2ms(150))
+    output_minmax: Union[Tuple[float, float], List[Tuple[float, float]]] = (-8, 5)  # acc minmax
 
     def __post_init__(self):
-        assert self.antiwindup[0] < self.antiwindup[1]
-        assert self.setpoint_minmax[0] < self.setpoint_minmax[1]
-        assert self.output_minmax[0] < self.output_minmax[1]
+        if isinstance(self.antiwindup, list):
+            assert all([i[0] < i[1] for i in self.antiwindup])
+        else:
+            assert self.antiwindup[0] < self.antiwindup[1]
+        if isinstance(self.setpoint_minmax, list):
+            assert all([i[0] < i[1] for i in self.setpoint_minmax])
+        else:
+            assert self.setpoint_minmax[0] < self.setpoint_minmax[1]
+        if isinstance(self.output_minmax, list):
+            assert all([i[0] < i[1] for i in self.output_minmax])
+        else:
+            assert self.output_minmax[0] < self.output_minmax[1]
+        super().__post_init__()
 
 
 class SpeedController(PID):
@@ -38,14 +49,14 @@ class SpeedController(PID):
 
 
 @dataclass
-class SpeedBehaviorParam():
-    nominal_speed: float = kmh2ms(40)
+class SpeedBehaviorParam(BaseParams):
+    nominal_speed: Union[List[float], float] = kmh2ms(40)
     """Nominal desired speed"""
-    yield_distance: float = 7
+    yield_distance: Union[List[float], float] = 7
     """Evaluate whether to yield only for vehicles within x [m]"""
-    minimum_yield_vel: float = kmh2ms(5)
+    minimum_yield_vel: Union[List[float], float] = kmh2ms(5)
     """yield only to vehicles that are at least moving at.."""
-    safety_time_braking: float = 1.5
+    safety_time_braking: Union[List[float], float] = 1.5
     """Evaluates safety distance from vehicle in front based on distance covered in this delta time"""
 
 
