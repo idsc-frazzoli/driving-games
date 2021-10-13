@@ -6,8 +6,9 @@ from dg_commons_dev.controllers.mpc.mpc_base import MPCKinBAseParam, MPCKinBase
 from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons_dev.controllers.path_approximation_techniques import *
 from duckietown_world.utils import SE2_apply_R2
-from sim.models.vehicle_utils import VehicleParameters
+from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
+from dg_commons_dev.maps.lanes import DgLaneletControl
 
 vehicle_params = VehicleParameters.default_car()
 
@@ -37,6 +38,7 @@ class LatMPCKinBase(MPCKinBase):
     def __init__(self, params, model_type: str):
         super().__init__(params, model_type)
         self.path: Optional[DgLanelet] = None
+        self.path_control: Optional[DgLaneletControl] = None
         """ Referece DgLanelet path """
         self.u = None
         """ Current input to the system """
@@ -66,6 +68,7 @@ class LatMPCKinBase(MPCKinBase):
     def update_path(self, path: DgLanelet):
         assert isinstance(path, DgLanelet)
         self.path = path
+        self.path_control = DgLaneletControl(path)
 
     def rear_axle_position(self, obs: X):
         pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
@@ -78,9 +81,9 @@ class LatMPCKinBase(MPCKinBase):
     def update_state(self, obs: Optional[X] = None, speed_ref: float = 0):
         self.current_position = self.rear_axle_position(obs) if self.params.rear_axle else self.cog_position(obs)
         self.current_speed = obs.vx
-        control_sol_params = self.path.ControlSolParams(self.current_speed, self.params.t_step)
-        self.current_beta, _ = self.path.find_along_lane_closest_point(self.current_position,
-                                                                       control_sol=control_sol_params)
+        control_sol_params = self.path_control.ControlSolParams(self.current_speed, self.params.t_step)
+        self.current_beta, _ = self.path_control.find_along_lane_closest_point(self.current_position,
+                                                                               control_sol=control_sol_params)
         """ Update current state of the vehicle """
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
         self.path_approx.update_from_data(pos1, angle1, pos2, angle2, pos3, angle3)

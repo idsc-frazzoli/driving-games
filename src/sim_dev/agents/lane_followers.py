@@ -5,8 +5,8 @@ from geometry import translation_from_SE2
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons.planning.trajectory import Trajectory
 from sim_dev.agents.lane_follower_z import LFAgent
-from sim.models.vehicle import VehicleState
-from sim import SimObservations, DrawableTrajectoryType
+from dg_commons.sim.models.vehicle import VehicleState
+from dg_commons.sim import SimObservations, DrawableTrajectoryType
 from dg_commons_dev.controllers.controller_types import *
 
 

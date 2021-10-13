@@ -1,16 +1,14 @@
 from typing import Tuple, get_args
-
 import numpy as np
-
 from dg_commons_dev.controllers.controller_types import *
 from typing import Optional
 from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit
 from dg_commons_dev.controllers.speed import SpeedBehavior, SpeedController
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons import PlayerName, X
-from sim import SimObservations
-from sim.agents.agent import Agent
-from sim.models.vehicle import VehicleCommands
+from dg_commons.sim import SimObservations
+from dg_commons.sim.agents.agent import Agent
+from dg_commons.sim.models.vehicle import VehicleCommands
 import time
 
 

@@ -1,5 +1,5 @@
 from typing import Optional, List, Union
-from sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 import scipy.optimize
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons import X
@@ -13,6 +13,7 @@ from dg_commons_dev.utils import SemiDef
 import math
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 from dg_commons_dev.utils import BaseParams
+from dg_commons_dev.maps.lanes import DgLaneletControl
 
 
 __all__ = ["LQR", "LQRParam"]
@@ -54,6 +55,7 @@ class LQR:
         :param
         """
         self.path: Optional[DgLanelet] = None
+        self.control_path: Optional[DgLaneletControl] = None
         self.u: np.ndarray
         self.params: LQRParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
@@ -67,6 +69,7 @@ class LQR:
     def update_path(self, path: DgLanelet):
         assert isinstance(path, DgLanelet)
         self.path = path
+        self.control_path = DgLaneletControl(path)
 
     def update_state(self, obs: X):
         pose = SE2_from_translation_angle(np.array([obs.x, obs.y]), obs.theta)
@@ -78,9 +81,9 @@ class LQR:
 
         p, _, _ = translation_angle_scale_from_E2(self.back_pose)
 
-        control_sol_params = self.path.ControlSolParams(obs.vx, self.params.t_step)
-        self.current_beta, q0 = self.path.find_along_lane_closest_point(back_position, tol=1e-4,
-                                                                        control_sol=control_sol_params)
+        control_sol_params = self.control_path.ControlSolParams(obs.vx, self.params.t_step)
+        self.current_beta, q0 = self.control_path.find_along_lane_closest_point(back_position, tol=1e-4,
+                                                                                control_sol=control_sol_params)
 
         path_approx = True
         if path_approx:

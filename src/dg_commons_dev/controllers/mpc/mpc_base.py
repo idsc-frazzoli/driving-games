@@ -4,7 +4,7 @@ from dg_commons import X
 import do_mpc
 from dataclasses import dataclass
 from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
-from sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons_dev.utils import BaseParams
 import numpy as np
 

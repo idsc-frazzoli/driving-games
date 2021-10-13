@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from math import atan
 from typing import Optional
-from sim.models.vehicle_structures import VehicleGeometry
-from sim.models.vehicle_dynamic import VehicleStateDyn
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.models.vehicle_dynamic import VehicleStateDyn
 import numpy as np
 from geometry import SE2value, SE2_from_translation_angle, translation_angle_scale_from_E2, translation_angle_from_SE2
 from dg_commons.maps.lanes import DgLanelet
+from dg_commons_dev.maps.lanes import DgLaneletControl
 from dg_commons import X
 from duckietown_world.utils import SE2_apply_R2
 import math
@@ -39,6 +40,7 @@ class Stanley:
         :param
         """
         self.path: Optional[DgLanelet] = None
+        self.path_control: Optional[DgLaneletControl] = None
         self.front_pose: Optional[SE2value] = None
         self.speed: Optional[float] = None
         self.alpha: Optional[float] = None
@@ -52,6 +54,7 @@ class Stanley:
     def update_path(self, path: DgLanelet):
         assert isinstance(path, DgLanelet)
         self.path = path
+        self.path_control = DgLaneletControl(path)
 
     def update_state(self, obs: X):
         tr, ang = [obs.x, obs.y], obs.theta
@@ -72,9 +75,9 @@ class Stanley:
 
         p, _, _ = translation_angle_scale_from_E2(front_pose)
 
-        control_sol_params = self.path.ControlSolParams(obs.vx, self.params.t_step)
-        self.current_beta, q0 = self.path.find_along_lane_closest_point(p, tol=1e-4, control_sol=control_sol_params)
-
+        control_sol_params = self.path_control.ControlSolParams(obs.vx, self.params.t_step)
+        self.current_beta, q0 = self.path_control.find_along_lane_closest_point(p, tol=1e-4,
+                                                                                control_sol=control_sol_params)
         path_approx = True
         if path_approx:
             pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)

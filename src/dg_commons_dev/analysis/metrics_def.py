@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import List, Mapping, Union, Optional, Dict, Tuple
 from dg_commons import PlayerName, X, U
 from dg_commons.seq.sequence import Timestamp, DgSampledSequence
-from sim.models.vehicle_utils import VehicleParameters
-from sim.models.vehicle import VehicleGeometry
+from dg_commons.sim.models.vehicle_utils import VehicleParameters
+from dg_commons.sim.models.vehicle import VehicleGeometry
 from duckietown_world import SE2Transform, LanePose
 from dg_commons import SE2Transform, relative_pose
 import os

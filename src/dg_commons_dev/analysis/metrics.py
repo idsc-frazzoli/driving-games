@@ -1,8 +1,8 @@
 from dg_commons_dev.analysis.metrics_def import Metric, MetricEvaluationContext, MetricEvaluationResult, EvaluatedMetric
 from dg_commons import PlayerName
 from typing import Union, List, Callable, Dict
-from sim.models.model_utils import acceleration_constraint
-from sim.models.vehicle_utils import steering_constraint
+from dg_commons.sim.models.model_utils import acceleration_constraint
+from dg_commons.sim.models.vehicle_utils import steering_constraint
 import logging
 import matplotlib.pyplot as plt
 

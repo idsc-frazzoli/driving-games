@@ -1,9 +1,9 @@
 import math
 import numpy as np
-from sim.scenarios.utils import Scenario
+from dg_commons.sim.scenarios.utils import Scenario
 from commonroad.visualization.util import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction, Trajectory
-from sim.scenarios.agent_from_commonroad import *
+from dg_commons.sim.scenarios.agent_from_commonroad import *
 import matplotlib.pyplot as plt
 
 

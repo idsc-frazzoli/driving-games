@@ -3,13 +3,12 @@ from decimal import Decimal
 from itertools import combinations
 from typing import Mapping, Optional, List, Dict
 from commonroad.scenario.scenario import Scenario
-
 from dg_commons.time import time_function
 from dg_commons import PlayerName, U
-from sim import logger, CollisionReport, SimTime
-from sim.agents.agent import Agent, TAgent
-from sim.collision_utils import CollisionException
-from sim.simulator_structures import *
+from dg_commons.sim import logger, CollisionReport, SimTime
+from dg_commons.sim.agents.agent import Agent, TAgent
+from dg_commons.sim.collision_utils import CollisionException
+from dg_commons.sim.simulator_structures import *
 
 
 @dataclass
@@ -132,7 +131,7 @@ class Simulator:
             a_shape = sim_context.models[p1].get_footprint()
             b_shape = sim_context.models[p2].get_footprint()
             if a_shape.intersects(b_shape):
-                from sim.collision import resolve_collision  # import here to avoid circular imports
+                from dg_commons.sim.collision import resolve_collision  # import here to avoid circular imports
 
                 try:
                     report: Optional[CollisionReport] = resolve_collision(p1, p2, sim_context)

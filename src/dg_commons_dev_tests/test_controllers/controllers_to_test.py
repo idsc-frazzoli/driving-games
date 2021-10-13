@@ -7,7 +7,7 @@ from dg_commons_dev.state_estimators.dropping_trechniques import *
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 import copy
 from dg_commons_dev.state_estimators.extended_kalman_filter import *
-from sim.simulator import SimTime
+from dg_commons.sim.simulator import SimTime
 
 
 DT: SimTime = SimTime("0.05")

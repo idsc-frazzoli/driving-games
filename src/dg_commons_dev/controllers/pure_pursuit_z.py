@@ -9,6 +9,7 @@ from dg_commons.geo import norm_between_SE2value
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons import X
 from dg_commons_dev.utils import BaseParams
+from dg_commons_dev.maps.lanes import DgLaneletControl
 
 
 __all__ = ["PurePursuit", "PurePursuitParam"]
@@ -43,6 +44,7 @@ class PurePursuit:
         :param
         """
         self.path: Optional[DgLanelet] = None
+        self.path_control: Optional[DgLaneletControl] = None
         self.pose: Optional[SE2value] = None
         self.along_path: Optional[float] = None
         self.speed: float = 0
@@ -53,12 +55,13 @@ class PurePursuit:
     def update_path(self, path: DgLanelet):
         assert isinstance(path, DgLanelet)
         self.path = path
+        self.path_control = DgLaneletControl(path)
 
     def update_state(self, obs: X):
         self.pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
 
-        control_sol_params = self.path.ControlSolParams(obs.vx, self.params.t_step)
-        lanepose = self.path.lane_pose_from_SE2_generic(self.pose, control_sol=control_sol_params)
+        control_sol_params = self.path_control.ControlSolParams(obs.vx, self.params.t_step)
+        lanepose = self.path_control.lane_pose_from_SE2_generic(self.pose, control_sol=control_sol_params)
         self.along_path = lanepose.along_lane
         self.current_beta = self.path.beta_from_along_lane(self.along_path)
 

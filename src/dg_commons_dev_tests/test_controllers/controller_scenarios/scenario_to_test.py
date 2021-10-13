@@ -1,8 +1,23 @@
+import os
+import re
 from dataclasses import dataclass
 from typing import Optional, List, Dict
-from sim.scenarios.utils import load_commonroad_scenario
+from dg_commons.sim.scenarios.utils import load_commonroad_scenario
 from commonroad.scenario.scenario import Scenario
 from dg_commons_dev_tests.test_controllers.controller_scenarios.utils import race_track_generate_dyn_obs
+import os
+
+
+def get_project_root_dir() -> str:
+    project_root_dir = __file__
+    src_folder = "src"
+    assert src_folder in project_root_dir, project_root_dir
+    project_root_dir = re.split(src_folder, project_root_dir)[0]
+    assert os.path.isdir(project_root_dir)
+    return project_root_dir
+
+
+SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 
 @dataclass
@@ -19,7 +34,7 @@ class ScenarioData:
 
     def on_init(self):
         self.scenario: Scenario
-        self.scenario, _ = load_commonroad_scenario(self.scenario_name)
+        self.scenario, _ = load_commonroad_scenario(self.scenario_name, SCENARIOS_DIR)
 
         if self.scenario_name == "DEU_Hhr-1_1":
             dyn_obs = race_track_generate_dyn_obs(self.scenario,

@@ -1,8 +1,8 @@
-from sim.simulator import SimContext, Simulator, SimParameters, SimLog
-from sim.models.vehicle import VehicleModel
-from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
+from sim_dev.simulator import SimContext, Simulator, SimParameters, SimLog
+from dg_commons.sim.models.vehicle import VehicleModel
+from dg_commons.sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from commonroad.scenario.obstacle import DynamicObstacle
-from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
+from dg_commons.sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test import ScenarioData
 from dg_commons_dev_tests.test_controllers.controllers_to_test import *
 from dg_commons_dev.analysis.metrics import *
