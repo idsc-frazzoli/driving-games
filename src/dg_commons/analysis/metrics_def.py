@@ -1,10 +1,8 @@
-from trajectory_games.metrics_def import EvaluatedMetric, get_integrated
 from dg_commons.maps.lanes import DgLanelet
-from games.game_def import X, U
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
-from typing import List, Mapping, Union, Optional, Dict
-from dg_commons import PlayerName
+from typing import List, Mapping, Union, Optional, Dict, Tuple
+from dg_commons import PlayerName, X, U
 from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from sim.models.vehicle_utils import VehicleParameters
 from sim.models.vehicle import VehicleGeometry
@@ -13,6 +11,96 @@ from dg_commons import SE2Transform, relative_pose
 import os
 import matplotlib.pyplot as plt
 from geometry import translation_angle_scale_from_E2, SE2_from_translation_angle
+from dg_commons.seq.seq_op import seq_integrate
+from functools import lru_cache
+
+
+class EvaluatedMetric:
+    total: float
+    description: str
+    title: str
+    incremental: DgSampledSequence
+    cumulative: DgSampledSequence
+
+    def __init__(
+            self,
+            title: str,
+            description: str,
+            total: float,
+            incremental: Optional[DgSampledSequence],
+            cumulative: Optional[DgSampledSequence],
+    ):
+        self.title = title
+        self.description = description
+        self.total = total
+        self.incremental = incremental
+        self.cumulative = cumulative
+
+    def __repr__(self):
+        return f"{self.title} = {self.total:.2f}"
+
+    def __add__(self, other: "EvaluatedMetric") -> "EvaluatedMetric":
+        if other is None:
+            return self
+        return self.add(m1=self, m2=other)
+
+    @staticmethod
+    @lru_cache(None)
+    def add(m1: "EvaluatedMetric", m2: "EvaluatedMetric") -> "EvaluatedMetric":
+        if m1.title != m2.title:
+            raise NotImplementedError(f"add implemented only for same metric, "
+                                      f"received {m1.title, m2.title}")
+
+        if m1.incremental is None:
+            inc = None
+        else:
+            t_1, t_2 = m1.incremental.timestamps, m2.incremental.timestamps
+            if t_1[-1] != t_2[0]:
+                raise ValueError(f"Timestamps need to be consecutive - {t_1[-1], t_2[0]}")
+            times_i = t_1 + t_2[1:]
+            vals_i = m1.incremental.values + m2.incremental.values[1:]
+            inc = DgSampledSequence(timestamps=times_i, values=vals_i)
+
+        if m1.cumulative is None:
+            cum = None
+        else:
+            times_c = m1.cumulative.timestamps + m2.cumulative.timestamps
+            c_end = m1.cumulative.values[-1]
+            vals_c = m1.cumulative.values + tuple([v + c_end for v in m2.cumulative.values])
+            cum = DgSampledSequence(timestamps=times_c, values=vals_c)
+
+        return EvaluatedMetric(title=m1.title, description=m1.description,
+                               total=m1.total + m2.total, incremental=inc, cumulative=cum)
+
+    __radd__ = __add__
+
+
+def get_integrated(sequence: DgSampledSequence[float]) -> Tuple[DgSampledSequence[float], float]:
+    if len(sequence) <= 1:
+        cumulative = 0.0
+        dtot = 0.0
+    else:
+        cumulative = seq_integrate(sequence)
+        dtot = cumulative.values[-1]
+    return cumulative, dtot
+
+
+def differentiate(val: List[float], t: List[Timestamp]) -> List[float]:
+    if len(val) != len(t):
+        msg = "values and times have different sizes - ({},{})," " can't differentiate".format(
+            len(val), len(t)
+        )
+        raise ValueError(msg)
+
+    def func_diff(i: int) -> float:
+        dy = val[i + 1] - val[i]
+        dx = float(t[i + 1] - t[i])
+        if dx < 1e-8:
+            raise ValueError(f"identical timestamps for func_diff - {t[i]}")
+        return dy / dx
+
+    ret: List[float] = [0.0] + [func_diff(i) for i in range(len(t) - 1)]
+    return ret
 
 
 @dataclass

@@ -1,10 +1,12 @@
-from typing import Optional, List
+from typing import Optional, Union, List
 from abc import ABC, abstractmethod
 from dg_commons import X
 import do_mpc
-from dg_commons.controllers.mpc.mpc_utils.cost_functions import *
+from dataclasses import dataclass
+from dg_commons.controllers.mpc.mpc_utils.cost_functions import CostParameters, MapCostParam
 from sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.utils import BaseParams
+import numpy as np
 
 
 @dataclass

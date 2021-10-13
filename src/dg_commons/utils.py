@@ -1,5 +1,5 @@
 from dataclasses import dataclass, fields
-from typing import Optional, List, Callable, Union, TypeVar, Type, NewType, Any, Generic, Sequence
+from typing import Optional, List, Callable
 import numpy as np
 import scipy.linalg
 from abc import ABC

@@ -61,21 +61,21 @@ if __name__ == '__main__':
 
     scenarios_to_test = [Select(scenarios["lane_change_left"], True),
                          Select(scenarios["turn_90_right"], True),
-                         Select(scenarios["turn_90_left"], True),
-                         Select(scenarios["small_snake"], True),
-                         Select(scenarios["u-turn"], True),
-                         Select(scenarios["left_cont_curve"], True),
-                         Select(scenarios["vertical"], True),
+                         Select(scenarios["turn_90_left"], False),
+                         Select(scenarios["small_snake"], False),
+                         Select(scenarios["u-turn"], False),
+                         Select(scenarios["left_cont_curve"], False),
+                         Select(scenarios["vertical"], False),
                          Select(scenarios["race"], False)]
 
     controllers_to_test = [
         Select(TestLQR, True),
         Select(TestPurePursuit, True),
-        Select(TestStanley, True),
-        Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, True),
-        Select(TestNMPCFullKinDisPV, True), Select(TestNMPCFullKinDisAN, True),
-        Select(TestNMPCLatKinContPV, True), Select(TestNMPCLatKinContAN, True),
-        Select(TestNMPCLatKinDisPV, True), Select(TestNMPCLatKinDisAN, True)
+        Select(TestStanley, False),
+        Select(TestNMPCFullKinContPV, False), Select(TestNMPCFullKinContAN, False),
+        Select(TestNMPCFullKinDisPV, False), Select(TestNMPCFullKinDisAN, False),
+        Select(TestNMPCLatKinContPV, False), Select(TestNMPCLatKinContAN, False),
+        Select(TestNMPCLatKinDisPV, False), Select(TestNMPCLatKinDisAN, False)
     ]
 
     metrics_to_test = [

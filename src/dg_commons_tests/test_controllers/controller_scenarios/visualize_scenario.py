@@ -3,7 +3,7 @@ from sim.scenarios.agent_from_commonroad import *
 from dg_commons import PlayerName
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
 import os
-from crash.reports import generate_report
+# from crash.reports import generate_report
 from dg_commons_tests.test_controllers.controller_scenarios.utils import race_track_generate_dyn_obs
 from sim import SimTime
 
@@ -47,11 +47,11 @@ def visualize_scenario(scenario_name: str):
     simulator.run(sim_context)
     name = "test_" + scenario_name
 
-    report = generate_report(sim_context)
+    # report = generate_report(sim_context)
     # save report
-    output_dir = "out"
-    report_file = os.path.join(output_dir, f"{name}.html")
-    report.to_html(report_file)
+    # output_dir = "out"
+    # report_file = os.path.join(output_dir, f"{name}.html")
+    # report.to_html(report_file)
 
 
 scenario_name = "USA_Peach-3_2_T-1"

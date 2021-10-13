@@ -1,11 +1,19 @@
 from dg_commons.analysis.metrics_def import Metric, MetricEvaluationContext, MetricEvaluationResult, EvaluatedMetric
-from trajectory_games.metrics import get_evaluated_metric
 from dg_commons import PlayerName
-from typing import Union
+from typing import Union, List, Callable, Dict
 from sim.models.model_utils import acceleration_constraint
 from sim.models.vehicle_utils import steering_constraint
 import logging
 import matplotlib.pyplot as plt
+
+
+def get_evaluated_metric(
+        players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]
+) -> MetricEvaluationResult:
+    mer: Dict[PlayerName, EvaluatedMetric] = {}
+    for player_name in players:
+        mer[player_name] = f(player_name)
+    return mer
 
 
 class Empty:

@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import Tuple, Optional
-
 import numpy as np
-
 from dg_commons import logger
 
 
