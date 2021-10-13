@@ -17,12 +17,24 @@ from typing import (
 )
 
 import numpy as np
+from dg_commons.utils_toolz import fkeyfilter, iterate_dict_combinations
 from frozendict import frozendict
 from networkx import connected_components, Graph, MultiDiGraph
 from toolz import itemmap, valmap
-
-from possibilities import check_poss, Poss, PossibilityMonad
 from zuper_commons.types import ZException
+
+from games.solve.solution import solve_game2
+from games.solve.solution_structures import (
+    GameFactorization,
+    GameGraph,
+    GamePlayerPreprocessed,
+    GamePreprocessed,
+    GameSolution,
+    SolvedGameNode,
+    SolverParams,
+    UsedResources,
+)
+from possibilities import check_poss, Poss, PossibilityMonad
 from . import logger
 from .create_joint_game_tree import create_game_graph
 from .game_def import (
@@ -40,21 +52,8 @@ from .game_def import (
     Y,
 )
 from .get_indiv_games import get_individual_games
-from games.solve.solution import solve_game2
-from games.solve.solution_structures import (
-    GameFactorization,
-    GameGraph,
-    GamePlayerPreprocessed,
-    GamePreprocessed,
-    GameSolution,
-    SolvedGameNode,
-    SolverParams,
-    UsedResources,
-)
 
 __all__ = ["preprocess_game", "get_accessible_states"]
-
-from .utils import fkeyfilter, iterate_dict_combinations
 
 
 def preprocess_game(
@@ -76,9 +75,7 @@ def preprocess_game(
     compute_graph_layout(game_graph, iterations=1)
     individual_games = get_individual_games(game)
     players_pre = valmap(
-        lambda individual_game: preprocess_player(
-            solver_params=solver_params, individual_game=individual_game
-        ),
+        lambda individual_game: preprocess_player(solver_params=solver_params, individual_game=individual_game),
         individual_games,
     )
     if solver_params.use_factorization:

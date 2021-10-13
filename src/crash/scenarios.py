@@ -1,9 +1,10 @@
+import os
 from decimal import Decimal as D
-from math import pi
 from typing import List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
+from commonroad.visualization.mp_renderer import MPRenderer
 from dg_commons import DgSampledSequence, PlayerName
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
@@ -32,6 +33,8 @@ __all__ = [
     "get_scenario_racetrack_test",
 ]
 
+from dg_commons_dev.utils import get_project_root_dir
+
 P1, P2, P3, P4, P5, P6, P7, EGO = (
     PlayerName("P1"),
     PlayerName("P2"),
@@ -43,10 +46,12 @@ P1, P2, P3, P4, P5, P6, P7, EGO = (
     PlayerName("Ego"),
 )
 
+SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+
 
 def get_scenario_bicycles() -> SimContext:
     scenario_name = "USA_Lanker-1_1_T-1"
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
 
     x0_p1 = VehicleStateDyn(x=0, y=0, theta=deg2rad(60), vx=5, delta=0)
     x0_p2 = VehicleStateDyn(x=24, y=6, theta=deg2rad(150), vx=6, delta=0)
@@ -116,13 +121,18 @@ def get_scenario_illegal_turn() -> SimContext:
 
 def get_scenario_suicidal_pedestrian() -> SimContext:
     scenario_name = "USA_Peach-1_1_T-1"
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
-    scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
-    x0_p3 = PedestrianState(x=-15, y=-18, theta=deg2rad(90), vx=0)
-    x0_p1 = VehicleStateDyn(x=-37, y=-8, theta=0.05, vx=kmh2ms(40), delta=0)
-    x0_p2 = VehicleStateDyn(x=-35.5, y=-11, theta=0.05, vx=kmh2ms(40), delta=0)
-    x0_p4 = VehicleStateDyn(x=-37, y=-14, theta=0.05, vx=kmh2ms(30), delta=0)
-    x0_p5 = VehicleStateDyn(x=-10, y=-4, theta=deg2rad(188), vx=kmh2ms(30), delta=0)
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
+    # scenario.translate_rotate(translation=np.array([0, 0]), angle=-pi / 2)
+
+    rnd = MPRenderer()
+    scenario.draw(rnd)
+    rnd.render(filename="scenariodebug.png")
+
+    x0_p3 = PedestrianState(x=18, y=-15, theta=deg2rad(180), vx=0)
+    x0_p1 = VehicleStateDyn(x=8, y=-37, theta=deg2rad(92), vx=kmh2ms(40), delta=0)
+    x0_p2 = VehicleStateDyn(x=11, y=-35.5, theta=deg2rad(92), vx=kmh2ms(40), delta=0)
+    x0_p4 = VehicleStateDyn(x=14, y=-37, theta=deg2rad(92), vx=kmh2ms(30), delta=0)
+    x0_p5 = VehicleStateDyn(x=4, y=-10, theta=deg2rad(-88), vx=kmh2ms(30), delta=0)
 
     x0_ego = VehicleStateDyn(x=x0_p2.x - 8, y=x0_p2.y, theta=0.00, vx=kmh2ms(50), delta=0)
     vg_ego = VehicleGeometry.default_car(color="firebrick")
@@ -182,7 +192,7 @@ def get_scenario_suicidal_pedestrian() -> SimContext:
 
 def get_scenario_two_lanes() -> SimContext:
     scenario_name = "ZAM_Zip-1_66_T-1"
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
 
     x0_truck = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=kmh2ms(30), delta=0)
     x0_p2 = VehicleStateDyn(x=-105, y=9, theta=0.00, vx=kmh2ms(60), delta=0)
@@ -229,7 +239,7 @@ def get_scenario_two_lanes() -> SimContext:
 
 def get_scenario_racetrack_test() -> SimContext:
     scenario_name = "DEU_Hhr-1_1"
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
     lane = scenario.lanelet_network.lanelets[0]
     lane = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane, scenario.lanelet_network, max_length=1000)[0][
         0
