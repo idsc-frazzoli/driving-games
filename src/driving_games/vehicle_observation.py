@@ -5,7 +5,7 @@ from decimal import Decimal as D
 
 from dg_commons import PlayerName
 from games import Observations
-from sim.models.vehicle_ligths import LightsCmd
+from dg_commons.sim.models.vehicle_ligths import LightsCmd
 from .structures import SE2_disc, VehicleState
 
 __all__ = ["NotSeen", "Seen", "VehicleObservation", "VehicleDirectObservations"]
@@ -44,7 +44,7 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
 
     @lru_cache(None)
     def all_observations(self) -> FrozenSet[VehicleObservation]:
-        """ Returns all possible observations. """
+        """Returns all possible observations."""
         assert len(self.possible_states) == 1
         all_of_them = set()
         for me in self.my_possible_states:

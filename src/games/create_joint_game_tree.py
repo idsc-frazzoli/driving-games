@@ -29,14 +29,14 @@ from games.solve.solution_structures import (
     GameGraph,
     GameNode,
 )
-from .utils import fkeyfilter, fvalmap, iterate_dict_combinations
+from dg_commons import fkeyfilter, fvalmap, iterate_dict_combinations
 
 __all__ = []
 
 
 @dataclass
 class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
-    """ Iteration structure while creating the game graph. """
+    """Iteration structure while creating the game graph."""
 
     game: Game[X, U, Y, RP, RJ, SR]
     dt: D
@@ -47,7 +47,7 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """ The current depth. """
 
     gf: Optional[GameFactorization[X]]
-    """ Optional GameFactorization that will be used in the 
+    """ Optional GameFactorization that will be used in the
         graph creation to recognize decoupled states.
     """
 
@@ -58,7 +58,7 @@ def create_game_graph(
     initials: AbstractSet[JointState],
     gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
-    """ Create the game graph. """
+    """Create the game graph."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
     logger.info("creating game tree")
@@ -82,7 +82,7 @@ def create_game_graph(
 
 
 def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
-    """ Computes which states are reachable at what time. """
+    """Computes which states are reachable at what time."""
     state2times: Dict[JointState, Set[D]] = defaultdict(set)
     time2states: Dict[D, Set[JointState]] = defaultdict(set)
 
@@ -106,7 +106,7 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
 
 
 def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]) -> DiGraph:
-    """ Returns a NetworkX DiGraph that summarizes the relation of the nodes. """
+    """Returns a NetworkX DiGraph that summarizes the relation of the nodes."""
     G = DiGraph()
     G.add_nodes_from(state2node)
     for js, gn in state2node.items():
@@ -117,10 +117,8 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     return G
 
 
-def get_moves(
-    ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState
-) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
-    """ Returns the possible moves. """
+def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
+    """Returns the possible moves."""
     res = {}
     state: X
     ps = ic.game.ps

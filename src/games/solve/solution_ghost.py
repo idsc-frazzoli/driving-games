@@ -18,7 +18,7 @@ from games.game_def import (
     Y,
 )
 from .solution_structures import GameGraph, GameNode
-from games.utils import fd, iterate_dict_combinations, valmap
+from dg_commons import fd, iterate_dict_combinations, valmap
 
 
 def get_ghost_tree(
@@ -49,7 +49,7 @@ def get_ghost_tree(
 
 @dataclass
 class ROContext:
-    """ Replace others Context """
+    """Replace others Context"""
 
     game: Game[X, U, Y, RP, RJ, SR]
     controllers: Mapping[PlayerName, AgentBelief[X, U]]

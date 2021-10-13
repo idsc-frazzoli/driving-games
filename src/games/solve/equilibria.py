@@ -36,7 +36,7 @@ from .solution_structures import (
     MIX_STRATEGIES,
     PURE_STRATEGIES,
 )
-from games.utils import valmap, fvalmap
+from dg_commons import valmap, fvalmap
 
 __all__ = []
 

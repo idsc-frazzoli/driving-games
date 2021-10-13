@@ -8,16 +8,15 @@ from networkx import DiGraph
 
 from crash import logger
 from dg_commons import PlayerName
-from sim import CollisionReport
-from sim.collision_structures import combine_collision_reports
+from dg_commons.sim import CollisionReport
+from dg_commons.sim.collision_structures import combine_collision_reports
 
 
 def _first_collision_for(player: PlayerName, coll_report: List[CollisionReport]):
     return min([report.at_time for report in coll_report if player in report.players])
 
 
-def investigate_collision_report(coll_reports: List[CollisionReport]) \
-        -> (List[CollisionReport], DiGraph):
+def investigate_collision_report(coll_reports: List[CollisionReport]) -> (List[CollisionReport], DiGraph):
     """We get a collision report for every step of the simulation in which a collision is detected.
     Yet an accident is *one* accident even if the two cars are in a collision state for multiple simulation steps.
     This function aims to compress the list of collision report to a list of "accidents"
@@ -33,8 +32,10 @@ def investigate_collision_report(coll_reports: List[CollisionReport]) \
         for p in players:
             players_involved.add(p)
         accidents.add(players)
-    logger.info(f"From {len(coll_reports)} collisions "
-                f"we detected {len(accidents)} accidents involving {len(players_involved)} players.")
+    logger.info(
+        f"From {len(coll_reports)} collisions "
+        f"we detected {len(accidents)} accidents involving {len(players_involved)} players."
+    )
 
     # We represent the chain of accidents as a direct graph
     Gcoll = DiGraph()

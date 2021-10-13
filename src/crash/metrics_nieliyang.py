@@ -4,8 +4,8 @@ from typing import Tuple, Mapping, Dict
 import numpy as np
 
 from dg_commons import PlayerName
-from sim import CollisionReport
-from sim.models import ms2kmh, ModelType, PEDESTRIAN, BICYCLE
+from dg_commons.sim import CollisionReport
+from dg_commons.sim.models import ms2kmh, ModelType, PEDESTRIAN, BICYCLE
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -28,9 +28,10 @@ class NieLiYangRiskModel:
     Sets the coefficients for the simplest Pedestrian model ("Zero"):
     - Only takes into account delta_v [kilometers per hour]
     """
+
     coeff: Mapping[ModelType, Tuple] = {  # (a0,a1) = (Intercept, DeltaV)
         PEDESTRIAN: (6.576, -0.092),
-        BICYCLE: (6.929, -0.095)
+        BICYCLE: (6.929, -0.095),
     }
 
     def _compute_probability(self, v_impact: float, field: ModelType):
@@ -42,8 +43,9 @@ class NieLiYangRiskModel:
         return NieLiYangRisk(p_fatality=self._compute_probability(v_impact, model_type))
 
 
-def compute_NieLiYang_risk(report: CollisionReport, model_types: Mapping[PlayerName, ModelType]) -> \
-        Mapping[PlayerName, NieLiYangRisk]:
+def compute_NieLiYang_risk(
+    report: CollisionReport, model_types: Mapping[PlayerName, ModelType]
+) -> Mapping[PlayerName, NieLiYangRisk]:
     """
     Calculates the probability of casualty for the simplest Pedestrian model
     for each player in vehicle-pedestrian crashes, according to the "Pedestrian Zero" model

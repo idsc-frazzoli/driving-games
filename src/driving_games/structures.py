@@ -4,7 +4,7 @@ from fractions import Fraction
 from typing import Tuple
 
 from dg_commons import Color
-from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
+from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
     "VehicleCosts",

@@ -14,7 +14,7 @@ from games import (
     UncertaintyParams,
 )
 from possibilities import PossibilityMonad
-from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
+from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 from .collisions import Collision
 from .joint_reward import VehicleJointReward
 from .personal_reward import VehiclePersonalRewardStructureTime
@@ -31,9 +31,7 @@ from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 
 DrivingGame = Game[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
-DrivingGamePlayer = GamePlayer[
-    VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle
-]
+DrivingGamePlayer = GamePlayer[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
 
 
 @dataclass
@@ -54,9 +52,7 @@ class TwoVehicleSimpleParams:
     shared_resources_ds: D
 
 
-def get_two_vehicle_game(
-    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: UncertaintyParams
-) -> DrivingGame:
+def get_two_vehicle_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     L = vehicles_params.side + vehicles_params.road + vehicles_params.side
     start = vehicles_params.side + vehicles_params.road_lane_offset
@@ -86,13 +82,9 @@ def get_two_vehicle_game(
     g1 = VehicleGeometry(mass=mass, width=width, length=length, color=(1, 0, 0))
     g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
-    p1_x = VehicleState(
-        ref=p1_ref, x=D(vehicles_params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
-    )
+    p1_x = VehicleState(ref=p1_ref, x=D(vehicles_params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
     p1_initial = ps.unit(p1_x)
-    p2_x = VehicleState(
-        ref=p2_ref, x=D(vehicles_params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS
-    )
+    p2_x = VehicleState(ref=p2_ref, x=D(vehicles_params.second_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
     p2_initial = ps.unit(p2_x)
     p1_dynamics = VehicleTrackDynamics(
         max_speed=max_speed,
@@ -152,13 +144,9 @@ def get_two_vehicle_game(
     players = {P1: p1, P2: p2}
     joint_reward: JointRewardStructure[VehicleState, VehicleActions, Collision]
 
-    joint_reward = VehicleJointReward(
-        collision_threshold=vehicles_params.collision_threshold, geometries=geometries
-    )
+    joint_reward = VehicleJointReward(collision_threshold=vehicles_params.collision_threshold, geometries=geometries)
 
-    game_visualization: GameVisualization[
-        VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
-    ]
+    game_visualization: GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
     game_visualization = DrivingGameVisualization(
         vehicles_params, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
     )

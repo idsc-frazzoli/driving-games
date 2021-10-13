@@ -4,12 +4,12 @@ from functools import partial
 from time import perf_counter
 from typing import Dict, Set, FrozenSet, Mapping, Optional
 
+from dg_commons import PlayerName
+from dg_commons import iterate_dict_combinations
+from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from frozendict import frozendict
 
-from dg_commons import PlayerName
-from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from games import PURE_STRATEGIES, BAIL_MNE
-from games.utils import iterate_dict_combinations
 from possibilities import Poss
 from preferences import Preference
 from .game_def import (

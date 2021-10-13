@@ -20,7 +20,7 @@ __all__ = [
     "SE2_from_VehicleState",
 ]
 
-from games.utils import fs
+from dg_commons import fs
 
 Coordinates = Tuple[D, D]
 
@@ -29,7 +29,7 @@ logger.info(f"This file is deprecated {__name__}")
 
 @dataclass(frozen=True)
 class Rectangle:
-    """ Represents a rectangle """
+    """Represents a rectangle"""
 
     bottom_left: Coordinates
     top_right: Coordinates
@@ -78,7 +78,7 @@ def get_rectangle_countour(r: Rectangle) -> List[Tuple[float, float]]:
 
 
 def make_rectangle(center: Coordinates, sides: Tuple[D, D]) -> Rectangle:
-    """ Creates rectangle given center and sides. """
+    """Creates rectangle given center and sides."""
     c0, c1 = center
     l0, l1 = sides
     pa = c0 - l0 / 2, c1 - l1 / 2
@@ -140,7 +140,7 @@ def rectangle_from_pose(ref: SE2_disc, x: D, vg: VehicleGeometry) -> ProjectedCa
 
 
 def get_vehicle_points(vs: VehicleState, vg: VehicleGeometry) -> FrozenSet[Coordinates]:
-    """ Gets a set of representative points for the vehicle"""
+    """Gets a set of representative points for the vehicle"""
     # this will extend -0.5 0.25 0 0.25 0.5
     dt = D(0.25)
     n = 2
@@ -156,7 +156,7 @@ def get_vehicle_points(vs: VehicleState, vg: VehicleGeometry) -> FrozenSet[Coord
 
 
 def get_resources_used(vs: VehicleState, vg: VehicleGeometry, ds: D) -> FrozenSet[Rectangle]:
-    """ Gets the rectangles that contain the vehicle. """
+    """Gets the rectangles that contain the vehicle."""
     points = get_vehicle_points(vs, vg)
     # todo use polygons from shapely for resources
 
@@ -165,12 +165,12 @@ def get_resources_used(vs: VehicleState, vg: VehicleGeometry, ds: D) -> FrozenSe
 
 
 def rectangles_from_points(points: Iterable[Coordinates], ds: D) -> FrozenSet[Rectangle]:
-    """ Gets the rectangles containing all these coordinates. """
+    """Gets the rectangles containing all these coordinates."""
     return frozenset(rectangle_from_point(_, ds) for _ in points)
 
 
 def rectangle_from_point(point: Coordinates, ds: D) -> Rectangle:
-    """ Gets the rectangle containing this coordinate. """
+    """Gets the rectangle containing this coordinate."""
     x = int(point[0] / ds) * ds
     y = int(point[1] / ds) * ds
 

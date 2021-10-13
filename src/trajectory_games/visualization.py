@@ -14,7 +14,7 @@ from shapely.geometry import Polygon
 from dg_commons import Color
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
-from sim.simulator_visualisation import transform_xy
+from dg_commons.sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
 from .paths import Trajectory
 from .preference import PosetalPreference, WeightedPreference

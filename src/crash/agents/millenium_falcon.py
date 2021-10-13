@@ -1,4 +1,4 @@
-from sim.agents.lane_follower import LFAgent
+from dg_commons.sim.agents.lane_follower import LFAgent
 
 __all__ = ["MilleniumFalcon"]
 

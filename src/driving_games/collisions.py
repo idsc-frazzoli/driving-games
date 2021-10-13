@@ -2,12 +2,13 @@ from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
 
-from sim import ImpactLocation
+from dg_commons.sim import ImpactLocation
 
 __all__ = ["Collision"]
 
 
 # todo redo this part according to new collision checking
+
 
 @dataclass(frozen=True)
 class Collision:
@@ -43,8 +44,6 @@ class Collision:
     def __mul__(self, weight: Fraction) -> "Collision":
         # weighting costs, e.g. according to a probability
         w = D(float(weight))
-        return replace(
-            self, energy_received=self.energy_received * w, energy_transmitted=self.energy_transmitted * w
-        )
+        return replace(self, energy_received=self.energy_received * w, energy_transmitted=self.energy_transmitted * w)
 
     __rmul__ = __mul__

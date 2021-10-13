@@ -14,7 +14,7 @@ from zuper_commons.text import remove_escapes
 from dg_commons import PlayerName, Color
 from dg_commons.maps import DgLanelet
 from preferences import Preference
-from sim.simulator_animation import adjust_axes_limits
+from dg_commons.sim.simulator_animation import adjust_axes_limits
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from .metrics_def import PlayerOutcome
 from .paths import Trajectory

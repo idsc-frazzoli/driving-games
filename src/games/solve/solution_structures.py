@@ -31,7 +31,7 @@ from games.game_def import (
     Y,
 )
 from games.simulate import Simulation
-from games.utils import fkeyfilter, iterate_dict_combinations
+from dg_commons import fkeyfilter, iterate_dict_combinations
 
 __all__ = [
     "GameNode",
@@ -72,7 +72,7 @@ BAIL_MNE = StrategyForMultipleNash("bail_mNE")
 
 @dataclass(frozen=True)
 class SolverParams:
-    """ Parameters for the solver"""
+    """Parameters for the solver"""
 
     admissible_strategies: AdmissibleStrategies
     """ Allowed search space of strategies"""
@@ -86,24 +86,24 @@ class SolverParams:
 
 @dataclass(frozen=False, unsafe_hash=True, order=True)
 class GameNode(Generic[X, U, Y, RP, RJ, SR]):
-    """ The game node """
+    """The game node"""
 
     states: JointState
     """ The state for each player."""
 
     moves: PlayerOptions
-    """ 
+    """
         The possible moves for each player. Note that each player must have at least one move.
         In case there is only one move, then there is nothing for them to choose to do.
     """
 
     outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
-    """ 
+    """
         The outcomes. Fixed an action for each player (a JointPureAction), we have
-        a distribution of outcomes. Each outcome is a map that tells us which 
+        a distribution of outcomes. Each outcome is a map that tells us which
         player goes to which joint state. This is a generalization beyond the usual
         formalization of games that allows us to send different players to different games.
-        
+
         For example, suppose that the next state is = {A:x, B:y} and that in those states
         the play can be decoupled. Then we would send A to the game {A:x} and B to the game {B:y}.
     """
@@ -203,7 +203,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         self.check_players_in_outcome()
 
     def check_players_in_outcome(self) -> None:
-        """ We want to make sure that each player transitions in a game in which he is present. """
+        """We want to make sure that each player transitions in a game in which he is present."""
         jpa: JointPureActions
         consequences: Poss[Mapping[PlayerName, JointState]]
         for jpa, consequences in self.outcomes.items():
@@ -225,7 +225,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
 
 def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
-    """ Returns the set of state mentioned in a GameNode"""
+    """Returns the set of state mentioned in a GameNode"""
     res = set()
     for _, out in game_node.outcomes.items():
         for player_to_js in out.support():
@@ -236,7 +236,7 @@ def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
 
 @dataclass
 class AccessibilityInfo(Generic[X]):
-    """ The time accessibility info of the states of a game"""
+    """The time accessibility info of the states of a game"""
 
     state2times: Dict[JointState, AbstractSet[D]]
     """ For each state, at what time can it be visited? """
@@ -247,15 +247,15 @@ class AccessibilityInfo(Generic[X]):
 
 @dataclass
 class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
-    """ The game graph."""
+    """The game graph."""
 
     initials: AbstractSet[JointState]
     """ The initial states of the game. """
 
     state2node: Mapping[JointState, GameNode[X, U, Y, RP, RJ, SR]]
-    """ 
+    """
         Maps to each joint state a GameNode. Inside a GameNode the next
-        states are identified by their JointState only. 
+        states are identified by their JointState only.
     """
 
     ti: AccessibilityInfo[X]
@@ -279,7 +279,7 @@ class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass
 class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ, SR]):
-    """ Pre-processed data for each game player"""
+    """Pre-processed data for each game player"""
 
     player_graph: MultiDiGraph
     """ A NetworkX graph used fo visualization. """
@@ -293,7 +293,7 @@ class GamePlayerPreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass
 class GameFactorization(Generic[X]):
-    """ Factorization information for the game"""
+    """Factorization information for the game"""
 
     partitions: Mapping[FSet[FSet[PlayerName]], FSet[JointState]]
     """ For each partition of players, what joint states have that partition? """
@@ -304,7 +304,7 @@ class GameFactorization(Generic[X]):
 
 @dataclass
 class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
-    """ A pre-processed game. """
+    """A pre-processed game."""
 
     game: Game[X, U, Y, RP, RJ, SR]
     """ The original game. """
@@ -324,7 +324,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class ValueAndActions(Generic[U, RP, RJ]):
-    """ The solution for a game node. """
+    """The solution for a game node."""
 
     mixed_actions: JointMixedActions
     """ What players choose. """
@@ -343,19 +343,19 @@ class ValueAndActions(Generic[U, RP, RJ]):
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
-    """ The used *future* resources for a particular state. """
+    """The used *future* resources for a particular state."""
 
     used: Mapping[D, Poss[Mapping[PlayerName, FSet[SR]]]]
     """
-        For each delta time (D = 0 means now. +1 means next step, etc.) 
-        what states are the agents going to use. 
+        For each delta time (D = 0 means now. +1 means next step, etc.)
+        what states are the agents going to use.
         For each delta time we have a distribution of spatial resource occupancy.
     """
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
-    """ A solved game node. """
+    """A solved game node."""
 
     states: JointState
     """ The joint state for this node. """
@@ -389,7 +389,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass
 class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
-    """ Context for the solution of the game"""
+    """Context for the solution of the game"""
 
     game: Game[X, U, Y, RP, RJ, SR]
     """ The original game. """
@@ -412,7 +412,7 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass
 class GameSolution(Generic[X, U, Y, RP, RJ, SR]):
-    """ Solution of a game. """
+    """Solution of a game."""
 
     initials: AbstractSet[JointState]
     """ Set of initial states for which we have a solution """

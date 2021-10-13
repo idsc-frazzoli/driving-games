@@ -8,7 +8,7 @@ from zuper_commons.types import ZValueError, ZException
 
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
-from sim.models.vehicle_ligths import LightsValues, LightsCmd
+from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd
 from .rectangle import get_resources_used, Rectangle
 from .structures import (
     SE2_disc,
@@ -25,7 +25,8 @@ class InvalidAction(ZException):
 
 
 class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
-    """ Dynamics only along a path #fixme"""
+    """Dynamics only along a path #fixme"""
+
     max_speed: D
     """ Maximum speed [m/s] """
 
@@ -51,17 +52,17 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     """ The vehicle's geometry. """
 
     def __init__(
-            self,
-            max_speed: D,
-            min_speed: D,
-            available_accels: FrozenSet[D],
-            max_wait: D,
-            ref: SE2_disc,
-            max_path: D,
-            lights_commands: FrozenSet[LightsCmd],
-            shared_resources_ds: D,
-            vg: VehicleGeometry,
-            poss_monad: PossibilityMonad,
+        self,
+        max_speed: D,
+        min_speed: D,
+        available_accels: FrozenSet[D],
+        max_wait: D,
+        ref: SE2_disc,
+        max_path: D,
+        lights_commands: FrozenSet[LightsCmd],
+        shared_resources_ds: D,
+        vg: VehicleGeometry,
+        poss_monad: PossibilityMonad,
     ):
         self.min_speed = min_speed
         self.max_speed = max_speed
@@ -83,7 +84,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
 
     @lru_cache(None)
     def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState]]:
-        """ For each state, returns a dictionary U -> Possible Xs """
+        """For each state, returns a dictionary U -> Possible Xs"""
         # only allow accelerations that make the speed non-negative
         accels = [_ for _ in self.available_accels if _ * dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever

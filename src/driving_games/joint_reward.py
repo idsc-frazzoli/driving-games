@@ -3,7 +3,7 @@ from decimal import Decimal as D
 
 from dg_commons import PlayerName
 from games import JointRewardStructure
-from sim import IMPACT_FRONT
+from dg_commons.sim import IMPACT_FRONT
 from .collisions import Collision
 from .collisions_check import collision_check
 from .structures import VehicleActions, VehicleGeometry, VehicleState

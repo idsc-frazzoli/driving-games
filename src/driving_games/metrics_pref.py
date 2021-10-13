@@ -1,6 +1,7 @@
 from queue import PriorityQueue
 from typing import Type, Set
 
+from dg_commons import fd
 from networkx import DiGraph
 
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
@@ -42,9 +43,9 @@ class PosetalPref(Preference[PlayerEvaluatedMetrics]):
             return INDIFFERENT
         if self.use_cache:
             if isinstance(a, dict):
-                a = frozendict(a)
+                a = fd(a)
             if isinstance(b, dict):
-                b = frozendict(a)
+                b = fd(a)
             if (a, b) in self._cache:
                 return self._cache[(a, b)]
             if (b, a) in self._cache:

@@ -31,7 +31,7 @@ from .solution_structures import (
     SECURITY_MNE,
     ValueAndActions,
 )
-from games.utils import fd
+from dg_commons import fd
 
 
 def solve_equilibria(

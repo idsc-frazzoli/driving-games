@@ -18,7 +18,7 @@ from preferences import (
     SECOND_PREFERRED,
     StrictProductPreferenceDict,
 )
-from sim import IMPACT_FRONT
+from dg_commons.sim import IMPACT_FRONT
 from . import logger
 
 

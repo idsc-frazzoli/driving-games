@@ -14,7 +14,7 @@ from dg_commons.maps import DgLanelet
 from games import MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference1
-from sim.scenarios import load_commonroad_scenario
+from dg_commons.sim.scenarios import load_commonroad_scenario
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation

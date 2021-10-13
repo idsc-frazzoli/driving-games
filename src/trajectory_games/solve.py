@@ -6,7 +6,7 @@ from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
 from frozendict import frozendict
 
 from dg_commons import PlayerName
-from games.utils import iterate_dict_combinations
+from dg_commons import iterate_dict_combinations
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
 from .game_def import SolvingContext
 from .metrics_def import TrajGameOutcome, PlayerOutcome
