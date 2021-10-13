@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Dict
 from sim.scenarios.utils import load_commonroad_scenario
 from commonroad.scenario.scenario import Scenario
 from dg_commons_dev_tests.test_controllers.controller_scenarios.utils import race_track_generate_dyn_obs
@@ -33,7 +33,7 @@ class ScenarioData:
             assert all([idx <= n_cars for idx in self.cars_idx])
 
 
-scenarios = {
+scenarios: Dict[str, ScenarioData] = {
     "lane_change_left": ScenarioData("ZAM_Zip-1_60_T-1", "lane_change_left", [1], simulation_time=7),
     "turn_90_right": ScenarioData("ARG_Carcarana-1_1_T-1", "turn_90_right", [1], simulation_time=7),
     "turn_90_left": ScenarioData("DEU_Muehlhausen-2_2_T-1", "turn_90_left", [3], simulation_time=5),

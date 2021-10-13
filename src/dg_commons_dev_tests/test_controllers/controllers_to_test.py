@@ -2,12 +2,17 @@ from sim_dev.agents.lane_followers import *
 from dg_commons_dev.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
 from dg_commons_dev.state_estimators.estimator_types import *
 from dg_commons_dev.controllers.full_controller_base import VehicleController
-from dg_commons_dev_tests.test_controllers.controller_test_utils import DT_COMMANDS, DT
 from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons_dev.state_estimators.dropping_trechniques import *
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 import copy
 from dg_commons_dev.state_estimators.extended_kalman_filter import *
+from sim.simulator import SimTime
+
+
+DT: SimTime = SimTime("0.05")
+DT_COMMANDS: SimTime = SimTime("0.1")
+assert DT_COMMANDS % DT == SimTime(0)
 
 
 state_estimator: type(Estimators) = ExtendedKalman
@@ -33,7 +38,7 @@ TestLQR = VehicleController(
             controller_params=LQRParam(
                 r=SemiDef([0.5]),
                 q=SemiDef(matrix=np.array([[1, 0, 0], [0, 1, 0], [0, 0, 0.01]])),
-                t_step=float(DT_COMMANDS)
+                t_step=float(DT_COMMANDS),
             ),
 
             longitudinal_controller=SpeedController,

@@ -22,6 +22,7 @@ zuper-typing-z6>=6.1.0
 duckietown-world-daffy==6.2.24
 
 commonroad-io==2021.2
+dg_commons>=0.0.5
 
 do-mpc==4.2.0
 

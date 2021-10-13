@@ -1,11 +1,8 @@
 from sim.simulator import SimContext, Simulator, SimParameters, SimLog
-from sim.models.vehicle import VehicleModel, VehicleState
-from dataclasses import fields, dataclass
+from sim.models.vehicle import VehicleModel
 from sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from commonroad.scenario.obstacle import DynamicObstacle
 from sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
-from dg_commons.seq.sequence import DgSampledSequence
-from sim import SimTime
 from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test import ScenarioData
 from dg_commons_dev_tests.test_controllers.controllers_to_test import *
 from dg_commons_dev.analysis.metrics import *
@@ -17,6 +14,9 @@ import math
 from dg_commons_dev.controllers.full_controller_base import VehicleController
 from dg_commons_dev.controllers.speed import SpeedBehavior
 import numpy as np
+import time
+from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios
+from dg_commons_dev_tests.test_controllers.controllers_to_test import contr_to_test, DT, DT_COMMANDS
 
 
 class Verbosity:
@@ -39,27 +39,140 @@ class Select:
             self.item.on_init()
 
 
-@dataclass
-class TestInstance:
-    controller: VehicleController
+class TestMultipleControllerInstances:
 
-    metric: List[type(Metrics)]
+    def __init__(self, controllers_to_test, metrics_to_test, scenarios_to_test, verbosity: Verbosity = Verbosity(1)):
+        assert all([isinstance(c.item, VehicleController) for c in controllers_to_test])
+        # assert all([isinstance(c.item(), Metrics) for c in metrics])
+        assert all([isinstance(c.item, ScenarioData) for c in scenarios_to_test])
 
-    scenario: ScenarioData
+        assert set(scenarios.keys()) == set([item.item.fig_name for item in scenarios_to_test])
+        helper = [item.item for item in controllers_to_test]
+        assert all([contr in helper for contr in contr_to_test])
+        assert all([contr in contr_to_test for contr in helper])
+        helper = [item.item for item in metrics_to_test]
+        assert all([metr in helper for metr in metrics_list])
+        assert all([metr in metrics_list for metr in helper])
+
+        self.controllers: List[Select] = controllers_to_test
+        self.metrics: List[Select] = metrics_to_test
+        self.scenarios: List[Select] = scenarios_to_test
+
+        self.data = None
+        self.controllers_data = []
+        self.scenarios_data = []
+        self.timing = {}
+        self.verbosity = verbosity
+
+        n_scenarios = sum([1 for s in scenarios_to_test if s.test])
+        n_controllers = sum([s.item.get_count() for s in controllers_to_test if s.test])
+        self.steps: int = n_controllers * n_scenarios
 
     def run(self):
-        test = TestController(scenario=self.scenario, metrics=self.metric, controller=self.controller)
+        metrics_to_test = [met.item for met in self.metrics if met.test]
+        self.data = {key.item.__name__: [] for key in self.metrics}
+        counter = 0
+
+        if self.verbosity.val > 0:
+            print("[Testing Cases]... There are {} testing cases".format(self.steps))
+
+        t1 = time.time()
+        for controllers_to_test in self.controllers:
+            if controllers_to_test.test:
+                it = 0
+                for controller_to_test in controllers_to_test.item.gen():
+                    controller_to_test.add_sub_folder("Test{}".format(it))
+                    root_name = controller_to_test.folder_name + "Test{}".format(it)
+                    it += 1
+                    for scenario_to_test in self.scenarios:
+                        if scenario_to_test.test:
+                            dict_name = root_name + scenario_to_test.item.fig_name
+                            counter += 1
+                            scenario = scenario_to_test.item
+                            result = self.run_single(controller_to_test, metrics_to_test, scenario_to_test.item)
+                            self.collect_data(dict_name, result, scenario.fig_name,
+                                              round(counter / self.steps * 100, 3),
+                                              controllers_to_test.item.folder_name)
+
+        t2 = time.time()
+        if self.verbosity.val > 0:
+            print("The whole process took {} seconds".format(round(t2 - t1, 3)))
+
+        self.show_data()
+
+    def collect_data(self, dict_name, result, scenario_fig_name, percentage, controller_folder_name):
+        self.timing[dict_name] = {}
+        helper = {key: [] for key in self.data.keys()}
+        if self.verbosity.val > 0:
+            print("[Testing]...")
+            print("[Controller]...", controller_folder_name)
+            print("[Scenario]...", scenario_fig_name)
+            print("[Percentage]...", percentage, "%")
+            for key in result[0].keys():
+                print()
+                print("[Results for {}]...".format(key))
+                for item in result:
+                    if item[key].title == DTForCommand.__name__:
+                        delta = round(float(np.average(np.array(item[key].incremental.values))), 4)
+                        print(DTForCommand.__name__, " = {}".format(delta))
+                        helper[DTForCommand.__name__].append(delta)
+                    else:
+                        helper[item[key].title].append(item[key].total)
+                        print(item[key])
+
+        for key in self.data.keys():
+            self.data[key].append(np.average(np.array(helper[key])))
+        self.controllers_data.append(controller_folder_name)
+        self.scenarios_data.append(scenario_fig_name)
+        self.timing[dict_name][scenario_fig_name] = np.average(np.array(helper[DTForCommand.__name__]))
+
+    def show_data(self):
+        name = "OVERALL STATISTICS"
+        output_dir = os.path.join("out", "simulation_timing_statistics")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        def show_results(ch_name, data, ch_controllers, plots=False):
+            if self.verbosity.val > 1:
+                print(ch_name)
+
+            for key in data.keys():
+                if self.verbosity.val > 1:
+                    minimum = min(data[key])
+                    idx_min = data[key].index(minimum)
+                    maximum = max(data[key])
+                    idx_max = data[key].index(maximum)
+                    print("Total/Average {}: {}".format(key, round(sum(data[key]) / len(data[key]), 3)))
+                    max_scene = ", Scenario: " + self.scenarios_data[idx_max] if ch_name == "OVERALL STATISTICS" else ""
+                    print("Max {} is {} for: ".format(key, round(maximum, 3)),
+                          " Controller: {}{}".format(ch_controllers[idx_max], max_scene))
+                    min_scene = ", Scenario: " + self.scenarios_data[idx_min] if name == "OVERALL STATISTICS" else ""
+                    print("Min {} is {} for: ".format(key, round(minimum, 3)),
+                          " Controller: {}{}".format(ch_controllers[idx_min], min_scene))
+                    print()
+                if plots:
+                    plt.hist(data[key])
+                    plt.title(ch_name + " " + key)
+                    plt.savefig(os.path.join(output_dir, ch_name + key))
+                    plt.clf()
+
+        scenario_list = list(dict.fromkeys(self.scenarios_data))
+        show_results(name, self.data, self.controllers_data)
+        for scene in scenario_list:
+            helper = [i for i, t in enumerate(self.scenarios_data) if t == scene]
+            temp_data = {key: [self.data[key][i] for i in helper] for key in self.data.keys()}
+            temp_controller = [self.controllers_data[i] for i in helper]
+            name = "STATISTICS ABOUT " + scene.upper()
+            show_results(name, temp_data, temp_controller)
+
+    def run_single(self, controller, metric, scenario):
+        test = TestSingleControllerInstance(scenario=scenario, metrics=metric, controller=controller)
         test.run()
         test.evaluate_metrics()
         return test.result
 
 
-DT: SimTime = SimTime("0.05")
-DT_COMMANDS: SimTime = SimTime("0.1")
-assert DT_COMMANDS % DT == SimTime(0)
-
-
-class TestController:
+class TestSingleControllerInstance:
 
     def __init__(self, scenario: ScenarioData, metrics, controller: VehicleController,
                  vehicle_model: Optional[str] = None):
@@ -174,76 +287,3 @@ class TestController:
                 self.result.append(met.evaluate(self.metrics_context, plot=True, output_dir=self.output_dir))
         else:
             print("No Metric to Evaluate")
-
-
-class DataCollect:
-    def __init__(self, keys):
-        self.data = {key: [] for key in keys}
-        self.controllers = []
-        self.scenarios = []
-        self.timing = {}
-
-    def collect_data(self, dict_name, result, scenario_fig_name, percentage, controller_folder_name, verbosity):
-        self.timing[dict_name] = {}
-        helper = {key: [] for key in self.data.keys()}
-        if verbosity.val > 0:
-            print("[Testing]...")
-            print("[Controller]...", controller_folder_name)
-            print("[Scenario]...", scenario_fig_name)
-            print("[Percentage]...", percentage, "%")
-            for key in result[0].keys():
-                print()
-                print("[Results for {}]...".format(key))
-                for item in result:
-                    if item[key].title == DTForCommand.__name__:
-                        delta = round(float(np.average(np.array(item[key].incremental.values))), 4)
-                        print(DTForCommand.__name__, " = {}".format(delta))
-                        helper[DTForCommand.__name__].append(delta)
-                    else:
-                        helper[item[key].title].append(item[key].total)
-                        print(item[key])
-
-        for key in self.data.keys():
-            self.data[key].append(np.average(np.array(helper[key])))
-        self.controllers.append(controller_folder_name)
-        self.scenarios.append(scenario_fig_name)
-        self.timing[dict_name][scenario_fig_name] = np.average(np.array(helper[DTForCommand.__name__]))
-
-    def show_data(self, verbosity):
-        name = "OVERALL STATISTICS"
-        output_dir = os.path.join("out", "simulation_timing_statistics")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        def show_results(ch_name, data, ch_controllers, plots=False):
-            if verbosity.val > 1:
-                print(ch_name)
-
-            for key in data.keys():
-                if verbosity.val > 1:
-                    minimum = min(data[key])
-                    idx_min = data[key].index(minimum)
-                    maximum = max(data[key])
-                    idx_max = data[key].index(maximum)
-                    print("Total/Average {}: {}".format(key, round(sum(data[key]) / len(data[key]), 3)))
-                    max_scene = ", Scenario: " + self.scenarios[idx_max] if ch_name == "OVERALL STATISTICS" else ""
-                    print("Max {} is {} for: ".format(key, round(maximum, 3)),
-                          " Controller: {}{}".format(ch_controllers[idx_max], max_scene))
-                    min_scene = ", Scenario: " + self.scenarios[idx_min] if name == "OVERALL STATISTICS" else ""
-                    print("Min {} is {} for: ".format(key, round(minimum, 3)),
-                          " Controller: {}{}".format(ch_controllers[idx_min], min_scene))
-                    print()
-                if plots:
-                    plt.hist(data[key])
-                    plt.title(ch_name + " " + key)
-                    plt.savefig(os.path.join(output_dir, ch_name + key))
-                    plt.clf()
-
-        scenario_list = list(dict.fromkeys(self.scenarios))
-        show_results(name, self.data, self.controllers)
-        for scene in scenario_list:
-            helper = [i for i, t in enumerate(self.scenarios) if t == scene]
-            temp_data = {key: [self.data[key][i] for i in helper] for key in self.data.keys()}
-            temp_controller = [self.controllers[i] for i in helper]
-            name = "STATISTICS ABOUT " + scene.upper()
-            show_results(name, temp_data, temp_controller)
