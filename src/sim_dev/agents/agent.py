@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Any, TypeVar
-
 from dg_commons import DgSampledSequence, U, PlayerName, X
 from sim import SimTime
 from sim.simulator_structures import SimObservations

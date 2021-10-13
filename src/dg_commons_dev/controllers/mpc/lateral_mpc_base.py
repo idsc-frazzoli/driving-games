@@ -14,7 +14,7 @@ vehicle_params = VehicleParameters.default_car()
 
 @dataclass
 class LatMPCKinBaseParam(MPCKinBAseParam):
-    cost: Union[List[str], str] = "quadratic"
+    cost: Union[List[CostFunctions], CostFunctions] = QuadraticCost
     """ Cost function """
     cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams(
         q=SemiDef(matrix=np.eye(2)),
@@ -51,6 +51,7 @@ class LatMPCKinBase(MPCKinBase):
         """ Current position and speed of the vehicle, current position on DgLanelet and current approx trajectory """
 
         self.prediction_x, self.prediction_y, self.target_position = None, None, None
+        self.cost = self.params.cost(self.params.cost_params)
 
         self.approx_type = self.params.path_approx_technique
         if not self.params.analytical:
@@ -103,14 +104,14 @@ class LatMPCKinBase(MPCKinBase):
         error = [target_x - self.state_x, target_y - self.state_y]
         inp = [self.v_delta]
 
-        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
+        lterm, _ = self.cost.cost_function(error, inp)
         return lterm
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
         error = [target_x - self.state_x, target_y - self.state_y]
         inp = [self.v_delta]
 
-        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
+        _, mterm = self.cost.cost_function(error, inp)
         return mterm
 
     def next_pos(self, current_beta):

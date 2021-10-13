@@ -6,7 +6,7 @@ from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
 
 @dataclass
 class FullMPCKinBaseParam(LatMPCKinBaseParam):
-    cost: str = "quadratic"
+    cost: CostFunctions = QuadraticCost
     """ Cost function """
     cost_params: CostParameters = QuadraticParams(
         q=SemiDef(matrix=np.eye(3)),
@@ -27,13 +27,13 @@ class FullMPCKinBase(LatMPCKinBase):
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):
         error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
         inp = [self.v_delta, self.a]
-        lterm, _ = costs[self.params.cost](error, inp, self.params.cost_params)
+        lterm, _ = self.cost.cost_function(error, inp)
         return lterm
 
     def mterm(self, target_x, target_y, speed_ref, target_angle=None):
         error = [target_x - self.state_x, target_y - self.state_y, self.v - speed_ref]
         inp = [self.v_delta, self.a]
-        _, mterm = costs[self.params.cost](error, inp, self.params.cost_params)
+        _, mterm = self.cost.cost_function(error, inp)
         return mterm
 
     def set_bounds(self):

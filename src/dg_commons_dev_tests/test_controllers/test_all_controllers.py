@@ -56,7 +56,7 @@ def simulate_all_test_instances(scenarios_to_test, controllers_to_test,
 if __name__ == '__main__':
     verbosity: Verbosity = Verbosity(2)
 
-    scenarios_to_test = [Select(scenarios["lane_change_left"], True),
+    scenarios_to_test = [Select(scenarios["lane_change_left"], False),
                          Select(scenarios["turn_90_right"], True),
                          Select(scenarios["turn_90_left"], False),
                          Select(scenarios["small_snake"], False),
@@ -68,11 +68,11 @@ if __name__ == '__main__':
     controllers_to_test = [
         Select(TestLQR, True),
         Select(TestPurePursuit, True),
-        Select(TestStanley, False),
-        Select(TestNMPCFullKinContPV, False), Select(TestNMPCFullKinContAN, False),
-        Select(TestNMPCFullKinDisPV, False), Select(TestNMPCFullKinDisAN, False),
-        Select(TestNMPCLatKinContPV, False), Select(TestNMPCLatKinContAN, False),
-        Select(TestNMPCLatKinDisPV, False), Select(TestNMPCLatKinDisAN, False)
+        Select(TestStanley, True),
+        Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, True),
+        Select(TestNMPCFullKinDisPV, True), Select(TestNMPCFullKinDisAN, True),
+        Select(TestNMPCLatKinContPV, True), Select(TestNMPCLatKinContAN, True),
+        Select(TestNMPCLatKinDisPV, True), Select(TestNMPCLatKinDisAN, True)
     ]
 
     metrics_to_test = [

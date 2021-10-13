@@ -59,7 +59,7 @@ TestNMPCFullKinContPV = VehicleController(
             n_horizon=15,
             t_step=float(DT_COMMANDS),
             delta_input_weight=1e-2,
-            cost='quadratic',
+            cost=QuadraticCost,
             cost_params=QuadraticParams(
                 q=SemiDef(matrix=np.eye(3)),
                 r=SemiDef(matrix=np.eye(2))
@@ -93,7 +93,7 @@ TestNMPCFullKinDisPV = VehicleController(
         controller_params=NMPCFullKinDisParam(
             n_horizon=15,
             t_step=float(DT_COMMANDS),
-            cost="quadratic",
+            cost=QuadraticCost,
             cost_params=QuadraticParams(
                 q=SemiDef(matrix=np.eye(3)),
                 r=SemiDef(matrix=np.eye(2))
@@ -130,7 +130,7 @@ TestNMPCLatKinContPV = VehicleController(
         controller_params=NMPCLatKinContParam(
             n_horizon=15,
             t_step=float(DT_COMMANDS),
-            cost="quadratic",
+            cost=QuadraticCost,
             cost_params=QuadraticParams(
                 q=SemiDef(matrix=np.eye(2)),
                 r=SemiDef(matrix=np.eye(1))
@@ -172,7 +172,7 @@ TestNMPCLatKinDisPV = VehicleController(
         controller_params=NMPCLatKinDisParam(
             n_horizon=15,
             t_step=float(DT_COMMANDS),
-            cost="quadratic",
+            cost=QuadraticCost,
             cost_params=QuadraticParams(
                 q=SemiDef(matrix=np.eye(2)),
                 r=SemiDef(matrix=np.eye(1))

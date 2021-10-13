@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dg_commons import X
 import do_mpc
 from dataclasses import dataclass
-from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import CostParameters, MapCostParam
+from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
 from sim.models.vehicle_structures import VehicleGeometry
 from dg_commons_dev.utils import BaseParams
 import numpy as np
@@ -15,9 +15,9 @@ class MPCKinBAseParam(BaseParams):
     """ Horizon Length """
     t_step: Union[List[float], float] = 0.1
     """ Sample Time """
-    cost: Union[List[str], str] = None
+    cost: Union[List[CostFunctions], CostFunctions] = QuadraticCost
     """ Cost function """
-    cost_params: Union[List[CostParameters], CostParameters] = None
+    cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams()
     """ Cost function parameters """
     delta_input_weight: Union[List[float], float] = 1e-2
     """ Weighting factor in cost function for varying input """
