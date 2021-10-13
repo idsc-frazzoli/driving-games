@@ -5,8 +5,14 @@ from typing import Generic, TypeVar, List, Callable, Type, Iterator, Union, get_
 
 from zuper_commons.types import ZException, ZValueError
 
-__all__ = ["Timestamp", "DgSampledSequence", "DgSampledSequenceBuilder", "IterateDT", "iterate_with_dt",
-           "UndefinedAtTime"]
+__all__ = [
+    "Timestamp",
+    "DgSampledSequence",
+    "DgSampledSequenceBuilder",
+    "IterateDT",
+    "iterate_with_dt",
+    "UndefinedAtTime",
+]
 
 X = TypeVar("X")
 Y = TypeVar("Y")
@@ -19,7 +25,7 @@ class UndefinedAtTime(ZException):
 
 @dataclass(unsafe_hash=True)
 class DgSampledSequence(Generic[X]):
-    """ A sampled time sequence. Only defined at certain points.
+    """A sampled time sequence. Only defined at certain points.
     Modernized version of the original SampledSequence from Duckietown:
     https://github.com/duckietown/duckietown-world/blob/daffy/src/duckietown_world/seqs/tsequence.py
     Modification:
@@ -28,6 +34,7 @@ class DgSampledSequence(Generic[X]):
         - removing possibility of assigning post-init timestamps and values fields
         - Seamless support for different timestamps types (e.g. float or Decimal)
     """
+
     timestamps: InitVar[Sequence[Timestamp]]
     values: InitVar[Sequence[X]]
 
@@ -40,15 +47,16 @@ class DgSampledSequence(Generic[X]):
 
         for t in timestamps:
             if not isinstance(t, get_args(Timestamp)):
-                raise ZValueError(f"I expected a real number as \"Timestamp\", got {type(t)}")
+                raise ZValueError(f'I expected a real number as "Timestamp", got {type(t)}')
         for i in range(len(timestamps) - 1):
             dt = timestamps[i + 1] - timestamps[i]
             if dt <= 0:
                 raise ZValueError(f"Invalid dt = {dt} at i = {i}; ts= {timestamps}")
         ts_types = set([type(ts) for ts in timestamps])
         if D in ts_types and any([int in ts_types, float in ts_types]):
-            raise ZValueError("Attempting to create SampledSequence with mixed Decimal and floats",
-                              timestamps=timestamps)
+            raise ZValueError(
+                "Attempting to create SampledSequence with mixed Decimal and floats", timestamps=timestamps
+            )
         self._timestamps = tuple(timestamps)
         self._values = tuple(values)
 
@@ -73,7 +81,7 @@ class DgSampledSequence(Generic[X]):
         raise RuntimeError("Cannot set timestamps of SampledSequence directly")
 
     def at(self, t: Timestamp) -> X:
-        """ Returns value at requested timestamp, raises UndefinedAtTime if not defined at t"""
+        """Returns value at requested timestamp, raises UndefinedAtTime if not defined at t"""
         try:
             i = self._timestamps.index(t)
             return self._values[i]
@@ -96,7 +104,7 @@ class DgSampledSequence(Generic[X]):
             return self._values[i - 1]
 
     def at_interp(self, t: Timestamp) -> X:
-        """ Interpolates between timestamps, holds at the extremes
+        """Interpolates between timestamps, holds at the extremes
         @:return: Value at requested timestamp.
         """
         if t <= self.get_start():
@@ -110,7 +118,7 @@ class DgSampledSequence(Generic[X]):
 
     def get_start(self) -> Timestamp:
         """
-         @:return: The timestamp for start
+        @:return: The timestamp for start
         """
         if not self._timestamps:
             raise ZValueError("Empty sequence")
@@ -118,7 +126,7 @@ class DgSampledSequence(Generic[X]):
 
     def get_end(self) -> Timestamp:
         """
-         @:return: The timestamp for start
+        @:return: The timestamp for start
         """
         if not self._timestamps:
             raise ZValueError("Empty sequence")
@@ -158,20 +166,21 @@ class IterateDT(Generic[X]):
 
 
 def iterate_with_dt(sequence: DgSampledSequence[X]) -> Iterator[IterateDT[X]]:
-    """ yields t0, t1, dt, v0, v1 """
+    """Yields t0, t1, dt, v0, v1
+    Note that timestamps and time deltas are converted to floats for ease of operations
+    """
     timestamps = sequence.timestamps
     values = sequence.values
     for i in range(len(timestamps) - 1):
-        t0 = timestamps[i]
-        assert isinstance(t0, get_args(Timestamp)), type(t0)
-        t1 = timestamps[i + 1]
+        t0 = float(timestamps[i])
+        t1 = float(timestamps[i + 1])
         v0 = values[i]
         v1 = values[i + 1]
         dt = t1 - t0
         yield IterateDT[sequence.XT](t0, t1, dt, v0, v1)
 
 
-DgSampledSequenceType = TypeVar('DgSampledSequenceType', bound='DgSampledSequence')
+DgSampledSequenceType = TypeVar("DgSampledSequenceType", bound="DgSampledSequence")
 
 
 @dataclass
