@@ -1,30 +1,72 @@
-from typing import Union
-from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit, PurePursuitParam
-from dg_commons_dev.controllers.stanley_controller import Stanley, StanleyParam
-from dg_commons_dev.controllers.speed import SpeedController, SpeedBehavior, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons_dev.controllers.steering_controllers import SCP, SCIdentity, SCIdentityParam, SCPParam
-from dg_commons_dev.controllers.lqr import LQR, LQRParam
-from dg_commons_dev.controllers.mpc.nmpc_lateral_kin_cont import NMPCLatKinCont, NMPCLatKinContParam
-from dg_commons_dev.controllers.mpc.nmpc_lateral_kin_dis import NMPCLatKinDis, NMPCLatKinDisParam
-from dg_commons_dev.controllers.mpc.nmpc_full_kin_cont import NMPCFullKinCont, NMPCFullKinContParam
-from dg_commons_dev.controllers.mpc.nmpc_full_kin_dis import NMPCFullKinDis, NMPCFullKinDisParam
+from typing import Union, Optional
+from dg_commons.maps.lanes import DgLanelet
+from dg_commons_dev.maps.lanes import DgLaneletControl
+from abc import ABC, abstractmethod
+from dg_commons import X
+from dataclasses import dataclass
+from dg_commons_dev.utils import BaseParams
 
 
-class Empty:
+@dataclass
+class LateralControllerParam(BaseParams):
     pass
 
 
-LateralController = Union[Empty, PurePursuit, Stanley, LQR, NMPCLatKinCont, NMPCLatKinDis]
-LateralControllerParam = Union[Empty, PurePursuitParam, StanleyParam, LQRParam, NMPCLatKinContParam, NMPCLatKinDisParam]
+class LateralController(ABC):
+    def __init__(self):
+        self.path: Optional[DgLanelet] = None
+        self.control_path: Optional[DgLaneletControl] = None
 
-LongitudinalController = Union[Empty, SpeedController]
-LongitudinalControllerParam = Union[Empty, SpeedControllerParam]
+    @abstractmethod
+    def get_steering(self) -> float:
+        pass
 
-LongitudinalBehavior = Union[Empty, SpeedBehavior]
-LongitudinalBehaviorParam = Union[Empty, SpeedBehaviorParam]
+    @abstractmethod
+    def update_state(self, state: X):
+        pass
 
-SteeringController = Union[Empty, SCP, SCIdentity]
-SteeringControllerParam = Union[Empty, SCPParam, SCIdentityParam]
+    def update_path(self, path: DgLanelet):
+        assert isinstance(path, DgLanelet)
+        self.path = path
+        self.control_path = DgLaneletControl(path)
 
-LatAndLonController = Union[Empty, NMPCFullKinDis, NMPCFullKinCont]
-LatAndLonControllerParam = Union[Empty, NMPCFullKinContParam, NMPCFullKinDisParam]
+
+@dataclass
+class LongitudinalControllerParam(BaseParams):
+    pass
+
+
+class LongitudinalController(ABC):
+    def __init__(self):
+        self.speed_ref: float = 0
+
+    @abstractmethod
+    def get_acceleration(self, at: float) -> float:
+        pass
+
+    @abstractmethod
+    def update_state(self, state: X):
+        pass
+
+    def update_reference_speed(self, speed_ref: float):
+        self.speed_ref = speed_ref
+
+
+@dataclass
+class LatAndLonControllerParam(BaseParams):
+    pass
+
+
+class LatAndLonController(LateralController, LongitudinalController, ABC):
+    pass
+
+
+@dataclass
+class SteeringControllerParam(BaseParams):
+    pass
+
+
+class SteeringController(ABC):
+    @abstractmethod
+    def get_steering_vel(self, desired_steering: float, current_steering: float) -> float:
+        pass

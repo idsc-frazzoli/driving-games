@@ -6,17 +6,15 @@ import scipy.optimize
 from geometry import SE2value, translation_angle_from_SE2, SE2_from_translation_angle, angle_from_SE2
 from duckietown_world.utils import SE2_apply_R2
 from dg_commons.geo import norm_between_SE2value
-from dg_commons.maps.lanes import DgLanelet
 from dg_commons import X
-from dg_commons_dev.utils import BaseParams
-from dg_commons_dev.maps.lanes import DgLaneletControl
+from dg_commons_dev.controllers.controller_types import LateralController, LateralControllerParam
 
 
 __all__ = ["PurePursuit", "PurePursuitParam"]
 
 
 @dataclass
-class PurePursuitParam(BaseParams):
+class PurePursuitParam(LateralControllerParam):
     look_ahead_minmax: Union[List[Tuple[float, float]], Tuple[float, float]] = (3, 30)
     """min and max lookahead"""
     k_lookahead: Union[List[float], float] = 1.8
@@ -30,7 +28,7 @@ class PurePursuitParam(BaseParams):
     t_step: Union[List[float], float] = 0.1
 
 
-class PurePursuit:
+class PurePursuit(LateralController):
     """
     https://ethz.ch/content/dam/ethz/special-interest/mavt/dynamic-systems-n-control/idsc-dam/Lectures/amod
     /AMOD_2020/20201019-05%20-%20ETHZ%20-%20Control%20in%20Duckietown%20(PID).pdf
@@ -43,25 +41,18 @@ class PurePursuit:
         initialise pure_pursuit control loop
         :param
         """
-        self.path: Optional[DgLanelet] = None
-        self.path_control: Optional[DgLaneletControl] = None
         self.pose: Optional[SE2value] = None
         self.along_path: Optional[float] = None
         self.speed: float = 0
         self.current_beta = None
         self.params: PurePursuitParam = params
-        # logger.debug("Pure pursuit params: \n", self.param)
-
-    def update_path(self, path: DgLanelet):
-        assert isinstance(path, DgLanelet)
-        self.path = path
-        self.path_control = DgLaneletControl(path)
+        super().__init__()
 
     def update_state(self, obs: X):
         self.pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
 
-        control_sol_params = self.path_control.ControlSolParams(obs.vx, self.params.t_step)
-        lanepose = self.path_control.lane_pose_from_SE2_generic(self.pose, control_sol=control_sol_params)
+        control_sol_params = self.control_path.ControlSolParams(obs.vx, self.params.t_step)
+        lanepose = self.control_path.lane_pose_from_SE2_generic(self.pose, control_sol=control_sol_params)
         self.along_path = lanepose.along_lane
         self.current_beta = self.path.beta_from_along_lane(self.along_path)
 
@@ -89,7 +80,7 @@ class PurePursuit:
         goal_point = self.path.center_point(self.path.beta_from_along_lane(res.x))
         return res.x, goal_point
 
-    def get_desired_steering(self) -> float:
+    def get_steering(self) -> float:
         """
         :return: float the desired wheel angle
         """

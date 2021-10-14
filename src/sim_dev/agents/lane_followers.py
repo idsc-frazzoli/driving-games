@@ -8,6 +8,16 @@ from sim_dev.agents.lane_follower_z import LFAgent
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim import SimObservations, DrawableTrajectoryType
 from dg_commons_dev.controllers.controller_types import *
+from dg_commons_dev.controllers.speed import SpeedController
+from dg_commons_dev.controllers.pure_pursuit_z import *
+from dg_commons_dev.controllers.mpc.nmpc_full_kin_dis import *
+from dg_commons_dev.controllers.mpc.nmpc_lateral_kin_cont import *
+from dg_commons_dev.controllers.mpc.nmpc_lateral_kin_dis import *
+from dg_commons_dev.controllers.mpc.nmpc_full_kin_cont import *
+from dg_commons_dev.controllers.lqr import *
+from dg_commons_dev.controllers.stanley_controller import *
+from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
+from dg_commons_dev.behavior.behavior import SpeedBehavior
 
 
 class LFAgentPP(LFAgent):
@@ -18,12 +28,12 @@ class LFAgentPP(LFAgent):
     def __init__(self,
                  lane: Optional[DgLanelet] = None,
                  speed_controller: Optional[SpeedController] = None,
-                 speed_behavior: Optional[SpeedBehavior] = None,
+                 speed_behavior: Optional[Behavior] = None,
                  controller: Optional[PurePursuit] = None,
                  steer_controller: Optional[SteeringController] = None,
                  return_extra: bool = False):
         speed_controller: SpeedController = SpeedController() if speed_controller is None else speed_controller
-        speed_behavior: SpeedBehavior = SpeedBehavior() if speed_behavior is None else speed_behavior
+        speed_behavior: Behavior = SpeedBehavior() if speed_behavior is None else speed_behavior
         steer_controller: SteeringController = SteeringController() if steer_controller is None else steer_controller
         pure_pursuit: PurePursuit = PurePursuit() if controller is None else controller
         super().__init__(lane, pure_pursuit, speed_behavior, speed_controller, steer_controller, return_extra)

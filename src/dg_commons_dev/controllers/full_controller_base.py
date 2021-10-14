@@ -1,10 +1,11 @@
 from dg_commons_dev.controllers.controller_types import *
 from sim_dev.agents.lane_followers import MapsConLF
-from typing import Optional, get_args
 import os
 from dg_commons_dev.state_estimators.estimator_types import *
 from dg_commons_dev.state_estimators.dropping_trechniques import *
 from sim_dev.agents.lane_followers import LaneFollowerAgent
+from dg_commons_dev.controllers.steering_controllers import *
+from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
 
 
 def func(arguments):
@@ -20,7 +21,7 @@ class VehicleController:
     controller_params: Union[List[Union[LateralControllerParam, LatAndLonControllerParam]],
                              Union[LateralControllerParam, LatAndLonControllerParam]]
 
-    speed_behavior_param: SpeedBehaviorParam
+    speed_behavior_param: BehaviorParams
 
     longitudinal_controller: Union[List[Optional[type(LongitudinalController)]],
                                    Optional[type(LongitudinalController)]] = None
@@ -34,11 +35,11 @@ class VehicleController:
     steering_controller_params: Union[List[Optional[SteeringControllerParam]],
                                       Optional[SteeringControllerParam]] = None
 
-    state_estimator: Union[List[Optional[type(Estimators)]],
-                           Optional[type(Estimators)]] = None
+    state_estimator: Union[List[Optional[type(Estimator)]],
+                           Optional[type(Estimator)]] = None
 
-    state_estimator_params: Union[List[Optional[EstimatorsParams]],
-                                  Optional[EstimatorsParams]] = None
+    state_estimator_params: Union[List[Optional[EstimatorParams]],
+                                  Optional[EstimatorParams]] = None
 
     condition: Callable = func
 
@@ -59,7 +60,9 @@ class VehicleController:
                     self.is_single_param(self.controller_params),
                     self.is_single_param(self.longitudinal_controller_params),
                     self.is_single_param(self.steering_controller_params),
-                    self.is_single_param(self.state_estimator_params)])
+                    self.is_single_param(self.state_estimator_params),
+                    self.is_single_param(self.speed_behavior_param)])
+
         self._is_single = cond
         if cond:
             self.process_single()
@@ -88,7 +91,7 @@ class VehicleController:
         self.n_total = 0
         for i, controller in enumerate(self.controller):
             n_controller_count = self.controller_params[i].get_count()
-            if controller in get_args(LateralController):
+            if not issubclass(controller, LatAndLonController):
                 assert n_longi != 0
                 for j, longi_params in enumerate(self.longitudinal_controller_params):
                     n_longi_count = longi_params.get_count()
@@ -137,11 +140,12 @@ class VehicleController:
         self.folder_name = self.controller.__name__
         self._is_single = True
 
-        decoupled: bool = self.controller in get_args(LateralController) and \
-                          self.longitudinal_controller in get_args(LongitudinalController)
-
-        single: bool = self.controller in get_args(LatAndLonController) and \
-                       self.longitudinal_controller is None
+        single: bool = issubclass(self.controller, LatAndLonController) and \
+            self.longitudinal_controller is None
+        decoupled: bool = not single and \
+            issubclass(self.controller, LateralController) and \
+            self.longitudinal_controller is not None and \
+            issubclass(self.longitudinal_controller, LongitudinalController)
 
         assert single or decoupled
         self.decoupled = decoupled
@@ -242,6 +246,3 @@ class VehicleController:
                                         res.on_init()
                                         if self.condition(res):
                                             yield res
-
-            print("Calculated Total:", self.n_total)
-            print("In the End: ", counter)

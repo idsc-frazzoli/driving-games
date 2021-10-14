@@ -52,12 +52,3 @@ class NMPCLatKinCont(LatMPCKinBase):
         self.mpc.scaling['_x', 'v'] = 1
         self.mpc.scaling['_x', 'delta'] = 1
         self.mpc.scaling['_u', 'v_delta'] = 1
-
-    def get_desired_steering(self):
-        """
-        :return: float the desired wheel angle
-        """
-        # todo fixme this controller is not precise, as we use the cog rather than the base link
-        if any([_ is None for _ in [self.path]]):
-            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-        return self.u[0][0]

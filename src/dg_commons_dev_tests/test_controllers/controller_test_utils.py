@@ -12,7 +12,7 @@ from typing import List
 import os
 import math
 from dg_commons_dev.controllers.full_controller_base import VehicleController
-from dg_commons_dev.controllers.speed import SpeedBehavior
+from dg_commons_dev.behavior.behavior import SpeedBehavior
 import numpy as np
 import time
 from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios

@@ -5,12 +5,12 @@ from dg_commons.sim.models.model_utils import acceleration_constraint
 from typing import Optional
 from dg_commons_dev.utils import SemiDef
 from dg_commons_dev.state_estimators.dropping_trechniques import *
-from dg_commons_dev.utils import BaseParams
 from typing import List
+from dg_commons_dev.state_estimators.estimator_types import EstimatorParams, Estimator
 
 
 @dataclass
-class ExtendedKalmanParam(BaseParams):
+class ExtendedKalmanParam(EstimatorParams):
     n_states: Union[List[int], int] = VehicleState.get_n_states()
     """ Number of states """
     n_commands: Union[List[int], int] = VehicleCommands.get_n_commands()
@@ -47,7 +47,7 @@ class ExtendedKalmanParam(BaseParams):
         super().__post_init__()
 
 
-class ExtendedKalman:
+class ExtendedKalman(Estimator):
     def __init__(self, x0=None, params=ExtendedKalmanParam()):
         self.actual_model_noise = params.actual_model_var.matrix
         self.actual_meas_noise = params.actual_meas_var.matrix

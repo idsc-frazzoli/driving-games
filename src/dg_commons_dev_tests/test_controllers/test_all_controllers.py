@@ -7,13 +7,13 @@ from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test
 if __name__ == '__main__':
     verbosity: Verbosity = Verbosity(2)
 
-    scenarios_to_test = [Select(scenarios["lane_change_left"], False),
+    scenarios_to_test = [Select(scenarios["lane_change_left"], True),
                          Select(scenarios["turn_90_right"], True),
-                         Select(scenarios["turn_90_left"], False),
-                         Select(scenarios["small_snake"], False),
-                         Select(scenarios["u-turn"], False),
-                         Select(scenarios["left_cont_curve"], False),
-                         Select(scenarios["vertical"], False),
+                         Select(scenarios["turn_90_left"], True),
+                         Select(scenarios["small_snake"], True),
+                         Select(scenarios["u-turn"], True),
+                         Select(scenarios["left_cont_curve"], True),
+                         Select(scenarios["vertical"], True),
                          Select(scenarios["race"], False)]
 
     controllers_to_test = [

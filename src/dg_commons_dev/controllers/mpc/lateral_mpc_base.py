@@ -9,12 +9,14 @@ from duckietown_world.utils import SE2_apply_R2
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 from dg_commons_dev.maps.lanes import DgLaneletControl
+from dg_commons_dev.controllers.controller_types import LateralController, LateralControllerParam
+
 
 vehicle_params = VehicleParameters.default_car()
 
 
 @dataclass
-class LatMPCKinBaseParam(MPCKinBAseParam):
+class LatMPCKinBaseParam(MPCKinBAseParam, LateralControllerParam):
     cost: Union[List[CostFunctions], CostFunctions] = QuadraticCost
     """ Cost function """
     cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams(
@@ -33,13 +35,12 @@ class LatMPCKinBaseParam(MPCKinBAseParam):
     analytical: Union[List[bool], bool] = False
 
 
-class LatMPCKinBase(MPCKinBase):
+class LatMPCKinBase(MPCKinBase, LateralController):
     @abstractmethod
     def __init__(self, params, model_type: str):
         super().__init__(params, model_type)
-        self.path: Optional[DgLanelet] = None
-        self.path_control: Optional[DgLaneletControl] = None
-        """ Referece DgLanelet path """
+        LateralController.__init__(self)
+
         self.u = None
         """ Current input to the system """
 
@@ -65,11 +66,6 @@ class LatMPCKinBase(MPCKinBase):
         self.tvp_temp['_tvp', :] = np.array(temp)
         return self.tvp_temp
 
-    def update_path(self, path: DgLanelet):
-        assert isinstance(path, DgLanelet)
-        self.path = path
-        self.path_control = DgLaneletControl(path)
-
     def rear_axle_position(self, obs: X):
         pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
         return SE2_apply_R2(pose, np.array([-self.params.vehicle_geometry.lr, 0]))
@@ -78,18 +74,17 @@ class LatMPCKinBase(MPCKinBase):
     def cog_position(obs: X):
         return np.array([obs.x, obs.y])
 
-    def update_state(self, obs: Optional[X] = None, speed_ref: float = 0):
+    def update_state(self, obs: Optional[X] = None):
         self.current_position = self.rear_axle_position(obs) if self.params.rear_axle else self.cog_position(obs)
         self.current_speed = obs.vx
-        control_sol_params = self.path_control.ControlSolParams(self.current_speed, self.params.t_step)
-        self.current_beta, _ = self.path_control.find_along_lane_closest_point(self.current_position,
+        control_sol_params = self.control_path.ControlSolParams(self.current_speed, self.params.t_step)
+        self.current_beta, _ = self.control_path.find_along_lane_closest_point(self.current_position,
                                                                                control_sol=control_sol_params)
         """ Update current state of the vehicle """
         pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
         self.path_approx.update_from_data(pos1, angle1, pos2, angle2, pos3, angle3)
         params = self.path_approx.parameters
         """ Generate current path approximation """
-        self.speed_ref = speed_ref
         self.path_parameters = params[:self.path_approx.n_params]
 
         x0_temp = [self.current_position[0], self.current_position[1], obs.theta, self.current_speed, obs.delta]
@@ -149,3 +144,8 @@ class LatMPCKinBase(MPCKinBase):
     def store_extra(self):
         self.prediction_x = self.mpc.data.prediction(('_x', 'state_x', 0))[0]
         self.prediction_y = self.mpc.data.prediction(('_x', 'state_y', 0))[0]
+
+    def get_steering(self):
+        if any([_ is None for _ in [self.path]]):
+            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
+        return self.u[0][0]

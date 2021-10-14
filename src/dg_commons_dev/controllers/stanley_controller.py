@@ -14,24 +14,20 @@ from duckietown_world import relative_pose
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 from dg_commons_dev.utils import BaseParams
 from typing import Union, List
+from dg_commons_dev.controllers.controller_types import LateralController, LateralControllerParam
 
 
 __all__ = ["Stanley", "StanleyParam"]
 
 
 @dataclass
-class StanleyParam(BaseParams):
+class StanleyParam(LateralControllerParam):
     stanley_gain: Union[List[float], float] = 1
     """ Tunable gain """
     t_step: Union[List[float], float] = 0.1
 
 
-class Stanley:
-    """
-    https://ethz.ch/content/dam/ethz/special-interest/mavt/dynamic-systems-n-control/idsc-dam/Lectures/amod
-    /AMOD_2020/20201019-05%20-%20ETHZ%20-%20Control%20in%20Duckietown%20(PID).pdf
-    Note there is an error in computation of alpha (order needs to be inverted)
-    """
+class Stanley(LateralController):
     USE_STEERING_VELOCITY: bool = False
 
     def __init__(self, params: StanleyParam = StanleyParam()):
@@ -39,8 +35,6 @@ class Stanley:
         initialise pure_pursuit control loop
         :param
         """
-        self.path: Optional[DgLanelet] = None
-        self.path_control: Optional[DgLaneletControl] = None
         self.front_pose: Optional[SE2value] = None
         self.speed: Optional[float] = None
         self.alpha: Optional[float] = None
@@ -49,12 +43,7 @@ class Stanley:
         self.params: StanleyParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
         self.path_approx = LinearPath()
-        # logger.debug("Pure pursuit params: \n", self.param)
-
-    def update_path(self, path: DgLanelet):
-        assert isinstance(path, DgLanelet)
-        self.path = path
-        self.path_control = DgLaneletControl(path)
+        super().__init__()
 
     def update_state(self, obs: X):
         tr, ang = [obs.x, obs.y], obs.theta
@@ -75,8 +64,8 @@ class Stanley:
 
         p, _, _ = translation_angle_scale_from_E2(front_pose)
 
-        control_sol_params = self.path_control.ControlSolParams(obs.vx, self.params.t_step)
-        self.current_beta, q0 = self.path_control.find_along_lane_closest_point(p, tol=1e-4,
+        control_sol_params = self.control_path.ControlSolParams(obs.vx, self.params.t_step)
+        self.current_beta, q0 = self.control_path.find_along_lane_closest_point(p, tol=1e-4,
                                                                                 control_sol=control_sol_params)
         path_approx = True
         if path_approx:
@@ -123,7 +112,7 @@ class Stanley:
         self.target_position = pos3
         return pos1, angle1, pos2, angle2, pos3, angle3
 
-    def get_desired_steering(self) -> float:
+    def get_steering(self) -> float:
         """
         :return: float the desired wheel angle
         """

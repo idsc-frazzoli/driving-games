@@ -14,6 +14,7 @@ import math
 from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
 from dg_commons_dev.utils import BaseParams
 from dg_commons_dev.maps.lanes import DgLaneletControl
+from dg_commons_dev.controllers.controller_types import *
 
 
 __all__ = ["LQR", "LQRParam"]
@@ -37,7 +38,7 @@ def lqr(a, b, q, r):
 
 
 @dataclass
-class LQRParam(BaseParams):
+class LQRParam(LatAndLonControllerParam):
     r: Union[List[SemiDef], SemiDef] = SemiDef([1])
     """ Input Multiplier """
     q: Union[List[SemiDef], SemiDef] = SemiDef(matrix=np.identity(3))
@@ -45,17 +46,16 @@ class LQRParam(BaseParams):
     t_step: Union[List[float], float] = 0.1
 
 
-class LQR:
+class LQR(LateralController):
 
     USE_STEERING_VELOCITY: bool = True
 
     def __init__(self, params: LQRParam = LQRParam()):
         """
-        initialise pure_pursuit control loop
+        initialise LQR control loop
         :param
         """
-        self.path: Optional[DgLanelet] = None
-        self.control_path: Optional[DgLaneletControl] = None
+        super().__init__()
         self.u: np.ndarray
         self.params: LQRParam = params
         self.vehicle_geometry: VehicleGeometry = VehicleGeometry.default_car()
@@ -63,13 +63,6 @@ class LQR:
         self.speed: Optional[float] = None
         self.current_beta = None
         self.path_approx = LinearPath()
-
-        # logger.debug("Pure pursuit params: \n", self.param)
-
-    def update_path(self, path: DgLanelet):
-        assert isinstance(path, DgLanelet)
-        self.path = path
-        self.control_path = DgLaneletControl(path)
 
     def update_state(self, obs: X):
         pose = SE2_from_translation_angle(np.array([obs.x, obs.y]), obs.theta)
@@ -139,7 +132,7 @@ class LQR:
         self.target_position = pos3
         return pos1, angle1, pos2, angle2, pos3, angle3
 
-    def get_desired_steering(self) -> float:
+    def get_steering(self) -> float:
         """
         :return: float the desired wheel angle
         """

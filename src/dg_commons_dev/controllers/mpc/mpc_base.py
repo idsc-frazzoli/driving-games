@@ -91,7 +91,7 @@ class MPCKinBase(ABC):
         return self.tvp_temp
 
     @abstractmethod
-    def update_state(self, obs: Optional[X] = None, speed_ref: Optional[float] = None):
+    def update_state(self, obs: Optional[X] = None):
         pass
 
     @abstractmethod

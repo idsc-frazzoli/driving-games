@@ -1,40 +1,30 @@
 from dataclasses import dataclass
 from typing import Optional, Union, List
-from abc import ABC, abstractmethod
 from dg_commons_dev.utils import BaseParams
-
-
-class BaseClass(ABC):
-    @abstractmethod
-    def __init__(self, base_param: BaseParams):
-        pass
-
-    @abstractmethod
-    def get_steering_velocity(self, desired_steering: float, current_steering: float):
-        return desired_steering
+from dg_commons_dev.controllers.controller_types import SteeringController, SteeringControllerParam
 
 
 @dataclass
-class SCIdentityParam(BaseParams):
+class SCIdentityParam(SteeringControllerParam):
     pass
 
 
-class SCIdentity(BaseClass):
+class SCIdentity(SteeringController):
     def __init__(self, params: Optional[SCIdentityParam] = None):
         self.params = SCIdentityParam() if params is None else params
 
-    def get_steering_velocity(self, desired_steering: float, current_steering: float):
+    def get_steering_vel(self, desired_steering: float, current_steering: float) -> float:
         return desired_steering
 
 
 @dataclass
-class SCPParam(BaseParams):
+class SCPParam(SteeringControllerParam):
     ddelta_kp: Union[List[float], float] = 10
 
 
-class SCP(BaseClass):
+class SCP(SteeringController):
     def __init__(self, params: Optional[SCPParam] = None):
         self.params = SCPParam() if params is None else params
 
-    def get_steering_velocity(self, desired_steering: float, current_steering: float):
-        return self.params.ddelta_kp*(desired_steering - current_steering)
+    def get_steering_vel(self, desired_steering: float, current_steering: float) -> float:
+        return self.params.ddelta_kp * (desired_steering - current_steering)

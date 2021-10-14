@@ -2,10 +2,11 @@ from typing import Tuple
 from abc import abstractmethod
 from dg_commons_dev.controllers.mpc.lateral_mpc_base import vehicle_params, LatMPCKinBase, LatMPCKinBaseParam
 from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
+from dg_commons_dev.controllers.controller_types import LatAndLonController, LatAndLonControllerParam
 
 
 @dataclass
-class FullMPCKinBaseParam(LatMPCKinBaseParam):
+class FullMPCKinBaseParam(LatMPCKinBaseParam, LatAndLonControllerParam):
     cost: CostFunctions = QuadraticCost
     """ Cost function """
     cost_params: CostParameters = QuadraticParams(
@@ -18,7 +19,7 @@ class FullMPCKinBaseParam(LatMPCKinBaseParam):
     v_bounds: Tuple[float, float] = vehicle_params.vx_limits
 
 
-class FullMPCKinBase(LatMPCKinBase):
+class FullMPCKinBase(LatMPCKinBase, LatAndLonController):
     @abstractmethod
     def __init__(self, params, model_type: str):
         super().__init__(params, model_type)
@@ -42,3 +43,17 @@ class FullMPCKinBase(LatMPCKinBase):
         self.mpc.bounds['upper', '_x', 'v'] = self.params.v_bounds[1]
         self.mpc.bounds['lower', '_u', 'a'] = self.params.acc_bounds[0]
         self.mpc.bounds['upper', '_u', 'a'] = self.params.acc_bounds[1]
+
+    def update_reference_speed(self, speed_ref: float):
+        self.speed_ref = speed_ref
+
+    def get_acceleration(self, at: float) -> float:
+        """
+        :return: float the desired wheel angle
+        """
+        if any([_ is None for _ in [self.path]]):
+            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
+        try:
+            return self.u[2][0]
+        except IndexError:
+            return self.u[1][0]

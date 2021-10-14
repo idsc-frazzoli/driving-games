@@ -54,14 +54,3 @@ class NMPCFullKinCont(FullMPCKinBase):
         self.mpc.scaling['_x', 'delta'] = 1
         self.mpc.scaling['_u', 'v_delta'] = 1
         self.mpc.scaling['_u', 'a'] = 1
-
-    def get_targets(self):
-        """
-        :return: float the desired wheel angle
-        """
-        if any([_ is None for _ in [self.path]]):
-            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-        try:
-            return self.u[0][0], self.u[2][0]
-        except IndexError:
-            return self.u[0][0], self.u[1][0]

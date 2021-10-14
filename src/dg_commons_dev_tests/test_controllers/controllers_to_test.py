@@ -1,13 +1,13 @@
 from sim_dev.agents.lane_followers import *
-from dg_commons_dev.controllers.speed import SpeedController, SpeedControllerParam, SpeedBehaviorParam
-from dg_commons_dev.state_estimators.estimator_types import *
+from dg_commons_dev.controllers.speed import SpeedController, SpeedControllerParam
+from dg_commons_dev.behavior.behavior import SpeedBehaviorParam
 from dg_commons_dev.controllers.full_controller_base import VehicleController
 from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
-from dg_commons_dev.state_estimators.dropping_trechniques import *
-from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
+from dg_commons_dev.controllers.path_approximation_techniques import LinearPath
 import copy
 from dg_commons_dev.state_estimators.extended_kalman_filter import *
 from dg_commons.sim.simulator import SimTime
+from dg_commons_dev.controllers.steering_controllers import *
 
 
 DT: SimTime = SimTime("0.05")
@@ -15,8 +15,8 @@ DT_COMMANDS: SimTime = SimTime("0.1")
 assert DT_COMMANDS % DT == SimTime(0)
 
 
-state_estimator: type(Estimators) = ExtendedKalman
-state_estimator_params: EstimatorsParams = ExtendedKalmanParam(
+state_estimator: type(Estimator) = ExtendedKalman
+state_estimator_params: EstimatorParams = ExtendedKalmanParam(
     actual_model_var=SemiDef([i*1 for i in [0.0001, 0.0001, 0.0001, 0.0001, 0.0001]]),
     actual_meas_var=SemiDef([i*0 for i in [0.001, 0.001, 0.001, 0.001, 0.001]]),
 
@@ -56,7 +56,6 @@ TestLQR = VehicleController(
             state_estimator_params=state_estimator_params
         )
 
-
 TestNMPCFullKinContPV = VehicleController(
         controller=NMPCFullKinCont,
 
@@ -75,7 +74,7 @@ TestNMPCFullKinContPV = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8
+            nominal_speed=8,
         ),
 
         state_estimator=state_estimator,
@@ -161,6 +160,7 @@ TestNMPCLatKinContPV = VehicleController(
         state_estimator_params=state_estimator_params,
 
 )
+
 TestNMPCLatKinContPV.extra_folder_name = "path_variable"
 
 TestNMPCLatKinContAN = copy.deepcopy(TestNMPCLatKinContPV)

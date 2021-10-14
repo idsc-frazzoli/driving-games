@@ -5,14 +5,11 @@ import math
 import scipy
 import numpy as np
 from dg_commons_dev.utils import BaseParams
-
-
-class Empty:
-    pass
+from dg_commons_dev.state_estimators.estimator_types import DroppingTechniques, DroppingTechniquesParams
 
 
 @dataclass
-class LGBParam(BaseParams):
+class LGBParam(DroppingTechniquesParams):
     failure_p: Union[List[float], float] = 0
     """ Failure Probability """
 
@@ -24,7 +21,7 @@ class LGBParam(BaseParams):
         super().__post_init__()
 
 
-class LGB:
+class LGB(DroppingTechniques):
     def __init__(self, params=LGBParam()):
         self.params = params
         self.steps = 0
@@ -78,7 +75,7 @@ class LGMParam(LGBParam):
         return expected_value
 
 
-class LGM:
+class LGM(DroppingTechniques):
     def __init__(self, params=LGMParam()):
         self.params = params
         self.current_state = 1
@@ -136,12 +133,12 @@ class Exponential:
         return self.params.lamb*math.exp(-self.params.lamb*t)
 
 
-PDistribution = Union[Empty, Exponential]
-PDistributionParams = Union[Empty, ExponentialParams]
+PDistribution = Union[Exponential]
+PDistributionParams = Union[ExponentialParams]
 
 
 @dataclass
-class LGSMParam(BaseParams):
+class LGSMParam(DroppingTechniquesParams):
     failure_distribution: Union[List[type(PDistribution)], type(PDistribution)] = Exponential
     failure_params: Union[List[PDistributionParams], PDistributionParams] = ExponentialParams()
     recovery_distribution: Union[List[type(PDistribution)], type(PDistribution)] = Exponential
@@ -149,7 +146,7 @@ class LGSMParam(BaseParams):
     dt: Union[List[float], float] = 0.1
 
 
-class LGSM:
+class LGSM(DroppingTechniques):
     def __init__(self, params=LGSMParam()):
         self.dt = params.dt
         self.failure_distribution = params.failure_distribution(params.failure_params)
@@ -201,9 +198,6 @@ class LGSM:
         val = self.recovery_distribution.cdf(self.delta_t)
         return self.val <= val
 
-
-DroppingTechniques = Union[Empty, LGB, LGM, LGSM]
-DroppingTechniquesParams = Union[Empty, LGBParam, LGMParam, LGSMParam]
 
 DroppingMaps: Dict[type(DroppingTechniques), type(DroppingTechniquesParams)] = {
     LGB: LGBParam,
