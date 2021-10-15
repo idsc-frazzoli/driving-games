@@ -7,6 +7,7 @@ from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons_dev.utils import BaseParams
 import numpy as np
+from dg_commons_dev.controllers.interface import Controller
 
 
 @dataclass
@@ -37,7 +38,7 @@ class MPCKinBAseParam(BaseParams):
         super().__post_init__()
 
 
-class MPCKinBase(ABC):
+class MPCKinBase(Controller, ABC):
     @abstractmethod
     def __init__(self, params, model_type: str):
         self.params = params
@@ -89,10 +90,6 @@ class MPCKinBase(ABC):
     def func(self, t_now):
         self.tvp_temp['_tvp', :] = np.array([self.speed_ref])
         return self.tvp_temp
-
-    @abstractmethod
-    def update_state(self, obs: Optional[X] = None):
-        pass
 
     @abstractmethod
     def lterm(self, target_x, target_y, speed_ref, target_angle=None):

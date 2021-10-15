@@ -44,10 +44,10 @@ class FullMPCKinBase(LatMPCKinBase, LatAndLonController):
         self.mpc.bounds['lower', '_u', 'a'] = self.params.acc_bounds[0]
         self.mpc.bounds['upper', '_u', 'a'] = self.params.acc_bounds[1]
 
-    def update_reference_speed(self, speed_ref: float):
+    def _update_reference_speed(self, speed_ref: float):
         self.speed_ref = speed_ref
 
-    def get_acceleration(self, at: float) -> float:
+    def _get_acceleration(self, at: float) -> float:
         """
         :return: float the desired wheel angle
         """

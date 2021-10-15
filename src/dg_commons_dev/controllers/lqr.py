@@ -38,7 +38,7 @@ def lqr(a, b, q, r):
 
 
 @dataclass
-class LQRParam(LatAndLonControllerParam):
+class LQRParam(LateralControllerParam):
     r: Union[List[SemiDef], SemiDef] = SemiDef([1])
     """ Input Multiplier """
     q: Union[List[SemiDef], SemiDef] = SemiDef(matrix=np.identity(3))
@@ -64,17 +64,17 @@ class LQR(LateralController):
         self.current_beta = None
         self.path_approx = LinearPath()
 
-    def update_state(self, obs: X):
-        pose = SE2_from_translation_angle(np.array([obs.x, obs.y]), obs.theta)
+    def _update_obs(self, new_obs: X):
+        pose = SE2_from_translation_angle(np.array([new_obs.x, new_obs.y]), new_obs.theta)
 
         back_position = SE2_apply_R2(pose, np.array([-self.vehicle_geometry.lr, 0]))
-        angle = obs.theta
+        angle = new_obs.theta
         self.back_pose = SE2_from_translation_angle(back_position, angle)
-        self.speed = obs.vx
+        self.speed = new_obs.vx
 
         p, _, _ = translation_angle_scale_from_E2(self.back_pose)
 
-        control_sol_params = self.control_path.ControlSolParams(obs.vx, self.params.t_step)
+        control_sol_params = self.control_path.ControlSolParams(new_obs.vx, self.params.t_step)
         self.current_beta, q0 = self.control_path.find_along_lane_closest_point(back_position, tol=1e-4,
                                                                                 control_sol=control_sol_params)
 
@@ -86,21 +86,21 @@ class LQR(LateralController):
             closest_point_func = self.path_approx.closest_point_on_path
 
             angle = res[2]
-            relative_heading = - angle + obs.theta
+            relative_heading = - angle + new_obs.theta
             if relative_heading > math.pi:
                 relative_heading = -(2*math.pi - relative_heading)
             elif relative_heading < - math.pi:
                 relative_heading = 2*math.pi + relative_heading
 
             closest_point = closest_point_func(back_position)
-            lateral = (closest_point[0] - back_position[0]) * math.sin(obs.theta) - \
-                      (closest_point[1] - back_position[1]) * math.cos(obs.theta)
+            lateral = (closest_point[0] - back_position[0]) * math.sin(new_obs.theta) - \
+                      (closest_point[1] - back_position[1]) * math.cos(new_obs.theta)
         else:
             rel = relative_pose(q0, self.back_pose)
             r, relative_heading = translation_angle_from_SE2(rel)
             lateral = r[1]
 
-        error = np.array([[lateral], [relative_heading], [obs.delta]])
+        error = np.array([[lateral], [relative_heading], [new_obs.delta]])
 
         feed_forward = 0
 
@@ -111,6 +111,16 @@ class LQR(LateralController):
             self.u = -np.matmul(k, error) + feed_forward
         except np.linalg.LinAlgError:
             self.u = 0
+
+    def _get_steering(self, at: float) -> float:
+        """
+        :return: float the desired wheel angle
+        """
+        # todo fixme this controller is not precise, as we use the cog rather than the base link
+        if any([_ is None for _ in [self.back_pose, self.path]]):
+            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
+
+        return self.u
 
     def next_pos(self, current_beta):
         along_lane = self.path.along_lane_from_beta(current_beta)
@@ -131,13 +141,3 @@ class LQR(LateralController):
         pos3, angle3 = translation_angle_from_SE2(q3)
         self.target_position = pos3
         return pos1, angle1, pos2, angle2, pos3, angle3
-
-    def get_steering(self) -> float:
-        """
-        :return: float the desired wheel angle
-        """
-        # todo fixme this controller is not precise, as we use the cog rather than the base link
-        if any([_ is None for _ in [self.back_pose, self.path]]):
-            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-
-        return self.u

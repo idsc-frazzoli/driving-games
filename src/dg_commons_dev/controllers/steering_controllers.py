@@ -12,9 +12,10 @@ class SCIdentityParam(SteeringControllerParam):
 class SCIdentity(SteeringController):
     def __init__(self, params: Optional[SCIdentityParam] = None):
         self.params = SCIdentityParam() if params is None else params
+        super().__init__()
 
-    def get_steering_vel(self, desired_steering: float, current_steering: float) -> float:
-        return desired_steering
+    def _get_steering_vel(self, current_steering: float) -> float:
+        return self.delta_ref
 
 
 @dataclass
@@ -25,6 +26,7 @@ class SCPParam(SteeringControllerParam):
 class SCP(SteeringController):
     def __init__(self, params: Optional[SCPParam] = None):
         self.params = SCPParam() if params is None else params
+        super().__init__()
 
-    def get_steering_vel(self, desired_steering: float, current_steering: float) -> float:
-        return self.params.ddelta_kp * (desired_steering - current_steering)
+    def _get_steering_vel(self, current_steering: float) -> float:
+        return self.params.ddelta_kp * (self.delta_ref - current_steering)

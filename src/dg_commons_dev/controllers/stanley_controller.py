@@ -28,6 +28,7 @@ class StanleyParam(LateralControllerParam):
 
 
 class Stanley(LateralController):
+
     USE_STEERING_VELOCITY: bool = False
 
     def __init__(self, params: StanleyParam = StanleyParam()):
@@ -45,8 +46,8 @@ class Stanley(LateralController):
         self.path_approx = LinearPath()
         super().__init__()
 
-    def update_state(self, obs: X):
-        tr, ang = [obs.x, obs.y], obs.theta
+    def _update_obs(self, new_obs: X):
+        tr, ang = [new_obs.x, new_obs.y], new_obs.theta
         pose = SE2_from_translation_angle(tr, ang)
 
         front_position = SE2_apply_R2(pose, np.array([self.vehicle_geometry.lf, 0]))
@@ -55,16 +56,16 @@ class Stanley(LateralController):
         front_speed = False
         if front_speed:
             if X == VehicleStateDyn:
-                front_speed = np.array(obs.vx, obs.vy) + obs.dtheta*np.array(0, self.vehicle_geometry.lf)
+                front_speed = np.array(new_obs.vx, new_obs.vy) + new_obs.dtheta*np.array(0, self.vehicle_geometry.lf)
                 self.speed = np.linalg.norm(front_speed)
             else:
-                self.speed = obs.vx/math.cos(obs.delta)
+                self.speed = new_obs.vx/math.cos(new_obs.delta)
         else:
-            self.speed = obs.vx
+            self.speed = new_obs.vx
 
         p, _, _ = translation_angle_scale_from_E2(front_pose)
 
-        control_sol_params = self.control_path.ControlSolParams(obs.vx, self.params.t_step)
+        control_sol_params = self.control_path.ControlSolParams(new_obs.vx, self.params.t_step)
         self.current_beta, q0 = self.control_path.find_along_lane_closest_point(p, tol=1e-4,
                                                                                 control_sol=control_sol_params)
         path_approx = True
@@ -76,15 +77,15 @@ class Stanley(LateralController):
 
             angle = res[2]
 
-            self.alpha = angle - obs.theta
+            self.alpha = angle - new_obs.theta
             if self.alpha > math.pi:
                 self.alpha = -(2*math.pi - self.alpha)
             elif self.alpha < - math.pi:
                 self.alpha = 2*math.pi + self.alpha
 
             closest_point = closest_point_func(front_position)
-            self.lateral = - (closest_point[0] - front_position[0]) * math.sin(obs.theta) + \
-                             (closest_point[1] - front_position[1]) * math.cos(obs.theta)
+            self.lateral = - (closest_point[0] - front_position[0]) * math.sin(new_obs.theta) + \
+                             (closest_point[1] - front_position[1]) * math.cos(new_obs.theta)
 
         else:
             rel = relative_pose(front_pose, q0)
@@ -112,7 +113,7 @@ class Stanley(LateralController):
         self.target_position = pos3
         return pos1, angle1, pos2, angle2, pos3, angle3
 
-    def get_steering(self) -> float:
+    def _get_steering(self, at: float) -> float:
         """
         :return: float the desired wheel angle
         """

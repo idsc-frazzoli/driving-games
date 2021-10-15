@@ -34,6 +34,7 @@ class PurePursuit(LateralController):
     /AMOD_2020/20201019-05%20-%20ETHZ%20-%20Control%20in%20Duckietown%20(PID).pdf
     Note there is an error in computation of alpha (order needs to be inverted)
     """
+
     USE_STEERING_VELOCITY: bool = False
 
     def __init__(self, params: PurePursuitParam = PurePursuitParam()):
@@ -48,10 +49,10 @@ class PurePursuit(LateralController):
         self.params: PurePursuitParam = params
         super().__init__()
 
-    def update_state(self, obs: X):
-        self.pose = SE2_from_translation_angle([obs.x, obs.y], obs.theta)
+    def _update_obs(self, new_obs: X):
+        self.pose = SE2_from_translation_angle([new_obs.x, new_obs.y], new_obs.theta)
 
-        control_sol_params = self.control_path.ControlSolParams(obs.vx, self.params.t_step)
+        control_sol_params = self.control_path.ControlSolParams(new_obs.vx, self.params.t_step)
         lanepose = self.control_path.lane_pose_from_SE2_generic(self.pose, control_sol=control_sol_params)
         self.along_path = lanepose.along_lane
         self.current_beta = self.path.beta_from_along_lane(self.along_path)
@@ -80,7 +81,7 @@ class PurePursuit(LateralController):
         goal_point = self.path.center_point(self.path.beta_from_along_lane(res.x))
         return res.x, goal_point
 
-    def get_steering(self) -> float:
+    def _get_steering(self, at: float) -> float:
         """
         :return: float the desired wheel angle
         """

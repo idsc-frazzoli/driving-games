@@ -74,9 +74,9 @@ class LatMPCKinBase(MPCKinBase, LateralController):
     def cog_position(obs: X):
         return np.array([obs.x, obs.y])
 
-    def update_state(self, obs: Optional[X] = None):
-        self.current_position = self.rear_axle_position(obs) if self.params.rear_axle else self.cog_position(obs)
-        self.current_speed = obs.vx
+    def _update_obs(self, new_obs: Optional[X] = None):
+        self.current_position = self.rear_axle_position(new_obs) if self.params.rear_axle else self.cog_position(new_obs)
+        self.current_speed = new_obs.vx
         control_sol_params = self.control_path.ControlSolParams(self.current_speed, self.params.t_step)
         self.current_beta, _ = self.control_path.find_along_lane_closest_point(self.current_position,
                                                                                control_sol=control_sol_params)
@@ -87,7 +87,7 @@ class LatMPCKinBase(MPCKinBase, LateralController):
         """ Generate current path approximation """
         self.path_parameters = params[:self.path_approx.n_params]
 
-        x0_temp = [self.current_position[0], self.current_position[1], obs.theta, self.current_speed, obs.delta]
+        x0_temp = [self.current_position[0], self.current_position[1], new_obs.theta, self.current_speed, new_obs.delta]
         x0_temp = x0_temp if self.params.analytical else x0_temp + [pos1[0]]
         x0 = np.array(x0_temp).reshape(-1, 1)
         """ Define initial condition """
@@ -145,7 +145,7 @@ class LatMPCKinBase(MPCKinBase, LateralController):
         self.prediction_x = self.mpc.data.prediction(('_x', 'state_x', 0))[0]
         self.prediction_y = self.mpc.data.prediction(('_x', 'state_y', 0))[0]
 
-    def get_steering(self):
+    def _get_steering(self, at: float):
         if any([_ is None for _ in [self.path]]):
             raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
         return self.u[0][0]

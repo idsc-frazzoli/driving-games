@@ -49,11 +49,9 @@ class SpeedController(PID, LongitudinalController):
         params = SpeedControllerParam() if params is None else params
         super(SpeedController, self).__init__(params)
 
-    def update_reference_speed(self, speed_ref: float):
-        self.update_reference(speed_ref)
+    def _update_obs(self, new_obs: X):
+        self.update_measurement(new_obs.vx)
 
-    def update_state(self, state: X):
-        self.update_measurement(state.vx)
-
-    def get_acceleration(self, at: float) -> float:
+    def _get_acceleration(self, at: float) -> float:
+        self.update_reference(self.speed_ref)
         return self.get_control(at)

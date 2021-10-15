@@ -4,7 +4,7 @@ from dg_commons_dev.controllers.controller_types import *
 from typing import Optional
 from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit
 from dg_commons_dev.behavior.behavior import SpeedBehavior
-from dg_commons.controllers.speed import SpeedController
+from dg_commons_dev.controllers.speed import SpeedController
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons import PlayerName, X
 from dg_commons.sim import SimObservations
@@ -77,7 +77,7 @@ class LFAgent(Agent):
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
         self.speed_behavior.my_name = my_name
-        self.controller.update_path(self.ref_lane)
+        self.controller._update_path(self.ref_lane)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         t1 = time.time()
@@ -106,24 +106,25 @@ class LFAgent(Agent):
 
     def _get_decoupled_commands(self, my_obs: X, speed_ref: float, t: float) -> Tuple[float, float]:
 
-        # update observations
-        self.speed_controller.update_state(my_obs)
-        self.controller.update_state(my_obs)
-        # compute commands
-        self.speed_controller.update_reference_speed(speed_ref)
+        self.speed_controller.update_ref(speed_ref)
+        acc = self.speed_controller.control(my_obs, t)
 
-        acc = self.speed_controller.get_acceleration(t)
-        ddelta = self.steering_controller.get_steering_vel(self.controller.get_steering(), my_obs.delta)
+        self.controller.update_ref(self.ref_lane)
+        delta = self.controller.control(my_obs, t)
+
+        self.steering_controller.update_ref(delta)
+        ddelta = self.steering_controller.control(my_obs.delta, t)
         return acc, ddelta
 
     def _get_coupled_commands(self, my_obs: X, speed_ref: float, t: float) -> Tuple[float, float]:
         # compute commands
-        self.controller.update_reference_speed(speed_ref)
-        self.controller.update_state(my_obs)
+        ref: LatAndLonController.Reference = LatAndLonController.Reference(speed_ref=speed_ref, path=self.ref_lane)
 
-        steering = self.controller.get_steering()
-        acc = self.controller.get_acceleration(t)
-        ddelta = self.steering_controller.get_steering_vel(steering, my_obs.delta)
+        self.controller.update_ref(ref)
+        delta, acc = self.controller.control(my_obs, t)
+
+        self.steering_controller.update_ref(delta)
+        ddelta = self.steering_controller.control(my_obs.delta, t)
         return acc, ddelta
 
     def emergency_subroutine(self) -> VehicleCommands:
