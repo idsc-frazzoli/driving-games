@@ -8,7 +8,6 @@ from dg_commons import PlayerName
 from games.utils import valmap
 from dg_commons.sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 from dg_commons.sim.simulator_structures import PlayerObservations
-from dg_commons_dev.utils import BaseParams
 from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
 from dg_commons_dev.emergency.emergency_types import EmergencySituation
 
@@ -25,7 +24,8 @@ class SpeedBehaviorParam(BehaviorParams):
     """Evaluates safety distance from vehicle in front based on distance covered in this delta time"""
 
 
-class SpeedBehavior(Behavior):
+class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Dict[PlayerName, SE2Transform],
+                    Tuple[float, EmergencySituation]]):
     """Determines the reference speed"""
 
     def __init__(self, my_name: Optional[PlayerName] = None):

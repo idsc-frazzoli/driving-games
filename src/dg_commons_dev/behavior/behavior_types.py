@@ -1,12 +1,8 @@
 from abc import ABC, abstractmethod
-from sim_dev.agents import Agent
-from typing import MutableMapping, Tuple, Dict
-from dg_commons import PlayerName
-from dg_commons.sim import PlayerObservations
+from typing import TypeVar, Generic
 from dataclasses import dataclass
-from duckietown_world import SE2Transform
-from dg_commons_dev.emergency.emergency_types import EmergencySituation
 from dg_commons_dev.utils import BaseParams
+from dg_commons_dev.emergency.emergency_types import S
 
 
 @dataclass
@@ -14,18 +10,22 @@ class BehaviorParams(BaseParams):
     pass
 
 
-class Behavior(ABC):
+Obs = TypeVar('Obs')
+Rel = TypeVar('Rel')
+
+
+class Behavior(ABC, Generic[Obs, Rel, S]):
     @abstractmethod
-    def update_observations(self, agents: MutableMapping[PlayerName, PlayerObservations]):
+    def update_observations(self, new_obs: Obs):
         pass
 
     @abstractmethod
-    def is_there_anyone_to_yield_to(self, agents_rel_pose: Dict[PlayerName, SE2Transform]) -> bool:
+    def is_there_anyone_to_yield_to(self, rel_behavior: Rel) -> bool:
         pass
 
     @abstractmethod
-    def is_emergency_subroutine_needed(self, agents_rel_pose: Dict[PlayerName, SE2Transform]) -> bool:
+    def is_emergency_subroutine_needed(self, rel_behavior: Rel) -> bool:
         pass
 
-    def get_situation(self, at: float) -> Tuple[float, EmergencySituation]:
+    def get_situation(self, at: float) -> S:
         pass
