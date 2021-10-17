@@ -46,7 +46,7 @@ def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext
 
 
 def generate_report(sim_context: SimContext) -> Report:
-    r = Report("Episode visualisation")
+    r = Report("EpisodeVisualisation")
     if sim_context.sim_terminated is not True:
         raise RuntimeWarning("Generating a simulation report from a simulation that is not terminated")
     gif_viz = r.figure(cols=1)
@@ -64,7 +64,7 @@ def get_collision_reports(sim_context: SimContext, skip_collision_viz: bool = Fa
     :return:
     """
     logger.info(f"Generating collision report")
-    r = Report("Accidents report")
+    r = Report("AccidentsReport")
     accidents_report, coll_graph = investigate_collision_report(sim_context.collision_reports)
 
     fig_graph = r.figure(cols=1)
