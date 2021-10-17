@@ -16,12 +16,12 @@ from .collisions import Collision
 __all__ = ["CollisionPreference"]
 
 
-class CollisionPreference(Preference[Optional[Collision]]):
+class CollisionPreference(Preference[Collision]):
     def __init__(self):
         self.p = SmallerPreferredTol(D(0))
 
-    def get_type(self) -> Type[Optional[Collision]]:
-        return Optional[Collision]
+    def get_type(self) -> Type[Collision]:
+        return Collision
 
     def compare(self, a: Optional[Collision], b: Optional[Collision]) -> ComparisonOutcome:
         if a is None and b is None:

@@ -6,9 +6,9 @@ from commonroad.scenario.scenario import Scenario
 
 from dg_commons import PlayerName, SE2Transform, seq_integrate
 from dg_commons.maps import DgLanePose
-from dg_commons.planning import JointTrajectories, PlanningGoal
+from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
 from dg_commons.seq.sequence import Timestamp, DgSampledSequence
-from games.utils import valmap, fd
+from dg_commons import valmap, fd
 
 __all__ = [
     "MetricEvaluationContext",
@@ -55,7 +55,7 @@ class MetricEvaluationContext:
         # precompute curvilinear coordinates for all the ones that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
         for p, goal in self.goals.items():
-            if goal.ref_lane:
+            if isinstance(goal, RefLaneGoal):
                 curv[p] = [goal.ref_lane.lane_pose_from_SE2Transform(q) for q in self._points_cart[p]]
         self._points_curv = fd(curv) if curv else None
 

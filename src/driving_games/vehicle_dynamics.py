@@ -25,7 +25,7 @@ class InvalidAction(ZException):
 
 
 class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
-    """Dynamics only along a path #fixme"""
+    """Dynamics only along a DGLanelet"""
 
     max_speed: D
     """ Maximum speed [m/s] """
@@ -37,7 +37,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     """ Maximum `x` until end of episode [m] """
 
     available_accels: FrozenSet[D]
-    """ Available accelleration values. """
+    """ Available acceleration values. """
 
     max_wait: D
     """ Maximum wait [s] -- maximum duration at v=0. """
