@@ -1,7 +1,7 @@
 from sim_dev.simulator import SimContext, Simulator, SimParameters, SimLog
 from dg_commons.sim.models.vehicle import VehicleModel
 from dg_commons.sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
-from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.obstacle import DynamicObstacle, StaticObstacle
 from dg_commons.sim.scenarios.agent_from_commonroad import infer_lane_from_dyn_obs
 from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test import ScenarioData
 from dg_commons_dev_tests.test_controllers.controllers_to_test import *
@@ -16,7 +16,9 @@ from dg_commons_dev.behavior.behavior import SpeedBehavior
 import numpy as np
 import time
 from dg_commons_dev_tests.test_controllers.controller_scenarios.scenario_to_test import scenarios
+from dg_commons_dev_tests.test_controllers.controller_scenarios.utils import model_agent_from_static_obstacle
 from dg_commons_dev_tests.test_controllers.controllers_to_test import contr_to_test, DT, DT_COMMANDS
+from crash.reports import generate_report
 
 
 class Verbosity:
@@ -194,6 +196,14 @@ class TestSingleControllerInstance:
                 players.update({player_name: agent})
                 models.update({player_name: model})
 
+        if self.scenario.static_obs is not None:
+            for j, static_obs in enumerate(self.scenario.scenario.static_obstacles):
+                if j in self.scenario.static_obs:
+                    model, agent = model_agent_from_static_obstacle(static_obs)
+                    player_name = PlayerName(f"PStatic{j}")
+                    players.update({player_name: agent})
+                    models.update({player_name: model})
+
         sim_parameters: SimParameters = SimParameters(dt=DT, dt_commands=DT_COMMANDS,
                                                       max_sim_time=SimTime(scenario.simulation_time))
         self.sim_context: SimContext = SimContext(scenario=scenario.scenario, models=models, players=players,
@@ -260,6 +270,9 @@ class TestSingleControllerInstance:
         betas = {}
         dt_commands = {}
         for key in self.sim_context.log.keys():
+            if not issubclass(type(self.sim_context.players[key]), LFAgent):
+                continue
+
             dg_lanelets[key] = self.sim_context.players[key].current_ref.path
             states[key] = self.sim_context.log[key].states
             commands[key] = self.sim_context.log[key].actions
@@ -272,10 +285,10 @@ class TestSingleControllerInstance:
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands,
                                                        velocities, dt_commands, betas)
 
-        # report = generate_report(self.sim_context)
+        report = generate_report(self.sim_context)
         # save report
-        # report_file = os.path.join(self.output_dir, f"{name}.html")
-        # report.to_html(report_file)
+        report_file = os.path.join(self.output_dir, f"{name}.html")
+        report.to_html(report_file)
 
     def evaluate_metrics(self):
 

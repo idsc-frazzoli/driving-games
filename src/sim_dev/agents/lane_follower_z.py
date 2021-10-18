@@ -2,7 +2,6 @@ from typing import Tuple, get_args
 import numpy as np
 from dg_commons_dev.controllers.controller_types import *
 from typing import Optional
-from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit
 from dg_commons_dev.behavior.behavior import SpeedBehavior
 from dg_commons_dev.controllers.speed import SpeedController
 from dg_commons.maps.lanes import DgLanelet
@@ -12,9 +11,10 @@ from dg_commons.sim.agents.agent import Agent
 from dg_commons.sim.models.vehicle import VehicleCommands
 import time
 from dg_commons_dev.controllers.steering_controllers import *
-from dg_commons_dev.controllers.pure_pursuit_z import *
 from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
 from dg_commons_dev.behavior.emergency import EmergencySituation
+from dg_commons_dev.controllers.steering_controllers import SCP
+from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit
 
 
 class LFAgent(Agent):
@@ -41,7 +41,7 @@ class LFAgent(Agent):
         assert single or decoupled
 
         # self.ref_lane = lane
-        self.current_ref: LatAndLonController.Reference = LatAndLonController.Reference(0, lane)
+        self.current_ref: Reference = Reference(0, lane)
         self.my_name: Optional[PlayerName] = None
         self.decoupled = decoupled
 
@@ -56,6 +56,7 @@ class LFAgent(Agent):
         self._my_obs: Optional[X] = None
 
         self.state_estimator = None
+        self.state = None
         self.commands = None
 
         self.betas = []
@@ -74,7 +75,7 @@ class LFAgent(Agent):
 
     @staticmethod
     def get_default_la(lane: DgLanelet):
-        return LFAgent(lane, PurePursuit(), SpeedBehavior(), SpeedController(), SteeringController())
+        return LFAgent(lane, PurePursuit(), SpeedBehavior(), SpeedController(), SCP())
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
@@ -118,10 +119,10 @@ class LFAgent(Agent):
 
     def _get_decoupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
 
-        self.speed_controller.update_ref(self.current_ref.speed_ref)
+        self.speed_controller.update_ref(self.current_ref)
         acc = self.speed_controller.control(my_obs, t)
 
-        self.controller.update_ref(self.current_ref.path)
+        self.controller.update_ref(self.current_ref)
         delta = self.controller.control(my_obs, t)
 
         self.steering_controller.update_ref(delta)

@@ -9,11 +9,17 @@ from dg_commons_dev.controllers.interface import Controller, Obs, U, Ref
 
 
 @dataclass
+class Reference:
+    speed_ref: float
+    path: DgLanelet
+
+
+@dataclass
 class LateralControllerParam(BaseParams):
     pass
 
 
-class LateralController(Controller[DgLanelet, X, float]):
+class LateralController(Controller[Reference, X, float]):
     def __init__(self):
         self.path: Optional[DgLanelet] = None
         self.control_path: Optional[DgLaneletControl] = None
@@ -32,8 +38,8 @@ class LateralController(Controller[DgLanelet, X, float]):
         self.path = path
         self.control_path = DgLaneletControl(path)
 
-    def update_ref(self, new_ref: DgLanelet):
-        self._update_path(new_ref)
+    def update_ref(self, new_ref: Reference):
+        self._update_path(new_ref.path)
 
     def control(self, new_obs: Obs, t: float) -> float:
         self._update_obs(new_obs)
@@ -45,7 +51,7 @@ class LongitudinalControllerParam(BaseParams):
     pass
 
 
-class LongitudinalController(Controller[float, X, float]):
+class LongitudinalController(Controller[Reference, X, float]):
     def __init__(self):
         self.speed_ref: float = 0
 
@@ -60,8 +66,8 @@ class LongitudinalController(Controller[float, X, float]):
     def _update_reference_speed(self, speed_ref: float):
         self.speed_ref = speed_ref
 
-    def update_ref(self, new_ref: float):
-        self._update_reference_speed(new_ref)
+    def update_ref(self, new_ref: Reference):
+        self._update_reference_speed(new_ref.speed_ref)
 
     def control(self, new_obs: Obs, t: float) -> float:
         self._update_obs(new_obs)
@@ -73,16 +79,8 @@ class LatAndLonControllerParam(BaseParams):
     pass
 
 
-@dataclass
-class Reference:
-    speed_ref: float
-    path: DgLanelet
-
-
 class LatAndLonController(LateralController, LongitudinalController,
                           Controller[Reference, X, Tuple[float, float]], ABC):
-    class Reference(Reference):
-        pass
 
     def __init__(self):
         LateralController.__init__(self)

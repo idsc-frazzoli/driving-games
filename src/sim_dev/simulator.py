@@ -2,13 +2,16 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from itertools import combinations
 from typing import Mapping, Optional, List, Dict
+
 from commonroad.scenario.scenario import Scenario
-from dg_commons.time import time_function
+
 from dg_commons import PlayerName, U
-from dg_commons.sim import logger, CollisionReport, SimTime
+from dg_commons.sim import SimTime, CollisionReport, logger
 from dg_commons.sim.agents.agent import Agent, TAgent
 from dg_commons.sim.collision_utils import CollisionException
 from dg_commons.sim.simulator_structures import *
+from dg_commons.time import time_function
+from sim_dev.agents.lane_follower_z import LFAgent
 
 
 @dataclass
@@ -70,9 +73,11 @@ class Simulator:
         self.last_observations.players = {}
         for player_name, model in sim_context.models.items():
             state = model.get_state()
-            sim_context.players[player_name].measurement_update(state)
+            if issubclass(type(sim_context.players[player_name]), LFAgent):
+                sim_context.players[player_name].measurement_update(state)
+
             # todo not always necessary to update observations
-            player_obs = PlayerObservations(state=model.get_state(), occupancy=model.get_footprint())
+            player_obs = PlayerObservations(state=state, occupancy=model.get_footprint())
             self.last_observations.players.update({player_name: player_obs})
         logger.debug(f"Pre update function, sim time {sim_context.time}")
         logger.debug(f"Last observations:\n{self.last_observations}")
@@ -114,8 +119,8 @@ class Simulator:
     def _maybe_terminate_simulation(sim_context: SimContext):
         """Evaluates if the simulation needs to terminate based on the expiration of times"""
         termination_condition: bool = (
-            sim_context.time > sim_context.param.max_sim_time
-            or sim_context.time > sim_context.first_collision_ts + sim_context.param.sim_time_after_collision
+                sim_context.time > sim_context.param.max_sim_time
+                or sim_context.time > sim_context.first_collision_ts + sim_context.param.sim_time_after_collision
         )
         sim_context.sim_terminated = termination_condition
 
