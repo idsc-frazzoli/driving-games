@@ -79,7 +79,8 @@ class LFAgent(Agent):
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
         self.speed_behavior.my_name = my_name
-        self.controller._update_path(self.current_ref.path)
+        self.controller.update_ref(self.current_ref)
+        # self.controller._update_path(self.current_ref.path)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         t1 = time.time()
