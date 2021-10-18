@@ -1,14 +1,15 @@
 from abc import abstractmethod, ABC
+from collections import Sequence
 from dataclasses import dataclass, field
 from typing import List, Mapping, Optional, MutableMapping
 
 from commonroad.scenario.scenario import Scenario
 
 from dg_commons import PlayerName, SE2Transform, seq_integrate
+from dg_commons import valmap, fd
 from dg_commons.maps import DgLanePose
 from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
 from dg_commons.seq.sequence import Timestamp, DgSampledSequence
-from dg_commons import valmap, fd
 
 __all__ = [
     "MetricEvaluationContext",
@@ -59,6 +60,9 @@ class MetricEvaluationContext:
                 curv[p] = [goal.ref_lane.lane_pose_from_SE2Transform(q) for q in self._points_cart[p]]
         self._points_curv = fd(curv) if curv else None
 
+    def get_players(self) -> List[PlayerName]:
+        return list(self.trajectories.keys())
+
 
 class Metric(ABC):
     _instances = {}
@@ -74,7 +78,7 @@ class Metric(ABC):
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         """Evaluates the metric for all players given a context."""
 
-    def get_evaluated_metric(self, timestamps: List[Timestamp], values: List[float]) -> EvaluatedMetric:
+    def get_evaluated_metric(self, timestamps: Sequence[Timestamp], values: Sequence[float]) -> EvaluatedMetric:
         incremental = DgSampledSequence[float](timestamps, values)
         tot_value = seq_integrate(incremental).values[-1]
         ret = EvaluatedMetric(

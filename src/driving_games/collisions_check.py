@@ -5,8 +5,8 @@ from frozendict import frozendict
 from zuper_commons.types import ZNotImplementedError
 
 from dg_commons import PlayerName
-from dg_commons.sim import IMPACT_FRONT, ImpactLocation
-from .collisions import Collision
+from dg_commons.sim import IMPACT_FRONT, ImpactLocation, CollisionReportPlayer
+#from .collisions import Collision
 from .rectangle import sample_x, rectangle_from_pose, ProjectedCar
 from .structures import VehicleGeometry, VehicleState
 
@@ -20,7 +20,7 @@ IMPACT_SIDES = ImpactLocation("impact_sides")
 def collision_check(
     poses: Mapping[PlayerName, VehicleState],
     geometries: Mapping[PlayerName, VehicleGeometry],
-) -> Mapping[PlayerName, Collision]:
+) -> Mapping[PlayerName, CollisionReportPlayer]:
     dt = D(0.5)
     n = 2
     if len(poses) == 1:

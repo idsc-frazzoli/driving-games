@@ -3,9 +3,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Dict, List, Mapping, Tuple, Optional
 
-from duckietown_world import SE2Transform
-
-from dg_commons import PlayerName
+from dg_commons import PlayerName, SE2Transform
 from dg_commons.maps import DgLanePose
 from dg_commons.seq.seq_op import seq_integrate
 from dg_commons.seq.sequence import Timestamp, DgSampledSequence

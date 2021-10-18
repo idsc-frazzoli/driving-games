@@ -34,7 +34,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Rectangle]):
     """ Minimum speed [m/s] """
 
     max_path: D
-    """ Maximum `x` until end of episode [m] """
+    """ Maximum `s` until end of episode [m] """
 
     available_accels: FrozenSet[D]
     """ Available acceleration values. """

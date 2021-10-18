@@ -1,6 +1,8 @@
-from decimal import Decimal as D
 from typing import Optional, Type
 
+from zuper_typing import debug_print
+
+from dg_commons.sim import CollisionReportPlayer
 from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -8,22 +10,20 @@ from preferences import (
     INDIFFERENT,
     Preference,
     SECOND_PREFERRED,
-    SmallerPreferredTol,
+    SmallerPreferred,
 )
-from zuper_typing import debug_print
-from .collisions import Collision
 
 __all__ = ["CollisionPreference"]
 
 
-class CollisionPreference(Preference[Collision]):
+class CollisionPreference(Preference[CollisionReportPlayer]):
     def __init__(self):
-        self.p = SmallerPreferredTol(D(0))
+        self.p = SmallerPreferred()
 
-    def get_type(self) -> Type[Collision]:
-        return Collision
+    def get_type(self) -> Type[CollisionReportPlayer]:
+        return CollisionReportPlayer
 
-    def compare(self, a: Optional[Collision], b: Optional[Collision]) -> ComparisonOutcome:
+    def compare(self, a: Optional[CollisionReportPlayer], b: Optional[CollisionReportPlayer]) -> ComparisonOutcome:
         if a is None and b is None:
             return INDIFFERENT
         if a is None and b is not None:
@@ -32,13 +32,12 @@ class CollisionPreference(Preference[Collision]):
             return SECOND_PREFERRED
         assert a is not None
         assert b is not None
-        if a.active and not b.active:
+        if a.at_fault and not b.at_fault:
             return SECOND_PREFERRED
-        if b.active and not a.active:
+        if b.at_fault and not a.at_fault:
             return FIRST_PREFERRED
 
-        ea = a.energy_received + a.energy_transmitted
-        eb = b.energy_received + b.energy_transmitted
+        ea, eb = a.energy_delta, b.energy_delta
         res = self.p.compare(ea, eb)
         assert res in COMP_OUTCOMES, (res, self.p)
         # logger.info('collision_pref', a=a, b=b, res=res)

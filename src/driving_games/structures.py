@@ -1,9 +1,8 @@
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
-from typing import Tuple
 
-from dg_commons import Color
+from dg_commons import Color, SE2Transform
 from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
@@ -11,10 +10,11 @@ __all__ = [
     "VehicleState",
     "VehicleActions",
     "VehicleGeometry",
-    "SE2_disc",
+    #   "SE2_disc",
 ]
 
-SE2_disc = Tuple[D, D, D]  # in degrees
+
+# SE2_disc = Tuple[D, D, D]  # in degrees
 
 
 @dataclass(frozen=True)
@@ -58,11 +58,11 @@ class VehicleGeometry:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleState:
-    ref: SE2_disc
-    """ Reference frame from where the vehicle started """
+    ref: SE2Transform
+    """ The initial reference position"""
 
     x: D
-    """ Longitudinal position """
+    """ Longitudinal progress """
 
     v: D
     """ Longitudinal velocity """

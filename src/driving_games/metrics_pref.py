@@ -2,7 +2,7 @@ from queue import PriorityQueue
 from typing import Type, Set
 
 from dg_commons import fd
-from networkx import DiGraph
+from networkx import DiGraph, has_path
 
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
 from preferences import (
@@ -34,7 +34,6 @@ class PosetalPref(Preference[PlayerEvaluatedMetrics]):
         return hash(self.pref_str)
 
     def get_type(self) -> Type[PlayerEvaluatedMetrics]:
-        # todo
         return PlayerEvaluatedMetrics
 
     def compare(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
