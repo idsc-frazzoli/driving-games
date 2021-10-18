@@ -1,13 +1,13 @@
+import os
+from decimal import Decimal as D
 from queue import PriorityQueue
 from typing import Type, Dict, Mapping, Set, NewType, Tuple, Union
-from decimal import Decimal as D
-
-import os
 
 from frozendict import frozendict
 from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
 from yaml import safe_load
 
+from driving_games.metrics_structures import Metric
 from preferences import (
     Preference,
     ComparisonOutcome,
@@ -17,10 +17,10 @@ from preferences import (
     FIRST_PREFERRED,
     SECOND_PREFERRED,
 )
-from .config import config_dir
+from .config import CONFIG_DIR
 from .config.ral import config_dir_ral
-from .metrics_def import Metric, PlayerOutcome
 from .metrics import get_metrics_set
+from .metrics_def import PlayerOutcome
 
 __all__ = [
     "WeightedPreference",
@@ -45,7 +45,7 @@ class WeightedPreference(Preference[PlayerOutcome]):
 
     def __init__(self, weights_str: str):
         if WeightedPreference._config is None:
-            filename = os.path.join(config_dir, "pref_nodes.yaml")
+            filename = os.path.join(CONFIG_DIR, "pref_nodes.yaml")
             with open(filename) as load_file:
                 WeightedPreference._config = safe_load(load_file)
             WeightedPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
@@ -62,8 +62,7 @@ class WeightedPreference(Preference[PlayerOutcome]):
             weights[WeightedPreference._metric_dict[k]] = D(v)
         self.weights = weights
 
-    @staticmethod
-    def get_type() -> Type[PlayerOutcome]:
+    def get_type(self, ) -> Type[PlayerOutcome]:
         return PlayerOutcome
 
     def evaluate(self, outcome: PlayerOutcome) -> D:
@@ -91,29 +90,28 @@ class WeightedPreference(Preference[PlayerOutcome]):
         return len(self.weights) < len(other.weights)
 
 
-metric_type = NewType("metric", WeightedPreference)
+metric_type = NewType("metric", WeightedPreference)  # fixme this does not seem right
 
 
 class PosetalPreference(Preference[PlayerOutcome]):
     """ A preference specified over the various nodes.
     Each node is a metric or a weighted combination of metrics (or weighted nodes) """
 
-    """ Internal parameters """
-    _config: Mapping = None
-    _complement = {FIRST_PREFERRED: SECOND_PREFERRED, SECOND_PREFERRED: FIRST_PREFERRED,
-                   INDIFFERENT: INDIFFERENT, INCOMPARABLE: INCOMPARABLE}
-    _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
-
     graph: DiGraph
     """ Preference graph """
-    _node_dict: Dict[str, metric_type] = {}
     level_nodes: Mapping[int, Set[metric_type]]
     """ All nodes used, and sorted by level """
-
     pref_str: str
     """ Name of preference """
     no_pref: bool = False
     """ No preference over all the outcomes? """
+
+    # Internal parameters
+    _config: Mapping = None
+    _complement = {FIRST_PREFERRED: SECOND_PREFERRED, SECOND_PREFERRED: FIRST_PREFERRED,
+                   INDIFFERENT: INDIFFERENT, INCOMPARABLE: INCOMPARABLE}
+    _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
+    _node_dict: Dict[str, metric_type] = {}
 
     def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:
@@ -177,7 +175,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
             for root in roots:
                 all_lens = [len(x) for x in all_simple_paths(self.graph, source=root, target=node)]
                 if len(all_lens) > 0:
-                    level = max(level, max(all_lens)-1)
+                    level = max(level, max(all_lens) - 1)
             if level not in level_nodes:
                 level_nodes[level] = set()
             level_nodes[level].add(node)
@@ -195,8 +193,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 i = i + 1
         self.level_nodes = level_nodes
 
-    @staticmethod
-    def get_type() -> Type[PlayerOutcome]:
+    def get_type(self, ) -> Type[PlayerOutcome]:
         return PlayerOutcome
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:

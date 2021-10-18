@@ -11,7 +11,7 @@ from geometry import SE2_from_xytheta
 from yaml import safe_load
 
 from dg_commons import Color
-from .config import config_dir
+from .config import CONFIG_DIR
 
 __all__ = [
     "VehicleGeometry",
@@ -43,7 +43,7 @@ class VehicleGeometry:
     @classmethod
     def _load_all_configs(cls):
         if cls._config is None:
-            filename = os.path.join(config_dir, "vehicles.yaml")
+            filename = os.path.join(CONFIG_DIR, "vehicles.yaml")
             with open(filename) as load_file:
                 cls._config = safe_load(load_file)
 
@@ -244,7 +244,7 @@ class VehicleState:
             return cls.default()
 
         if cls._config is None:
-            filename = os.path.join(config_dir, "initial_states.yaml")
+            filename = os.path.join(CONFIG_DIR, "initial_states.yaml")
             with open(filename) as load_file:
                 cls._config = safe_load(load_file)
         if name in cls._config.keys():
@@ -323,7 +323,7 @@ class TrajectoryParams:
     @classmethod
     def from_config(cls, name: str, vg_name: str) -> "TrajectoryParams":
         if cls._config is None:
-            filename = os.path.join(config_dir, "trajectories.yaml")
+            filename = os.path.join(CONFIG_DIR, "trajectories.yaml")
             with open(filename) as load_file:
                 cls._config = safe_load(load_file)
 

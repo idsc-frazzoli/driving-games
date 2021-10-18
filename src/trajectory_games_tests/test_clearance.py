@@ -1,5 +1,5 @@
 from trajectory_games import VehicleGeometry
-from duckietown_world import SE2Transform
+from dg_commons import SE2Transform
 from trajectory_games.metrics import Clearance
 from dg_commons import PlayerName
 from nose.tools import assert_almost_equal

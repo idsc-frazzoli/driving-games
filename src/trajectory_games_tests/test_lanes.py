@@ -9,12 +9,12 @@ from yaml import safe_load
 
 from _tmp._deprecated.world import load_driving_game_map, get_lane_from_node_sequence, LaneSegmentHashable
 from dg_commons import PlayerName
-from trajectory_games import config_dir, TrajGameVisualization, TrajectoryWorld, VehicleGeometry
+from trajectory_games import CONFIG_DIR, TrajGameVisualization, TrajectoryWorld, VehicleGeometry
 
 
 def test_lanes():
     map_name = "4way-double-intersection-only"
-    lanes_file = os.path.join(config_dir, "lanes.yaml")
+    lanes_file = os.path.join(CONFIG_DIR, "lanes.yaml")
     with open(lanes_file) as load_file:
         config_lanes = safe_load(load_file)[map_name]
 

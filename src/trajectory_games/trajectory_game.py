@@ -27,7 +27,6 @@ from .structures import VehicleState, VehicleGeometry
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
-    "JointPureTraj",
     "TrajectoryGamePlayer",
     "TrajectoryGame",
     "LeaderFollowerParams",
@@ -42,9 +41,6 @@ __all__ = [
     "preprocess_full_game",
     "preprocess_player",
 ]
-
-JointPureTraj = Mapping[PlayerName, Trajectory]
-""" Joint action of all players in the game """
 
 
 @dataclass

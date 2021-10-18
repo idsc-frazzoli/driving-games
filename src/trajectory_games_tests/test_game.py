@@ -24,7 +24,7 @@ from trajectory_games import (
     report_leader_follower_solution,
     solve_recursive_game,
     report_leader_follower_recursive,
-    config_dir,
+    CONFIG_DIR,
     VehicleState,
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
@@ -95,7 +95,7 @@ def test_trajectory_game_best_response():
 def test_trajectory_game_lexi():
     folder = "lexi/"
 
-    players_file = os.path.join(config_dir, "players.yaml")
+    players_file = os.path.join(CONFIG_DIR, "players.yaml")
     with open(players_file) as load_file:
         config = safe_load(load_file)["lexi"]
     states = config["states"]

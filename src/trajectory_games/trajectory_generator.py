@@ -4,11 +4,9 @@ from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Optional
 
 import geometry as geo
 import numpy as np
-from duckietown_world import relative_pose
-from duckietown_world.utils import SE2_apply_R2
 from scipy.optimize import minimize
 
-from dg_commons import PlayerName
+from dg_commons import PlayerName, relative_pose, SE2_apply_T2
 from dg_commons.maps import DgLanelet
 from .bicycle_dynamics import BicycleDynamics
 from .game_def import ActionSetGenerator
@@ -124,7 +122,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         beta_f = lane.beta_from_along_lane(along_lane=progress)
         q_f = lane.center_point(beta=beta_f)
         _, ang_f, _ = geo.translation_angle_scale_from_E2(q_f)
-        pos_f = SE2_apply_R2(q_f, offset_target)
+        pos_f = SE2_apply_T2(q_f, offset_target)
         return pos_f, ang_f
 
     def get_successor(
@@ -171,7 +169,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         offset_0, offset_i = np.array([0, 0]), np.array([-l, 0])
         p_i, th_i = self.get_target(lane=lane, progress=along_i, offset_target=offset_0)
         q_start = geo.SE2_from_translation_angle(t=start_arr, theta=state.th)
-        p_start = SE2_apply_R2(q_start, offset_i)
+        p_start = SE2_apply_T2(q_start, offset_i)
 
         def get_progress(acc: float, K: float) -> float:
             """Progress along reference using curvature"""

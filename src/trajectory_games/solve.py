@@ -7,18 +7,19 @@ from frozendict import frozendict
 
 from dg_commons import PlayerName
 from dg_commons import iterate_dict_combinations
+from dg_commons.planning import JointTrajectories
 from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
 from .game_def import SolvingContext
 from .metrics_def import TrajGameOutcome, PlayerOutcome
 from .paths import Trajectory
-from .trajectory_game import JointPureTraj, SolvedTrajectoryGameNode, SolvedTrajectoryGame
+from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
-EqOutcome = Tuple[Optional[JointPureTraj], Optional[TrajGameOutcome], bool, bool, bool, bool]
+EqOutcome = Tuple[Optional[JointTrajectories], Optional[TrajGameOutcome], bool, bool, bool, bool]
 NotEq: EqOutcome = None, None, False, False, False, False
 
 
-def get_solved_game_node(act: JointPureTraj, out: TrajGameOutcome) -> SolvedTrajectoryGameNode:
+def get_solved_game_node(act: JointTrajectories, out: TrajGameOutcome) -> SolvedTrajectoryGameNode:
     return SolvedTrajectoryGameNode(actions=act, outcomes=out)
 
 
@@ -43,7 +44,7 @@ def init_eq_dict() -> Dict[str, SolvedTrajectoryGame]:
     return ret
 
 
-def check_dominated(joint_actions: JointPureTraj, done: Mapping[PlayerName, Set[JointPureTraj]]) -> bool:
+def check_dominated(joint_actions: JointTrajectories, done: Mapping[PlayerName, Set[JointTrajectories]]) -> bool:
     for dominated in done.values():
         if joint_actions in dominated:
             return True
@@ -51,11 +52,11 @@ def check_dominated(joint_actions: JointPureTraj, done: Mapping[PlayerName, Set[
 
 
 def get_best_responses(
-    joint_actions: JointPureTraj,
-    context: SolvingContext,
-    player: PlayerName,
-    done_p: Set[JointPureTraj],
-    player_pref: Preference = None,
+        joint_actions: JointTrajectories,
+        context: SolvingContext,
+        player: PlayerName,
+        done_p: Set[JointTrajectories],
+        player_pref: Preference = None,
 ) -> Tuple[Set[ComparisonOutcome], Set[Trajectory]]:
     """
     Calculates the best responses for the current player
@@ -67,7 +68,7 @@ def get_best_responses(
         player_pref = context.outcome_pref[player]
 
     # All alternate actions (from available set) for the current player
-    def get_action_options(joint_act: JointPureTraj, p_actions: Set[Trajectory]) -> JointTrajSet:
+    def get_action_options(joint_act: JointTrajectories, p_actions: Set[Trajectory]) -> JointTrajSet:
         """Returns all possible actions for the player, with other player actions frozen
         Current player action is not included"""
 
@@ -122,7 +123,7 @@ def get_best_responses(
 
 
 def equilibrium_check(
-    joint_actions: JointPureTraj, context: SolvingContext, done: Dict[PlayerName, Set[JointPureTraj]]
+        joint_actions: JointTrajectories, context: SolvingContext, done: Dict[PlayerName, Set[JointTrajectories]]
 ) -> EqOutcome:
     """
     For each player, check if current action is best response
@@ -156,7 +157,7 @@ def equilibrium_check(
 
 class Solution:
     # Cache can be reused between levels
-    dominated: Dict[PlayerName, Set[JointPureTraj]] = None
+    dominated: Dict[PlayerName, Set[JointTrajectories]] = None
 
     def solve_game(self, context: SolvingContext, cache_dom: bool = False) -> Mapping[str, SolvedTrajectoryGame]:
         eq_dict = init_eq_dict()
@@ -176,7 +177,7 @@ class Solution:
         return eq_dict
 
     def reset(self):
-        self.dominated: Dict[PlayerName, Set[JointPureTraj]] = None
+        self.dominated: Dict[PlayerName, Set[JointTrajectories]] = None
 
 
 def solve_static_game(context: SolvingContext) -> Mapping[str, SolvedTrajectoryGame]:
@@ -198,7 +199,7 @@ def iterative_best_response(context: SolvingContext, n_runs: int) -> Mapping[str
     # Solve single player game for each player to get initial guess
     all_actions: Mapping[PlayerName, FrozenSet[Trajectory]] = context.player_actions
     init_guess: Dict[PlayerName, Set[Trajectory]] = {}
-    done_p: Set[JointPureTraj] = set()
+    done_p: Set[JointTrajectories] = set()
     tic = perf_counter()
     if INIT_BEST:
         print("Initialising strategies using best personal strategies.\nBest Actions:")
@@ -216,7 +217,7 @@ def iterative_best_response(context: SolvingContext, n_runs: int) -> Mapping[str
         print("Initialising strategies at random")
         init_guess = {player: actions for player, actions in all_actions.items()}
 
-    done: Dict[PlayerName, Set[JointPureTraj]] = {_: set() for _ in context.player_actions.keys()}
+    done: Dict[PlayerName, Set[JointTrajectories]] = {_: set() for _ in context.player_actions.keys()}
     for i in range(n_runs):
         players_rem: Set[PlayerName] = set(init_guess.keys())
         joint_best: Dict[PlayerName, Trajectory] = {}
@@ -247,7 +248,7 @@ def iterative_best_response(context: SolvingContext, n_runs: int) -> Mapping[str
 
 
 def filter_admissible_nasheq(
-    weak_eq: SolvedTrajectoryGame, player_prefs: Mapping[PlayerName, Preference]
+        weak_eq: SolvedTrajectoryGame, player_prefs: Mapping[PlayerName, Preference]
 ) -> SolvedTrajectoryGame:
     if len(weak_eq) == 0:
         return set()

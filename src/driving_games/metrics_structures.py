@@ -9,7 +9,7 @@ from dg_commons import PlayerName, SE2Transform, seq_integrate
 from dg_commons import valmap, fd
 from dg_commons.maps import DgLanePose
 from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
-from dg_commons.seq.sequence import Timestamp, DgSampledSequence
+from dg_commons.seq.sequence import DgSampledSequence
 
 __all__ = [
     "MetricEvaluationContext",
@@ -43,8 +43,8 @@ class MetricEvaluationContext:
     goals: Mapping[PlayerName, PlanningGoal]
 
     """ Cached data for each player use for all rules. """
-    _points_cart: Mapping[PlayerName, List[SE2Transform]] = field(init=False)
-    _points_curv: Mapping[PlayerName, List[DgLanePose]] = field(init=False)
+    points_cart: Mapping[PlayerName, List[SE2Transform]] = field(init=False)
+    points_curv: Mapping[PlayerName, List[DgLanePose]] = field(init=False)
 
     # _cache_cart: Dict[Trajectory, List[SE2Transform]] = None
     # _cache_curv: Dict[Trajectory, List[DgLanePose]] = None
@@ -52,13 +52,13 @@ class MetricEvaluationContext:
 
     def __post_init__(self):
         # cartesian path
-        self._points_cart = valmap(lambda x: x.as_path(), self.trajectories)
+        self.points_cart = valmap(lambda x: x.as_path(), self.trajectories)
         # precompute curvilinear coordinates for all the ones that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
         for p, goal in self.goals.items():
             if isinstance(goal, RefLaneGoal):
-                curv[p] = [goal.ref_lane.lane_pose_from_SE2Transform(q) for q in self._points_cart[p]]
-        self._points_curv = fd(curv) if curv else None
+                curv[p] = [goal.ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
+        self.points_curv = fd(curv) if curv else None
 
     def get_players(self) -> List[PlayerName]:
         return list(self.trajectories.keys())
@@ -78,16 +78,19 @@ class Metric(ABC):
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         """Evaluates the metric for all players given a context."""
 
-    def get_evaluated_metric(self, timestamps: Sequence[Timestamp], values: Sequence[float]) -> EvaluatedMetric:
-        incremental = DgSampledSequence[float](timestamps, values)
-        tot_value = seq_integrate(incremental).values[-1]
+    def get_evaluated_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
+        tot_value = seq_integrate(seq).values[-1]
         ret = EvaluatedMetric(
             name=type(self).__name__,
             value=tot_value,
-            pointwise=incremental,
+            pointwise=seq,
         )
         return ret
 
 
-PlayerEvaluatedMetrics = Mapping[Metric, EvaluatedMetric]
-JointPlayerEvaluatedMetrics = Mapping[PlayerName, PlayerEvaluatedMetrics]
+PlayerEvaluatedMetrics = Mapping[Metric, EvaluatedMetric] # PlayerOutcome
+JointPlayerEvaluatedMetrics = Mapping[PlayerName, PlayerEvaluatedMetrics] # TrajGameOutcome
+
+# MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
+# PlayerOutcome = Mapping[Metric, EvaluatedMetric]
+# TrajGameOutcome = Mapping[PlayerName, PlayerOutcome]

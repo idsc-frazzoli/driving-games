@@ -1,6 +1,6 @@
 import os
 
-__all__ = ["config_dir", "pref_dir"]
+__all__ = ["CONFIG_DIR", "PREF_DIR"]
 
-config_dir = os.path.dirname(__file__)
-pref_dir = os.path.join(config_dir, "player_pref")
+CONFIG_DIR = os.path.dirname(__file__)
+PREF_DIR = os.path.join(CONFIG_DIR, "player_pref")
