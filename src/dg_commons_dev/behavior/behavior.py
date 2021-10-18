@@ -8,42 +8,57 @@ from dg_commons import PlayerName
 from games.utils import valmap
 from dg_commons.sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 from dg_commons.sim.simulator_structures import PlayerObservations
-from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
-from dg_commons_dev.emergency.emergency_types import EmergencySituation
+from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams, Situation, SituationParams
+from dg_commons_dev.behavior.emergency import EmergencySituation, Emergency, EmergencyParams
+from dg_commons_dev.behavior.yield_to import YieldSituation, Yield, YieldParams
+from dg_commons_dev.behavior.cruise import CruiseSituation, CruiseParams, Cruise
+from dg_commons_dev.behavior.utils import SituationObservations
+
+
+@dataclass
+class BehaviorSituation:
+    yield_to: Optional[YieldSituation] = None
+    emergency: Optional[EmergencySituation] = None
+    cruise: Optional[CruiseSituation] = None
 
 
 @dataclass
 class SpeedBehaviorParam(BehaviorParams):
-    nominal_speed: Union[List[float], float] = kmh2ms(40)
-    """Nominal desired speed"""
-    yield_distance: Union[List[float], float] = 7
-    """Evaluate whether to yield only for vehicles within x [m]"""
-    minimum_yield_vel: Union[List[float], float] = kmh2ms(5)
-    """yield only to vehicles that are at least moving at.."""
     safety_time_braking: Union[List[float], float] = 1.5
     """Evaluates safety distance from vehicle in front based on distance covered in this delta time"""
+    emergency: type(Emergency) = Emergency
+    emergency_params: EmergencyParams = EmergencyParams()
+    """ Emergency Behavior """
+    yield_to: type(Emergency) = Yield
+    yield_params: YieldParams = YieldParams()
+    """ Yield Behavior """
+    cruise: type(Cruise) = Cruise
+    cruise_params: CruiseParams = CruiseParams()
+    """ Cruise Params """
 
 
-class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Dict[PlayerName, SE2Transform],
-                    Tuple[float, EmergencySituation]]):
+class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tuple[float, BehaviorSituation]]):
     """Determines the reference speed"""
 
-    def __init__(self, my_name: Optional[PlayerName] = None):
-        self.params: SpeedBehaviorParam = SpeedBehaviorParam()
+    def __init__(self, params: SpeedBehaviorParam = SpeedBehaviorParam(), my_name: Optional[PlayerName] = None):
+        self.params: SpeedBehaviorParam = params
         self.my_name: PlayerName = my_name
         self.agents: Optional[MutableMapping[PlayerName, PlayerObservations]] = None
         self.speed_ref: float = 0
+
+        self.yield_to = self.params.yield_to(self.params.yield_params, self.params.safety_time_braking)
+        self.emergency = self.params.emergency(self.params.emergency_params, self.params.safety_time_braking)
+        self.cruise = self.params.cruise(self.params.cruise_params, self.params.safety_time_braking)
+        self.obs: SituationObservations = SituationObservations(my_name=self.my_name)
+        self.situation: BehaviorSituation = BehaviorSituation()
         """ The speed reference"""
 
     def update_observations(self, agents: MutableMapping[PlayerName, PlayerObservations]):
         self.agents = agents
+        self.obs.agents = agents
 
-    def get_situation(self, at: float) -> Tuple[float, EmergencySituation]:
-        """Check if there is anyone on the right too close, then brake.
-        @:return candidate speed ref and whether or not the situation requires an emergency takeover
-        (e.g. collision avoidance)
-        """
-
+    def get_situation(self, at: float) -> Tuple[float, BehaviorSituation]:
+        self.obs.my_name = self.my_name
         mypose = extract_pose_from_state(self.agents[self.my_name].state)
 
         def rel_pose(other_obs: PlayerObservations) -> SE2Transform:
@@ -51,74 +66,27 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Dic
             return SE2Transform.from_SE2(relative_pose(mypose, other_pose))
 
         agents_rel_pose: Dict[PlayerName, SE2Transform] = valmap(rel_pose, self.agents)
-        yield_to_anyone: bool = self.is_there_anyone_to_yield_to(agents_rel_pose)
-        emergency_situation: EmergencySituation = self.is_emergency_subroutine_needed(agents_rel_pose)
-        if yield_to_anyone or emergency_situation.is_emergency:
+        self.obs.rel_poses = agents_rel_pose
+        self.yield_to.update_observations(self.obs)
+        self.emergency.update_observations(self.obs)
+        self.situation.yield_to = self.yield_to.infos()
+        self.situation.emergency = self.emergency.infos()
+
+        if self.situation.yield_to.is_yield or self.situation.emergency.is_emergency:
+            self.situation.cruise = CruiseSituation(False)
             self.speed_ref = 0
         else:
-            self.speed_ref = self.cruise_control(agents_rel_pose)
+            self.cruise.update_observations(self.obs)
+            self.situation.cruise = self.cruise.infos()
+            self.speed_ref = self.cruise.infos().speed_ref
 
-        return self.speed_ref, emergency_situation
+        return self.speed_ref, self.situation
 
-    def is_there_anyone_to_yield_to(self, agents_rel_pose: Dict[PlayerName, SE2Transform]) -> bool:
-        """
-        If someone is approaching from the right or someone is in front of us we yield
-        """
+    def is_there_anyone_to_yield_to(self) -> bool:
+        return self.yield_to.is_true()
 
-        for other_name, _ in self.agents.items():
-            if other_name == self.my_name:
-                continue
-            rel = agents_rel_pose[other_name]
-            other_vel = extract_vel_from_state(self.agents[other_name].state)
-            rel_distance = np.linalg.norm(rel.p)
-            # todo improve with SPOT predictions
-            coming_from_the_right: bool = pi / 4 <= rel.theta <= pi * 3 / 4 and \
-                                          other_vel > self.params.minimum_yield_vel
-            if coming_from_the_right and rel_distance < self.params.yield_distance:
-                return True
-        return False
+    def is_emergency_subroutine_needed(self) -> bool:
+        return self.emergency.is_true()
 
-    def is_emergency_subroutine_needed(self, agents_rel_pose: Dict[PlayerName, SE2Transform]) -> EmergencySituation:
-        myvel = self.agents[self.my_name].state.vx
-        for other_name, _ in self.agents.items():
-            if other_name == self.my_name:
-                continue
-            rel = agents_rel_pose[other_name]
-            other_vel = extract_vel_from_state(self.agents[other_name].state)
-            rel_distance = np.linalg.norm(rel.p)
-            coming_from_the_left: bool = -3 * pi / 4 <= rel.theta <= -pi / 4 and \
-                                         other_vel > self.params.minimum_yield_vel
-            in_front_of_me: bool = rel.p[0] > 0 and - 1.2 <= rel.p[1] <= 1.2
-            coming_from_the_front: bool = 3 * pi / 4 <= abs(rel.theta) <= pi * 5 / 4 and in_front_of_me
-            if (coming_from_the_left and rel_distance < self.params.yield_distance) or (
-                    coming_from_the_front and rel_distance < self.params.safety_time_braking * (myvel + other_vel)):
-                return EmergencySituation(True, rel_pose=rel, my_agent=self.agents[self.my_name],
-                                          other_agent=self.agents[other_name], other_vel=other_vel)
-        return EmergencySituation(False)
-
-    def cruise_control(self, agents_rel_pose: Dict[PlayerName, SE2Transform]) -> float:
-        """
-        If someone is in front with the same orientation, then apply the two seconds rule to adapt reference velocity
-         that allows maintaining a safe distance between the vehicles
-        """
-        myvel = self.agents[self.my_name].state.vx
-        candidate_speed_ref = [self.params.nominal_speed, ]
-        for other_name, _ in self.agents.items():
-            if other_name == self.my_name:
-                continue
-            rel = agents_rel_pose[other_name]
-            rel_dist = np.linalg.norm(rel.p)
-            other_vel = self.agents[other_name].state.vx
-            in_front_of_me: bool = rel.p[0] > 0.5 and abs(rel.p[1]) <= 1.2 and abs(rel.theta) < pi / 6
-            # safety distance at current speed + difference of how it will be in the next second
-            dist_to_keep = self._get_min_safety_dist(myvel) + max(myvel - other_vel, 0)
-            if in_front_of_me and rel_dist < dist_to_keep:
-                speed_ref = float(np.clip(other_vel - max(myvel - other_vel, 0), 0, kmh2ms(130)))
-                candidate_speed_ref.append(speed_ref)
-            else:
-                candidate_speed_ref.append(self.params.nominal_speed)
-        return min(candidate_speed_ref)
-
-    def _get_min_safety_dist(self, vel: float):
-        """The distance covered in x [s] travelling at vel"""
-        return vel * self.params.safety_time_braking
+    def is_cruise(self) -> bool:
+        return self.cruise.is_true()

@@ -1,4 +1,4 @@
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, Generic
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons_dev.maps.lanes import DgLaneletControl
 from abc import ABC, abstractmethod
@@ -24,7 +24,7 @@ class LateralController(Controller[DgLanelet, X, float]):
         pass
 
     @abstractmethod
-    def _update_obs(self, new_obs: X):
+    def _update_obs(self, new_obs: Obs):
         pass
 
     def _update_path(self, path: DgLanelet):
@@ -35,7 +35,7 @@ class LateralController(Controller[DgLanelet, X, float]):
     def update_ref(self, new_ref: DgLanelet):
         self._update_path(new_ref)
 
-    def control(self, new_obs: X, t: float) -> float:
+    def control(self, new_obs: Obs, t: float) -> float:
         self._update_obs(new_obs)
         return self._get_steering(t)
 
@@ -54,7 +54,7 @@ class LongitudinalController(Controller[float, X, float]):
         pass
 
     @abstractmethod
-    def _update_obs(self, new_obs: X):
+    def _update_obs(self, new_obs: Obs):
         pass
 
     def _update_reference_speed(self, speed_ref: float):
@@ -63,7 +63,7 @@ class LongitudinalController(Controller[float, X, float]):
     def update_ref(self, new_ref: float):
         self._update_reference_speed(new_ref)
 
-    def control(self, new_obs: X, t: float) -> float:
+    def control(self, new_obs: Obs, t: float) -> float:
         self._update_obs(new_obs)
         return self._get_acceleration(t)
 
@@ -92,7 +92,7 @@ class LatAndLonController(LateralController, LongitudinalController,
         self._update_reference_speed(new_ref.speed_ref)
         self._update_path(new_ref.path)
 
-    def control(self, new_obs: X, t: float) -> Tuple[float, float]:
+    def control(self, new_obs: Obs, t: float) -> Tuple[float, float]:
         self._update_obs(new_obs)
         steer: float = self._get_steering(t)
         acc: float = self._get_acceleration(t)

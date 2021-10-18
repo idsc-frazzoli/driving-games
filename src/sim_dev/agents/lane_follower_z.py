@@ -14,6 +14,7 @@ import time
 from dg_commons_dev.controllers.steering_controllers import *
 from dg_commons_dev.controllers.pure_pursuit_z import *
 from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
+from dg_commons_dev.behavior.emergency import EmergencySituation
 
 
 class LFAgent(Agent):
@@ -39,7 +40,8 @@ class LFAgent(Agent):
 
         assert single or decoupled
 
-        self.ref_lane = lane
+        # self.ref_lane = lane
+        self.current_ref: LatAndLonController.Reference = LatAndLonController.Reference(0, lane)
         self.my_name: Optional[PlayerName] = None
         self.decoupled = decoupled
 
@@ -77,7 +79,7 @@ class LFAgent(Agent):
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
         self.speed_behavior.my_name = my_name
-        self.controller._update_path(self.ref_lane)
+        self.controller._update_path(self.current_ref.path)
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         t1 = time.time()
@@ -85,47 +87,51 @@ class LFAgent(Agent):
         t = float(sim_obs.time)
 
         self.speed_behavior.update_observations(sim_obs.players)
-        speed_ref, emergency = self.speed_behavior.get_situation(t)
+        speed_ref, situation = self.speed_behavior.get_situation(t)
+        self.current_ref.speed_ref = speed_ref
 
-        if emergency.is_emergency or self._emergency:
-            # Once the emergency kicks in the speed ref will always be 0
-            self._emergency = True
-            speed_ref = 0
-            self.emergency_subroutine()
-
-        if self.decoupled:
-            acc, ddelta = self._get_decoupled_commands(my_obs, speed_ref, t)
+        if situation.emergency.is_emergency or self._emergency:
+            self.emergency_subroutine(my_obs, t, situation.emergency.is_emergency)
         else:
-            acc, ddelta = self._get_coupled_commands(my_obs, speed_ref, t)
+            self.normal_subroutine(my_obs, t)
 
-        self.betas.append(self.controller.current_beta)
-        self.commands = VehicleCommands(acc=acc, ddelta=ddelta)
         t2 = time.time()
         self.dt_commands.append(t2-t1)
         return self.commands
 
-    def _get_decoupled_commands(self, my_obs: X, speed_ref: float, t: float) -> Tuple[float, float]:
+    def normal_subroutine(self, my_obs: X, t: float):
+        if self.decoupled:
+            acc, ddelta = self._get_decoupled_commands(my_obs, t)
+        else:
+            acc, ddelta = self._get_coupled_commands(my_obs, t)
 
-        self.speed_controller.update_ref(speed_ref)
+        self.betas.append(self.controller.current_beta)
+        self.commands = VehicleCommands(acc=acc, ddelta=ddelta)
+
+    def emergency_subroutine(self, my_obs: X, t: float,
+                             emergency: EmergencySituation) -> VehicleCommands:
+        '''self.emergency.update_situation(emergency)
+        self.current_ref = self.emergency.new_ref(self.current_ref)
+        self.normal_subroutine(my_obs, t)'''
+        pass
+
+    def _get_decoupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
+
+        self.speed_controller.update_ref(self.current_ref.speed_ref)
         acc = self.speed_controller.control(my_obs, t)
 
-        self.controller.update_ref(self.ref_lane)
+        self.controller.update_ref(self.current_ref.path)
         delta = self.controller.control(my_obs, t)
 
         self.steering_controller.update_ref(delta)
         ddelta = self.steering_controller.control(my_obs.delta, t)
         return acc, ddelta
 
-    def _get_coupled_commands(self, my_obs: X, speed_ref: float, t: float) -> Tuple[float, float]:
+    def _get_coupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
         # compute commands
-        ref: LatAndLonController.Reference = LatAndLonController.Reference(speed_ref=speed_ref, path=self.ref_lane)
-
-        self.controller.update_ref(ref)
+        self.controller.update_ref(self.current_ref)
         delta, acc = self.controller.control(my_obs, t)
 
         self.steering_controller.update_ref(delta)
         ddelta = self.steering_controller.control(my_obs.delta, t)
         return acc, ddelta
-
-    def emergency_subroutine(self) -> VehicleCommands:
-        pass

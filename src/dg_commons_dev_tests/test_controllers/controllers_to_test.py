@@ -8,6 +8,7 @@ import copy
 from dg_commons_dev.state_estimators.extended_kalman_filter import *
 from dg_commons.sim.simulator import SimTime
 from dg_commons_dev.controllers.steering_controllers import *
+from dg_commons_dev.behavior.cruise import CruiseParams
 
 
 DT: SimTime = SimTime("0.05")
@@ -49,7 +50,9 @@ TestLQR = VehicleController(
             ),
 
             speed_behavior_param=SpeedBehaviorParam(
-                nominal_speed=8,
+                cruise_params=CruiseParams(
+                    nominal_speed=8
+                ),
             ),
 
             state_estimator=state_estimator,
@@ -74,7 +77,9 @@ TestNMPCFullKinContPV = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8,
+            cruise_params=CruiseParams(
+                nominal_speed=8
+            ),
         ),
 
         state_estimator=state_estimator,
@@ -111,7 +116,9 @@ TestNMPCFullKinDisPV = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8,
+            cruise_params=CruiseParams(
+                nominal_speed=8
+            ),
         ),
 
         state_estimator=state_estimator,
@@ -153,7 +160,9 @@ TestNMPCLatKinContPV = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8
+            cruise_params=CruiseParams(
+                nominal_speed=8
+            ),
         ),
 
         state_estimator=state_estimator,
@@ -198,7 +207,9 @@ TestNMPCLatKinDisPV = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8
+            cruise_params=CruiseParams(
+                nominal_speed=8
+            ),
         ),
 
         state_estimator=state_estimator,
@@ -232,7 +243,9 @@ TestPurePursuit = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8
+            cruise_params=CruiseParams(
+                nominal_speed=8
+            ),
         ),
 
         steering_controller=SCP,
@@ -261,7 +274,9 @@ TestStanley = VehicleController(
         ),
 
         speed_behavior_param=SpeedBehaviorParam(
-            nominal_speed=8,
+            cruise_params=CruiseParams(
+                nominal_speed=8
+            ),
         ),
 
         steering_controller=SCP,

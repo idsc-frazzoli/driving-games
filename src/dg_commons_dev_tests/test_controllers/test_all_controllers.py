@@ -17,13 +17,13 @@ if __name__ == '__main__':
                          Select(scenarios["race"], False)]
 
     controllers_to_test = [
-        Select(TestLQR, True),
-        Select(TestPurePursuit, True),
-        Select(TestStanley, True),
-        Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, True),
-        Select(TestNMPCFullKinDisPV, True), Select(TestNMPCFullKinDisAN, True),
-        Select(TestNMPCLatKinContPV, True), Select(TestNMPCLatKinContAN, True),
-        Select(TestNMPCLatKinDisPV, True), Select(TestNMPCLatKinDisAN, True)
+        Select(TestLQR, False),
+        Select(TestPurePursuit, False),
+        Select(TestStanley, False),
+        Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, False),
+        Select(TestNMPCFullKinDisPV, False), Select(TestNMPCFullKinDisAN, False),
+        Select(TestNMPCLatKinContPV, False), Select(TestNMPCLatKinContAN, False),
+        Select(TestNMPCLatKinDisPV, False), Select(TestNMPCLatKinDisAN, False)
     ]
 
     metrics_to_test = [

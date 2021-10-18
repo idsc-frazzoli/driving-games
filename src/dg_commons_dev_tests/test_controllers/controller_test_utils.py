@@ -207,8 +207,7 @@ class TestSingleControllerInstance:
 
     def _agent_from_dynamic_obstacle(self, dyn_obs: DynamicObstacle):
         controller = self.controller.controller(self.controller.controller_params)
-        speed_behavior = SpeedBehavior()
-        speed_behavior.params = self.controller.speed_behavior_param
+        speed_behavior = SpeedBehavior(self.controller.speed_behavior_param)
         steering_controller = self.controller.steering_controller()
         steering_controller.params = self.controller.steering_controller_params
 
@@ -253,7 +252,7 @@ class TestSingleControllerInstance:
         self.simulator.run(self.sim_context)
         name = "simulation"
 
-        nominal_velocity = self.controller.speed_behavior_param.nominal_speed
+        nominal_velocity = self.controller.speed_behavior_param.cruise_params.nominal_speed
         dg_lanelets = {}
         states = {}
         commands = {}
@@ -261,7 +260,7 @@ class TestSingleControllerInstance:
         betas = {}
         dt_commands = {}
         for key in self.sim_context.log.keys():
-            dg_lanelets[key] = self.sim_context.players[key].ref_lane
+            dg_lanelets[key] = self.sim_context.players[key].current_ref.path
             states[key] = self.sim_context.log[key].states
             commands[key] = self.sim_context.log[key].actions
             dt_timestamps = states[key].timestamps
