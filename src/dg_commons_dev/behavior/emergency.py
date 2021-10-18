@@ -11,6 +11,8 @@ from math import pi
 class EmergencySituation:
     is_emergency: bool
 
+    drac: float = 0
+
     def __post_init__(self):
         if self.is_emergency:
             pass

@@ -90,8 +90,8 @@ class LFAgent(Agent):
         speed_ref, situation = self.speed_behavior.get_situation(t)
         self.current_ref.speed_ref = speed_ref
 
-        if situation.emergency.is_emergency or self._emergency:
-            self.emergency_subroutine(my_obs, t, situation.emergency.is_emergency)
+        if situation.is_emergency() or self._emergency:
+            self.emergency_subroutine(my_obs, t, situation.is_emergency())
         else:
             self.normal_subroutine(my_obs, t)
 

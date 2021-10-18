@@ -9,17 +9,34 @@ from games.utils import valmap
 from dg_commons.sim.models import extract_pose_from_state, kmh2ms, extract_vel_from_state
 from dg_commons.sim.simulator_structures import PlayerObservations
 from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams, Situation, SituationParams
-from dg_commons_dev.behavior.emergency import EmergencySituation, Emergency, EmergencyParams
-from dg_commons_dev.behavior.yield_to import YieldSituation, Yield, YieldParams
-from dg_commons_dev.behavior.cruise import CruiseSituation, CruiseParams, Cruise
+from dg_commons_dev.behavior.emergency import Emergency, EmergencyParams
+from dg_commons_dev.behavior.yield_to import Yield, YieldParams
+from dg_commons_dev.behavior.cruise import CruiseParams, Cruise
 from dg_commons_dev.behavior.utils import SituationObservations
 
 
 @dataclass
 class BehaviorSituation:
-    yield_to: Optional[YieldSituation] = None
-    emergency: Optional[EmergencySituation] = None
-    cruise: Optional[CruiseSituation] = None
+    situation: Optional[Situation] = None
+
+    def is_emergency(self) -> bool:
+        assert self.situation is not None
+        assert self._is_situation_type()
+        return isinstance(self.situation, Emergency)
+
+    def is_yield(self) -> bool:
+        assert self.situation is not None
+        assert self._is_situation_type()
+        return isinstance(self.situation, Yield)
+
+    def is_cruise(self) -> bool:
+        assert self.situation is not None
+        assert self._is_situation_type()
+        return isinstance(self.situation, Cruise)
+
+    def _is_situation_type(self):
+        return isinstance(self.situation, Emergency) or isinstance(self.situation, Yield), \
+               isinstance(self.situation, Cruise)
 
 
 @dataclass
@@ -37,7 +54,7 @@ class SpeedBehaviorParam(BehaviorParams):
     """ Cruise Params """
 
 
-class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tuple[float, BehaviorSituation]]):
+class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tuple[float, Situation]]):
     """Determines the reference speed"""
 
     def __init__(self, params: SpeedBehaviorParam = SpeedBehaviorParam(), my_name: Optional[PlayerName] = None):
@@ -59,34 +76,27 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
 
     def get_situation(self, at: float) -> Tuple[float, BehaviorSituation]:
         self.obs.my_name = self.my_name
-        mypose = extract_pose_from_state(self.agents[self.my_name].state)
+        my_pose = extract_pose_from_state(self.agents[self.my_name].state)
 
         def rel_pose(other_obs: PlayerObservations) -> SE2Transform:
             other_pose: SE2value = extract_pose_from_state(other_obs.state)
-            return SE2Transform.from_SE2(relative_pose(mypose, other_pose))
+            return SE2Transform.from_SE2(relative_pose(my_pose, other_pose))
 
         agents_rel_pose: Dict[PlayerName, SE2Transform] = valmap(rel_pose, self.agents)
         self.obs.rel_poses = agents_rel_pose
-        self.yield_to.update_observations(self.obs)
-        self.emergency.update_observations(self.obs)
-        self.situation.yield_to = self.yield_to.infos()
-        self.situation.emergency = self.emergency.infos()
 
-        if self.situation.yield_to.is_yield or self.situation.emergency.is_emergency:
-            self.situation.cruise = CruiseSituation(False)
+        self.emergency.update_observations(self.obs)
+        if self.emergency.is_true():
+            self.situation.situation = self.emergency
             self.speed_ref = 0
         else:
+            self.yield_to.update_observations(self.obs)
             self.cruise.update_observations(self.obs)
-            self.situation.cruise = self.cruise.infos()
-            self.speed_ref = self.cruise.infos().speed_ref
 
+            if self.yield_to.is_true() and self.yield_to.infos().drac < self.cruise.infos().drac:
+                self.situation.situation = self.yield_to
+                self.speed_ref = 0
+            else:
+                self.situation.situation = self.cruise
+                self.speed_ref = self.cruise.infos().speed_ref
         return self.speed_ref, self.situation
-
-    def is_there_anyone_to_yield_to(self) -> bool:
-        return self.yield_to.is_true()
-
-    def is_emergency_subroutine_needed(self) -> bool:
-        return self.emergency.is_true()
-
-    def is_cruise(self) -> bool:
-        return self.cruise.is_true()

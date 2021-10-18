@@ -11,9 +11,11 @@ from math import pi
 class YieldSituation:
     is_yield: bool
 
+    drac: float = 0
+
     def __post_init__(self):
         if self.is_yield:
-            pass
+            assert self.drac is not None
 
 
 @dataclass

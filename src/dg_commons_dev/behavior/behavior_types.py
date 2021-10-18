@@ -42,16 +42,5 @@ class Behavior(ABC, Generic[Obs, S]):
         pass
 
     @abstractmethod
-    def is_there_anyone_to_yield_to(self) -> bool:
-        pass
-
-    @abstractmethod
-    def is_emergency_subroutine_needed(self) -> bool:
-        pass
-
-    @abstractmethod
-    def is_cruise(self) -> bool:
-        pass
-
     def get_situation(self, at: float) -> S:
         pass

@@ -13,6 +13,8 @@ class CruiseSituation:
 
     speed_ref: Optional[float] = None
 
+    drac: float = 0
+
     def __post_init__(self):
         if self.is_cruise:
             assert self.speed_ref is not None
