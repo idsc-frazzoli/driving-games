@@ -51,6 +51,6 @@ scenarios: Dict[str, ScenarioData] = {
     "left_cont_curve": ScenarioData("DEU_Hhr-1_1", "left_cont_curve", [0], simulation_time=15, params=[60, 10]),
     "vertical": ScenarioData("USA_Peach-3_2_T-1", "vertical", [4, 7], simulation_time=7),
     "emergency_brake": ScenarioData("ZAM_Urban-2_1", "emergency_brake", [0], simulation_time=5,
-                                    static_obs=[1], params=[20, 8]),
+                                    static_obs=[1], params=[20, 11]),
     "race": ScenarioData("DEU_Hhr-1_1", "race", [0],  simulation_time=180, params=[0, 95])
 }

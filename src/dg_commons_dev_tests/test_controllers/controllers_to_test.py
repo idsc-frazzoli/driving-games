@@ -53,6 +53,7 @@ TestLQR = VehicleController(
                 cruise_params=CruiseParams(
                     nominal_speed=8
                 ),
+                dt_commands=DT_COMMANDS
             ),
 
             state_estimator=state_estimator,
@@ -80,6 +81,7 @@ TestNMPCFullKinContPV = VehicleController(
             cruise_params=CruiseParams(
                 nominal_speed=8
             ),
+            dt_commands=DT_COMMANDS
         ),
 
         state_estimator=state_estimator,
@@ -119,6 +121,7 @@ TestNMPCFullKinDisPV = VehicleController(
             cruise_params=CruiseParams(
                 nominal_speed=8
             ),
+            dt_commands=DT_COMMANDS
         ),
 
         state_estimator=state_estimator,
@@ -163,6 +166,7 @@ TestNMPCLatKinContPV = VehicleController(
             cruise_params=CruiseParams(
                 nominal_speed=8
             ),
+            dt_commands=DT_COMMANDS
         ),
 
         state_estimator=state_estimator,
@@ -210,6 +214,7 @@ TestNMPCLatKinDisPV = VehicleController(
             cruise_params=CruiseParams(
                 nominal_speed=8
             ),
+            dt_commands=DT_COMMANDS
         ),
 
         state_estimator=state_estimator,
@@ -246,6 +251,7 @@ TestPurePursuit = VehicleController(
             cruise_params=CruiseParams(
                 nominal_speed=8
             ),
+            dt_commands=DT_COMMANDS
         ),
 
         steering_controller=SCP,
@@ -277,6 +283,7 @@ TestStanley = VehicleController(
             cruise_params=CruiseParams(
                 nominal_speed=8
             ),
+            dt_commands=DT_COMMANDS
         ),
 
         steering_controller=SCP,

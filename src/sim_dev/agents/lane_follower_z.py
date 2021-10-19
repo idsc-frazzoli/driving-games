@@ -90,10 +90,11 @@ class LFAgent(Agent):
 
         self.speed_behavior.update_observations(sim_obs.players)
         speed_ref, situation = self.speed_behavior.get_situation(t)
-        self.current_ref.speed_ref = speed_ref
+        self.current_ref.speed_ref = speed_ref if not self._emergency else 0
 
-        if situation.is_emergency() or self._emergency:
+        if situation.is_emergency():
             self.emergency_subroutine(my_obs, t, situation.is_emergency())
+            self._emergency = True
         else:
             self.normal_subroutine(my_obs, t)
 
@@ -112,10 +113,9 @@ class LFAgent(Agent):
 
     def emergency_subroutine(self, my_obs: X, t: float,
                              emergency: EmergencySituation) -> VehicleCommands:
-        '''self.emergency.update_situation(emergency)
-        self.current_ref = self.emergency.new_ref(self.current_ref)
-        self.normal_subroutine(my_obs, t)'''
-        pass
+        self.normal_subroutine(my_obs, t)
+        acc = - self.speed_behavior.emergency.acc_limits[1]
+        self.commands.acc = acc
 
     def _get_decoupled_commands(self, my_obs: X, t: float) -> Tuple[float, float]:
 

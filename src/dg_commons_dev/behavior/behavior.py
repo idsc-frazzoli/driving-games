@@ -52,6 +52,8 @@ class SpeedBehaviorParam(BehaviorParams):
     cruise: type(Cruise) = Cruise
     cruise_params: CruiseParams = CruiseParams()
     """ Cruise Params """
+    dt_commands: float = 0.1
+    """ Period of decision making """
 
 
 class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tuple[float, Situation]]):
@@ -66,7 +68,7 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
         self.yield_to = self.params.yield_to(self.params.yield_params, self.params.safety_time_braking)
         self.emergency = self.params.emergency(self.params.emergency_params, self.params.safety_time_braking)
         self.cruise = self.params.cruise(self.params.cruise_params, self.params.safety_time_braking)
-        self.obs: SituationObservations = SituationObservations(my_name=self.my_name)
+        self.obs: SituationObservations = SituationObservations(my_name=self.my_name, dt_commands=params.dt_commands)
         self.situation: BehaviorSituation = BehaviorSituation()
         """ The speed reference"""
 
