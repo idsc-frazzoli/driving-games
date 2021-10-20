@@ -14,7 +14,7 @@ data = """
 go_right: &go_right
     ~LaneSegment:
       width: &width 0.376
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.22]
             theta_deg: 0
@@ -24,11 +24,11 @@ go_right: &go_right
         - ~SE2Transform:
             p: [-0.22, -0.50]
             theta_deg: -90
-            
+
 go_straight: &go_straight
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.22]
             theta_deg: 0
@@ -39,10 +39,10 @@ go_straight: &go_straight
 go_left: &go_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.22]
-            theta_deg: 0 
+            theta_deg: 0
 
         - ~SE2Transform:
             p: [0.0, 0.0]
@@ -75,7 +75,7 @@ curve_left: &curve_left
     ~PlacedObject:
         children:
             curve: *curve_right
-        spatial_relations: 
+        spatial_relations:
             curve: {~SE2Transform: {theta_deg: 270}}
 
 1way: &1way
@@ -97,10 +97,10 @@ curve_left: &curve_left
             b: {~SE2Transform: {theta_deg: 90}}
             c: {~SE2Transform: {theta_deg: 180}}
             d: {~SE2Transform: {theta_deg: 270}}
-            
-#    |    |        
+
+#    |    |
 # ---      ----
-#  
+#
 # -----------
 
 3way_left: &3way_left
@@ -121,11 +121,11 @@ curve_left: &curve_left
             east_go_straight: {~SE2Transform: {theta_deg: 180}}
 
 3way_right:
-    ~PlacedObject:  
+    ~PlacedObject:
         children:
-            template: *3way_left           
+            template: *3way_left
         spatial_relations:
-            template: {~SE2Transform: {theta_deg: 180}}   
+            template: {~SE2Transform: {theta_deg: 180}}
 
 # --------------------------------------------------------------------------------------------------------------------
 # Double Lanes
@@ -134,7 +134,7 @@ curve_left: &curve_left
 go_right_double_right: &go_right_double_left
     ~LaneSegment:
       width: &width_double 0.188
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.33]
             theta_deg: 0
@@ -144,11 +144,11 @@ go_right_double_right: &go_right_double_left
         - ~SE2Transform:
             p: [-0.33, -0.50]
             theta_deg: -90
-            
+
 go_right_double_left: &go_right_double_right
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.11]
             theta_deg: 0
@@ -162,7 +162,7 @@ go_right_double_left: &go_right_double_right
 go_right_double_right_to_left: &go_right_double_right_to_left
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.33]
             theta_deg: 0
@@ -178,12 +178,12 @@ go_right_double_right_to_left: &go_right_double_right_to_left
         - ~SE2Transform:
             p: [-0.11, -0.50]
             theta_deg: -90
-            
-            
+
+
 go_right_double_left_to_right: &go_right_double_left_to_right
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.11]
             theta_deg: 0
@@ -199,33 +199,33 @@ go_right_double_left_to_right: &go_right_double_left_to_right
         - ~SE2Transform:
             p: [-0.33, -0.50]
             theta_deg: -90
-            
+
 go_straight_double_right: &go_straight_double_right
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.33]
             theta_deg: 0
         - ~SE2Transform:
             p: [+0.5, -0.33]
             theta_deg: 0
-            
+
 go_straight_double_left: &go_straight_double_left
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.11]
             theta_deg: 0
         - ~SE2Transform:
             p: [+0.5, -0.11]
             theta_deg: 0
-            
+
 go_straight_double_right_to_left: &go_straight_double_right_to_left
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.33]
             theta_deg: 0
@@ -241,11 +241,11 @@ go_straight_double_right_to_left: &go_straight_double_right_to_left
         - ~SE2Transform:
             p: [0.5, -0.11]
             theta_deg: 0
-            
+
 go_straight_double_left_to_right: &go_straight_double_left_to_right
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.11]
             theta_deg: 0
@@ -261,14 +261,14 @@ go_straight_double_left_to_right: &go_straight_double_left_to_right
         - ~SE2Transform:
             p: [0.5, -0.33]
             theta_deg: 0
-            
+
 go_left_double_right: &go_left_double_right
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.33]
-            theta_deg: 0 
+            theta_deg: 0
 
         - ~SE2Transform:
             p: [0.087, -0.087]
@@ -276,15 +276,15 @@ go_left_double_right: &go_left_double_right
 
         - ~SE2Transform:
             p: [+0.33, +0.50]
-            theta_deg: 90 
-            
+            theta_deg: 90
+
 go_left_double_left: &go_left_double_left
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.11]
-            theta_deg: 0 
+            theta_deg: 0
 
         - ~SE2Transform:
             p: [-0.069, 0.069]
@@ -293,11 +293,11 @@ go_left_double_left: &go_left_double_left
         - ~SE2Transform:
             p: [+0.11, +0.50]
             theta_deg: 90
-            
+
 go_left_double_right_to_left: &go_left_double_right_to_left
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.33]
             theta_deg: 0
@@ -317,7 +317,7 @@ go_left_double_right_to_left: &go_left_double_right_to_left
 go_left_double_left_to_right: &go_left_double_left_to_right
     ~LaneSegment:
       width: *width_double
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.50, -0.11]
             theta_deg: 0
@@ -333,7 +333,7 @@ go_left_double_left_to_right: &go_left_double_left_to_right
         - ~SE2Transform:
             p: [0.33, 0.50]
             theta_deg: 90
-            
+
 straight_double:
     ~PlacedObject:
         children:
@@ -354,7 +354,7 @@ straight_double:
             lane6: {~SE2Transform:}
             lane7: {~SE2Transform: {theta_deg: 180}}
             lane8: {~SE2Transform: {theta_deg: 180}}
-            
+
 curve_right_double: &curve_right_double
     ~PlacedObject:
         children:
@@ -373,9 +373,9 @@ curve_left_double: &curve_left_double
     ~PlacedObject:
         children:
             curve: *curve_right_double
-        spatial_relations: 
+        spatial_relations:
             curve: {~SE2Transform: {theta_deg: 270}}
-            
+
 1way_double: &1way_double
      ~PlacedObject:
         children:
@@ -404,7 +404,7 @@ curve_left_double: &curve_left_double
             b: {~SE2Transform: {theta_deg: 90}}
             c: {~SE2Transform: {theta_deg: 180}}
             d: {~SE2Transform: {theta_deg: 270}}
-            
+
 3way_left_double: &3way_left_double
     ~PlacedObject:
         children:
@@ -435,13 +435,13 @@ curve_left_double: &curve_left_double
             east_go_straight_double_left: {~SE2Transform: {theta_deg: 180}}
 
 3way_right_double:
-    ~PlacedObject:  
+    ~PlacedObject:
         children:
-            template: *3way_left_double          
+            template: *3way_left_double
         spatial_relations:
-            template: {~SE2Transform: {theta_deg: 180}} 
-            
-            
+            template: {~SE2Transform: {theta_deg: 180}}
+
+
 # -------------------------------------------------------------------------------------------------------------
 # single lane tiles, only one direction (eg. for round-abouts)
 # -------------------------------------------------------------------------------------------------------------
@@ -449,29 +449,29 @@ curve_left_double: &curve_left_double
 go_straight_single_right: &go_straight_single_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.204]
             theta_deg: 0
         - ~SE2Transform:
             p: [0.5, -0.204]
             theta_deg: 0
-            
+
 go_straight_single_left: &go_straight_single_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, 0.204]
             theta_deg: 0
         - ~SE2Transform:
             p: [0.5, 0.204]
             theta_deg: 0
-            
+
 go_straight_single_right_to_left: &go_straight_single_right_to_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.204]
             theta_deg: 0
@@ -481,11 +481,11 @@ go_straight_single_right_to_left: &go_straight_single_right_to_left
         - ~SE2Transform:
             p: [0.5, 0.204]
             theta_deg: 0
-            
+
 go_straight_single_left_to_right: &go_straight_single_left_to_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, 0.204]
             theta_deg: 0
@@ -495,7 +495,7 @@ go_straight_single_left_to_right: &go_straight_single_left_to_right
         - ~SE2Transform:
             p: [0.5, -0.204]
             theta_deg: 0
-            
+
 straight_single:
     ~PlacedObject:
         children:
@@ -512,7 +512,7 @@ straight_single:
 stay_in_roundabout_right: &stay_in_roundabout_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.304]
             theta_deg: 0
@@ -526,7 +526,7 @@ stay_in_roundabout_right: &stay_in_roundabout_right
 stay_in_roundabout_left: &stay_in_roundabout_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, 0.104]
             theta_deg: 0
@@ -536,11 +536,11 @@ stay_in_roundabout_left: &stay_in_roundabout_left
         - ~SE2Transform:
             p: [-0.104, 0.5]
             theta_deg: 90
-            
+
 go_out_roundabout_left: &go_out_roundabout_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, 0.104]
             theta_deg: 0
@@ -550,11 +550,11 @@ go_out_roundabout_left: &go_out_roundabout_left
         - ~SE2Transform:
             p: [0.5, 0.204]
             theta_deg: 0
-            
+
 go_out_roundabout_right: &go_out_roundabout_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.304]
             theta_deg: 0
@@ -564,11 +564,11 @@ go_out_roundabout_right: &go_out_roundabout_right
         - ~SE2Transform:
             p: [0.5, -0.204]
             theta_deg: 0
-            
+
 go_out_roundabout_left_to_right: &go_out_roundabout_left_to_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, 0.104]
             theta_deg: 0
@@ -578,11 +578,11 @@ go_out_roundabout_left_to_right: &go_out_roundabout_left_to_right
         - ~SE2Transform:
             p: [0.5, -0.204]
             theta_deg: 0
-            
+
 go_out_roundabout_right_to_left: &go_out_roundabout_right_to_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.5, -0.304]
             theta_deg: 0
@@ -592,11 +592,11 @@ go_out_roundabout_right_to_left: &go_out_roundabout_right_to_left
         - ~SE2Transform:
             p: [0.5, 0.204]
             theta_deg: 0
-            
+
 go_in_roundabout_left: &go_in_roundabout_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.204, -0.5]
             theta_deg: 90
@@ -606,17 +606,17 @@ go_in_roundabout_left: &go_in_roundabout_left
         - ~SE2Transform:
             p: [-0.104, 0.5]
             theta_deg: 90
-            
+
 go_in_roundabout_right: &go_in_roundabout_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [0.204, -0.5]
             theta_deg: 90
         - ~SE2Transform:
             p: [0.254, 0]
-            theta_deg: 75 
+            theta_deg: 75
         - ~SE2Transform:
             p: [0.304, 0.5]
             theta_deg: 90
@@ -624,21 +624,21 @@ go_in_roundabout_right: &go_in_roundabout_right
 go_in_roundabout_left_to_right: &go_in_roundabout_left_to_right
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [-0.204, -0.5]
             theta_deg: 90
         - ~SE2Transform:
             p: [0.05, 0]
-            theta_deg: 45 
+            theta_deg: 45
         - ~SE2Transform:
             p: [0.304, 0.5]
             theta_deg: 90
-            
+
 go_in_roundabout_right_to_left: &go_in_roundabout_right_to_left
     ~LaneSegment:
       width: *width
-      control_points: 
+      control_points:
         - ~SE2Transform:
             p: [0.204, -0.5]
             theta_deg: 90
@@ -648,7 +648,7 @@ go_in_roundabout_right_to_left: &go_in_roundabout_right_to_left
         - ~SE2Transform:
             p: [-0.104, 0.5]
             theta_deg: 90
-            
+
 roundabout_east: &roundabout_east
     ~PlacedObject:
         children:
@@ -673,13 +673,14 @@ roundabout_east: &roundabout_east
             lane8: {~SE2Transform:}
             lane9: {~SE2Transform:}
             lane10: {~SE2Transform:}
-            
+
 """
 """
 It contains all the tiles which can be used to build maps. Each tile contains lane segments
-which are parametrized by control points (with orientation). This is an extension of the tiles available 
+which are parametrized by control points (with orientation). This is an extension of the tiles available
 in duckietown_world.world_duckietown.tile_template.py
 """
+
 
 @memoized_reset  # Wrapper to cache the results such that they will not be recomputed when run a second time
 def load_driving_games_tile_types():

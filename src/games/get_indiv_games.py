@@ -9,7 +9,7 @@ __all__ = ["get_individual_games"]
 
 
 def get_individual_games(game: Game[X, U, Y, RP, RJ, SR]) -> M[PlayerName, Game[X, U, Y, RP, RJ, SR]]:
-    """ Returns the individual games (by removing all others players)"""
+    """Returns the individual games (by removing all others players)"""
     res = {}
     for player_name, player in game.players.items():
         players_only = frozendict({player_name: player})

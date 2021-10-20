@@ -30,7 +30,7 @@ class SetPoss(Poss[A]):
         return self._r
 
     def support(self) -> FrozenSet[A]:
-        """ Returns the support of the distribution """
+        """Returns the support of the distribution"""
         return self._p
 
 

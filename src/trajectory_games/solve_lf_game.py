@@ -79,7 +79,7 @@ def calculate_join(outcomes: List[PlayerOutcome], pref: Preference) -> PlayerOut
 
 
 def get_best_actions(
-        pref: Preference, actions: Set[Trajectory], outcomes: Callable[[Trajectory], PlayerOutcome]
+    pref: Preference, actions: Set[Trajectory], outcomes: Callable[[Trajectory], PlayerOutcome]
 ) -> Set[Trajectory]:
     ba_pref: Set[Trajectory] = set(actions)
     for act_1 in frozenset(ba_pref):
@@ -154,6 +154,7 @@ def solve_leader_follower(context: LeaderFollowerGameSolvingContext) -> SolvedLe
     best_actions: Dict[Preference, Set[Trajectory]] = {}
     all_actions: Set[Trajectory] = set()
     for p_f in lf.prefs_follower_est.support():
+
         def get_outcomes(action: Trajectory) -> PlayerOutcome:
             return agg_out_l[action][p_f]
 
@@ -211,7 +212,7 @@ def update_follower_prefs(stage: LeaderFollowerGameStage, ps: PossibilityMonad) 
 
 
 def solve_recursive_game_stage(
-        game: LeaderFollowerGame, context: LeaderFollowerGameSolvingContext
+    game: LeaderFollowerGame, context: LeaderFollowerGameSolvingContext
 ) -> LeaderFollowerGameStage:
     assert game.lf.pref_follower_real is not None
     # Solve leader game and select action
@@ -268,7 +269,7 @@ def solve_recursive_game_stage(
 
 
 def simulate_recursive_game_stage(
-        game: LeaderFollowerGame, stage: LeaderFollowerGameStage
+    game: LeaderFollowerGame, stage: LeaderFollowerGameStage
 ) -> Mapping[PlayerName, Poss[VehicleState]]:
     states: Dict[PlayerName, Poss[VehicleState]] = {}
     for pname, player in game.game_players.items():

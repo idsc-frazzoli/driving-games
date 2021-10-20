@@ -37,9 +37,7 @@ def test_available_cars():
         v=D(0),
         light=NO_LIGHTS,
     )
-    dg_vis = DrivingGameVisualization(
-        p_asym, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
-    )
+    dg_vis = DrivingGameVisualization(p_asym, L, geometries=geometries, ds=vehicles_params.shared_resources_ds)
     fig, ax = plt.subplots()
     fig.set_tight_layout(True)
     ax.set_aspect(1)

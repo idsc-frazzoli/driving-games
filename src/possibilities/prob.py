@@ -51,7 +51,7 @@ class ProbDist(Poss[A]):
             yield _
 
     def support(self) -> FrozenSet[A]:
-        """ Returns the support of the distribution """
+        """Returns the support of the distribution"""
         return self._support
 
     def get(self, a: A) -> Fraction:
@@ -179,7 +179,7 @@ def enumerate_prob_assignments(n: int) -> AbstractSet[Tuple[Fraction, ...]]:
 
 
 def check_prob_dist(prob_poss: ProbDist, **kwargs):
-    """ Checks consistency of a JointMixedActions variable."""
+    """Checks consistency of a JointMixedActions variable."""
     if not GameConstants.checks:
         return
     cumulative_dist = sum(prob_poss.p.values())

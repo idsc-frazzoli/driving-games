@@ -46,9 +46,7 @@ class BirdPreferences(SmallerPreferred):
         d = {"P": self.get_type()}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(
-        self, a: Combined[BirdCosts, BirdCosts], b: Combined[BirdCosts, BirdCosts]
-    ) -> ComparisonOutcome:
+    def compare(self, a: Combined[BirdCosts, BirdCosts], b: Combined[BirdCosts, BirdCosts]) -> ComparisonOutcome:
         a_ = a.personal + a.joint
         b_ = b.personal + b.joint
         return super().compare(D(a_.cost), D(b_.cost))
@@ -92,9 +90,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         x1, x2 = xs[self.row_player], xs[self.col_player]
         subgame, row, col = self.get_payoff_matrix_idx(self.max_stages, x1, x2)
         payoff1, payoff2 = self.mat_payoffs[subgame][row, col, :]
-        res.update(
-            {self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))}
-        )
+        res.update({self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))})
         return frozendict(res)
 
     @staticmethod

@@ -169,9 +169,7 @@ def assign_beliefs(sc: BayesianSolvingContext, solution: GameSolution, js: Joint
     sgn = solution.states_to_solution[js]
 
     _ = next(iter(sc.game.players))
-    type_combinations = list(
-        itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_others)
-    )
+    type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_others))
     actions_proposed = {}
     for _ in sgn.solved.keys():
         for types in type_combinations:
@@ -349,18 +347,14 @@ def _solve_bayesian_game(
     solved_to_node = {}
 
     _ = next(iter(sc.game.players))
-    type_combinations = list(
-        itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other)
-    )
+    type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
 
     for pure_actions in gn.outcomes:
         # Incremental costs incurred if choosing this action
 
         inc: Dict[PlayerName, RP]
         try:
-            inc = {
-                (p, tc): gn.incremental[p, tc][u] for p, u in pure_actions.items() for tc in type_combinations
-            }
+            inc = {(p, tc): gn.incremental[p, tc][u] for p, u in pure_actions.items() for tc in type_combinations}
         except:
             inc = {
                 (p, tc[::-1]): gn.incremental[p, tc[::-1]][u]

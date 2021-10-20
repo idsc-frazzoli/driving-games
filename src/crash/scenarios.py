@@ -115,7 +115,7 @@ def get_scenario_illegal_turn() -> SimContext:
         scenario_name="USA_Lanker-1_1_T-1.xml",
         scenarios_dir=SCENARIOS_DIR,
         sim_param=sim_param,
-        ego_player=PlayerName("P16")
+        ego_player=PlayerName("P16"),
     )
 
     return sim_context

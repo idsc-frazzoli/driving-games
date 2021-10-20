@@ -123,9 +123,7 @@ def report_game(game_pre: GamePreprocessed) -> Report:
 
         return "grey"
 
-    caption = (
-        "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
-    )
+    caption = "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
 
     node_size = 3
     node_color = [color_node(_) for _ in G.nodes]

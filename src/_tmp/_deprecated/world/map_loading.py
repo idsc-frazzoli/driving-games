@@ -19,7 +19,7 @@ __all__ = ["load_driving_game_map", "load_driving_game_map_from_yaml", "map_dire
 
 module_path = os.path.dirname(__file__)
 
-map_directory = os.path.join(module_path, 'maps')
+map_directory = os.path.join(module_path, "maps")
 """Directory where the pictures of the maps are stored"""
 
 

@@ -52,11 +52,11 @@ def check_dominated(joint_actions: JointTrajectories, done: Mapping[PlayerName, 
 
 
 def get_best_responses(
-        joint_actions: JointTrajectories,
-        context: SolvingContext,
-        player: PlayerName,
-        done_p: Set[JointTrajectories],
-        player_pref: Preference = None,
+    joint_actions: JointTrajectories,
+    context: SolvingContext,
+    player: PlayerName,
+    done_p: Set[JointTrajectories],
+    player_pref: Preference = None,
 ) -> Tuple[Set[ComparisonOutcome], Set[Trajectory]]:
     """
     Calculates the best responses for the current player
@@ -123,7 +123,7 @@ def get_best_responses(
 
 
 def equilibrium_check(
-        joint_actions: JointTrajectories, context: SolvingContext, done: Dict[PlayerName, Set[JointTrajectories]]
+    joint_actions: JointTrajectories, context: SolvingContext, done: Dict[PlayerName, Set[JointTrajectories]]
 ) -> EqOutcome:
     """
     For each player, check if current action is best response
@@ -248,7 +248,7 @@ def iterative_best_response(context: SolvingContext, n_runs: int) -> Mapping[str
 
 
 def filter_admissible_nasheq(
-        weak_eq: SolvedTrajectoryGame, player_prefs: Mapping[PlayerName, Preference]
+    weak_eq: SolvedTrajectoryGame, player_prefs: Mapping[PlayerName, Preference]
 ) -> SolvedTrajectoryGame:
     if len(weak_eq) == 0:
         return set()

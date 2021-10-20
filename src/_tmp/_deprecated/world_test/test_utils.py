@@ -22,7 +22,7 @@ import pickle
 
 
 def test_transformations():
-    """ Tests the conversion from SE2_discs to SE2Transforms and vice versa """
+    """Tests the conversion from SE2_discs to SE2Transforms and vice versa"""
 
     t_ref = [2, 4]
     theta_rad_ref = np.pi / 3
@@ -37,9 +37,7 @@ def test_transformations():
 
     q_SE2Transform = from_SE2_disc_to_SE2Transform(q_SE2_disc_ref)
 
-    assert all(
-        map(isclose, q_SE2_disc, q_SE2_disc_ref)
-    ), f"SE2_disc {q_SE2_disc} is not equal ref {q_SE2_disc_ref}"
+    assert all(map(isclose, q_SE2_disc, q_SE2_disc_ref)), f"SE2_disc {q_SE2_disc} is not equal ref {q_SE2_disc_ref}"
 
     statement = isclose(q_SE2Transform.theta, q_SE2Transform_ref.theta) and all(
         map(isclose, q_SE2Transform.p, q_SE2Transform_ref.p)
@@ -48,7 +46,7 @@ def test_transformations():
 
 
 def test_lane_extracting_merging():
-    """ Test lane extraction from a duckietown map and their merging"""
+    """Test lane extraction from a duckietown map and their merging"""
 
     d = "out/"
     duckie_map = dw.load_map("4way")
@@ -94,7 +92,7 @@ def test_lane_extraction_from_node():
 
 
 def test_interpolation():
-    """ Test for the interpolation functions"""
+    """Test for the interpolation functions"""
 
     d = "out/"
     duckie_map = dw.load_map("4way")
@@ -166,12 +164,8 @@ def test_hashable_lane():
     print(lane2_hash.get_lane_length())
     print(hash(lane2_hash))
 
-    assert isclose(
-        lane1.get_lane_length(), lane1_hash.get_lane_length()
-    ), "Lane 1 has not same length as hashed lane 1"
-    assert isclose(
-        lane2.get_lane_length(), lane2_hash.get_lane_length()
-    ), "Lane 2 has not same length as hashed lane 2"
+    assert isclose(lane1.get_lane_length(), lane1_hash.get_lane_length()), "Lane 1 has not same length as hashed lane 1"
+    assert isclose(lane2.get_lane_length(), lane2_hash.get_lane_length()), "Lane 2 has not same length as hashed lane 2"
 
     pickled_version = pickle.dumps(lane1_hash)
 

@@ -20,7 +20,7 @@ __all__ = ["dg_demo", "DGDemo", "without_compmake"]
 
 
 class DGDemo(QuickApp):
-    """ Main function """
+    """Main function"""
 
     def define_options(self, params: DecentParams):
         params.add_string("games", default="asym_v1_sets")

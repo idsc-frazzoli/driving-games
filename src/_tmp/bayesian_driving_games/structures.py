@@ -52,7 +52,7 @@ class BayesianGamePlayer(GamePlayer):
 
 @dataclass
 class BayesianGame(Game):
-    """ Definition of the Bayesian game """
+    """Definition of the Bayesian game"""
 
     players: Mapping[PlayerName, BayesianGamePlayer]
     """ The players in this game. """

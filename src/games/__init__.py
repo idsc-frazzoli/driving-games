@@ -6,12 +6,12 @@ logger = ZLogger(__name__)
 
 
 class GameConstants:
-    """ Global constants for the program. """
+    """Global constants for the program."""
 
     checks: ClassVar[bool] = False
-    """ 
-        If true activates extensive checks and assertions. 
-        Slows down the solving a lot. 
+    """
+        If true activates extensive checks and assertions.
+        Slows down the solving a lot.
     """
 
 

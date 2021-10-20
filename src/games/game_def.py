@@ -51,7 +51,7 @@ JointMixedActions = Mapping[PlayerName, Poss[U]]
 
 @dataclass(frozen=True, order=True, unsafe_hash=True)
 class Combined(Generic[RJ, RP]):
-    """ A combined cost: personal cost, plus an optional joint cost."""
+    """A combined cost: personal cost, plus an optional joint cost."""
 
     personal: RP
     """ The personal total cost. """
@@ -91,15 +91,15 @@ UncertainCombined = Poss[Combined[RP, RJ]]
 
 
 class Dynamics(Generic[X, U, SR], ABC):
-    """ Dynamics of an agent."""
+    """Dynamics of an agent."""
 
     @abstractmethod
     def all_actions(self) -> FrozenSet[U]:
-        """ Returns all actions possible (not all are available at each state). """
+        """Returns all actions possible (not all are available at each state)."""
 
     @abstractmethod
     def successors(self, x: X, dt: D) -> Mapping[U, Poss[X]]:
-        """ For each state, returns a dictionary U -> Possible Xs """
+        """For each state, returns a dictionary U -> Possible Xs"""
 
     @abstractmethod
     def get_shared_resources(self, x: X) -> FrozenSet[SR]:
@@ -108,19 +108,19 @@ class Dynamics(Generic[X, U, SR], ABC):
 
 
 class Observations(Generic[X, Y], ABC):
-    """ Observations of an agent."""
+    """Observations of an agent."""
 
     @abstractmethod
     def all_observations(self) -> FrozenSet[Y]:
-        """ Returns all possible observations. """
+        """Returns all possible observations."""
 
     @abstractmethod
     def get_observations(self, me: X, others: JointState) -> Poss[Y]:
-        """ For each state, get all possible observations """
+        """For each state, get all possible observations"""
 
 
 class PersonalRewardStructure(Generic[X, U, RP], ABC):
-    """ The personal reward structure for the agent."""
+    """The personal reward structure for the agent."""
 
     @abstractmethod
     def personal_reward_incremental(self, x: X, u: U, dt: D) -> RP:
@@ -128,19 +128,19 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
 
     @abstractmethod
     def personal_reward_reduce(self, r1: RP, r2: RP) -> RP:
-        """ How to accumulate reward (sum, monoid operation) """
+        """How to accumulate reward (sum, monoid operation)"""
 
     @abstractmethod
     def personal_reward_identity(self) -> RP:
-        """ The identity for the monoid"""
+        """The identity for the monoid"""
 
     @abstractmethod
     def is_personal_final_state(self, x: X) -> bool:
-        """ True if this is a final state from the perspective of the agent. """
+        """True if this is a final state from the perspective of the agent."""
 
     @abstractmethod
     def personal_final_reward(self, x: X) -> RP:
-        """ Final reward """
+        """Final reward"""
 
 
 P = TypeVar("P")
@@ -156,7 +156,7 @@ class UncertaintyParams:
 
 @dataclass
 class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
-    """ Information about one player. """
+    """Information about one player."""
 
     initial: Poss[X]
     """ Initial states """
@@ -186,30 +186,30 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
 
     @abstractmethod
     def is_joint_final_state(self, xs: JointState) -> FrozenSet[PlayerName]:
-        """ For which players is this a final state? """
+        """For which players is this a final state?"""
 
     @abstractmethod
     def joint_reward(self, xs: JointState) -> Mapping[PlayerName, RJ]:
-        """ The joint reward for the agents. Only available for a final state. """
+        """The joint reward for the agents. Only available for a final state."""
 
 
 class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
-    """ An artist that can draw the game. """
+    """An artist that can draw the game."""
 
     @abstractmethod
     def plot_arena(self, pylab, ax):
-        """ Context manager. Plots the arena. """
+        """Context manager. Plots the arena."""
         pass
 
     @abstractmethod
     def plot_player(
-            self,
-            player_name: PlayerName,
-            state: X,
-            commands: Optional[U],
-            opacity: float = 1.0,
+        self,
+        player_name: PlayerName,
+        state: X,
+        commands: Optional[U],
+        opacity: float = 1.0,
     ):
-        """ Draw the player at a certain state doing certain commands (if given)"""
+        """Draw the player at a certain state doing certain commands (if given)"""
         pass
 
     @abstractmethod
@@ -219,7 +219,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
 
 @dataclass
 class Game(Generic[X, U, Y, RP, RJ, SR]):
-    """ Definition of the game """
+    """Definition of the game"""
 
     ps: PossibilityMonad
     """ Possibility monad to use for this game."""
@@ -248,11 +248,11 @@ class AgentBelief(Generic[X, U], ABC):
 
     @abstractmethod
     def get_commands(self, state_self: X, state_others: Poss[JointState]) -> Poss[U]:
-        """ Given a state and a belief about the others, produce a distribution of actions to take. """
+        """Given a state and a belief about the others, produce a distribution of actions to take."""
 
 
 def check_joint_state(js: JointState, **kwargs):
-    """ Checks js is a :any:`JointState`."""
+    """Checks js is a :any:`JointState`."""
     if not GameConstants.checks:
         return
 
@@ -264,7 +264,7 @@ def check_joint_state(js: JointState, **kwargs):
 
 
 def check_player_options(a: PlayerOptions, **kwargs):
-    """ Checks consistency of a PlayerOptions variable."""
+    """Checks consistency of a PlayerOptions variable."""
     if not GameConstants.checks:
         return
 
@@ -275,7 +275,7 @@ def check_player_options(a: PlayerOptions, **kwargs):
 
 
 def check_joint_pure_actions(a: JointPureActions, **kwargs):
-    """ Checks consistency of a JointPureActions variable."""
+    """Checks consistency of a JointPureActions variable."""
     if not GameConstants.checks:
         return
 
@@ -290,7 +290,7 @@ def check_joint_pure_actions(a: JointPureActions, **kwargs):
 
 
 def check_joint_mixed_actions(a: JointMixedActions, **kwargs):
-    """ Checks consistency of a JointMixedActions variable."""
+    """Checks consistency of a JointMixedActions variable."""
     if not GameConstants.checks:
         return
     check_isinstance(a, frozendict, **kwargs)

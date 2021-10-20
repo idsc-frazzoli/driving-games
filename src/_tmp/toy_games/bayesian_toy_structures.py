@@ -54,7 +54,7 @@ class BayesianFlyingDynamics(Dynamics[BayesianBirdState, BirdActions, SR]):
 
     @lru_cache(None)
     def successors(self, x: BayesianBirdState, dt: D) -> Mapping[BirdActions, Poss[BayesianBirdState]]:
-        """ For each state, returns a dictionary U -> Possible Xs """
+        """For each state, returns a dictionary U -> Possible Xs"""
         # todo expand to allow other possibility monads
 
         if x.player_type == "0":

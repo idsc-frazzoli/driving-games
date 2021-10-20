@@ -6,7 +6,8 @@ from zuper_commons.types import ZNotImplementedError
 
 from dg_commons import PlayerName
 from dg_commons.sim import IMPACT_FRONT, ImpactLocation, CollisionReportPlayer
-#from .collisions import Collision
+
+# from .collisions import Collision
 from .rectangle import sample_x, rectangle_from_pose, ProjectedCar
 from .structures import VehicleGeometry, VehicleState
 
