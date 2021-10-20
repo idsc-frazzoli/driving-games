@@ -88,8 +88,7 @@ def report_states(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
 
 
 def plot_outcomes_pref(
-        viz: GameVisualization, axis, outcomes: PlayerOutcome, pref: Preference, pname: PlayerName,
-        add_title: bool = True
+    viz: GameVisualization, axis, outcomes: PlayerOutcome, pref: Preference, pname: PlayerName, add_title: bool = True
 ):
     assert isinstance(pref, PosetalPreference)
     metrics: Dict[str, str] = {}
@@ -120,14 +119,14 @@ def save_stack_figure(fn, fig, axs, all_idx: Set):
 
 
 def stack_nodes(
-        report: Report,
-        viz: GameVisualization,
-        title: str,
-        players: Mapping[PlayerName, GamePlayer],
-        nodes: Set[SolvedTrajectoryGameNode],
-        nodes_strong: Set[SolvedTrajectoryGameNode] = None,
-        plot_lead_outcomes: bool = False,
-        leader: Tuple[PlayerName, Preference] = None,
+    report: Report,
+    viz: GameVisualization,
+    title: str,
+    players: Mapping[PlayerName, GamePlayer],
+    nodes: Set[SolvedTrajectoryGameNode],
+    nodes_strong: Set[SolvedTrajectoryGameNode] = None,
+    plot_lead_outcomes: bool = False,
+    leader: Tuple[PlayerName, Preference] = None,
 ):
     if plot_lead_outcomes:
         assert leader is not None
@@ -174,12 +173,12 @@ def stack_nodes(
 
 
 def gif_eq(
-        report: Report,
-        node_eq: SolvedTrajectoryGameNode,
-        game: Game,
-        prefs: Mapping[PlayerName, Preference] = None,
-        nash_eq: Mapping[str, SolvedTrajectoryGame] = None,
-        make_gif=True,
+    report: Report,
+    node_eq: SolvedTrajectoryGameNode,
+    game: Game,
+    prefs: Mapping[PlayerName, Preference] = None,
+    nash_eq: Mapping[str, SolvedTrajectoryGame] = None,
+    make_gif=True,
 ):
     if prefs is None:
         prefs = {pname: peq.preference for pname, peq in game.game_players.items()}
@@ -265,11 +264,11 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
             plt.close(fig=fig)
 
     def image_eq(
-            report: Report,
-            nodes_light: SolvedTrajectoryGame,
-            nodes_dark: SolvedTrajectoryGame,
-            plot_actions: bool,
-            plot_lanes: bool,
+        report: Report,
+        nodes_light: SolvedTrajectoryGame,
+        nodes_dark: SolvedTrajectoryGame,
+        plot_actions: bool,
+        plot_lanes: bool,
     ):
         eq_viz = report.figure("Overlay", cols=2)
         actions_dark = save_actions(nodes_dark)
@@ -411,7 +410,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
 
 def report_leader_follower_solution(
-        game: Game, solution: SolvedLeaderFollowerGame, plot_gif: bool, stage: int = 0
+    game: Game, solution: SolvedLeaderFollowerGame, plot_gif: bool, stage: int = 0
 ) -> Report:
     PLOT_ALL_OUT = False
 
@@ -572,7 +571,7 @@ def report_leader_follower_solution(
 
 
 def report_leader_follower_recursive(
-        game: LeaderFollowerGame, result: SolvedRecursiveLeaderFollowerGame, plot_gif: bool
+    game: LeaderFollowerGame, result: SolvedRecursiveLeaderFollowerGame, plot_gif: bool
 ) -> Report:
     rep = Report("Leader-Follower")
     gif_viz = rep.figure(cols=1)
@@ -657,8 +656,7 @@ def create_animation_recursive(fn: str, game: Game, result: SolvedRecursiveLeade
 
     def get_list() -> List:
         return (
-                list(itertools.chain.from_iterable(states.values())) + list(actions.values()) + list(
-            opt_actions.values())
+            list(itertools.chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values())
         )
 
     def init_plot():

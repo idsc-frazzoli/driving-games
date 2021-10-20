@@ -88,8 +88,8 @@ class Metric(ABC):
         return ret
 
 
-PlayerEvaluatedMetrics = Mapping[Metric, EvaluatedMetric] # PlayerOutcome
-JointPlayerEvaluatedMetrics = Mapping[PlayerName, PlayerEvaluatedMetrics] # TrajGameOutcome
+PlayerEvaluatedMetrics = Mapping[Metric, EvaluatedMetric]  # PlayerOutcome
+JointPlayerEvaluatedMetrics = Mapping[PlayerName, PlayerEvaluatedMetrics]  # TrajGameOutcome
 
 # MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
 # PlayerOutcome = Mapping[Metric, EvaluatedMetric]

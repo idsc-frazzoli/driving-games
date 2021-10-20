@@ -29,6 +29,7 @@ def test_clearance():
     def calc(pos_p1: SE2Transform, pos_p2: SE2Transform) -> float:
         inp = {p1: (pos_p1, geo1), p2: (pos_p2, geo1)}
         return Clearance.get_clearance(inp)
+
     assert_almost_equal(calc(pos0, pos1), 0.0)
     assert_almost_equal(calc(pos0, pos2), 0.0)
     assert_almost_equal(calc(pos0, pos3), 0.1, places=2)
@@ -59,5 +60,5 @@ def test_clearance():
     assert_almost_equal(calc(pos14, pos13), 0.079, places=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_clearance()

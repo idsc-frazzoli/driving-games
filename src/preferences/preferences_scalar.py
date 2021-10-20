@@ -43,7 +43,7 @@ class SmallerPreferred(Preference[Scalar]):
 
 
 class SmallerPreferredTol(Preference[Scalar]):
-    """ The semi-order on the scalar given a tolerance. """
+    """The semi-order on the scalar given a tolerance."""
 
     tol: Scalar
 
@@ -54,7 +54,7 @@ class SmallerPreferredTol(Preference[Scalar]):
         return Scalar
 
     def compare(self, a: Scalar, b: Scalar) -> ComparisonOutcome:
-        """ Returns :any:`INDIFFERENT` if `|a-b|<=tol`. """
+        """Returns :any:`INDIFFERENT` if `|a-b|<=tol`."""
         if abs(a - b) <= self.tol:
             return INDIFFERENT
         if a < b:

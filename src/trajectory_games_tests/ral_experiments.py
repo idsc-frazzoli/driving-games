@@ -4,8 +4,16 @@ from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
 from reprep import Report
 
-from trajectory_games import get_trajectory_game, preprocess_full_game, TrajectoryGame, Solution, SolvedTrajectoryGame, \
-    report_preferences, SolvingContext, report_game_visualization
+from trajectory_games import (
+    get_trajectory_game,
+    preprocess_full_game,
+    TrajectoryGame,
+    Solution,
+    SolvedTrajectoryGame,
+    report_preferences,
+    SolvingContext,
+    report_game_visualization,
+)
 from trajectory_games_tests.test_game import create_reports
 
 
@@ -14,8 +22,7 @@ def bruteforce_solve(context: SolvingContext) -> (Mapping[str, SolvedTrajectoryG
     return sol.solve_game(context=context, cache_dom=True)
 
 
-def bruteforce_report(game: TrajectoryGame, nash_eq=Mapping[str, SolvedTrajectoryGame],
-                      gif: bool = False) -> Report:
+def bruteforce_report(game: TrajectoryGame, nash_eq=Mapping[str, SolvedTrajectoryGame], gif: bool = False) -> Report:
     game.game_vis.init_plot_dict(values=nash_eq["weak"])
     r_game = Report()
     if gif:  # first level we plot everything
@@ -27,7 +34,7 @@ def bruteforce_report(game: TrajectoryGame, nash_eq=Mapping[str, SolvedTrajector
 
 
 class RalExperiments(QuickApp):
-    """ Main Experiments runner """
+    """Main Experiments runner"""
 
     def define_options(self, params: DecentParams):
         pass

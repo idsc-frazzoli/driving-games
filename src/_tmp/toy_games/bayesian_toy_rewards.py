@@ -106,12 +106,8 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         subgame1, subgame2, row, col = self.get_payoff_matrix_idx(self.max_stages, x1, x2)
         payoff11, payoff12 = self.mat_payoffs[subgame1][row, col, :]
         payoff21, payoff22 = self.mat_payoffs[subgame2][row, col, :]
-        res1.update(
-            {self.row_player: BirdCosts(D(payoff21.item())), self.col_player: BirdCosts(D(payoff22.item()))}
-        )
-        res2.update(
-            {self.row_player: BirdCosts(D(payoff11.item())), self.col_player: BirdCosts(D(payoff12.item()))}
-        )
+        res1.update({self.row_player: BirdCosts(D(payoff21.item())), self.col_player: BirdCosts(D(payoff22.item()))})
+        res2.update({self.row_player: BirdCosts(D(payoff11.item())), self.col_player: BirdCosts(D(payoff12.item()))})
         res[type_combinations[0]] = res1
         res[type_combinations[1]] = res2
 

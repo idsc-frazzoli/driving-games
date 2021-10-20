@@ -145,9 +145,7 @@ def _what_if_player_chooses_get_mixed(
     return results
 
 
-def get_mixed_joint_actions(
-    ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]
-) -> Poss[JointPureActions]:
+def get_mixed_joint_actions(ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
     """
     Compute the possible options when players mix over multiple actions
 

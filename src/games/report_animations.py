@@ -126,10 +126,10 @@ def get_next_state(gp, s0, actions, dt2):
 
 
 def create_log_animation(
-        gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
-        sim: Simulation[X, U, Y, RP, RJ],
-        fn: str,
-        upsample_log: Optional[int],
+    gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
+    sim: Simulation[X, U, Y, RP, RJ],
+    fn: str,
+    upsample_log: Optional[int],
 ):
     import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation

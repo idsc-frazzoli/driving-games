@@ -61,6 +61,3 @@ described here below.
 
 .. automodule:: bayesian_driving_games.sequential_rationality
    :members:
-
-
-

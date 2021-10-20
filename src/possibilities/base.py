@@ -11,7 +11,7 @@ K = TypeVar("K")
 
 
 class Sampler(ABC):
-    """ A Sampler is something that can sample from a distribution. """
+    """A Sampler is something that can sample from a distribution."""
 
     @abstractmethod
     def sample(self, a: Poss[A]) -> A:
@@ -28,15 +28,15 @@ class PossibilityMonad(ABC):
 
     @abstractmethod
     def unit(self, a: A) -> Poss[A]:
-        """ Constructs a distribution from one element. The `return` in Haskell. """
+        """Constructs a distribution from one element. The `return` in Haskell."""
 
     @abstractmethod
     def lift_many(self, a: Collection[A]) -> Poss[A]:
-        """ Constructs a distribution from a set of elements element. """
+        """Constructs a distribution from a set of elements element."""
 
     @abstractmethod
     def join(self, a: Poss[Poss[A]]) -> Poss[A]:
-        """ The flattening operations for a monad. """
+        """The flattening operations for a monad."""
 
     @abstractmethod
     def build(self, a: Poss[A], f: Callable[[A], B]) -> Poss[B]:
@@ -46,15 +46,15 @@ class PossibilityMonad(ABC):
 
     @abstractmethod
     def build_multiple(self, a: Mapping[K, Poss[A]], f: Callable[[Mapping[K, A]], B]) -> Poss[B]:
-        """ Computes the push-forward from a set of independent distributions. """
+        """Computes the push-forward from a set of independent distributions."""
 
     @abstractmethod
     def get_sampler(self, seed: int) -> Sampler:
-        """ Creates a sampler object that can be used to simulate realizations from this distribution. """
+        """Creates a sampler object that can be used to simulate realizations from this distribution."""
 
     @abstractmethod
     def mix(self, support: Collection[A]) -> FrozenSet[Poss[A]]:
-        """ Returns a set of "distributions" with the given support. """
+        """Returns a set of "distributions" with the given support."""
 
 
 # V = TypeVar('V')

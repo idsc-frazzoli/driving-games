@@ -167,7 +167,7 @@ def ne_support_enum(
             yield Equilibrium(s1, s2, payoff1, payoff2)
     if count % 2 == 0:
         logger.warn(
-            """ An even number of ({}) equilibria was returned. This 
+            """ An even number of ({}) equilibria was returned. This
         indicates that the game is degenerate. Consider using another algorithm to investigate.""".format(
                 count
             )

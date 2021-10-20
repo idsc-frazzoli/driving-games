@@ -11,7 +11,7 @@ B = TypeVar("B")
 
 
 def remove_dominated(orig: Mapping[A, B], pref: Preference[B]) -> Mapping[A, B]:
-    """ Removes the dominated options. """
+    """Removes the dominated options."""
     # logger.info(orig=orig, pref=pref)
 
     def is_strictly_dominated(x: B) -> bool:
@@ -29,7 +29,7 @@ def remove_dominated(orig: Mapping[A, B], pref: Preference[B]) -> Mapping[A, B]:
 
 
 def worst_cases(orig: Mapping[A, B], pref: Preference[B]) -> Mapping[A, B]:
-    """ Removes the dominating options. """
+    """Removes the dominating options."""
     # logger.info(orig=orig, pref=pref)
 
     def something_is_worst(x: B) -> bool:

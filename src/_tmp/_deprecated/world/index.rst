@@ -38,7 +38,3 @@ Contains different functions to extract lanes from the maps and to interpolate a
 
 .. automodule:: world.skeleton_graph
    :members:
-
-
-
-

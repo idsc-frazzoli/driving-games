@@ -23,7 +23,7 @@ __all__ = ["DrivingGameVisualization"]
 class DrivingGameVisualization(
     GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
 ):
-    """ Visualization for the driving games"""
+    """Visualization for the driving games"""
 
     side: D
     geometries: Mapping[PlayerName, VehicleGeometry]
@@ -76,7 +76,7 @@ class DrivingGameVisualization(
         commands: Optional[VehicleActions],
         opacity: float = 1.0,
     ):
-        """ Draw the player at a certain state doing certain commands (if givne)"""
+        """Draw the player at a certain state doing certain commands (if givne)"""
         q = SE2_from_VehicleState(state)
 
         if commands is None:

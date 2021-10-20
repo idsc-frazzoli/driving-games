@@ -35,7 +35,7 @@ class WeightedPreference(Preference[PlayerOutcome]):
 
     name: str
     weights: Mapping[AllMetrics, D]
-    """ Weights of the different nodes. 
+    """ Weights of the different nodes.
     Each node can either be a metric or a weighted preference """
 
     """ Internal parameters """
@@ -62,15 +62,17 @@ class WeightedPreference(Preference[PlayerOutcome]):
             weights[WeightedPreference._metric_dict[k]] = D(v)
         self.weights = weights
 
-    def get_type(self, ) -> Type[PlayerOutcome]:
+    def get_type(
+        self,
+    ) -> Type[PlayerOutcome]:
         return PlayerOutcome
 
     def evaluate(self, outcome: PlayerOutcome) -> D:
         w = D("0")
         for metric, weight in self.weights.items():
-            value = metric.evaluate(outcome=outcome) \
-                if isinstance(metric, WeightedPreference) \
-                else D(outcome[metric].total)
+            value = (
+                metric.evaluate(outcome=outcome) if isinstance(metric, WeightedPreference) else D(outcome[metric].total)
+            )
             w += value * weight
         return w
 
@@ -94,8 +96,8 @@ metric_type = NewType("metric", WeightedPreference)  # fixme this does not seem 
 
 
 class PosetalPreference(Preference[PlayerOutcome]):
-    """ A preference specified over the various nodes.
-    Each node is a metric or a weighted combination of metrics (or weighted nodes) """
+    """A preference specified over the various nodes.
+    Each node is a metric or a weighted combination of metrics (or weighted nodes)"""
 
     graph: DiGraph
     """ Preference graph """
@@ -108,8 +110,12 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     # Internal parameters
     _config: Mapping = None
-    _complement = {FIRST_PREFERRED: SECOND_PREFERRED, SECOND_PREFERRED: FIRST_PREFERRED,
-                   INDIFFERENT: INDIFFERENT, INCOMPARABLE: INCOMPARABLE}
+    _complement = {
+        FIRST_PREFERRED: SECOND_PREFERRED,
+        SECOND_PREFERRED: FIRST_PREFERRED,
+        INDIFFERENT: INDIFFERENT,
+        INCOMPARABLE: INCOMPARABLE,
+    }
     _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
     _node_dict: Dict[str, metric_type] = {}
 
@@ -193,7 +199,9 @@ class PosetalPreference(Preference[PlayerOutcome]):
                 i = i + 1
         self.level_nodes = level_nodes
 
-    def get_type(self, ) -> Type[PlayerOutcome]:
+    def get_type(
+        self,
+    ) -> Type[PlayerOutcome]:
         return PlayerOutcome
 
     def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
@@ -201,8 +209,10 @@ class PosetalPreference(Preference[PlayerOutcome]):
         if self.no_pref:
             return INDIFFERENT
         if self.use_cache:
-            if isinstance(a, dict): a = frozendict(a)
-            if isinstance(b, dict): b = frozendict(a)
+            if isinstance(a, dict):
+                a = frozendict(a)
+            if isinstance(b, dict):
+                b = frozendict(a)
             if (a, b) in self._cache:
                 return self._cache[(a, b)]
             if (b, a) in self._cache:

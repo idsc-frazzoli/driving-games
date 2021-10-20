@@ -24,8 +24,10 @@ def test_lanes():
     geometries: Dict[PlayerName, VehicleGeometry] = {}
 
     def wrap(ang: float) -> float:
-        while ang > +np.pi: ang -= 2 * np.pi
-        while ang < -np.pi: ang += 2 * np.pi
+        while ang > +np.pi:
+            ang -= 2 * np.pi
+        while ang < -np.pi:
+            ang += 2 * np.pi
         return abs(ang)
 
     i = 1
@@ -41,8 +43,10 @@ def test_lanes():
             along2 = lane.along_lane_from_beta(beta2)
             p2, r2, _ = geo.translation_angle_scale_from_E2(point2)
             if abs(beta1 - beta2) > 0.1 or abs(along1 - along2) > 0.5 or wrap(r1 - r2) > 0.1:
-                print(f"Warning, points aren't equal: \n\tbeta = {beta1, beta2} "
-                      f"\n\talong = {along1, along2} \n\tangle = {r1, r2}")
+                print(
+                    f"Warning, points aren't equal: \n\tbeta = {beta1, beta2} "
+                    f"\n\talong = {along1, along2} \n\tangle = {r1, r2}"
+                )
                 good = False
                 raise Exception("Discontinuities in lane")
         if good:
@@ -66,5 +70,5 @@ def test_lanes():
     r.to_html(join(d, "r_lanes.html"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_lanes()

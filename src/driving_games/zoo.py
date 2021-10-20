@@ -42,7 +42,7 @@ p_asym = replace(p0, road_lane_offset=D(4))  # to the right
 
 def get_asym() -> GameSpec:
     desc = """
-    Slightly asymmetric case. West is advantaged.  
+    Slightly asymmetric case. West is advantaged.
     Min v = 1. Set-based uncertainty.
     """
     return GameSpec(desc, get_two_vehicle_game(p_asym, uncertainty_sets))
@@ -53,15 +53,15 @@ p_asym_minv0 = replace(p_asym, min_speed=D(0))
 
 def get_asym_minv0() -> GameSpec:
     desc = """
-    Slightly asymmetric case. West is advantaged.  
-    Min v = 0. Set-based uncertainty. 
+    Slightly asymmetric case. West is advantaged.
+    Min v = 0. Set-based uncertainty.
     """
     return GameSpec(desc, get_two_vehicle_game(p_asym_minv0, uncertainty_sets))
 
 
 def get_sym_prob() -> GameSpec:
     desc = """
-    Super symmetric case. Min v = 1. 
+    Super symmetric case. Min v = 1.
     Probability-based uncertainty (expected value).
     """
     return GameSpec(desc, get_two_vehicle_game(p_sym, uncertainty_prob))
@@ -69,7 +69,7 @@ def get_sym_prob() -> GameSpec:
 
 def get_asym_prob() -> GameSpec:
     desc = """
-    Slightly asymmetric case. West is advantaged.  
+    Slightly asymmetric case. West is advantaged.
     Min v = 1. Probability-based uncertainty (expected value).
     """
     return GameSpec(desc, get_two_vehicle_game(p_asym, uncertainty_prob))
@@ -77,7 +77,7 @@ def get_asym_prob() -> GameSpec:
 
 def get_asym_minv0_prob() -> GameSpec:
     desc = """
-    Slightly asymmetric case. West is advantaged.  
+    Slightly asymmetric case. West is advantaged.
     Min v = 0. Probability-based uncertainty (expected value).
     """
     return GameSpec(desc, get_two_vehicle_game(p_asym_minv0, uncertainty_prob))

@@ -17,7 +17,7 @@ V = TypeVar("V")
 
 
 class StrictProductPreference(Preference[V]):
-    """ Computes the product of the preferences. """
+    """Computes the product of the preferences."""
 
     prefs: Tuple[Preference[V], ...]
 
@@ -71,7 +71,7 @@ K = TypeVar("K")
 
 
 class StrictProductPreferenceDict(Preference[Mapping[K, V]]):
-    """ Computes the product of the preferences. """
+    """Computes the product of the preferences."""
 
     prefs: Mapping[K, Preference[V]]
 

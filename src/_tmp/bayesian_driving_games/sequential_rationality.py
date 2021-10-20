@@ -122,9 +122,7 @@ def analyze_sequential_rational(
     player_mixed_strategies_new = dict(zip(players_ordered, players_strategies))
 
     _ = next(iter(game.players))
-    type_combinations = list(
-        itertools.product(game.players[_].types_of_myself, game.players[_].types_of_others)
-    )
+    type_combinations = list(itertools.product(game.players[_].types_of_myself, game.players[_].types_of_others))
 
     results: Dict[JointMixedActions, Mapping[PlayerName, UncertainCombined]] = {}
     for choices in itertools.product(*tuple(players_strategies)):
@@ -222,9 +220,7 @@ def solve_sequential_rationality(
     preferences = {k: sc.outcome_preferences[k] for k in players_active}
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
-    ea = analyze_sequential_rational(
-        ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, game=sc.game
-    )
+    ea = analyze_sequential_rational(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, game=sc.game)
     try:
         players_with_types = list(list(ea.nondom_nash_equilibria.keys())[0].keys())
     except:
