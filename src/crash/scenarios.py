@@ -8,12 +8,13 @@ from geometry import xytheta_from_SE2
 from numpy import deg2rad, linspace
 
 from crash.agents import B1Agent, B2Agent
+from crash.agents.pred_agent import PredAgent
 from dg_commons import DgSampledSequence, PlayerName
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
 from dg_commons.maps.lanes import DgLanelet
 from sim import SimTime
-from sim.agents.agent import NPAgent
+from sim.agents.agent import NPAgent, Agent
 from sim.models import kmh2ms, PEDESTRIAN
 from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
 from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
@@ -25,7 +26,7 @@ from sim.simulator import SimContext
 from sim.simulator_structures import SimParameters
 
 __all__ = ["get_scenario_bicycles", "get_scenario_illegal_turn", "get_scenario_suicidal_pedestrian",
-           "get_scenario_two_lanes", "get_scenario_racetrack_test"]
+           "get_scenario_two_lanes", "get_scenario_racetrack_test", "get_scenario_predictions"]
 
 P1, P2, P3, P4, P5, P6, P7, EGO = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
     "P5"), PlayerName("P6"), PlayerName("P7"), PlayerName("Ego")
@@ -236,4 +237,51 @@ def get_scenario_racetrack_test() -> SimContext:
                       models=models,
                       players=players,
                       param=SimParameters(dt=D("0.01"), sim_time_after_collision=D(3), max_sim_time=D(10)),
+                      )
+
+
+def get_scenario_predictions() -> SimContext:
+    scenario_name = "ZAM_Zip-1_66_T-1"
+    # question: planning problem set is never used. How come?
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+
+    x0_p1 = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=24.5, delta=0)
+    x0_ego = VehicleStateDyn(x=-115, y=9, theta=0.00, vx=kmh2ms(90), delta=0)
+    ego_model = VehicleModelDyn.default_car(x0_ego)
+    ego_model.vg = VehicleGeometry.default_car(color="firebrick")
+
+    models = {P1: VehicleModelDyn.default_car(x0_p1),
+              EGO: ego_model
+              }
+
+    net = scenario.lanelet_network
+    agents: List[Agent] = [] # todo: is [Agent] instead of [B1Agent] correct?
+
+    for pname in models:
+        assert not models[pname].model_type == PEDESTRIAN # question: why do we need to check there are no pedestrians?
+        x0 = models[pname].get_state()
+        p = np.array([x0.x, x0.y])
+        dglane = dglane_from_position(p, net) # find lane that controller will follow. Lane is a list of LaneCtrlPoint
+
+        # instantiate speed and steering controllers and their paramenters
+        sp_controller_param: SpeedControllerParam = SpeedControllerParam(
+            setpoint_minmax=models[pname].vp.vx_limits, output_minmax=models[pname].vp.acc_limits)
+        st_controller_param: SteerControllerParam = SteerControllerParam(
+            setpoint_minmax=(-models[pname].vp.delta_max, models[pname].vp.delta_max),
+            output_minmax=(-models[pname].vp.ddelta_max, models[pname].vp.ddelta_max))
+        sp_controller = SpeedController(sp_controller_param)
+        st_controller = SteerController(st_controller_param)
+
+        if pname == EGO:
+            agents.append(PredAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+        else:
+            agents.append(B1Agent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+
+    players = {P1: agents[0],
+               EGO: agents[1], } # question: how does SimContext know that EGO is the one predicting what others do? It doesn't know, right?
+    return SimContext(scenario=scenario,
+                      models=models,
+                      players=players,
+                      param=SimParameters(
+                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(4), max_sim_time=D(5)),
                       )

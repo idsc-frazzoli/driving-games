@@ -25,3 +25,7 @@ def test_scenario_two_lanes():
 def test_scenario_racetrack():
     sim_context = get_scenario_racetrack_test()
     run_scenario_without_compmake(sim_context)
+
+def test_predictions():
+    sim_context = get_scenario_predictions()
+    run_scenario_without_compmake(sim_context)
