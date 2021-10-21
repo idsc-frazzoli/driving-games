@@ -1,14 +1,16 @@
-from dataclasses import dataclass, replace
-from decimal import Decimal as D
-from fractions import Fraction
+from dataclasses import dataclass
 
 from dg_commons.sim import ImpactLocation
 
-# __all__ = ["Collision"]
-#
-#
-# # todo redo this part according to new collision checking
-#
+__all__ = ["SimpleCollision"]
+
+
+@dataclass(frozen=True)
+class SimpleCollision:
+    location: ImpactLocation
+    at_fault: bool
+    energy_transfer: float
+
 
 # @dataclass(frozen=True)
 # class Collision:

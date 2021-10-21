@@ -1,5 +1,4 @@
 from abc import abstractmethod, ABC
-from collections import Sequence
 from dataclasses import dataclass, field
 from typing import List, Mapping, Optional, MutableMapping
 
@@ -43,8 +42,8 @@ class MetricEvaluationContext:
     goals: Mapping[PlayerName, PlanningGoal]
 
     """ Cached data for each player use for all rules. """
-    points_cart: Mapping[PlayerName, List[SE2Transform]] = field(init=False)
-    points_curv: Mapping[PlayerName, List[DgLanePose]] = field(init=False)
+    points_cart: Mapping[PlayerName, List[SE2Transform]] = field(init=False, default_factory=dict)
+    points_curv: Mapping[PlayerName, List[DgLanePose]] = field(init=False, default_factory=dict)
 
     # _cache_cart: Dict[Trajectory, List[SE2Transform]] = None
     # _cache_curv: Dict[Trajectory, List[DgLanePose]] = None

@@ -3,8 +3,12 @@ from decimal import Decimal as D
 from typing import cast, Dict, FrozenSet, FrozenSet as ASet
 
 from frozendict import frozendict
+from shapely.geometry import Polygon
 
 from dg_commons import PlayerName
+from dg_commons.sim import CollisionReportPlayer
+from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import (
     Game,
     GamePlayer,
@@ -14,24 +18,22 @@ from games import (
     UncertaintyParams,
 )
 from possibilities import PossibilityMonad
-from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
-from .collisions import Collision
 from .joint_reward import VehicleJointReward
 from .personal_reward import VehiclePersonalRewardStructureTime
 from .preferences_coll_time import VehiclePreferencesCollTime
-from .rectangle import Rectangle
 from .structures import (
     VehicleActions,
     VehicleCosts,
-    VehicleGeometry,
     VehicleState,
 )
 from .vehicle_dynamics import VehicleTrackDynamics
 from .vehicle_observation import VehicleDirectObservations, VehicleObservation
 from .visualization import DrivingGameVisualization
 
-DrivingGame = Game[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
-DrivingGamePlayer = GamePlayer[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision, Rectangle]
+DrivingGame = Game[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionReportPlayer, Polygon]
+DrivingGamePlayer = GamePlayer[
+    VehicleState, VehicleActions, VehicleObservation, VehicleCosts, CollisionReportPlayer, Polygon
+]
 
 
 @dataclass
@@ -79,8 +81,8 @@ def get_two_vehicle_game(vehicles_params: TwoVehicleSimpleParams, uncertainty_pa
     length = D(4.5)
     width = D(1.8)
 
-    g1 = VehicleGeometry(mass=mass, width=width, length=length, color=(1, 0, 0))
-    g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
+    g1 = VehicleGeometry.default_car(color=(1, 0, 0))
+    g2 = VehicleGeometry.default_car(color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
     p1_x = VehicleState(ref=p1_ref, x=D(vehicles_params.first_progress), wait=D(0), v=min_speed, light=NO_LIGHTS)
     p1_initial = ps.unit(p1_x)

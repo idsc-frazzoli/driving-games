@@ -9,7 +9,6 @@ from dg_commons import PlayerName
 from driving_games import (
     VehicleState,
     VehicleActions,
-    Collision,
     VehicleGeometry,
     VehicleCosts,
 )

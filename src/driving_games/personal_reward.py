@@ -32,12 +32,8 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
         with localcontext() as ctx:
             ctx.prec = 2
             remaining = (self.max_path - x.x) / x.v
-
             return VehicleCosts(remaining)
 
     def is_personal_final_state(self, x: VehicleState) -> bool:
         check_isinstance(x, VehicleState)
-        # return x.x > self.max_path
-        # fixme why with velocity? this implies step size of 1?
-        # why not return x.x >= self.max_path?
-        return x.x + x.v > self.max_path
+        return x.x >= self.max_path

@@ -11,7 +11,6 @@ from matplotlib import patches
 from dg_commons import PlayerName
 from games import GameVisualization
 from .collisions import Collision
-from .rectangle import SE2_from_VehicleState, get_rectangle_countour, Rectangle, get_resources_used
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
 from .vehicle_observation import VehicleObservation
 
@@ -77,6 +76,7 @@ class DrivingGameVisualization(
         opacity: float = 1.0,
     ):
         """Draw the player at a certain state doing certain commands (if givne)"""
+        # todo fixme
         q = SE2_from_VehicleState(state)
 
         if commands is None:

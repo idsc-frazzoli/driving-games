@@ -1,12 +1,12 @@
 from dataclasses import dataclass
+from decimal import Decimal as D
 from functools import lru_cache
 from typing import FrozenSet, Mapping, Optional, Union
-from decimal import Decimal as D
 
-from dg_commons import PlayerName
-from games import Observations
+from dg_commons import PlayerName, SE2Transform
 from dg_commons.sim.models.vehicle_ligths import LightsCmd
-from .structures import SE2_disc, VehicleState
+from games import Observations
+from .structures import VehicleState
 
 __all__ = ["NotSeen", "Seen", "VehicleObservation", "VehicleDirectObservations"]
 
@@ -18,7 +18,7 @@ class NotSeen:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class Seen:
-    ref: SE2_disc
+    ref: SE2Transform
     x: Optional[int]
     v: Optional[int]
     # if not None, we could also see the light value

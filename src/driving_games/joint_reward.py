@@ -6,7 +6,7 @@ from games import JointRewardStructure
 from dg_commons.sim import IMPACT_FRONT
 from .collisions import Collision
 from .collisions_check import collision_check
-from .structures import VehicleActions, VehicleGeometry, VehicleState
+from .structures import VehicleActions, VehicleState
 
 __all__ = ["VehicleJointReward"]
 
