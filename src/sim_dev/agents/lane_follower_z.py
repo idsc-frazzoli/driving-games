@@ -111,6 +111,9 @@ class LFAgent(Agent):
         self.betas.append(self.controller.current_beta)
         self.commands = VehicleCommands(acc=acc, ddelta=ddelta)
 
+    def simulation_ended(self):
+        self.speed_behavior.simulation_ended()
+
     def emergency_subroutine(self, my_obs: X, t: float,
                              emergency: EmergencySituation) -> VehicleCommands:
         self.normal_subroutine(my_obs, t)

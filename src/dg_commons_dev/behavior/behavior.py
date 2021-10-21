@@ -20,23 +20,22 @@ class BehaviorSituation:
     situation: Optional[Situation] = None
 
     def is_emergency(self) -> bool:
-        assert self.situation is not None
         assert self._is_situation_type()
         return isinstance(self.situation, Emergency)
 
     def is_yield(self) -> bool:
-        assert self.situation is not None
         assert self._is_situation_type()
         return isinstance(self.situation, Yield)
 
     def is_cruise(self) -> bool:
-        assert self.situation is not None
         assert self._is_situation_type()
         return isinstance(self.situation, Cruise)
 
     def _is_situation_type(self):
-        return isinstance(self.situation, Emergency) or isinstance(self.situation, Yield), \
-               isinstance(self.situation, Cruise)
+        help1: bool = self.situation is not None
+        help2: bool = isinstance(self.situation, Emergency) or isinstance(self.situation, Yield) or \
+            isinstance(self.situation, Cruise)
+        return help1 and help2
 
 
 @dataclass
@@ -66,7 +65,7 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
         self.speed_ref: float = 0
 
         self.yield_to = self.params.yield_to(self.params.yield_params, self.params.safety_time_braking)
-        self.emergency = self.params.emergency(self.params.emergency_params, self.params.safety_time_braking)
+        self.emergency = self.params.emergency(self.params.emergency_params, self.params.safety_time_braking, plot=True)
         self.cruise = self.params.cruise(self.params.cruise_params, self.params.safety_time_braking)
         self.obs: SituationObservations = SituationObservations(my_name=self.my_name, dt_commands=params.dt_commands)
         self.situation: BehaviorSituation = BehaviorSituation()
@@ -86,7 +85,6 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
 
         agents_rel_pose: Dict[PlayerName, SE2Transform] = valmap(rel_pose, self.agents)
         self.obs.rel_poses = agents_rel_pose
-
         self.emergency.update_observations(self.obs)
         if self.emergency.is_true():
             self.situation.situation = self.emergency
@@ -102,3 +100,6 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
                 self.situation.situation = self.cruise
                 self.speed_ref = self.cruise.infos().speed_ref
         return self.speed_ref, self.situation
+
+    def simulation_ended(self):
+        self.emergency.simulation_ended()

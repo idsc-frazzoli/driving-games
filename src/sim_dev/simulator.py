@@ -62,6 +62,7 @@ class Simulator:
             self.pre_update(sim_context)
             self.update(sim_context)
             self.post_update(sim_context)
+        self.simulation_ended(sim_context)
         logger.info("Completed simulation. Writing logs...")
         for player_name in sim_context.players:
             sim_context.log[player_name] = self.simlogger[player_name].as_sequence()
@@ -75,7 +76,6 @@ class Simulator:
             state = model.get_state()
             if issubclass(type(sim_context.players[player_name]), LFAgent):
                 sim_context.players[player_name].measurement_update(state)
-
             # todo not always necessary to update observations
             player_obs = PlayerObservations(state=state, occupancy=model.get_footprint())
             self.last_observations.players.update({player_name: player_obs})
@@ -114,6 +114,12 @@ class Simulator:
         sim_context.time += sim_context.param.dt
         self._maybe_terminate_simulation(sim_context)
         return
+
+    @staticmethod
+    def simulation_ended(sim_context):
+        for player_name in sim_context.players.keys():
+            if issubclass(type(sim_context.players[player_name]), LFAgent):
+                sim_context.players[player_name].simulation_ended()
 
     @staticmethod
     def _maybe_terminate_simulation(sim_context: SimContext):
