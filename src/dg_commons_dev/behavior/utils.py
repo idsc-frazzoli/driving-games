@@ -1,19 +1,21 @@
 from dataclasses import dataclass
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.sim import PlayerObservations
-from typing import MutableMapping, Dict, Optional, Tuple
+from typing import MutableMapping, Dict, Optional, Tuple, Callable
 from shapely.geometry import Polygon
 from dg_commons.geo import SE2_apply_T2, T2value
 from dg_commons import X, U
 from scipy.integrate import solve_ivp
 import math
-from dg_commons.sim.models.vehicle import VehicleParameters, VehicleGeometry
+from dg_commons.sim.models.vehicle import VehicleParameters, VehicleGeometry, VehicleModel, VehicleCommands
 import os
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib import patches
 from matplotlib.collections import PatchCollection
+import matplotlib.pyplot as plt
+from shapely import geometry
 
 
 @dataclass
@@ -40,17 +42,40 @@ def l_w_from_rectangle(occupacy: Polygon):
     return length, width
 
 
-def occupancy_prediction(current_state: X, time_span: float,
-                         occupacy: Polygon, vehicle_geom=VehicleGeometry.default_car()):
-    dt = 0.2
-    safety_factor = 0.5  # metres to keep
+def states_prediction(current_state: X, time_span: float, dt: float,
+                      vg=VehicleGeometry.default_car(), vp: VehicleParameters = VehicleParameters.default_car()):
+
+    model = VehicleModel(current_state, vg, vp)
+    commands = VehicleCommands(acc=0.0, ddelta=0.0)
     n, rest = int(time_span/dt), time_span % dt
     dts = [dt for _ in range(n)] + [rest]
-    l_polygon, r_polygon = [], []
-    lr = vehicle_geom.lr
 
-    length, width = l_w_from_rectangle(occupacy)
-    length, width = length + safety_factor, width + safety_factor
+    states = [current_state]
+    for dt in dts:
+        model.update(commands, dt)
+        state = model.get_state()
+        states.append(state)
+
+    return states
+
+
+SAFETY_FACTOR = 0.5
+
+
+def occupancy_prediction(current_state: X, time_span: float, occupacy: Polygon,
+                         vg=VehicleGeometry.default_car(), vp: VehicleParameters = VehicleParameters.default_car()):
+    dt = 0.2
+    l_polygon, r_polygon = [], []
+
+    width = vg.width + SAFETY_FACTOR
+    lf = vg.lf + vg.bumpers_length[0] + SAFETY_FACTOR
+    lr = vg.lr + vg.bumpers_length[1] + SAFETY_FACTOR
+
+    def rear_state(state):
+        position = np.array([state.x, state.y])
+        vec = np.array([math.cos(state.theta), math.sin(state.theta)]) * lr
+        r_position = position - vec
+        return np.array([r_position[0], r_position[1], state.theta])
 
     def polygon_data(res: np.ndarray):
         theta, pos = res[2], res[:2]
@@ -58,66 +83,64 @@ def occupancy_prediction(current_state: X, time_span: float,
         l_polygon.append(tuple(pos + vec))
         r_polygon.insert(0, tuple(pos - vec))
 
-    delta, vx = current_state.delta, current_state.vx
+    states = states_prediction(current_state, time_span, dt, vg, vp)
+    for state in states:
+        polygon_data(rear_state(state))
 
-    def _dynamics(t: float, state: np.ndarray) -> np.ndarray:
-        x_dot = vx * math.cos(state[2])
-        y_dot = vx * math.sin(state[2])
-        theta_dot = vx * math.tan(delta) / length
-
-        return np.array([x_dot, y_dot, theta_dot])
-
-    initial_position = np.array([current_state.x, current_state.y]) - \
-                       np.array([math.cos(current_state.theta), math.sin(current_state.theta)]) * lr
-    initial_position_poly = np.array([current_state.x, current_state.y]) - \
-                            np.array([math.cos(current_state.theta), math.sin(current_state.theta)]) * length/2
-    initial_state = np.array([initial_position[0], initial_position[1], current_state.theta])
-    polygon_data(np.array([initial_position_poly[0], initial_position_poly[1], current_state.theta]))
-    for dt in dts:
-        result = solve_ivp(fun=_dynamics, t_span=(0.0, float(dt)), y0=initial_state)
-        if not result.success:
-            raise RuntimeError("Failed to integrate ivp!")
-
-        res = result.y[:, -1]
-        initial_state = res
-        polygon_data(res)
-
-    final_state = np.array([res[0] + math.cos(res[2]) * length,
-                            res[1] + math.sin(res[2]) * length, res[2]])
+    final_state = np.array([state.x + math.cos(state.theta) * lf, \
+                            state.y + math.sin(state.theta) * lf, \
+                            state.theta])
     polygon_data(final_state)
     polygon = Polygon(tuple(l_polygon + r_polygon + [l_polygon[0]]))
-    return polygon
+    return polygon, states
 
 
 def entry_exit_t(intersection: Polygon, current_state, occupacy: Polygon, safety_t, vel,
-                 vehicle_geom=VehicleGeometry.default_car()):
-    distance = occupacy.distance(intersection)
-    stopped_inside = vel <= 10e-6 and distance <= 10e-6
-    going = vel > 10e-6 and distance > 10e-6
+                 vg=VehicleGeometry.default_car(), vp=VehicleParameters.default_car(), tol=0.01):
+    stopped_inside: bool = vel <= 10e-6
+    going: bool = vel > 10e-6
     assert going or stopped_inside
-
     if stopped_inside:
         return 0, safety_t
 
-    tol = 0.1
     length = intersection.length
+    distance = max(occupacy.distance(intersection) - 1.5 * SAFETY_FACTOR, 0)
 
     min_t = distance/vel
     max_t = min(min_t + 2 * length / vel, safety_t)
 
-    test_values = list(np.round(np.arange(min_t, max_t, tol), 3))
+    def find(t: float, state: X, dt: float, condition: Callable):
+        t_of_interest: Optional[float] = None
 
-    entry_t = None
-    exit_t = None
-    for i, test_value in enumerate(test_values):
-        pred = occupancy_prediction(current_state, test_value, occupacy, vehicle_geom=vehicle_geom)
-        inter = pred.intersection(intersection)
-        if not inter.is_empty:
-            if entry_t is None:
-                entry_t = test_value - tol/2 if i > 0 else 0
-        elif entry_t is not None and exit_t is None:
-            exit_t = test_value - tol/2
-            break
+        def find_temp(t_temp, state_temp, dt_temp):
+            while (t_temp - max_t) < 10e-6:
+                pred, states = occupancy_prediction(state_temp, dt_temp, occupacy, vg=vg, vp=vp)
+                inter = pred.intersection(intersection)
+                if condition(inter):
+                    return t_temp, state_temp
+                t_temp += dt
+                state_temp = states[-1]
+            return None, None
+
+        while True:
+            t_of_interest, state = find_temp(t, state, dt)
+            if t_of_interest is None:
+                return None, None
+            t = t_of_interest
+            dt = dt / 2
+            if dt <= tol/2:
+                break
+
+        return t_of_interest, state
+
+    t = min_t
+    state = states_prediction(current_state, min_t, min_t)[-1] if min_t != 0 else current_state
+    dt = (max_t - min_t)/2
+    entry_t, state = find(t, state, dt, lambda inter: not inter.is_empty)
+    assert entry_t is not None
+
+    dt = (max_t - entry_t)/2
+    exit_t, _ = find(entry_t, state, dt, lambda inter: inter.is_empty)
 
     if exit_t is None:
         exit_t = safety_t
@@ -183,7 +206,7 @@ class PolygonPlotter:
         self.max_n_items = n_items if n_items > self.max_n_items else self.max_n_items
         self.current_frame = [[], []]
 
-    def save_animation(self, title=""):
+    def save_animation(self, title: str):
         if not self.plot:
             return
 
@@ -234,5 +257,9 @@ class PolygonPlotter:
         anim = animation.FuncAnimation(fig, animate, init_func=init,
                                        frames=n_frames, interval=20, blit=True)
 
-        dir = "out_emergency"
-        anim.save(os.path.join(dir, 'emergency.gif'), writer=writer)
+        dir = os.path.join("out", "situations")
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+
+        name = 'emergency.gif' if title == '' else title + ".gif"
+        anim.save(os.path.join(dir, name), writer=writer)

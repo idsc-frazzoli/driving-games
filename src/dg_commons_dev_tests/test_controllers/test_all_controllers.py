@@ -8,20 +8,20 @@ if __name__ == '__main__':
     verbosity: Verbosity = Verbosity(2)
 
     scenarios_to_test = [Select(scenarios["lane_change_left"], False),
-                         Select(scenarios["turn_90_right"], False),
+                         Select(scenarios["turn_90_right"], True),
                          Select(scenarios["turn_90_left"], False),
                          Select(scenarios["small_snake"], False),
                          Select(scenarios["u-turn"], False),
                          Select(scenarios["left_cont_curve"], False),
                          Select(scenarios["vertical"], False),
-                         Select(scenarios["emergency_brake"], True),
+                         Select(scenarios["emergency_brake"], False),
                          Select(scenarios["race"], False)]
 
     controllers_to_test = [
         Select(TestLQR, False),
-        Select(TestPurePursuit, True),
+        Select(TestPurePursuit, False),
         Select(TestStanley, False),
-        Select(TestNMPCFullKinContPV, False), Select(TestNMPCFullKinContAN, False),
+        Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, False),
         Select(TestNMPCFullKinDisPV, False), Select(TestNMPCFullKinDisAN, False),
         Select(TestNMPCLatKinContPV, False), Select(TestNMPCLatKinContAN, False),
         Select(TestNMPCLatKinDisPV, False), Select(TestNMPCLatKinDisAN, False)
