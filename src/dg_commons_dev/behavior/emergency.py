@@ -1,6 +1,8 @@
+import math
+
 from dg_commons_dev.behavior.behavior_types import Situation, SituationParams
 from dataclasses import dataclass
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Tuple
 from dg_commons_dev.behavior.utils import SituationObservations, relative_velocity, \
     occupancy_prediction, PolygonPlotter, entry_exit_t
 from dg_commons.sim.models import kmh2ms, extract_vel_from_state
@@ -11,7 +13,7 @@ from dg_commons.sim.models.vehicle import VehicleParameters, VehicleGeometry
 class EmergencySituation:
     is_emergency: bool = False
 
-    drac: Optional[float] = None
+    drac: Optional[Tuple[float, float]] = None
     ttc: Optional[float] = None
     pet: Optional[float] = None
 
@@ -108,9 +110,9 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
                     self.emergency_situation.ttc = ttc
                     collision_score += ttc_score(ttc)
                     drac1 = 2 * (other_vel - other_vel * other_entry_time / my_exit_time) / my_exit_time \
-                        if pot1 else None
+                        if pot1 else 0.0
                     drac2 = 2 * (my_vel - my_vel * my_entry_time / other_exit_time) / other_exit_time \
-                        if pot2 else None
+                        if pot2 else 0.0
                     drac = max(drac1, drac2)
                     collision_score += drac_score(drac)
                     self.emergency_situation.drac = [drac1, drac2]
