@@ -84,7 +84,7 @@ def write_states(r: Report, k: str, sim: Simulation):
 
 def upsample(gp, states0, actions0, n: int):
     states2 = {}
-    dt = gp.solver_params.dt
+    dt = gp.solver_params.game_dt
     dt2 = dt / n
     for i, (t, s0) in enumerate(states0.items()):
 

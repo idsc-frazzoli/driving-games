@@ -1,16 +1,17 @@
 from dataclasses import replace
 from decimal import Decimal as D
-from typing import Dict
+from typing import Dict, Mapping
 
+from dg_commons import fd
 from games import GameSpec, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
-from .game_generation import get_two_vehicle_game, TwoVehicleSimpleParams
+from .game_generation import get_two_vehicle_game, DGSimpleParams
 from .structures import NO_LIGHTS
 
 road = D(6)
-p0 = TwoVehicleSimpleParams(
+p0 = DGSimpleParams(
     side=D(8),
     road=road,
     road_lane_offset=road / 2,  # center
@@ -83,11 +84,17 @@ def get_asym_minv0_prob() -> GameSpec:
     return GameSpec(desc, get_two_vehicle_game(p_asym_minv0, uncertainty_prob))
 
 
-driving_games_zoo: Dict[str, GameSpec] = {
-    "sym_v1_sets": get_sym(),
-    "asym_v1_sets": get_asym(),
-    "asym_v0_sets": get_asym_minv0(),
-    "sym_v1_prob": get_sym_prob(),
-    "asym_v1_prob": get_asym_prob(),
-    "asym_v0_prob": get_asym_minv0_prob(),
-}
+driving_games_zoo: Mapping[str, GameSpec] = fd(
+    {
+        "sym_v1_sets": get_sym(),
+        "asym_v1_sets": get_asym(),
+        "asym_v0_sets": get_asym_minv0(),
+        "sym_v1_prob": get_sym_prob(),
+        "asym_v1_prob": get_asym_prob(),
+        "asym_v0_prob": get_asym_minv0_prob(),
+    }
+)
+
+games_zoo: Dict[str, GameSpec] = {}
+
+games_zoo.update(driving_games_zoo)

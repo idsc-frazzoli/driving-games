@@ -2,10 +2,7 @@ from zuper_commons.logs import ZLogger
 
 logger = ZLogger(__name__)
 
-from .solvers import *
 from .zoo import *
-from .demo import *
-
 
 # Give each symbol this module name
 for a in list(globals()):

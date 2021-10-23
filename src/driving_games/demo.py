@@ -13,8 +13,8 @@ from games import GameSpec
 from quickapp import QuickApp, QuickAppContext
 from zuper_commons.text import expand_string
 from zuper_commons.types import ZValueError
-from .solvers import solvers_zoo, SolverSpec
-from .zoo import games_zoo
+from driving_games.solvers import solvers_zoo, SolverSpec
+from games_zoo.zoo import games_zoo
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]
 

@@ -12,16 +12,14 @@ from dg_commons import PlayerName
 from games import GameVisualization
 from .collisions import Collision
 from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
-from .vehicle_observation import VehicleObservation
+from .vehicle_observation import VehicleObs
 
 __all__ = ["DrivingGameVisualization"]
 
 # AVAILABLE_CARS = [image.imread(f) for f in glob.glob("../../pics/car*.png")]
 
 
-class DrivingGameVisualization(
-    GameVisualization[VehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision]
-):
+class DrivingGameVisualization(GameVisualization[VehicleState, VehicleActions, VehicleObs, VehicleCosts, Collision]):
     """Visualization for the driving games"""
 
     side: D

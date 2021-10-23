@@ -1,7 +1,7 @@
-import itertools
 from dataclasses import dataclass
 from decimal import Decimal as D, localcontext
 from functools import lru_cache
+from itertools import product
 from typing import Mapping, FrozenSet
 
 from frozendict import frozendict
@@ -67,7 +67,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Polygon]):
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
         res = set()
-        for light, accel in itertools.product(LightsValues, self.param.available_accels):
+        for light, accel in product(LightsValues, self.param.available_accels):
             res.add(VehicleActions(accel=accel, light=light))
         return frozenset(res)
 
@@ -82,7 +82,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Polygon]):
             accels.remove(D(0))
 
         possible = {}
-        for light, accel in itertools.product(self.param.lights_commands, self.param.available_accels):
+        for light, accel in product(self.param.lights_commands, self.param.available_accels):
             u = VehicleActions(accel=accel, light=light)
             try:
                 x2 = self.successor(x, u, dt)

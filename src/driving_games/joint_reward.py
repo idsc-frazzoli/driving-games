@@ -2,6 +2,7 @@ from typing import FrozenSet, Mapping, List
 from decimal import Decimal as D
 
 from dg_commons import PlayerName
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import JointRewardStructure
 from dg_commons.sim import IMPACT_FRONT
 from .collisions import Collision
@@ -39,7 +40,7 @@ class IndividualJointReward(JointRewardStructure[VehicleState, VehicleActions, C
     ):
         self.collision_threshold = collision_threshold
         self.geometries = geometries
-        self.caring_players = caring_players
+        self.caring_players = caring_players  # az not sure what is this for?!
 
     # @lru_cache(None)
     def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:

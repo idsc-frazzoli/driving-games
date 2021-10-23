@@ -9,10 +9,10 @@ __all__ = ["VehiclePersonalRewardStructureTime"]
 
 
 class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]):
-    max_path: D
+    goal_progress: D
 
-    def __init__(self, max_path: D):
-        self.max_path = max_path
+    def __init__(self, goal_progress: D):
+        self.goal_progress = goal_progress
 
     def personal_reward_incremental(self, x: VehicleState, u: VehicleActions, dt: D) -> VehicleCosts:
         check_isinstance(x, VehicleState)
@@ -31,9 +31,9 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleState, V
 
         with localcontext() as ctx:
             ctx.prec = 2
-            remaining = (self.max_path - x.x) / x.v
+            remaining = (self.goal_progress - x.x) / x.v
             return VehicleCosts(remaining)
 
     def is_personal_final_state(self, x: VehicleState) -> bool:
         check_isinstance(x, VehicleState)
-        return x.x >= self.max_path
+        return x.x >= self.goal_progress

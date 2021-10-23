@@ -8,7 +8,7 @@ from dg_commons.sim.models.vehicle_ligths import LightsCmd
 from games import Observations
 from .structures import VehicleState
 
-__all__ = ["NotSeen", "Seen", "VehicleObservation", "VehicleDirectObservations"]
+__all__ = ["NotSeen", "Seen", "VehicleObs", "VehicleDirectObservations"]
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -26,11 +26,13 @@ class Seen:
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class VehicleObservation:
+class VehicleObs:
+    """Vehicle observations"""
+
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 
 
-class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
+class VehicleDirectObservations(Observations[VehicleState, VehicleObs]):
     possible_states: Mapping[PlayerName, FrozenSet[VehicleState]]
     my_possible_states: FrozenSet[VehicleState]
 
@@ -43,7 +45,7 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
         self.my_possible_states = my_possible_states
 
     @lru_cache(None)
-    def all_observations(self) -> FrozenSet[VehicleObservation]:
+    def all_observations(self) -> FrozenSet[VehicleObs]:
         """Returns all possible observations."""
         assert len(self.possible_states) == 1
         all_of_them = set()
@@ -51,20 +53,18 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObservation]):
             for k, ks_possible_states in self.possible_states.items():
                 for ks_possible_state in ks_possible_states:
                     others = {k: ks_possible_state}
-                    possible_ys: FrozenSet[VehicleObservation] = self.get_observations(me, others)
+                    possible_ys: FrozenSet[VehicleObs] = self.get_observations(me, others)
                     for poss_obs in possible_ys:
                         all_of_them.add(poss_obs)
         return frozenset(all_of_them)
 
     @lru_cache(None)
-    def get_observations(
-        self, me: VehicleState, others: Mapping[PlayerName, VehicleState]
-    ) -> FrozenSet[VehicleObservation]:
+    def get_observations(self, me: VehicleState, others: Mapping[PlayerName, VehicleState]) -> FrozenSet[VehicleObs]:
         # ''' For each state, get all possible observations '''
         others = {}
         for k, v in others.items():
             others[k] = Seen(ref=v.ref, x=v.x, v=v.v, light=None)
-        return frozenset({VehicleObservation(others)})
+        return frozenset({VehicleObs(others)})
 
 
 class TwoVehicleSeenObservation:
