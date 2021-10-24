@@ -21,7 +21,6 @@ from .game_def import (
     EXP_ACCOMP,
     AntichainComparison,
 )
-from .metrics_def import PlayerOutcome
 from .paths import Trajectory
 from .structures import VehicleState, VehicleGeometry
 from .trajectory_world import TrajectoryWorld

@@ -1,68 +1,54 @@
 # import glob
 from decimal import Decimal as D
-from numbers import Number
-from typing import Any, FrozenSet, Mapping, Optional, Sequence, Tuple
+from typing import Any, FrozenSet, Mapping, Optional, Tuple
 
 import numpy as np
+from commonroad.scenario.scenario import Scenario
+from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
 from matplotlib import patches
 
 # from matplotlib import image
 from dg_commons import PlayerName
+from dg_commons.sim import CollisionReportPlayer
+from dg_commons.sim.models.vehicle_ligths import LightsColors
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.simulator_animation import get_lights_colors_from_cmds
+from dg_commons.sim.simulator_visualisation import transform_xy, plot_vehicle
 from games import GameVisualization
-from .collisions import Collision
-from .structures import VehicleActions, VehicleCosts, VehicleGeometry, VehicleState
+from . import DGSimpleParams
+from .structures import VehicleActions, VehicleCosts, VehicleState
 from .vehicle_observation import VehicleObs
 
 __all__ = ["DrivingGameVisualization"]
 
-# AVAILABLE_CARS = [image.imread(f) for f in glob.glob("../../pics/car*.png")]
 
-
-class DrivingGameVisualization(GameVisualization[VehicleState, VehicleActions, VehicleObs, VehicleCosts, Collision]):
+class DrivingGameVisualization(
+    GameVisualization[VehicleState, VehicleActions, VehicleObs, VehicleCosts, CollisionReportPlayer]
+):
     """Visualization for the driving games"""
 
-    side: D
+    scenario: Scenario
     geometries: Mapping[PlayerName, VehicleGeometry]
     ds: D
     pylab: Any
 
-    def __init__(self, params, side: D, geometries: Mapping[PlayerName, VehicleGeometry], ds: D):
+    def __init__(
+        self, params: DGSimpleParams, geometries: Mapping[PlayerName, VehicleGeometry], ds: D, *args, **kwargs
+    ):
         self.params = params
+        self.commonroad_renderer: MPRenderer = MPRenderer(*args, **kwargs)
         self.ds = ds
-        self.side = side
-        self.geometries = geometries
         self.pylab = None
 
     @contextmanager
     def plot_arena(self, pylab, ax):
-        params = self.params
-        side = float(params.side)
-        road = float(params.road)
-        L = float(params.side + params.road + params.side)
-        start = params.side + params.road_lane_offset
-        points = ((0, 0), (L, 0), (L, L), (0, L), (0, 0))
-        px, py = zip(*points)
-        # logger.info(px=px, py=py, points=points)
-        pylab.plot(px, py, "k-")
-        self.pylab = pylab
-
-        # t2 = pylab.transforms.Affine2D().rotate_deg(-45) + ax.transData
-        # r2.set_transform(t2)
-
-        grass = patches.Rectangle((0, 0), L, L, linewidth=0, edgecolor="r", facecolor="green")
-        ax.add_patch(grass)
-        # Create a Rectangle patch
-        rect = patches.Rectangle((side, 0), road, L, linewidth=0, edgecolor="r", facecolor="grey")
-        # Add the patch to the Axes
-        ax.add_patch(rect)
-        rect = patches.Rectangle((0, side), L, road, linewidth=0, edgecolor="r", facecolor="grey")
-        # Add the patch to the Axes
-        ax.add_patch(rect)
-
+        self.commonroad_renderer.ax = ax
+        self.scenario.lanelet_network.draw(
+            self.commonroad_renderer, draw_params={"traffic_light": {"draw_traffic_lights": False}}
+        )
+        self.commonroad_renderer.render()
         yield
-        b = 0.1 * L
-        pylab.axis((0 - b, L + b, 0 - b, L + b))
         pylab.axis("off")
         ax.set_aspect("equal")
 
@@ -77,6 +63,7 @@ class DrivingGameVisualization(GameVisualization[VehicleState, VehicleActions, V
         # todo fixme
         q = SE2_from_VehicleState(state)
 
+        lights_colors: LightsColors = get_lights_colors_from_cmds(state.light, t=0)
         if commands is None:
             light = "none"
         else:
@@ -104,8 +91,8 @@ class DrivingGameVisualization(GameVisualization[VehicleState, VehicleActions, V
 
             self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
 
-        plot_car(
-            self.pylab,
+        plot_vehicle(
+            self.pylab.gca(),
             player_name,
             q,
             velocity=velocity,
@@ -136,7 +123,7 @@ def plot_car(
         (+L / 2, -W / 2),
         (-L / 2, -W / 2),
     )
-    x1, y1 = get_transformed_xy(q, car)
+    x1, y1 = transform_xy(q, car)
     pylab.fill(x1, y1, color=car_color, zorder=10)
 
     l: float = 0.1 * L
@@ -150,16 +137,16 @@ def plot_car(
     for name in light_position:
         light_color = light_colors[name]
         position = light_position[name]
-        x2, y2 = get_transformed_xy(q, (position,))
+        x2, y2 = transform_xy(q, (position,))
         patch = patches.Circle((x2[0], y2[0]), radius=radius_light, color=light_color)
         ax = pylab.gca()
         ax.add_patch(patch)
 
     arrow = ((+L / 2, 0), (+L / 2 + velocity, 0))
-    x3, y3 = get_transformed_xy(q, arrow)
+    x3, y3 = transform_xy(q, arrow)
     pylab.plot(x3, y3, "r-", zorder=99)
 
-    x4, y4 = get_transformed_xy(q, ((0, 0),))
+    x4, y4 = transform_xy(q, ((0, 0),))
     # pylab.plot(x4, y4, "k*", zorder=15)
     pylab.text(
         x4,
@@ -169,12 +156,3 @@ def plot_car(
         horizontalalignment="center",
         verticalalignment="center",
     )
-
-
-def get_transformed_xy(q: np.array, points: Sequence[Tuple[Number, Number]]) -> Tuple[np.array, np.array]:
-    car = tuple((x, y, 1) for x, y in points)
-    car = np.array(car).T
-    points = q @ car
-    x = points[0, :]
-    y = points[1, :]
-    return x, y

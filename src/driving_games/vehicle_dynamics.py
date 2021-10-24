@@ -18,7 +18,7 @@ from .structures import (
     VehicleActions,
 )
 
-__all__ = ["VehicleTrackDynamics", "InvalidAction"]
+__all__ = ["VehicleTrackDynamicsParams", "VehicleTrackDynamics", "InvalidAction"]
 
 
 class InvalidAction(ZException):

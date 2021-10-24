@@ -1,10 +1,11 @@
 from typing import Mapping
 
 from frozendict import frozendict
-
-from possibilities import Poss, PossibilityMonad
 from zuper_commons.types import ZException, ZNotImplementedError
-from .game_def import AgentBelief, JointState, U, X
+
+from dg_commons import X, U
+from possibilities import Poss, PossibilityMonad
+from .game_def import AgentBelief, JointState
 
 __all__ = ["DoesNotKnowPolicy", "AgentFromPolicy"]
 

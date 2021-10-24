@@ -2,29 +2,29 @@ from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict, Mapping
 
-from dg_commons import fd
+from dg_commons import fd, fs
+from dg_commons.sim.models import kmh2ms
 from games import GameSpec, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
+from . import VehicleTrackDynamicsParams
 from .game_generation import get_two_vehicle_game, DGSimpleParams
 from .structures import NO_LIGHTS
 
-road = D(6)
-p0 = DGSimpleParams(
-    side=D(8),
-    road=road,
-    road_lane_offset=road / 2,  # center
-    max_speed=D(5),
-    min_speed=D(1),
-    max_wait=D(1),
-    available_accels=frozenset({D(-2), D(-1), D(0), D(+1)}),
-    collision_threshold=3.0,
-    light_actions=frozenset({NO_LIGHTS}),
-    dt=D(1),
-    first_progress=D(0),
-    second_progress=D(0),
+dyn_p0 = VehicleTrackDynamicsParams(
+    max_speed=D(kmh2ms(50)),
+    min_speed=D(0),
+    available_accels=fs({D(-1), D(0), D(1)}),
+    max_wait=D(0),
+    lights_commands=fs({NO_LIGHTS}),
     shared_resources_ds=D(1.5),
+)
+
+p0 = DGSimpleParams(
+    track_dynamics_param=dyn_p0,
+    game_dt=D(1),
+    ref_lanes={},
 )
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)

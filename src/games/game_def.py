@@ -7,7 +7,7 @@ from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tup
 from frozendict import frozendict
 from zuper_commons.types import check_isinstance, ZValueError
 
-from dg_commons import PlayerName, U, X, RP, RJ, Y
+from dg_commons import PlayerName, U, X, RP, RJ, Y, Timestamp
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 from . import GameConstants
@@ -207,6 +207,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         player_name: PlayerName,
         state: X,
         commands: Optional[U],
+        t: Timestamp,
         opacity: float = 1.0,
     ):
         """Draw the player at a certain state doing certain commands (if given)"""
