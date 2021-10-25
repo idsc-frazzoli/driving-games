@@ -203,6 +203,20 @@ class PolygonPlotter:
         self.current_class.append(polygon_class)
 
     def next_frame(self):
+        n = len(self.current_frame)
+
+        for i in range(self.max_n_items):
+            if i < n:
+                x = np.array([self.current_frame[0][i]]).T
+                y = np.array([self.current_frame[1][i]]).T
+                xy = np.concatenate((x, y), axis=1)
+                polygons[i].set_xy(xy)
+                polygons[i].set_zorder(classes[i].get_zorder())
+                polygons[i].set_color(classes[i].get_color())
+            else:
+                polygons[i].set_xy(np.array([[0, 0]]))
+
+    def next_frame(self):
         n_items = len(self.current_frame[0])
         self.frames["Frame"].append(self.current_frame)
         self.frames["Class"].append(self.current_class)

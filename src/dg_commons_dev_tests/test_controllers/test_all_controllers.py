@@ -20,9 +20,9 @@ if __name__ == '__main__':
 
     controllers_to_test = [
         Select(TestLQR, False),
-        Select(TestPurePursuit, False),
+        Select(TestPurePursuit, True),
         Select(TestStanley, False),
-        Select(TestNMPCFullKinContPV, True), Select(TestNMPCFullKinContAN, False),
+        Select(TestNMPCFullKinContPV, False), Select(TestNMPCFullKinContAN, False),
         Select(TestNMPCFullKinDisPV, False), Select(TestNMPCFullKinDisAN, False),
         Select(TestNMPCLatKinContPV, False), Select(TestNMPCLatKinContAN, False),
         Select(TestNMPCLatKinDisPV, False), Select(TestNMPCLatKinDisAN, False)
