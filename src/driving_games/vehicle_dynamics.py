@@ -68,7 +68,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     def all_actions(self) -> FrozenSet[VehicleActions]:
         res = set()
         for light, accel in product(LightsValues, self.param.available_accels):
-            res.add(VehicleActions(accel=accel, light=light))
+            res.add(VehicleActions(acc=accel, light=light))
         return frozenset(res)
 
     @lru_cache(None)
@@ -83,7 +83,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
 
         possible = {}
         for light, accel in product(self.param.lights_commands, self.param.available_accels):
-            u = VehicleActions(accel=accel, light=light)
+            u = VehicleActions(acc=accel, light=light)
             try:
                 x2 = self.successor(x, u, dt)
             except InvalidAction:

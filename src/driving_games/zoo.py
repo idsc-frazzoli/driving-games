@@ -2,8 +2,12 @@ from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict, Mapping
 
-from dg_commons import fd, fs
+import numpy as np
+
+from dg_commons import fd, fs, PlayerName
 from dg_commons.sim.models import kmh2ms
+from dg_commons.sim.scenarios import load_commonroad_scenario
+from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from games import GameSpec, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
@@ -21,11 +25,24 @@ dyn_p0 = VehicleTrackDynamicsParams(
     shared_resources_ds=D(1.5),
 )
 
+P1 = PlayerName("P1")
+P2 = PlayerName("P2")
+
+complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1")
+c_lane1 = dglane_from_position(np.array([0, 0]), complex_intersection.lanelet_network)
+c_lane2 = dglane_from_position(np.array([5, 5]), complex_intersection.lanelet_network)
+
+simple_intersection, _ = load_commonroad_scenario("ITA_Segrate-1_3_T-1")
+
 p0 = DGSimpleParams(
     track_dynamics_param=dyn_p0,
+    shared_resources_ds=D(0),
     game_dt=D(1),
-    ref_lanes={},
+    ref_lanes={P1: c_lane1, P2: c_lane2},
+    scenario=simple_intersection,
+    progress={P1: (D(0), D(8)), P2: (D(0), D(8))},
 )
+
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 p_sym = p0
