@@ -65,8 +65,8 @@ class LFAgentPP(LFAgent):
 
         polygon1 = Polygon(((0, 0), (40, 0), (40, 40), (0, 40), (0, 0)))
         polygon2 = Polygon(((20, 20), (60, 20), (60, 60), (20, 60), (20, 20)))
-        polysequence = [PolygonSequence(timestamps=[0, 1], values=[polygon1]),
-                        PolygonSequence(timestamps=[0, 1], values=[polygon2])]
+        polysequence = [PolygonSequence(timestamps=[0, 1], values=[polygon1, polygon1]),
+                        PolygonSequence(timestamps=[0, 1], values=[polygon2, polygon2])]
         colors = ["gold", 'r']
 
         return list(zip(polysequence, colors))
