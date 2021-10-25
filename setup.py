@@ -43,7 +43,7 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            "dg-demo = games_zoo:dg_demo",
+            "dg-demo = driving_games:dg_demo",
             "crash-exp = crash:run_crashing_experiments",
             "posets-exp = trajectory_games_tests:run_ral_exp",
         ]

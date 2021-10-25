@@ -11,9 +11,8 @@ from typing import (
 from frozendict import frozendict
 from networkx import simple_cycles
 from toolz import valmap
-
-from possibilities import Poss
 from zuper_commons.types import ZValueError
+
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.create_joint_game_tree import create_game_graph
@@ -23,7 +22,6 @@ from games.game_def import (
     Game,
     JointPureActions,
     JointState,
-    P,
     PlayerName,
     RJ,
     RP,
@@ -34,9 +32,8 @@ from games.game_def import (
     Y,
 )
 from games.simulate import simulate1, Simulation
+from possibilities import Poss
 from .solution_ghost import get_ghost_tree
-from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
-from .solve_equilibria_ import solve_equilibria
 from .solution_structures import (
     GameGraph,
     GameNode,
@@ -50,6 +47,8 @@ from .solution_structures import (
     UsedResources,
     ValueAndActions,
 )
+from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
+from .solve_equilibria_ import solve_equilibria
 
 __all__ = ["solve1"]
 

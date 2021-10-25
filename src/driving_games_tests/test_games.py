@@ -5,7 +5,7 @@ from time import perf_counter
 from parameterized import parameterized
 
 from games_zoo import games_zoo, solvers_zoo
-from games_zoo.demo import without_compmake
+from driving_games.demo import without_compmake
 
 from games_zoo_tests import logger
 

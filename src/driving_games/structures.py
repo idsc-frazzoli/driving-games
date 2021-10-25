@@ -2,19 +2,14 @@ from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
 
-from dg_commons import Color, SE2Transform
+from dg_commons import SE2Transform
 from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
     "VehicleCosts",
-    "VehicleState",
+    "VehicleTrackState",
     "VehicleActions",
-    "VehicleGeometry",
-    #   "SE2_disc",
 ]
-
-
-# SE2_disc = Tuple[D, D, D]  # in degrees
 
 
 @dataclass(frozen=True)
@@ -44,20 +39,8 @@ class VehicleCosts:
     __radd__ = __add__
 
 
-@dataclass(frozen=True)
-class VehicleGeometry:
-    mass: D
-    """ Mass [kg] """
-    width: D
-    """ Car width [m] """
-    length: D
-    """ Car length [m] """
-    color: Color
-    """ Car color """
-
-
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class VehicleState:
+class VehicleTrackState:
     ref: SE2Transform
     """ The initial reference position"""
 
@@ -78,5 +61,5 @@ class VehicleState:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
-    accel: D
+    acc: D
     light: LightsCmd = NO_LIGHTS

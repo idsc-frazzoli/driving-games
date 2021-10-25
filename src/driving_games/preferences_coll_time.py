@@ -1,6 +1,9 @@
 from decimal import Decimal as D
 from typing import Type
 
+from zuper_typing import debug_print
+
+from dg_commons.sim import CollisionReportPlayer
 from games import Combined
 from preferences import (
     COMP_OUTCOMES,
@@ -9,29 +12,29 @@ from preferences import (
     Preference,
     SmallerPreferredTol,
 )
-from zuper_typing import debug_print
-from .collisions import Collision
 from .preferences_collision import CollisionPreference
 from .structures import VehicleCosts
 
 __all__ = ["VehiclePreferencesCollTime"]
 
 
-class VehiclePreferencesCollTime(Preference[Combined[Collision, VehicleCosts]]):
+class VehiclePreferencesCollTime(Preference[Combined[CollisionReportPlayer, VehicleCosts]]):
     def __init__(self, ignore_second=False):
         self.ignore_second = ignore_second
         self.collision = CollisionPreference()
         self.time = SmallerPreferredTol(D(0))
         self.lexi = LexicographicPreference((self.collision, self.time))
 
-    def get_type(self) -> Type[Combined[Collision, D]]:
-        return Combined[Collision, VehicleCosts]
+    def get_type(self) -> Type[Combined[CollisionReportPlayer, D]]:
+        return Combined[CollisionReportPlayer, VehicleCosts]
 
     def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(self, a: Combined[Collision, VehicleCosts], b: Combined[Collision, VehicleCosts]) -> ComparisonOutcome:
+    def compare(
+        self, a: Combined[CollisionReportPlayer, VehicleCosts], b: Combined[CollisionReportPlayer, VehicleCosts]
+    ) -> ComparisonOutcome:
         # check_isinstance(a, Combined)
         # check_isinstance(b, Combined)
         if self.ignore_second:

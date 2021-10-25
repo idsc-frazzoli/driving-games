@@ -4,7 +4,7 @@ from parameterized import parameterized
 from driving_games import uncertainty_prob, uncertainty_sets
 from games import MIX_MNE, SECURITY_MNE, UncertaintyParams, FINITE_MIX_STRATEGIES, PURE_STRATEGIES
 from games_zoo import solvers_zoo
-from games_zoo.solvers import SolverSpec
+from driving_games.solvers import SolverSpec
 from _tmp.toy_games import ToyGameMat
 import nashpy as nash
 from _tmp.toy_games_tests.run_toy_games import _run_toy_game, _run_toy_game_bayesian

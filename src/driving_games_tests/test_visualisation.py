@@ -2,7 +2,7 @@ from typing import Mapping
 
 from reprep import Report
 
-from driving_games import p_asym, PlayerName, VehicleGeometry, VehicleState, NO_LIGHTS
+from driving_games import p_asym, PlayerName, VehicleGeometry, VehicleTrackState, NO_LIGHTS
 from driving_games.visualization import DrivingGameVisualization
 from decimal import Decimal as D
 from matplotlib import pyplot as plt
@@ -23,14 +23,14 @@ def test_available_cars():
     start = vehicles_params.side + vehicles_params.road_lane_offset
     p1_ref = (D(start), D(0), D(+90))
     p2_ref = (D(L), D(start), D(-180))
-    p1_x = VehicleState(
+    p1_x = VehicleTrackState(
         ref=p1_ref,
         x=D(vehicles_params.first_progress),
         wait=D(0),
         v=D(0),
         light=NO_LIGHTS,
     )
-    p2_x = VehicleState(
+    p2_x = VehicleTrackState(
         ref=p2_ref,
         x=D(vehicles_params.second_progress),
         wait=D(0),
@@ -43,7 +43,7 @@ def test_available_cars():
     ax.set_aspect(1)
     report: Report = Report(nid="test_visualisation")
     # report.to_html(join(dg, "r_animation.r_game"))
-    vehicle_states: Mapping[PlayerName, VehicleState] = {P1: p1_x, P2: p2_x}
+    vehicle_states: Mapping[PlayerName, VehicleTrackState] = {P1: p1_x, P2: p2_x}
     with dg_vis.plot_arena(plt, ax):
         for player_name in [P2, P1]:
             dg_vis.plot_player(player_name, vehicle_states[player_name], commands=None)

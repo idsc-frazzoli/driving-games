@@ -16,7 +16,7 @@ from _tmp.bayesian_driving_games.structures import (
     NEUTRAL,
     BayesianGame,
 )
-from driving_games import TwoVehicleSimpleParams, VehicleTrackDynamics
+from driving_games import DGSimpleParams, VehicleTrackDynamics
 from games import (
     GameVisualization,
     get_accessible_states,
@@ -31,9 +31,9 @@ from driving_games.structures import (
     VehicleActions,
     VehicleCosts,
     VehicleGeometry,
-    VehicleState,
+    VehicleTrackState,
 )
-from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObservation
+from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObs
 from driving_games.visualization import DrivingGameVisualization
 
 
@@ -45,9 +45,7 @@ from driving_games.visualization import DrivingGameVisualization
 # ]
 
 
-def get_bayesian_driving_game(
-    vehicles_params: TwoVehicleSimpleParams, uncertainty_params: UncertaintyParams
-) -> BayesianGame:
+def get_bayesian_driving_game(vehicles_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> BayesianGame:
     """
 
     :param vehicles_params: Vehicle parameters of the game
@@ -65,7 +63,7 @@ def get_bayesian_driving_game(
     max_speed = vehicles_params.max_speed
     min_speed = vehicles_params.min_speed
     max_wait = vehicles_params.max_wait
-    dt = vehicles_params.dt
+    dt = vehicles_params.game_dt
     available_accels = vehicles_params.available_accels
 
     P2 = PlayerName("W")
@@ -91,7 +89,7 @@ def get_bayesian_driving_game(
     p2_prior_belief = {P1: ProbDist(dict(zip(p1_types, p2_prior_weights)))}
 
     # State
-    p1_x = VehicleState(
+    p1_x = VehicleTrackState(
         ref=p1_ref,
         x=D(vehicles_params.first_progress),
         wait=D(0),
@@ -99,7 +97,7 @@ def get_bayesian_driving_game(
         light=NO_LIGHTS,
     )
     p1_initial = ps.unit(p1_x)
-    p2_x = VehicleState(
+    p2_x = VehicleTrackState(
         ref=p2_ref,
         x=D(vehicles_params.second_progress),
         wait=D(0),
@@ -177,9 +175,7 @@ def get_bayesian_driving_game(
         collision_threshold=vehicles_params.collision_threshold, geometries=geometries, players=players
     )
 
-    game_visualization: GameVisualization[
-        BayesianVehicleState, VehicleActions, VehicleObservation, VehicleCosts, Collision
-    ]
+    game_visualization: GameVisualization[BayesianVehicleState, VehicleActions, VehicleObs, VehicleCosts, Collision]
     game_visualization = DrivingGameVisualization(
         vehicles_params, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
     )

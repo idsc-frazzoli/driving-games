@@ -9,7 +9,6 @@ logger = ZLogger(__name__)
 
 from .game_generation import *
 from .structures import *
-from .rectangle import *
 from .vehicle_dynamics import *
 from .vehicle_observation import *
 from .visualization import *

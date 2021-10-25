@@ -10,7 +10,7 @@ from _tmp.toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
 
 from driving_games import UncertaintyParams
 from games import PlayerName, preprocess_game, solve1
-from games_zoo.solvers import SolverSpec
+from driving_games.solvers import SolverSpec
 from _tmp.nash import BiMatGame
 from _tmp.toy_games.bayesian_toy_rewards import BayesianBirdJointReward
 from _tmp.toy_games_tests import logger
