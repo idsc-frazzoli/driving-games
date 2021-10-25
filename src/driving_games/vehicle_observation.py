@@ -6,7 +6,7 @@ from typing import FrozenSet, Mapping, Optional, Union
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.sim.models.vehicle_ligths import LightsCmd
 from games import Observations
-from .structures import VehicleState
+from .structures import VehicleTrackState
 
 __all__ = ["NotSeen", "Seen", "VehicleObs", "VehicleDirectObservations"]
 
@@ -32,14 +32,14 @@ class VehicleObs:
     others: Mapping[PlayerName, Union[Seen, NotSeen]]
 
 
-class VehicleDirectObservations(Observations[VehicleState, VehicleObs]):
-    possible_states: Mapping[PlayerName, FrozenSet[VehicleState]]
-    my_possible_states: FrozenSet[VehicleState]
+class VehicleDirectObservations(Observations[VehicleTrackState, VehicleObs]):
+    possible_states: Mapping[PlayerName, FrozenSet[VehicleTrackState]]
+    my_possible_states: FrozenSet[VehicleTrackState]
 
     def __init__(
         self,
-        my_possible_states: FrozenSet[VehicleState],
-        possible_states: Mapping[PlayerName, FrozenSet[VehicleState]],
+        my_possible_states: FrozenSet[VehicleTrackState],
+        possible_states: Mapping[PlayerName, FrozenSet[VehicleTrackState]],
     ):
         self.possible_states = possible_states
         self.my_possible_states = my_possible_states
@@ -59,7 +59,9 @@ class VehicleDirectObservations(Observations[VehicleState, VehicleObs]):
         return frozenset(all_of_them)
 
     @lru_cache(None)
-    def get_observations(self, me: VehicleState, others: Mapping[PlayerName, VehicleState]) -> FrozenSet[VehicleObs]:
+    def get_observations(
+        self, me: VehicleTrackState, others: Mapping[PlayerName, VehicleTrackState]
+    ) -> FrozenSet[VehicleObs]:
         # ''' For each state, get all possible observations '''
         others = {}
         for k, v in others.items():

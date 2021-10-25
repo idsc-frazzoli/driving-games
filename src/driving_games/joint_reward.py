@@ -4,13 +4,13 @@ from dg_commons import PlayerName
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.collisions_check import collision_check
-from driving_games.structures import VehicleActions, VehicleState
+from driving_games.structures import VehicleActions, VehicleTrackState
 from games import JointRewardStructure
 
 __all__ = ["VehicleJointReward"]
 
 
-class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, CollisionReportPlayer]):
+class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions, CollisionReportPlayer]):
     def __init__(
         self,
         collision_threshold: float,
@@ -20,12 +20,12 @@ class VehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Coll
         self.geometries = geometries
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
         # az todo here a better interface would consider the transition rather than the current state
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, VehicleState]) -> Mapping[PlayerName, CollisionReportPlayer]:
+    def joint_reward(self, xs: Mapping[PlayerName, VehicleTrackState]) -> Mapping[PlayerName, CollisionReportPlayer]:
         res = collision_check(xs, self.geometries)
         return res
 

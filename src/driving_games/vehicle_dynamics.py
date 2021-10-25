@@ -14,7 +14,7 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
 from .structures import (
-    VehicleState,
+    VehicleTrackState,
     VehicleActions,
 )
 
@@ -41,7 +41,7 @@ class VehicleTrackDynamicsParams:
     """ Size of the spatial cells to consider as resources [m]"""
 
 
-class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Polygon]):
+class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon]):
     """Dynamics only along a DGLanelet"""
 
     max_path: D
@@ -72,7 +72,7 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Polygon]):
         return frozenset(res)
 
     @lru_cache(None)
-    def successors(self, x: VehicleState, dt: D) -> Mapping[VehicleActions, Poss[VehicleState]]:
+    def successors(self, x: VehicleTrackState, dt: D) -> Mapping[VehicleActions, Poss[VehicleTrackState]]:
         """For each state, returns a dictionary U -> Possible Xs"""
         # only allow accelerations that make the speed non-negative
         accels = [_ for _ in self.param.available_accels if _ * dt + x.v >= 0]
@@ -94,10 +94,10 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Polygon]):
         return frozendict(possible)
 
     @lru_cache(None)
-    def successor(self, x: VehicleState, u: VehicleActions, dt: D):
+    def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
             ctx.prec = 2
-            accel_effective = max(-x.v / dt, u.accel)
+            accel_effective = max(-x.v / dt, u.acc)
             v2 = x.v + accel_effective * dt
             if v2 < 0:
                 v2 = 0
@@ -126,10 +126,10 @@ class VehicleTrackDynamics(Dynamics[VehicleState, VehicleActions, Polygon]):
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = D(0)
-        ret = VehicleState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
+        ret = VehicleTrackState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
         if ret.x < 0:
             raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
         return ret
 
-    def get_shared_resources(self, x: VehicleState) -> FrozenSet[Polygon]:
+    def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[Polygon]:
         return get_resources_used(vs=x, vg=self.vg, ds=self.param.shared_resources_ds)

@@ -8,6 +8,7 @@ from frozendict import frozendict
 from zuper_commons.types import check_isinstance, ZValueError
 
 from dg_commons import PlayerName, U, X, RP, RJ, Y, Timestamp
+from dg_commons.maps import DgLanelet
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 from . import GameConstants
@@ -207,6 +208,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         player_name: PlayerName,
         state: X,
         commands: Optional[U],
+        ref: DgLanelet,
         t: Timestamp,
         opacity: float = 1.0,
     ):

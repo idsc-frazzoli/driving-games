@@ -7,7 +7,7 @@ from zuper_commons.types import check_isinstance
 from _tmp.bayesian_driving_games.structures import PlayerType, AGGRESSIVE, CAUTIOUS, NEUTRAL, BayesianGamePlayer
 from dg_commons import PlayerName
 from driving_games import (
-    VehicleState,
+    VehicleTrackState,
     VehicleActions,
     VehicleGeometry,
     VehicleCosts,
@@ -18,7 +18,7 @@ from driving_games.collisions_check import (
 from games import JointRewardStructure, PersonalRewardStructure
 
 
-class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
+class BayesianVehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions, Collision]):
     """
     Standard joint reward, but with a collision cost for each player in each type combination.
     """
@@ -34,11 +34,11 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActio
         self.players = players
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: M[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, xs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 
-    def joint_reward(self, xs: M[PlayerName, VehicleState]) -> M[PlayerName, M[PlayerName, Collision]]:
+    def joint_reward(self, xs: M[PlayerName, VehicleTrackState]) -> M[PlayerName, M[PlayerName, Collision]]:
         # todo this is utterly wrong
         res: M[PlayerType] = {}
         for ptype in self.players:
@@ -47,7 +47,7 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActio
 
 
 class BayesianVehiclePersonalRewardStructureScalar(
-    PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
+    PersonalRewardStructure[VehicleTrackState, VehicleActions, VehicleCosts]
     # fixme PersonalRewardStructure[BayesianVehicleState, VehicleActions, VehicleCosts]
 ):
     """
@@ -63,7 +63,7 @@ class BayesianVehiclePersonalRewardStructureScalar(
         self.p_types = p_types
 
     def personal_reward_incremental(
-        self, x: VehicleState, u: VehicleActions, dt: D
+        self, x: VehicleTrackState, u: VehicleActions, dt: D
     ) -> M[Tuple[PlayerType, PlayerType], VehicleCosts]:
         """
         #fixme check return argument... shouldn't it be M[PlayerType, VehicleCosts]?
@@ -72,7 +72,7 @@ class BayesianVehiclePersonalRewardStructureScalar(
         :param dt: Timestep
         :return: For each type combination a Cost (VehicleCosts is defined as "duration", but can be anything really.
         """
-        check_isinstance(x, VehicleState)
+        check_isinstance(x, VehicleTrackState)
         check_isinstance(u, VehicleActions)
         possible_types = [t for t in self.p_types if t in [AGGRESSIVE, CAUTIOUS, NEUTRAL]]
         res = dict.fromkeys(possible_types)
@@ -80,7 +80,7 @@ class BayesianVehiclePersonalRewardStructureScalar(
             if t == AGGRESSIVE:
                 res[t] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))
             elif t == CAUTIOUS:
-                res[t] = VehicleCosts(abs(u.accel))
+                res[t] = VehicleCosts(abs(u.acc))
             elif t == NEUTRAL:
                 res[t] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))
             else:
@@ -94,13 +94,13 @@ class BayesianVehiclePersonalRewardStructureScalar(
     def personal_reward_identity(self) -> VehicleCosts:
         return VehicleCosts(D(0))
 
-    def personal_final_reward(self, x: VehicleState) -> M[Tuple[PlayerType, PlayerType], VehicleCosts]:
+    def personal_final_reward(self, x: VehicleTrackState) -> M[Tuple[PlayerType, PlayerType], VehicleCosts]:
         """
 
         :param x: The state of the agent
         :return: For each type combination a final reward in state x.
         """
-        check_isinstance(x, VehicleState)
+        check_isinstance(x, VehicleTrackState)
         # assert self.is_personal_final_state(x)
 
         with localcontext() as ctx:
@@ -113,8 +113,8 @@ class BayesianVehiclePersonalRewardStructureScalar(
             res[tc[1]] = VehicleCosts(remaining)
             return res
 
-    def is_personal_final_state(self, x: VehicleState) -> bool:
-        check_isinstance(x, VehicleState)
+    def is_personal_final_state(self, x: VehicleTrackState) -> bool:
+        check_isinstance(x, VehicleTrackState)
         # return x.x > self.max_path
 
         return x.x + x.v > self.max_path

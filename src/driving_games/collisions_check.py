@@ -16,7 +16,7 @@ from dg_commons.sim.collision_utils import (
 )
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import GameConstants
-from .structures import VehicleState
+from .structures import VehicleTrackState
 
 __all__ = ["collision_check"]
 
@@ -24,7 +24,7 @@ __all__ = ["collision_check"]
 # todo: Note that this only works for the simplest cases.
 #      For example it does not work for head-to-back collision.
 def collision_check(
-    poses: Mapping[PlayerName, VehicleState],
+    poses: Mapping[PlayerName, VehicleTrackState],
     # todo probably here it would be better to simply pass a Trajectory for the interval previous state and current
     geometries: Mapping[PlayerName, VehicleGeometry],
 ) -> Mapping[PlayerName, CollisionReportPlayer]:

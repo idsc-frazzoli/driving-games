@@ -21,7 +21,7 @@ from .preferences_coll_time import VehiclePreferencesCollTime
 from .structures import (
     VehicleActions,
     VehicleCosts,
-    VehicleState,
+    VehicleTrackState,
 )
 from .vehicle_dynamics import VehicleTrackDynamics, VehicleTrackDynamicsParams
 from .vehicle_observation import VehicleDirectObservations, VehicleObs
@@ -63,7 +63,7 @@ def get_two_vehicle_game(dg_params: DGSimpleParams, uncertainty_params: Uncertai
         )
         p_init_progress = dg_params.initial_progress[p]
         p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
-        p_x = VehicleState(
+        p_x = VehicleTrackState(
             ref=p_ref, x=p_init_progress, wait=D(0), v=dg_params.track_dynamics_param.min_speed, light=NO_LIGHTS
         )
         p_initial = ps.unit(p_x)
@@ -72,7 +72,7 @@ def get_two_vehicle_game(dg_params: DGSimpleParams, uncertainty_params: Uncertai
 
         # this part about observations is not used at the moment
         g = get_accessible_states(p_initial, p_personal_reward_structure, p_dynamics, dg_params.game_dt)
-        p_possible_states = cast(ASet[VehicleState], fs(g.nodes))
+        p_possible_states = cast(ASet[VehicleTrackState], fs(g.nodes))
         p_observations = VehicleDirectObservations(p_possible_states, {})
 
         game_p = DrivingGamePlayer(

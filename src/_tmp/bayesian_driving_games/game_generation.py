@@ -31,7 +31,7 @@ from driving_games.structures import (
     VehicleActions,
     VehicleCosts,
     VehicleGeometry,
-    VehicleState,
+    VehicleTrackState,
 )
 from driving_games.vehicle_observation import VehicleDirectObservations, VehicleObs
 from driving_games.visualization import DrivingGameVisualization
@@ -89,7 +89,7 @@ def get_bayesian_driving_game(vehicles_params: DGSimpleParams, uncertainty_param
     p2_prior_belief = {P1: ProbDist(dict(zip(p1_types, p2_prior_weights)))}
 
     # State
-    p1_x = VehicleState(
+    p1_x = VehicleTrackState(
         ref=p1_ref,
         x=D(vehicles_params.first_progress),
         wait=D(0),
@@ -97,7 +97,7 @@ def get_bayesian_driving_game(vehicles_params: DGSimpleParams, uncertainty_param
         light=NO_LIGHTS,
     )
     p1_initial = ps.unit(p1_x)
-    p2_x = VehicleState(
+    p2_x = VehicleTrackState(
         ref=p2_ref,
         x=D(vehicles_params.second_progress),
         wait=D(0),

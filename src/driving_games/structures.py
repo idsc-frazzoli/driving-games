@@ -7,7 +7,7 @@ from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
     "VehicleCosts",
-    "VehicleState",
+    "VehicleTrackState",
     "VehicleActions",
 ]
 
@@ -40,7 +40,7 @@ class VehicleCosts:
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class VehicleState:
+class VehicleTrackState:
     ref: SE2Transform
     """ The initial reference position"""
 
@@ -61,5 +61,5 @@ class VehicleState:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
-    accel: D
+    acc: D
     light: LightsCmd = NO_LIGHTS

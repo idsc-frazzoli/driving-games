@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import NewType, List, Mapping, TypeVar
 
 from dg_commons import PlayerName
-from driving_games.structures import VehicleState
+from driving_games.structures import VehicleTrackState
 from games.game_def import *
 from possibilities import Poss
 
@@ -64,7 +64,7 @@ class BayesianGameSpec(GameSpec):
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class BayesianVehicleState(VehicleState):
+class BayesianVehicleState(VehicleTrackState):
     player_type: PlayerType
     """ The type of the player """
 
