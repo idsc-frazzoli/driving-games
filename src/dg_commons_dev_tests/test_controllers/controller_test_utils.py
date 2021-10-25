@@ -288,10 +288,10 @@ class TestSingleControllerInstance:
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands,
                                                        velocities, dt_commands, betas)
 
-        #report = generate_report(self.sim_context)
+        report = generate_report(self.sim_context)
         # save report
-        #report_file = os.path.join(self.output_dir, f"{name}.html")
-        #report.to_html(report_file)
+        report_file = os.path.join(self.output_dir, f"{name}.html")
+        report.to_html(report_file)
 
     def evaluate_metrics(self):
 

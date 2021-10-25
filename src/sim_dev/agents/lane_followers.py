@@ -1,4 +1,4 @@
-from typing import Optional, Mapping
+from typing import Optional, Mapping, Any
 import numpy as np
 from duckietown_world.utils import SE2_apply_R2
 from geometry import translation_from_SE2
@@ -18,6 +18,9 @@ from dg_commons_dev.controllers.lqr import *
 from dg_commons_dev.controllers.stanley_controller import *
 from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
 from dg_commons_dev.behavior.behavior import SpeedBehavior
+from shapely.geometry import Polygon, Point
+from dg_commons.planning.polygon import PolygonSequence
+from toolz.sandbox import unzip
 
 
 class LFAgentPP(LFAgent):
@@ -38,7 +41,7 @@ class LFAgentPP(LFAgent):
         pure_pursuit: PurePursuit = PurePursuit() if controller is None else controller
         super().__init__(lane, pure_pursuit, speed_behavior, speed_controller, steer_controller, return_extra)
 
-    def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
+    '''def on_get_extra(self, ) -> Optional[DrawableTrajectoryType]:
         if not self.return_extra:
             return None
         _, gpoint = self.controller.find_goal_point()
@@ -52,7 +55,21 @@ class LFAgentPP(LFAgent):
                     ])
         traj_s = [traj, ]
         colors = ["gold", ]
-        return list(zip(traj_s, colors))
+        return list(zip(traj_s, colors))'''
+
+    def on_get_extra(
+        self,
+    ) -> Optional[Any]:
+        if not self.return_extra:
+            return None
+
+        polygon1 = Polygon(((0, 0), (40, 0), (40, 40), (0, 40), (0, 0)))
+        polygon2 = Polygon(((20, 20), (60, 20), (60, 60), (20, 60), (20, 20)))
+        polysequence = [PolygonSequence(timestamps=[0, 1], values=[polygon1]),
+                        PolygonSequence(timestamps=[0, 1], values=[polygon2])]
+        colors = ["gold", 'r']
+
+        return list(zip(polysequence, colors))
 
 
 class LFAgentFullMPC(LFAgent):
