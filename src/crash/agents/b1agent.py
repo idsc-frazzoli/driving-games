@@ -3,9 +3,9 @@ from typing import Optional
 from geometry import translation_from_SE2
 
 from dg_commons.planning.trajectory import Trajectory
-from sim.agents.lane_follower import LFAgent
-from sim.models.vehicle import VehicleState
-from sim import DrawableTrajectoryType
+from dg_commons.sim.agents.lane_follower import LFAgent
+from dg_commons.sim.models.vehicle import VehicleState
+from dg_commons.sim import DrawableTrajectoryType
 
 __all__ = ["B1Agent"]
 

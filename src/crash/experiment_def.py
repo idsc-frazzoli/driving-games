@@ -5,7 +5,7 @@ from typing import Dict
 from crash.agents import B2Agent, MilleniumFalcon
 from crash.scenarios import get_scenario_suicidal_pedestrian, get_scenario_illegal_turn, EGO, get_scenario_two_lanes, \
     get_scenario_bicycles
-from sim.simulator import SimContext
+from dg_commons.sim.simulator import SimContext
 
 
 @dataclass

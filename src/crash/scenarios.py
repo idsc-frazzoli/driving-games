@@ -1,6 +1,7 @@
 from decimal import Decimal as D
 from math import pi
 from typing import List
+import os
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
@@ -13,17 +14,17 @@ from dg_commons import DgSampledSequence, PlayerName
 from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
 from dg_commons.maps.lanes import DgLanelet
-from sim import SimTime
-from sim.agents.agent import NPAgent, Agent
-from sim.models import kmh2ms, PEDESTRIAN
-from sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
-from sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
-from sim.models.vehicle_structures import VehicleGeometry
-from sim.scenarios import load_commonroad_scenario
-from sim.scenarios.agent_from_commonroad import dglane_from_position
-from sim.scenarios.factory import get_scenario_commonroad_replica
-from sim.simulator import SimContext
-from sim.simulator_structures import SimParameters
+from dg_commons.sim import SimTime
+from dg_commons.sim.agents.agent import NPAgent, Agent
+from dg_commons.sim.models import kmh2ms, PEDESTRIAN
+from dg_commons.sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
+from dg_commons.sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from sim.scenarios.utils import load_commonroad_scenario
+from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
+from dg_commons.sim.scenarios.factory import get_scenario_commonroad_replica
+from dg_commons.sim.simulator import SimContext
+from dg_commons.sim.simulator_structures import SimParameters
 
 __all__ = ["get_scenario_bicycles", "get_scenario_illegal_turn", "get_scenario_suicidal_pedestrian",
            "get_scenario_two_lanes", "get_scenario_racetrack_test", "get_scenario_predictions"]

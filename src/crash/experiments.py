@@ -41,7 +41,7 @@ def run_simulation(sim_context: SimContext) -> SimContext:
     sim = Simulator()
     # run simulations
     sim.run(sim_context)
-    return sim_context@
+    return sim_context
 
 
 def run_scenario_without_compmake(sim_context: SimContext, output_dir: str = "out"):

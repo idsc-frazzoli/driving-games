@@ -3,17 +3,9 @@ from decimal import Decimal
 from itertools import product
 
 from dg_commons import PlayerName, U, X
-from dg_commons.planning.trajectory import Trajectory
-from dg_commons.planning.motion_primitives import MPGParam, MotionPrimitivesGenerator
-from dg_commons.dynamics import BicycleDynamics
-from crash.agents.b2agent import B2Agent
-from sim.agents.lane_follower import LFAgent
+from dg_commons.sim.agents.lane_follower import LFAgent
 from predictions.goals import GoalGenerator
-from sim.simulator import SimContext
-from sim.models.vehicle_structures import VehicleGeometry
-from sim.models.vehicle_utils import VehicleParameters
-from sim import SimObservations
-from sim import DrawableTrajectoryType
+from dg_commons.sim.simulator import SimContext
 
 class PredAgent(LFAgent):
 

@@ -6,10 +6,9 @@ from numpy import sin
 
 from dg_commons import PlayerName, X
 from dg_commons.planning.trajectory import Trajectory
-from sim import logger
-from sim.simulator import SimContext, Simulator
-from sim.simulator_structures import *
-from sim.models.vehicle import VehicleState
+from dg_commons.sim.simulator import SimContext, Simulator
+from dg_commons.sim.simulator_structures import *
+from dg_commons.sim.models.vehicle import VehicleState
 from crash.reports import generate_report
 
 
