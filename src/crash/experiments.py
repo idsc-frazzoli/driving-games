@@ -6,7 +6,7 @@ from quickapp import QuickApp, QuickAppContext
 
 from crash.experiment_def import *
 from crash.reports import generate_report
-from sim.simulator import SimContext, Simulator
+from dg_commons.sim.simulator import SimContext, Simulator
 
 __all__ = ["CrashingExperiments", "run_crashing_experiments"]
 

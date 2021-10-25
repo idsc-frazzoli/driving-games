@@ -4,8 +4,8 @@ from typing import Tuple, Mapping, Dict
 import numpy as np
 
 from dg_commons import PlayerName
-from sim import CollisionReport
-from sim.models import ms2kmh, ModelType, PEDESTRIAN, BICYCLE
+from dg_commons.sim import CollisionReport
+from dg_commons.sim.models import ms2kmh, ModelType, PEDESTRIAN, BICYCLE
 
 
 @dataclass(frozen=True, unsafe_hash=True)

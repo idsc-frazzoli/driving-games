@@ -8,8 +8,8 @@ from networkx import DiGraph
 
 from crash import logger
 from dg_commons import PlayerName
-from sim import CollisionReport
-from sim.collision_structures import combine_collision_reports
+from dg_commons.sim import CollisionReport
+from dg_commons.sim.collision_structures import combine_collision_reports
 
 
 def _first_collision_for(player: PlayerName, coll_report: List[CollisionReport]):

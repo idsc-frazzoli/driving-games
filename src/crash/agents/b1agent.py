@@ -15,7 +15,7 @@ class B1Agent(LFAgent):
 
     def on_get_extra(
         self,
-    ) -> Optional[DrawableTrajectoryType]:
+    )-> Optional[DrawableTrajectoryType]:
         if not self._emergency:
             return None
         mypose = self.pure_pursuit.pose

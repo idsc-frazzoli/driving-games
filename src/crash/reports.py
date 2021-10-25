@@ -8,12 +8,12 @@ from crash.collisions_investigation import investigate_collision_report
 from crash.metrics_malliaris import compute_malliaris_one
 from crash.metrics_nieliyang import compute_NieLiYang_risk
 from crash.metrics_structures import CollMetricsReport
-from sim import CollisionReport
-from sim.collision_visualisation import plot_collision
-from sim.models import PEDESTRIAN, CAR, BICYCLE
-from sim.models.model_structures import FourWheelsTypes, TRUCK
-from sim.simulator import SimContext
-from sim.simulator_animation import create_animation
+from dg_commons.sim import CollisionReport
+from dg_commons.sim.collision_visualisation import plot_collision
+from dg_commons.sim.models import PEDESTRIAN, CAR, BICYCLE
+from dg_commons.sim.models.model_structures import FourWheelsTypes, TRUCK
+from dg_commons.sim.simulator import SimContext
+from dg_commons.sim.simulator_animation import create_animation
 
 
 def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext) -> CollMetricsReport:
