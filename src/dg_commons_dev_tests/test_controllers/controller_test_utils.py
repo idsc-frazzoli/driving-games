@@ -188,7 +188,10 @@ class TestSingleControllerInstance:
         players, models = {}, {}
         dyn_obstacles = scenario.scenario.dynamic_obstacles
         for i, dyn_obs in enumerate(dyn_obstacles):
-            if scenario.cars_idx is None or i in scenario.cars_idx:
+            if i in scenario.cars_idx:
+                if scenario.nominal_speed is not None:
+                    idx = scenario.cars_idx.index(i)
+                    self.controller.speed_behavior_param.cruise_params.nominal_speed = scenario.nominal_speed[idx]
                 agent = self._agent_from_dynamic_obstacle(dyn_obs)
                 model, estimator = self._model_se_from_dynamic_obstacle(dyn_obs, False)
                 agent.set_state_estimator(estimator)
@@ -285,10 +288,10 @@ class TestSingleControllerInstance:
         self.metrics_context = MetricEvaluationContext(dg_lanelets, states, commands,
                                                        velocities, dt_commands, betas)
 
-        # report = generate_report(self.sim_context)
+        #report = generate_report(self.sim_context)
         # save report
-        # report_file = os.path.join(self.output_dir, f"{name}.html")
-        # report.to_html(report_file)
+        #report_file = os.path.join(self.output_dir, f"{name}.html")
+        #report.to_html(report_file)
 
     def evaluate_metrics(self):
 

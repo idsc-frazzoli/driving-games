@@ -1,12 +1,11 @@
-import math
-
 from dg_commons_dev.behavior.behavior_types import Situation, SituationParams
 from dataclasses import dataclass
 from typing import Optional, Union, List, Tuple
-from dg_commons_dev.behavior.utils import SituationObservations, relative_velocity, \
+from dg_commons_dev.behavior.utils import SituationObservations, \
     occupancy_prediction, PolygonPlotter, entry_exit_t
 from dg_commons.sim.models import kmh2ms, extract_vel_from_state
-from dg_commons.sim.models.vehicle import VehicleParameters, VehicleGeometry
+from dg_commons.sim.models.vehicle import VehicleParameters
+from dg_commons import PlayerName
 
 
 @dataclass
@@ -17,10 +16,14 @@ class EmergencySituation:
     ttc: Optional[float] = None
     pet: Optional[float] = None
 
+    my_player: Optional[PlayerName] = None
+    other_player: Optional[PlayerName] = None
+
     def __post_init__(self):
         if self.is_emergency:
             assert self.ttc is not None
             assert self.drac is not None
+            assert self.pet is not None
 
 
 @dataclass
@@ -101,6 +104,7 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
 
                 pet = other_entry_time - my_exit_time if my_exit_time < other_exit_time else \
                     my_entry_time - other_exit_time
+                self.emergency_situation.my_player = my_name
                 self.emergency_situation.pet = pet
                 collision_score += pet_score(pet)
 
@@ -118,6 +122,7 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
                     self.emergency_situation.drac = [drac1, drac2]
                     if collision_max < collision_score:
                         self.emergency_situation.is_emergency = True
+                        self.emergency_situation.other_player = other_name
 
         self.polygon_plotter.next_frame()
 

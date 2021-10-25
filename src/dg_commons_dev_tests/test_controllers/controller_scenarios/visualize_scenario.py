@@ -80,5 +80,5 @@ def visualize_scenario(scenario_name: str):
     report.to_html(report_file)
 
 
-scenario_name = "ZAM_Urban-2_1"
+scenario_name = "USA_US101-14_1_T-1"
 visualize_scenario(scenario_name)

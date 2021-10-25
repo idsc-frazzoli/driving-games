@@ -79,7 +79,7 @@ TestNMPCFullKinContPV = VehicleController(
 
         speed_behavior_param=SpeedBehaviorParam(
             cruise_params=CruiseParams(
-                nominal_speed=8
+                nominal_speed=8,
             ),
             dt_commands=DT_COMMANDS
         ),

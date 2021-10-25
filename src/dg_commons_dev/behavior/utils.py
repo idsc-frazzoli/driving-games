@@ -30,6 +30,7 @@ class SituationObservations:
 
 
 def relative_velocity(my_vel: float, other_vel: float, transform):
+    print(other_vel)
     other_vel_wrt_other = [float(other_vel), 0.0]
     other_vel_wrt_myself = SE2_apply_T2(transform, other_vel_wrt_other)
     return my_vel - other_vel_wrt_myself[0]
@@ -137,6 +138,8 @@ def entry_exit_t(intersection: Polygon, current_state, occupacy: Polygon, safety
     state = states_prediction(current_state, min_t, min_t)[-1] if min_t != 0 else current_state
     dt = (max_t - min_t)/2
     entry_t, state = find(t, state, dt, lambda inter: not inter.is_empty)
+    '''entry_t = 0 if entry_t is None else entry_t
+    state = current_state if state is None else state'''
     assert entry_t is not None
 
     dt = (max_t - entry_t)/2
@@ -168,11 +171,11 @@ class PolygonPlotter:
 
         def get_zorder(self):
             if self.car:
-                return 2
-            elif self.dangerous_zone:
-                return 3
-            elif self.conflict_area:
                 return 1
+            elif self.dangerous_zone:
+                return 2
+            elif self.conflict_area:
+                return 3
 
     def __init__(self, plot: bool):
         self.counter = 0
@@ -227,14 +230,15 @@ class PolygonPlotter:
                 polygon.set_xy(np.array([[0, 0]]))
             return polygons
 
-        def animate(i):
-            frame = self.frames["Frame"][i]
-            classes = self.frames["Class"][i]
+        def animate(j):
+            frame = self.frames["Frame"][j]
+            classes = self.frames["Class"][j]
             if self.previous_coll is not None:
                 self.previous_coll.remove()
 
             assert len(frame[0]) == len(frame[1])
             n = len(frame[0])
+
             for i in range(self.max_n_items):
                 if i < n:
                     x = np.array([frame[0][i]]).T

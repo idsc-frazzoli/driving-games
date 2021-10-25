@@ -1,29 +1,46 @@
 from dg_commons_dev.behavior.behavior_types import Situation, SituationParams
 from dataclasses import dataclass
 from typing import Optional, Union, List
-import numpy as np
-from dg_commons_dev.behavior.utils import SituationObservations
 from dg_commons.sim.models import kmh2ms, extract_vel_from_state
-from math import pi
+from dg_commons_dev.behavior.utils import SituationObservations, \
+    occupancy_prediction, PolygonPlotter
+from dg_commons import PlayerName
 
 
 @dataclass
 class CruiseSituation:
     is_cruise: bool = True
+    is_following: bool = False
 
     speed_ref: Optional[float] = None
 
-    drac: float = 0
+    my_player: Optional[PlayerName] = None
+    other_player: Optional[PlayerName] = None
 
     def __post_init__(self):
         if self.is_cruise:
             assert self.speed_ref is not None
+            assert self.my_player is not None
+        if self.is_following:
+            assert self.other_player is not None
 
 
 @dataclass
 class CruiseParams(SituationParams):
     nominal_speed: Union[List[float], float] = kmh2ms(40)
     """Nominal desired speed"""
+
+    n_safety_intervals: float = 2.0
+    """ How many safety time intervals to look ahead """
+
+    min_safety_distance: float = 5.0
+    """ Min distance to keep from vehicle ahead at v = 0 """
+
+    kp_back: float = 2.0
+    kp_forward: float = 1.0
+    """ kp for computing speed ref when 
+    1) I am too close to ref vehicle 
+    2) I am not closer than min distance and the ref vehicle is moving slower than nominal_speed """
 
 
 class Cruise(Situation[SituationObservations, CruiseSituation]):
@@ -32,35 +49,55 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
         self.safety_time_braking = safety_time_braking
         self.obs: Optional[SituationObservations] = None
         self.cruise_situation: Optional[CruiseSituation] = None
+        self.polygon_plotter = PolygonPlotter(plot=True)
 
     def update_observations(self, new_obs: SituationObservations):
         self.obs = new_obs
         my_name = new_obs.my_name
         agents = new_obs.agents
-        agents_rel_pose = new_obs.rel_poses
 
-        my_vel = agents[my_name].state.vx
-        candidate_speed_ref = [self.params.nominal_speed, ]
+        my_state = agents[my_name].state
+        my_vel = my_state.vx
+        my_occupancy = agents[my_name].occupancy
+        my_polygon, _ = occupancy_prediction(agents[my_name].state, self._get_safety_time(my_vel), my_occupancy)
+        self.polygon_plotter.plot_polygon(my_polygon, PolygonPlotter.PolygonClass(dangerous_zone=True))
+        self.polygon_plotter.plot_polygon(my_occupancy, PolygonPlotter.PolygonClass(car=True))
+
+        self.cruise_situation = CruiseSituation(is_cruise=True, is_following=False,
+                                                speed_ref=self.params.nominal_speed, my_player=my_name)
         for other_name, _ in agents.items():
             if other_name == my_name:
                 continue
-            rel = agents_rel_pose[other_name]
-            rel_dist = np.linalg.norm(rel.p)
-            other_vel = agents[other_name].state.vx
-            in_front_of_me: bool = rel.p[0] > 0.5 and abs(rel.p[1]) <= 1.2 and abs(rel.theta) < pi / 6
-            # safety distance at current speed + difference of how it will be in the next second
-            dist_to_keep = self._get_min_safety_dist(my_vel) + max(my_vel - other_vel, 0)
-            if in_front_of_me and rel_dist < dist_to_keep:
-                speed_ref = float(np.clip(other_vel - max(my_vel - other_vel, 0), 0, kmh2ms(130)))
-                candidate_speed_ref.append(speed_ref)
-            else:
-                candidate_speed_ref.append(self.params.nominal_speed)
+            other_state = agents[other_name].state
+            other_vel = extract_vel_from_state(other_state)
+            other_occupancy = agents[other_name].occupancy
 
-        self.cruise_situation = CruiseSituation(speed_ref=min(candidate_speed_ref))
+            intersection = my_polygon.intersection(other_occupancy)
+
+            if not intersection.is_empty:
+                self.polygon_plotter.plot_polygon(other_occupancy, PolygonPlotter.PolygonClass(conflict_area=True))
+                distance = my_occupancy.distance(other_occupancy)
+                min_distance = self._get_min_safety_dist(my_vel)
+                if distance < min_distance:
+                    speed_ref = other_vel + (distance - min_distance) / min_distance * other_vel * self.params.kp_back
+                elif distance > min_distance and other_vel < self.params.nominal_speed:
+                    speed_ref = other_vel + (distance - min_distance) / min_distance * other_vel * \
+                                self.params.kp_forward
+                else:
+                    speed_ref = self.params.nominal_speed
+                self.cruise_situation = CruiseSituation(True, is_following=True, speed_ref=speed_ref,
+                                                        my_player=my_name, other_player=other_name)
+            else:
+                self.polygon_plotter.plot_polygon(other_occupancy, PolygonPlotter.PolygonClass(car=True))
+
+        self.polygon_plotter.next_frame()
 
     def _get_min_safety_dist(self, vel: float):
         """The distance covered in x [s] travelling at vel"""
-        return vel * self.safety_time_braking
+        return vel * self.safety_time_braking * self.params.n_safety_intervals + self.params.min_safety_distance
+
+    def _get_safety_time(self, vel: float):
+        return self._get_min_safety_dist(vel) / vel
 
     def is_true(self) -> bool:
         assert self.obs is not None
@@ -69,3 +106,6 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
     def infos(self) -> CruiseSituation:
         assert self.obs is not None
         return self.cruise_situation
+
+    def simulation_ended(self):
+        self.polygon_plotter.save_animation("cruise")

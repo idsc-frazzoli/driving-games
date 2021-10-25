@@ -13,6 +13,7 @@ from dg_commons_dev.behavior.emergency import Emergency, EmergencyParams
 from dg_commons_dev.behavior.yield_to import Yield, YieldParams
 from dg_commons_dev.behavior.cruise import CruiseParams, Cruise
 from dg_commons_dev.behavior.utils import SituationObservations
+import copy
 
 
 @dataclass
@@ -59,7 +60,7 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
     """Determines the reference speed"""
 
     def __init__(self, params: SpeedBehaviorParam = SpeedBehaviorParam(), my_name: Optional[PlayerName] = None):
-        self.params: SpeedBehaviorParam = params
+        self.params: SpeedBehaviorParam = copy.deepcopy(params)
         self.my_name: PlayerName = my_name
         self.agents: Optional[MutableMapping[PlayerName, PlayerObservations]] = None
         self.speed_ref: float = 0
@@ -90,16 +91,20 @@ class SpeedBehavior(Behavior[MutableMapping[PlayerName, PlayerObservations], Tup
             self.situation.situation = self.emergency
             self.speed_ref = 0
         else:
-            self.yield_to.update_observations(self.obs)
+            # self.yield_to.update_observations(self.obs)
             self.cruise.update_observations(self.obs)
+            self.situation.situation = self.cruise
+            self.speed_ref = self.cruise.infos().speed_ref
 
-            if self.yield_to.is_true() and self.yield_to.infos().drac < self.cruise.infos().drac:
+            '''if self.yield_to.is_true() and self.yield_to.infos().drac < self.cruise.infos().drac:
                 self.situation.situation = self.yield_to
                 self.speed_ref = 0
             else:
                 self.situation.situation = self.cruise
-                self.speed_ref = self.cruise.infos().speed_ref
+                self.speed_ref = self.cruise.infos().speed_ref'''
+
         return self.speed_ref, self.situation
 
     def simulation_ended(self):
         self.emergency.simulation_ended()
+        self.cruise.simulation_ended()

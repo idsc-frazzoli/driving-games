@@ -20,6 +20,8 @@ class ScenarioData:
 
     static_obs: Optional[List[int]] = None
 
+    nominal_speed: Optional[List[float]] = None
+
     def on_init(self):
         self.scenario: Scenario
         self.scenario, _ = load_commonroad_scenario(self.scenario_name, SCENARIOS_DIR)
@@ -37,9 +39,10 @@ class ScenarioData:
                                                  starting_vel=self.params[1])
             self.scenario.add_objects(dyn_obs[0])
 
-        if self.cars_idx is not None:
-            n_cars = len(self.scenario.dynamic_obstacles)
-            assert all([idx <= n_cars for idx in self.cars_idx])
+        n_cars = len(self.scenario.dynamic_obstacles)
+        assert all([idx <= n_cars for idx in self.cars_idx])
+        if self.nominal_speed is not None:
+            assert len(self.nominal_speed) == len(self.cars_idx)
 
 
 scenarios: Dict[str, ScenarioData] = {
@@ -50,6 +53,8 @@ scenarios: Dict[str, ScenarioData] = {
     "u-turn": ScenarioData("DEU_Hhr-1_1", "u-turn", [0],  simulation_time=30, params=[43, 10]),
     "left_cont_curve": ScenarioData("DEU_Hhr-1_1", "left_cont_curve", [0], simulation_time=15, params=[60, 10]),
     "vertical": ScenarioData("USA_Peach-3_2_T-1", "vertical", [4, 7], simulation_time=7),
+    "cruise_control": ScenarioData("USA_US101-14_1_T-1", "cruise_control", [30, 22], simulation_time=6,
+                                   nominal_speed=[10, 3]),
     "emergency_brake": ScenarioData("ZAM_Urban-2_1", "emergency_brake", [0], simulation_time=5,
                                     static_obs=[1], params=[20, 11]),
     "race": ScenarioData("DEU_Hhr-1_1", "race", [0],  simulation_time=180, params=[0, 95])
