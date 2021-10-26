@@ -4,6 +4,8 @@ from typing import Type
 from zuper_typing import debug_print
 
 from dg_commons.sim import CollisionReportPlayer
+from driving_games.preferences_collision import CollisionPreference
+from driving_games.structures import VehicleCosts
 from games import Combined
 from preferences import (
     COMP_OUTCOMES,
@@ -12,8 +14,6 @@ from preferences import (
     Preference,
     SmallerPreferredTol,
 )
-from .preferences_collision import CollisionPreference
-from .structures import VehicleCosts
 
 __all__ = ["VehiclePreferencesCollTime"]
 

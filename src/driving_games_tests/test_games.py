@@ -4,10 +4,10 @@ from time import perf_counter
 
 from parameterized import parameterized
 
-from games_zoo import games_zoo, solvers_zoo
 from driving_games.demo import without_compmake
-
-from games_zoo_tests import logger
+from driving_games.solvers import solvers_zoo
+from driving_games.zoo import games_zoo
+from driving_games_tests import logger
 
 do_games_sets = [
     "sym_v1_sets",

@@ -2,6 +2,13 @@ from os.path import join
 from typing import Mapping
 
 from decent_params import DecentParams
+from quickapp import QuickApp, QuickAppContext
+from zuper_commons.text import expand_string
+from zuper_commons.types import ZValueError
+
+from driving_games.zoo import games_zoo
+from driving_games.solvers import solvers_zoo, SolverSpec
+from games import GameSpec
 from games import (
     create_report_preprocessed,
     preprocess_game,
@@ -9,12 +16,6 @@ from games import (
     report_solutions,
     solve1,
 )
-from games import GameSpec
-from quickapp import QuickApp, QuickAppContext
-from zuper_commons.text import expand_string
-from zuper_commons.types import ZValueError
-from driving_games.solvers import solvers_zoo, SolverSpec
-from games_zoo.zoo import games_zoo
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]
 

@@ -1,49 +1,26 @@
-from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import cast, Dict, FrozenSet as ASet, Mapping, Tuple
+from typing import cast, Dict, FrozenSet as ASet
 
-from commonroad.scenario.scenario import Scenario
 from cycler import cycler
 
 from dg_commons import PlayerName, fd, fs
-from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from driving_games.dg_def import DrivingGamePlayer, DrivingGame, DGSimpleParams
+from driving_games.joint_reward import VehicleJointReward
+from driving_games.personal_reward import VehiclePersonalRewardStructureTime
+from driving_games.preferences_coll_time import VehiclePreferencesCollTime
+from driving_games.structures import VehicleTrackState
+from driving_games.vehicle_dynamics import VehicleTrackDynamics
+from driving_games.vehicle_observation import VehicleDirectObservations
+from driving_games.visualization import DrivingGameVisualization
 from games import (
     get_accessible_states,
     UncertaintyParams,
 )
 from possibilities import PossibilityMonad
-from .dg_def import DrivingGamePlayer, DrivingGame
-from .joint_reward import VehicleJointReward
-from .personal_reward import VehiclePersonalRewardStructureTime
-from .preferences_coll_time import VehiclePreferencesCollTime
-from .structures import (
-    VehicleTrackState,
-)
-from .vehicle_dynamics import VehicleTrackDynamics, VehicleTrackDynamicsParams
-from .vehicle_observation import VehicleDirectObservations
-from .visualization import DrivingGameVisualization
 
-
-@dataclass
-class DGSimpleParams:
-    game_dt: D
-    """Game discretization"""
-    scenario: Scenario  # fixme maybe a string to be loaded
-    """A commonroad scenario"""
-    ref_lanes: Mapping[PlayerName, DgLanelet]
-    """Reference lanes"""
-    progress: Mapping[PlayerName, Tuple[D, D]]
-    """Initial and End progress along the reference Lanelet"""
-    track_dynamics_param: VehicleTrackDynamicsParams
-    """Dynamics the players"""
-    shared_resources_ds: D
-
-    def __post__init__(self):
-        assert self.ref_lanes.keys() == self.progress.keys()
-        for progress in self.progress.values():
-            assert progress[0] <= progress[1]
+__all__ = ["get_two_vehicle_game"]
 
 
 def get_two_vehicle_game(dg_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:

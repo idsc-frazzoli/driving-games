@@ -3,12 +3,10 @@ from typing import Mapping, Optional, Tuple
 
 from nose.tools import assert_equal
 
-from driving_games import (
-    Collision,
-    CollisionPreference,
-    get_asym,
-    VehicleCosts,
-)
+from dg_commons.sim import IMPACT_FRONT, CollisionReportPlayer
+from driving_games import CollisionPreference, VehicleCosts
+from driving_games import logger
+from driving_games.zoo import get_asym
 from games import Combined
 from games.solve.solution_utils import get_outcome_preferences_for_players
 from preferences import (
@@ -18,14 +16,12 @@ from preferences import (
     SECOND_PREFERRED,
     StrictProductPreferenceDict,
 )
-from dg_commons.sim import IMPACT_FRONT
-from . import logger
 
 
 def test1() -> None:
-    C1 = Collision(IMPACT_FRONT, True, D(1), D(0))
-    C2 = Collision(IMPACT_FRONT, True, D(2), D(0))
-    expect: Mapping[Tuple[Optional[Collision], Optional[Collision]], ComparisonOutcome]
+    C1 = CollisionReportPlayer(IMPACT_FRONT, True, D(1), D(0))
+    C2 = CollisionReportPlayer(IMPACT_FRONT, True, D(2), D(0))
+    expect: Mapping[Tuple[Optional[CollisionReportPlayer], Optional[CollisionReportPlayer]], ComparisonOutcome]
     expect = {
         (None, None): INDIFFERENT,
         (C1, C1): INDIFFERENT,
@@ -57,7 +53,7 @@ def test2() -> None:
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
     game = get_asym().game
     p1, p2 = list(game.players)
-    c0 = Collision(IMPACT_FRONT, True, D(1), D(0))
+    c0 = CollisionReportPlayer(IMPACT_FRONT, True, D(1), D(0))
 
     o_A = {
         p1: game.ps.unit(Combined(VehicleCosts(D(3)), c0)),
