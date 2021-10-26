@@ -1,7 +1,8 @@
+import copy
 from dataclasses import dataclass
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.sim import PlayerObservations
-from typing import MutableMapping, Dict, Optional, Tuple, Callable
+from typing import MutableMapping, Dict, Optional, Tuple, Callable, List
 from shapely.geometry import Polygon
 from dg_commons.geo import SE2_apply_T2, T2value
 from dg_commons import X, U
@@ -151,7 +152,54 @@ def entry_exit_t(intersection: Polygon, current_state, occupacy: Polygon, safety
     return entry_t, exit_t
 
 
-class PolygonPlotter:
+class SituationPolygons:
+    @dataclass
+    class PolygonClass:
+        car: bool = False
+        dangerous_zone: bool = False
+        conflict_area: bool = False
+
+        def __post_init__(self):
+            assert self.car or self.dangerous_zone or self.conflict_area
+
+        def get_color(self):
+            if self.car:
+                return 'b'
+            elif self.dangerous_zone:
+                return 'orange'
+            elif self.conflict_area:
+                return 'r'
+
+        def get_zorder(self):
+            if self.car:
+                return 1
+            elif self.dangerous_zone:
+                return 2
+            elif self.conflict_area:
+                return 3
+
+    def __init__(self, plot: bool):
+        self.plot = plot
+        self.current_frame: List[Polygon] = []
+        self.current_class: List[SituationPolygons.PolygonClass] = []
+
+    def plot_polygon(self, p: Polygon, polygon_class: PolygonClass):
+        if p.is_empty or not self.plot:
+            return
+
+        self.current_frame.append(p)
+        self.current_class.append(polygon_class)
+
+    def next_frame(self):
+        current_frame = self.current_frame
+        current_classes = self.current_class
+        assert len(current_classes) == len(current_frame)
+        self.current_frame = []
+        self.current_class = []
+        return zip(current_frame, current_classes)
+
+
+'''class PolygonPlotter:
     @dataclass
     class PolygonClass:
         car: bool = False
@@ -201,20 +249,6 @@ class PolygonPlotter:
         self.current_frame[0].append(x)
         self.current_frame[1].append(y)
         self.current_class.append(polygon_class)
-
-    def next_frame(self):
-        n = len(self.current_frame)
-
-        for i in range(self.max_n_items):
-            if i < n:
-                x = np.array([self.current_frame[0][i]]).T
-                y = np.array([self.current_frame[1][i]]).T
-                xy = np.concatenate((x, y), axis=1)
-                polygons[i].set_xy(xy)
-                polygons[i].set_zorder(classes[i].get_zorder())
-                polygons[i].set_color(classes[i].get_color())
-            else:
-                polygons[i].set_xy(np.array([[0, 0]]))
 
     def next_frame(self):
         n_items = len(self.current_frame[0])
@@ -280,4 +314,4 @@ class PolygonPlotter:
             os.makedirs(dir)
 
         name = 'emergency.gif' if title == '' else title + ".gif"
-        anim.save(os.path.join(dir, name), writer=writer)
+        anim.save(os.path.join(dir, name), writer=writer)'''

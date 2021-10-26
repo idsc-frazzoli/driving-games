@@ -1,9 +1,9 @@
 from dg_commons_dev.behavior.behavior_types import Situation, SituationParams
 from dataclasses import dataclass
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Mapping
 from dg_commons.sim.models import kmh2ms, extract_vel_from_state
 from dg_commons_dev.behavior.utils import SituationObservations, \
-    occupancy_prediction, PolygonPlotter
+    occupancy_prediction, SituationPolygons, Polygon
 from dg_commons import PlayerName
 
 
@@ -16,6 +16,8 @@ class CruiseSituation:
 
     my_player: Optional[PlayerName] = None
     other_player: Optional[PlayerName] = None
+
+    polygons: Mapping[Polygon, SituationPolygons.PolygonClass] = None
 
     def __post_init__(self):
         if self.is_cruise:
@@ -49,7 +51,7 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
         self.safety_time_braking = safety_time_braking
         self.obs: Optional[SituationObservations] = None
         self.cruise_situation: Optional[CruiseSituation] = None
-        self.polygon_plotter = PolygonPlotter(plot=True)
+        self.polygon_plotter = SituationPolygons(plot=True)
 
     def update_observations(self, new_obs: SituationObservations):
         self.obs = new_obs
@@ -60,8 +62,8 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
         my_vel = my_state.vx
         my_occupancy = agents[my_name].occupancy
         my_polygon, _ = occupancy_prediction(agents[my_name].state, self._get_safety_time(my_vel), my_occupancy)
-        self.polygon_plotter.plot_polygon(my_polygon, PolygonPlotter.PolygonClass(dangerous_zone=True))
-        self.polygon_plotter.plot_polygon(my_occupancy, PolygonPlotter.PolygonClass(car=True))
+        self.polygon_plotter.plot_polygon(my_polygon, SituationPolygons.PolygonClass(dangerous_zone=True))
+        # self.polygon_plotter.plot_polygon(my_occupancy, SituationPolygons.PolygonClass(car=True))
 
         self.cruise_situation = CruiseSituation(is_cruise=True, is_following=False,
                                                 speed_ref=self.params.nominal_speed, my_player=my_name)
@@ -75,7 +77,7 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
             intersection = my_polygon.intersection(other_occupancy)
 
             if not intersection.is_empty:
-                self.polygon_plotter.plot_polygon(other_occupancy, PolygonPlotter.PolygonClass(conflict_area=True))
+                self.polygon_plotter.plot_polygon(other_occupancy, SituationPolygons.PolygonClass(conflict_area=True))
                 distance = my_occupancy.distance(other_occupancy)
                 min_distance = self._get_min_safety_dist(my_vel)
                 if distance < min_distance:
@@ -88,9 +90,9 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
                 self.cruise_situation = CruiseSituation(True, is_following=True, speed_ref=speed_ref,
                                                         my_player=my_name, other_player=other_name)
             else:
-                self.polygon_plotter.plot_polygon(other_occupancy, PolygonPlotter.PolygonClass(car=True))
+                self.polygon_plotter.plot_polygon(other_occupancy, SituationPolygons.PolygonClass(car=True))
 
-        self.polygon_plotter.next_frame()
+        self.cruise_situation.polygons = self.polygon_plotter.next_frame()
 
     def _get_min_safety_dist(self, vel: float):
         """The distance covered in x [s] travelling at vel"""
@@ -108,4 +110,4 @@ class Cruise(Situation[SituationObservations, CruiseSituation]):
         return self.cruise_situation
 
     def simulation_ended(self):
-        self.polygon_plotter.save_animation("cruise")
+        pass

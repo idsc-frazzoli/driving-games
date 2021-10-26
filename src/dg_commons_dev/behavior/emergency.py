@@ -1,8 +1,8 @@
 from dg_commons_dev.behavior.behavior_types import Situation, SituationParams
 from dataclasses import dataclass
-from typing import Optional, Union, List, Tuple
+from typing import Optional, Union, List, Tuple, Mapping
 from dg_commons_dev.behavior.utils import SituationObservations, \
-    occupancy_prediction, PolygonPlotter, entry_exit_t
+    occupancy_prediction, entry_exit_t, SituationPolygons, Polygon
 from dg_commons.sim.models import kmh2ms, extract_vel_from_state
 from dg_commons.sim.models.vehicle import VehicleParameters
 from dg_commons import PlayerName
@@ -18,6 +18,8 @@ class EmergencySituation:
 
     my_player: Optional[PlayerName] = None
     other_player: Optional[PlayerName] = None
+
+    polygons: Mapping[Polygon, SituationPolygons.PolygonClass] = None
 
     def __post_init__(self):
         if self.is_emergency:
@@ -43,7 +45,7 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
         self.obs: Optional[SituationObservations] = None
         self.emergency_situation: EmergencySituation = EmergencySituation()
         self.acc_limits = vehicle_params.acc_limits
-        self.polygon_plotter = PolygonPlotter(plot=plot)
+        self.polygon_plotter = SituationPolygons(plot=plot)
         self.counter = 0
 
     def update_observations(self, new_obs: SituationObservations):
@@ -55,8 +57,8 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
         my_vel = my_state.vx
         my_occupancy = agents[my_name].occupancy
         my_polygon, _ = occupancy_prediction(agents[my_name].state, self.safety_time_braking, my_occupancy)
-        self.polygon_plotter.plot_polygon(my_polygon, PolygonPlotter.PolygonClass(dangerous_zone=True))
-        self.polygon_plotter.plot_polygon(my_occupancy, PolygonPlotter.PolygonClass(car=True))
+        self.polygon_plotter.plot_polygon(my_polygon, SituationPolygons.PolygonClass(dangerous_zone=True))
+        # self.polygon_plotter.plot_polygon(my_occupancy, SituationPolygons.PolygonClass(car=True))
 
         for other_name, _ in agents.items():
             if other_name == my_name:
@@ -65,11 +67,11 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
             other_vel = extract_vel_from_state(other_state)
             other_occupancy = agents[other_name].occupancy
             other_polygon, _ = occupancy_prediction(agents[other_name].state, self.safety_time_braking, other_occupancy)
-            self.polygon_plotter.plot_polygon(other_occupancy, PolygonPlotter.PolygonClass(car=True))
-            self.polygon_plotter.plot_polygon(other_polygon, PolygonPlotter.PolygonClass(dangerous_zone=True))
+            # self.polygon_plotter.plot_polygon(other_occupancy, SituationPolygons.PolygonClass(car=True))
+            self.polygon_plotter.plot_polygon(other_polygon, SituationPolygons.PolygonClass(dangerous_zone=True))
 
             intersection = my_polygon.intersection(other_polygon)
-            self.polygon_plotter.plot_polygon(intersection, PolygonPlotter.PolygonClass(conflict_area=True))
+            self.polygon_plotter.plot_polygon(intersection, SituationPolygons.PolygonClass(conflict_area=True))
             if intersection.is_empty:
                 self.emergency_situation = EmergencySituation(False)
             else:
@@ -124,7 +126,7 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
                         self.emergency_situation.is_emergency = True
                         self.emergency_situation.other_player = other_name
 
-        self.polygon_plotter.next_frame()
+        self.emergency_situation.polygons = self.polygon_plotter.next_frame()
 
     def _get_min_safety_dist(self, vel: float):
         """The distance covered in x [s] travelling at vel"""
@@ -139,4 +141,4 @@ class Emergency(Situation[SituationObservations, EmergencySituation]):
         return self.emergency_situation
 
     def simulation_ended(self):
-        self.polygon_plotter.save_animation("emergency")
+        pass
