@@ -14,7 +14,7 @@ if __name__ == '__main__':
                          Select(scenarios["u-turn"], False),
                          Select(scenarios["left_cont_curve"], False),
                          Select(scenarios["vertical"], False),
-                         Select(scenarios["emergency_brake"], False),
+                         Select(scenarios["emergency_brake"], True),
                          Select(scenarios["cruise_control"], False),
                          Select(scenarios["race"], False)]
 

@@ -15,6 +15,8 @@ from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
 from dg_commons_dev.behavior.emergency import EmergencySituation
 from dg_commons_dev.controllers.steering_controllers import SCP
 from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit
+from toolz.sandbox import unzip
+from dg_commons.planning.polygon import PolygonSequence
 
 
 class LFAgent(Agent):
@@ -58,6 +60,7 @@ class LFAgent(Agent):
         self.state_estimator = None
         self.state = None
         self.commands = None
+        self.situation = None
 
         self.betas = []
         self.dt_commands = []
@@ -89,11 +92,11 @@ class LFAgent(Agent):
         t = float(sim_obs.time)
 
         self.speed_behavior.update_observations(sim_obs.players)
-        speed_ref, situation = self.speed_behavior.get_situation(t)
+        speed_ref, self.situation = self.speed_behavior.get_situation(t)
         self.current_ref.speed_ref = speed_ref if not self._emergency else 0
 
-        if situation.is_emergency():
-            self.emergency_subroutine(my_obs, t, situation.is_emergency())
+        if self.situation.is_emergency():
+            self.emergency_subroutine(my_obs, t, self.situation.is_emergency())
             self._emergency = True
         else:
             self.normal_subroutine(my_obs, t)
@@ -140,3 +143,13 @@ class LFAgent(Agent):
         self.steering_controller.update_ref(delta)
         ddelta = self.steering_controller.control(my_obs.delta, t)
         return acc, ddelta
+
+    def on_get_extra(self):
+        if not self.return_extra:
+            return None
+
+        polygons, polygon_classes = unzip(self.situation.situation.infos().polygons)
+        polys = list(polygons)
+        colors = [cat.get_color() for cat in list(polygon_classes)]
+        poly_sequences = [PolygonSequence(values=[poly], timestamps=[0]) for poly in polys]
+        return list(zip(poly_sequences, colors))
