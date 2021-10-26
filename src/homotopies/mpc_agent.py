@@ -4,11 +4,11 @@ from dg_commons import PlayerName
 from dg_commons.sim import SimObservations
 from dg_commons.sim.agents import Agent
 from dg_commons.sim.models.vehicle import VehicleCommands
-from homotopies.mpc_base import MPCBase
+from homotopies.mpc_base import MpcKinBase
 
 
 class MpcAgent(Agent):
-    def __init__(self, mpc_controller: MPCBase):
+    def __init__(self, mpc_controller: MpcKinBase):
         self.mpc_controller = mpc_controller
         self.my_name: str = ""
 
