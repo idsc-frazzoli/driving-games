@@ -40,9 +40,9 @@ def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: Uncer
             param=dg_params.track_dynamics_param,
         )
         p_init_progress = dg_params.progress[p][0]
-        p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
+        # p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
         p_x = VehicleTrackState(
-            ref=p_ref, x=p_init_progress, wait=D(0), v=dg_params.track_dynamics_param.min_speed, light=NO_LIGHTS
+            x=p_init_progress, wait=D(0), v=dg_params.track_dynamics_param.min_speed, light=NO_LIGHTS
         )
         p_initial = ps.unit(p_x)
         p_personal_reward_structure = VehiclePersonalRewardStructureTime(goal_progress=dg_params.progress[p][1])
@@ -64,7 +64,9 @@ def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: Uncer
         players.update({p: game_p})
 
     dt = dg_params.game_dt
-    joint_reward = VehicleJointReward(game_dt=dt, geometries=geometries, col_check_dt=0.4)
+    joint_reward = VehicleJointReward(
+        game_dt=dt, geometries=geometries, ref_lanes=dg_params.ref_lanes, col_check_dt=0.4
+    )
     game_visualization = DrivingGameVisualization(
         dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits
     )

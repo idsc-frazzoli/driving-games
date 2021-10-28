@@ -14,6 +14,7 @@ from dg_commons.sim.collision_utils import (
     kinetic_energy,
     compute_impulse_response,
 )
+from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import GameConstants
 from .structures import VehicleTrackState
@@ -24,7 +25,7 @@ __all__ = ["collision_check"]
 # todo: Note that this only works for the simplest cases.
 #      For example it does not work for head-to-back collision.
 def collision_check(
-    transitions: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]],
+    transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
 ) -> Mapping[PlayerName, CollisionReportPlayer]:
 

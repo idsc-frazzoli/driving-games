@@ -34,15 +34,15 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleTrackState, Vehicle
         self.players = players
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, txs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 
-    def joint_reward(self, xs: M[PlayerName, VehicleTrackState]) -> M[PlayerName, M[PlayerName, Collision]]:
+    def joint_reward(self, txs: M[PlayerName, VehicleTrackState]) -> M[PlayerName, M[PlayerName, Collision]]:
         # todo this is utterly wrong
         res: M[PlayerType] = {}
         for ptype in self.players:
-            res[ptype] = collision_check(xs, self.geometries)
+            res[ptype] = collision_check(txs, self.geometries)
         return res
 
 

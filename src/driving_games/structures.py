@@ -3,6 +3,7 @@ from decimal import Decimal as D
 from fractions import Fraction
 
 from dg_commons import SE2Transform
+from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
@@ -41,9 +42,6 @@ class VehicleCosts:
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleTrackState:
-    ref: SE2Transform
-    """ The initial reference position"""
-
     x: D
     """ Longitudinal progress """
 
@@ -56,7 +54,10 @@ class VehicleTrackState:
     light: LightsCmd
     """ The current lights signal. """
 
-    __print_order__ = ["x", "v"]  # only print these attributes
+    __print_order__ = ["x", "v"]  # only print these attribute
+
+    def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
+        return ref_lane.lane_pose(float(self.x), 0, 0).center_point
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)

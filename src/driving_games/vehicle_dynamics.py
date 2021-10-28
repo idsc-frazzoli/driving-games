@@ -96,7 +96,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     @lru_cache(None)
     def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
-            ctx.prec = 2
+            ctx.prec = 5
             v2 = x.v + u.acc * dt
             if not (self.param.min_speed <= v2 <= self.param.max_speed):
                 msg = "Invalid action gives speed out of bounds"
@@ -105,15 +105,11 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
             assert v2 >= 0
             x2 = x.x + (x.v + D("0.5") * u.acc * dt) * dt
             if x2 < x.x:
-                if ret.x < 0:
-                    raise ZValueError(x=x, u=u, acc=u.acc, ret=ret)
-            # if x2 > self.max_path:
-            #     msg = "Invalid action gives out of bound"
-            #     raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
-        # if wait2 > self.max_wait:
-        #     msg = f'Invalid action gives wait of {wait2}'
-        #     raise InvalidAction(msg, x=x, u=u)
-
+                raise ZValueError(
+                    x=x,
+                    u=u,
+                    acc=u.acc,
+                )
         if v2 == 0:
             wait2 = x.wait + dt
             if wait2 > self.param.max_wait:
@@ -121,7 +117,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = D(0)
-        ret = VehicleTrackState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
+        ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light)
 
         return ret
 
