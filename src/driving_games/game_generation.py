@@ -20,16 +20,18 @@ from games import (
 )
 from possibilities import PossibilityMonad
 
-__all__ = ["get_two_vehicle_game"]
+__all__ = ["initialize_driving_game"]
 
 
-def get_two_vehicle_game(dg_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
+def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     players: Dict[PlayerName, DrivingGamePlayer] = {}
+    geometries: Dict[PlayerName, VehicleGeometry] = {}
     cc = list(cycler(color=["c", "m", "y", "k"]))
 
     for i, (p, lane) in enumerate(dg_params.ref_lanes.items()):
         g = VehicleGeometry.default_car(color=cc[i]["color"])
+        geometries[p] = g
         p_dynamics = VehicleTrackDynamics(
             ref=lane,
             max_path=dg_params.progress[p][1],
@@ -60,10 +62,13 @@ def get_two_vehicle_game(dg_params: DGSimpleParams, uncertainty_params: Uncertai
             monadic_preference_builder=uncertainty_params.mpref_builder,
         )
         players.update({p: game_p})
-    dt = dg_params.game_dt
 
-    joint_reward = VehicleJointReward(collision_threshold=dg_params.collision_threshold, geometries=geometries)
-    game_visualization = DrivingGameVisualization(dg_params, geometries=geometries, ds=dg_params.shared_resources_ds)
+    dt = dg_params.game_dt
+    joint_reward = VehicleJointReward(game_dt=dt, geometries=geometries, col_check_dt=0.4)
+    game_visualization = DrivingGameVisualization(
+        dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits
+    )
+
     game: DrivingGame = DrivingGame(
         players=fd(players),
         ps=ps,

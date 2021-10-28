@@ -3,14 +3,14 @@ from typing import List, Tuple
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
-
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
+
+from games.solve.solution_structures import GamePreprocessed
 from . import logger
 from .game_def import Game, JointState, RJ, RP, U, X, Y, SR
 from .reports_player import report_player
-from games.solve.solution_structures import GamePreprocessed
 
 __all__ = [
     "create_report_preprocessed",
@@ -37,7 +37,7 @@ def report_game_visualization(game: Game) -> Report:
         with viz.plot_arena(pylab, ax):
             for player_name, player in game.players.items():
                 for x in player.initial.support():
-                    viz.plot_player(player_name, state=x, commands=None)
+                    viz.plot_player(player_name, state=x, commands=None, t=0)
 
     return r
 

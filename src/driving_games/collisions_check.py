@@ -4,7 +4,7 @@ from typing import Mapping
 from shapely.affinity import affine_transform
 from shapely.geometry import Polygon
 
-from dg_commons import PlayerName
+from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.collision_utils import (
     chek_who_is_at_fault,
@@ -24,15 +24,15 @@ __all__ = ["collision_check"]
 # todo: Note that this only works for the simplest cases.
 #      For example it does not work for head-to-back collision.
 def collision_check(
-    poses: Mapping[PlayerName, VehicleTrackState],
-    # todo probably here it would be better to simply pass a Trajectory for the interval previous state and current
+    transitions: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
 ) -> Mapping[PlayerName, CollisionReportPlayer]:
-    if GameConstants.checks:
-        assert set(poses.keys()) == set(geometries.keys())
 
-    for p1, p2 in combinations(poses, 2):
-        s1, s2 = poses[p1], poses[p2]
+    if GameConstants.checks:
+        assert set(transitions.keys()) == set(geometries.keys())
+
+    for p1, p2 in combinations(transitions, 2):
+        s1, s2 = transitions[p1], transitions[p2]
         g1, g2 = geometries[p1], geometries[p2]
 
         a_shape: Polygon = g1.outline_as_polygon

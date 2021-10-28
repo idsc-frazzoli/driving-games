@@ -1,6 +1,8 @@
+from dataclasses import replace
+from decimal import Decimal
 from typing import FrozenSet, Mapping
 
-from dg_commons import PlayerName
+from dg_commons import PlayerName, Timestamp, valmap
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.collisions_check import collision_check
@@ -10,18 +12,22 @@ from games import JointRewardStructure
 __all__ = ["VehicleJointReward"]
 
 
+def _find_parent_state(x: VehicleTrackState, dt: Decimal) -> VehicleTrackState:
+    return replace(x, x=x.x - x.v * dt)
+
+
 class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions, CollisionReportPlayer]):
-    def __init__(
-        self,
-        collision_threshold: float,
-        geometries: Mapping[PlayerName, VehicleGeometry],
-    ):
-        self.collision_threshold = collision_threshold
+    def __init__(self, game_dt: Timestamp, geometries: Mapping[PlayerName, VehicleGeometry], col_check_dt: float):
+        self.game_dt = Decimal(game_dt)
         self.geometries = geometries
+        self.col_check_dt = col_check_dt
 
     # @lru_cache(None)
     def is_joint_final_state(self, xs: Mapping[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
         # az todo here a better interface would consider the transition rather than the current state
+
+        initial = valmap()
+
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 

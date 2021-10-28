@@ -77,12 +77,12 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         # only allow accelerations that make the speed non-negative
         accels = [_ for _ in self.param.available_accels if _ * dt + x.v >= 0]
         # if the speed is 0 make sure we cannot wait forever
-        if x.wait >= self.param.max_wait:
+        if x.wait > self.param.max_wait:
             assert x.v == 0, x
             accels.remove(D(0))
 
         possible = {}
-        for light, accel in product(self.param.lights_commands, self.param.available_accels):
+        for light, accel in product(self.param.lights_commands, accels):
             u = VehicleActions(acc=accel, light=light)
             try:
                 x2 = self.successor(x, u, dt)
@@ -97,24 +97,19 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
             ctx.prec = 2
-            accel_effective = max(-x.v / dt, u.acc)
-            v2 = x.v + accel_effective * dt
-            if v2 < 0:
-                v2 = 0
-                # msg = 'Invalid action gives negative vel'
-                # raise InvalidAction(msg, x=x, u=u)
-            # if v2 < self.min_speed:
-            #     v2 = self.min_speed
-            if v2 > self.param.max_speed:
-                v2 = self.param.max_speed
+            v2 = x.v + u.acc * dt
             if not (self.param.min_speed <= v2 <= self.param.max_speed):
-                msg = "Invalid action gives speed too fast"
+                msg = "Invalid action gives speed out of bounds"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
+            # only forward moving
             assert v2 >= 0
-            x2 = x.x + (x.v + accel_effective * dt) * dt
-            if x2 > self.max_path:
-                msg = "Invalid action gives out of bound"
-                raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
+            x2 = x.x + (x.v + D("0.5") * u.acc * dt) * dt
+            if x2 < x.x:
+                if ret.x < 0:
+                    raise ZValueError(x=x, u=u, acc=u.acc, ret=ret)
+            # if x2 > self.max_path:
+            #     msg = "Invalid action gives out of bound"
+            #     raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
         # if wait2 > self.max_wait:
         #     msg = f'Invalid action gives wait of {wait2}'
         #     raise InvalidAction(msg, x=x, u=u)
@@ -127,8 +122,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         else:
             wait2 = D(0)
         ret = VehicleTrackState(ref=x.ref, x=x2, v=v2, wait=wait2, light=u.light)
-        if ret.x < 0:
-            raise ZValueError(x=x, u=u, accel_effective=accel_effective, ret=ret)
+
         return ret
 
     def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[Polygon]:

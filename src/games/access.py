@@ -17,12 +17,12 @@ from typing import (
 )
 
 import numpy as np
-from dg_commons.utils_toolz import fkeyfilter, iterate_dict_combinations
+from cytoolz import itemmap, valmap
 from frozendict import frozendict
 from networkx import connected_components, Graph, MultiDiGraph
-from toolz import itemmap, valmap
 from zuper_commons.types import ZException
 
+from dg_commons.utils_toolz import fkeyfilter, iterate_dict_combinations
 from games.solve.solution import solve_game2
 from games.solve.solution_structures import (
     GameFactorization,
@@ -316,22 +316,21 @@ def get_accessible_states(
 
 def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     players = game.players
-    assert len(players) == 2
-    p1, p2 = list(players)
-    P1 = players[p1]
-    P2 = players[p2]
+    # assert len(players) == 2, "More than 2 players are currently not supported"
+    # p1, p2 = list(players)
+    # P1 = players[p1]
+    # P2 = players[p2]
     # G1 = get_player_graph(players[p1])
     # G2 = get_player_graph(players[p2])
+    init_states: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), players)
 
     G = MultiDiGraph()
     stack: List[JointState] = []
     # root of the tree
-    for n1, n2 in product(P1.initial.support(), P2.initial.support()):
-        S = frozendict({p1: n1, p2: n2})
+    for S in iterate_dict_combinations(init_states):
         G.add_node(
             S,
-            is_final2=False,
-            is_final1=False,
+            is_final_for=[],
             is_joint_final=False,
             is_initial=True,
             generation=0,
@@ -350,23 +349,31 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         S = stack.pop()
         assert S in G.nodes
 
-        n1, n2 = S[p1], S[p2]
+        players_alive = filter(lambda x: x not in G.nodes[S]["is_final_for"], S)
+        successors: Dict[PlayerName : Poss[X]] = {}
+        for p in players_alive:
+            p_state = S[p]
+            p_succs = players[p].dynamics.successors(p_state, dt)
+            successors[p] = p_succs.values()
 
-        if n1 is None or G.nodes[S]["is_final1"]:
-            succ1 = {None: ps.unit(None)}
-        else:
-            succ1 = P1.dynamics.successors(n1, dt)
-
-        if n2 is None or G.nodes[S]["is_final2"]:
-            succ2 = {None: ps.unit(None)}
-        else:
-            succ2 = P2.dynamics.successors(n2, dt)
+        # n1, n2 = S[p1], S[p2]
+        #
+        # if n1 is None or G.nodes[S]["is_final1"]:
+        #     succ1 = {None: ps.unit(None)}
+        # else:
+        #     succ1 = P1.dynamics.successors(n1, dt)
+        #
+        # if n2 is None or G.nodes[S]["is_final2"]:
+        #     succ2 = {None: ps.unit(None)}
+        # else:
+        #     succ2 = P2.dynamics.successors(n2, dt)
 
         generation = G.nodes[S]["generation"]
+        # product(succ1.items(), succ2.items())
+        for actions_2_nextstates in iterate_dict_combinations(successors):
+            # check_poss(s1s, object)
+            # check_poss(s2s, object)
 
-        for (u1, s1s), (u2, s2s) in product(succ1.items(), succ2.items()):
-            check_poss(s1s, object)
-            check_poss(s2s, object)
             for s1, s2 in product(s1s.support(), s2s.support()):
                 if (s1, s2) == (None, None):
                     continue

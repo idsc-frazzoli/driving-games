@@ -208,7 +208,6 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         player_name: PlayerName,
         state: X,
         commands: Optional[U],
-        ref: DgLanelet,
         t: Timestamp,
         opacity: float = 1.0,
     ):

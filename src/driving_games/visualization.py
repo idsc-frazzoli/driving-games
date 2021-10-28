@@ -1,7 +1,6 @@
 from decimal import Decimal as D
-from typing import Any, Mapping, Optional, Tuple
+from typing import Mapping, Optional, Tuple, Sequence, Union
 
-from commonroad.scenario.scenario import Scenario
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
 
@@ -9,11 +8,10 @@ from decorator import contextmanager
 from geometry import translation_angle_from_SE2
 
 from dg_commons import PlayerName, Timestamp
-from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from dg_commons.sim.simulator_animation import lights_colors_from_lights_cmd
+from dg_commons.sim.simulator_animation import lights_colors_from_lights_cmd, adjust_axes_limits
 from dg_commons.sim.simulator_visualisation import plot_vehicle
 from driving_games.dg_def import DGSimpleParams
 from driving_games.structures import VehicleActions, VehicleCosts, VehicleTrackState
@@ -28,29 +26,34 @@ class DrivingGameVisualization(
 ):
     """Visualization for the driving games"""
 
-    scenario: Scenario
-    geometries: Mapping[PlayerName, VehicleGeometry]
-    ds: D
-    pylab: Any
-
     def __init__(
-        self, params: DGSimpleParams, geometries: Mapping[PlayerName, VehicleGeometry], ds: D, *args, **kwargs
+        self,
+        params: DGSimpleParams,
+        geometries: Mapping[PlayerName, VehicleGeometry],
+        ds: D,
+        plot_limits: Union[str, Sequence[Sequence[float]]] = "auto",
+        *args,
+        **kwargs
     ):
-        self.params = params
+        self.params: DGSimpleParams = params
         self.commonroad_renderer: MPRenderer = MPRenderer(*args, **kwargs)
-        self.ds = ds
+        self.geometries: Mapping[PlayerName, VehicleGeometry] = geometries
+        self.ds: D = ds
+        self.plot_limits = plot_limits
         self.pylab = None
 
     @contextmanager
     def plot_arena(self, pylab, ax):
+        self.pylab = pylab
         self.commonroad_renderer.ax = ax
-        self.scenario.lanelet_network.draw(
+        self.params.scenario.lanelet_network.draw(
             self.commonroad_renderer,
             draw_params={"traffic_light": {"draw_traffic_lights": False}},
         )
         self.commonroad_renderer.render()
         yield
-        pylab.axis("off")
+        # pylab.axis("off")
+        adjust_axes_limits(ax=ax, plot_limits=self.plot_limits)
         ax.set_aspect("equal")
 
     def plot_player(
@@ -58,13 +61,12 @@ class DrivingGameVisualization(
         player_name: PlayerName,
         state: VehicleTrackState,
         commands: Optional[VehicleActions],
-        ref: DgLanelet,
         t: Timestamp,
         opacity: float = 1.0,
     ):
         """Draw the player at a certain state doing certain commands (if given)"""
-        q = ref.lane_pose(float(state.x), 0, 0)
-        xy, theta = translation_angle_from_SE2(q)
+        q = self.params.ref_lanes[player_name].lane_pose(float(state.x), 0, 0).center_point
+        xy, theta = translation_angle_from_SE2(q.as_SE2())
         velocity = float(state.v)
         global_state = VehicleState(x=xy[0], y=xy[1], theta=theta, vx=velocity, delta=float(0))
 
@@ -79,7 +81,8 @@ class DrivingGameVisualization(
         #     x, y = countour_points[0, :], countour_points[1, :]
         #
         #     self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
-        lights_colors = lights_colors_from_lights_cmd(state.light, float(commands.acc), t)
+        acc = 0 if commands is None else float(commands.acc)
+        lights_colors = lights_colors_from_lights_cmd(state.light, acc, t)
         plot_vehicle(
             ax=self.pylab.gca(),
             player_name=player_name,

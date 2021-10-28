@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Tuple, Mapping
+from typing import Tuple, Mapping, Sequence, Union, Optional
 
 from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
@@ -37,6 +37,7 @@ class DGSimpleParams:
     track_dynamics_param: VehicleTrackDynamicsParams
     """Dynamics the players"""
     shared_resources_ds: D
+    plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 
     def __post__init__(self):
         assert self.ref_lanes.keys() == self.progress.keys()

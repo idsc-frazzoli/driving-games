@@ -11,14 +11,13 @@ from driving_games_tests import logger
 
 do_games_sets = [
     "sym_v1_sets",
-    "asym_v1_sets",
-    "asym_v0_sets",
+    # "asym_v1_sets",
 ]
 do_solvers_sets = [
     "solver-1-pure-mix_mNE-fact",
-    "solver-1-finite_mix-mix_mNE-fact",
-    "solver-1-finite_mix-security_mNE-naive",
-    "solver-1-finite_mix-security_mNE-fact",
+    # "solver-1-finite_mix-mix_mNE-fact",
+    # "solver-1-finite_mix-security_mNE-naive",
+    # "solver-1-finite_mix-security_mNE-fact",
 ]
 games_sets = {k: games_zoo[k] for k in do_games_sets}
 solvers_sets = {k: solvers_zoo[k] for k in do_solvers_sets}
@@ -33,10 +32,7 @@ def test_games_sets(game_str: str, solver_str: str) -> None:
     res = without_compmake(game, solver)
 
 
-do_games_prob = [  # "sym_v1_prob",
-    # "asym_v0_prob",
-    "asym_v1_prob"
-]
+do_games_prob = ["sym_v1_prob", "asym_v1_prob"]  # "sym_v1_prob",
 do_solvers_prob = [
     "solver-1-pure-mix_mNE-fact",
     # "solver-1-security-naive",
