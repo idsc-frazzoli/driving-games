@@ -26,8 +26,6 @@ class DrivingGamePlayer(
 
 @dataclass
 class DGSimpleParams:
-    game_dt: D
-    """Game discretization"""
     scenario: Scenario  # fixme maybe a string to be loaded
     """A commonroad scenario"""
     ref_lanes: Mapping[PlayerName, DgLanelet]
@@ -36,6 +34,8 @@ class DGSimpleParams:
     """Initial and End progress along the reference Lanelet"""
     track_dynamics_param: VehicleTrackDynamicsParams
     """Dynamics the players"""
+    col_check_dt: D
+    """Discretization step for collision checking. A smart choice related to the solver's one is advisable"""
     shared_resources_ds: D
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 

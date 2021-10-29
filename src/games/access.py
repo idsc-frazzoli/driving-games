@@ -331,7 +331,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             is_joint_final=False,
             is_initial=True,
             generation=0,
-            in_game="AB",  # todo maybe string of players alive
+            in_game="-".join(S.keys()),
         )
         stack.append(S)
     logger.info(stack=stack)
@@ -341,7 +341,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     ps = game.ps
     while stack:
         if i % 1000 == 0:
-            logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))
+            logger.info("Iteration", i=i, stack=len(stack), created=len(G.nodes))
         i += 1
         S = stack.pop()
         assert S in G.nodes
@@ -352,10 +352,8 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             p_state = S[p]
             p_succs = players[p].dynamics.successors(p_state, dt)
             successors[p] = p_succs
-            # todo check what happens if this is empty
 
         generation = G.nodes[S]["generation"]
-        # product(succ1.items(), succ2.items())
         for players_n_actions in iterate_dict_combinations(successors):
             poss_next = [successors[p][action].support() for p, action in players_n_actions.items()]
             players_poss_next = dict(zip(players_n_actions, poss_next))
@@ -374,7 +372,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                         is_joint_final=is_joint_final,
                         is_initial=False,
                         generation=generation + 1,
-                        in_game="",
+                        in_game="-".join(S2.keys()),
                     )
                     if any(p not in ending_players for p in S2):
                         # if anyone is still alive
@@ -382,6 +380,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                             stack.append(S2)
                 G.add_edge(S, S2, action=players_n_actions)
                 G.nodes[S2]["generation"] = min(G.nodes[S2]["generation"], generation + 1)
+    logger.info("Game nodes", created=len(G.nodes))
     return G
 
 

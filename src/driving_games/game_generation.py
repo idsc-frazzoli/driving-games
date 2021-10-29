@@ -20,10 +20,10 @@ from games import (
 )
 from possibilities import PossibilityMonad
 
-__all__ = ["initialize_driving_game"]
+__all__ = ["get_driving_game"]
 
 
-def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
+def get_driving_game(dg_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     players: Dict[PlayerName, DrivingGamePlayer] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
@@ -49,7 +49,8 @@ def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: Uncer
         p_preferences = VehiclePreferencesCollTime()
 
         # this part about observations is not used at the moment
-        g = get_accessible_states(p_initial, p_personal_reward_structure, p_dynamics, dg_params.game_dt)
+        g = get_accessible_states(p_initial, p_personal_reward_structure, p_dynamics, D("1"))
+        # fixme if discretization is a parameter of the solver here it should not depend on it
         p_possible_states = cast(ASet[VehicleTrackState], fs(g.nodes))
         p_observations = VehicleDirectObservations(p_possible_states, {})
 
@@ -62,14 +63,10 @@ def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: Uncer
             monadic_preference_builder=uncertainty_params.mpref_builder,
         )
         players.update({p: game_p})
-
-    dt = dg_params.game_dt
-    col_check_dt = dt / 2 + D("0.1")
     joint_reward = VehicleJointReward(
-        game_dt=dt,
         geometries=geometries,
         ref_lanes=dg_params.ref_lanes,
-        col_check_dt=col_check_dt,
+        col_check_dt=dg_params.col_check_dt,
         lanelet_network=dg_params.scenario.lanelet_network,
     )
     game_visualization = DrivingGameVisualization(

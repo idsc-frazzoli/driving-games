@@ -16,7 +16,7 @@ from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
 from . import VehicleTrackDynamicsParams
-from .game_generation import initialize_driving_game, DGSimpleParams
+from .game_generation import get_driving_game, DGSimpleParams
 from .structures import NO_LIGHTS
 
 dyn_p0 = VehicleTrackDynamicsParams(
@@ -44,7 +44,7 @@ s_lane2 = dglane_from_position(np.array([70, -14]), simple_intersection.lanelet_
 p0 = DGSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(0),
-    game_dt=D(1),
+    col_check_dt=D("0.51"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
     progress={P1: (D(135), D(160)), P2: (D(175), D(190))},
@@ -54,21 +54,21 @@ p0 = DGSimpleParams(
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 
-p_asym = replace(p0, progress={P1: (D(2), D(8)), P2: (D(0), D(8))})
+p_asym = replace(p0, progress={P1: (D(140), D(160)), P2: (D(175), D(190))})
 
 
 def get_sym() -> GameSpec:
     desc = """
     Simple intersection. (Super) symmetric case. Min v = 1. Set-based uncertainty.
     """
-    return GameSpec(desc, initialize_driving_game(p0, uncertainty_sets))
+    return GameSpec(desc, get_driving_game(p0, uncertainty_sets))
 
 
 def get_asym() -> GameSpec:
     desc = """
     Slightly asymmetric case. Min v = 1. Set-based uncertainty.
     """
-    return GameSpec(desc, initialize_driving_game(p_asym, uncertainty_sets))
+    return GameSpec(desc, get_driving_game(p_asym, uncertainty_sets))
 
 
 def get_sym_prob() -> GameSpec:
@@ -76,14 +76,14 @@ def get_sym_prob() -> GameSpec:
     Super symmetric case. Min v = 1.
     Probability-based uncertainty (expected value).
     """
-    return GameSpec(desc, initialize_driving_game(copy(p0), uncertainty_prob))
+    return GameSpec(desc, get_driving_game(copy(p0), uncertainty_prob))
 
 
 def get_asym_prob() -> GameSpec:
     desc = """
     Slightly asymmetric case. Probability-based uncertainty (expected value).
     """
-    return GameSpec(desc, initialize_driving_game(copy(p_asym), uncertainty_prob))
+    return GameSpec(desc, get_driving_game(copy(p_asym), uncertainty_prob))
 
 
 driving_games_zoo: Mapping[str, GameSpec] = fd(

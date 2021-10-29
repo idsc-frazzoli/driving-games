@@ -23,14 +23,12 @@ def _find_parent_state(x: VehicleTrackState, dt: Decimal) -> VehicleTrackState:
 class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions, CollisionReportPlayer]):
     def __init__(
         self,
-        game_dt: Timestamp,
         geometries: Mapping[PlayerName, VehicleGeometry],
         ref_lanes: Mapping[PlayerName, DgLanelet],
         col_check_dt: Timestamp,
         lanelet_network: LaneletNetwork,
     ):
         assert geometries.keys() == ref_lanes.keys()
-        self.game_dt = Decimal(game_dt)
         self.geometries = geometries
         self.ref_lane = ref_lanes
         self.col_check_dt = col_check_dt
@@ -42,7 +40,7 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> FrozenSet[PlayerName]:
         res = self.joint_reward(txs)
-        return frozenset(res)  # fixme uncomment ones collisioncheck is ultimated
+        return frozenset(res)
         # return frozenset({})
 
     def joint_reward(
