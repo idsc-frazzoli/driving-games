@@ -1,11 +1,15 @@
+from decimal import Decimal as D
 from typing import Mapping
 
+from matplotlib import pyplot as plt
 from reprep import Report
 
-from driving_games import p_asym, PlayerName, VehicleGeometry, VehicleTrackState, NO_LIGHTS
+from dg_commons import PlayerName
+from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from driving_games import VehicleTrackState
 from driving_games.visualization import DrivingGameVisualization
-from decimal import Decimal as D
-from matplotlib import pyplot as plt
+from driving_games.zoo import p_asym
 
 
 def test_available_cars():
@@ -14,11 +18,8 @@ def test_available_cars():
     L = vehicles_params.side + vehicles_params.road + vehicles_params.side
     P2 = PlayerName("W←")
     P1 = PlayerName("N↑")
-    mass = D(1000)
-    length = D(4.5)
-    width = D(1.8)
-    g1 = VehicleGeometry(mass=mass, width=width, length=length, color=(1, 0, 0))
-    g2 = VehicleGeometry(mass=mass, width=width, length=length, color=(0, 0, 1))
+    g1 = VehicleGeometry.default_car(color=(1, 0, 0))
+    g2 = VehicleGeometry.default_car(color=(0, 0, 1))
     geometries = {P1: g1, P2: g2}
     start = vehicles_params.side + vehicles_params.road_lane_offset
     p1_ref = (D(start), D(0), D(+90))

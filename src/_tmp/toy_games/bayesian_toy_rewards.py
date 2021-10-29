@@ -76,7 +76,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         self.p1_types = p1_types
         self.p2_types = p2_types
 
-    def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_state(self, txs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
         # todo BirdState -> BayesianBirdState
         res = set()
         if len(xs.items()) > 1:
@@ -86,7 +86,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         return frozenset(res)
 
     def joint_reward(
-        self, xs: Mapping[PlayerName, BirdState]
+        self, txs: Mapping[PlayerName, BirdState]
     ) -> Mapping[Set[PlayerType], Mapping[PlayerName, BirdCosts]]:
         # todo BirdState -> BayesianBirdState
         """
@@ -95,14 +95,14 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
         [-1,  1] -> leaves_payoffs[1]
         [1,  -1] -> leaves_payoffs[2]
         [1,   1] -> leaves_payoffs[3]
-        :param xs:
+        :param txs:
         :return:
         """
         type_combinations = list(itertools.product(self.p1_types, self.p2_types))
         res1 = {}
         res2 = {}
         res = {}
-        x1, x2 = xs[self.row_player], xs[self.col_player]
+        x1, x2 = txs[self.row_player], txs[self.col_player]
         subgame1, subgame2, row, col = self.get_payoff_matrix_idx(self.max_stages, x1, x2)
         payoff11, payoff12 = self.mat_payoffs[subgame1][row, col, :]
         payoff21, payoff22 = self.mat_payoffs[subgame2][row, col, :]

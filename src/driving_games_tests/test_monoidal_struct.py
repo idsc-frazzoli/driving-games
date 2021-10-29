@@ -3,8 +3,9 @@ from fractions import Fraction
 from functools import reduce
 from operator import add
 from time import perf_counter
+from typing import Dict
 
-from driving_games import VehicleCosts, Dict
+from driving_games import VehicleCosts
 
 
 def test_decimal_fraction():

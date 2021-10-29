@@ -3,7 +3,6 @@ import random
 from collections import defaultdict
 from decimal import Decimal as D
 from functools import reduce
-from itertools import product
 from typing import (
     AbstractSet,
     Collection,
@@ -17,12 +16,14 @@ from typing import (
 )
 
 import numpy as np
-from dg_commons.utils_toolz import fkeyfilter, iterate_dict_combinations
+from cytoolz import itemmap, valmap
 from frozendict import frozendict
 from networkx import connected_components, Graph, MultiDiGraph
-from toolz import itemmap, valmap
 from zuper_commons.types import ZException
 
+from dg_commons import DgSampledSequence
+from dg_commons.time import time_function
+from dg_commons.utils_toolz import fkeyfilter, iterate_dict_combinations
 from games.solve.solution import solve_game2
 from games.solve.solution_structures import (
     GameFactorization,
@@ -314,28 +315,23 @@ def get_accessible_states(
     return G
 
 
+@time_function
 def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     players = game.players
-    assert len(players) == 2
-    p1, p2 = list(players)
-    P1 = players[p1]
-    P2 = players[p2]
-    # G1 = get_player_graph(players[p1])
-    # G2 = get_player_graph(players[p2])
+
+    init_states: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), players)
 
     G = MultiDiGraph()
     stack: List[JointState] = []
     # root of the tree
-    for n1, n2 in product(P1.initial.support(), P2.initial.support()):
-        S = frozendict({p1: n1, p2: n2})
+    for S in iterate_dict_combinations(init_states):
         G.add_node(
             S,
-            is_final2=False,
-            is_final1=False,
+            is_final_for=[],
             is_joint_final=False,
             is_initial=True,
             generation=0,
-            in_game="AB",
+            in_game="-".join(S.keys()),
         )
         stack.append(S)
     logger.info(stack=stack)
@@ -345,55 +341,46 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     ps = game.ps
     while stack:
         if i % 1000 == 0:
-            logger.info("iteration", i=i, stack=len(stack), created=len(G.nodes))
+            logger.info("Iteration", i=i, stack=len(stack), created=len(G.nodes))
         i += 1
         S = stack.pop()
         assert S in G.nodes
 
-        n1, n2 = S[p1], S[p2]
-
-        if n1 is None or G.nodes[S]["is_final1"]:
-            succ1 = {None: ps.unit(None)}
-        else:
-            succ1 = P1.dynamics.successors(n1, dt)
-
-        if n2 is None or G.nodes[S]["is_final2"]:
-            succ2 = {None: ps.unit(None)}
-        else:
-            succ2 = P2.dynamics.successors(n2, dt)
+        players_alive = filter(lambda x: x not in G.nodes[S]["is_final_for"], S)
+        successors: Dict[PlayerName : Mapping[U, Poss[X]]] = {}
+        for p in players_alive:
+            p_state = S[p]
+            p_succs = players[p].dynamics.successors(p_state, dt)
+            successors[p] = p_succs
 
         generation = G.nodes[S]["generation"]
-
-        for (u1, s1s), (u2, s2s) in product(succ1.items(), succ2.items()):
-            check_poss(s1s, object)
-            check_poss(s2s, object)
-            for s1, s2 in product(s1s.support(), s2s.support()):
-                if (s1, s2) == (None, None):
-                    continue
-                S2 = frozendict({p1: s1, p2: s2})
+        for players_n_actions in iterate_dict_combinations(successors):
+            poss_next = [successors[p][action].support() for p, action in players_n_actions.items()]
+            players_poss_next = dict(zip(players_n_actions, poss_next))
+            for S2 in iterate_dict_combinations(players_poss_next):
                 if S2 not in G.nodes:
-                    is_final1 = P1.personal_reward_structure.is_personal_final_state(s1) if s1 else True
-                    is_final2 = P2.personal_reward_structure.is_personal_final_state(s2) if s2 else True
-
-                    in_game = "AB" if (s1 and s2) else ("A" if s1 else "B")
-                    if s1 and s2:
-                        is_joint_final = len(game.joint_reward.is_joint_final_state({p1: s1, p2: s2})) > 0
-                    else:
-                        is_joint_final = False
+                    ending_players = [
+                        p for p in S2 if players[p].personal_reward_structure.is_personal_final_state(S2[p])
+                    ]
+                    transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p in S2}
+                    jointly_ending = game.joint_reward.is_joint_final_state(transitions)
+                    ending_players.extend(jointly_ending)
+                    is_joint_final = len(jointly_ending) > 0
                     G.add_node(
                         S2,
-                        is_final2=is_final2,
-                        is_final1=is_final1,
+                        is_final_for=ending_players,
                         is_joint_final=is_joint_final,
                         is_initial=False,
                         generation=generation + 1,
-                        in_game=in_game,
+                        in_game="-".join(S2.keys()),
                     )
-                    if not is_joint_final:
+                    if any(p not in ending_players for p in S2):
+                        # if anyone is still alive
                         if S2 not in stack:
                             stack.append(S2)
-                G.add_edge(S, S2, action=frozendict({p1: u1, p2: u2}))
+                G.add_edge(S, S2, action=players_n_actions)
                 G.nodes[S2]["generation"] = min(G.nodes[S2]["generation"], generation + 1)
+    logger.info("Game nodes", created=len(G.nodes))
     return G
 
 
@@ -435,7 +422,7 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
         def ordering(n_):
             in_game = G.nodes[n_]["in_game"]
             in1 = ["A", "AB", "B"].index(in_game)
-            return (in1, affinities[n_])
+            return in1, affinities[n_]
 
         reordered = sorted(ordered, key=ordering)
 

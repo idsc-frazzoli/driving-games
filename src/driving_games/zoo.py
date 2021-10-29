@@ -1,3 +1,5 @@
+import os
+from copy import copy
 from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict, Mapping
@@ -8,12 +10,13 @@ from dg_commons import fd, fs, PlayerName
 from dg_commons.sim.models import kmh2ms
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
+from dg_commons_dev.utils import get_project_root_dir
 from games import GameSpec, UncertaintyParams
 from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
 from . import VehicleTrackDynamicsParams
-from .game_generation import get_two_vehicle_game, DGSimpleParams
+from .game_generation import get_driving_game, DGSimpleParams
 from .structures import NO_LIGHTS
 
 dyn_p0 = VehicleTrackDynamicsParams(
@@ -27,54 +30,45 @@ dyn_p0 = VehicleTrackDynamicsParams(
 
 P1 = PlayerName("P1")
 P2 = PlayerName("P2")
+SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
-complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1")
-c_lane1 = dglane_from_position(np.array([0, 0]), complex_intersection.lanelet_network)
-c_lane2 = dglane_from_position(np.array([5, 5]), complex_intersection.lanelet_network)
+# complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
+# c_lane1 = dglane_from_position(np.array([0, 0]), complex_intersection.lanelet_network)
+# c_lane2 = dglane_from_position(np.array([5, 5]), complex_intersection.lanelet_network)
+# fixme complex intersection needs to be intialized properly
 
-simple_intersection, _ = load_commonroad_scenario("ITA_Segrate-1_3_T-1")
+simple_intersection, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
+s_lane1 = dglane_from_position(np.array([0, 0]), simple_intersection.lanelet_network, succ_lane_selection=1)
+s_lane2 = dglane_from_position(np.array([70, -14]), simple_intersection.lanelet_network, succ_lane_selection=1)
 
 p0 = DGSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(0),
-    game_dt=D(1),
-    ref_lanes={P1: c_lane1, P2: c_lane2},
+    col_check_dt=D("0.51"),
+    ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
-    progress={P1: (D(0), D(8)), P2: (D(0), D(8))},
+    progress={P1: (D(135), D(160)), P2: (D(175), D(190))},
+    plot_limits=[[40, 100], [-25, 25]],
 )
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
-p_sym = p0
+
+p_asym = replace(p0, progress={P1: (D(140), D(160)), P2: (D(175), D(190))})
 
 
 def get_sym() -> GameSpec:
     desc = """
-    Super symmetric case. Min v = 1. Set-based uncertainty.
+    Simple intersection. (Super) symmetric case. Min v = 1. Set-based uncertainty.
     """
-    return GameSpec(desc, get_two_vehicle_game(p_sym, uncertainty_sets))
-
-
-p_asym = replace(p0, road_lane_offset=D(4))  # to the right
+    return GameSpec(desc, get_driving_game(p0, uncertainty_sets))
 
 
 def get_asym() -> GameSpec:
     desc = """
-    Slightly asymmetric case. West is advantaged.
-    Min v = 1. Set-based uncertainty.
+    Slightly asymmetric case. Min v = 1. Set-based uncertainty.
     """
-    return GameSpec(desc, get_two_vehicle_game(p_asym, uncertainty_sets))
-
-
-p_asym_minv0 = replace(p_asym, min_speed=D(0))
-
-
-def get_asym_minv0() -> GameSpec:
-    desc = """
-    Slightly asymmetric case. West is advantaged.
-    Min v = 0. Set-based uncertainty.
-    """
-    return GameSpec(desc, get_two_vehicle_game(p_asym_minv0, uncertainty_sets))
+    return GameSpec(desc, get_driving_game(p_asym, uncertainty_sets))
 
 
 def get_sym_prob() -> GameSpec:
@@ -82,33 +76,22 @@ def get_sym_prob() -> GameSpec:
     Super symmetric case. Min v = 1.
     Probability-based uncertainty (expected value).
     """
-    return GameSpec(desc, get_two_vehicle_game(p_sym, uncertainty_prob))
+    return GameSpec(desc, get_driving_game(copy(p0), uncertainty_prob))
 
 
 def get_asym_prob() -> GameSpec:
     desc = """
-    Slightly asymmetric case. West is advantaged.
-    Min v = 1. Probability-based uncertainty (expected value).
+    Slightly asymmetric case. Probability-based uncertainty (expected value).
     """
-    return GameSpec(desc, get_two_vehicle_game(p_asym, uncertainty_prob))
-
-
-def get_asym_minv0_prob() -> GameSpec:
-    desc = """
-    Slightly asymmetric case. West is advantaged.
-    Min v = 0. Probability-based uncertainty (expected value).
-    """
-    return GameSpec(desc, get_two_vehicle_game(p_asym_minv0, uncertainty_prob))
+    return GameSpec(desc, get_driving_game(copy(p_asym), uncertainty_prob))
 
 
 driving_games_zoo: Mapping[str, GameSpec] = fd(
     {
         "sym_v1_sets": get_sym(),
         "asym_v1_sets": get_asym(),
-        "asym_v0_sets": get_asym_minv0(),
         "sym_v1_prob": get_sym_prob(),
         "asym_v1_prob": get_asym_prob(),
-        "asym_v0_prob": get_asym_minv0_prob(),
     }
 )
 
