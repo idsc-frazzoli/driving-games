@@ -22,6 +22,7 @@ from networkx import connected_components, Graph, MultiDiGraph
 from zuper_commons.types import ZException
 
 from dg_commons import DgSampledSequence
+from dg_commons.time import time_function
 from dg_commons.utils_toolz import fkeyfilter, iterate_dict_combinations
 from games.solve.solution import solve_game2
 from games.solve.solution_structures import (
@@ -314,6 +315,7 @@ def get_accessible_states(
     return G
 
 
+@time_function
 def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     players = game.players
 
@@ -329,7 +331,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             is_joint_final=False,
             is_initial=True,
             generation=0,
-            in_game="AB",
+            in_game="AB",  # todo maybe string of players alive
         )
         stack.append(S)
     logger.info(stack=stack)
@@ -421,7 +423,7 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
         def ordering(n_):
             in_game = G.nodes[n_]["in_game"]
             in1 = ["A", "AB", "B"].index(in_game)
-            return (in1, affinities[n_])
+            return in1, affinities[n_]
 
         reordered = sorted(ordered, key=ordering)
 

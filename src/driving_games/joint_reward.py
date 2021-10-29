@@ -2,6 +2,8 @@ from dataclasses import replace
 from decimal import Decimal
 from typing import FrozenSet, Mapping, Dict
 
+from commonroad.scenario.lanelet import LaneletNetwork
+
 from dg_commons import PlayerName, Timestamp, DgSampledSequence
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
@@ -24,21 +26,24 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         game_dt: Timestamp,
         geometries: Mapping[PlayerName, VehicleGeometry],
         ref_lanes: Mapping[PlayerName, DgLanelet],
-        col_check_dt: float,
+        col_check_dt: Timestamp,
+        lanelet_network: LaneletNetwork,
     ):
         assert geometries.keys() == ref_lanes.keys()
         self.game_dt = Decimal(game_dt)
         self.geometries = geometries
         self.ref_lane = ref_lanes
         self.col_check_dt = col_check_dt
+        self.lanelet_network = lanelet_network
 
-    # @lru_cache(None)
+        # @lru_cache(None)
+
     def is_joint_final_state(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> FrozenSet[PlayerName]:
-        # res = self.joint_reward(txs)
-        # return frozenset(res) # fixme uncomment ones collisioncheck is ultimated
-        return frozenset({})
+        res = self.joint_reward(txs)
+        return frozenset(res)  # fixme uncomment ones collisioncheck is ultimated
+        # return frozenset({})
 
     def joint_reward(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
@@ -51,7 +56,7 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
                 return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
 
             global_xs[p] = txs[p].transform_values(to_vehicle_state, VehicleState)
-        res = collision_check(global_xs, self.geometries)
+        res = collision_check(global_xs, self.geometries, self.col_check_dt, self.lanelet_network)
         return res
 
 

@@ -64,8 +64,13 @@ def initialize_driving_game(dg_params: DGSimpleParams, uncertainty_params: Uncer
         players.update({p: game_p})
 
     dt = dg_params.game_dt
+    col_check_dt = dt / 2 + D("0.1")
     joint_reward = VehicleJointReward(
-        game_dt=dt, geometries=geometries, ref_lanes=dg_params.ref_lanes, col_check_dt=0.4
+        game_dt=dt,
+        geometries=geometries,
+        ref_lanes=dg_params.ref_lanes,
+        col_check_dt=col_check_dt,
+        lanelet_network=dg_params.scenario.lanelet_network,
     )
     game_visualization = DrivingGameVisualization(
         dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits
