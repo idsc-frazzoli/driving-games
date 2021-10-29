@@ -30,6 +30,7 @@ def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Re
 
 
 def report_game_visualization(game: Game) -> Report:
+    """Report with the initial status of the game"""
     viz = game.game_visualization
     r = Report("vis")
     with r.plot("initial") as pylab:

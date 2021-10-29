@@ -386,11 +386,14 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
 
 def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
     generations = defaultdict(list)
+    games_sets: Set[str] = set()
     for n in G.nodes:
+        games_sets.add(G.nodes[n]["in_game"])
         g = G.nodes[n]["generation"]
         others = generations[g]
         others.append(n)
 
+    sorted_games = sorted(games_sets)
     logger.info("reordering")
 
     for it in range(iterations):
@@ -421,7 +424,7 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
 
         def ordering(n_):
             in_game = G.nodes[n_]["in_game"]
-            in1 = ["A", "AB", "B"].index(in_game)
+            in1 = sorted_games.index(in_game)
             return in1, affinities[n_]
 
         reordered = sorted(ordered, key=ordering)

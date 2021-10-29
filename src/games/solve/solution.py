@@ -256,13 +256,13 @@ def _solve_game(
     solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]]
     solved_to_node = {}
 
-    for pure_actions in gn.outcomes:
+    for pure_actions in gn.transitions:
         # Incremental costs incurred if choosing this action
         inc: Dict[PlayerName, RP]
         inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
         # if we choose these actions, then these are the game nodes we could go in.
         # Note that each player can go in a different joint state.
-        next_nodes: Poss[M[PlayerName, JointState]] = gn.outcomes[pure_actions]
+        next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
 
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:

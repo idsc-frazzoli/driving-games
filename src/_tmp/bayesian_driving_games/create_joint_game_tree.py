@@ -36,7 +36,7 @@ def _initialize_bayesian_game_graph(game: BayesianGame, game_graph: GameGraph) -
         state2bnode[js] = BayesianGameNode(
             states=gnode.states,
             moves=gnode.moves,
-            outcomes=gnode.outcomes,
+            outcomes=gnode.transitions,
             is_final=gnode.is_final,
             incremental=gnode.incremental,
             joint_final_rewards=gnode.joint_final_rewards,

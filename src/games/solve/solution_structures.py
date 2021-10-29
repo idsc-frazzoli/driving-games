@@ -97,10 +97,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         In case there is only one move, then there is nothing for them to choose to do.
     """
 
-    outcomes: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
+    transitions: Mapping[JointPureActions, Poss[Mapping[PlayerName, JointState]]]
     """
-        The outcomes. Fixed an action for each player (a JointPureAction), we have
-        a distribution of outcomes. Each outcome is a map that tells us which
+        The transitions. Fixed an action for each player (a JointPureAction), we have
+        a distribution of future states. Each transition is a map that tells us which
         player goes to which joint state. This is a generalization beyond the usual
         formalization of games that allows us to send different players to different games.
 
@@ -127,7 +127,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         "is_final",
         "incremental",
         "joint_final_rewards",
-    ]  # only print only these attributes
+    ]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -135,8 +135,8 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
         check_joint_state(self.states, GameNode=self)
         check_player_options(self.moves, GameNode=self)
-        check_isinstance(self.outcomes, frozendict, GameNode=self)
-        for pure_actions, pr_game_node in self.outcomes.items():
+        check_isinstance(self.transitions, frozendict, GameNode=self)
+        for pure_actions, pr_game_node in self.transitions.items():
             check_joint_pure_actions(pure_actions)
             # check_isinstance(pr_game_node, dict)
             check_poss(pr_game_node, frozendict)
@@ -156,7 +156,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                 raise ZValueError(_self=self)
 
         # check that the actions are available
-        for jpa in self.outcomes:
+        for jpa in self.transitions:
             for player_name, action in jpa.items():
                 if player_name not in self.moves:
                     msg = f"The player {player_name!r} does not have any moves, so how can it choose?"
@@ -178,12 +178,12 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         all_combinations = set(iterate_dict_combinations(self.moves))
         if all_combinations == {frozendict()}:
             all_combinations = set()
-        if all_combinations != set(self.outcomes):
+        if all_combinations != set(self.transitions):
             msg = "There is a mismatch between the actions and the outcomes."
             raise ZValueError(
                 msg,
                 all_combinations=all_combinations,
-                pure_actions=set(self.outcomes),
+                pure_actions=set(self.transitions),
                 GameNode=self,
             )
 
@@ -200,14 +200,14 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         #             GameNode=self,
         #         )
 
-        self.check_players_in_outcome()
+        self.check_players_in_transition()
 
-    def check_players_in_outcome(self) -> None:
+    def check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""
         jpa: JointPureActions
-        consequences: Poss[Mapping[PlayerName, JointState]]
-        for jpa, consequences in self.outcomes.items():
-            for new_games in consequences.support():
+        futures: Poss[Mapping[PlayerName, JointState]]
+        for jpa, futures in self.transitions.items():
+            for new_games in futures.support():
                 for player_name, next_state in new_games.items():
                     if not player_name in next_state:
                         msg = f"The player {player_name!r} is transitioning to a state without it. "
@@ -227,7 +227,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
     """Returns the set of state mentioned in a GameNode"""
     res = set()
-    for _, out in game_node.outcomes.items():
+    for _, out in game_node.transitions.items():
         for player_to_js in out.support():
             for player_name, js in player_to_js.items():
                 res.add(js)

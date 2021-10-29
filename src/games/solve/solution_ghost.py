@@ -113,14 +113,14 @@ def replace_others(
 
             # find out which actions are compatible
             def f(a: JointPureActions) -> Poss[JointState]:
-                if a not in node.outcomes:
+                if a not in node.transitions:
                     raise ZValueError(
                         a=a,
                         node=node,
                         active_pure_action=active_pure_action,
-                        av=set(node.outcomes),
+                        av=set(node.transitions),
                     )
-                nodes2: Poss[JointState] = node.outcomes[a]
+                nodes2: Poss[JointState] = node.transitions[a]
                 return nodes2
 
             m: Poss[JointState] = ps.join(ps.build_multiple(active_mixed, f))

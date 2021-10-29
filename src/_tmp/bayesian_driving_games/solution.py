@@ -349,7 +349,7 @@ def _solve_bayesian_game(
     _ = next(iter(sc.game.players))
     type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
 
-    for pure_actions in gn.outcomes:
+    for pure_actions in gn.transitions:
         # Incremental costs incurred if choosing this action
 
         inc: Dict[PlayerName, RP]
@@ -363,7 +363,7 @@ def _solve_bayesian_game(
             }
         # if we choose these actions, then these are the game nodes
         # we could go in. Note that each player can go in a different joint state.
-        next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.outcomes[pure_actions]
+        next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.transitions[pure_actions]
 
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:

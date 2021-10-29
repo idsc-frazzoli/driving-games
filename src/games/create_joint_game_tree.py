@@ -110,7 +110,7 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     G = DiGraph()
     G.add_nodes_from(state2node)
     for js, gn in state2node.items():
-        for p in gn.outcomes.values():
+        for p in gn.transitions.values():
             for d in p.support():
                 for _, js2 in d.items():
                     G.add_edge(js, js2)
@@ -148,7 +148,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         return ic.cache[states]
 
     moves_to_state_everybody = get_moves(ic, states)
-    pure_outcomes: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
+    pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     ps = ic.game.ps
     ic2 = replace(ic, depth=ic.depth + 1)
 
@@ -158,7 +158,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         if _.personal_reward_structure.is_personal_final_state(player_state):
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_final[player_name] = f
-
+    # todo here forward checking of terminal states?!
     who_exits = frozenset(ic.game.joint_reward.is_joint_final_state(states))
     joint_final = who_exits
     if joint_final:
@@ -223,7 +223,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
                 return fkeyfilter(not_exiting, x)
 
         poutcomes: Poss[Mapping[PlayerName, JointState]] = ps.build(outcomes, r)
-        pure_outcomes[pure_action] = poutcomes
+        pure_transitions[pure_action] = poutcomes
 
         for p in poutcomes.support():
             for _, js_ in p.items():
@@ -237,7 +237,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     res = GameNode(
         moves=movesets_for_remaining,
         states=frozendict(states),
-        outcomes=frozendict(pure_outcomes),
+        transitions=frozendict(pure_transitions),
         incremental=fvalmap(frozendict, incremental),
         joint_final_rewards=frozendict(joint_final_rewards),
         is_final=frozendict(is_final),
