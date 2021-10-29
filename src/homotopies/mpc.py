@@ -13,8 +13,6 @@ class NMPCFullKinContParam:
 
 
 class MpcFullKinCont(MpcKinBase):
-    USE_STEERING_VELOCITY: bool = True
-
     """ Nonlinear MPC contouring control of vehicle. Kinematic model without prior discretization """
 
     def __init__(self, params: NMPCFullKinContParam):
@@ -23,19 +21,14 @@ class MpcFullKinCont(MpcKinBase):
 
         # Set right right hand side of differential equation for x, y, theta, v, delta and s
         dtheta = self.v * tan(self.delta) / self.params.vehicle_geometry.length
-        if self.params.rear_axle:
-            self.model.set_rhs("state_x", cos(self.theta) * self.v)
-            self.model.set_rhs("state_y", sin(self.theta) * self.v)
-        else:
-            vy = dtheta * self.params.vehicle_geometry.lr
-            self.model.set_rhs("state_x", self.v * cos(self.theta) - vy * sin(self.theta))
-            self.model.set_rhs("state_y", self.v * sin(self.theta) + vy * cos(self.theta))
+        vy = dtheta * self.params.vehicle_geometry.lr
+        self.model.set_rhs("state_x", self.v * cos(self.theta) - vy * sin(self.theta))
+        self.model.set_rhs("state_y", self.v * sin(self.theta) + vy * cos(self.theta))
 
         self.model.set_rhs("theta", dtheta)
         self.model.set_rhs("v", self.a)
         self.model.set_rhs("delta", self.v_delta)
-        if not self.params.analytical:
-            self.model.set_rhs("s", self.v_s)
+        self.model.set_rhs("s", self.v_s)
 
         self.model.setup()
         self.set_up_mpc()
