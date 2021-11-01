@@ -14,7 +14,8 @@ from dg_commons_dev.maps.lanes import DgLaneletControl
 from abc import ABC, abstractmethod
 from dg_commons import X
 from dataclasses import dataclass
-from dg_commons_dev.controllers.interface import Controller
+#from dg_commons_dev.controllers.interface import Controller
+from dg_commons_dev.controllers.controller_types import LatAndLonController
 
 vehicle_params = VehicleParameters.default_car()
 
@@ -39,8 +40,11 @@ class FullMPCKinParams:
     """ Sample Time """
     cost: Union[List[CostFunctions], CostFunctions] = QuadraticCost
     """ Cost function """
-    cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams()
-    """ Cost function parameters """
+    cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams(
+        q=SemiDef(matrix=np.eye(3)),
+        r=SemiDef(matrix=np.eye(2))
+    )
+    """ Cost function parameters, tuning needed"""
     delta_input_weight: Union[List[float], float] = 1e-2
     """ Weighting factor in cost function for varying input """
     vehicle_geometry: Union[List[VehicleGeometry], VehicleGeometry] = VehicleGeometry.default_car()
@@ -51,7 +55,7 @@ class FullMPCKinParams:
     delta_bounds: Union[List[Tuple[float, float]], Tuple[float, float]] = (-vehicle_params.default_car().delta_max,
                                                                            vehicle_params.default_car().delta_max)
     """ Steering Bounds """
-    path_approx_technique: Union[List[PathApproximationTechniques], PathApproximationTechniques] = LinearPath
+    path_approx_technique: Union[List[CurveApproximationTechnique], CurveApproximationTechnique] = LinearCurve
     """ Path approximation technique """
     acc_bounds: Tuple[float, float] = vehicle_params.acc_limits
     """ Accelertion bounds """
@@ -66,14 +70,14 @@ class FullMPCKinParams:
         else:
             assert MapCostParam[self.cost] == type(self.cost_params)
 
-        super().__post_init__()
+        #super().__post_init__()
 
 
-class FullMPCKin(Controller, ABC):
+class FullMPCKin(LatAndLonController, ABC):
     USE_STEERING_VELOCITY: bool = True
 
-    @abstractmethod
-    def __init__(self, params: FullMPCKinParams):
+    #@abstractmethod
+    def __init__(self, params: FullMPCKinParams = FullMPCKinParams()):
         # First of all import your parameters: you can parametrize your choices and so on...
         self.params = params
 
@@ -171,12 +175,12 @@ class FullMPCKin(Controller, ABC):
         self.set_scaling()
         """ Set bounds and scaling """
 
+        self.speed_ref = 0
         self.tvp_temp = self.mpc.get_tvp_template()
         self.mpc.set_tvp_fun(self.func)
         self.mpc.setup()
         """ Set up mpc """
 
-        self.speed_ref = 0
         self.path: Optional[DgLanelet] = None
         self.control_path: Optional[DgLaneletControl] = None
         self.current_beta: Optional[float] = None

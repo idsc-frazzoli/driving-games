@@ -7,7 +7,8 @@ from dg_commons.sim.models.vehicle import VehicleCommands
 from dg_commons.sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.simulator import SimContext
-from homotopies.mpc import MpcFullKinCont
+from homotopies.mpc_agent import MpcAgent
+from homotopies.example_full_kin_mpc import FullMPCKin
 
 P1, P2 = (
     PlayerName("P1"),
@@ -31,7 +32,8 @@ def get_homotopy_scenario() -> SimContext:
             VehicleCommands(acc=0, ddelta=0),
         ],
     )
-    mpc_agent = MpcFullKinCont()
+    mpc_controller = FullMPCKin()
+    mpc_agent = MpcAgent(mpc_controller)
     players = {P1: mpc_agent, P2: NPAgent(static_vehicle)}
     return SimContext(
         scenario=scenario,
