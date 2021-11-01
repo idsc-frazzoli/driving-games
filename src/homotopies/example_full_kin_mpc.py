@@ -1,11 +1,11 @@
 import do_mpc
-from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import *
-from sim.models.vehicle_structures import VehicleGeometry
+from dg_commons_dev.controllers.utils.cost_functions import *
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from geometry import translation_angle_from_SE2
-from dg_commons_dev.controllers.mpc.mpc_utils.cost_functions import CostFunctions, CostParameters, \
+from dg_commons_dev.controllers.utils.cost_functions import CostFunctions, CostParameters, \
     QuadraticCost, QuadraticParams
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
-from dg_commons_dev.controllers.path_approximation_techniques import PathApproximationTechniques, LinearPath
+from dg_commons_dev.curve_approximation_techniques import *
 from casadi import *
 from typing import List
 from typing import Union, Optional, Tuple
