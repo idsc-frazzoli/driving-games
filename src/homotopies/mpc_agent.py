@@ -22,7 +22,8 @@ class MpcAgent(Agent):
                        current_state.theta,
                        current_state.vx,
                        current_state.delta]).reshape(-1, 1)
-
+        self.mpc_controller.mpc.x0 = x0
+        self.mpc_controller.mpc.set_initial_guess()
         u0 = self.mpc_controller.mpc.make_step(x0)
         commands = VehicleCommands(acc=u0[0][0], ddelta=u0[1][0])
         return commands
