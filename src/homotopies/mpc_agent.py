@@ -1,5 +1,5 @@
 from typing import Optional, Any
-
+import numpy as np
 from dg_commons import PlayerName
 from dg_commons.sim import SimObservations
 from dg_commons.sim.agents import Agent
@@ -16,8 +16,16 @@ class MpcAgent(Agent):
         self.my_name = my_name
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
-        # todo
-        pass
+        current_state = sim_obs.players[self.my_name].state
+        x0 = np.array([current_state.x,
+                       current_state.y,
+                       current_state.theta,
+                       current_state.vx,
+                       current_state.delta]).reshape(-1, 1)
+
+        u0 = self.mpc_controller.mpc.make_step(x0)
+        commands = VehicleCommands(acc=u0[0][0], ddelta=u0[1][0])
+        return commands
 
     def on_get_extra(
         self,
