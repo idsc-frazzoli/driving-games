@@ -110,7 +110,7 @@ class FullMPCKin(LatAndLonController, ABC):
         """
 
         self.target_speed = self.model.set_variable(var_type='_tvp', var_name='target_speed', shape=(1, 1))
-        self.path_approx: PathApproximationTechniques = self.params.path_approx_technique()
+        self.path_approx: CurveApproximationTechnique = self.params.path_approx_technique()
         self.path_params = self.model.set_variable(var_type='_tvp', var_name='path_params',
                                                    shape=(self.path_approx.n_params, 1))
         self.path_parameters = self.path_approx.n_params * [0]

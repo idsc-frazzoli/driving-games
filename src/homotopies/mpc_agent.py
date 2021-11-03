@@ -5,9 +5,10 @@ from dg_commons.sim import SimObservations
 from dg_commons.sim.agents import Agent
 from dg_commons.sim.models.vehicle import VehicleCommands
 from homotopies.mpc import MpcFullKinCont
+#from homotopies.example_full_kin_mpc import FullMPCKin
 
 class MpcAgent(Agent):
-    def __init__(self, mpc_controller: MpcFullKinCont):
+    def __init__(self, mpc_controller: MpcFullKinCont = MpcFullKinCont()):
         self.mpc_controller = mpc_controller
         self.my_name: str = ""
 

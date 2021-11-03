@@ -15,6 +15,7 @@ class NMPCFullKinContParam:
 class MpcFullKinCont(MpcKinBase):
     """ Nonlinear MPC contouring control of vehicle. Kinematic model without prior discretization """
     USE_STEERING_VELOCITY: bool = True
+
     def __init__(self, params: MpcKinBaseParams = MpcKinBaseParams()):
         model_type = "continuous"  # either 'discrete' or 'continuous'
         super().__init__(params, model_type)
@@ -31,9 +32,3 @@ class MpcFullKinCont(MpcKinBase):
 
         self.model.setup()
         self.set_up_mpc()
-
-    def compute_targets(self):
-        self.path_approx.update_from_parameters(self.path_params)
-        return *self.path_approx.closest_point_on_path([self.state_x, self.state_y]), None
-
-

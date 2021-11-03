@@ -66,14 +66,14 @@ class MpcKinBase(LatAndLonController, ABC):
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
 
         self.target_speed = self.model.set_variable(var_type='_tvp', var_name='target_speed', shape=(1, 1))
-        self.path_approx: PathApproximationTechniques = self.params.path_approx_technique()
+        self.path_approx: CurveApproximationTechnique = self.params.path_approx_technique()
         self.path_params = self.model.set_variable(var_type='_tvp', var_name='path_params',
                                                    shape=(self.path_approx.n_params, 1))
         self.path_parameters = self.path_approx.n_params * [0]
 
         self.cost = self.params.cost(self.params.cost_params)
 
-        self.setup_mpc: Dict[str, Any] = {
+        self.setup_mpc = {
             'n_horizon': self.params.n_horizon,
             't_step': self.params.t_step,
             'store_full_solution': True,
@@ -101,6 +101,7 @@ class MpcKinBase(LatAndLonController, ABC):
         self.set_bounds()
         self.set_scaling()
 
+        self.speed_ref = 0
         self.tvp_temp = self.mpc.get_tvp_template()
         self.mpc.set_tvp_fun(self.func)
 
@@ -147,6 +148,10 @@ class MpcKinBase(LatAndLonController, ABC):
         self.mpc.scaling['_x', 'delta'] = 1
         self.mpc.scaling['_u', 'v_delta'] = 1
         self.mpc.scaling['_u', 'a'] = 1
+
+    def compute_targets(self):
+        self.path_approx.update_from_parameters(self.path_params)
+        return *self.path_approx.closest_point_on_path([self.state_x, self.state_y]), None
 
     def _update_reference_speed(self, speed_ref: float):
         self.speed_ref = speed_ref
