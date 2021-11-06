@@ -410,7 +410,7 @@ def _solve_bayesian_game(
     if gn.joint_final_rewards:  # final costs:
         # fixme: when n > 2, it might be that only part of the crew ends
         va = solve_final_joint_bayesian(sc, gn)
-    elif set(gn.states) == set(gn.is_final):
+    elif set(gn.states) == set(gn.personal_final_reward):
         # All the actives finish independently
         va = solve_final_personal_both_bayesian(sc, gn)
     else:
@@ -522,7 +522,7 @@ def solve_final_personal_both_bayesian(
     # todo check if this can be done better, I suspect it should go as follows:
     # game_value: M[PlayerName, M[M[PlayerName, PlayerType], UncertainCombined]]
     # for every player I have an outcome for every typecombination of the others
-    for player_name, p in gn.is_final.items():
+    for player_name, p in gn.personal_final_reward.items():
         for tc, personal in p.items():
             game_value[player_name, tc] = sc.game.ps.unit(Combined(personal=personal, joint=None))
     game_value_ = frozendict(game_value)

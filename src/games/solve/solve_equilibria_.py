@@ -66,7 +66,7 @@ def solve_equilibria(
         check_joint_mixed_actions(eq)
 
         game_value = dict(ea.nondom_nash_equilibria[eq])
-        for player_final, final_value in gn.is_final.items():
+        for player_final, final_value in gn.personal_final_reward.items():
             game_value[player_final] = ps.unit(Combined(final_value, None))
         if set(game_value) != set(gn.states):
             raise ZValueError("incomplete", game_value=game_value, gn=gn)

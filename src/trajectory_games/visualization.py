@@ -17,7 +17,7 @@ from dg_commons.maps import DgLanelet
 from dg_commons.sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
 from .paths import Trajectory
-from .preference import PosetalPreference, WeightedPreference
+from .preference import PosetalPreference, WeightedMetricPreference
 from .structures import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
 
@@ -96,14 +96,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         pref: PosetalPreference,
         pname: PlayerName,
         origin: Tuple[float, float],
-        labels: Mapping[WeightedPreference, str] = None,
+        labels: Mapping[WeightedMetricPreference, str] = None,
         add_title: bool = True,
     ):
 
         X, Y = origin
         G: DiGraph = pref.graph
 
-        def pos_node(n: WeightedPreference):
+        def pos_node(n: WeightedMetricPreference):
             x = G.nodes[n]["x"]
             y = G.nodes[n]["y"]
             return x + X, y + Y

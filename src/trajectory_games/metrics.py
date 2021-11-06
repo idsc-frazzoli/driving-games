@@ -476,8 +476,8 @@ def get_metrics_set() -> Set[Metric]:
 
 
 class MetricEvaluation:
-    _cache: Dict[JointTrajectories, JointPlayerEvaluatedMetrics] = {}
     metrics = get_metrics_set()
+    _cache: Dict[JointTrajectories, JointPlayerEvaluatedMetrics] = {}
 
     def __init__(self):
         raise Exception(f"Don't create instances of {type(self).__name__}!")
@@ -488,11 +488,7 @@ class MetricEvaluation:
         if traj in MetricEvaluation._cache:
             return MetricEvaluation._cache[traj]
 
-        context = MetricEvaluationContext(
-            scenario=world.scenario,
-            trajectories=traj,
-            # todo
-        )
+        context = MetricEvaluationContext(scenario=world.scenario, trajectories=traj, goals=world.goals)
         metric_results: Dict[Metric, JointEvaluatedMetric] = {}
         for metric in MetricEvaluation.metrics:
             metric_results[metric] = metric.evaluate(context)
@@ -511,9 +507,6 @@ class MetricEvaluation:
 
     @staticmethod
     def evaluate(trajectories: JointTrajectories, world: TrajectoryWorld) -> JointPlayerEvaluatedMetrics:
-        if not isinstance(trajectories, Hashable):
-            trajectories = frozendict(trajectories)
-
         if trajectories in MetricEvaluation._cache:
             return MetricEvaluation._cache[trajectories]
 

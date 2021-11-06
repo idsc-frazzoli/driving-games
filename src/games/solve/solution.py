@@ -258,7 +258,7 @@ def _solve_game(
 
     for pure_actions in gn.transitions:
         # Incremental costs incurred if choosing this action
-        inc: Dict[PlayerName, RP]
+        inc: Dict[PlayerName, Poss[RP]]
         inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
         # if we choose these actions, then these are the game nodes we could go in.
         # Note that each player can go in a different joint state.
@@ -302,7 +302,7 @@ def _solve_game(
     if gn.joint_final_rewards:  # final costs:
         # fixme: when n > 2, it might be that only part of the crew ends
         va = solve_final_joint(sc, gn)
-    elif set(gn.states) == set(gn.is_final):
+    elif set(gn.states) == set(gn.personal_final_reward):
         # All the actives finish independently
         va = solve_final_personal_both(sc, gn)
     else:
@@ -407,7 +407,7 @@ def solve_final_personal_both(
     :return:
     """
     game_value: Dict[PlayerName, UncertainCombined] = {}
-    for player_name, personal in gn.is_final.items():
+    for player_name, personal in gn.personal_final_reward.items():
         game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
     game_value_ = frozendict(game_value)
     actions = frozendict()

@@ -61,7 +61,7 @@ def create_game_graph(
     """Create the game graph."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
-    logger.info("creating game tree")
+    logger.info("Creating game tree")
     for js in initials:
         _create_game_graph(ic, js)
 
@@ -240,7 +240,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         transitions=frozendict(pure_transitions),
         incremental=fvalmap(frozendict, incremental),
         joint_final_rewards=frozendict(joint_final_rewards),
-        is_final=frozendict(is_final),
+        personal_final_reward=frozendict(is_final),
         resources=frozendict(resources),
     )
     ic.cache[states] = res

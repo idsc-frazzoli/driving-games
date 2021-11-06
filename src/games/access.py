@@ -13,6 +13,7 @@ from typing import (
     Set,
     Tuple,
     Optional,
+    NoReturn,
 )
 
 import numpy as np
@@ -317,8 +318,8 @@ def get_accessible_states(
 
 @time_function
 def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
+    """Gets the game graph, used only for visualisation? the real game tree is built in create_joint_game_tree"""
     players = game.players
-
     init_states: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), players)
 
     G = MultiDiGraph()
@@ -374,8 +375,8 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                         generation=generation + 1,
                         in_game="-".join(S2.keys()),
                     )
+                    # if anyone is still alive
                     if any(p not in ending_players for p in S2):
-                        # if anyone is still alive
                         if S2 not in stack:
                             stack.append(S2)
                 G.add_edge(S, S2, action=players_n_actions)
@@ -384,7 +385,8 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     return G
 
 
-def compute_graph_layout(G: MultiDiGraph, iterations: int) -> None:
+def compute_graph_layout(G: MultiDiGraph, iterations: int) -> NoReturn:
+    """Sorts nodes for visualisation"""
     generations = defaultdict(list)
     games_sets: Set[str] = set()
     for n in G.nodes:

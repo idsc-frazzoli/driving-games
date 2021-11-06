@@ -44,7 +44,7 @@ JointTransition = Mapping[PlayerName, DgSampledSequence[X]]
 """ A joint Transition: a sequence of players states. """
 
 PlayerOptions = Mapping[PlayerName, FrozenSet[U]]
-""" List of options for each player """
+""" List of options for each player (available actions)"""
 
 JointPureActions = Mapping[PlayerName, U]
 """ A pure action for each player"""

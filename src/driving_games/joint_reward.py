@@ -41,7 +41,6 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
     ) -> FrozenSet[PlayerName]:
         res = self.joint_reward(txs)
         return frozenset(res)
-        # return frozenset({})
 
     def joint_reward(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]

@@ -68,7 +68,7 @@ def replace_others(
     # evaluate the results
     action_fixed: Dict[PlayerName, Poss[U]] = {}
     for player_name in node.states:
-        if player_name in node.is_final:
+        if player_name in node.personal_final_reward:
             continue
         if player_name in node.joint_final_rewards:
             continue
@@ -133,7 +133,7 @@ def replace_others(
             states=node.states,
             moves=new_moves,
             outcomes=fd(res),
-            is_final=node.is_final,
+            is_final=node.personal_final_reward,
             incremental=fd(new_incremental),
             joint_final_rewards=node.joint_final_rewards,
             resources=node.resources,

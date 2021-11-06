@@ -1,5 +1,5 @@
-from trajectory_games import VehicleGeometry
 from dg_commons import SE2Transform
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from trajectory_games.metrics import Clearance
 from dg_commons import PlayerName
 from nose.tools import assert_almost_equal
@@ -7,7 +7,7 @@ from nose.tools import assert_almost_equal
 
 def test_clearance():
 
-    geo1 = VehicleGeometry(m=100, w=1, l=2, colour=(1, 0, 0))
+    geo1 = VehicleGeometry.default_car(color=(1, 0, 0))
     p1 = PlayerName("P1")
     p2 = PlayerName("P2")
     pos0 = SE2Transform(p=[0.0, 0.0], theta=1.57)

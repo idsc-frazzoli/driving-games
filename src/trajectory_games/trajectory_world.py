@@ -6,6 +6,7 @@ from shapely.geometry import Polygon
 
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
+from dg_commons.planning import PlanningGoal
 from .structures import VehicleGeometry
 
 __all__ = ["TrajectoryWorld"]
@@ -26,10 +27,11 @@ class TrajectoryWorld:
 
     lanes: Mapping[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]]
     """ Reference lanes for each player """
+    goals: Mapping[PlayerName, PlanningGoal]
 
     def __post_init__(self):
         assert (
-            self.lanes.keys() == self.geo.keys()
+            self.lanes.keys() == self.geo.keys() == self.goals.keys()
         ), f"Keys do not match: lanes = {self.lanes.keys()}, geo = {self.geo.keys()}"
 
     def get_players(self) -> List[PlayerName]:

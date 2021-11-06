@@ -108,7 +108,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         the play can be decoupled. Then we would send A to the game {A:x} and B to the game {B:y}.
     """
 
-    is_final: Mapping[PlayerName, RP]
+    personal_final_reward: Mapping[PlayerName, RP]
     """ Final cost for the players that terminate here."""
 
     incremental: Mapping[PlayerName, Mapping[U, Poss[RP]]]
@@ -146,7 +146,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                     check_isinstance(k, str)
                     check_joint_state(js)
 
-        check_isinstance(self.is_final, frozendict, _=self)
+        check_isinstance(self.personal_final_reward, frozendict, _=self)
         check_isinstance(self.incremental, frozendict, _=self)
         check_isinstance(self.joint_final_rewards, frozendict, _=self)
 
@@ -166,7 +166,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                     raise ZValueError(msg, player_name=player_name, action=action, GameNode=self)
         # check that if a player is not final then it has at least 1 move
         all_players = set(self.states)
-        final_players = set(self.is_final) | set(self.joint_final_rewards)
+        final_players = set(self.personal_final_reward) | set(self.joint_final_rewards)
         continuing_players = all_players - final_players
         for player_name in continuing_players:
             if not player_name in self.moves:
@@ -213,7 +213,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                         msg = f"The player {player_name!r} is transitioning to a state without it. "
                         raise ZValueError(msg, GameNode=self)
 
-                    if player_name in self.is_final:
+                    if player_name in self.personal_final_reward:
                         msg = (
                             f"The player {player_name!r} is transitioning to a state but it is marked as "
                             f"personal final."
@@ -417,7 +417,7 @@ class GameSolution(Generic[X, U, Y, RP, RJ, SR]):
     initials: AbstractSet[JointState]
     """ Set of initial states for which we have a solution """
 
-    states_to_solution: Dict[JointState, SolvedGameNode]
+    states_to_solution: Mapping[JointState, SolvedGameNode]
     """ The solution of each state. """
 
     policies: Mapping[PlayerName, Mapping[X, Mapping[Poss[JointState], Poss[U]]]]

@@ -11,6 +11,7 @@ from geometry import SE2_from_xytheta
 from yaml import safe_load
 
 from dg_commons import Color
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from .config import CONFIG_DIR
 
 __all__ = [

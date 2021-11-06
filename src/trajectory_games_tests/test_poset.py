@@ -8,7 +8,7 @@ from nose.tools import assert_equal
 
 from driving_games.metrics_structures import Metric, EvaluatedMetric
 from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
-from trajectory_games import PosetalPreference, DgSampledSequence, WeightedPreference
+from trajectory_games import PosetalPreference, DgSampledSequence, WeightedMetricPreference
 from trajectory_games.metrics import (
     get_metrics_set,
     EpisodeTime,
@@ -154,7 +154,7 @@ def compare_posets(A: PosetalPreference, B: PosetalPreference) -> ComparisonOutc
 
 def check_subset(A: PosetalPreference, B: PosetalPreference) -> bool:
     # Check if node is a weighted node or not
-    def check_weighted(wnode: WeightedPreference) -> bool:
+    def check_weighted(wnode: WeightedMetricPreference) -> bool:
         total: int = sum([w > D("0") for _, w in wnode.weights.items()])
         return total != 1
 

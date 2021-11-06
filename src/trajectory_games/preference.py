@@ -7,7 +7,7 @@ from frozendict import frozendict
 from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
 from yaml import safe_load
 
-from driving_games.metrics_structures import Metric
+from driving_games.metrics_structures import Metric, PlayerEvaluatedMetrics
 from preferences import (
     Preference,
     ComparisonOutcome,
@@ -20,82 +20,85 @@ from preferences import (
 from .config import CONFIG_DIR
 from .config.ral import config_dir_ral
 from .metrics import get_metrics_set
-from .metrics_def import PlayerOutcome
 
 __all__ = [
-    "WeightedPreference",
+    "WeightedMetricPreference",
     "PosetalPreference",
 ]
 
 AllMetrics = Union[Metric, "WeightedPreference"]
 
 
-class WeightedPreference(Preference[PlayerOutcome]):
+class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
     """Compare the total weighted values between evaluated metrics"""
 
     name: str
-    weights: Mapping[AllMetrics, D]
-    """ Weights of the different nodes.
-    Each node can either be a metric or a weighted preference """
+    weights: Mapping[Metric, float]
+    """ Weights of the different nodes. Each node can either be a metric or a weighted preference """
 
     """ Internal parameters """
     _pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
     _config: Mapping = None
     _metric_dict: Dict[str, AllMetrics] = None
 
-    def __init__(self, weights_str: str):
-        if WeightedPreference._config is None:
+    def __init__(
+        self,
+        weights_str: str,
+    ):
+        if WeightedMetricPreference._config is None:
             filename = os.path.join(CONFIG_DIR, "pref_nodes.yaml")
             with open(filename) as load_file:
-                WeightedPreference._config = safe_load(load_file)
-            WeightedPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
+                WeightedMetricPreference._config = safe_load(load_file)
+            WeightedMetricPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
 
         self.name = weights_str
         weights: Dict[AllMetrics, D] = {}
-        for k, v in WeightedPreference._config[weights_str].items():
-            if k not in WeightedPreference._metric_dict:
+        for k, v in WeightedMetricPreference._config[weights_str].items():
+            if k not in WeightedMetricPreference._metric_dict:
                 try:
-                    w_metric = WeightedPreference(weights_str=k)
+                    w_metric = WeightedMetricPreference(weights_str=k)
                 except:
                     raise ValueError(f"Key {k} not found in metrics or weighted metrics!")
-                WeightedPreference._metric_dict[k] = w_metric
-            weights[WeightedPreference._metric_dict[k]] = D(v)
+                WeightedMetricPreference._metric_dict[k] = w_metric
+            weights[WeightedMetricPreference._metric_dict[k]] = D(v)
         self.weights = weights
 
     def get_type(
         self,
-    ) -> Type[PlayerOutcome]:
-        return PlayerOutcome
+    ) -> Type[PlayerEvaluatedMetrics]:
+        return PlayerEvaluatedMetrics
 
-    def evaluate(self, outcome: PlayerOutcome) -> D:
+    def compare(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
+        return self._pref.compare(self.evaluate(a), self.evaluate(b))
+
+    def evaluate(self, outcome: PlayerEvaluatedMetrics) -> D:
         w = D("0")
         for metric, weight in self.weights.items():
             value = (
-                metric.evaluate(outcome=outcome) if isinstance(metric, WeightedPreference) else D(outcome[metric].total)
+                metric.evaluate(outcome=outcome)
+                if isinstance(metric, WeightedMetricPreference)
+                else D(outcome[metric].total)
             )
             w += value * weight
         return w
-
-    def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
-        return self._pref.compare(self.evaluate(a), self.evaluate(b))
 
     def __repr__(self):
         ret: str = ""
         for metric, weight in self.weights.items():
             if len(ret) > 0:
                 ret += "\n"
-            met_str = metric.name if isinstance(metric, WeightedPreference) else type(metric).__name__
+            met_str = metric.name if isinstance(metric, WeightedMetricPreference) else type(metric).__name__
             ret += f"{round(float(weight), 2)}*{met_str}"
         return ret
 
-    def __lt__(self, other: "WeightedPreference") -> bool:
+    def __lt__(self, other: "WeightedMetricPreference") -> bool:
         return len(self.weights) < len(other.weights)
 
 
-metric_type = NewType("metric", WeightedPreference)  # fixme this does not seem right
+metric_type = NewType("metric", WeightedMetricPreference)  # fixme this does not seem right
 
 
-class PosetalPreference(Preference[PlayerOutcome]):
+class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
     """A preference specified over the various nodes.
     Each node is a metric or a weighted combination of metrics (or weighted nodes)"""
 
@@ -116,7 +119,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
         INDIFFERENT: INDIFFERENT,
         INCOMPARABLE: INCOMPARABLE,
     }
-    _cache: Dict[Tuple[PlayerOutcome, PlayerOutcome], ComparisonOutcome]
+    _cache: Dict[Tuple[PlayerEvaluatedMetrics, PlayerEvaluatedMetrics], ComparisonOutcome]
     _node_dict: Dict[str, metric_type] = {}
 
     def __init__(self, pref_str: str, use_cache: bool = False):
@@ -143,7 +146,7 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def add_node(self, name: str) -> metric_type:
         if name not in PosetalPreference._node_dict:
-            node = WeightedPreference(weights_str=name)
+            node = WeightedMetricPreference(weights_str=name)
             PosetalPreference._node_dict[name] = node
         else:
             node = PosetalPreference._node_dict[name]
@@ -201,10 +204,10 @@ class PosetalPreference(Preference[PlayerOutcome]):
 
     def get_type(
         self,
-    ) -> Type[PlayerOutcome]:
-        return PlayerOutcome
+    ) -> Type[PlayerEvaluatedMetrics]:
+        return PlayerEvaluatedMetrics
 
-    def compare(self, a: PlayerOutcome, b: PlayerOutcome) -> ComparisonOutcome:
+    def compare(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
 
         if self.no_pref:
             return INDIFFERENT
