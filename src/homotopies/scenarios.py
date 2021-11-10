@@ -20,8 +20,8 @@ def get_homotopy_scenario() -> SimContext:
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
 
     x0_p1 = VehicleStateDyn(x=0, y=0, theta=deg2rad(60), vx=5, delta=0)
-    x0_p2 = VehicleStateDyn(x=24, y=6, theta=deg2rad(150), vx=6, delta=0)
-    models = {P1: VehicleModelDyn.default_car(x0_p1), P2: VehicleModelDyn.default_bicycle(x0_p2)}
+    x0_p2 = VehicleStateDyn(x=5, y=10, theta=deg2rad(60), vx=0, delta=0)
+    models = {P1: VehicleModelDyn.default_car(x0_p1), P2: VehicleModelDyn.default_car(x0_p2)}
 
     static_vehicle = DgSampledSequence[VehicleCommands](
         timestamps=[
@@ -31,7 +31,8 @@ def get_homotopy_scenario() -> SimContext:
             VehicleCommands(acc=0, ddelta=0),
         ],
     )
-    mpc_agent = MpcAgent()
+    target_pos = [10, 15]
+    mpc_agent = MpcAgent(target_pos)
     players = {P1: mpc_agent, P2: NPAgent(static_vehicle)}
     return SimContext(
         scenario=scenario,

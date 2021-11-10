@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from typing import Tuple
 import do_mpc
 import numpy as np
+from dg_commons.sim.models.vehicle import VehicleState
+
 from dg_commons import X
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
@@ -35,8 +37,6 @@ class MpcKinBaseParams:
     delta_bounds: Union[List[Tuple[float, float]], Tuple[float, float]] = (-vehicle_params.default_car().delta_max,
                                                                            vehicle_params.default_car().delta_max)
     """ Steering Bounds """
-    path_approx_technique: Union[List[CurveApproximationTechnique], CurveApproximationTechnique] = LinearCurve
-    """ Path approximation technique """
     acc_bounds: Tuple[float, float] = vehicle_params.acc_limits
     """ Accelertion bounds """
     v_bounds: Tuple[float, float] = vehicle_params.vx_limits
@@ -51,7 +51,7 @@ class MpcKinBaseParams:
             assert MapCostParam[self.cost] == type(self.cost_params)
 
 
-class MpcKinBase(LatAndLonController, ABC):
+class MpcKinBase:
     def __init__(self, params, model_type: str):
         self.params = params
         self.model = do_mpc.model.Model(model_type)
@@ -66,10 +66,19 @@ class MpcKinBase(LatAndLonController, ABC):
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
 
         self.target_speed = self.model.set_variable(var_type='_tvp', var_name='target_speed', shape=(1, 1))
-        self.path_approx: CurveApproximationTechnique = self.params.path_approx_technique()
-        self.path_params = self.model.set_variable(var_type='_tvp', var_name='path_params',
-                                                   shape=(self.path_approx.n_params, 1))
-        self.path_parameters = self.path_approx.n_params * [0]
+        self.target_x = self.model.set_variable(var_type='_tvp', var_name='target_x', shape=(1, 1))
+        self.target_y = self.model.set_variable(var_type='_tvp', var_name='target_y', shape=(1, 1))
+        self.target = np.zeros(2)
+        self.target_tolerance = 2
+
+        self.obstacle_obs: VehicleState = None
+        self.obstacle_obs_flag = False
+        self.obstacle_state = self.model.set_variable(var_type='_tvp', var_name='obstacle_state', shape=(5, 1))
+        ref_direction = arctan2(self.target_x, self.target_y)
+        curvilinear_s = self.state_x * cos(ref_direction) + self.state_y * sin(ref_direction)
+        curvilinear_e = self.state_x * cos(ref_direction-pi/2) + self.state_y * sin(ref_direction-pi/2)
+        self.model.set_expression('curvilinear_s', curvilinear_s)
+        self.model.set_expression('curvilinear_e', curvilinear_e)
 
         self.homotopy_classes = self.model.set_variable('_p', 'homotopy')#0 for overtaking from left, 1 for overtaking from right
 
@@ -81,45 +90,9 @@ class MpcKinBase(LatAndLonController, ABC):
             'store_full_solution': True,
         }
 
-
-
-    def _update_reference_speed(self, speed_ref: float):
-        self.speed_ref = speed_ref
-
-    def _get_acceleration(self, at: float) -> float:
-        """
-        :return: float the desired wheel angle
-        """
-        if any([_ is None for _ in [self.path]]):
-            raise RuntimeError("Attempting to use PurePursuit before having set any observations or reference path")
-        try:
-            return self.u[2][0]
-        except IndexError:
-            return self.u[1][0]
-
-    def _get_steering(self, at: float):
-        return self.u[0][0]
-
-    def _update_obs(self, new_obs: Optional[X] = None):
-        self.current_position = np.array([new_obs.x, new_obs.y])
-        self.current_speed = new_obs.vx
-        control_sol_params = self.control_path.ControlSolParams(self.current_speed, self.params.t_step)
-        self.current_beta, _ = self.control_path.find_along_lane_closest_point(self.current_position,
-                                                                               control_sol=control_sol_params)
-        """ Update current state of the vehicle """
-        pos1, angle1, pos2, angle2, pos3, angle3 = self.next_pos(self.current_beta)
-        self.path_approx.update_from_data(pos1, angle1, pos2, angle2, pos3, angle3)
-        params = self.path_approx.parameters
-        """ Generate current path approximation """
-        self.path_parameters = params[:self.path_approx.n_params]
-
-        x0_temp = [self.current_position[0], self.current_position[1], new_obs.theta, self.current_speed, new_obs.delta]
-        x0_temp = x0_temp if self.params.analytical else x0_temp + [pos1[0]]
-        x0 = np.array(x0_temp).reshape(-1, 1)
-        """ Define initial condition """
-        self.mpc.x0 = x0
-        self.mpc.set_initial_guess()
-        self.u = self.mpc.make_step(x0)
-        """ Compute input """
-
+    def constraints_obs(self, s):
+        obs_width = self.params.vehicle_geometry.w_half
+        obs_lf = self.params.vehicle_geometry.w_half
+        corner_left_rear = [self.obstacle_state[0], self.obstacle_state[1]]
+        return [[0, 5], [7, 12]]
 

@@ -8,21 +8,25 @@ from dg_commons.sim.models.vehicle import VehicleCommands, VehicleState
 from homotopies.mpc import MpcFullKinCont
 
 
-# from homotopies.example_full_kin_mpc import FullMPCKin
-
 class MpcAgent(Agent):
-    def __init__(self, mpc_controller: MpcFullKinCont = MpcFullKinCont()):
+    def __init__(self, target_pos, mpc_controller: MpcFullKinCont = MpcFullKinCont()):
         self.mpc_controller = mpc_controller
         self.my_name: PlayerName = None
         self.my_state: VehicleState = None
         self.plot_horizon = self.mpc_controller.params.n_horizon
+
+        self.mpc_controller.target = target_pos
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
 
     def get_commands(self, sim_obs: SimObservations) -> VehicleCommands:
         self.my_state = sim_obs.players[self.my_name].state
-
+        for key in sim_obs.players.keys():
+            if not key == self.my_name:
+                obs_name = key
+        self.mpc_controller.obstacle_obs = sim_obs.players[obs_name].state
+        self.mpc_controller.obstacle_obs_flag = True
         x0 = np.array([self.my_state.x,
                        self.my_state.y,
                        self.my_state.theta,
@@ -37,14 +41,13 @@ class MpcAgent(Agent):
     def on_get_extra(
             self,
     ) -> Optional[DrawableTrajectoryType]:
-        #opt_x_num['_x', time_step, scenario, collocation_point, _x_name]
-        values = [self.my_state]
+        future_states = [self.my_state]
         timestamps = [0]
         for time_step in range(self.plot_horizon):
-            values = values + [self.get_future_state(time_step+1)]
+            future_states = future_states + [self.get_future_state(time_step+1)]
             timestamps = timestamps + [time_step+1]
-        trajectory = DgSampledSequence[VehicleState](timestamps, values=values)
-        return [(trajectory, "gold")]
+        trajectory_mpc = DgSampledSequence[VehicleState](timestamps, values=future_states)
+        return [(trajectory_mpc, "gold")]
 
     def get_future_state(self, time_step: int) -> VehicleState:
         x_t = np.array(self.mpc_controller.mpc.opt_x_num['_x', time_step, 0, 0]).squeeze()
