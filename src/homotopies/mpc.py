@@ -42,8 +42,7 @@ class MpcFullKinCont(MpcKinBase):
         self.mpc.set_param(**self.setup_mpc)
         suppress_ipopt = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
         self.mpc.set_param(nlpsol_opts=suppress_ipopt)
-        
-        print(self.target)
+
         lterm = self.lterm(self.target[0], self.target[1], self.target_tolerance, 0)
         mterm = self.mterm(self.target[0], self.target[1], self.target_tolerance, 0)
 
