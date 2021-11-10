@@ -31,7 +31,7 @@ def get_homotopy_scenario() -> SimContext:
             VehicleCommands(acc=0, ddelta=0),
         ],
     )
-    target_pos = [10, 15]
+    target_pos = [10, 20]
     mpc_agent = MpcAgent(target_pos)
     players = {P1: mpc_agent, P2: NPAgent(static_vehicle)}
     return SimContext(
