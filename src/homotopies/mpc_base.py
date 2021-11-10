@@ -65,20 +65,9 @@ class MpcKinBase:
         self.a = self.model.set_variable(var_type="_u", var_name="a")
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
 
-        self.target_speed = self.model.set_variable(var_type='_tvp', var_name='target_speed', shape=(1, 1))
-        self.target_x = self.model.set_variable(var_type='_tvp', var_name='target_x', shape=(1, 1))
-        self.target_y = self.model.set_variable(var_type='_tvp', var_name='target_y', shape=(1, 1))
-        self.target = np.zeros(2)
-        self.target_tolerance = 2
-
         self.obstacle_obs: VehicleState = None
         self.obstacle_obs_flag = False
         self.obstacle_state = self.model.set_variable(var_type='_tvp', var_name='obstacle_state', shape=(5, 1))
-        ref_direction = arctan2(self.target_x, self.target_y)
-        curvilinear_s = self.state_x * cos(ref_direction) + self.state_y * sin(ref_direction)
-        curvilinear_e = self.state_x * cos(ref_direction-pi/2) + self.state_y * sin(ref_direction-pi/2)
-        self.model.set_expression('curvilinear_s', curvilinear_s)
-        self.model.set_expression('curvilinear_e', curvilinear_e)
 
         self.homotopy_classes = self.model.set_variable('_p', 'homotopy')#0 for overtaking from left, 1 for overtaking from right
 
@@ -90,9 +79,4 @@ class MpcKinBase:
             'store_full_solution': True,
         }
 
-    def constraints_obs(self, s):
-        obs_width = self.params.vehicle_geometry.w_half
-        obs_lf = self.params.vehicle_geometry.w_half
-        corner_left_rear = [self.obstacle_state[0], self.obstacle_state[1]]
-        return [[0, 5], [7, 12]]
 

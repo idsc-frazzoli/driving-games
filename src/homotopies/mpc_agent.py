@@ -9,13 +9,14 @@ from homotopies.mpc import MpcFullKinCont
 
 
 class MpcAgent(Agent):
-    def __init__(self, target_pos, mpc_controller: MpcFullKinCont = MpcFullKinCont()):
-        self.mpc_controller = mpc_controller
+    def __init__(self, target_pos):
+        self.mpc_controller = MpcFullKinCont(target_pos)
         self.my_name: PlayerName = None
         self.my_state: VehicleState = None
         self.plot_horizon = self.mpc_controller.params.n_horizon
 
         self.mpc_controller.target = target_pos
+        self.mpc_controller.target_direction = np.arctan2(target_pos[0], target_pos[1])
 
     def on_episode_init(self, my_name: PlayerName):
         self.my_name = my_name
