@@ -28,8 +28,10 @@ class MpcFullKinCont(MpcKinBase):
         self.model.set_rhs("delta", self.v_delta)
 
         self.target = target
-        self.target_direction = np.arctan2(target[0], target[1])
+        self.target_direction = np.arctan2(target[1], target[0])
         self.target_tolerance = 2
+
+        self.homotopy_class = np.array([0])  # 0 for overtaking from left, 1 for right
 
         self.model.setup()
         self.mpc = do_mpc.controller.MPC(self.model)
@@ -52,8 +54,7 @@ class MpcFullKinCont(MpcKinBase):
             v_delta=self.params.delta_input_weight
         )
 
-        homotopy_class = np.array([1])
-        self.mpc.set_uncertainty_values(homotopy=homotopy_class)
+        self.mpc.set_uncertainty_values(homotopy=self.homotopy_class)
 
         self.set_bounds()
         self.set_scaling()
@@ -69,7 +70,6 @@ class MpcFullKinCont(MpcKinBase):
         It has to take time as input argument and can be deterministic and non-deterministic (simple function of time
         or, as in this case, can change depending on incoming observations).
         """
-        #print('t_now ', t_now, 'curvilinear_s', self.model.aux['curvilinear_s'])
         if self.obstacle_obs_flag:
             obstacle_state = np.array([self.obstacle_obs.x,
                                        self.obstacle_obs.y,
@@ -79,6 +79,8 @@ class MpcFullKinCont(MpcKinBase):
         else:
             obstacle_state = np.zeros([5, 1])
         for k in range(self.params.n_horizon+1):
+            obstacle_state[0] += obstacle_state[3]*self.params.t_step*cos(obstacle_state[2])
+            obstacle_state[1] += obstacle_state[3]*self.params.t_step*sin(obstacle_state[2])
             self.tvp_temp['_tvp', k, 'obstacle_state'] = obstacle_state
         return self.tvp_temp
 
@@ -100,17 +102,45 @@ class MpcFullKinCont(MpcKinBase):
 
     def set_bounds(self):
         """ Here you might set bounds with time-varying parameters. """
-        self.mpc.bounds['lower', '_u', 'v_delta'] = self.params.v_delta_bounds[0]
-        self.mpc.bounds['upper', '_u', 'v_delta'] = self.params.v_delta_bounds[1]
-        self.mpc.bounds['lower', '_x', 'delta'] = self.params.delta_bounds[0]
-        self.mpc.bounds['upper', '_x', 'delta'] = self.params.delta_bounds[1]
-        self.mpc.bounds['lower', '_x', 'v'] = self.params.v_bounds[0]
-        self.mpc.bounds['upper', '_x', 'v'] = self.params.v_bounds[1]
-        self.mpc.bounds['lower', '_u', 'a'] = self.params.acc_bounds[0]
-        self.mpc.bounds['upper', '_u', 'a'] = self.params.acc_bounds[1]
-        state_s, state_e = self.world2curvilinear(self.state_x, self.state_y)
-        self.mpc.set_nl_cons('lb_right', self.constraints_obs(state_s)[1][0] - state_e, ub=0, soft_constraint=True)
-        self.mpc.set_nl_cons('ub_right', state_e - self.constraints_obs(state_s)[1][1], ub=0, soft_constraint=True)
+        self.mpc.bounds['lower', '_u', 'v_delta'] = self.params.v_delta_bounds[0]+0.01
+        self.mpc.bounds['upper', '_u', 'v_delta'] = self.params.v_delta_bounds[1]-0.01
+        self.mpc.bounds['lower', '_u', 'a'] = self.params.acc_bounds[0]+0.01
+        self.mpc.bounds['upper', '_u', 'a'] = self.params.acc_bounds[1]-0.01
+        self.mpc.bounds['lower', '_x', 'delta'] = self.params.delta_bounds[0]+0.01
+        self.mpc.bounds['upper', '_x', 'delta'] = self.params.delta_bounds[1]-0.01
+        self.mpc.bounds['lower', '_x', 'v'] = self.params.v_bounds[0]+0.01
+        self.mpc.bounds['upper', '_x', 'v'] = self.params.v_bounds[1]-0.01
+
+        state_e, state_s = self.frame_rotation(self.state_x, self.state_y,  self.target_direction-np.pi/2)
+        self.mpc.set_nl_cons('lb_right', self.homotopy*(self.constraints_obs(state_s, self.obstacle_state)[1][0]-state_e+0.5), ub=0)
+        self.mpc.set_nl_cons('ub_right', self.homotopy * (state_e-self.constraints_obs(state_s, self.obstacle_state)[1][1]), ub=0)
+        self.mpc.set_nl_cons('lb_left', (1-self.homotopy) * (self.constraints_obs(state_s, self.obstacle_state)[0][0]-state_e), ub=0)
+        self.mpc.set_nl_cons('ub_left', (1-self.homotopy) * (state_e-self.constraints_obs(state_s, self.obstacle_state)[0][1]+0.5), ub=0)
+
+    def constraints_obs(self, vehicle_s, obstacle_state):
+        obs_width_half = self.params.vehicle_geometry.w_half
+        obs_lf = self.params.vehicle_geometry.lf
+        obs_lr = self.params.vehicle_geometry.lr
+        obs_e, obs_s = self.frame_rotation(obstacle_state[0], obstacle_state[1], self.target_direction-np.pi/2)
+        obs_theta = obstacle_state[2]-self.target_direction
+        corner_left_rear = [obs_s - 2*obs_lr, obs_e - 2*obs_width_half]
+        corner_left_front = [obs_s + 2*obs_lr, obs_e - 2*obs_width_half]
+        corner_right_front = [obs_s + 2*obs_lf, obs_e + 2*obs_width_half]
+        corner_right_rear = [obs_s - 2*obs_lf, obs_e + 2*obs_width_half]
+        e_lb_l = -10
+        e_ub_r = 10
+        e_lb_r = if_else(vehicle_s < corner_right_rear[0], (vehicle_s - corner_right_rear[0]) + corner_right_rear[1],
+                         if_else(vehicle_s < corner_right_front[0], corner_right_rear[1],
+                                 - vehicle_s + corner_right_front[0] + corner_right_front[1]))
+        e_ub_l = if_else(vehicle_s < corner_left_rear[0], -(vehicle_s - corner_left_rear[0]) + corner_left_rear[1],
+                         if_else(vehicle_s < corner_left_front[0], corner_left_rear[1],
+                                 vehicle_s - corner_left_front[0] + corner_left_front[1]))
+        return [[e_lb_l, e_ub_l], [e_lb_r, e_ub_r]]
+
+    def frame_rotation(self, x, y, theta):#ref path: straight line from initial position(0, 0) to target position
+        e = x * cos(theta) + y * sin(theta)
+        s = -x * sin(theta) + y * cos(theta)
+        return e, s
 
     def set_scaling(self):
         self.mpc.scaling['_x', 'state_x'] = 1
@@ -120,24 +150,3 @@ class MpcFullKinCont(MpcKinBase):
         self.mpc.scaling['_x', 'delta'] = 1
         self.mpc.scaling['_u', 'v_delta'] = 1
         self.mpc.scaling['_u', 'a'] = 1
-
-    def constraints_obs(self, s):
-        obs_width_half = self.params.vehicle_geometry.w_half
-        obs_lf = self.params.vehicle_geometry.lf
-        obs_lr = self.params.vehicle_geometry.lr
-        obs_s, obs_e = self.world2curvilinear(self.obstacle_state[0], self.obstacle_state[1])
-        corner_left_rear = [obs_s - obs_lr, obs_e - obs_width_half]
-        corner_left_front = [obs_s - obs_lr, obs_e - obs_width_half]
-        corner_right_front = [obs_s + obs_lf, obs_e + obs_width_half]
-        corner_right_rear = [obs_s + obs_lf, obs_e - obs_width_half]
-        e_lb_r = -20
-        e_lb_l = -20
-        e_ub_r = 20
-        e_ub_l = 20
-        e_lb_r = if_else(s < corner_left_front[0], corner_left_front[1], e_lb_r)
-        return [[e_lb_l, e_ub_l], [3, 10]]
-
-    def world2curvilinear(self, x, y):
-        s = x * cos(self.target_direction) + y * sin(self.target_direction)
-        e = x * cos(self.target_direction-pi/2) + y * sin(self.target_direction-pi/2)
-        return s, e
