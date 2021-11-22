@@ -29,7 +29,7 @@ class MpcFullKinCont(MpcKinBase):
 
         self.target = target
         self.target_direction = np.arctan2(target[1], target[0])
-        self.target_tolerance = 2
+        self.target_tolerance = 3
 
         self.homotopy_class = np.array([0])  # 0 for overtaking from left, 1 for right
 
@@ -45,8 +45,8 @@ class MpcFullKinCont(MpcKinBase):
         suppress_ipopt = {'ipopt.print_level': 0, 'ipopt.sb': 'yes', 'print_time': 0}
         self.mpc.set_param(nlpsol_opts=suppress_ipopt)
 
-        lterm = self.lterm(self.target[0], self.target[1], self.target_tolerance, 0)
-        mterm = self.mterm(self.target[0], self.target[1], self.target_tolerance, 0)
+        lterm = self.lterm(self.target[0], self.target[1], self.target_tolerance, 5)
+        mterm = self.mterm(self.target[0], self.target[1], self.target_tolerance, 5)
 
         self.mpc.set_objective(mterm=mterm, lterm=lterm)
 
@@ -87,7 +87,8 @@ class MpcFullKinCont(MpcKinBase):
     def lterm(self, target_x, target_y, target_tolerance, speed_ref, target_angle=None):
         error_x = if_else(fabs(target_x - self.state_x) < target_tolerance, 0, target_x - self.state_x)
         error_y = if_else(fabs(target_y - self.state_y) < target_tolerance, 0, target_y - self.state_y)
-        error = [error_x, error_y, self.v - speed_ref]
+        error_speed = if_else(logic_or(error_x, error_y), self.v-speed_ref, self.v)
+        error = [error_x, error_y, error_speed]
         inp = [self.v_delta, self.a]
         lterm, _ = self.cost.cost_function(error, inp)
         return lterm
@@ -95,7 +96,8 @@ class MpcFullKinCont(MpcKinBase):
     def mterm(self, target_x, target_y, target_tolerance, speed_ref, target_angle=None):
         error_x = if_else(fabs(target_x - self.state_x) < target_tolerance, 0, target_x - self.state_x)
         error_y = if_else(fabs(target_y - self.state_y) < target_tolerance, 0, target_y - self.state_y)
-        error = [error_x, error_y, self.v - speed_ref]
+        error_speed = if_else(logic_or(error_x, error_y), self.v - speed_ref, self.v)
+        error = [error_x, error_y, error_speed]
         inp = [self.v_delta, self.a]
         _, mterm = self.cost.cost_function(error, inp)
         return mterm
@@ -112,10 +114,10 @@ class MpcFullKinCont(MpcKinBase):
         self.mpc.bounds['upper', '_x', 'v'] = self.params.v_bounds[1]-0.01
 
         state_e, state_s = self.frame_rotation(self.state_x, self.state_y,  self.target_direction-np.pi/2)
-        self.mpc.set_nl_cons('lb_right', self.homotopy*(self.constraints_obs(state_s, self.obstacle_state)[1][0]-state_e+0.5), ub=0)
+        self.mpc.set_nl_cons('lb_right', self.homotopy*(self.constraints_obs(state_s, self.obstacle_state)[1][0]-state_e+0.9), ub=0)
         self.mpc.set_nl_cons('ub_right', self.homotopy * (state_e-self.constraints_obs(state_s, self.obstacle_state)[1][1]), ub=0)
         self.mpc.set_nl_cons('lb_left', (1-self.homotopy) * (self.constraints_obs(state_s, self.obstacle_state)[0][0]-state_e), ub=0)
-        self.mpc.set_nl_cons('ub_left', (1-self.homotopy) * (state_e-self.constraints_obs(state_s, self.obstacle_state)[0][1]+0.5), ub=0)
+        self.mpc.set_nl_cons('ub_left', (1-self.homotopy) * (state_e-self.constraints_obs(state_s, self.obstacle_state)[0][1]+0.9), ub=0)
 
     def constraints_obs(self, vehicle_s, obstacle_state):
         obs_width_half = self.params.vehicle_geometry.w_half

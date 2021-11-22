@@ -21,7 +21,7 @@ class MpcKinBaseParams:
     cost = QuadraticCost
     """ Cost function """
     cost_params: Union[List[CostParameters], CostParameters] = QuadraticParams(
-        q=SemiDef(eig=[3, 3, 1]),
+        q=SemiDef(eig=[1, 1, 1]),
         r=SemiDef(matrix=np.eye(2))
     )
     """ Cost function parameters """
