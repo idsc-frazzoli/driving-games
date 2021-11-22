@@ -3,11 +3,12 @@ from datetime import datetime
 
 from dg_commons.sim.simulator import Simulator
 from homotopies.report import generate_report
-from homotopies.scenarios import get_homotopy_scenario
+from homotopies.scenarios import *
 
 if __name__ == "__main__":
     output_dir = "out"
-    sim_context = get_homotopy_scenario()
+    #sim_context = get_homotopy_scenario()
+    sim_context = get_intersection_scenario()
     sim = Simulator()
     # run simulations
     sim.run(sim_context)
