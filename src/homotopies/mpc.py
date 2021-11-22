@@ -31,7 +31,7 @@ class MpcFullKinCont(MpcKinBase):
         self.target_direction = np.arctan2(target[1], target[0])
         self.target_tolerance = 3
 
-        self.homotopy_class = np.array([1])  # 0 for overtaking from left, 1 for right
+        self.homotopy_class = np.array([0])  # 0 for overtaking from left, 1 for right
 
         self.model.setup()
         self.mpc = do_mpc.controller.MPC(self.model)
@@ -116,18 +116,18 @@ class MpcFullKinCont(MpcKinBase):
         self.mpc.bounds['upper', '_x', 'v'] = self.params.v_bounds[1] - 0.01
 
         state_s, state_d = self.frame_rotation(self.state_x, self.state_y, self.target_direction)
-        self.mpc.set_nl_cons('lb_right',
-                             self.homotopy * (self.constraints_obs(state_s, self.obstacle_state)[1][0] - state_d + 0.9),
-                             ub=0)
-        self.mpc.set_nl_cons('ub_right',
-                             self.homotopy * (state_d - self.constraints_obs(state_s, self.obstacle_state)[1][1] + 0.9),
-                             ub=0)
+        # self.mpc.set_nl_cons('lb_right',
+        #                      self.homotopy * (self.constraints_obs(state_s, self.obstacle_state)[1][0] - state_d + 1.5),
+        #                      ub=0)
+        # self.mpc.set_nl_cons('ub_right',
+        #                      self.homotopy * (state_d - self.constraints_obs(state_s, self.obstacle_state)[1][1] + 1.5),
+        #                      ub=0)
         self.mpc.set_nl_cons('lb_left',
                              (1 - self.homotopy) * (
-                                         self.constraints_obs(state_s, self.obstacle_state)[0][0] - state_d + 0.9),
+                                         self.constraints_obs(state_s, self.obstacle_state)[0][0] - state_d + 1.5),
                              ub=0)
         self.mpc.set_nl_cons('ub_left', (1 - self.homotopy) * (
-                state_d - self.constraints_obs(state_s, self.obstacle_state)[0][1] + 0.9), ub=0)
+                state_d - self.constraints_obs(state_s, self.obstacle_state)[0][1] + 1.5), ub=0)
 
     def constraints_obs(self, vehicle_s, obstacle_state):
         # get obstacle model parameters
@@ -141,41 +141,48 @@ class MpcFullKinCont(MpcKinBase):
         #   |    ->   |
         #   3---------4
         theta_diff = obstacle_state[2] - self.target_direction
-        corner1 = self.frame_rotation(2 * obs_lf, 2 * obs_w_half, -theta_diff)
-        corner2 = self.frame_rotation(-2 * obs_lr, 2 * obs_w_half, -theta_diff)
-        corner3 = self.frame_rotation(-2 * obs_lr, -2 * obs_w_half, -theta_diff)
-        corner4 = self.frame_rotation(2 * obs_lf, -2 * obs_w_half, -theta_diff)
+        corner1_s, corner1_d = self.frame_rotation(2 * obs_lf, 2 * obs_w_half, -theta_diff)
+        corner2_s, corner2_d = self.frame_rotation(-2 * obs_lr, 2 * obs_w_half, -theta_diff)
+        corner3_s, corner3_d = self.frame_rotation(-2 * obs_lr, -2 * obs_w_half, -theta_diff)
+        corner4_s, corner4_d = self.frame_rotation(2 * obs_lf, -2 * obs_w_half, -theta_diff)
 
         # case 1: theta_diff<pi/4, lane following scenario
-        left_front_s, left_front_d = corner1
-        left_rear_s, left_rear_d = corner2
-        right_rear_s, right_rear_d = corner3
-        right_front_s, right_front_d = corner4
+        # left_front_s, left_front_d = corner4_s, corner4_d
+        # left_rear_s, left_rear_d = corner1_s, corner1_d
+        # right_rear_s, right_rear_d = corner2_s, corner2_d
+        # right_front_s, right_front_d = corner3_s, corner3_d
         # case 2: theta_diff>pi/4, intersection scenario
-        heading_left = if_else(corner1[1]-corner2[1] > 0, 1, 0)  # heading=0: heading left, heading=1: heading right
-        left_front_s, left_front_d = if_else(heading_left, corner4, corner2)
-        left_rear_s, left_rear_d = if_else(heading_left, corner1, corner3)
-        right_rear_s, right_rear_d = if_else(heading_left, corner2, corner4)
-        right_front_s, right_front_d = if_else(heading_left, corner3, corner1)
+        is_lane_following = if_else(fabs(theta_diff) < pi/4, 1, 0)
+        heading_left = if_else(corner1_d-corner2_d > 0, 1, 0)  # heading=0: heading left, heading=1: heading right
+
+        left_front_s = if_else(is_lane_following, corner1_s, if_else(heading_left, corner4_s, corner2_s))
+        left_front_d = if_else(is_lane_following, corner1_d, if_else(heading_left, corner4_d, corner2_d))
+        left_rear_s = if_else(is_lane_following, corner2_s, if_else(heading_left, corner1_s, corner3_s))
+        left_rear_d = if_else(is_lane_following, corner2_d, if_else(heading_left, corner1_d, corner3_d))
+        right_rear_s = if_else(is_lane_following, corner3_s, if_else(heading_left, corner2_s, corner4_s))
+        right_rear_d = if_else(is_lane_following, corner3_d, if_else(heading_left, corner2_d, corner4_d))
+        right_front_s = if_else(is_lane_following, corner4_s, if_else(heading_left, corner3_s, corner1_s))
+        right_front_d = if_else(is_lane_following, corner4_d, if_else(heading_left, corner3_d, corner1_d))
+        theta_diff = if_else(is_lane_following, theta_diff, if_else(heading_left, theta_diff-pi/2, theta_diff+pi/2))
 
         corner_left_rear = [obs_s + left_rear_s, obs_d + left_rear_d]
         corner_left_front = [obs_s + left_front_s, obs_d + left_front_d]
         corner_right_front = [obs_s + right_front_s, obs_d + right_front_d]
         corner_right_rear = [obs_s + right_rear_s, obs_d + right_rear_d]
         # get 4-line constraints
-        safe_angle = pi / 4
+        safe_angle = pi / 3
 
         d_lb_r = -10
         d_ub_l = 10
-        d_ub_r = if_else(vehicle_s < corner_right_rear[0],
+        d_ub_r = if_else(vehicle_s+1 < corner_right_rear[0],
                          tan(fmax(-safe_angle + theta_diff, -pi/2+0.05)) * (vehicle_s - corner_right_rear[0]) + corner_right_rear[1],
-                         if_else(vehicle_s < corner_right_front[0],
+                         if_else(vehicle_s < corner_right_front[0]+1,
                                  tan(theta_diff) * (vehicle_s - corner_right_rear[0]) + corner_right_rear[1],
                                  tan(fmin(safe_angle + theta_diff, pi/2-0.05)) * (vehicle_s - corner_right_front[0]) +
                                  corner_right_front[1]))
-        d_lb_l = if_else(vehicle_s < corner_left_rear[0],
+        d_lb_l = if_else(vehicle_s+1 < corner_left_rear[0],
                          tan(fmin(safe_angle + theta_diff, pi/2-0.05)) * (vehicle_s - corner_left_rear[0]) + corner_left_rear[1],
-                         if_else(vehicle_s < corner_left_front[0],
+                         if_else(vehicle_s < corner_left_front[0]+1,
                                  tan(theta_diff) * (vehicle_s - corner_left_rear[0]) + corner_left_rear[1],
                                  tan(fmax(-safe_angle + theta_diff, -pi/2+0.05)) * (vehicle_s - corner_left_front[0]) + corner_left_front[
                                      1]))
