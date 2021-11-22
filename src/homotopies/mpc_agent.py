@@ -62,11 +62,11 @@ class MpcAgent(Agent):
                                    self.mpc_controller.obstacle_obs.delta])
         for idx in range(20):
             s = idx/20*np.linalg.norm(self.target)
-            e_constraints = self.mpc_controller.constraints_obs(s, obstacle_state)
-            left_lb = self.mpc_controller.frame_rotation(e_constraints[0][0], s, np.pi/2-self.mpc_controller.target_direction)
-            left_ub = self.mpc_controller.frame_rotation(e_constraints[0][1], s, np.pi/2-self.mpc_controller.target_direction)
-            right_lb = self.mpc_controller.frame_rotation(e_constraints[1][0], s, np.pi/2-self.mpc_controller.target_direction)
-            right_ub = self.mpc_controller.frame_rotation(e_constraints[1][1], s, np.pi/2-self.mpc_controller.target_direction)
+            d_constraints = self.mpc_controller.constraints_obs(s, obstacle_state)
+            left_lb = self.mpc_controller.frame_rotation(s, d_constraints[0][0], -self.mpc_controller.target_direction)
+            left_ub = self.mpc_controller.frame_rotation(s, d_constraints[0][1], -self.mpc_controller.target_direction)
+            right_lb = self.mpc_controller.frame_rotation(s, d_constraints[1][0], -self.mpc_controller.target_direction)
+            right_ub = self.mpc_controller.frame_rotation(s, d_constraints[1][1], -self.mpc_controller.target_direction)
             constrains_left_lb += [VehicleState(x=left_lb[0], y=left_lb[1], theta=0, vx=0, delta=0)]
             constrains_left_ub += [VehicleState(x=left_ub[0], y=left_ub[1], theta=0, vx=0, delta=0)]
             constrains_right_lb += [VehicleState(x=right_lb[0], y=right_lb[1], theta=0, vx=0, delta=0)]
