@@ -31,7 +31,7 @@ class MpcFullKinCont(MpcKinBase):
         self.target_direction = np.arctan2(target[1], target[0])
         self.target_tolerance = 3
 
-        self.homotopy_class = np.array([0])  # 0 for overtaking from left, 1 for right
+        self.homotopy_class = np.array([1])  # 0 for overtaking from left, 1 for right
 
         self.model.setup()
         self.mpc = do_mpc.controller.MPC(self.model)
@@ -78,9 +78,11 @@ class MpcFullKinCont(MpcKinBase):
                                        self.obstacle_obs.delta]).reshape(5, 1)
         else:
             obstacle_state = np.zeros([5, 1])
+        # predicted future position of the obstacle based on its current state
         for k in range(self.params.n_horizon + 1):
             obstacle_state[0] += obstacle_state[3] * self.params.t_step * cos(obstacle_state[2])
             obstacle_state[1] += obstacle_state[3] * self.params.t_step * sin(obstacle_state[2])
+            obstacle_state[2] += self.params.t_step * obstacle_state[4]
             self.tvp_temp['_tvp', k, 'obstacle_state'] = obstacle_state
         return self.tvp_temp
 
@@ -118,31 +120,65 @@ class MpcFullKinCont(MpcKinBase):
                              self.homotopy * (self.constraints_obs(state_s, self.obstacle_state)[1][0] - state_d + 0.9),
                              ub=0)
         self.mpc.set_nl_cons('ub_right',
-                             self.homotopy * (state_d - self.constraints_obs(state_s, self.obstacle_state)[1][1] + 0.9), ub=0)
+                             self.homotopy * (state_d - self.constraints_obs(state_s, self.obstacle_state)[1][1] + 0.9),
+                             ub=0)
         self.mpc.set_nl_cons('lb_left',
-                             (1 - self.homotopy) * (self.constraints_obs(state_s, self.obstacle_state)[0][0] - state_d + 0.9),
+                             (1 - self.homotopy) * (
+                                         self.constraints_obs(state_s, self.obstacle_state)[0][0] - state_d + 0.9),
                              ub=0)
         self.mpc.set_nl_cons('ub_left', (1 - self.homotopy) * (
-                    state_d - self.constraints_obs(state_s, self.obstacle_state)[0][1] + 0.9), ub=0)
+                state_d - self.constraints_obs(state_s, self.obstacle_state)[0][1] + 0.9), ub=0)
 
     def constraints_obs(self, vehicle_s, obstacle_state):
-        obs_width_half = self.params.vehicle_geometry.w_half
+        # get obstacle model parameters
+        obs_w_half = self.params.vehicle_geometry.w_half
         obs_lf = self.params.vehicle_geometry.lf
         obs_lr = self.params.vehicle_geometry.lr
+        # center coordinate of the obstacle in s-d frame
         obs_s, obs_d = self.frame_rotation(obstacle_state[0], obstacle_state[1], self.target_direction)
-        obs_theta = obstacle_state[2] - self.target_direction
-        corner_left_rear = [obs_s - 2 * obs_lr, obs_d + 2 * obs_width_half]
-        corner_left_front = [obs_s + 2 * obs_lr, obs_d + 2 * obs_width_half]
-        corner_right_front = [obs_s + 2 * obs_lf, obs_d - 2 * obs_width_half]
-        corner_right_rear = [obs_s - 2 * obs_lf, obs_d - 2 * obs_width_half]
+        # 4 corners' coordinates of the obstacle in s-d frame
+        #   2---------1
+        #   |    ->   |
+        #   3---------4
+        theta_diff = obstacle_state[2] - self.target_direction
+        corner1 = self.frame_rotation(2 * obs_lf, 2 * obs_w_half, -theta_diff)
+        corner2 = self.frame_rotation(-2 * obs_lr, 2 * obs_w_half, -theta_diff)
+        corner3 = self.frame_rotation(-2 * obs_lr, -2 * obs_w_half, -theta_diff)
+        corner4 = self.frame_rotation(2 * obs_lf, -2 * obs_w_half, -theta_diff)
+
+        # case 1: theta_diff<pi/4, lane following scenario
+        left_front_s, left_front_d = corner1
+        left_rear_s, left_rear_d = corner2
+        right_rear_s, right_rear_d = corner3
+        right_front_s, right_front_d = corner4
+        # case 2: theta_diff>pi/4, intersection scenario
+        heading_left = if_else(corner1[1]-corner2[1] > 0, 1, 0)  # heading=0: heading left, heading=1: heading right
+        left_front_s, left_front_d = if_else(heading_left, corner4, corner2)
+        left_rear_s, left_rear_d = if_else(heading_left, corner1, corner3)
+        right_rear_s, right_rear_d = if_else(heading_left, corner2, corner4)
+        right_front_s, right_front_d = if_else(heading_left, corner3, corner1)
+
+        corner_left_rear = [obs_s + left_rear_s, obs_d + left_rear_d]
+        corner_left_front = [obs_s + left_front_s, obs_d + left_front_d]
+        corner_right_front = [obs_s + right_front_s, obs_d + right_front_d]
+        corner_right_rear = [obs_s + right_rear_s, obs_d + right_rear_d]
+        # get 4-line constraints
+        safe_angle = pi / 4
+
         d_lb_r = -10
         d_ub_l = 10
-        d_ub_r = if_else(vehicle_s < corner_right_rear[0], -(vehicle_s - corner_right_rear[0]) + corner_right_rear[1],
-                         if_else(vehicle_s < corner_right_front[0], corner_right_rear[1],
-                                 (vehicle_s - corner_right_front[0]) + corner_right_front[1]))
-        d_lb_l = if_else(vehicle_s < corner_left_rear[0], (vehicle_s - corner_left_rear[0]) + corner_left_rear[1],
-                         if_else(vehicle_s < corner_left_front[0], corner_left_rear[1],
-                                 -(vehicle_s - corner_left_front[0]) + corner_left_front[1]))
+        d_ub_r = if_else(vehicle_s < corner_right_rear[0],
+                         tan(fmax(-safe_angle + theta_diff, -pi/2+0.05)) * (vehicle_s - corner_right_rear[0]) + corner_right_rear[1],
+                         if_else(vehicle_s < corner_right_front[0],
+                                 tan(theta_diff) * (vehicle_s - corner_right_rear[0]) + corner_right_rear[1],
+                                 tan(fmin(safe_angle + theta_diff, pi/2-0.05)) * (vehicle_s - corner_right_front[0]) +
+                                 corner_right_front[1]))
+        d_lb_l = if_else(vehicle_s < corner_left_rear[0],
+                         tan(fmin(safe_angle + theta_diff, pi/2-0.05)) * (vehicle_s - corner_left_rear[0]) + corner_left_rear[1],
+                         if_else(vehicle_s < corner_left_front[0],
+                                 tan(theta_diff) * (vehicle_s - corner_left_rear[0]) + corner_left_rear[1],
+                                 tan(fmax(-safe_angle + theta_diff, -pi/2+0.05)) * (vehicle_s - corner_left_front[0]) + corner_left_front[
+                                     1]))
         return [[d_lb_l, d_ub_l], [d_lb_r, d_ub_r]]
 
     def frame_rotation(self, x, y, theta):  # ref path: straight line from initial position(0, 0) to target position
