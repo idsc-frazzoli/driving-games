@@ -13,7 +13,7 @@ from homotopies.utils import *
 vehicle_params = VehicleParameters.default_car()
 
 @dataclass
-class MpcKinBaseParams:
+class MpccKinBaseParams:
     n_horizon: int = 15
     """ Horizon Length """
     t_step: float = 0.1
@@ -24,6 +24,7 @@ class MpcKinBaseParams:
         q=SemiDef(eig=[1, 1, 1]),
         r=SemiDef(matrix=np.eye(2))
     )
+    s_reward = -1
     """ Cost function parameters """
     delta_input_weight: float = 1e-2
     """ Weighting factor in cost function for varying input """
@@ -38,7 +39,7 @@ class MpcKinBaseParams:
     v_bounds: Tuple[float, float] = vehicle_params.vx_limits #vx in model frame
 
 
-class MpcKinBase:
+class MpccKinBase:
     def __init__(self, params, model_type: str):
         self.params = params
         self.model = do_mpc.model.Model(model_type)
@@ -48,9 +49,11 @@ class MpcKinBase:
         self.theta = self.model.set_variable(var_type="_x", var_name="theta", shape=(1, 1))
         self.v = self.model.set_variable(var_type="_x", var_name="v", shape=(1, 1))
         self.delta = self.model.set_variable(var_type="_x", var_name="delta", shape=(1, 1))
+        self.s_des = self.model.set_variable(var_type="_x", var_name="s_des", shape=(1, 1))
 
         self.a = self.model.set_variable(var_type="_u", var_name="a")
         self.v_delta = self.model.set_variable(var_type='_u', var_name='v_delta')
+        self.vs_des = self.model.set_variable(var_type='_u', var_name='vs_des')
 
         self.obstacle_obs: VehicleState = None
         self.obstacle_obs_flag = False
@@ -65,3 +68,5 @@ class MpcKinBase:
             't_step': self.params.t_step,
             'store_full_solution': True,
         }
+
+

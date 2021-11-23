@@ -5,13 +5,13 @@ from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.sim import SimObservations, DrawableTrajectoryType
 from dg_commons.sim.agents import Agent
 from dg_commons.sim.models.vehicle import VehicleCommands, VehicleState
-from homotopies.mpc import MpcFullKinCont
+from homotopies.mpc import MpccFullKinCont
 
 
-class MpcAgent(Agent):
-    def __init__(self, target_pos):
-        self.mpc_controller = MpcFullKinCont(target_pos)
-        self.target = target_pos
+class MpccAgent(Agent):
+    def __init__(self, ref_path):
+        self.mpc_controller = MpccFullKinCont(ref_path)
+        self.ref_path = ref_path
         self.my_name: PlayerName = None
         self.my_state: VehicleState = None
         self.plot_horizon = self.mpc_controller.params.n_horizon
@@ -27,11 +27,13 @@ class MpcAgent(Agent):
                 obs_name = key
         self.mpc_controller.obstacle_obs = sim_obs.players[obs_name].state
         self.mpc_controller.obstacle_obs_flag = True
+        current_s, current_d = self.mpc_controller.frame_rotation(self.my_state.x, self.my_state.y, self.mpc_controller.ref_direction)
         x0 = np.array([self.my_state.x,
                        self.my_state.y,
                        self.my_state.theta,
                        self.my_state.vx,
-                       self.my_state.delta]).reshape(-1, 1)
+                       self.my_state.delta,
+                       current_s]).reshape(-1, 1)
         self.mpc_controller.mpc.x0 = x0
         self.mpc_controller.mpc.set_initial_guess()
         u0 = self.mpc_controller.mpc.make_step(x0)
@@ -88,12 +90,12 @@ class MpcAgent(Agent):
                                    self.mpc_controller.obstacle_obs.vx,
                                    self.mpc_controller.obstacle_obs.delta])
         for idx in range(timestamps_cons_num):
-            s = idx / timestamps_cons_num * np.linalg.norm(self.target)
+            s = idx / timestamps_cons_num * np.linalg.norm(self.ref_path[0])
             d_constraints = self.mpc_controller.constraints_obs(s, obstacle_state)
-            left_lb = self.mpc_controller.frame_rotation(s, d_constraints[0][0], -self.mpc_controller.target_direction)
-            left_ub = self.mpc_controller.frame_rotation(s, d_constraints[0][1], -self.mpc_controller.target_direction)
-            right_lb = self.mpc_controller.frame_rotation(s, d_constraints[1][0], -self.mpc_controller.target_direction)
-            right_ub = self.mpc_controller.frame_rotation(s, d_constraints[1][1], -self.mpc_controller.target_direction)
+            left_lb = self.mpc_controller.frame_rotation(s, d_constraints[0][0], -self.mpc_controller.ref_direction)
+            left_ub = self.mpc_controller.frame_rotation(s, d_constraints[0][1], -self.mpc_controller.ref_direction)
+            right_lb = self.mpc_controller.frame_rotation(s, d_constraints[1][0], -self.mpc_controller.ref_direction)
+            right_ub = self.mpc_controller.frame_rotation(s, d_constraints[1][1], -self.mpc_controller.ref_direction)
             constrains_left_lb += [VehicleState(x=left_lb[0], y=left_lb[1], theta=0, vx=0, delta=0)]
             constrains_left_ub += [VehicleState(x=left_ub[0], y=left_ub[1], theta=0, vx=0, delta=0)]
             constrains_right_lb += [VehicleState(x=right_lb[0], y=right_lb[1], theta=0, vx=0, delta=0)]
@@ -116,7 +118,7 @@ class MpcAgent(Agent):
     def visualize_target(self):
         timestamps_target = list(range(5))
         target = self.mpc_controller.target
-        tolerance = self.mpc_controller.target_tolerance
+        tolerance = 1
         target = [VehicleState(x=target[0] - tolerance, y=target[1] - tolerance, theta=0, delta=0, vx=0),
                   VehicleState(x=target[0] - tolerance, y=target[1] + tolerance, theta=0, delta=0, vx=0),
                   VehicleState(x=target[0] + tolerance, y=target[1] + tolerance, theta=0, delta=0, vx=0),
@@ -137,8 +139,8 @@ class MpcAgent(Agent):
                                    self.mpc_controller.obstacle_obs.delta])
 
         obs_s, obs_d = self.mpc_controller.frame_rotation(obstacle_state[0], obstacle_state[1],
-                                                          self.mpc_controller.target_direction)
-        theta_diff = obstacle_state[2] - self.mpc_controller.target_direction
+                                                          self.mpc_controller.ref_direction)
+        theta_diff = obstacle_state[2] - self.mpc_controller.ref_direction
         corner1_s, corner1_d = self.mpc_controller.frame_rotation(2 * obs_lf, 2 * obs_w_half, -theta_diff)
         corner2_s, corner2_d = self.mpc_controller.frame_rotation(-2 * obs_lr, 2 * obs_w_half, -theta_diff)
         corner3_s, corner3_d = self.mpc_controller.frame_rotation(-2 * obs_lr, -2 * obs_w_half, -theta_diff)
@@ -173,13 +175,13 @@ class MpcAgent(Agent):
             right_front_d = corner1_d
 
         corner_left_rear = self.mpc_controller.frame_rotation(obs_s + left_rear_s, obs_d + left_rear_d,
-                                                              -self.mpc_controller.target_direction)
+                                                              -self.mpc_controller.ref_direction)
         corner_left_front = self.mpc_controller.frame_rotation(obs_s + left_front_s, obs_d + left_front_d,
-                                                               -self.mpc_controller.target_direction)
+                                                               -self.mpc_controller.ref_direction)
         corner_right_front = self.mpc_controller.frame_rotation(obs_s + right_front_s, obs_d + right_front_d,
-                                                                -self.mpc_controller.target_direction)
+                                                                -self.mpc_controller.ref_direction)
         corner_right_rear = self.mpc_controller.frame_rotation(obs_s + right_rear_s, obs_d + right_rear_d,
-                                                               -self.mpc_controller.target_direction)
+                                                               -self.mpc_controller.ref_direction)
         obstacle = [VehicleState(x=corner_left_rear[0], y=corner_left_rear[1], theta=0, delta=0, vx=0),
                     VehicleState(x=corner_left_front[0], y=corner_left_front[1], theta=0, delta=0, vx=0),
                     VehicleState(x=corner_right_front[0], y=corner_right_front[1], theta=0, delta=0, vx=0),
