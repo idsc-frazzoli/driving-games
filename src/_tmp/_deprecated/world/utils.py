@@ -155,7 +155,7 @@ def merge_lanes(lanes: List[LaneSegment]) -> Lane:
     :param lanes: List of consecutive lane segments from a duckietown map.
     :return: One single lane segment
     """
-    width = lanes[0].width
+    width = lanes[0].w_half
     # Make a list of all the control points, while making sure that the points that overlap are only taken once
     contr_points_lanes = list(
         it.chain(*[ls.control_points[:-1] if ls is not lanes[-1] else ls.control_points for ls in lanes])
