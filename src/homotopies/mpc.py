@@ -220,11 +220,11 @@ class MpccFullKinCont(MpccKinBase):
 
         self.model.set_rhs("s_des", self.vs_des)
 
-        ctr_pt = ref_path[0]
+        ctr_pt = ref_path[1]
         self.ref_direction = np.arctan2(ctr_pt[1], ctr_pt[0])
         self.target = ctr_pt
 
-        self.homotopy_class = np.array([1])  # 0 for overtaking from left, 1 for right
+        self.homotopy_class = np.array([0])  # 0 for overtaking from left, 1 for right
 
         self.model.setup()
         self.mpc = do_mpc.controller.MPC(self.model)

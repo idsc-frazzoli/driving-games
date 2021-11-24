@@ -35,7 +35,7 @@ def get_homotopy_scenario() -> SimContext:
         ],
     )
     target_pos = [20, 35]
-    ref_path = [[20,35]]
+    ref_path = [[0, 0], [20, 35]]
     mpc_agent = MpcAgent(target_pos)
     mpcc_agent = MpccAgent(ref_path)
     controll_agent = mpcc_agent
@@ -67,7 +67,7 @@ def get_intersection_scenario() -> SimContext:
         ],
     )
     target_pos = [17, 35]
-    ref_path = [[17, 35]]
+    ref_path = [[0, 0], [17, 35]]
     mpc_agent = MpcAgent(target_pos)
     mpcc_agent = MpccAgent(ref_path)
     controll_agent = mpcc_agent

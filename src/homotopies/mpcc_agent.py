@@ -52,16 +52,12 @@ class MpccAgent(Agent):
         trajectory_left_lb, trajectory_left_ub, trajectory_right_lb, trajectory_right_ub = trajectory_constraints
 
         # visualize target region
-        trajectory_target = self.visualize_target()
-
-        # visualize predicted obstacle pos
-        #trajectory_obstacle = self.visualize_obstacle()
+        trajectory_ref = self.visualize_ref()
 
         return [
             trajectory_mpc,
             trajectory_left_lb, trajectory_left_ub, trajectory_right_lb, trajectory_right_ub,
-            trajectory_target,
-            #trajectory_obstacle
+            trajectory_ref
         ]
 
     def get_future_state(self, time_step: int) -> VehicleState:
@@ -90,7 +86,7 @@ class MpccAgent(Agent):
                                    self.mpc_controller.obstacle_obs.vx,
                                    self.mpc_controller.obstacle_obs.delta])
         for idx in range(timestamps_cons_num):
-            s = idx / timestamps_cons_num * np.linalg.norm(self.ref_path[0])
+            s = idx / timestamps_cons_num * np.linalg.norm(self.ref_path[1])
             d_constraints = self.mpc_controller.constraints_obs(s, obstacle_state)
             left_lb = self.mpc_controller.frame_rotation(s, d_constraints[0][0], -self.mpc_controller.ref_direction)
             left_ub = self.mpc_controller.frame_rotation(s, d_constraints[0][1], -self.mpc_controller.ref_direction)
@@ -115,79 +111,12 @@ class MpccAgent(Agent):
 
         return trajectory_left_lb, trajectory_left_ub, trajectory_right_lb, trajectory_right_ub
 
-    def visualize_target(self):
-        timestamps_target = list(range(5))
-        target = self.mpc_controller.target
-        tolerance = 1
-        target = [VehicleState(x=target[0] - tolerance, y=target[1] - tolerance, theta=0, delta=0, vx=0),
-                  VehicleState(x=target[0] - tolerance, y=target[1] + tolerance, theta=0, delta=0, vx=0),
-                  VehicleState(x=target[0] + tolerance, y=target[1] + tolerance, theta=0, delta=0, vx=0),
-                  VehicleState(x=target[0] + tolerance, y=target[1] - tolerance, theta=0, delta=0, vx=0),
-                  VehicleState(x=target[0] - tolerance, y=target[1] - tolerance, theta=0, delta=0, vx=0)]
-        trajectory_target = (DgSampledSequence[VehicleState](timestamps_target, values=target), 'red')
-        return trajectory_target
+    def visualize_ref(self):
+        ctr_pt_num = len(self.ref_path)
+        timestamps_ref_path = list(range(ctr_pt_num))
+        ref_path = []
+        for ctr_pt in self.ref_path:
+            ref_path += [VehicleState(x=ctr_pt[0], y=ctr_pt[1], theta=0, delta=0, vx=0)]
+        trajectory_ref_path = (DgSampledSequence[VehicleState](timestamps_ref_path, values=ref_path), 'red')
+        return trajectory_ref_path
 
-    def visualize_obstacle(self):
-        timestamps_target = list(range(5))
-        obs_w_half = self.mpc_controller.params.vehicle_geometry.w_half
-        obs_lf = self.mpc_controller.params.vehicle_geometry.lf
-        obs_lr = self.mpc_controller.params.vehicle_geometry.lr
-        obstacle_state = np.array([self.mpc_controller.obstacle_obs.x,
-                                   self.mpc_controller.obstacle_obs.y,
-                                   self.mpc_controller.obstacle_obs.theta,
-                                   self.mpc_controller.obstacle_obs.vx,
-                                   self.mpc_controller.obstacle_obs.delta])
-
-        obs_s, obs_d = self.mpc_controller.frame_rotation(obstacle_state[0], obstacle_state[1],
-                                                          self.mpc_controller.ref_direction)
-        theta_diff = obstacle_state[2] - self.mpc_controller.ref_direction
-        corner1_s, corner1_d = self.mpc_controller.frame_rotation(2 * obs_lf, 2 * obs_w_half, -theta_diff)
-        corner2_s, corner2_d = self.mpc_controller.frame_rotation(-2 * obs_lr, 2 * obs_w_half, -theta_diff)
-        corner3_s, corner3_d = self.mpc_controller.frame_rotation(-2 * obs_lr, -2 * obs_w_half, -theta_diff)
-        corner4_s, corner4_d = self.mpc_controller.frame_rotation(2 * obs_lf, -2 * obs_w_half, -theta_diff)
-
-        if abs(theta_diff) < np.pi / 4:
-            left_front_s = corner1_s
-            left_front_d = corner1_d
-            left_rear_s = corner2_s
-            left_rear_d = corner2_d
-            right_rear_s = corner3_s
-            right_rear_d = corner3_d
-            right_front_s = corner4_s
-            right_front_d = corner4_d
-        elif corner1_d - corner2_d > 0:
-            left_front_s = corner4_s
-            left_front_d = corner4_d
-            left_rear_s = corner1_s
-            left_rear_d = corner1_d
-            right_rear_s = corner2_s
-            right_rear_d = corner2_d
-            right_front_s = corner3_s
-            right_front_d = corner3_d
-        else:
-            left_front_s = corner2_s
-            left_front_d = corner2_d
-            left_rear_s = corner3_s
-            left_rear_d = corner3_d
-            right_rear_s = corner4_s
-            right_rear_d = corner4_d
-            right_front_s = corner1_s
-            right_front_d = corner1_d
-
-        corner_left_rear = self.mpc_controller.frame_rotation(obs_s + left_rear_s, obs_d + left_rear_d,
-                                                              -self.mpc_controller.ref_direction)
-        corner_left_front = self.mpc_controller.frame_rotation(obs_s + left_front_s, obs_d + left_front_d,
-                                                               -self.mpc_controller.ref_direction)
-        corner_right_front = self.mpc_controller.frame_rotation(obs_s + right_front_s, obs_d + right_front_d,
-                                                                -self.mpc_controller.ref_direction)
-        corner_right_rear = self.mpc_controller.frame_rotation(obs_s + right_rear_s, obs_d + right_rear_d,
-                                                               -self.mpc_controller.ref_direction)
-        obstacle = [VehicleState(x=corner_left_rear[0], y=corner_left_rear[1], theta=0, delta=0, vx=0),
-                    VehicleState(x=corner_left_front[0], y=corner_left_front[1], theta=0, delta=0, vx=0),
-                    VehicleState(x=corner_right_front[0], y=corner_right_front[1], theta=0, delta=0, vx=0),
-                    VehicleState(x=corner_right_rear[0], y=corner_right_rear[1], theta=0, delta=0, vx=0),
-                    VehicleState(x=corner_right_rear[0]+0.5, y=corner_right_rear[1]+0.5, theta=0, delta=0, vx=0)
-                    ]
-        trajectory_obstacle = (DgSampledSequence[VehicleState](timestamps_target, values=obstacle), 'red')
-
-        return trajectory_obstacle
