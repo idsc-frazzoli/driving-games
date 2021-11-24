@@ -85,7 +85,7 @@ def get_scenario_bicycles() -> SimContext:
         )
         st_controller_param: SteerControllerParam = SteerControllerParam(
             setpoint_minmax=(-models[pname].vp.delta_max, models[pname].vp.delta_max),
-            output_minmax=(-models[pname].vp.ddelta_max, models[pname].vp.ddelta_max),
+            output_minmax=(-models[pname].vp.ddpsi_max, models[pname].vp.ddpsi_max),
         )
         sp_controller = SpeedController(sp_controller_param)
         st_controller = SteerController(st_controller_param)
@@ -216,7 +216,7 @@ def get_scenario_two_lanes() -> SimContext:
             )
             st_controller_param: SteerControllerParam = SteerControllerParam(
                 setpoint_minmax=(-models[agent].vp.delta_max, models[agent].vp.delta_max),
-                output_minmax=(-models[agent].vp.ddelta_max, models[agent].vp.ddelta_max),
+                output_minmax=(-models[agent].vp.ddpsi_max, models[agent].vp.ddpsi_max),
             )
             sp_controller = SpeedController(sp_controller_param)
             st_controller = SteerController(st_controller_param)
