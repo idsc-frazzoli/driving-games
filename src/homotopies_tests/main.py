@@ -1,14 +1,18 @@
 import os
 from datetime import datetime
 
+from contracts import disable_all
 from dg_commons.sim.simulator import Simulator
 from homotopies.report import generate_report
 from homotopies.scenarios import *
 
 if __name__ == "__main__":
+    disable_all()
     output_dir = "out"
-    #sim_context = get_homotopy_scenario()
-    sim_context = get_intersection_scenario()
+    agent_type = 'mpcc' # mpc or mpcc
+    #sim_context = get_homotopy_scenario(agent_type)
+
+    sim_context = get_intersection_scenario(agent_type)
     sim = Simulator()
     # run simulations
     sim.run(sim_context)
