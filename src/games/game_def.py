@@ -188,13 +188,24 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
     due to "collisions".
     """
 
+    # fixme maybe add this for more general joint rewards
+    # @abstractmethod
+    # def joint_reward_reduce(self, r1: RJ, r2: RJ) -> RJ:
+    #     """How to accumulate reward (sum, monoid operation)"""
+    #
+    # @abstractmethod
+    # def joint_reward_identity(self) -> RJ:
+    #     """The identity for the monoid"""
+
     @abstractmethod
-    def is_joint_final_state(self, txs: JointTransition) -> FrozenSet[PlayerName]:
-        """For which players is this a final state?"""
+    def is_joint_final_transition(self, txs: JointTransition) -> FrozenSet[PlayerName]:
+        """For which players this is a final joint transition?"""
 
     @abstractmethod
     def joint_reward(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
-        """The joint reward for the agents. Only available for a final state."""
+        """The joint reward for the agents.
+        Only available for a final state. # fixme no if we generalize
+        """
 
 
 class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):

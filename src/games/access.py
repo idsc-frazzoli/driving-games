@@ -130,7 +130,7 @@ def get_game_factorization(
         # that we do not consider it decoupled.. otherwise there is no collision
         # ever detected
 
-        players_colliding = game.joint_reward.is_joint_final_state(jsf)
+        players_colliding = game.joint_reward.is_joint_final_transition(jsf)
         if players_colliding:
             # logger.info('Found collision states', jsf=jsf, players_colliding=players_colliding)
             partition = frozenset({frozenset(players_colliding)})
@@ -364,7 +364,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                         p for p in S2 if players[p].personal_reward_structure.is_personal_final_state(S2[p])
                     ]
                     transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p in S2}
-                    jointly_ending = game.joint_reward.is_joint_final_state(transitions)
+                    jointly_ending = game.joint_reward.is_joint_final_transition(transitions)
                     ending_players.extend(jointly_ending)
                     is_joint_final = len(jointly_ending) > 0
                     G.add_node(

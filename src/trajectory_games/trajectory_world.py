@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import Mapping, List, Optional, Tuple
 
-from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
 
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.planning import PlanningGoal
-from .structures import VehicleGeometry
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.scenarios import DgScenario
 
 __all__ = ["TrajectoryWorld"]
 
@@ -18,16 +18,14 @@ class TrajectoryWorld:
 
     map_name: str
     """ Map name for the world """
-
-    scenario: Scenario
-    """ CommonRoad scenario """
-
+    scenario: DgScenario
+    """ DgScenario """
     geo: Mapping[PlayerName, VehicleGeometry]
     """ Geometry of each player """
-
     lanes: Mapping[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]]
     """ Reference lanes for each player """
     goals: Mapping[PlayerName, PlanningGoal]
+    """Goals for each player"""
 
     def __post_init__(self):
         assert (

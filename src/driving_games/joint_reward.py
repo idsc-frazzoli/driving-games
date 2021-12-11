@@ -36,7 +36,7 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
 
         # @lru_cache(None)
 
-    def is_joint_final_state(
+    def is_joint_final_transition(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> FrozenSet[PlayerName]:
         res = self.joint_reward(txs)

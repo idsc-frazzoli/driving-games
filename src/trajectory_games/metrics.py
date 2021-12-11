@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from functools import partial
 from time import perf_counter
-from typing import Tuple, List, Dict, Callable, Set, Mapping, Hashable
+from typing import Tuple, List, Dict, Callable, Set, Mapping
 
 import geometry as geo
 import numpy as np
@@ -49,17 +49,9 @@ def get_evaluated_metric(players: List[PlayerName], f: Callable[[PlayerName], Ev
     return mer
 
 
-# def get_values(traj: Trajectory, func: Callable[[VehicleState], float], scale: float) \
-#         -> Tuple[List[Timestamp], List[float]]:
-#     tval = [(t, func(x) * scale) for t, x in traj]
-#     interval, val = zip(*tval)
-#     return interval, val
-
-
 class EpisodeTime(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "Length of the episode (smaller preferred)"
-    scale: float = 2.0
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -67,8 +59,8 @@ class EpisodeTime(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = traj.transform_values(lambda x: 1.0 * self.scale, float)
-            ret = self.get_evaluated_metric(seq=interval)
+            # time becomes also the value
+            ret = self.get_evaluated_metric(seq=DgSampledSequence(traj.timestamps, traj.timestamps))
             self.cache[traj] = ret
             return ret
 
@@ -78,7 +70,6 @@ class EpisodeTime(Metric):
 class DeviationLateral(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the deviation from reference path. "
-    scale: float = 0.25
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -88,7 +79,7 @@ class DeviationLateral(Metric):
 
             interval = traj.get_sampling_points()
             traj_sn = context.points_curv[player]
-            abs_n = [_.distance_from_center * self.scale for _ in traj_sn]
+            abs_n = [_.distance_from_center for _ in traj_sn]
             ret = self.get_evaluated_metric(timestamps=interval, values=abs_n)
             self.cache[traj] = ret
             return ret
@@ -99,7 +90,6 @@ class DeviationLateral(Metric):
 class DeviationHeading(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the heading deviation from reference path."
-    scale: float = 0.5
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -109,7 +99,7 @@ class DeviationHeading(Metric):
 
             interval = traj.get_sampling_points()
             traj_sn = context.points_curv[player]
-            head = [abs(_.relative_heading) * self.scale for _ in traj_sn]
+            head = [abs(_.relative_heading) for _ in traj_sn]
             ret = self.get_evaluated_metric(timestamps=interval, values=head)
             self.cache[traj] = ret
             return ret
@@ -120,7 +110,6 @@ class DeviationHeading(Metric):
 class DrivableAreaViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the drivable area violation by the robot."
-    scale: float = 2.0
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -140,7 +129,7 @@ class DrivableAreaViolation(Metric):
                         diff = curv.distance_from_right
                 return diff
 
-            viol = [get_violation(x) * self.scale for x in traj_sn]
+            viol = [get_violation(x) for x in traj_sn]
             viol_seq = DgSampledSequence[float](timestamps=interval, values=viol)
             ret = self.get_evaluated_metric(viol_seq)
             self.cache[traj] = ret
@@ -154,7 +143,6 @@ class ProgressAlongReference(Metric):
     description = (
         "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
     )
-    scale: float = 0.2
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -165,7 +153,7 @@ class ProgressAlongReference(Metric):
             interval = traj.get_sampling_points()
             lane_poses = context.points_curv[player]
             # negative for smaller preferred
-            progress = [(lane_poses[0].along_lane - p.along_lane) * self.scale for p in lane_poses]
+            progress = [(lane_poses[0].along_lane - p.along_lane) for p in lane_poses]
             progress_seq = DgSampledSequence[float](interval, progress)
             progress_der_seq = seq_differentiate(progress_seq)
             ret = self.get_evaluated_metric(seq=progress_der_seq)
@@ -178,7 +166,6 @@ class ProgressAlongReference(Metric):
 class LongitudinalAcceleration(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the longitudinal acceleration the robot."
-    scale: float = 0.5
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -186,13 +173,17 @@ class LongitudinalAcceleration(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            traj_vel = traj.transform_values(lambda x: x.v * self.scale, float)
+            traj_vel = traj.transform_values(lambda x: x.v, float)
             acc_seq = seq_differentiate(traj_vel)
             ret = self.get_evaluated_metric(acc_seq)
             self.cache[traj] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+def _get_lat_comf(x: VehicleState) -> float:
+    return abs(x.v * x.st)
 
 
 class LateralComfort(Metric):
@@ -206,7 +197,7 @@ class LateralComfort(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            lat_comf_seq = traj.transform_values(get_lat_comf, float)
+            lat_comf_seq = traj.transform_values(_get_lat_comf, float)
             ret = self.get_evaluated_metric(seq=lat_comf_seq)
             self.cache[traj] = ret
             return ret
@@ -217,7 +208,6 @@ class LateralComfort(Metric):
 class SteeringAngle(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the steering angle the robot."
-    scale: float = 1.0
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -236,7 +226,6 @@ class SteeringAngle(Metric):
 class SteeringRate(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the rate of change of steering angle the robot."
-    scale: float = 2.0
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -244,7 +233,7 @@ class SteeringRate(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            st_traj = traj.transform_values(lambda x: x.st * self.scale, float)
+            st_traj = traj.transform_values(lambda x: x.st, float)
             dst = seq_differentiate(st_traj)
             ret = self.get_evaluated_metric(dst)
             self.cache[traj] = ret
@@ -460,10 +449,6 @@ def get_personal_metrics() -> Set[Metric]:
     return metrics
 
 
-def get_lat_comf(x: VehicleState) -> float:
-    return abs(x.v * x.st)
-
-
 def get_joint_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {CollisionEnergy(), MinimumClearance()}
     return metrics
@@ -476,6 +461,8 @@ def get_metrics_set() -> Set[Metric]:
 
 
 class MetricEvaluation:
+    """Class container to evaluate all the metrics"""
+
     metrics = get_metrics_set()
     _cache: Dict[JointTrajectories, JointPlayerEvaluatedMetrics] = {}
 

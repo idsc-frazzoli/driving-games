@@ -14,154 +14,154 @@ from .game_def import ActionGraph
 from .structures import VehicleState
 
 __all__ = [
-    "Trajectory",
+    # "Trajectory",
     "TrajectoryGraph",
 ]
 
 
-class Trajectory:
-    """Container for a trajectory - sequence of vehicle states"""
-
-    traj: List["Trajectory"]
-    """ A trajectory can also be made up of multiple smaller trajectories.
-        This is used for evaluation of trajectory metrics where the
-        outcomes are cached using the trajectory as the key """
-
-    states: DgSampledSequence[VehicleState]
-    """ The upsampled sequence of vehicle states """
-    lane: DgLanelet
-    """ The reference lane used to generate the trajectory """
-    goal: Optional[Polygon]
-    """ The goal region for the trajectory """
-
-    def __init__(
-        self,
-        values: List[Union[VehicleState, "Trajectory"]],
-        lane: DgLanelet,
-        goal: Optional[Polygon] = None,
-        states: Optional[Tuple[VehicleState, VehicleState]] = None,
-    ):
-        assert len(values) > 0
-        self.lane = lane
-        self.goal = goal
-        if all(isinstance(val, Trajectory) for val in values):
-            self.traj = values
-            x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
-            self.states = DgSampledSequence(timestamps=list(x_t.keys()), values=list(x_t.values()))
-        elif all(isinstance(val, VehicleState) for val in values):
-            if states is not None:
-                values[0] = states[0]
-                values[-1] = states[-1]
-            self.trim_trajectory(states=values, goal=goal)
-            times: List[Timestamp] = [x.t for x in values]
-            self.states = DgSampledSequence(timestamps=times, values=values)
-            self.traj = []
-        else:
-            raise TypeError(f"Input is of wrong type - {type(values[0])}!")
-
-    @staticmethod
-    @cached(cache={}, key=lambda states, lane, values, goal: cachetools.keys.hashkey((states, lane)))
-    def create(
-        states: Tuple[VehicleState, VehicleState],
-        lane: DgLanelet,
-        values: List[VehicleState],
-        goal: Optional[Polygon] = None,
-    ):
-        return Trajectory(values=values, lane=lane, goal=goal, states=states)
-
-    @staticmethod
-    def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
-        ret = [Trajectory.state_to_se2(x) for x in states]
-        return ret
-
-    @staticmethod
-    @lru_cache(None)
-    def state_to_se2(x: VehicleState) -> SE2Transform:
-        return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
-
-    @staticmethod
-    def trim_trajectory(states: List[VehicleState], goal: Optional[Polygon]) -> bool:
-        """Trims trajectory till goal region (if longer) and returns if trimming was performed or not"""
-        if goal is None:
-            return False
-        goal_idx = Trajectory.get_in_goal_index(states=states, goal=goal)
-        if goal_idx is None:
-            return False
-        n_states = len(states)
-        for _ in range(goal_idx + 1, n_states):
-            states.pop()
-        return True
-
-    @staticmethod
-    def get_in_goal_index(states: List[VehicleState], goal: Polygon) -> Optional[int]:
-        in_goal = [goal.contains(Point(x.x, x.y)) for x in states]
-        try:
-            last = in_goal.index(True)
-            return last
-        except:
-            return None
-
-    def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
-        return self.states.__iter__()
-
-    def __len__(self):
-        return len(self.states)
-
-    def get_lane(self) -> Tuple[DgLanelet, Optional[Polygon]]:
-        return self.lane, self.goal
-
-    def get_trajectories(self) -> List["Trajectory"]:
-        if len(self.traj) == 0:
-            return [self]
-        return self.traj
-
-    def get_sampling_points(self) -> List[Timestamp]:
-        """Returns timestamps of trajectory points"""
-        return self.states.get_sampling_points()
-
-    def get_path_sampled(self) -> List[SE2Transform]:
-        """Returns cartesian coordinates (SE2) of transition states"""
-        return self.state_to_se2_list(self.states._values)
-
-    def get_start(self) -> Timestamp:
-        return self.states.get_start()
-
-    def get_end(self) -> Timestamp:
-        return self.states.get_end()
-
-    def at(self, t: Timestamp) -> VehicleState:
-        return self.states.at_interp(t)
-
-    def __repr__(self) -> str:
-        states: Dict[str, VehicleState] = {}
-
-        def add_entry(t_stamp):
-            states[f"t={round(float(t_stamp), 2)}s"] = self.at(t_stamp)
-
-        t = self.get_start()
-        while t <= self.get_end():
-            add_entry(t_stamp=t)
-            t += 1
-        add_entry(t_stamp=self.get_end())
-        return str(states)
-
-    def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
-        """Combines trajectories into a bigger trajectory"""
-        if other is None:
-            return self
-        x1, x2 = self.at(self.get_end()), other.at(other.get_start())
-        if not x1.is_close(x2):
-            raise ValueError(f"Transitions not continuous - {x1, x2}")
-        lane, goal = other.get_lane()
-        return Trajectory(values=self.traj + other.traj, lane=lane, goal=goal)
-
-    def starts_with(self, start: "Trajectory") -> bool:
-        if len(start) > len(self):
-            return False
-        for t in start.get_sampling_points():
-            if start.at(t) != self.at(t):
-                return False
-        return True
+# class Trajectory:
+#     """Container for a trajectory - sequence of vehicle states"""
+#
+#     traj: List["Trajectory"]
+#     """ A trajectory can also be made up of multiple smaller trajectories.
+#         This is used for evaluation of trajectory metrics where the
+#         outcomes are cached using the trajectory as the key """
+#
+#     states: DgSampledSequence[VehicleState]
+#     """ The upsampled sequence of vehicle states """
+#     lane: DgLanelet
+#     """ The reference lane used to generate the trajectory """
+#     goal: Optional[Polygon]
+#     """ The goal region for the trajectory """
+#
+#     def __init__(
+#         self,
+#         values: List[Union[VehicleState, "Trajectory"]],
+#         lane: DgLanelet,
+#         goal: Optional[Polygon] = None,
+#         states: Optional[Tuple[VehicleState, VehicleState]] = None,
+#     ):
+#         assert len(values) > 0
+#         self.lane = lane
+#         self.goal = goal
+#         if all(isinstance(val, Trajectory) for val in values):
+#             self.traj = values
+#             x_t: Dict[Timestamp, VehicleState] = {t: x for val in values for t, x in val}
+#             self.states = DgSampledSequence(timestamps=list(x_t.keys()), values=list(x_t.values()))
+#         elif all(isinstance(val, VehicleState) for val in values):
+#             if states is not None:
+#                 values[0] = states[0]
+#                 values[-1] = states[-1]
+#             self.trim_trajectory(states=values, goal=goal)
+#             times: List[Timestamp] = [x.t for x in values]
+#             self.states = DgSampledSequence(timestamps=times, values=values)
+#             self.traj = []
+#         else:
+#             raise TypeError(f"Input is of wrong type - {type(values[0])}!")
+#
+#     @staticmethod
+#     @cached(cache={}, key=lambda states, lane, values, goal: cachetools.keys.hashkey((states, lane)))
+#     def create(
+#         states: Tuple[VehicleState, VehicleState],
+#         lane: DgLanelet,
+#         values: List[VehicleState],
+#         goal: Optional[Polygon] = None,
+#     ):
+#         return Trajectory(values=values, lane=lane, goal=goal, states=states)
+#
+#     @staticmethod
+#     def state_to_se2_list(states: List[VehicleState]) -> List[SE2Transform]:
+#         ret = [Trajectory.state_to_se2(x) for x in states]
+#         return ret
+#
+#     @staticmethod
+#     @lru_cache(None)
+#     def state_to_se2(x: VehicleState) -> SE2Transform:
+#         return SE2Transform(p=np.array([x.x, x.y]), theta=x.th)
+#
+#     @staticmethod
+#     def trim_trajectory(states: List[VehicleState], goal: Optional[Polygon]) -> bool:
+#         """Trims trajectory till goal region (if longer) and returns if trimming was performed or not"""
+#         if goal is None:
+#             return False
+#         goal_idx = Trajectory.get_in_goal_index(states=states, goal=goal)
+#         if goal_idx is None:
+#             return False
+#         n_states = len(states)
+#         for _ in range(goal_idx + 1, n_states):
+#             states.pop()
+#         return True
+#
+#     @staticmethod
+#     def get_in_goal_index(states: List[VehicleState], goal: Polygon) -> Optional[int]:
+#         in_goal = [goal.contains(Point(x.x, x.y)) for x in states]
+#         try:
+#             last = in_goal.index(True)
+#             return last
+#         except:
+#             return None
+#
+#     def __iter__(self) -> Iterator[Tuple[Timestamp, VehicleState]]:
+#         return self.states.__iter__()
+#
+#     def __len__(self):
+#         return len(self.states)
+#
+#     def get_lane(self) -> Tuple[DgLanelet, Optional[Polygon]]:
+#         return self.lane, self.goal
+#
+#     def get_trajectories(self) -> List["Trajectory"]:
+#         if len(self.traj) == 0:
+#             return [self]
+#         return self.traj
+#
+#     def get_sampling_points(self) -> List[Timestamp]:
+#         """Returns timestamps of trajectory points"""
+#         return self.states.get_sampling_points()
+#
+#     def get_path_sampled(self) -> List[SE2Transform]:
+#         """Returns cartesian coordinates (SE2) of transition states"""
+#         return self.state_to_se2_list(self.states._values)
+#
+#     def get_start(self) -> Timestamp:
+#         return self.states.get_start()
+#
+#     def get_end(self) -> Timestamp:
+#         return self.states.get_end()
+#
+#     def at(self, t: Timestamp) -> VehicleState:
+#         return self.states.at_interp(t)
+#
+#     def __repr__(self) -> str:
+#         states: Dict[str, VehicleState] = {}
+#
+#         def add_entry(t_stamp):
+#             states[f"t={round(float(t_stamp), 2)}s"] = self.at(t_stamp)
+#
+#         t = self.get_start()
+#         while t <= self.get_end():
+#             add_entry(t_stamp=t)
+#             t += 1
+#         add_entry(t_stamp=self.get_end())
+#         return str(states)
+#
+#     def __add__(self, other: Optional["Trajectory"]) -> "Trajectory":
+#         """Combines trajectories into a bigger trajectory"""
+#         if other is None:
+#             return self
+#         x1, x2 = self.at(self.get_end()), other.at(other.get_start())
+#         if not x1.is_close(x2):
+#             raise ValueError(f"Transitions not continuous - {x1, x2}")
+#         lane, goal = other.get_lane()
+#         return Trajectory(values=self.traj + other.traj, lane=lane, goal=goal)
+#
+#     def starts_with(self, start: "Trajectory") -> bool:
+#         if len(start) > len(self):
+#             return False
+#         for t in start.get_sampling_points():
+#             if start.at(t) != self.at(t):
+#                 return False
+#         return True
 
 
 class TrajectoryGraph(ActionGraph[Trajectory], DiGraph):

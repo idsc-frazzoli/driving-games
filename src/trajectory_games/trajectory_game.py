@@ -9,6 +9,7 @@ from dg_commons import iterate_dict_combinations
 from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from frozendict import frozendict
 
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
 from games import PURE_STRATEGIES, BAIL_MNE
 from possibilities import Poss
@@ -23,7 +24,7 @@ from .game_def import (
     AntichainComparison,
 )
 from .paths import Trajectory
-from .structures import VehicleState, VehicleGeometry
+from .structures import VehicleState
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [

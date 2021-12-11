@@ -34,7 +34,7 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleTrackState, Vehicle
         self.players = players
 
     # @lru_cache(None)
-    def is_joint_final_state(self, txs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_transition(self, txs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
         res = collision_check(xs, self.geometries)
         return frozenset(res)
 

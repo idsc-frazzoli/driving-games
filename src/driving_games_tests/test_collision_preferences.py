@@ -19,8 +19,8 @@ from preferences import (
 
 
 def test1() -> None:
-    C1 = CollisionReportPlayer(IMPACT_FRONT, True, D(1), D(0))
-    C2 = CollisionReportPlayer(IMPACT_FRONT, True, D(2), D(0))
+    C1 = CollisionReportPlayer(IMPACT_FRONT, True, D(1), D(0), 0)
+    C2 = CollisionReportPlayer(IMPACT_FRONT, True, D(2), D(0), 0)
     expect: Mapping[Tuple[Optional[CollisionReportPlayer], Optional[CollisionReportPlayer]], ComparisonOutcome]
     expect = {
         (None, None): INDIFFERENT,

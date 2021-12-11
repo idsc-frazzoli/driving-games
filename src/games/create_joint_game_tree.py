@@ -159,7 +159,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_final[player_name] = f
     # todo here forward checking of terminal states?!
-    who_exits = frozenset(ic.game.joint_reward.is_joint_final_state(states))
+    who_exits = frozenset(ic.game.joint_reward.is_joint_final_transition(states))
     joint_final = who_exits
     if joint_final:
         joint_final_rewards = ic.game.joint_reward.joint_reward(states)

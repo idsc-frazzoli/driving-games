@@ -70,7 +70,7 @@ def simulate1(
         if not players_active:
             break
 
-        if game.joint_reward.is_joint_final_state(s1):
+        if game.joint_reward.is_joint_final_transition(s1):
             S_joint_costs[t1] = game.joint_reward.joint_reward(s1)
             break
 
