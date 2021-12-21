@@ -25,8 +25,8 @@ class DrivingGamePlayer(
 
 
 @dataclass
-class DGSimpleParams:
-    scenario: Scenario  # fixme maybe a string to be loaded
+class DgSimpleParams:
+    scenario: Scenario
     """A commonroad scenario"""
     ref_lanes: Mapping[PlayerName, DgLanelet]
     """Reference lanes"""
@@ -37,6 +37,7 @@ class DGSimpleParams:
     col_check_dt: D
     """Discretization step for collision checking. A smart choice related to the solver's one is advisable"""
     shared_resources_ds: D
+    """"""
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 
     def __post__init__(self):

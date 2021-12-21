@@ -19,8 +19,8 @@ from preferences import (
 
 
 def test1() -> None:
-    C1 = CollisionReportPlayer(IMPACT_FRONT, True, D(1), D(0), 0)
-    C2 = CollisionReportPlayer(IMPACT_FRONT, True, D(2), D(0), 0)
+    C1 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(1), D(0), 0)
+    C2 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(2), D(0), 0)
     expect: Mapping[Tuple[Optional[CollisionReportPlayer], Optional[CollisionReportPlayer]], ComparisonOutcome]
     expect = {
         (None, None): INDIFFERENT,
@@ -38,7 +38,7 @@ def test1() -> None:
 
 
 def test2() -> None:
-    # *│ *          ╔═════════════════════════════════╗
+    # * │ *         ╔═════════════════════════════════╗
     # > │     │ │   ║Outcome *                        ║
     # > │     │ │   ║│ private: {p1: Dec 3, p2: Dec 3}║
     # > │     │ │   ║│ joint:                         ║
@@ -53,7 +53,7 @@ def test2() -> None:
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
     game = get_asym().game
     p1, p2 = list(game.players)
-    c0 = CollisionReportPlayer(IMPACT_FRONT, True, D(1), D(0))
+    c0 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(1), D(0), 0)
 
     o_A = {
         p1: game.ps.unit(Combined(VehicleCosts(D(3)), c0)),

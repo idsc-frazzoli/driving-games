@@ -8,6 +8,7 @@ import numpy as np
 
 from dg_commons import fd, fs, PlayerName
 from dg_commons.sim.models import kmh2ms
+from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from dg_commons_dev.utils import get_project_root_dir
@@ -16,8 +17,8 @@ from possibilities import PossibilitySet, PossibilityDist
 from preferences import SetPreference1
 from preferences.preferences_probability import ProbPrefExpectedValue
 from . import VehicleTrackDynamicsParams
-from .game_generation import get_driving_game, DGSimpleParams
-from .structures import NO_LIGHTS
+from .dg_def import DgSimpleParams
+from .dg_factory import get_driving_game
 
 dyn_p0 = VehicleTrackDynamicsParams(
     max_speed=D(kmh2ms(50)),
@@ -41,7 +42,7 @@ simple_intersection, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_D
 s_lane1 = dglane_from_position(np.array([0, 0]), simple_intersection.lanelet_network, succ_lane_selection=1)
 s_lane2 = dglane_from_position(np.array([70, -14]), simple_intersection.lanelet_network, succ_lane_selection=1)
 
-p0 = DGSimpleParams(
+p0 = DgSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(0),
     col_check_dt=D("0.51"),

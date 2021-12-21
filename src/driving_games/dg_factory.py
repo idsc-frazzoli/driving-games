@@ -6,7 +6,7 @@ from cycler import cycler
 from dg_commons import PlayerName, fd, fs
 from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from driving_games.dg_def import DrivingGamePlayer, DrivingGame, DGSimpleParams
+from driving_games.dg_def import DrivingGamePlayer, DrivingGame, DgSimpleParams
 from driving_games.joint_reward import VehicleJointReward
 from driving_games.personal_reward import VehiclePersonalRewardStructureTime
 from driving_games.preferences_coll_time import VehiclePreferencesCollTime
@@ -23,7 +23,7 @@ from possibilities import PossibilityMonad
 __all__ = ["get_driving_game"]
 
 
-def get_driving_game(dg_params: DGSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
+def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyParams) -> DrivingGame:
     ps: PossibilityMonad = uncertainty_params.poss_monad
     players: Dict[PlayerName, DrivingGamePlayer] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
