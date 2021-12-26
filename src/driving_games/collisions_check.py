@@ -12,7 +12,7 @@ from zuper_commons.types import ZValueError
 from dg_commons import PlayerName, DgSampledSequence, Timestamp
 from dg_commons.sim import CollisionReportPlayer, ImpactLocation, IMPACT_FRONT, IMPACT_LEFT, IMPACT_BACK, IMPACT_RIGHT
 from dg_commons.sim.collision_utils import (
-    chek_who_is_at_fault,
+    check_who_is_at_fault,
     compute_impact_geometry,
     velocity_after_collision,
     rot_velocity_after_collision,
@@ -84,7 +84,7 @@ def collision_check(
                 r_ap = np.array(impact_point.coords[0]) - np.array([x1.x, x1.y])
                 r_bp = np.array(impact_point.coords[0]) - np.array([x2.x, x2.y])
 
-                p_at_fault = chek_who_is_at_fault(
+                p_at_fault = check_who_is_at_fault(
                     p_poses={player1: q1, player2: q2}, impact_point=impact_point, lanelet_network=lanelet_network
                 )
                 j_n = compute_impulse_response(
