@@ -10,11 +10,23 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 vehicle_params = VehicleParameters.default_car()
 vehicle_geometry = VehicleGeometry.default_car()
 
+
+class MIPModelParams:
+    nx = 5
+    nb = 4  # binary control input
+    nc = 2  # continuous control input
+    nu = nb + nc
+    nz = nx + nu
+
+params = MIPModelParams
+
+
 def continuous_dynamics(x, u):
     """Defines dynamics of the vehicle, i.e. equality constraints.
     state x = [xpos, ypos, theta, v, delta]
-    input u = [acc,v_delta]
+    input u = [binary_variables, acc,v_delta]
     """
+    u = u[params.nb:]
     xpos = x[0]
     ypos = x[1]
     theta = x[2]
@@ -34,12 +46,17 @@ def continuous_dynamics(x, u):
                           v_delta,  #ddelta
                           )
 
+def eq_contraints(x, u):
+    '''constraints for binary variables'''
+    ub = u[:params.nb]
+    return np.array([casadi.sum1(ub)-1])
 
 def obj(z, current_target):
     """Least square costs on deviating from the path and on the inputs
-    z = [acc,v_delta,xpos, ypos, theta, v, delta]
+    z = [binary_variables, acc,v_delta,xpos, ypos, theta, v, delta]
     current_target = point on path that is to be headed for
     """
+    z = z[params.nb:]
     return (200.0 * (z[2] - current_target[0]) ** 2  # costs on deviating on the
             #                                              path in x-direction
             + 200.0 * (z[3] - current_target[1]) ** 2  # costs on deviating on the
@@ -51,9 +68,10 @@ def obj(z, current_target):
 def objN(z, current_target):
     """Increased least square costs for last stage on deviating from the path and
     on the inputs
-    z = [acc,v_delta,xpos, ypos, theta, v, delta]
+    z = [binary_variables, acc,v_delta,xpos, ypos, theta, v, delta]
     current_target = point on path that is to be headed for
     """
+    z = z[params.nb:]
     return (200.0 * (z[2] - current_target[0]) ** 2  # costs on deviating on the
             #                                              path in x-direction
             + 200.0 * (z[3] - current_target[1]) ** 2  # costs on deviating on the
@@ -63,7 +81,9 @@ def objN(z, current_target):
 
 
 def set_bounds():
-    '''z = [acc,v_delta,xpos, ypos, theta, v, delta]'''
+    '''z = [binary_variables, acc,v_delta,xpos, ypos, theta, v, delta]
+    this function returns lower and upper bounds for continuous variables
+    '''
     v_delta_bounds = np.array([-vehicle_params.ddelta_max, vehicle_params.ddelta_max])
     delta_bounds = np.array([-vehicle_params.default_car().delta_max, vehicle_params.default_car().delta_max])
     acc_bounds = np.array(vehicle_params.acc_limits)
@@ -84,11 +104,11 @@ def create_model():
     # ----------------
 
     # Problem dimensions
-    model = forcespro.nlp.SymbolicModel()
-    model.N = 15  # horizon length
-    model.nvar = 7  # number of variables
-    model.neq = 5  # number of equality constraints
-    model.npar = 2  # number of runtime parameters
+    Nstages = 15
+    model = forcespro.nlp.SymbolicModel(Nstages)
+    model.nvar = params.nz  # number of variables
+    model.neq = params.nx  # number of equality constraints
+    model.npar = 2  # number of runtime parameters--- target position
 
     # Objective function
     model.objective = obj
@@ -96,19 +116,25 @@ def create_model():
 
     # We use an explicit RK4 integrator here to discretize continuous dynamics
     model.continuous_dynamics = continuous_dynamics
-    
+
     # Indices on LHS of dynamical constraint - for efficiency reasons, make
     # sure the matrix E has structure [0 I] where I is the identity matrix.
-    model.E = np.concatenate([np.zeros((5, 2)), np.eye(5)], axis=1)
+    model.E = np.concatenate([np.zeros((params.nx, params.nu)), np.eye(params.nx)], axis=1)
 
     # Inequality constraints
-    #  upper/lower variable bounds lb <= z <= ub
-    all_bounds = set_bounds()
-    model.lb = all_bounds[:, 0]
-    model.ub = all_bounds[:, 1]
+    # # In the first stage, we have parametric bounds on the inputs.
+    model.lbidx[0] = range(0, params.nu)
+    model.ubidx[0] = range(0, params.nu)
+    # # In the following stages, all stage variables (inputs and states) are bounded.
+    for i in range(1, model.N):
+        model.lbidx[i] = range(0, params.nz)
+        model.ubidx[i] = range(0, params.nz)
+    # # Integer indices
+    model.intidx = range(0, params.nb)
+    model.eq = eq_contraints
 
     # Initial condition on vehicle states x
-    model.xinitidx = range(2, 7)  # use this to specify on which variables initial conditions
+    model.xinitidx = range(params.nu, params.nz)  # use this to specify on which variables initial conditions
     # are imposed
     return model
 
@@ -123,19 +149,19 @@ def generate_pathplanner():
 
     # Set solver options
     codeoptions = forcespro.CodeOptions('FORCESNLPsolver')
-    codeoptions.maxit = 200  # Maximum number of iterations
+    codeoptions.maxit = 2000  # Maximum number of iterations
     codeoptions.printlevel = 0  # Use printlevel = 2 to print progress (but
     #                             not for timings)
     codeoptions.optlevel = 0  # 0 no optimization, 1 optimize for size,
     #                             2 optimize for speed, 3 optimize for size & speed
     codeoptions.cleanup = True
     codeoptions.timing = 1
-    codeoptions.nlp.hessian_approximation = 'bfgs'
-    codeoptions.solvemethod = 'SQP_NLP'  # choose the solver method Sequential
+    # codeoptions.nlp.hessian_approximation = 'bfgs'
+    # codeoptions.solvemethod = 'SQP_NLP'  # choose the solver method Sequential
     #                              Quadratic Programming
-    codeoptions.nlp.bfgs_init = 1 * np.identity(8)
-    codeoptions.sqp_nlp.maxqps = 1  # maximum number of quadratic problems to be solved
-    codeoptions.sqp_nlp.reg_hessian = 5e-9  # increase this if exitflag=-8
+    # codeoptions.nlp.bfgs_init = 1 * np.identity(8)
+    # codeoptions.sqp_nlp.maxqps = 1  # maximum number of quadratic problems to be solved
+    # codeoptions.sqp_nlp.reg_hessian = 5e-9  # increase this if exitflag=-8
 
     codeoptions.nlp.integrator.type = 'ERK4'
     codeoptions.nlp.integrator.Ts = 0.1

@@ -9,7 +9,7 @@ from dg_commons.sim.agents import Agent
 from dg_commons.sim.models.vehicle import VehicleCommands, VehicleState
 
 from homotopies import logger
-from homotopies.MIP_solver import generate_pathplanner, create_model
+from homotopies.MIP_solver import generate_pathplanner, create_model, set_bounds, MIPModelParams
 
 
 class MIPAgent(Agent):
@@ -17,6 +17,7 @@ class MIPAgent(Agent):
         self.ref_path = ref_path
         self.my_name: PlayerName = None
         self.my_state: VehicleState = None
+        self.params = MIPModelParams
         self.solver = None
         self.model = None
         self.last_output = {}
@@ -41,10 +42,13 @@ class MIPAgent(Agent):
                           self.my_state.theta,
                           self.my_state.vx,
                           self.my_state.delta]).reshape(-1, 1)
-        zinit = np.concatenate([np.zeros([2, 1]), xinit])
+        ub0 = np.array([1,0,0,0]).reshape(-1, 1)
+        uc0 = np.zeros([self.params.nc, 1])
+
+        z0 = np.concatenate([ub0, uc0, xinit])
 
         if not self.last_output:
-            x0 = np.transpose(np.tile(zinit, (1, self.model.N)))
+            x0 = np.transpose(np.tile(z0, (1, self.model.N)))
         else:
             x0 = np.concatenate([self.last_output["u"], self.last_output["x"]])
 
@@ -55,6 +59,14 @@ class MIPAgent(Agent):
         # Set runtime parameters
         params = self.ref_path[1]
         problem["all_parameters"] = np.transpose(np.tile(params, (1, self.model.N)))
+
+        # set bounds
+        continuous_bounds = set_bounds()  # bounds for continuous variables
+        problem["lb{:02d}".format(1)] = np.concatenate([0*np.ones(self.params.nb), continuous_bounds[:self.params.nc, 0]])
+        problem["ub{:02d}".format(1)] = np.concatenate([1*np.ones(self.params.nb), continuous_bounds[:self.params.nc, 1]])
+        for s in range(1, self.model.N):
+            problem["lb{:02d}".format(s + 1)] = np.concatenate([0*np.ones(self.params.nb), continuous_bounds[:, 0]])
+            problem["ub{:02d}".format(s + 1)] = np.concatenate([1*np.ones(self.params.nb), continuous_bounds[:, 1]])
 
         # call the solver
         output, exitflag, info = self.solver.solve(problem)
@@ -67,10 +79,11 @@ class MIPAgent(Agent):
         temp = np.zeros((np.max(self.model.nvar), self.model.N))
         for i in range(0, self.model.N):
             temp[:, i] = output['x{0:02d}'.format(i + 1)]
-        self.last_output["u"] = temp[0:2, :]
-        self.last_output["x"] = temp[2:7, :]
+        self.last_output["u"] = temp[0:self.params.nu, :]
+        self.last_output["x"] = temp[self.params.nu:self.params.nz, :]
 
-        commands = VehicleCommands(acc=self.last_output["u"][0][0], ddelta=self.last_output["u"][1][0])
+        commands = VehicleCommands(acc=self.last_output["u"][self.params.nb][0],
+                                   ddelta=self.last_output["u"][self.params.nb+1][0])
 
         return commands
 
