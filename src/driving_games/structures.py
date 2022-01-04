@@ -7,14 +7,15 @@ from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
-    "VehicleCosts",
+    "VehicleTimeCost",
+    "VehicleSafetyDistCost",
     "VehicleTrackState",
     "VehicleActions",
 ]
 
 
 @dataclass(frozen=True)
-class VehicleCosts:
+class VehicleTimeCost:
     """The personal costs of the vehicle"""
 
     __slots__ = ["duration"]
@@ -22,15 +23,15 @@ class VehicleCosts:
     """ Duration of the episode. """
 
     # support weight multiplication for expected value
-    def __mul__(self, weight: Fraction) -> "VehicleCosts":
+    def __mul__(self, weight: Fraction) -> "VehicleTimeCost":
         # weighting costs, e.g. according to a probability
         return replace(self, duration=self.duration * D(float(weight)))
 
     __rmul__ = __mul__
 
     # Monoid to support sum
-    def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
-        if isinstance(other, VehicleCosts):
+    def __add__(self, other: "VehicleTimeCost") -> "VehicleTimeCost":
+        if isinstance(other, VehicleTimeCost):
             return replace(self, duration=self.duration + other.duration)
         elif other is None:
             return self
@@ -38,6 +39,21 @@ class VehicleCosts:
             raise NotImplementedError
 
     __radd__ = __add__
+
+
+@dataclass(frozen=True)
+class VehicleSafetyDistCost:
+    """The personal costs of the vehicle"""
+
+    distance: float
+    """ Duration of the episode. """
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "VehicleSafetyDistCost":
+        # weighting costs, e.g. according to a probability
+        return replace(self, distance=self.distance * float(weight))
+
+    __rmul__ = __mul__
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
@@ -49,10 +65,10 @@ class VehicleTrackState:
     """ Longitudinal velocity """
 
     wait: D
-    """ How long we have been at speed = 0. We want to keep track so bound this. """
+    """ How long we have been at speed = 0. We want to keep track so to bound this."""
 
     light: LightsCmd
-    """ The current lights signal. """
+    """ The current lights signal."""
 
     __print_order__ = ["x", "v"]  # only print these attribute
 

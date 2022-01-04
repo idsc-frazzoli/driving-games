@@ -39,13 +39,13 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """Iteration structure while creating the game graph."""
 
     game: Game[X, U, Y, RP, RJ, SR]
+    """The game."""
     dt: D
+    """ Solver discretization time """
     cache: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]
     """ Nodes that were already computed. """
-
     depth: int
     """ The current depth. """
-
     gf: Optional[GameFactorization[X]]
     """ Optional GameFactorization that will be used in the
         graph creation to recognize decoupled states.
@@ -162,13 +162,13 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     who_exits = frozenset(ic.game.joint_reward.is_joint_final_transition(states))
     joint_final = who_exits
     if joint_final:
-        joint_final_rewards = ic.game.joint_reward.joint_reward(states)
+        joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
     else:
         joint_final_rewards = {}
 
     players_exiting = set(who_exits) | set(is_final)
 
-    # Consider only the moves of who remains
+    # Consider only the moves of whom remains
     not_exiting = lambda pn: pn not in players_exiting
     moves_to_state_remaining = fkeyfilter(not_exiting, moves_to_state_everybody)
     movesets_for_remaining = fvalmap(frozenset, moves_to_state_remaining)
@@ -235,12 +235,12 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
     res = GameNode(
-        moves=movesets_for_remaining,
         states=frozendict(states),
+        moves=movesets_for_remaining,
         transitions=frozendict(pure_transitions),
+        personal_final_reward=frozendict(is_final),
         incremental=fvalmap(frozendict, incremental),
         joint_final_rewards=frozendict(joint_final_rewards),
-        personal_final_reward=frozendict(is_final),
         resources=frozendict(resources),
     )
     ic.cache[states] = res

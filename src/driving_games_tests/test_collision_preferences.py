@@ -4,7 +4,7 @@ from typing import Mapping, Optional, Tuple
 from nose.tools import assert_equal
 
 from dg_commons.sim import IMPACT_FRONT, CollisionReportPlayer
-from driving_games import CollisionPreference, VehicleCosts
+from driving_games import CollisionPreference, VehicleTimeCost
 from driving_games import logger
 from driving_games.zoo import get_asym
 from games import Combined
@@ -56,12 +56,12 @@ def test2() -> None:
     c0 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(1), D(0), 0)
 
     o_A = {
-        p1: game.ps.unit(Combined(VehicleCosts(D(3)), c0)),
-        p2: game.ps.unit(Combined(VehicleCosts(D(3)), c0)),
+        p1: game.ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
+        p2: game.ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
     }
     o_B = {
-        p1: game.ps.unit(Combined(VehicleCosts(D(13)), None)),
-        p2: game.ps.unit(Combined(VehicleCosts(D(4)), None)),
+        p1: game.ps.unit(Combined(VehicleTimeCost(D(13)), None)),
+        p2: game.ps.unit(Combined(VehicleTimeCost(D(4)), None)),
     }
 
     preferences = get_outcome_preferences_for_players(game)

@@ -8,7 +8,6 @@ from frozendict import frozendict
 from zuper_commons.types import check_isinstance, ZValueError
 
 from dg_commons import PlayerName, U, X, RP, RJ, Y, Timestamp, DgSampledSequence
-from dg_commons.maps import DgLanelet
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 from . import GameConstants
@@ -184,27 +183,31 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
 @dataclass
 class JointRewardStructure(Generic[X, U, RJ], ABC):
     """
-    The joint reward structure. This describes when the game ends
-    due to "collisions".
+    The joint reward structure. This describes when the game ends due to "collisions" and
+    the incremental costs due to joint transitions (e.g. minimum safety distance).
     """
 
     # fixme maybe add this for more general joint rewards
-    # @abstractmethod
-    # def joint_reward_reduce(self, r1: RJ, r2: RJ) -> RJ:
-    #     """How to accumulate reward (sum, monoid operation)"""
-    #
-    # @abstractmethod
-    # def joint_reward_identity(self) -> RJ:
-    #     """The identity for the monoid"""
+    @abstractmethod
+    def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
+        """The joint incremental reward for the agents."""
+
+    @abstractmethod
+    def joint_reward_reduce(self, r1: RJ, r2: RJ) -> RJ:
+        """How to accumulate reward (sum, monoid operation)"""
+
+    @abstractmethod
+    def joint_reward_identity(self) -> RJ:
+        """The identity for the monoid"""
 
     @abstractmethod
     def is_joint_final_transition(self, txs: JointTransition) -> FrozenSet[PlayerName]:
         """For which players this is a final joint transition?"""
 
     @abstractmethod
-    def joint_reward(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
+    def joint_final_reward(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
         """The joint reward for the agents.
-        Only available for a final state. # fixme no if we generalize
+        Only available for a final state.
         """
 
 

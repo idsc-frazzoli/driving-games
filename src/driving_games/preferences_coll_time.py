@@ -5,7 +5,7 @@ from zuper_typing import debug_print
 
 from dg_commons.sim import CollisionReportPlayer
 from driving_games.preferences_collision import CollisionPreference
-from driving_games.structures import VehicleCosts
+from driving_games.structures import VehicleTimeCost
 from games import Combined
 from preferences import (
     COMP_OUTCOMES,
@@ -18,26 +18,26 @@ from preferences import (
 __all__ = ["VehiclePreferencesCollTime"]
 
 
-class VehiclePreferencesCollTime(Preference[Combined[CollisionReportPlayer, VehicleCosts]]):
+class VehiclePreferencesCollTime(Preference[Combined[CollisionReportPlayer, VehicleTimeCost]]):
     def __init__(self, ignore_second=False):
         self.ignore_second = ignore_second
         self.collision = CollisionPreference()
-        self.time = SmallerPreferredTol(D(0))
-        self.lexi = LexicographicPreference((self.collision, self.time))
+        self.scalar_pref = SmallerPreferredTol(D(0))
+        self.lexi = LexicographicPreference((self.collision, self.scalar_pref))
 
     def get_type(self) -> Type[Combined[CollisionReportPlayer, D]]:
-        return Combined[CollisionReportPlayer, VehicleCosts]
+        return Combined[CollisionReportPlayer, VehicleTimeCost]
 
     def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
     def compare(
-        self, a: Combined[CollisionReportPlayer, VehicleCosts], b: Combined[CollisionReportPlayer, VehicleCosts]
+        self, a: Combined[CollisionReportPlayer, VehicleTimeCost], b: Combined[CollisionReportPlayer, VehicleTimeCost]
     ) -> ComparisonOutcome:
         if self.ignore_second:
             if a.joint is None and b.joint is None:
-                return self.time.compare(a.personal.duration, b.personal.duration)
+                return self.scalar_pref.compare(a.personal.duration, b.personal.duration)
             else:
                 return self.collision.compare(a.joint, b.joint)
         else:

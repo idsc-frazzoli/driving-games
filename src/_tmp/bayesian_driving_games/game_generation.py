@@ -29,7 +29,7 @@ from driving_games.preferences_coll_time import VehiclePreferencesCollTime
 from driving_games.structures import (
     NO_LIGHTS,
     VehicleActions,
-    VehicleCosts,
+    VehicleTimeCost,
     VehicleGeometry,
     VehicleTrackState,
 )
@@ -175,7 +175,7 @@ def get_bayesian_driving_game(vehicles_params: DGSimpleParams, uncertainty_param
         collision_threshold=vehicles_params.collision_threshold, geometries=geometries, players=players
     )
 
-    game_visualization: GameVisualization[BayesianVehicleState, VehicleActions, VehicleObs, VehicleCosts, Collision]
+    game_visualization: GameVisualization[BayesianVehicleState, VehicleActions, VehicleObs, VehicleTimeCost, Collision]
     game_visualization = DrivingGameVisualization(
         vehicles_params, L, geometries=geometries, ds=vehicles_params.shared_resources_ds
     )

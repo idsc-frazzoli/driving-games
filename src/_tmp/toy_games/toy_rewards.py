@@ -79,7 +79,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
                     res.add(player)
         return frozenset(res)
 
-    def joint_reward(self, txs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
+    def joint_final_reward(self, txs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
         """
         Each payoff matrix correspond to a specific subgame
 

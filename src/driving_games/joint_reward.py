@@ -4,7 +4,7 @@ from typing import FrozenSet, Mapping, Dict
 
 from commonroad.scenario.lanelet import LaneletNetwork
 
-from dg_commons import PlayerName, Timestamp, DgSampledSequence
+from dg_commons import PlayerName, Timestamp, DgSampledSequence, RJ
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.models.vehicle import VehicleState
@@ -14,6 +14,8 @@ from driving_games.structures import VehicleActions, VehicleTrackState
 from games import JointRewardStructure
 
 __all__ = ["VehicleJointReward"]
+
+from games.game_def import JointTransition
 
 
 def _find_parent_state(x: VehicleTrackState, dt: Decimal) -> VehicleTrackState:
@@ -34,15 +36,22 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         self.col_check_dt = col_check_dt
         self.lanelet_network = lanelet_network
 
-        # @lru_cache(None)
+    def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
+        pass  # todo
+
+    def joint_reward_reduce(self, r1: RJ, r2: RJ) -> RJ:
+        pass  # todo
+
+    def joint_reward_identity(self) -> RJ:
+        pass  # todo
 
     def is_joint_final_transition(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> FrozenSet[PlayerName]:
-        res = self.joint_reward(txs)
+        res = self.joint_final_reward(txs)
         return frozenset(res)
 
-    def joint_reward(
+    def joint_final_reward(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> Mapping[PlayerName, CollisionReportPlayer]:
         global_xs: Dict[PlayerName:VehicleState] = {}

@@ -5,7 +5,7 @@ from operator import add
 from time import perf_counter
 from typing import Dict
 
-from driving_games import VehicleCosts
+from driving_games import VehicleTimeCost
 
 
 def test_decimal_fraction():
@@ -18,7 +18,7 @@ def test_decimal_fraction():
     print(d1 * D(float(f2)))
 
     tic = perf_counter()
-    cost_vector = [VehicleCosts(D(i)) for i in range(10000)]
+    cost_vector = [VehicleTimeCost(D(i)) for i in range(10000)]
     cost_vector_sum = reduce(add, cost_vector)
     elapsed = perf_counter() - tic
     print(f"result is {cost_vector_sum}, elapsed in {elapsed}")
@@ -51,12 +51,12 @@ def test_decimal_fraction():
     print(type(DurationCosts(3)))
     print(DurationCosts(2))
     print(Decimal(2))
-    print(VehicleCosts(34))
+    print(VehicleTimeCost(34))
 
     # test serializable
-    dictionary: Dict[VehicleCosts, int]
+    dictionary: Dict[VehicleTimeCost, int]
     dictionary2: Dict[DurationCosts, int]
-    dictionary = {VehicleCosts(2): 3}
+    dictionary = {VehicleTimeCost(2): 3}
     dictionary2 = {DurationCosts(2): 3}
     print(dictionary)
     print(dictionary2)

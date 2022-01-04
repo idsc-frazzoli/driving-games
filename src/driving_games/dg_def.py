@@ -9,17 +9,17 @@ from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
 from driving_games import VehicleTrackDynamicsParams
-from driving_games.structures import VehicleTrackState, VehicleActions, VehicleCosts
+from driving_games.structures import VehicleTrackState, VehicleActions, VehicleTimeCost
 from driving_games.vehicle_observation import VehicleObs
 from games import GamePlayer, Game
 
 
-class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleCosts, CollisionReportPlayer, Polygon]):
+class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):
     pass
 
 
 class DrivingGamePlayer(
-    GamePlayer[VehicleTrackState, VehicleActions, VehicleObs, VehicleCosts, CollisionReportPlayer, Polygon]
+    GamePlayer[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]
 ):
     pass
 

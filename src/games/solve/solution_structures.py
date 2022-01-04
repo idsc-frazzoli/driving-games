@@ -5,10 +5,9 @@ from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewTy
 
 from frozendict import frozendict
 from networkx import MultiDiGraph
-
-from possibilities import check_poss, Poss
-from preferences import Preference
 from zuper_commons.types import check_isinstance, ZValueError
+
+from dg_commons import fkeyfilter, iterate_dict_combinations
 from games import GameConstants
 from games.game_def import (
     check_joint_mixed_actions,
@@ -31,7 +30,8 @@ from games.game_def import (
     Y,
 )
 from games.simulate import Simulation
-from dg_commons import fkeyfilter, iterate_dict_combinations
+from possibilities import check_poss, Poss
+from preferences import Preference
 
 __all__ = [
     "GameNode",
@@ -201,6 +201,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         #         )
 
         self.check_players_in_transition()
+
+    def get_active_players(self) -> FSet[PlayerName]:
+        # todo check it works
+        return frozenset(self.states.keys() - self.joint_final_rewards.keys() - self.personal_final_reward.keys())
 
     def check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""

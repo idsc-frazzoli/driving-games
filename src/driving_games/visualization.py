@@ -14,7 +14,7 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.simulator_animation import lights_colors_from_lights_cmd, adjust_axes_limits
 from dg_commons.sim.simulator_visualisation import plot_vehicle
 from driving_games.dg_def import DgSimpleParams
-from driving_games.structures import VehicleActions, VehicleCosts, VehicleTrackState
+from driving_games.structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 from driving_games.vehicle_observation import VehicleObs
 from games import GameVisualization
 
@@ -22,7 +22,7 @@ __all__ = ["DrivingGameVisualization"]
 
 
 class DrivingGameVisualization(
-    GameVisualization[VehicleTrackState, VehicleActions, VehicleObs, VehicleCosts, CollisionReportPlayer]
+    GameVisualization[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer]
 ):
     """Visualization for the driving games"""
 

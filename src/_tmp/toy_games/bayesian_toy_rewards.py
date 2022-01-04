@@ -85,7 +85,7 @@ class BayesianBirdJointReward(JointRewardStructure[BirdState, BirdActions, Any])
                     res.add(player)
         return frozenset(res)
 
-    def joint_reward(
+    def joint_final_reward(
         self, txs: Mapping[PlayerName, BirdState]
     ) -> Mapping[Set[PlayerType], Mapping[PlayerName, BirdCosts]]:
         # todo BirdState -> BayesianBirdState
