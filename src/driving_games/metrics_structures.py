@@ -78,6 +78,8 @@ class Metric(ABC):
         """Evaluates the metric for all players given a context."""
 
     def get_evaluated_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
+        # todo some metrics might not need to integrate,
+        # can save some computations if the sampled sequence is already integrated
         tot_value = seq_integrate(seq).values[-1]
         ret = EvaluatedMetric(
             name=type(self).__name__,

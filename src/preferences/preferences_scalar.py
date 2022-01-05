@@ -19,16 +19,13 @@ Scalar = Union[D, float]
 class SmallerPreferred(Preference[Scalar]):
     """
     The usual total order on the scalars.
-
     It is equivalent to `SmallerPreferredTol(0)`.
-
     """
 
     def get_type(self) -> Type[Scalar]:
         return Scalar
 
     def compare(self, a: Scalar, b: Scalar) -> ComparisonOutcome:
-        """ """
         if a == b:
             return INDIFFERENT
         elif a < b:
