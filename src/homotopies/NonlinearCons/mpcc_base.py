@@ -11,7 +11,7 @@ vehicle_params = VehicleParameters.default_car()
 
 @dataclass
 class MpccKinBaseParams:
-    n_horizon: int = 60
+    n_horizon: int = 30
     """ Horizon Length """
     t_step: float = 0.1
     """ Sample Time """
@@ -40,7 +40,7 @@ class MpccKinBaseParams:
                       'ipopt.file_print_level': 5,
                       'ipopt.sb': 'yes',
                       'print_time': 0,
-                      # 'ipopt.linear_solver': 'MA27',
+                      #'ipopt.linear_solver': 'MA27',
                       'ipopt.max_iter': 100,
                       'ipopt.output_file': 'ipopt_log.txt',
                       #'ipopt.mu_strategy': 'adaptive'

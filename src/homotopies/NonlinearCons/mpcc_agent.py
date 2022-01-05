@@ -43,7 +43,7 @@ class MpccAgent(Agent):
         tic = perf_counter()
         u0 = self.controller.mpc.make_step(x0)
         toc = perf_counter()
-        logger.info("Mpc time:", make_step=toc - tic)
+        logger.info(toc - tic)
         #commands = VehicleCommands(acc=u0[0][0], ddelta=u0[1][0])
         u=[self.controller.mpc.opt_x_num['_u', 0, 0, 'a'].__float__(),
            self.controller.mpc.opt_x_num['_u', 0, 0, 'v_delta'].__float__()]
@@ -59,22 +59,22 @@ class MpccAgent(Agent):
         trajectories += [self.visualize_mpc_plan()]
 
         timestamps_cons_num = 30
-        # # visualize obstacle prediction
-        # trajectories += [self.visualize_obs_pred()]
-        #
-        # # visualize constraints
-        # obs_state = np.array([self.mpc_controller.obstacle_obs.x,
-        #                       self.mpc_controller.obstacle_obs.y,
-        #                       self.mpc_controller.obstacle_obs.theta,
-        #                       self.mpc_controller.obstacle_obs.vx,
-        #                       self.mpc_controller.obstacle_obs.delta])
-        # trajectory_constraints = self.visualize_constraints(timestamps_cons_num, obs_state)
-        # trajectories += [t for t in trajectory_constraints]
+        # visualize obstacle prediction
+        #trajectories += [self.visualize_obs_pred()]
+
+        # visualize constraints
+        obs_state = np.array([self.controller.obstacle_obs.x,
+                              self.controller.obstacle_obs.y,
+                              self.controller.obstacle_obs.theta,
+                              self.controller.obstacle_obs.vx,
+                              self.controller.obstacle_obs.delta])
+        trajectory_constraints = self.visualize_constraints(timestamps_cons_num, obs_state)
+        trajectories += [t for t in trajectory_constraints]
 
         # visualize target region
         trajectories += [self.visualize_ref()]
 
-        trajectories += [t for t in self.visualize_all_constraints(timestamps_cons_num)]
+        #trajectories += [t for t in self.visualize_all_constraints(timestamps_cons_num)]
 
         return trajectories
 

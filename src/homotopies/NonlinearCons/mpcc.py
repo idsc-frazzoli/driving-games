@@ -41,8 +41,8 @@ class MpccFullKinCont(MpccKinBase):
 
         self.mpc.set_param(**self.setup_mpc)
 
-        lterm = self.lterm(speed_ref=2.5)
-        mterm = self.mterm(speed_ref=2.5)
+        lterm = self.lterm(speed_ref=5)
+        mterm = self.mterm(speed_ref=5)
 
         self.mpc.set_objective(mterm=mterm, lterm=lterm)
 
@@ -130,18 +130,18 @@ class MpccFullKinCont(MpccKinBase):
 
         state_s, state_d = self.frame_rotation(self.state_x, self.state_y, self.ref_direction)
         self.mpc.set_nl_cons('lb_right',
-                             self.homotopy * (self.constraints_obs(state_s, self.obstacle_state)[1][0] - state_d + 1.5),
+                             self.homotopy * (self.constraints_obs(state_s, self.obstacle_state)[1][0] - state_d + 0),
                              ub=0)
         self.mpc.set_nl_cons('ub_right',
-                             self.homotopy * (state_d - self.constraints_obs(state_s, self.obstacle_state)[1][1] + 1.5),
+                             self.homotopy * (state_d - self.constraints_obs(state_s, self.obstacle_state)[1][1] + 0),
                              ub=0)
         self.mpc.set_nl_cons('lb_left',
                              (1 - self.homotopy) * (
-                                         self.constraints_obs(state_s, self.obstacle_state)[0][0] - state_d + 1.5),
+                                         self.constraints_obs(state_s, self.obstacle_state)[0][0] - state_d + 0.5),
                              ub=0)
         self.mpc.set_nl_cons('ub_left',
                              (1 - self.homotopy) * (
-                                         state_d - self.constraints_obs(state_s, self.obstacle_state)[0][1] + 1.5),
+                                         state_d - self.constraints_obs(state_s, self.obstacle_state)[0][1] + 0.5),
                              ub=0)
 
     def constraints_obs(self, vehicle_s, obstacle_state):
@@ -180,10 +180,10 @@ class MpccFullKinCont(MpccKinBase):
         corner_right_front = [obs_s + right_front_s, obs_d + right_front_d]
         corner_right_rear = [obs_s + right_rear_s, obs_d + right_rear_d]
         # get 4-line constraints
-        safe_angle = pi / 4
+        safe_angle = pi / 5
 
-        d_lb_r = -25
-        d_ub_l = 25
+        d_lb_r = -4.8
+        d_ub_l = 4.8
         d_ub_r = if_else(vehicle_s + 1 < corner_right_rear[0],
                          tan(fmax(-safe_angle + theta_diff, -pi / 2 + 0.05)) * (vehicle_s - corner_right_rear[0]) +
                          corner_right_rear[1],
