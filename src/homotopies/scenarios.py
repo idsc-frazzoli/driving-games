@@ -1,4 +1,4 @@
-from numpy import deg2rad, arctan2
+from numpy import deg2rad
 from decimal import Decimal as D
 from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.sim import SimParameters
@@ -7,9 +7,9 @@ from dg_commons.sim.models.vehicle import VehicleCommands
 from dg_commons.sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.simulator import SimContext
-from homotopies.mpc_agent import MpcAgent
-from homotopies.mpcc_agent import MpccAgent
-from homotopies.MIP_agent import MIPAgent
+from homotopies.NonlinearCons.mpc_agent import MpcAgent
+from homotopies.NonlinearCons.mpcc_agent import MpccAgent
+from homotopies.MIP.MIP_agent import MIPAgent
 
 P1, P2 = (
     PlayerName("P1"),
