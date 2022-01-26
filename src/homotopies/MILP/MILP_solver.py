@@ -14,8 +14,8 @@ vehicle_geometry = VehicleGeometry.default_car()
 
 
 class MILPModelParams:
-    Nstages = 30
-    dT = 0.1
+    Nstages = 15
+    dT = 0.2
     x_idx: IntEnum = IdxState
     u_idx: IntEnum = IdxInput
     nx: int = len([s.value for s in IdxState])
@@ -26,7 +26,7 @@ class MILPModelParams:
     H = np.zeros((nz, nz))
     H[u_idx.ddS, u_idx.ddS] = 1  # Hessian matrix in cost function
     f = np.zeros(nz)
-    f[x_idx.S] = -20  # linear term in cost function
+    f[x_idx.S] = -1  # linear term in cost function
     C = np.array([[0, 1, dT],  # discretized dynamics [B,A], x_i+1 = Ax_i + Bu_i
                   [dT, 0, 1]])
     M = 1000
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     bin = np.zeros((4, kmax))
     box = np.array([[1.5, 3],
                     [4, 5]])
-    h = 1
+    h = 0
     s2 = np.linspace(0, 20, params.Nstages + kmax)
     # simulation
     for k in range(0, kmax):
