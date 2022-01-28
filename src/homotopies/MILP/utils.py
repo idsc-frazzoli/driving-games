@@ -40,7 +40,7 @@ def state2traj(state: VehicleState, horizon: float, n: int) -> np.ndarray:
 
 def linearize_spline(path: np.ndarray):
     tck, _ = interpolate.splprep(path, k=2)
-    u1 = np.linspace(0, 1, 110, endpoint=True)  # don't work for n=~100
+    u1 = np.linspace(0, 1, 100, endpoint=True)  # don't work for n=~100
     center_x, center_y = interpolate.splev(u1, tck)
     return np.vstack((center_x, center_y))
 
@@ -48,42 +48,30 @@ def linearize_spline(path: np.ndarray):
 def find_intersect(path1: np.ndarray, path2: np.ndarray):
     len1 = path1.shape[1]
     len2 = path2.shape[1]
+    intersect = []
     if len1 < 3 and len2 < 3:
         return check_intersect(path1, path2)
     else:
         if len1 < 3:
             path21 = path2[:, 0:int(len2 / 2) + 1]
             path22 = path2[:, int(len2 / 2):]
-            res1, p1 = find_intersect(path1, path21)
-            res2, p2 = find_intersect(path1, path22)
-            res3 = False
-            res4 = False
+            intersect += find_intersect(path1, path21)
+            intersect += find_intersect(path1, path22)
         elif len2 < 3:
             path11 = path1[:, 0:int(len1 / 2) + 1]
             path12 = path1[:, int(len1 / 2):]
-            res1, p1 = find_intersect(path11, path2)
-            res2, p2 = find_intersect(path12, path2)
-            res3 = False
-            res4 = False
+            intersect += find_intersect(path11, path2)
+            intersect += find_intersect(path12, path2)
         else:
             path11 = path1[:, 0:int(len1 / 2) + 1]
             path12 = path1[:, int(len1 / 2):]
             path21 = path2[:, 0:int(len2 / 2) + 1]
             path22 = path2[:, int(len2 / 2):]
-            res1, p1 = find_intersect(path11, path21)
-            res2, p2 = find_intersect(path11, path22)
-            res3, p3 = find_intersect(path11, path21)
-            res4, p4 = find_intersect(path12, path22)
-        if res1:
-            return res1, p1
-        elif res2:
-            return res2, p2
-        elif res3:
-            return res3, p3
-        elif res4:
-            return res4, p4
-        else:
-            return False, None
+            intersect += find_intersect(path11, path21)
+            intersect += find_intersect(path11, path22)
+            intersect += find_intersect(path12, path21)
+            intersect += find_intersect(path12, path22)
+        return intersect
 
 
 def check_intersect(line1: np.ndarray, line2: np.ndarray):
@@ -104,15 +92,15 @@ def check_intersect(line1: np.ndarray, line2: np.ndarray):
     C2 = A2 * line2[0, 0] + B2 * line2[1, 0]
     det = A1 * B2 - A2 * B1
     if det == 0:  # two lines are parallel
-        return False, None
+        return []
     else:
         x = (B2 * C1 - B1 * C2) / det
         y = (A1 * C2 - A2 * C1) / det
-    if max(line1[0, :]) >= x >= min(line1[0, :]) and max(line1[1, :]) >= y >= min(line1[1, :])\
+    if max(line1[0, :]) >= x >= min(line1[0, :]) and max(line1[1, :]) >= y >= min(line1[1, :]) \
             and max(line2[0, :]) >= x >= min(line2[0, :]) and max(line2[1, :]) >= y >= min(line2[1, :]):
-        return True, np.array([x, y])
+        return [[x, y]]
     else:
-        return False, None  # intersection point not on segment1
+        return []  # intersection point not on the segments
 
 
 def spline_s(path: np.ndarray, intersect: np.ndarray) -> float:
@@ -179,9 +167,9 @@ def compute_bspline_bases(x, n):
 
 
 if __name__ == "__main__":
-    state = VehicleState(x=0, y=0, theta=np.pi / 2, vx=1, delta=0.2)
+    state = VehicleState(x=0, y=0, theta=np.pi / 2, vx=1, delta=1)
     traj = state2traj(state, 15, 20)
-    state2 = VehicleState(x=-3, y=0, theta=np.pi/4, vx=1, delta=-0.2)
+    state2 = VehicleState(x=-5, y=0, theta=np.pi / 4, vx=1, delta=-1)
     traj2 = state2traj(state2, 15, 20)
     test = np.array([-1, 3]).reshape([2, 1])
     p = spline_progress(traj, test)
@@ -193,13 +181,14 @@ if __name__ == "__main__":
 
     path1 = linearize_spline(traj)
     path2 = linearize_spline(traj2)
-    res, intersect = find_intersect(path1, path2)
-    print(res, intersect)
+    intersect = find_intersect(path1, path2)
+    print(intersect)
     fig, ax = plt.subplots()
-    ax.plot(path1[0, :], path1[1, :], 'ro', markersize=3)
-    ax.plot(path2[0, :], path2[1, :], 'go', markersize=3)
-    ax.plot(new_points[0], new_points[1], 'r-')
+    ax.plot(path1[0, :], path1[1, :], 'ro-', markersize=3)
+    ax.plot(path2[0, :], path2[1, :], 'go-', markersize=3)
+    # ax.plot(new_points[0], new_points[1], 'r-')
     ax.plot(test[0, :], test[1, :], 'bo')
-    if res:
-        ax.plot(intersect[0], intersect[1], 'y*')
+    if len(intersect) > 0:
+        intersect = np.array(intersect)
+        ax.plot(intersect[:,0], intersect[:,1], 'y*')
     plt.show()
