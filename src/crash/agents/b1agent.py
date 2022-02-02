@@ -34,3 +34,7 @@ class B1Agent(LFAgent):
             "gold",
         ]
         return list(zip(traj_s, colors))
+
+    def on_episode_init(self, *args, **kwargs):
+        sim_context = kwargs['sim_context']
+        return

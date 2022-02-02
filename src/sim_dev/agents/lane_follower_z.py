@@ -15,8 +15,7 @@ from dg_commons_dev.behavior.behavior_types import Behavior, BehaviorParams
 from dg_commons_dev.behavior.emergency import EmergencySituation
 from dg_commons_dev.controllers.steering_controllers import SCP
 from dg_commons_dev.controllers.pure_pursuit_z import PurePursuit
-from toolz.sandbox import unzip
-from dg_commons.planning.polygon import PolygonSequence
+from matplotlib.patches import Polygon, Circle, Wedge
 
 
 class LFAgent(Agent):
@@ -148,8 +147,20 @@ class LFAgent(Agent):
         if not self.return_extra:
             return None
 
-        polygons, polygon_classes = unzip(self.situation.situation.infos().polygons)
-        polys = list(polygons)
-        colors = [cat.get_color() for cat in list(polygon_classes)]
-        poly_sequences = [PolygonSequence(values=[poly], timestamps=[0]) for poly in polys]
-        return list(zip(poly_sequences, colors))
+        #polygons, polygon_classes = unzip(self.situation.situation.infos().polygons)
+        #polys = list(polygons)
+        #colors = [cat.get_color() for cat in list(polygon_classes)]
+        #poly_sequences = [PolygonSequence(values=[poly], timestamps=[0]) for poly in polys]
+
+        #polygon1 = Polygon(((0, 0), (40, 0), (40, 40), (0, 40), (0, 0)))
+        #polygon2 = Polygon(((20, 20), (60, 20), (60, 60), (20, 60), (20, 20)))
+        circle1 = Circle((40,40),30)
+        circle2 = Circle((70,70),30)
+        polygon = Polygon(np.array([[0,0],[30,0],[15,15]]))
+        wedge = Wedge((-50,-50), 28, 0, 200)
+        polysequence = [circle1, circle2, polygon, wedge]
+        '''polysequence = [PolygonSequence(timestamps=[0, 1], values=[polygon1, polygon1]),
+                        PolygonSequence(timestamps=[0, 1], values=[polygon2, polygon2])]'''
+        colors = ["gold", 'r','b', 'g']
+
+        return list(zip(polysequence, colors))

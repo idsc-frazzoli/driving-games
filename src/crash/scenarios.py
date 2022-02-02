@@ -1,17 +1,16 @@
 from decimal import Decimal as D
 from math import pi
 from typing import List
-import os
-
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
 from geometry import xytheta_from_SE2
 from numpy import deg2rad, linspace
 
 from crash.agents import B1Agent, B2Agent
+from dg_commons.sim.agents.lane_follower import LFAgent
 from crash.agents.pred_agent import PredAgent
 from dg_commons import DgSampledSequence, PlayerName
-from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
+from dg_commons.controllers.speed import SpeedControllerParam, SpeedController, SpeedBehaviorParam, SpeedBehavior
 from dg_commons.controllers.steer import SteerControllerParam, SteerController
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons.sim import SimTime
@@ -25,9 +24,13 @@ from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from dg_commons.sim.scenarios.factory import get_scenario_commonroad_replica
 from dg_commons.sim.simulator import SimContext
 from dg_commons.sim.simulator_structures import SimParameters
+from commonroad.planning.planning_problem import PlanningProblem, GoalRegion
+from commonroad.scenario.trajectory import State
+from commonroad.common.util import Interval
 
 __all__ = ["get_scenario_bicycles", "get_scenario_illegal_turn", "get_scenario_suicidal_pedestrian",
-           "get_scenario_two_lanes", "get_scenario_racetrack_test", "get_scenario_predictions"]
+           "get_scenario_two_lanes", "get_scenario_racetrack_test", "get_scenario_predictions",
+           "get_scenario_4waycrossing", "get_scenario_pomdp_4waycrossing"]
 
 P1, P2, P3, P4, P5, P6, P7, EGO = PlayerName("P1"), PlayerName("P2"), PlayerName("P3"), PlayerName("P4"), PlayerName(
     "P5"), PlayerName("P6"), PlayerName("P7"), PlayerName("Ego")
@@ -243,11 +246,52 @@ def get_scenario_racetrack_test() -> SimContext:
 
 def get_scenario_predictions() -> SimContext:
     scenario_name = "ZAM_Zip-1_66_T-1"
-    # question: planning problem set is never used. How come?
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    scenario_name = "DEU_Muc-1_2_T-1.xml"
+    # scenario_name = "ZAM_Tjunction-1_280_T-1.xml"
+    # scenario_name = "DEU_Hhr-1_1.xml" # racetrack test
 
-    x0_p1 = VehicleStateDyn(x=-98, y=5.35, theta=0.00, vx=24.5, delta=0)
-    x0_ego = VehicleStateDyn(x=-115, y=9, theta=0.00, vx=kmh2ms(90), delta=0)
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+    # Custom Planning Problem: 3324 -> 3380. id: 900
+    # question why does oerientation influence initial position in visualization? Should not the initial conditions be taken?
+    initial_state = State(position=scenario.lanelet_network.find_lanelet_by_id(3324).polygon.center, velocity=10,
+                          orientation=-1.75, yaw_rate=0, slip_angle=0, time_step=0)
+    goal_state = State(position=scenario.lanelet_network.find_lanelet_by_id(3380).polygon,
+                       time_step=Interval(20, 30))  # give lanelet as position
+    goal_lanelets = {}
+    goal_lanelets[0] = [3380]
+    goal_region = GoalRegion(state_list=[goal_state], lanelets_of_goal_position=goal_lanelets)
+    custom_planning_problem = PlanningProblem(planning_problem_id=900,
+                                              initial_state=initial_state, goal_region=goal_region)
+    # planning_problem_set.add_planning_problem(planning_problem=custom_planning_problem)
+
+    # calculate lanes for P1 and Ego
+    # P1 WORKS
+    '''lane_1 = scenario.lanelet_network.lanelets[3]
+    lane_1 = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane_1, scenario.lanelet_network, max_length=1000)[0][
+        1]
+    dglane_1 = DgLanelet.from_commonroad_lanelet(lane_1)
+    start_1 = dglane_1.center_point(10)
+    xytheta_1 = xytheta_from_SE2(start_1)
+    x0_p1 = VehicleStateDyn(x=xytheta_1[0], y=xytheta_1[1], theta=xytheta_1[2], vx=kmh2ms(50), delta=0)'''
+
+    lane_1 = scenario.lanelet_network.find_lanelet_by_id(3324)
+    lane_1 = \
+        Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane_1, scenario.lanelet_network,
+                                                                max_length=1000)[0][3]  # goes to 3534
+    dglane_1 = DgLanelet.from_commonroad_lanelet(lane_1)
+    start_1 = dglane_1.center_point(5)
+    xytheta_1 = xytheta_from_SE2(start_1)
+    x0_p1 = VehicleStateDyn(x=xytheta_1[0], y=xytheta_1[1], theta=xytheta_1[2], vx=kmh2ms(50), delta=0)
+
+    # Ego
+    # lane_2 = scenario.lanelet_network.find_lanelet_by_id(3334)
+    # lane_2 = Lanelet.all_lanelets_by_merging_successors_from_lanelet(lane_2, scenario.lanelet_network,
+    #                                                                 max_length=1000)[0][2]  # goes to 3394
+    # dglane_2 = DgLanelet.from_commonroad_lanelet(lane_2)
+    start_2 = dglane_1.center_point(0)
+    xytheta_2 = xytheta_from_SE2(start_2)
+    x0_ego = VehicleStateDyn(x=xytheta_2[0], y=xytheta_2[1], theta=xytheta_2[2], vx=kmh2ms(50), delta=0)
+
     ego_model = VehicleModelDyn.default_car(x0_ego)
     ego_model.vg = VehicleGeometry.default_car(color="firebrick")
 
@@ -255,34 +299,174 @@ def get_scenario_predictions() -> SimContext:
               EGO: ego_model
               }
 
-    net = scenario.lanelet_network
-    agents: List[Agent] = [] # todo: is [Agent] instead of [B1Agent] correct?
+    agents: List[Agent] = []
 
     for pname in models:
-        assert not models[pname].model_type == PEDESTRIAN # question: why do we need to check there are no pedestrians?
-        x0 = models[pname].get_state()
-        p = np.array([x0.x, x0.y])
-        dglane = dglane_from_position(p, net) # find lane that controller will follow. Lane is a list of LaneCtrlPoint
-
-        # instantiate speed and steering controllers and their paramenters
-        sp_controller_param: SpeedControllerParam = SpeedControllerParam(
-            setpoint_minmax=models[pname].vp.vx_limits, output_minmax=models[pname].vp.acc_limits)
-        st_controller_param: SteerControllerParam = SteerControllerParam(
-            setpoint_minmax=(-models[pname].vp.delta_max, models[pname].vp.delta_max),
-            output_minmax=(-models[pname].vp.ddelta_max, models[pname].vp.ddelta_max))
-        sp_controller = SpeedController(sp_controller_param)
-        st_controller = SteerController(st_controller_param)
+        assert not models[pname].model_type == PEDESTRIAN
 
         if pname == EGO:
-            agents.append(PredAgent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+            agents.append(PredAgent(lane=dglane_1, lanelet_network=scenario.lanelet_network,
+                                    planning_problem=custom_planning_problem))
         else:
-            agents.append(B1Agent(dglane, speed_controller=sp_controller, steer_controller=st_controller))
+            agents.append(B1Agent(lane=dglane_1))
 
     players = {P1: agents[0],
-               EGO: agents[1], } # question: how does SimContext know that EGO is the one predicting what others do? It doesn't know, right?
+               EGO: agents[1], }
+
     return SimContext(scenario=scenario,
                       models=models,
                       players=players,
                       param=SimParameters(
-                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(4), max_sim_time=D(5)),
+                          dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(7), max_sim_time=D(30)),
+                      )
+
+
+def get_scenario_4waycrossing() -> SimContext:
+
+    scenario_name = "ZAM_4_way_intersection-1_1_T-1_problem_set.xml"
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+
+    planning_problems = list(planning_problem_set.planning_problem_dict.values())
+    start_positions = [problem.initial_state.position for problem in planning_problems]
+    goal_centers = [problem.goal.state_list[0].position.center for problem in planning_problems]
+    start_lanelets = scenario.lanelet_network.find_lanelet_by_position(start_positions)
+    goal_lanelets = scenario.lanelet_network.find_lanelet_by_position(goal_centers)
+
+    lanes_problem_1 = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+        lanelet=scenario.lanelet_network.find_lanelet_by_id(start_lanelets[0][0]),
+        network=scenario.lanelet_network)
+
+    lanes_problem_2 = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+        lanelet=scenario.lanelet_network.find_lanelet_by_id(start_lanelets[1][0]),
+        network=scenario.lanelet_network)
+    lane_1 = None
+    lane_2 = None
+
+    # select lane compatible with start and goal (select first)
+    # Planning Problem 1
+    goal_lanelet_1 = goal_lanelets[0][0]
+    for path_id, path in enumerate(lanes_problem_1[1]):
+        if goal_lanelet_1 in path:
+            lane_1 = lanes_problem_1[0][path_id]
+
+    # Planning Problem 2
+    goal_lanelet_2 = goal_lanelets[1][0]
+    for path_id, path in enumerate(lanes_problem_2[1]):
+        if goal_lanelet_2 in path:
+            lane_2 = lanes_problem_2[0][path_id]
+
+    dglane_1 = DgLanelet.from_commonroad_lanelet(lane_1)
+    start_1 = dglane_1.center_point(0)
+    xytheta_1 = xytheta_from_SE2(start_1)
+    x0_p1 = VehicleStateDyn(x=xytheta_1[0], y=xytheta_1[1], theta=xytheta_1[2], vx=kmh2ms(5), delta=0)
+
+    dglane_2 = DgLanelet.from_commonroad_lanelet(lane_2)
+    start_2 = dglane_2.center_point(0)
+    xytheta_2 = xytheta_from_SE2(start_2)
+    x0_p2 = VehicleStateDyn(x=xytheta_2[0], y=xytheta_2[1], theta=xytheta_2[2], vx=kmh2ms(10), delta=0)
+
+    ego_model = VehicleModelDyn.default_car(x0_p2)
+    ego_model.vg = VehicleGeometry.default_car(color="firebrick")
+
+    models = {P1: VehicleModelDyn.default_car(x0_p1),
+              EGO: ego_model
+              }
+
+    agents: List[Agent] = []
+
+    for pname in models:
+        if pname == EGO:
+            agents.append(PredAgent(lane=dglane_2, lanelet_network=scenario.lanelet_network,
+                                    planning_problem=planning_problems[1], max_length=2.5))
+        else:
+            speed_controller = SpeedController(SpeedControllerParam(setpoint_minmax=(-kmh2ms(10), kmh2ms(20))))
+            # increase steering capability since 4-way crossing has sharp turn
+            steer_controller = SteerController(SteerControllerParam(setpoint_minmax=(-pi/6, pi/6)))
+            #speed_behavior = SpeedBehavior()
+            agents.append(B1Agent(lane=dglane_1, speed_controller=speed_controller, steer_controller=steer_controller))
+            #agents.append(B1Agent(lane=dglane_1))
+
+    players = {P1: agents[0],
+               EGO: agents[1], }
+
+    return SimContext(scenario=scenario,
+                      models=models,
+                      players=players,
+                      param=SimParameters(
+                          dt=D("0.05"), dt_commands=D("0.1"), sim_time_after_collision=D(7), max_sim_time=D(1)),
+                      )
+
+
+def get_scenario_pomdp_4waycrossing() -> SimContext:
+
+    scenario_name = "ZAM_4_way_intersection-1_1_T-1_problem_set.xml"
+    scenario, planning_problem_set = load_commonroad_scenario(scenario_name)
+
+    planning_problems = list(planning_problem_set.planning_problem_dict.values())
+    start_positions = [problem.initial_state.position for problem in planning_problems]
+    goal_centers = [problem.goal.state_list[0].position.center for problem in planning_problems]
+    start_lanelets = scenario.lanelet_network.find_lanelet_by_position(start_positions)
+    goal_lanelets = scenario.lanelet_network.find_lanelet_by_position(goal_centers)
+
+    lanes_problem_1 = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+        lanelet=scenario.lanelet_network.find_lanelet_by_id(start_lanelets[0][0]),
+        network=scenario.lanelet_network)
+
+    lanes_problem_2 = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+        lanelet=scenario.lanelet_network.find_lanelet_by_id(start_lanelets[1][0]),
+        network=scenario.lanelet_network)
+    lane_1 = None
+    lane_2 = None
+
+    # select lane compatible with start and goal (select first)
+    # Planning Problem 1
+    goal_lanelet_1 = goal_lanelets[0][0]
+    for path_id, path in enumerate(lanes_problem_1[1]):
+        if goal_lanelet_1 in path:
+            lane_1 = lanes_problem_1[0][path_id]
+
+    # Planning Problem 2
+    goal_lanelet_2 = goal_lanelets[1][0]
+    for path_id, path in enumerate(lanes_problem_2[1]):
+        if goal_lanelet_2 in path:
+            lane_2 = lanes_problem_2[0][path_id]
+
+    dglane_1 = DgLanelet.from_commonroad_lanelet(lane_1)
+    start_1 = dglane_1.center_point(0)
+    xytheta_1 = xytheta_from_SE2(start_1)
+    x0_p1 = VehicleStateDyn(x=xytheta_1[0], y=xytheta_1[1], theta=xytheta_1[2], vx=kmh2ms(5), delta=0)
+
+    dglane_2 = DgLanelet.from_commonroad_lanelet(lane_2)
+    start_2 = dglane_2.center_point(0)
+    xytheta_2 = xytheta_from_SE2(start_2)
+    x0_p2 = VehicleStateDyn(x=xytheta_2[0], y=xytheta_2[1], theta=xytheta_2[2], vx=kmh2ms(10), delta=0)
+
+    ego_model = VehicleModelDyn.default_car(x0_p2)
+    ego_model.vg = VehicleGeometry.default_car(color="firebrick")
+
+    models = {P1: VehicleModelDyn.default_car(x0_p1),
+              EGO: ego_model
+              }
+
+    agents: List[Agent] = []
+
+    for pname in models:
+        if pname == EGO:
+            agents.append(LFAgent(lane=dglane_2))
+        else:
+            speed_controller = SpeedController(SpeedControllerParam(setpoint_minmax=(-kmh2ms(10), kmh2ms(20))))
+            # increase steering capability since 4-way crossing has sharp turn
+            steer_controller = SteerController(SteerControllerParam(setpoint_minmax=(-pi/6, pi/6)))
+            #speed_behavior = SpeedBehavior()
+            agents.append(B1Agent(lane=dglane_1, speed_controller=speed_controller, steer_controller=steer_controller))
+            #agents.append(B1Agent(lane=dglane_1))
+
+    players = {P1: agents[0],
+               EGO: agents[1], }
+
+    return SimContext(scenario=scenario,
+                      models=models,
+                      players=players,
+                      param=SimParameters(
+                          dt=D("0.05"), dt_commands=D("0.1"), sim_time_after_collision=D(7), max_sim_time=D(10)),
                       )

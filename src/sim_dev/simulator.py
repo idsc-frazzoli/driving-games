@@ -12,6 +12,7 @@ from dg_commons.sim.collision_utils import CollisionException
 from dg_commons.sim.simulator_structures import *
 from dg_commons.time import time_function
 from sim_dev.agents.lane_follower_z import LFAgent
+from dg_commons.planning.road_networks import RoadGraph
 
 
 @dataclass

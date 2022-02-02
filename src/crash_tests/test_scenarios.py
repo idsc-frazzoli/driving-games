@@ -29,3 +29,11 @@ def test_scenario_racetrack():
 def test_predictions():
     sim_context = get_scenario_predictions()
     run_scenario_without_compmake(sim_context)
+
+def test_predictions_4waycrossing():
+    sim_context = get_scenario_4waycrossing()
+    run_scenario_without_compmake(sim_context)
+
+def test_pomdp_4waycrossing():
+    sim_context = get_scenario_pomdp_4waycrossing()
+    run_scenario_without_compmake(sim_context)

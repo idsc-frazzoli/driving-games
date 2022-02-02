@@ -56,7 +56,7 @@ def generate_report(sim_context: SimContext) -> Report:
                          figsize=(16, 8),
                          dt=20,
                          dpi=120,
-                         plot_limits="auto")
+                         plot_limits=None)
     r.add_child(get_collision_reports(sim_context, skip_collision_viz=False))
     return r
 
