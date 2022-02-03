@@ -4,18 +4,15 @@ from decimal import Decimal as D
 from fractions import Fraction
 from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar
 
-from frozendict import frozendict
-from zuper_commons.types import check_isinstance, ZValueError
-
 from dg_commons import PlayerName, U, X, RP, RJ, Y, Timestamp, DgSampledSequence
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
-from . import GameConstants
 
 __all__ = [
     "Dynamics",
     "SR",
     "P",
+    "PlayerOptions",
     "Observations",
     "JointState",
     "JointPureActions",
@@ -130,6 +127,10 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
         """What cost are paid at state X when choosing action u"""
 
     @abstractmethod
+    def personal_final_reward(self, x: X) -> RP:
+        """Final reward"""
+
+    @abstractmethod
     def personal_reward_reduce(self, r1: RP, r2: RP) -> RP:
         """How to accumulate reward (sum, monoid operation)"""
 
@@ -140,10 +141,6 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
     @abstractmethod
     def is_personal_final_state(self, x: X) -> bool:
         """True if this is a final state from the perspective of the agent."""
-
-    @abstractmethod
-    def personal_final_reward(self, x: X) -> RP:
-        """Final reward"""
 
 
 P = TypeVar("P")
@@ -171,6 +168,7 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
     """ Player observations """
 
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
+    # todo this should become the personal goal (terminating condition)
     """ Personal reward information """
 
     preferences: Preference[Combined[RJ, RP]]
@@ -187,7 +185,6 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
     the incremental costs due to joint transitions (e.g. minimum safety distance).
     """
 
-    # fixme maybe add this for more general joint rewards
     @abstractmethod
     def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
         """The joint incremental reward for the agents."""
@@ -206,9 +203,8 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
 
     @abstractmethod
     def joint_final_reward(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
-        """The joint reward for the agents.
-        Only available for a final state.
-        """
+        """The joint reward for the agents. Only available for a final state.
+        #todo not sure about this. Should it be only for the final state?"""
 
 
 class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
@@ -268,55 +264,3 @@ class AgentBelief(Generic[X, U], ABC):
     @abstractmethod
     def get_commands(self, state_self: X, state_others: Poss[JointState]) -> Poss[U]:
         """Given a state and a belief about the others, produce a distribution of actions to take."""
-
-
-def check_joint_state(js: JointState, **kwargs):
-    """Checks js is a :any:`JointState`."""
-    if not GameConstants.checks:
-        return
-
-    check_isinstance(js, frozendict)
-    for n, x in js.items():
-        check_isinstance(n, str, **kwargs)
-        if x is None:
-            raise ZValueError(js=js, **kwargs)
-
-
-def check_player_options(a: PlayerOptions, **kwargs):
-    """Checks consistency of a PlayerOptions variable."""
-    if not GameConstants.checks:
-        return
-
-    check_isinstance(a, frozendict, **kwargs)
-    for k, v in a.items():
-        check_isinstance(k, str)
-        check_isinstance(v, frozenset)
-
-
-def check_joint_pure_actions(a: JointPureActions, **kwargs):
-    """Checks consistency of a JointPureActions variable."""
-    if not GameConstants.checks:
-        return
-
-    check_isinstance(a, frozendict, **kwargs)
-    if len(a) == 0:
-        raise ZValueError("empty actions", a=a)
-    for k, v in a.items():
-        assert isinstance(k, str), k
-        if isinstance(v, Poss):
-            msg = "I thought this would be pure actions, found Poss inside"
-            raise ZValueError(msg, k=k, v=v, **kwargs)
-
-
-def check_joint_mixed_actions(a: JointMixedActions, **kwargs):
-    """Checks consistency of a JointMixedActions variable."""
-    if not GameConstants.checks:
-        return
-    check_isinstance(a, frozendict, **kwargs)
-
-    for k, v in a.items():
-        check_isinstance(k, str)  # player name
-        check_isinstance(v, Poss, **kwargs)
-        for _ in v.support():
-            if isinstance(_, Poss):
-                raise ZValueError(_=_, **kwargs)

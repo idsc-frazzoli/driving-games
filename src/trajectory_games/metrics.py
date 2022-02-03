@@ -434,6 +434,7 @@ class MinimumClearance(Clearance):
         return dist > self.THRESHOLD * max(x.v for x in states)
 
 
+# fixme probably all these metrics is better to have them as Type[Metric]?
 def get_personal_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {
         EpisodeTime(),

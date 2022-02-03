@@ -9,4 +9,4 @@ __all__ = ["SimpleCollision"]
 class SimpleCollision:
     location: ImpactLocation
     at_fault: bool
-    energy_transfer: float
+    energy_delta: float

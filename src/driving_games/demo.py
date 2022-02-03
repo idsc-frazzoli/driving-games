@@ -11,13 +11,14 @@ from driving_games.solvers import solvers_zoo, SolverSpec
 from games import GameSpec
 from games import (
     create_report_preprocessed,
-    preprocess_game,
     report_game_visualization,
     report_solutions,
     solve1,
 )
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]
+
+from games.preprocess import preprocess_game
 
 
 class DGDemo(QuickApp):

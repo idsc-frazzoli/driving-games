@@ -6,30 +6,19 @@ from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
 from frozendict import frozendict
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
-
-from possibilities import Poss
 from zuper_commons.types import ZValueError
-from . import logger
-from .game_def import (
-    check_joint_state,
-    Game,
-    JointPureActions,
-    JointState,
-    PlayerName,
-    RJ,
-    RP,
-    SR,
-    U,
-    X,
-    Y,
-)
+
+from dg_commons import fkeyfilter, fvalmap, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y
+from games import logger
+from games.checks import check_joint_state
+from games.game_def import Game, JointPureActions, JointState, SR
 from games.solve.solution_structures import (
     AccessibilityInfo,
     GameFactorization,
     GameGraph,
     GameNode,
 )
-from dg_commons import fkeyfilter, fvalmap, iterate_dict_combinations
+from possibilities import Poss
 
 __all__ = []
 

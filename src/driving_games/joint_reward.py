@@ -12,10 +12,9 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.collisions_check import collision_check
 from driving_games.structures import VehicleActions, VehicleTrackState
 from games import JointRewardStructure
+from games.game_def import JointTransition
 
 __all__ = ["VehicleJointReward"]
-
-from games.game_def import JointTransition
 
 
 def _find_parent_state(x: VehicleTrackState, dt: Decimal) -> VehicleTrackState:

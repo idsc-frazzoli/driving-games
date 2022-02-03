@@ -2,13 +2,12 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass, field
 from typing import List, Mapping, Optional, MutableMapping
 
-from commonroad.scenario.scenario import Scenario
-
 from dg_commons import PlayerName, SE2Transform, seq_integrate
 from dg_commons import valmap, fd
 from dg_commons.maps import DgLanePose
 from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
 from dg_commons.seq.sequence import DgSampledSequence
+from dg_commons.sim.scenarios import DgScenario
 
 __all__ = [
     "MetricEvaluationContext",
@@ -24,7 +23,7 @@ __all__ = [
 class EvaluatedMetric:
     name: str
     value: float
-    """Total value of the metric cost.
+    """ Total value of the metric cost.
     It is usually the min/max/avg/integral/cumsum of the pointwise evaluation of the metric"""
     pointwise: Optional[DgSampledSequence] = None
 
@@ -37,7 +36,7 @@ JointEvaluatedMetric = Mapping[PlayerName, EvaluatedMetric]
 
 @dataclass
 class MetricEvaluationContext:
-    scenario: Scenario
+    dgscenario: DgScenario
     trajectories: JointTrajectories
     goals: Mapping[PlayerName, PlanningGoal]
 

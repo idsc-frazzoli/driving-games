@@ -15,9 +15,9 @@ from driving_games.vehicle_dynamics import VehicleTrackDynamics
 from driving_games.vehicle_observation import VehicleDirectObservations
 from driving_games.visualization import DrivingGameVisualization
 from games import (
-    get_accessible_states,
     UncertaintyParams,
 )
+from games.preprocess import get_accessible_states
 from possibilities import PossibilityMonad
 
 __all__ = ["get_driving_game"]

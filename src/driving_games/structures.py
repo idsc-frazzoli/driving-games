@@ -70,6 +70,8 @@ class VehicleTrackState:
     light: LightsCmd
     """ The current lights signal."""
 
+    # todo maybe add has collided with other vehicle
+
     __print_order__ = ["x", "v"]  # only print these attribute
 
     def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:

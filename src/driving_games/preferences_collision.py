@@ -1,8 +1,9 @@
-from typing import Optional, Type
+from typing import Optional, Type, Union
 
 from zuper_typing import debug_print
 
 from dg_commons.sim import CollisionReportPlayer
+from driving_games import SimpleCollision
 from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -15,15 +16,17 @@ from preferences import (
 
 __all__ = ["CollisionPreference"]
 
+CollisionReports = Union[CollisionReportPlayer, SimpleCollision]
 
-class CollisionPreference(Preference[CollisionReportPlayer]):
+
+class CollisionPreference(Preference[CollisionReports]):
     def __init__(self):
         self.p = SmallerPreferred()
 
-    def get_type(self) -> Type[CollisionReportPlayer]:
-        return CollisionReportPlayer
+    def get_type(self) -> Type[CollisionReports]:
+        return CollisionReports
 
-    def compare(self, a: Optional[CollisionReportPlayer], b: Optional[CollisionReportPlayer]) -> ComparisonOutcome:
+    def compare(self, a: Optional[CollisionReports], b: Optional[CollisionReports]) -> ComparisonOutcome:
         if a is None and b is None:
             return INDIFFERENT
         if a is None and b is not None:
@@ -40,7 +43,6 @@ class CollisionPreference(Preference[CollisionReportPlayer]):
         ea, eb = a.energy_delta, b.energy_delta
         res = self.p.compare(ea, eb)
         assert res in COMP_OUTCOMES, (res, self.p)
-        # logger.info('collision_pref', a=a, b=b, res=res)
         return res
 
     def __repr__(self) -> str:
