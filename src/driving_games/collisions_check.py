@@ -23,23 +23,23 @@ from dg_commons.sim.collision_utils import (
 from dg_commons.sim.models import extract_pose_from_state
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from driving_games import VehicleJointCost
 from games import GameConstants
 
-__all__ = ["collision_check"]
+__all__ = ["joint_collision_check"]
 
 
-def collision_check(
+def joint_collision_check(
     transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
     col_dt: Timestamp,
     lanelet_network: LaneletNetwork,
-) -> Mapping[PlayerName, CollisionReportPlayer]:
+    min_safety_dist: float,
+) -> Mapping[PlayerName, VehicleJointCost]:
+    """This is an involved version of the collision check."""
     if GameConstants.checks:
         assert set(transitions.keys()) == set(geometries.keys())
-
-    # fixme here some heuristic for macro level checking can speed-up things a lot
-
-    accidents: Dict[PlayerName, CollisionReportPlayer] = {}
+    accidents: Dict[PlayerName, VehicleJointCost] = {}
 
     for player1, player2 in combinations(transitions, 2):
         trans1, trans2 = transitions[player1], transitions[player2]

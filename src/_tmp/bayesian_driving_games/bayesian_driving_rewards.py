@@ -13,7 +13,7 @@ from driving_games import (
     VehicleTimeCost,
 )
 from driving_games.collisions_check import (
-    collision_check,
+    joint_collision_check,
 )
 from games import JointRewardStructure, PersonalRewardStructure
 
@@ -35,14 +35,14 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleTrackState, Vehicle
 
     # @lru_cache(None)
     def is_joint_final_transition(self, txs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
-        res = collision_check(xs, self.geometries)
+        res = joint_collision_check(xs, self.geometries)
         return frozenset(res)
 
     def joint_final_reward(self, txs: M[PlayerName, VehicleTrackState]) -> M[PlayerName, M[PlayerName, Collision]]:
         # todo this is utterly wrong
         res: M[PlayerType] = {}
         for ptype in self.players:
-            res[ptype] = collision_check(txs, self.geometries)
+            res[ptype] = joint_collision_check(txs, self.geometries)
         return res
 
 

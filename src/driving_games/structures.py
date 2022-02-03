@@ -18,14 +18,13 @@ __all__ = [
 class VehicleTimeCost:
     """The personal costs of the vehicle"""
 
-    __slots__ = ["duration"]
-    duration: D
+    duration: float
     """ Duration of the episode. """
 
     # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "VehicleTimeCost":
         # weighting costs, e.g. according to a probability
-        return replace(self, duration=self.duration * D(float(weight)))
+        return replace(self, duration=self.duration * weight)
 
     __rmul__ = __mul__
 
@@ -39,21 +38,6 @@ class VehicleTimeCost:
             raise NotImplementedError
 
     __radd__ = __add__
-
-
-@dataclass(frozen=True)
-class VehicleSafetyDistCost:
-    """The personal costs of the vehicle"""
-
-    distance: float
-    """ Duration of the episode. """
-
-    # support weight multiplication for expected value
-    def __mul__(self, weight: Fraction) -> "VehicleSafetyDistCost":
-        # weighting costs, e.g. according to a probability
-        return replace(self, distance=self.distance * float(weight))
-
-    __rmul__ = __mul__
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)

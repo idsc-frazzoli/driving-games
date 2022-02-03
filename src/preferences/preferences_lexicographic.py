@@ -1,6 +1,7 @@
-from typing import Tuple, Type, TypeVar
+from typing import Tuple, Type, Any
 
 from zuper_typing import debug_print, make_Tuple
+
 from .preferences_base import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -13,25 +14,22 @@ from .preferences_base import (
 
 __all__ = ["LexicographicPreference"]
 
-A = TypeVar("A")
-B = TypeVar("B")
 
+class LexicographicPreference(Preference[Tuple[Any, ...]]):
+    prefs: Tuple[Preference[Any], ...]
 
-class LexicographicPreference(Preference[Tuple[A, B]]):
-    prefs: Tuple[Preference[A], Preference[B]]
-
-    def __init__(self, prefs: Tuple[Preference[A], Preference[B]]):
+    def __init__(self, prefs: Tuple[Preference[Any], ...]):
         self.prefs = prefs
 
     def __repr__(self) -> str:
         d = {"T": self.get_type(), "prefs": self.prefs}
         return "LexicographicPreference:\n" + debug_print(d)
 
-    def get_type(self) -> Type[Tuple[A, B]]:
+    def get_type(self) -> Type[Tuple[Preference[Any], ...]]:
         t = make_Tuple(*tuple(_.get_type() for _ in self.prefs))
         return t
 
-    def compare(self, a: Tuple[A, B], b: Tuple[A, B]) -> ComparisonOutcome:
+    def compare(self, a: Tuple[Any, ...], b: Tuple[Any, ...]) -> ComparisonOutcome:
         # check_isinstance(a, tuple)
         # check_isinstance(b, tuple)
         n = len(self.prefs)

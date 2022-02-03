@@ -168,7 +168,6 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
     """ Player observations """
 
     personal_reward_structure: PersonalRewardStructure[X, U, RP]
-    # todo this should become the personal goal (terminating condition)
     """ Personal reward information """
 
     preferences: Preference[Combined[RJ, RP]]
