@@ -51,4 +51,4 @@ def test_1():
         P3: DgSampledSequence[VehicleTrackState](timestamps=(0, dt), values=(x0, replace(x0, x=D(4), v=D(0)))),
     }
 
-    jr.joint_reward_incremental()
+    res = jr.joint_reward_incremental(txs)

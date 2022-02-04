@@ -10,9 +10,10 @@ logger = ZLogger(__name__)
 from .structures import *
 from .vehicle_dynamics import *
 from .vehicle_observation import *
-from .preferences_collision import *
-from .preferences_coll_time import *
 from .collisions import *
-from .personal_reward import *
-from .joint_reward import *
+from .collisions_check import *
+from .preferences_coll_time import *
+from .preferences_collision import *
+from .reward_personal import *
+from .reward_joint import *
 from .visualization import *

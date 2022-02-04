@@ -17,7 +17,6 @@ from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.create_joint_game_tree import create_game_graph
 from games.game_def import (
-    check_joint_state,
     Combined,
     Game,
     JointPureActions,
@@ -51,6 +50,8 @@ from .solution_utils import get_outcome_preferences_for_players, add_incremental
 from .solve_equilibria_ import solve_equilibria
 
 __all__ = ["solve1"]
+
+from ..checks import check_joint_state
 
 TOC = perf_counter()
 

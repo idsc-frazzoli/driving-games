@@ -4,9 +4,9 @@ from typing import Dict, Generic, Mapping, Optional, TypeVar
 
 from frozendict import frozendict
 
+from .checks import check_joint_pure_actions
 from .game_def import (
     AgentBelief,
-    check_joint_pure_actions,
     Game,
     JointPureActions,
     JointState,

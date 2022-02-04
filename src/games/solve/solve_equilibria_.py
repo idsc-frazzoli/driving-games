@@ -9,8 +9,6 @@ from zuper_commons.types import ZNotImplementedError, ZValueError
 
 from .equilibria import analyze_equilibria, EquilibriaAnalysis
 from games.game_def import (
-    check_joint_mixed_actions,
-    check_joint_pure_actions,
     Combined,
     JointMixedActions,
     JointPureActions,
@@ -32,6 +30,7 @@ from .solution_structures import (
     ValueAndActions,
 )
 from dg_commons import fd
+from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 
 
 def solve_equilibria(

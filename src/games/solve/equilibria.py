@@ -16,7 +16,6 @@ from preferences import (
 from zuper_commons.types import ZValueError, ZNotImplementedError
 from games import GameConstants
 from games.game_def import (
-    check_joint_mixed_actions,
     JointMixedActions,
     JointPureActions,
     PlayerName,
@@ -39,6 +38,8 @@ from .solution_structures import (
 from dg_commons import valmap, fvalmap
 
 __all__ = []
+
+from ..checks import check_joint_mixed_actions
 
 
 @dataclass
