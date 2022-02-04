@@ -1,3 +1,4 @@
+from functools import lru_cache
 from itertools import combinations
 from math import pi
 from typing import Mapping, Dict
@@ -6,10 +7,10 @@ import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork
 from geometry import T2value, SO2value, SO2_from_angle
 from shapely.affinity import affine_transform
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 from zuper_commons.types import ZValueError
 
-from dg_commons import PlayerName, DgSampledSequence, Timestamp, norm_between_SE2value
+from dg_commons import PlayerName, DgSampledSequence, Timestamp, norm_between_SE2value, apply_SE2_to_shapely_geo, fd
 from dg_commons.sim import CollisionReportPlayer, ImpactLocation, IMPACT_FRONT, IMPACT_LEFT, IMPACT_BACK, IMPACT_RIGHT
 from dg_commons.sim.collision_utils import (
     check_who_is_at_fault,
@@ -29,6 +30,7 @@ from games import GameConstants
 __all__ = ["joint_collision_cost_simple"]
 
 
+@lru_cache(maxsize=1024)  # todo adjust maxsize
 def joint_collision_cost_simple(
     transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
@@ -38,44 +40,45 @@ def joint_collision_cost_simple(
     """This is an involved version of the collision check."""
     if GameConstants.checks:
         assert set(transitions.keys()) == set(geometries.keys())
+        # check transitions happen at the same
+        for player1, player2 in combinations(transitions, 2):
+            trans1, trans2 = transitions[player1], transitions[player2]
+            t1_end, t1_start = trans1.get_end(), trans1.get_start()
+            t2_end, t2_start = trans2.get_end(), trans2.get_start()
+            assert t1_start == t2_start and t1_end == t2_end
+            assert t1_end - t1_start >= col_dt
+
     # init costs
     joint_costs: Dict[PlayerName, VehicleJointCost] = {
         p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in transitions
     }
     for player1, player2 in combinations(transitions, 2):
         trans1, trans2 = transitions[player1], transitions[player2]
-        g1, g2 = geometries[player1], geometries[player2]
-
-        a_shape: Polygon = g1.outline_as_polygon
-        b_shape: Polygon = g2.outline_as_polygon
 
         # we up-sample the transition according to col_dt from the end going backwards
         t1_end, t1_start = trans1.get_end(), trans1.get_start()
         n1 = int((t1_end - t1_start) / col_dt)
-        ts1 = [t1_end - i * col_dt for i in range(n1 + 1)]
-        t2_end, t2_start = trans2.get_end(), trans2.get_start()
-        n2 = int((t2_end - t2_start) / col_dt)
-        ts2 = [t2_end - i * col_dt for i in range(n2 + 1)]
+        ts = [t1_end - i * col_dt for i in range(n1 + 1)]
         # but we evaluate them forward in time
-        ts1.reverse()
-        ts2.reverse()
-        for t1, t2 in zip(ts1, ts2):
-            x1, x2 = trans1.at_interp(t1), trans2.at_interp(t2)
+        ts.reverse()
+        for t in ts:
+            x1, x2 = trans1.at_interp(t), trans2.at_interp(t)
             q1, q2 = extract_pose_from_state(x1), extract_pose_from_state(x2)
             dist = norm_between_SE2value(q1, q2)
             if dist < min_safety_dist:
+                # update cost for safety distance violation
                 tmp_safety_dist_violation = min_safety_dist - dist
                 for p in [player1, player2]:
-                    if joint_costs[p].safety_dist_violation.distance < tmp_safety_dist_violation:
-                        joint_costs[p].safety_dist_violation = VehicleSafetyDistCost(tmp_safety_dist_violation)
+                    joint_costs[p] += VehicleJointCost(VehicleSafetyDistCost(tmp_safety_dist_violation))
                 # check if there has been an actual physical collision
-                a_matrix_coeff = q1[0, :2].tolist() + q1[1, :2].tolist() + q1[:2, 2].tolist()
-                a_shape_tra = affine_transform(a_shape, a_matrix_coeff)
-                b_matrix_coeff = q2[0, :2].tolist() + q2[1, :2].tolist() + q2[:2, 2].tolist()
-                b_shape_tra = affine_transform(b_shape, b_matrix_coeff)
+                a_shape = geometries[player1].outline_as_polygon
+                b_shape = geometries[player2].outline_as_polygon
+                a_shape_tra: Polygon = apply_SE2_to_shapely_geo(a_shape, q1)
+                b_shape_tra: Polygon = apply_SE2_to_shapely_geo(b_shape, q2)
+
                 if a_shape_tra.intersects(b_shape_tra):  # collision
                     # many simplifications here
-                    _, impact_point = compute_impact_geometry(a_shape_tra, b_shape_tra)
+                    impact_point = _get_impact_point(a_shape_tra, b_shape_tra)
                     a_direction = get_impact_point_direction(x1, impact_point)
                     b_direction = get_impact_point_direction(x2, impact_point)
 
@@ -83,20 +86,22 @@ def joint_collision_cost_simple(
                     rel_velocity_atP_norm = np.linalg.norm(a_vel - b_vel)
 
                     a_report = SimpleCollision(
+                        at=t,
                         at_fault=_simple_check_is_at_fault(a_direction),
                         rel_impact_direction=a_direction,
                         impact_rel_speed=rel_velocity_atP_norm,
                     )
                     b_report = SimpleCollision(
+                        at=t,
                         at_fault=_simple_check_is_at_fault(b_direction),
                         rel_impact_direction=b_direction,
                         impact_rel_speed=rel_velocity_atP_norm,
                     )
-                    joint_costs[player1].collision += a_report
-                    joint_costs[player2].collision += b_report
+                    joint_costs[player1] += VehicleJointCost(VehicleSafetyDistCost(0), collision=a_report)
+                    joint_costs[player2] += VehicleJointCost(VehicleSafetyDistCost(0), collision=b_report)
                     break
 
-    return joint_costs
+    return fd(joint_costs)
 
 
 def _approx_velocity(x: VehicleState) -> T2value:
@@ -137,6 +142,11 @@ def _simple_check_is_at_fault(direction: float) -> bool:
         return False
     else:
         raise ZValueError("Unrecognised impact direction", direction=direction)
+
+
+def _get_impact_point(a_shape: Polygon, b_shape: Polygon) -> Point:
+    int_shape = a_shape.intersection(b_shape)
+    return int_shape.centroid
 
 
 def joint_collision_cost(

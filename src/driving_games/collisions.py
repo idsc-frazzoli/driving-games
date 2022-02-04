@@ -4,11 +4,15 @@ from typing import Optional
 
 from zuper_commons.types import ZValueError
 
+from dg_commons import Timestamp
+from driving_games import logger
+
 __all__ = ["SimpleCollision", "VehicleSafetyDistCost", "VehicleJointCost"]
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True, frozen=True)
 class SimpleCollision:
+    at: Timestamp
     at_fault: bool
     rel_impact_direction: float
     """Relative impact direction in polar coordinates (0 is the front, pi is the back)"""
@@ -29,19 +33,24 @@ class SimpleCollision:
         if other is None:
             return self
         elif isinstance(other, SimpleCollision):
-            return replace(
-                self,
-                ## impact location?!
-                at_fault=self.at_fault or other.at_fault,
-                impact_rel_speed=self.impact_rel_speed + other.impact_rel_speed,
-            )
+            if self.at < other.at:
+                return self
+            elif self.at > other.at:
+                return other
+            else:
+                logger.warning(f"Performing sum between SimpleCollision occurred at the same instant. Monoid?")
+                return replace(  # monoid?
+                    self,
+                    at_fault=self.at_fault or other.at_fault,
+                    impact_rel_speed=self.impact_rel_speed + other.impact_rel_speed,
+                )
         else:
             raise ZValueError("Cannot add a SimpleCollision to a non-SimpleCollision", other=type(other))
 
     __radd__ = __add__
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True, frozen=True)
 class VehicleSafetyDistCost:
     """Minimum safety distance costs of the vehicle"""
 
@@ -55,7 +64,7 @@ class VehicleSafetyDistCost:
 
     __rmul__ = __mul__
 
-    # Monoid to support sum
+    # Cost monoid to support sum
     def __add__(self, other: "VehicleSafetyDistCost") -> "VehicleSafetyDistCost":
         if isinstance(other, VehicleSafetyDistCost):
             return replace(self, distance=self.distance + other.distance)
@@ -67,7 +76,7 @@ class VehicleSafetyDistCost:
     __radd__ = __add__
 
 
-@dataclass(frozen=True)
+@dataclass(unsafe_hash=True, frozen=True)
 class VehicleJointCost:
     safety_dist_violation: VehicleSafetyDistCost
     collision: Optional[SimpleCollision] = None
@@ -87,7 +96,7 @@ class VehicleJointCost:
             return replace(
                 self,
                 safety_dist_violation=self.safety_dist_violation + other.safety_dist_violation,
-                collision=self.collision + other.collision,
+                collision=self.collision if other.collision is None else self.collision + other.collision,
             )
         else:
             raise ZValueError("Cannot add a VehicleJointCost to a non-VehicleJointCost", other=type(other))
