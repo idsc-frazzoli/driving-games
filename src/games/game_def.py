@@ -15,6 +15,7 @@ __all__ = [
     "PlayerOptions",
     "Observations",
     "JointState",
+    "JointTransition",
     "JointPureActions",
     "JointMixedActions",
     "JointRewardStructure",

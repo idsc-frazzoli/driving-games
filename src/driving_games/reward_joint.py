@@ -1,15 +1,15 @@
 from dataclasses import replace
 from decimal import Decimal
-from typing import FrozenSet, Mapping, Dict
+from typing import FrozenSet, Mapping, Dict, Optional
 
 from commonroad.scenario.lanelet import LaneletNetwork
 
-from dg_commons import PlayerName, Timestamp, DgSampledSequence, RJ
+from dg_commons import PlayerName, Timestamp, DgSampledSequence
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games import VehicleJointCost, VehicleSafetyDistCost
-from driving_games.collisions_check import joint_collision_check
+from driving_games.collisions_check import joint_collision_cost_simple
 from driving_games.structures import VehicleActions, VehicleTrackState
 from games import JointRewardStructure
 from games.game_def import JointTransition
@@ -27,8 +27,8 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         geometries: Mapping[PlayerName, VehicleGeometry],
         ref_lanes: Mapping[PlayerName, DgLanelet],
         col_check_dt: Timestamp,
-        lanelet_network: LaneletNetwork,
         min_safety_distance: float,
+        lanelet_network: Optional[LaneletNetwork] = None,
     ):
         assert geometries.keys() == ref_lanes.keys()
         self.geometries = geometries
@@ -65,6 +65,6 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
                 return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
 
             global_xs[p] = txs[p].transform_values(to_vehicle_state, VehicleState)
-        res = joint_collision_check(global_xs, self.geometries, self.col_check_dt, self.lanelet_network)
+        res = joint_collision_cost_simple(global_xs, self.geometries, self.col_check_dt, self.min_safety_distance)
         # todo fix output type
         return res

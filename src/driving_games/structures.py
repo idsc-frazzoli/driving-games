@@ -8,7 +8,6 @@ from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
     "VehicleTimeCost",
-    "VehicleSafetyDistCost",
     "VehicleTrackState",
     "VehicleActions",
 ]
