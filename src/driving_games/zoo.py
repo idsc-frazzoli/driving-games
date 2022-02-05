@@ -50,6 +50,7 @@ p0 = DgSimpleParams(
     scenario=simple_intersection,
     progress={P1: (D(135), D(160)), P2: (D(175), D(190))},
     plot_limits=[[40, 100], [-25, 25]],
+    min_safety_distance=4,
 )
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetPreference1)

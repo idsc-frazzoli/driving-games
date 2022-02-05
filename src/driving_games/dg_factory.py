@@ -7,8 +7,8 @@ from dg_commons import PlayerName, fd, fs
 from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.dg_def import DrivingGamePlayer, DrivingGame, DgSimpleParams
-from driving_games.joint_reward import VehicleJointReward
-from driving_games.personal_reward import VehiclePersonalRewardStructureTime
+from driving_games.reward_joint import VehicleJointReward
+from driving_games.reward_personal import VehiclePersonalRewardStructureTime
 from driving_games.preferences_coll_time import VehiclePreferencesCollTime
 from driving_games.structures import VehicleTrackState
 from driving_games.vehicle_dynamics import VehicleTrackDynamics
@@ -68,6 +68,7 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         ref_lanes=dg_params.ref_lanes,
         col_check_dt=dg_params.col_check_dt,
         lanelet_network=dg_params.scenario.lanelet_network,
+        min_safety_distance=dg_params.min_safety_distance,
     )
     game_visualization = DrivingGameVisualization(
         dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits

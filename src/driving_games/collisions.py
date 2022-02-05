@@ -13,7 +13,9 @@ __all__ = ["SimpleCollision", "VehicleSafetyDistCost", "VehicleJointCost"]
 @dataclass(unsafe_hash=True, frozen=True)
 class SimpleCollision:
     at: Timestamp
+    """When the collision happened."""
     at_fault: bool
+    """Whether the the player was at fault."""
     rel_impact_direction: float
     """Relative impact direction in polar coordinates (0 is the front, pi is the back)"""
     impact_rel_speed: float

@@ -13,6 +13,7 @@ from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
+from .resources import get_resources_used
 from .structures import (
     VehicleTrackState,
     VehicleActions,
@@ -37,7 +38,7 @@ class VehicleTrackDynamicsParams:
     """ Maximum wait [s] -- maximum duration at v=0. """
     lights_commands: FrozenSet[LightsCmd]
     """ Allowed light commands """
-    shared_resources_ds: D
+    shared_resources_ds: float
     """ Size of the spatial cells to consider as resources [m]"""
 
 
@@ -122,4 +123,5 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         return ret
 
     def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[Polygon]:
-        return get_resources_used(vs=x, vg=self.vg, ds=self.param.shared_resources_ds)
+        # todo: this is not correct, we should use the lanelet graph
+        return get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)

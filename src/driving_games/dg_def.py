@@ -36,6 +36,8 @@ class DgSimpleParams:
     """Dynamics the players"""
     col_check_dt: D
     """Discretization step for collision checking. A smart choice related to the solver's one is advisable"""
+    min_safety_distance: float
+    """Minimum safety distance for the joint cost of the players"""
     shared_resources_ds: D
     """"""
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None

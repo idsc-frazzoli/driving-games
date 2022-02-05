@@ -57,6 +57,7 @@ class VehicleTrackState:
 
     __print_order__ = ["x", "v"]  # only print these attribute
 
+    # todo another candidate for caching
     def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
         beta = ref_lane.beta_from_along_lane(float(self.x))
         return SE2Transform.from_SE2(ref_lane.center_point(beta))

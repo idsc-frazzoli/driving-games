@@ -53,14 +53,13 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         res = self.joint_final_reward(txs)
         return frozenset({p for p in res if res[p].collision is not None})
 
-    @time_function
+    # @time_function
     def joint_final_reward(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> Mapping[PlayerName, VehicleJointCost]:
         global_xs: Dict[PlayerName:VehicleState] = {}
-        # todo need to test if this transform works as expected
         for p in txs:
-
+            # todo need to test if this transform works as expected
             def to_vehicle_state(tx: VehicleTrackState):
                 t = tx.to_global_pose(self.ref_lane[p])
                 return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
