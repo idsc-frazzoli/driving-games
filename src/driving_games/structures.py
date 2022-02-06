@@ -53,7 +53,8 @@ class VehicleTrackState:
     light: LightsCmd
     """ The current lights signal."""
 
-    # todo maybe add has collided with other vehicle
+    has_collided: bool
+    """ Whether the vehicle has collided with something/someone. """
 
     __print_order__ = ["x", "v"]  # only print these attribute
 

@@ -186,10 +186,6 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
     """
 
     @abstractmethod
-    def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
-        """The joint incremental reward for the agents."""
-
-    @abstractmethod
     def joint_reward_reduce(self, r1: RJ, r2: RJ) -> RJ:
         """How to accumulate reward (sum, monoid operation)"""
 
@@ -198,13 +194,20 @@ class JointRewardStructure(Generic[X, U, RJ], ABC):
         """The identity for the monoid"""
 
     @abstractmethod
+    def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
+        """The joint incremental reward for the agents."""
+
+    @abstractmethod
     def is_joint_final_transition(self, txs: JointTransition) -> FrozenSet[PlayerName]:
         """For which players this is a final joint transition?"""
 
     @abstractmethod
-    def joint_final_reward(self, txs: JointTransition) -> Mapping[PlayerName, RJ]:
-        """The joint reward for the agents. Only available for a final state.
-        #todo not sure about this. Should it be only for the final state?"""
+    def joint_final_reward(self, txs: JointState) -> Mapping[PlayerName, RJ]:
+        """The joint reward for the agents. Only available for a final state."""
+
+    @abstractmethod
+    def is_joint_final_states(self, xs: JointState) -> FrozenSet[PlayerName]:
+        """the game can end on transition but also on the final state for the players."""
 
 
 class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):

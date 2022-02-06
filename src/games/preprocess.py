@@ -35,7 +35,7 @@ from games.solve.solution_structures import (
 )
 from possibilities import check_poss, Poss
 
-__all__ = ["preprocess_game", "get_accessible_states"]
+__all__ = ["preprocess_game", "get_reachable_states"]
 
 
 def preprocess_game(
@@ -101,7 +101,7 @@ def preprocess_player(
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
 
-def get_accessible_states(
+def get_reachable_states(
     initial: Poss[X],
     personal_reward_structure: PersonalRewardStructure[X, U, RP],
     dynamics: Dynamics[X, U, SR],
@@ -109,7 +109,6 @@ def get_accessible_states(
 ) -> MultiDiGraph:
     """
     Computes the states accessible for a player subject to their dynamics and their personal cost function.
-
     :param initial:
     :param personal_reward_structure:
     :param dynamics:
@@ -156,7 +155,7 @@ def get_accessible_states(
 
 @time_function
 def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
-    """Gets the game graph, used only for visualisation? the real game tree is built in create_joint_game_tree"""
+    """Gets the game graph, ?used only for visualisation? the real game is built in create_joint_game_tree"""
     players = game.players
     init_states: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), players)
 
@@ -213,7 +212,7 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
                         generation=generation + 1,
                         in_game="-".join(S2.keys()),
                     )
-                    # if anyone is still alive
+                    # if anyone is still alive add to stack for further expansion
                     if any(p not in ending_players for p in S2):
                         if S2 not in stack:
                             stack.append(S2)
@@ -287,4 +286,4 @@ def compute_graph_layout(G: MultiDiGraph, iterations: int) -> NoReturn:
 
 
 def get_player_graph(player: GamePlayer[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
-    return get_accessible_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)
+    return get_reachable_states(player.initial, player.personal_reward_structure, player.dynamics, dt=dt)

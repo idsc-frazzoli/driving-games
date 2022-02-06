@@ -13,7 +13,7 @@ from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
-from .resources import get_resources_used
+from .resources import get_resources_used, PolygonHashable
 from .structures import (
     VehicleTrackState,
     VehicleActions,
@@ -118,10 +118,10 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = D(0)
-        ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light)
+        ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light, has_collided=x.has_collided)
 
         return ret
 
-    def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[Polygon]:
+    def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[PolygonHashable]:
         # todo: this is not correct, we should use the lanelet graph
         return get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)

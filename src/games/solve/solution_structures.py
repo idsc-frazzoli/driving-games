@@ -105,7 +105,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     personal_final_reward: Mapping[PlayerName, RP]
     """ Final cost for the players that terminate here."""
 
-    incremental: Mapping[PlayerName, Mapping[U, Poss[RP]]]
+    incremental: Mapping[JointPureActions, Poss[Mapping[PlayerName, Combined]]]
     """ Incremental cost according to action taken. """
 
     joint_final_rewards: Mapping[PlayerName, RJ]
@@ -132,8 +132,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         check_isinstance(self.transitions, frozendict, GameNode=self)
         for pure_actions, pr_game_node in self.transitions.items():
             check_joint_pure_actions(pure_actions)
-            # check_isinstance(pr_game_node, dict)
             check_poss(pr_game_node, frozendict)
+            if pure_actions not in self.incremental:
+                msg = f"Pure action {pure_actions!r} does not have any incremental cost associated with it."
+                raise ZValueError(msg, action=pure_actions, GameNode=self)
             for x in pr_game_node.support():
                 check_isinstance(x, frozendict)
                 for k, js in x.items():
@@ -180,27 +182,21 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                 pure_actions=set(self.transitions),
                 GameNode=self,
             )
+        self._check_players_in_transition()
 
-        # check that for each action we have a cost
-        # for player_name, player_moves in self.moves.items():
-        #     moves_with_cost = set(self.incremental[player_name])
-        #     if player_moves != moves_with_cost:
-        #         msg = "Invalid match between moves and costs."
-        #         raise ZValueError(
-        #             msg,
-        #             player_name=player_name,
-        #             player_moves=player_moves,
-        #             moves_with_cost=moves_with_cost,
-        #             GameNode=self,
-        #         )
-
-        self.check_players_in_transition()
+        # check the incremental cost
+        for pure_actions, incremental_costs in self.incremental.items():
+            check_joint_pure_actions(pure_actions)
+            check_poss(incremental_costs, frozendict)
+            if pure_actions not in self.transitions:
+                msg = f"Pure action {pure_actions!r} does not have any transition"
+                raise ZValueError(msg, action=pure_actions, GameNode=self)
 
     def get_active_players(self) -> FSet[PlayerName]:
         # todo check it works
         return frozenset(self.states.keys() - self.joint_final_rewards.keys() - self.personal_final_reward.keys())
 
-    def check_players_in_transition(self) -> None:
+    def _check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""
         jpa: JointPureActions
         futures: Poss[Mapping[PlayerName, JointState]]

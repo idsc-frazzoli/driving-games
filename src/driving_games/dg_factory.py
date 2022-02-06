@@ -17,7 +17,7 @@ from driving_games.visualization import DrivingGameVisualization
 from games import (
     UncertaintyParams,
 )
-from games.preprocess import get_accessible_states
+from games.preprocess import get_reachable_states
 from possibilities import PossibilityMonad
 
 __all__ = ["get_driving_game"]
@@ -42,14 +42,18 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         p_init_progress = dg_params.progress[p][0]
         # p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
         p_x = VehicleTrackState(
-            x=p_init_progress, wait=D(0), v=dg_params.track_dynamics_param.min_speed, light=NO_LIGHTS
+            x=p_init_progress,
+            wait=D(0),
+            v=dg_params.track_dynamics_param.min_speed,
+            light=NO_LIGHTS,
+            has_collided=False,
         )
         p_initial = ps.unit(p_x)
         p_personal_reward_structure = VehiclePersonalRewardStructureTime(goal_progress=dg_params.progress[p][1])
         p_preferences = VehiclePreferencesCollTime()
 
         # this part about observations is not used at the moment
-        g = get_accessible_states(p_initial, p_personal_reward_structure, p_dynamics, D("1"))
+        g = get_reachable_states(p_initial, p_personal_reward_structure, p_dynamics, D("1"))
         # fixme if discretization is a parameter of the solver here it should not depend on it
         p_possible_states = cast(ASet[VehicleTrackState], fs(g.nodes))
         p_observations = VehicleDirectObservations(p_possible_states, {})

@@ -1,7 +1,7 @@
 from frozendict import frozendict
 
 from driving_games import UncertaintyParams
-from games import GameSpec, Game, PlayerName, GamePlayer, get_accessible_states
+from games import GameSpec, Game, PlayerName, GamePlayer, get_reachable_states
 from _tmp.toy_games.toy_rewards import (
     BirdPersonalRewardStructureCustom,
     BirdPreferences,
@@ -37,9 +37,9 @@ def get_toy_game_spec(toy_game_mat: ToyGameMat, uncertainty_params: UncertaintyP
     p2_personal_reward_structure = BirdPersonalRewardStructureCustom(max_stages=max_stages)
 
     # observations
-    g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
+    g1 = get_reachable_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
     p1_possible_states = cast(ASet[BirdState], frozenset(g1.nodes))
-    g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
+    g2 = get_reachable_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
     p2_possible_states = cast(ASet[BirdState], frozenset(g2.nodes))
     p1_observations = BirdDirectObservations(p1_possible_states, {P2: p2_possible_states})
     p2_observations = BirdDirectObservations(p2_possible_states, {P1: p1_possible_states})

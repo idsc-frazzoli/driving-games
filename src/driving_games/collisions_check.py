@@ -39,14 +39,17 @@ def joint_collision_cost_simple(
 ) -> Mapping[PlayerName, VehicleJointCost]:
     """This is an involved version of the collision check."""
     if GameConstants.checks:
-        assert set(transitions.keys()) == set(geometries.keys())
+        if not set(transitions.keys()).issubset(set(geometries.keys())):
+            msg = "Transitions must be a subset of geometries"
+            raise ZValueError(msg, transitions=transitions, geometries=geometries)
         # check transitions happen at the same
         for player1, player2 in combinations(transitions, 2):
             trans1, trans2 = transitions[player1], transitions[player2]
             t1_end, t1_start = trans1.get_end(), trans1.get_start()
             t2_end, t2_start = trans2.get_end(), trans2.get_start()
-            assert t1_start == t2_start and t1_end == t2_end
-            assert t1_end - t1_start >= col_dt
+            if t1_start != t2_start or t1_end != t2_end:
+                msg = "Transitions must have same initial and ending timestamp"
+                raise ZValueError(msg, transitions=transitions)
 
     # init costs
     joint_costs: Dict[PlayerName, VehicleJointCost] = {

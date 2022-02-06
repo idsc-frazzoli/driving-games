@@ -3,15 +3,15 @@ from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
 
-from frozendict import frozendict
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
 from zuper_commons.types import ZValueError
 
-from dg_commons import fkeyfilter, fvalmap, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y
+from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
+from dg_commons.utils_toolz import *
 from games import logger
 from games.checks import check_joint_state
-from games.game_def import Game, JointPureActions, JointState, SR
+from games.game_def import Game, JointPureActions, JointState, SR, Combined
 from games.solve.solution_structures import (
     AccessibilityInfo,
     GameFactorization,
@@ -19,8 +19,6 @@ from games.solve.solution_structures import (
     GameNode,
 )
 from possibilities import Poss
-
-__all__ = []
 
 
 @dataclass
@@ -107,7 +105,7 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
 
 
 def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
-    """Returns the possible moves."""
+    """Returns the possible moves and the corresponding possible future states."""
     res = {}
     state: X
     ps = ic.game.ps
@@ -116,6 +114,7 @@ def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapp
         player = ic.game.players[player_name]
         # is it a final state?
         is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
+        # todo check if we also need to add the check on the state collided
 
         if state is None or is_final:
             succ = {None: ps.unit(None)}
@@ -138,6 +137,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
     moves_to_state_everybody = get_moves(ic, states)
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
+    pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
     ic2 = replace(ic, depth=ic.depth + 1)
 
@@ -147,15 +147,14 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         if _.personal_reward_structure.is_personal_final_state(player_state):
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_final[player_name] = f
-    # todo here forward checking of terminal states?!
-    who_exits = frozenset(ic.game.joint_reward.is_joint_final_transition(states))
-    joint_final = who_exits
+    who_has_collided = frozenset(ic.game.joint_reward.is_joint_final_states(states))
+    joint_final = who_has_collided
     if joint_final:
         joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
     else:
         joint_final_rewards = {}
 
-    players_exiting = set(who_exits) | set(is_final)
+    players_exiting = set(who_has_collided) | set(is_final)
 
     # Consider only the moves of whom remains
     not_exiting = lambda pn: pn not in players_exiting
@@ -163,20 +162,18 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     movesets_for_remaining = fvalmap(frozenset, moves_to_state_remaining)
 
     # Compute the incremental costs for the moves
-    incremental = defaultdict(dict)
+    pers_incremental_cost: Mapping[PlayerName, Mapping[U, Poss[RP]]] = defaultdict(dict)
     for k, its_moves in moves_to_state_remaining.items():
         for move in its_moves:
             if move is None:
                 continue
             pri = ic.game.players[k].personal_reward_structure.personal_reward_incremental
             inc = pri(states[k], move, ic.dt)
-            incremental[k][move] = inc
+            pers_incremental_cost[k][move] = inc
 
+    # compute next joint states and incremental joint rewards
     for joint_pure_action in iterate_dict_combinations(moves_to_state_remaining):
-
-        pure_action: JointPureActions
-        pure_action = fkeyfilter(lambda action: action is not None, joint_pure_action)
-
+        pure_action: JointPureActions = fkeyfilter(lambda action: action is not None, joint_pure_action)
         if not pure_action:
             continue
 
@@ -191,7 +188,21 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         def f(a: Mapping[PlayerName, U]) -> JointState:
             return fkeyfilter(not_exiting, a)
 
-        outcomes: Poss[JointState] = ps.build_multiple(selected, f)
+        next_states: Poss[JointState] = ps.build_multiple(selected, f)
+
+        # here compute the joint rewards
+        def trans_cost(_next_state: JointState) -> Mapping[PlayerName, Combined]:
+            transitions = {
+                p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
+                for p in _next_state
+            }
+            m_pn_rj = ic.game.joint_reward.joint_reward_incremental(transitions)
+            return fd(
+                {p: Combined(personal=pers_incremental_cost[p][pure_action[p]], joint=m_pn_rj[p]) for p in _next_state}
+            )
+
+        joint_trans_cost: Poss[Mapping[PlayerName, Combined]] = ps.build(next_states, trans_cost)
+        pure_incremental[joint_pure_action] = joint_trans_cost
 
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
             if ic.gf is not None:
@@ -206,15 +217,15 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
                     this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
                     for pname in players_in_partition:
                         re[pname] = this_partition_state
-                return frozendict(re)
+                return fd(re)
             else:
                 x = {k_: js0 for k_ in states}
                 return fkeyfilter(not_exiting, x)
 
-        poutcomes: Poss[Mapping[PlayerName, JointState]] = ps.build(outcomes, r)
-        pure_transitions[pure_action] = poutcomes
+        pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
+        pure_transitions[pure_action] = pnext_states
 
-        for p in poutcomes.support():
+        for p in pnext_states.support():
             for _, js_ in p.items():
                 _create_game_graph(ic2, js_)
 
@@ -224,13 +235,13 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         resources[player_name] = dynamics.get_shared_resources(player_state)
 
     res = GameNode(
-        states=frozendict(states),
+        states=fd(states),
         moves=movesets_for_remaining,
-        transitions=frozendict(pure_transitions),
-        personal_final_reward=frozendict(is_final),
-        incremental=fvalmap(frozendict, incremental),
-        joint_final_rewards=frozendict(joint_final_rewards),
-        resources=frozendict(resources),
+        transitions=fd(pure_transitions),
+        personal_final_reward=fd(is_final),
+        incremental=fd(pure_incremental),
+        joint_final_rewards=fd(joint_final_rewards),
+        resources=fd(resources),
     )
     ic.cache[states] = res
     return res
