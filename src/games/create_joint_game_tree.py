@@ -148,7 +148,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_final[player_name] = f
     who_has_collided = frozenset(ic.game.joint_reward.is_joint_final_states(states))
-    joint_final = who_has_collided
+    joint_final = who_has_collided  # todo check maybe no need for if else
     if joint_final:
         joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
     else:
@@ -179,7 +179,6 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         def f(item: Tuple[PlayerName, U]) -> Tuple[PlayerName, Poss[X]]:
             pn, choice = item
-            # fixme ps.lift_many(moves_to_state_remaining[pn][choice])?
             return pn, moves_to_state_remaining[pn][choice]
 
         selected: Dict[PlayerName, Poss[X]]
@@ -201,9 +200,18 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
                 {p: Combined(personal=pers_incremental_cost[p][pure_action[p]], joint=m_pn_rj[p]) for p in _next_state}
             )
 
-        joint_trans_cost: Poss[Mapping[PlayerName, Combined]] = ps.build(next_states, trans_cost)
-        pure_incremental[joint_pure_action] = joint_trans_cost
+        trans_cost: Poss[Mapping[PlayerName, Combined]] = ps.build(next_states, trans_cost)
+        pure_incremental[joint_pure_action] = trans_cost
 
+        # here need to update who has collided (their state in next_states)
+        for tc in trans_cost.support():
+            for pn in tc:
+                if tc[pn].joint.collision is not None:
+                    for js in next_states.support():
+                        # todo this will fail since it's frozen
+                        js[pn] = replace(js[pn], has_collided=True)
+
+        # here the generalized transition to support factorization
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
             if ic.gf is not None:
                 # using game factorization
@@ -225,8 +233,8 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
         pure_transitions[pure_action] = pnext_states
 
-        for p in pnext_states.support():
-            for _, js_ in p.items():
+        for pn in pnext_states.support():
+            for _, js_ in pn.items():
                 _create_game_graph(ic2, js_)
 
     resources = {}

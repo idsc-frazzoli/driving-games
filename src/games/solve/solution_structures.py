@@ -5,7 +5,7 @@ from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewTy
 
 from networkx import MultiDiGraph
 
-from dg_commons import fkeyfilter, iterate_dict_combinations
+from dg_commons import fkeyfilter, iterate_dict_combinations, Timestamp
 from games.checks import *
 from games.game_def import (
     Combined,
@@ -36,6 +36,7 @@ __all__ = [
     "SolverParams",
     "SolvingContext",
     "StrategyForMultipleNash",
+    "ValueAndActions",
     "BAIL_MNE",
     "SECURITY_MNE",
     "MIX_MNE",
@@ -106,7 +107,9 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ Final cost for the players that terminate here."""
 
     incremental: Mapping[JointPureActions, Poss[Mapping[PlayerName, Combined]]]
-    """ Incremental cost according to action taken. """
+    """ Incremental cost according to action taken."""
+    # fixme here the Poss comes only from already having taken into account the stochastic transitions?
+    #  check that in build game tree and solutions we do not account for the stochastic dynamics twice
 
     joint_final_rewards: Mapping[PlayerName, RJ]
     """ For the players that terminate here due to "collision", their final rewards. """
@@ -117,8 +120,8 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     __print_order__ = [
         "states",
         "moves",
-        "outcomes",
-        "is_final",
+        "transitions",
+        "personal_final_reward",
         "incremental",
         "joint_final_rewards",
     ]
@@ -232,10 +235,10 @@ def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
 class AccessibilityInfo(Generic[X]):
     """The time accessibility info of the states of a game"""
 
-    state2times: Dict[JointState, AbstractSet[D]]
+    state2times: Dict[JointState, AbstractSet[Timestamp]]
     """ For each state, at what time can it be visited? """
 
-    time2states: Dict[D, AbstractSet[JointState]]
+    time2states: Dict[Timestamp, AbstractSet[JointState]]
     """ For each time, what states can be visited? """
 
 

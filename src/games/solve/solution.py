@@ -1,12 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-from typing import (
-    AbstractSet,
-    Dict,
-    FrozenSet as FSet,
-    Mapping as M,
-)
+from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M
 
 from frozendict import frozendict
 from networkx import simple_cycles
@@ -44,14 +39,14 @@ from .solution_structures import (
 from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
 from .solve_equilibria_ import solve_equilibria
 
-__all__ = ["solve1"]
+__all__ = ["solve_main"]
 
 from ..checks import check_joint_state
 
 TOC = perf_counter()
 
 
-def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo
 
@@ -94,7 +89,7 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
     # solve sequential games equilibria
-    sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+    # sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
     game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
@@ -287,10 +282,9 @@ def _solve_game(
                     cur=_,
                 )
 
-            logger.info(player_dist=player_dist)
+            # logger.info(player_dist=player_dist)
             players_dist[player_name] = ps.join(ps.build(player_dist, f))
-
-        logger.info(players_dist=players_dist)
+        # logger.info(players_dist=players_dist)
         solved[pure_actions] = frozendict(players_dist)
 
     va: ValueAndActions[U, RP, RJ]

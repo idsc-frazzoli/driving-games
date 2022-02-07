@@ -122,7 +122,7 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
         jss=initials,
     )
     controllers0 = {}
-    for player_name, pp in gp.players_pre.items():
+    for player_name, pp in gp.players_pre.items():  # todo remove as it belongs to bayesian games
         for typ in gp.game.players[player_name].types_of_myself:
             policy = game_solution.policies[player_name + "," + typ]
             controllers0[player_name, typ] = AgentFromPolicy(gp.game.ps, policy)
@@ -132,7 +132,7 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
         game_value=game_solution.states_to_solution[initial_state].va.game_value,
         # policy=solution_ghost.policies,
     )
-    res = {}
+
     for seed in range(5):
         sim_joint = simulate1(
             gp.game,

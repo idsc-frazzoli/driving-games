@@ -14,7 +14,7 @@ do_games_sets = [
     # "asym_v1_sets",
 ]
 do_solvers_sets = [
-    "solver-2-pure-mix_mNE-fact",
+    "solver-2-pure-mix_mNE-naive",
     # "solver-1-finite_mix-mix_mNE-fact",
     # "solver-1-finite_mix-security_mNE-naive",
     # "solver-1-finite_mix-security_mNE-fact",

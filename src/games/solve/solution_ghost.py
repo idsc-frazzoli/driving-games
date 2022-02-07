@@ -1,24 +1,14 @@
 from dataclasses import dataclass, replace
 from typing import Dict, Mapping
 
-from possibilities import Poss
 from zuper_commons.types import ZValueError
-from games import logger
-from games.game_def import (
-    AgentBelief,
-    Game,
-    JointPureActions,
-    JointState,
-    PlayerName,
-    RJ,
-    RP,
-    SR,
-    U,
-    X,
-    Y,
-)
-from .solution_structures import GameGraph, GameNode
+
+from dg_commons import PlayerName, RJ, RP, U, X, Y
 from dg_commons import fd, iterate_dict_combinations, valmap
+from games import logger
+from games.game_def import AgentBelief, Game, JointPureActions, JointState, SR
+from possibilities import Poss
+from .solution_structures import GameGraph, GameNode
 
 
 def get_ghost_tree(
@@ -132,8 +122,8 @@ def replace_others(
         ret = GameNode(
             states=node.states,
             moves=new_moves,
-            outcomes=fd(res),
-            is_final=node.personal_final_reward,
+            transitions=fd(res),
+            personal_final_reward=node.personal_final_reward,
             incremental=fd(new_incremental),
             joint_final_rewards=node.joint_final_rewards,
             resources=node.resources,

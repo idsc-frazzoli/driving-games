@@ -1,26 +1,20 @@
 from typing import Dict, Mapping, MutableMapping
 
 from frozendict import frozendict
+from zuper_commons.types import ZNotImplementedError, ZValueError
 
+from dg_commons import fd, X, U, Y, RP, RJ, PlayerName
+from games.game_def import (
+    JointMixedActions,
+    JointPureActions,
+    SR,
+    Combined,
+    UncertainCombined,
+)
+from games.solve.equilibria import analyze_equilibria, EquilibriaAnalysis
 from games.solve.solution_security import get_mixed_joint_actions, get_security_policies
 from possibilities import Poss
 from preferences import Preference
-from zuper_commons.types import ZNotImplementedError, ZValueError
-
-from .equilibria import analyze_equilibria, EquilibriaAnalysis
-from games.game_def import (
-    Combined,
-    JointMixedActions,
-    JointPureActions,
-    PlayerName,
-    RJ,
-    RP,
-    SR,
-    U,
-    UncertainCombined,
-    X,
-    Y,
-)
 from .solution_structures import (
     GameNode,
     SolvingContext,
@@ -29,7 +23,6 @@ from .solution_structures import (
     SECURITY_MNE,
     ValueAndActions,
 )
-from dg_commons import fd
 from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 
 
@@ -38,6 +31,7 @@ def solve_equilibria(
     gn: GameNode[X, U, Y, RP, RJ, SR],
     solved: Mapping[JointPureActions, Mapping[PlayerName, UncertainCombined]],
 ) -> ValueAndActions[U, RP, RJ]:
+    """#todo"""
     ps = sc.game.ps
     for pure_action in solved:
         check_joint_pure_actions(pure_action)
@@ -60,20 +54,18 @@ def solve_equilibria(
     # logger.info(f"Time taken to analyze equilibria: {toc:.2f} [s]")
     # logger.info(ea=ea)
     if len(ea.nondom_nash_equilibria) == 1:
-
         eq = list(ea.nondom_nash_equilibria)[0]
         check_joint_mixed_actions(eq)
-
         game_value = dict(ea.nondom_nash_equilibria[eq])
         for player_final, final_value in gn.personal_final_reward.items():
-            game_value[player_final] = ps.unit(Combined(final_value, None))
+            joint_reward_id = sc.game.joint_reward.joint_reward_identity()
+            game_value[player_final] = ps.unit(Combined(final_value, joint=joint_reward_id))
         if set(game_value) != set(gn.states):
             raise ZValueError("incomplete", game_value=game_value, gn=gn)
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
     else:
         # multiple non-dominated nash equilibria
         outcomes = set(ea.nondom_nash_equilibria.values())
-
         mNE_strategy = sc.solver_params.strategy_multiple_nash
         if mNE_strategy == MIX_MNE:
             # fixme: Not really sure this makes sense when there are probabilities

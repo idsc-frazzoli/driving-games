@@ -3,7 +3,12 @@ from dataclasses import dataclass
 from typing import Dict, FrozenSet, Generic, Mapping, Set
 
 from frozendict import frozendict
+from zuper_commons.types import ZValueError, ZNotImplementedError
 
+from dg_commons import valmap, PlayerName, RJ, RP, U, X, Y
+from games import GameConstants
+from games.checks import check_joint_mixed_actions
+from games.game_def import JointMixedActions, JointPureActions, SR, UncertainCombined, PlayerOptions
 from possibilities import Poss, PossibilityMonad, PossibilitySet
 from preferences import (
     COMP_OUTCOMES,
@@ -13,21 +18,6 @@ from preferences import (
     remove_dominated,
     StrictProductPreferenceDict,
 )
-from zuper_commons.types import ZValueError, ZNotImplementedError
-from games import GameConstants
-from games.game_def import (
-    JointMixedActions,
-    JointPureActions,
-    PlayerName,
-    RJ,
-    RP,
-    SR,
-    U,
-    UncertainCombined,
-    X,
-    Y,
-    PlayerOptions,
-)
 from .solution_structures import (
     GameNode,
     SolverParams,
@@ -35,11 +25,8 @@ from .solution_structures import (
     MIX_STRATEGIES,
     PURE_STRATEGIES,
 )
-from dg_commons import valmap, fvalmap
 
 __all__ = []
-
-from ..checks import check_joint_mixed_actions
 
 
 @dataclass
@@ -175,11 +162,7 @@ def analyze(
         unhappy_players = set()
         alternatives = {}
         for player_name in player_names:
-            pref: Preference[UncertainCombined]
-            try:
-                pref = preferences[player_name]
-            except:
-                pref = preferences[player_name[0]]
+            pref: Preference[UncertainCombined] = preferences[player_name]
             is_happy: bool = True
             variations_: Mapping[U, JointMixedActions]
             variations_ = variations(player_mixed_strategies, a0, player_name)
@@ -187,12 +170,8 @@ def analyze(
             # logger.info('looking for variations', variations_=variations_)
             for action_to_change, a1 in variations_.items():
                 # zassert(x1 in results, a1=a1, results=set(results))
-                o0: UncertainCombined
-                o1: UncertainCombined
-                try:
-                    o1, o0 = results[a1][player_name], results[a0][player_name]
-                except:
-                    o1, o0 = results[a1][player_name[0]], results[a0][player_name[0]]
+                o0: UncertainCombined = results[a0][player_name]
+                o1: UncertainCombined = results[a1][player_name]
                 res = pref.compare(o1, o0)
                 assert res in COMP_OUTCOMES, (res, pref)
                 # logger.info(o1=o1, o0=o0, res=res)

@@ -1,8 +1,10 @@
+import logging
 from typing import ClassVar
 
 from zuper_commons.logs import ZLogger
 
 logger = ZLogger(__name__)
+logging.getLogger("matplotlib.font_manager").disabled = True
 
 
 class GameConstants:

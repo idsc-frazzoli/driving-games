@@ -64,7 +64,7 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
     def joint_final_reward(self, xs: JointState[VehicleTrackState]) -> Mapping[PlayerName, VehicleJointCost]:
         """No explicit joint final cost.
         The ending cost is already added in the incremental cost of the last transition."""
-        return {p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in xs}
+        return {p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in xs if xs[p].has_collided}
 
     def is_joint_final_states(self, xs: JointState[VehicleTrackState]) -> FrozenSet[PlayerName]:
         """No explicit joint final cost. The ending cost is already added in the incremental cost."""
