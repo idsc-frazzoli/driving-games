@@ -40,7 +40,7 @@ SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 simple_intersection, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
 s_lane1 = dglane_from_position(np.array([0, 0]), simple_intersection.lanelet_network, succ_lane_selection=1)
-s_lane2 = dglane_from_position(np.array([70, -14]), simple_intersection.lanelet_network, succ_lane_selection=1)
+s_lane2 = dglane_from_position(np.array([70, -14]), simple_intersection.lanelet_network, succ_lane_selection=0)
 
 p0 = DgSimpleParams(
     track_dynamics_param=dyn_p0,
