@@ -79,7 +79,7 @@ def preprocess_player(
     solver_params: SolverParams,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
-    # todo
+    # Preprocess a single player by solving their individual games (i.e. optimal control problem)
     :param individual_game:
     :param solver_params:
     :return:

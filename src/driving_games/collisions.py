@@ -77,6 +77,12 @@ class VehicleSafetyDistCost:
 
     __radd__ = __add__
 
+    # def __neg__(self) -> "VehicleSafetyDistCost":
+    #     return replace(self, distance=-self.distance)
+    #
+    # def __sub__(self, other: "VehicleSafetyDistCost"):
+    #     return self + (-other)
+
 
 @dataclass(unsafe_hash=True, frozen=True)
 class VehicleJointCost:

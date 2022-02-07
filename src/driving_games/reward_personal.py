@@ -28,12 +28,11 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackSta
 
     def personal_final_reward(self, x: VehicleTrackState) -> VehicleTimeCost:
         check_isinstance(x, VehicleTrackState)
-        # todo check if this is correct
 
         with localcontext() as ctx:
             ctx.prec = 2
             remaining = (self.goal_progress - x.x) / x.v
-            return VehicleTimeCost(remaining)
+            return VehicleTimeCost(float(remaining))
 
     def is_personal_final_state(self, x: VehicleTrackState) -> bool:
         check_isinstance(x, VehicleTrackState)

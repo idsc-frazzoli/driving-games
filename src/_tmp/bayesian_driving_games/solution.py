@@ -23,7 +23,7 @@ from _tmp.bayesian_driving_games.structures_solution import (
     BayesianGameGraph,
 )
 from _tmp.bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
-from games.solve.solution import fr, get_outcome_preferences_for_players
+from games.solve.solution import fd_r, get_outcome_preferences_for_players
 from possibilities import Poss
 from possibilities.sets import SetPoss
 from zuper_commons.types import ZValueError
@@ -260,7 +260,7 @@ def solve_game_bayesian2(
                         iset = ps.unit(other_states)
                         policy_for_this_state[iset] = s0.va.mixed_actions[key]
 
-        policies2 = frozendict({k: fr(v) for k, v in policies.items()})
+        policies2 = frozendict({k: fd_r(v) for k, v in policies.items()})
 
         solution_new = GameSolution(
             initials=frozenset(jss),

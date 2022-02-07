@@ -41,7 +41,7 @@ from .solution_structures import (
     UsedResources,
     ValueAndActions,
 )
-from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
+from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
 from .solve_equilibria_ import solve_equilibria
 
 __all__ = ["solve1"]
@@ -200,7 +200,6 @@ def solve_game2(
         solver_params=solver_params,
     )
     for js0 in jss:
-        check_joint_state(js0)
         _solve_game(sc, js0)
 
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState], Poss[U]]]]
@@ -214,7 +213,7 @@ def solve_game2(
                 iset = ps.unit(other_states)
                 policy_for_this_state[iset] = solved_gnode.va.mixed_actions[player_name]
 
-    policies2 = frozendict({k: fr(v) for k, v in policies.items()})
+    policies2 = frozendict({k: fd_r(v) for k, v in policies.items()})
 
     return GameSolution(
         initials=frozenset(jss),
@@ -253,9 +252,6 @@ def _solve_game(
     solved_to_node = {}
 
     for pure_actions in gn.transitions:
-        # Incremental costs incurred if choosing this action
-        inc: Dict[PlayerName, Poss[RP]]
-        inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
         # if we choose these actions, then these are the game nodes we could go in.
         # Note that each player can go in a different joint state.
         next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
@@ -266,8 +262,11 @@ def _solve_game(
             return frozendict(valmap(lambda _: _solve_game(sc, _).states, a))
 
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
-
         players_dist: Dict[PlayerName, UncertainCombined] = {}
+        # Incremental costs incurred if choosing this action
+        inc: Poss[M[PlayerName, Combined[RJ, RP]]]
+        inc = gn.incremental[pure_actions]
+
         for player_name in pure_actions:
 
             def v(m: M[PlayerName, JointState]) -> UncertainCombined:
@@ -280,18 +279,18 @@ def _solve_game(
             # logger.info(stn=stn)
             player_dist: UncertainCombined = ps.join(ps.build(stn, v))
 
-            def f(_: Combined) -> Combined:
-                return add_incremental_cost_single(
+            def f(_: Combined) -> UncertainCombined:
+                return add_incremental_cost_player(
                     game=sc.game,
                     player_name=player_name,
-                    incremental_for_player=inc,
+                    incremental=inc,
                     cur=_,
                 )
 
-            # logger.info(player_dist=player_dist)
-            players_dist[player_name] = ps.build(player_dist, f)
+            logger.info(player_dist=player_dist)
+            players_dist[player_name] = ps.join(ps.build(player_dist, f))
 
-        # logger.info(players_dist=players_dist)
+        logger.info(players_dist=players_dist)
         solved[pure_actions] = frozendict(players_dist)
 
     va: ValueAndActions[U, RP, RJ]
@@ -404,7 +403,8 @@ def solve_final_personal_both(
     """
     game_value: Dict[PlayerName, UncertainCombined] = {}
     for player_name, personal in gn.personal_final_reward.items():
-        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
+        joint_id = sc.game.joint_reward.joint_reward_identity()
+        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint_id))
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)
