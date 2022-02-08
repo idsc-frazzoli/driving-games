@@ -401,7 +401,7 @@ class Clearance(Metric, metaclass=ABCMeta):
             cumulative=None,
         )
         # interval = context.get_interval(player1)
-        # ret = self.get_evaluated_metric(interval=interval, val=all_values)
+        # ret = self.get_integrated_metric(interval=interval, val=all_values)
         if joint_traj_all not in self.cache_metrics:
             self.cache_metrics[joint_traj_all] = {}
         self.cache_metrics[joint_traj_all][player1] = ret

@@ -51,7 +51,7 @@ def get_evaluated_metric(players: List[PlayerName], f: Callable[[PlayerName], Ev
 
 class EpisodeTime(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "Length of the episode (smaller preferred)"
+    description = "Length of the episode (smaller preferred)."
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -59,8 +59,7 @@ class EpisodeTime(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            # time becomes also the value
-            ret = self.get_evaluated_metric(seq=DgSampledSequence(traj.timestamps, traj.timestamps))
+            ret = self.get_metric(seq=DgSampledSequence[float](values=traj.timestamps, timestamps=traj.timestamps))
             self.cache[traj] = ret
             return ret
 
@@ -69,7 +68,7 @@ class EpisodeTime(Metric):
 
 class DeviationLateral(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric describes the deviation from reference path. "
+    description = "This metric describes the lateral deviation from reference path."
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -77,10 +76,10 @@ class DeviationLateral(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = traj.get_sampling_points()
             traj_sn = context.points_curv[player]
             abs_n = [_.distance_from_center for _ in traj_sn]
-            ret = self.get_evaluated_metric(timestamps=interval, values=abs_n)
+            ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                values=abs_n, timestamps=traj.get_sampling_points()))
             self.cache[traj] = ret
             return ret
 
@@ -100,7 +99,7 @@ class DeviationHeading(Metric):
             interval = traj.get_sampling_points()
             traj_sn = context.points_curv[player]
             head = [abs(_.relative_heading) for _ in traj_sn]
-            ret = self.get_evaluated_metric(timestamps=interval, values=head)
+            ret = self.get_integrated_metric(timestamps=interval, values=head)
             self.cache[traj] = ret
             return ret
 
@@ -131,7 +130,7 @@ class DrivableAreaViolation(Metric):
 
             viol = [get_violation(x) for x in traj_sn]
             viol_seq = DgSampledSequence[float](timestamps=interval, values=viol)
-            ret = self.get_evaluated_metric(viol_seq)
+            ret = self.get_integrated_metric(viol_seq)
             self.cache[traj] = ret
             return ret
 
@@ -156,7 +155,7 @@ class ProgressAlongReference(Metric):
             progress = [(lane_poses[0].along_lane - p.along_lane) for p in lane_poses]
             progress_seq = DgSampledSequence[float](interval, progress)
             progress_der_seq = seq_differentiate(progress_seq)
-            ret = self.get_evaluated_metric(seq=progress_der_seq)
+            ret = self.get_integrated_metric(seq=progress_der_seq)
             self.cache[traj] = ret
             return ret
 
@@ -175,7 +174,7 @@ class LongitudinalAcceleration(Metric):
 
             traj_vel = traj.transform_values(lambda x: x.v, float)
             acc_seq = seq_differentiate(traj_vel)
-            ret = self.get_evaluated_metric(acc_seq)
+            ret = self.get_integrated_metric(acc_seq)
             self.cache[traj] = ret
             return ret
 
@@ -198,7 +197,7 @@ class LateralComfort(Metric):
                 return self.cache[traj]
 
             lat_comf_seq = traj.transform_values(_get_lat_comf, float)
-            ret = self.get_evaluated_metric(seq=lat_comf_seq)
+            ret = self.get_integrated_metric(seq=lat_comf_seq)
             self.cache[traj] = ret
             return ret
 
@@ -216,7 +215,7 @@ class SteeringAngle(Metric):
                 return self.cache[traj]
 
             st_seq = traj.transform_values(lambda x: abs(x.st), float)
-            ret = self.get_evaluated_metric(seq=st_seq)
+            ret = self.get_integrated_metric(seq=st_seq)
             self.cache[traj] = ret
             return ret
 
@@ -235,7 +234,7 @@ class SteeringRate(Metric):
 
             st_traj = traj.transform_values(lambda x: x.st, float)
             dst = seq_differentiate(st_traj)
-            ret = self.get_evaluated_metric(dst)
+            ret = self.get_integrated_metric(dst)
             self.cache[traj] = ret
             return ret
 
@@ -373,7 +372,7 @@ class Clearance(Metric, metaclass=ABCMeta):
         # TODO[SIR]: Integration is slow, skipping since it's not used
         ret = EvaluatedMetric(name=type(self).__name__, pointwise=None, value=total_value)
         # interval = context.get_interval(player1)
-        # ret = self.get_evaluated_metric(timestamps=interval, values=all_values)
+        # ret = self.get_integrated_metric(timestamps=interval, values=all_values)
         if joint_traj_all not in self.cache_metrics:
             self.cache_metrics[joint_traj_all] = {}
         self.cache_metrics[joint_traj_all][player1] = ret

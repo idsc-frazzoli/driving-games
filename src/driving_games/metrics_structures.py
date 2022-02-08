@@ -76,10 +76,17 @@ class Metric(ABC):
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         """Evaluates the metric for all players given a context."""
 
-    def get_evaluated_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
-        # todo some metrics might not need to integrate,
-        # can save some computations if the sampled sequence is already integrated
+    def get_integrated_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
         tot_value = seq_integrate(seq).values[-1]
+        ret = EvaluatedMetric(
+            name=type(self).__name__,
+            value=tot_value,
+            pointwise=seq,
+        )
+        return ret
+
+    def get_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
+        tot_value = seq.values[-1]
         ret = EvaluatedMetric(
             name=type(self).__name__,
             value=tot_value,
