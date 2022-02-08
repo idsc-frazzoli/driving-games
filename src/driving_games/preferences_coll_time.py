@@ -19,8 +19,7 @@ __all__ = ["VehiclePreferencesCollTime"]
 
 
 class VehiclePreferencesCollTime(Preference[Combined[VehicleJointCost, VehicleTimeCost]]):
-    def __init__(self, ignore_second=False):
-        self.ignore_second = ignore_second
+    def __init__(self):
         self.collision = CollisionPreference()
         self.scalar_pref = SmallerPreferredTol(D(0))
         self.lexi = LexicographicPreference((self.collision, self.scalar_pref, self.scalar_pref))

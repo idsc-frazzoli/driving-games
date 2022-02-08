@@ -45,22 +45,19 @@ class VehicleTrackDynamicsParams:
 class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon]):
     """Dynamics only along a DGLanelet"""
 
-    max_path: D
-    """ Maximum `s` until end of episode [m] """
     vg: VehicleGeometry
     """ The vehicle's geometry. """
     param: VehicleTrackDynamicsParams
+    """ The parameters for the dynamics. """
 
     def __init__(
         self,
         ref: DgLanelet,
-        max_path: D,
         vg: VehicleGeometry,
         poss_monad: PossibilityMonad,
         param: VehicleTrackDynamicsParams,
     ):
         self.ref = ref
-        self.max_path = max_path
         self.vg = vg
         self.ps = poss_monad
         self.param = param
@@ -103,7 +100,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
                 msg = "Invalid action gives speed out of bounds"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
             # only forward moving
-            assert v2 >= 0
+            assert v2 >= 0, v2
             x2 = x.x + (x.v + D("0.5") * u.acc * dt) * dt
             if x2 < x.x:
                 raise ZValueError(

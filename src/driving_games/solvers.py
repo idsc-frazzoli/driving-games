@@ -20,13 +20,13 @@ solvers_zoo: Dict[str, SolverSpec] = {}
 # fixme review the documentation
 admissible_strategies = [PURE_STRATEGIES, FINITE_MIX_STRATEGIES]
 mne_strategies = [MIX_MNE, SECURITY_MNE]
-dts = [
+discretization_steps = [
     D(2.0),
     D(1.0),
 ]
 fact_options = [("fact", True), ("naive", False)]
 
-options_mix = [admissible_strategies, mne_strategies, dts, fact_options]
+options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact_options]
 
 for adm_strat, mne_strat, dt, fact in product(*options_mix):
     params = SolverParams(

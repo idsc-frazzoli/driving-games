@@ -165,7 +165,7 @@ class GamePlayer(Generic[X, U, Y, RP, RJ, SR]):
     dynamics: Dynamics[X, U, SR]
     """ Player dynamics """
 
-    observations: Observations[X, Y]
+    observations: Optional[Observations[X, Y]]
     """ Player observations """
 
     personal_reward_structure: PersonalRewardStructure[X, U, RP]

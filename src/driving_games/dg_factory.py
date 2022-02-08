@@ -7,16 +7,14 @@ from dg_commons import PlayerName, fd, fs
 from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.dg_def import DrivingGamePlayer, DrivingGame, DgSimpleParams
+from driving_games.preferences_coll_time import VehiclePreferencesCollTime
 from driving_games.reward_joint import VehicleJointReward
 from driving_games.reward_personal import VehiclePersonalRewardStructureTime
-from driving_games.preferences_coll_time import VehiclePreferencesCollTime
 from driving_games.structures import VehicleTrackState
 from driving_games.vehicle_dynamics import VehicleTrackDynamics
 from driving_games.vehicle_observation import VehicleDirectObservations
 from driving_games.visualization import DrivingGameVisualization
-from games import (
-    UncertaintyParams,
-)
+from games import UncertaintyParams
 from games.preprocess import get_reachable_states
 from possibilities import PossibilityMonad
 
@@ -34,7 +32,6 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         geometries[p] = g
         p_dynamics = VehicleTrackDynamics(
             ref=lane,
-            max_path=dg_params.progress[p][1],
             vg=g,
             poss_monad=ps,
             param=dg_params.track_dynamics_param,
@@ -43,8 +40,8 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         # p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
         p_x = VehicleTrackState(
             x=p_init_progress,
-            wait=D(0),
             v=dg_params.track_dynamics_param.min_speed,
+            wait=D(0),
             light=NO_LIGHTS,
             has_collided=False,
         )
@@ -53,15 +50,15 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         p_preferences = VehiclePreferencesCollTime()
 
         # this part about observations is not used at the moment
-        g = get_reachable_states(p_initial, p_personal_reward_structure, p_dynamics, D("1"))
-        # fixme if discretization is a parameter of the solver here it should not depend on it
-        p_possible_states = cast(ASet[VehicleTrackState], fs(g.nodes))
-        p_observations = VehicleDirectObservations(p_possible_states, {})
+        # g = get_reachable_states(p_initial, p_personal_reward_structure, p_dynamics, D("1"))
+        # # fixme if discretization is a parameter of the solver here it should not depend on it
+        # p_possible_states = cast(ASet[VehicleTrackState], fs(g.nodes))
+        # p_observations = VehicleDirectObservations(p_possible_states, {})
 
         game_p = DrivingGamePlayer(
             initial=p_initial,
             dynamics=p_dynamics,
-            observations=p_observations,
+            observations=None,
             personal_reward_structure=p_personal_reward_structure,
             preferences=p_preferences,
             monadic_preference_builder=uncertainty_params.mpref_builder,

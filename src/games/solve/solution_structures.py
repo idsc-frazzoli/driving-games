@@ -5,23 +5,17 @@ from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewTy
 
 from networkx import MultiDiGraph
 
-from dg_commons import fkeyfilter, iterate_dict_combinations, Timestamp
+from dg_commons import fkeyfilter, iterate_dict_combinations, Timestamp, X, Y, U, RJ, RP, PlayerName
 from games.checks import *
 from games.game_def import (
-    Combined,
     Game,
     JointMixedActions,
     JointPureActions,
     JointState,
-    PlayerName,
     PlayerOptions,
-    RJ,
-    RP,
     SR,
-    U,
+    Combined,
     UncertainCombined,
-    X,
-    Y,
 )
 from games.simulate import Simulation
 from possibilities import check_poss, Poss
@@ -194,10 +188,6 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
             if pure_actions not in self.transitions:
                 msg = f"Pure action {pure_actions!r} does not have any transition"
                 raise ZValueError(msg, action=pure_actions, GameNode=self)
-
-    def get_active_players(self) -> FSet[PlayerName]:
-        # todo check it works
-        return frozenset(self.states.keys() - self.joint_final_rewards.keys() - self.personal_final_reward.keys())
 
     def _check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""
