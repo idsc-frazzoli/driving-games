@@ -24,7 +24,7 @@ from games.game_def import (
     SR,
 )
 from games.get_indiv_games import get_individual_games
-from games.solve.solution import solve_game2
+from games.solve.solution import solve_game
 from games.solve.solution_structures import (
     GameFactorization,
     GameGraph,
@@ -96,7 +96,7 @@ def preprocess_player(
     game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
 
     gs: GameSolution[X, U, Y, RP, RJ, SR]
-    gs = solve_game2(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
+    gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
 
     return GamePlayerPreprocessed(graph, game_graph, gs)
 

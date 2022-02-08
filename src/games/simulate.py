@@ -80,7 +80,7 @@ def simulate1(
 
         s1_actions = {}
         next_states = {}
-        incremental_costs = {}
+        personal_costs = {}
         for player_name in players_active:
             state_self = s1[player_name]
             player = game.players[player_name]
@@ -88,7 +88,7 @@ def simulate1(
             is_final = prs.is_personal_final_state(state_self)
             if is_final:
                 # no actions for him
-                incremental_costs[player_name] = prs.personal_final_reward(state_self)
+                personal_costs[player_name] = prs.personal_final_reward(state_self)
                 continue
 
             policy = policies[player_name]
@@ -99,7 +99,7 @@ def simulate1(
             p_action = policy.get_commands(state_self, belief_state_others)
 
             action = sampler.sample(p_action)
-            incremental_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
+            personal_costs[player_name] = prs.personal_reward_incremental(state_self, action, dt)
 
             dynamics = game.players[player_name].dynamics
             state_player = s1[player_name]
@@ -110,8 +110,15 @@ def simulate1(
             s1_actions[player_name] = action
             next_states[player_name] = next_state
 
+        inc_joint: Mapping[PlayerName, RJ]
+        transitions = {
+            p: DgSampledSequence[X](timestamps=(D(0), dt), values=(s1[p], next_states[p])) for p in next_states
+        }
+        inc_joint = game.joint_reward.joint_reward_incremental(txs=transitions)
+        S_joint_costs.add(t1, inc_joint)
+
         S_actions.add(t1, frozendict(s1_actions))
-        S_costs.add(t1, frozendict(incremental_costs))
+        S_costs.add(t1, frozendict(personal_costs))
         t2 = t1 + dt
         S_states.add(t2, frozendict(next_states))
 

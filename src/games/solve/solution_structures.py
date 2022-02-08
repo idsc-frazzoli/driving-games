@@ -52,7 +52,8 @@ MIX_STRATEGIES = AdmissibleStrategies("mix")
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 """ How to deal with multiple nash equilibria. """
 MIX_MNE = StrategyForMultipleNash("mix_mNE")
-""" Mix all the states in the multiple nash equilibria. """
+""" Mix all the states/actions in the multiple nash equilibria.
+This can result in off equilibria joint strategy profiles (if the players select different equilibria at game time) """
 SECURITY_MNE = StrategyForMultipleNash("security_mNE")
 """ Use a security policy. """  # fixme, better explanation for this
 BAIL_MNE = StrategyForMultipleNash("bail_mNE")
@@ -162,7 +163,8 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         final_players = set(self.personal_final_reward) | set(self.joint_final_rewards)
         continuing_players = all_players - final_players
         for player_name in continuing_players:
-            if not player_name in self.moves:
+            if player_name not in self.moves:
+                # todo check
                 pass
                 # msg = f"Player {player_name!r} is continuing but does not have any move."
                 # raise ZValueError(msg, GameNode=self)

@@ -126,7 +126,7 @@ def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapp
 
 def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     """
-    # todo
+    Builds a game node from the joint state.
     :param ic:
     :param states:
     :return:

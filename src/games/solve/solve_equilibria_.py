@@ -23,6 +23,7 @@ from .solution_structures import (
     SECURITY_MNE,
     ValueAndActions,
 )
+from .. import GameConstants
 from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 
 
@@ -33,8 +34,9 @@ def solve_equilibria(
 ) -> ValueAndActions[U, RP, RJ]:
     """#todo"""
     ps = sc.game.ps
-    for pure_action in solved:
-        check_joint_pure_actions(pure_action)
+    if GameConstants.checks:
+        for pure_action in solved:
+            check_joint_pure_actions(pure_action)
 
     if not gn.moves:
         msg = "Cannot solve_equilibria if there are no moves "

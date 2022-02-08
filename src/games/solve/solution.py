@@ -92,7 +92,7 @@ def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, 
     # sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
-    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
+    game_solution = solve_game(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
@@ -145,7 +145,7 @@ def solve_sequential_games(
 
         ghost_game_graph = get_ghost_tree(gp.game, player_name, gg, controllers_others)
         logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
-        solution_ghost = solve_game2(
+        solution_ghost = solve_game(
             game=gp.game,
             gg=ghost_game_graph,
             solver_params=gp.solver_params,
@@ -168,7 +168,7 @@ def solve_sequential_games(
     return sims
 
 
-def solve_game2(
+def solve_game(
     *,
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
@@ -266,7 +266,7 @@ def _solve_game(
 
             def v(m: M[PlayerName, JointState]) -> UncertainCombined:
                 gn2: SolvedGameNode[X, U, U, RP, RJ, SR] = sc.cache[m[player_name]]
-                if not player_name in gn2.va.game_value:
+                if player_name not in gn2.va.game_value:
                     raise ZValueError(player_name=player_name, gn2=gn2, stn=stn)
                 return gn2.va.game_value[player_name]
 
@@ -301,8 +301,7 @@ def _solve_game(
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
     if va.mixed_actions:
-        next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
-        # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
+        next_states: Poss[M[PlayerName, JointState]]
         next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
         usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
