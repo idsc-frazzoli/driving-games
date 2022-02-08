@@ -5,6 +5,7 @@ import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
 from geometry import SE2_from_xytheta
+import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
@@ -16,10 +17,12 @@ from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
-from .paths import Trajectory
+# from .paths import Trajectory
+from dg_commons.planning import Trajectory
 from .preference import PosetalPreference, WeightedMetricPreference
 from .structures import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
+from driving_games.metrics_structures import MetricEvaluationContext
 
 __all__ = ["TrajGameVisualization"]
 
@@ -35,12 +38,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     commonroad_renderer: MPRenderer
 
     def __init__(
-        self,
-        world: TrajectoryWorld,
-        ax: Axes = None,
-        plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto",
-        *args,
-        **kwargs,
+            self,
+            world: TrajectoryWorld,
+            ax: Axes = None,
+            plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto",
+            *args,
+            **kwargs,
     ):
         self.world = world
         self.plot_limits = plot_limits
@@ -65,15 +68,15 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         return box
 
     def plot_equilibria(
-        self,
-        axis,
-        actions: FrozenSet[Trajectory],
-        colour: Color,
-        width: float = 0.9,
-        alpha: float = 1.0,
-        ticks: bool = True,
-        scatter: bool = True,
-        plot_lanes=True,
+            self,
+            axis,
+            actions: FrozenSet[Trajectory],
+            colour: Color,
+            width: float = 0.9,
+            alpha: float = 1.0,
+            ticks: bool = True,
+            scatter: bool = True,
+            plot_lanes=True,
     ):
 
         self.plot_actions(
@@ -91,13 +94,13 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                 # plt.colorbar(scatter, ax=axis)
 
     def plot_pref(
-        self,
-        axis,
-        pref: PosetalPreference,
-        pname: PlayerName,
-        origin: Tuple[float, float],
-        labels: Mapping[WeightedMetricPreference, str] = None,
-        add_title: bool = True,
+            self,
+            axis,
+            pref: PosetalPreference,
+            pname: PlayerName,
+            origin: Tuple[float, float],
+            labels: Mapping[WeightedMetricPreference, str] = None,
+            add_title: bool = True,
     ):
 
         X, Y = origin
@@ -129,16 +132,16 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             # I suspect here we have the problems
 
     def plot_actions(
-        self,
-        axis: Axes,
-        actions: FrozenSet[Trajectory],
-        lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
-        colour: Color = None,
-        width: float = 0.7,
-        alpha: float = 1.0,
-        ticks: bool = True,
-        lines=None,
-        plot_lanes=True,
+            self,
+            axis: Axes,
+            actions: FrozenSet[Trajectory],
+            lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
+            colour: Color = None,
+            width: float = 0.7,
+            alpha: float = 1.0,
+            ticks: bool = True,
+            lines=None,
+            plot_lanes=True,
     ) -> LineCollection:
         if lanes is None:
             lanes: Dict[DgLanelet, Optional[Polygon]] = {}
@@ -179,7 +182,8 @@ class ZOrder:
 
 
 def plot_car(
-    axis, player_name: PlayerName, state: VehicleState, vg: VehicleGeometry, alpha: float, box, plot_wheels: bool = True
+        axis, player_name: PlayerName, state: VehicleState, vg: VehicleGeometry, alpha: float, box,
+        plot_wheels: bool = True
 ):
     L = vg.l
     W = vg.w
@@ -215,7 +219,7 @@ def plot_car(
 
 
 def colorline(
-    x, y, z=None, cmap=plt.get_cmap("copper"), norm=plt.Normalize(0.0, 1.0), linewidth=0.8, alpha=0.9
+        x, y, z=None, cmap=plt.get_cmap("copper"), norm=plt.Normalize(0.0, 1.0), linewidth=0.8, alpha=0.9
 ) -> LineCollection:
     """
     Plot a colored line with coordinates x and y
