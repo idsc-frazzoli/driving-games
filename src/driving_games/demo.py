@@ -6,14 +6,14 @@ from quickapp import QuickApp, QuickAppContext
 from zuper_commons.text import expand_string
 from zuper_commons.types import ZValueError
 
-from driving_games.zoo import games_zoo
-from driving_games.solvers import solvers_zoo, SolverSpec
+from driving_games.zoo_games import games_zoo
+from driving_games.zoo_solvers import solvers_zoo, SolverSpec
 from games import GameSpec
 from games import (
     create_report_preprocessed,
     report_game_visualization,
     report_solutions,
-    solve1,
+    solve_main,
 )
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]
@@ -56,7 +56,7 @@ class DGDemo(QuickApp):
                 r = c.comp(create_report_preprocessed, game_name, game_preprocessed)
                 c.add_report(r, "preprocessed")
 
-                solutions = c.comp(solve1, game_preprocessed)
+                solutions = c.comp(solve_main, game_preprocessed)
                 r = c.comp(report_solutions, game_preprocessed, solutions)
                 c.add_report(r, "solutions")
 
@@ -73,14 +73,15 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
             ds = join(dg, solver_name)
             solver_params = solver_spec.solver_params
             game_preprocessed = preprocess_game(game, solver_params)
-            solutions = solve1(game_preprocessed)
+            solutions = solve_main(game_preprocessed)
             # random_sim = solve_random(game_preprocessed)
 
             r_solutions = report_solutions(game_preprocessed, solutions)
-            r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
+            # todo fix later
+            # r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
 
             r_solutions.to_html(join(ds, "r_solutions.html"))
-            r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+            # r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
 
 
 dg_demo = DGDemo.get_sys_main()

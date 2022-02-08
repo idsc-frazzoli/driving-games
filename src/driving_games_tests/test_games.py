@@ -5,8 +5,8 @@ from time import perf_counter
 from parameterized import parameterized
 
 from driving_games.demo import without_compmake
-from driving_games.solvers import solvers_zoo
-from driving_games.zoo import games_zoo
+from driving_games.zoo_solvers import solvers_zoo
+from driving_games.zoo_games import games_zoo
 from driving_games_tests import logger
 
 do_games_sets = [
@@ -14,7 +14,7 @@ do_games_sets = [
     # "asym_v1_sets",
 ]
 do_solvers_sets = [
-    "solver-2-pure-mix_mNE-fact",
+    "solver-2-pure-security_mNE-naive",
     # "solver-1-finite_mix-mix_mNE-fact",
     # "solver-1-finite_mix-security_mNE-naive",
     # "solver-1-finite_mix-security_mNE-fact",

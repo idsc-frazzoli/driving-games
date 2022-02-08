@@ -3,31 +3,19 @@ from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M
 
-from frozendict import frozendict
 from networkx import MultiDiGraph
-from zuper_commons.types import check_isinstance, ZValueError
 
-from dg_commons import fkeyfilter, iterate_dict_combinations
-from games import GameConstants
+from dg_commons import fkeyfilter, iterate_dict_combinations, Timestamp, X, Y, U, RJ, RP, PlayerName
+from games.checks import *
 from games.game_def import (
-    check_joint_mixed_actions,
-    check_joint_pure_actions,
-    check_joint_state,
-    check_player_options,
-    Combined,
     Game,
     JointMixedActions,
     JointPureActions,
     JointState,
-    PlayerName,
     PlayerOptions,
-    RJ,
-    RP,
     SR,
-    U,
+    Combined,
     UncertainCombined,
-    X,
-    Y,
 )
 from games.simulate import Simulation
 from possibilities import check_poss, Poss
@@ -42,6 +30,7 @@ __all__ = [
     "SolverParams",
     "SolvingContext",
     "StrategyForMultipleNash",
+    "ValueAndActions",
     "BAIL_MNE",
     "SECURITY_MNE",
     "MIX_MNE",
@@ -63,7 +52,8 @@ MIX_STRATEGIES = AdmissibleStrategies("mix")
 StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 """ How to deal with multiple nash equilibria. """
 MIX_MNE = StrategyForMultipleNash("mix_mNE")
-""" Mix all the states in the multiple nash equilibria. """
+""" Mix all the states/actions in the multiple nash equilibria.
+This can result in off equilibria joint strategy profiles (if the players select different equilibria at game time) """
 SECURITY_MNE = StrategyForMultipleNash("security_mNE")
 """ Use a security policy. """  # fixme, better explanation for this
 BAIL_MNE = StrategyForMultipleNash("bail_mNE")
@@ -111,8 +101,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     personal_final_reward: Mapping[PlayerName, RP]
     """ Final cost for the players that terminate here."""
 
-    incremental: Mapping[PlayerName, Mapping[U, Poss[RP]]]
-    """ Incremental cost according to action taken. """
+    incremental: Mapping[JointPureActions, Poss[Mapping[PlayerName, Combined]]]
+    """ Incremental cost according to action taken."""
+    # fixme here the Poss comes only from already having taken into account the stochastic transitions?
+    #  check that in build game tree and solutions we do not account for the stochastic dynamics twice
 
     joint_final_rewards: Mapping[PlayerName, RJ]
     """ For the players that terminate here due to "collision", their final rewards. """
@@ -123,8 +115,8 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     __print_order__ = [
         "states",
         "moves",
-        "outcomes",
-        "is_final",
+        "transitions",
+        "personal_final_reward",
         "incremental",
         "joint_final_rewards",
     ]
@@ -138,8 +130,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         check_isinstance(self.transitions, frozendict, GameNode=self)
         for pure_actions, pr_game_node in self.transitions.items():
             check_joint_pure_actions(pure_actions)
-            # check_isinstance(pr_game_node, dict)
             check_poss(pr_game_node, frozendict)
+            if pure_actions not in self.incremental:
+                msg = f"Pure action {pure_actions!r} does not have any incremental cost associated with it."
+                raise ZValueError(msg, action=pure_actions, GameNode=self)
             for x in pr_game_node.support():
                 check_isinstance(x, frozendict)
                 for k, js in x.items():
@@ -169,7 +163,8 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
         final_players = set(self.personal_final_reward) | set(self.joint_final_rewards)
         continuing_players = all_players - final_players
         for player_name in continuing_players:
-            if not player_name in self.moves:
+            if player_name not in self.moves:
+                # todo check
                 pass
                 # msg = f"Player {player_name!r} is continuing but does not have any move."
                 # raise ZValueError(msg, GameNode=self)
@@ -186,27 +181,17 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                 pure_actions=set(self.transitions),
                 GameNode=self,
             )
+        self._check_players_in_transition()
 
-        # check that for each action we have a cost
-        # for player_name, player_moves in self.moves.items():
-        #     moves_with_cost = set(self.incremental[player_name])
-        #     if player_moves != moves_with_cost:
-        #         msg = "Invalid match between moves and costs."
-        #         raise ZValueError(
-        #             msg,
-        #             player_name=player_name,
-        #             player_moves=player_moves,
-        #             moves_with_cost=moves_with_cost,
-        #             GameNode=self,
-        #         )
+        # check the incremental cost
+        for pure_actions, incremental_costs in self.incremental.items():
+            check_joint_pure_actions(pure_actions)
+            check_poss(incremental_costs, frozendict)
+            if pure_actions not in self.transitions:
+                msg = f"Pure action {pure_actions!r} does not have any transition"
+                raise ZValueError(msg, action=pure_actions, GameNode=self)
 
-        self.check_players_in_transition()
-
-    def get_active_players(self) -> FSet[PlayerName]:
-        # todo check it works
-        return frozenset(self.states.keys() - self.joint_final_rewards.keys() - self.personal_final_reward.keys())
-
-    def check_players_in_transition(self) -> None:
+    def _check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""
         jpa: JointPureActions
         futures: Poss[Mapping[PlayerName, JointState]]
@@ -242,10 +227,10 @@ def _states_mentioned(game_node: GameNode) -> FSet[JointState]:
 class AccessibilityInfo(Generic[X]):
     """The time accessibility info of the states of a game"""
 
-    state2times: Dict[JointState, AbstractSet[D]]
+    state2times: Dict[JointState, AbstractSet[Timestamp]]
     """ For each state, at what time can it be visited? """
 
-    time2states: Dict[D, AbstractSet[JointState]]
+    time2states: Dict[Timestamp, AbstractSet[JointState]]
     """ For each time, what states can be visited? """
 
 

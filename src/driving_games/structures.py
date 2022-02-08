@@ -53,13 +53,33 @@ class VehicleTrackState:
     light: LightsCmd
     """ The current lights signal."""
 
-    # todo maybe add has collided with other vehicle
+    has_collided: bool
+    """ Whether the vehicle has collided with something/someone. """
 
     __print_order__ = ["x", "v"]  # only print these attribute
 
+    # todo another candidate for caching
     def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
         beta = ref_lane.beta_from_along_lane(float(self.x))
         return SE2Transform.from_SE2(ref_lane.center_point(beta))
+
+    # support weight multiplication for interpolation
+    def __mul__(self, weight: float) -> "VehicleTrackState":
+        # weighting costs, e.g. according to a probability
+        return replace(self, x=self.x * D(weight), v=self.v * D(weight))
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum for interpolation
+    def __add__(self, other: "VehicleTrackState") -> "VehicleTrackState":
+        if isinstance(other, VehicleTrackState):
+            return replace(self, x=self.x + other.x, v=self.v + other.v)
+        elif other is None:
+            return self
+        else:
+            raise NotImplementedError
+
+    __radd__ = __add__
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)

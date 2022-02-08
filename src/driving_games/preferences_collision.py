@@ -2,7 +2,7 @@ from typing import Optional, Type
 
 from zuper_typing import debug_print
 
-from driving_games import SimpleCollision
+from driving_games.collisions import SimpleCollision
 from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -37,7 +37,7 @@ class CollisionPreference(Preference[SimpleCollision]):
         if b.at_fault and not a.at_fault:
             return FIRST_PREFERRED
 
-        ea, eb = a.energy_delta, b.energy_delta
+        ea, eb = a.impact_rel_speed, b.impact_rel_speed
         res = self.p.compare(ea, eb)
         assert res in COMP_OUTCOMES, (res, self.p)
         return res

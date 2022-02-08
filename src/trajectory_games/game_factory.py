@@ -13,7 +13,7 @@ from dg_commons import PlayerName, SE2Transform
 from dg_commons.maps import DgLanelet
 from games import MonadicPreferenceBuilder
 from possibilities import PossibilitySet
-from preferences import SetPreference1
+from preferences import SetPreference
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
@@ -64,7 +64,7 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     lane_network: LaneletNetwork = scenario.lanelet_network
 
     ps = PossibilitySet()
-    mpref_build: MonadicPreferenceBuilder = SetPreference1
+    mpref_build: MonadicPreferenceBuilder = SetPreference
 
     for pname, pconfig in config[config_str]["players"].items():
         print(f"Extracting lanes: {pname}", end=" ...")

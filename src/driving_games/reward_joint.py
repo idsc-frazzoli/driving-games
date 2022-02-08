@@ -4,7 +4,7 @@ from typing import FrozenSet, Mapping, Dict, Optional
 
 from commonroad.scenario.lanelet import LaneletNetwork
 
-from dg_commons import PlayerName, Timestamp, DgSampledSequence
+from dg_commons import PlayerName, Timestamp, DgSampledSequence, fd
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
@@ -12,7 +12,7 @@ from driving_games import VehicleJointCost, VehicleSafetyDistCost
 from driving_games.collisions_check import joint_collision_cost_simple
 from driving_games.structures import VehicleActions, VehicleTrackState
 from games import JointRewardStructure
-from games.game_def import JointTransition
+from games.game_def import JointTransition, JointState
 
 __all__ = ["VehicleJointReward"]
 
@@ -31,14 +31,23 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         lanelet_network: Optional[LaneletNetwork] = None,
     ):
         assert geometries.keys() == ref_lanes.keys()
-        self.geometries = geometries
-        self.ref_lane = ref_lanes
+        self.geometries = fd(geometries)
+        self.ref_lane = fd(ref_lanes)
         self.col_check_dt = col_check_dt
-        self.lanelet_network = lanelet_network
         self.min_safety_distance = min_safety_distance
+        self.lanelet_network = lanelet_network
 
     def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, VehicleJointCost]:
-        return self.joint_final_reward(txs)
+        global_xs: Dict[PlayerName:VehicleState] = {}
+        for p in txs:
+            # todo need to test if this transform works as expected
+            def to_vehicle_state(tx: VehicleTrackState):
+                t = tx.to_global_pose(self.ref_lane[p])
+                return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
+
+            global_xs[p] = txs[p].transform_values(to_vehicle_state, VehicleState)
+        res = joint_collision_cost_simple(fd(global_xs), self.geometries, self.col_check_dt, self.min_safety_distance)
+        return res
 
     def joint_reward_reduce(self, r1: VehicleJointCost, r2: VehicleJointCost) -> VehicleJointCost:
         return r1 + r2
@@ -49,22 +58,14 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
     def is_joint_final_transition(
         self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
     ) -> FrozenSet[PlayerName]:
-        res = self.joint_final_reward(txs)
-        return frozenset(res)
+        res = self.joint_reward_incremental(txs)
+        return frozenset({p for p in res if res[p].collision is not None})
 
-    # todo good candidate to add caching for speedup
-    def joint_final_reward(
-        self, txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
-    ) -> Mapping[PlayerName, VehicleJointCost]:
-        global_xs: Dict[PlayerName:VehicleState] = {}
-        # todo need to test if this transform works as expected
-        for p in txs:
+    def joint_final_reward(self, xs: JointState[VehicleTrackState]) -> Mapping[PlayerName, VehicleJointCost]:
+        """No explicit joint final cost.
+        The ending cost is already added in the incremental cost of the last transition."""
+        return fd({p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in xs if xs[p].has_collided})
 
-            def to_vehicle_state(tx: VehicleTrackState):
-                t = tx.to_global_pose(self.ref_lane[p])
-                return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
-
-            global_xs[p] = txs[p].transform_values(to_vehicle_state, VehicleState)
-        res = joint_collision_cost_simple(global_xs, self.geometries, self.col_check_dt, self.min_safety_distance)
-        # todo fix output type
-        return res
+    def is_joint_final_states(self, xs: JointState[VehicleTrackState]) -> FrozenSet[PlayerName]:
+        """No explicit joint final cost. The ending cost is already added in the incremental cost."""
+        return frozenset({p for p in xs if xs[p].has_collided})

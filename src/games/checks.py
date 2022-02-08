@@ -1,8 +1,8 @@
 from frozendict import frozendict
 from zuper_commons.types import check_isinstance, ZValueError
 
-from games import GameConstants, JointState
-from games.game_def import PlayerOptions, JointPureActions, JointMixedActions
+from games import GameConstants
+from games.game_def import PlayerOptions, JointPureActions, JointMixedActions, JointState
 from possibilities import Poss
 
 

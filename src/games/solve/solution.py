@@ -1,35 +1,24 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-from typing import (
-    AbstractSet,
-    Dict,
-    FrozenSet as FSet,
-    Mapping as M,
-)
+from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M
 
 from frozendict import frozendict
 from networkx import simple_cycles
 from toolz import valmap
 from zuper_commons.types import ZValueError
 
+from dg_commons import X, U, Y, RP, RJ, PlayerName
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.create_joint_game_tree import create_game_graph
 from games.game_def import (
-    check_joint_state,
     Combined,
     Game,
     JointPureActions,
     JointState,
-    PlayerName,
-    RJ,
-    RP,
     SR,
-    U,
     UncertainCombined,
-    X,
-    Y,
 )
 from games.simulate import simulate1, Simulation
 from possibilities import Poss
@@ -47,15 +36,17 @@ from .solution_structures import (
     UsedResources,
     ValueAndActions,
 )
-from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_single, fr
+from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
 from .solve_equilibria_ import solve_equilibria
 
-__all__ = ["solve1"]
+__all__ = ["solve_main"]
+
+from ..checks import check_joint_state
 
 TOC = perf_counter()
 
 
-def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo
 
@@ -98,10 +89,10 @@ def solve1(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, 
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
     # solve sequential games equilibria
-    sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+    # sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
-    game_solution = solve_game2(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
+    game_solution = solve_game(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
@@ -154,7 +145,7 @@ def solve_sequential_games(
 
         ghost_game_graph = get_ghost_tree(gp.game, player_name, gg, controllers_others)
         logger.info("The game graph has dimension", nnodes=len(ghost_game_graph.state2node))
-        solution_ghost = solve_game2(
+        solution_ghost = solve_game(
             game=gp.game,
             gg=ghost_game_graph,
             solver_params=gp.solver_params,
@@ -177,7 +168,7 @@ def solve_sequential_games(
     return sims
 
 
-def solve_game2(
+def solve_game(
     *,
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
@@ -204,7 +195,6 @@ def solve_game2(
         solver_params=solver_params,
     )
     for js0 in jss:
-        check_joint_state(js0)
         _solve_game(sc, js0)
 
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState], Poss[U]]]]
@@ -218,7 +208,7 @@ def solve_game2(
                 iset = ps.unit(other_states)
                 policy_for_this_state[iset] = solved_gnode.va.mixed_actions[player_name]
 
-    policies2 = frozendict({k: fr(v) for k, v in policies.items()})
+    policies2 = frozendict({k: fd_r(v) for k, v in policies.items()})
 
     return GameSolution(
         initials=frozenset(jss),
@@ -257,9 +247,6 @@ def _solve_game(
     solved_to_node = {}
 
     for pure_actions in gn.transitions:
-        # Incremental costs incurred if choosing this action
-        inc: Dict[PlayerName, Poss[RP]]
-        inc = {p: gn.incremental[p][u] for p, u in pure_actions.items()}
         # if we choose these actions, then these are the game nodes we could go in.
         # Note that each player can go in a different joint state.
         next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
@@ -270,13 +257,16 @@ def _solve_game(
             return frozendict(valmap(lambda _: _solve_game(sc, _).states, a))
 
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
-
         players_dist: Dict[PlayerName, UncertainCombined] = {}
+        # Incremental costs incurred if choosing this action
+        inc: Poss[M[PlayerName, Combined[RJ, RP]]]
+        inc = gn.incremental[pure_actions]
+
         for player_name in pure_actions:
 
             def v(m: M[PlayerName, JointState]) -> UncertainCombined:
                 gn2: SolvedGameNode[X, U, U, RP, RJ, SR] = sc.cache[m[player_name]]
-                if not player_name in gn2.va.game_value:
+                if player_name not in gn2.va.game_value:
                     raise ZValueError(player_name=player_name, gn2=gn2, stn=stn)
                 return gn2.va.game_value[player_name]
 
@@ -284,17 +274,16 @@ def _solve_game(
             # logger.info(stn=stn)
             player_dist: UncertainCombined = ps.join(ps.build(stn, v))
 
-            def f(_: Combined) -> Combined:
-                return add_incremental_cost_single(
+            def f(_: Combined) -> UncertainCombined:
+                return add_incremental_cost_player(
                     game=sc.game,
                     player_name=player_name,
-                    incremental_for_player=inc,
+                    incremental=inc,
                     cur=_,
                 )
 
             # logger.info(player_dist=player_dist)
-            players_dist[player_name] = ps.build(player_dist, f)
-
+            players_dist[player_name] = ps.join(ps.build(player_dist, f))
         # logger.info(players_dist=players_dist)
         solved[pure_actions] = frozendict(players_dist)
 
@@ -312,8 +301,7 @@ def _solve_game(
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
     if va.mixed_actions:
-        next_states: Poss[M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]]
-        # next_states: Poss[M[PlayerName, Poss[M[PlayerName, JointState]]]]
+        next_states: Poss[M[PlayerName, JointState]]
         next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
 
         usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
@@ -408,7 +396,8 @@ def solve_final_personal_both(
     """
     game_value: Dict[PlayerName, UncertainCombined] = {}
     for player_name, personal in gn.personal_final_reward.items():
-        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=None))
+        joint_id = sc.game.joint_reward.joint_reward_identity()
+        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint_id))
     game_value_ = frozendict(game_value)
     actions = frozendict()
     return ValueAndActions(game_value=game_value_, mixed_actions=actions)

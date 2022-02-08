@@ -23,7 +23,7 @@ from _tmp.bayesian_driving_games.structures_solution import (
     BayesianGameGraph,
 )
 from _tmp.bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
-from games.solve.solution import fr, get_outcome_preferences_for_players
+from games.solve.solution import fd_r, get_outcome_preferences_for_players
 from possibilities import Poss
 from possibilities.sets import SetPoss
 from zuper_commons.types import ZValueError
@@ -122,7 +122,7 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
         jss=initials,
     )
     controllers0 = {}
-    for player_name, pp in gp.players_pre.items():
+    for player_name, pp in gp.players_pre.items():  # todo remove as it belongs to bayesian games
         for typ in gp.game.players[player_name].types_of_myself:
             policy = game_solution.policies[player_name + "," + typ]
             controllers0[player_name, typ] = AgentFromPolicy(gp.game.ps, policy)
@@ -132,7 +132,7 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
         game_value=game_solution.states_to_solution[initial_state].va.game_value,
         # policy=solution_ghost.policies,
     )
-    res = {}
+
     for seed in range(5):
         sim_joint = simulate1(
             gp.game,
@@ -260,7 +260,7 @@ def solve_game_bayesian2(
                         iset = ps.unit(other_states)
                         policy_for_this_state[iset] = s0.va.mixed_actions[key]
 
-        policies2 = frozendict({k: fr(v) for k, v in policies.items()})
+        policies2 = frozendict({k: fd_r(v) for k, v in policies.items()})
 
         solution_new = GameSolution(
             initials=frozenset(jss),

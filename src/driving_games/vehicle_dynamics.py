@@ -13,6 +13,7 @@ from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
+from .resources import get_resources_used, PolygonHashable
 from .structures import (
     VehicleTrackState,
     VehicleActions,
@@ -37,29 +38,26 @@ class VehicleTrackDynamicsParams:
     """ Maximum wait [s] -- maximum duration at v=0. """
     lights_commands: FrozenSet[LightsCmd]
     """ Allowed light commands """
-    shared_resources_ds: D
+    shared_resources_ds: float
     """ Size of the spatial cells to consider as resources [m]"""
 
 
 class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon]):
     """Dynamics only along a DGLanelet"""
 
-    max_path: D
-    """ Maximum `s` until end of episode [m] """
     vg: VehicleGeometry
     """ The vehicle's geometry. """
     param: VehicleTrackDynamicsParams
+    """ The parameters for the dynamics. """
 
     def __init__(
         self,
         ref: DgLanelet,
-        max_path: D,
         vg: VehicleGeometry,
         poss_monad: PossibilityMonad,
         param: VehicleTrackDynamicsParams,
     ):
         self.ref = ref
-        self.max_path = max_path
         self.vg = vg
         self.ps = poss_monad
         self.param = param
@@ -102,7 +100,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
                 msg = "Invalid action gives speed out of bounds"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
             # only forward moving
-            assert v2 >= 0
+            assert v2 >= 0, v2
             x2 = x.x + (x.v + D("0.5") * u.acc * dt) * dt
             if x2 < x.x:
                 raise ZValueError(
@@ -117,9 +115,10 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
                 raise InvalidAction(msg, x=x, u=u)
         else:
             wait2 = D(0)
-        ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light)
+        ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light, has_collided=x.has_collided)
 
         return ret
 
-    def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[Polygon]:
-        return get_resources_used(vs=x, vg=self.vg, ds=self.param.shared_resources_ds)
+    def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[PolygonHashable]:
+        # todo: this is not correct, we should use the lanelet graph
+        return get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)

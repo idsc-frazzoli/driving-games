@@ -19,8 +19,7 @@ __all__ = ["VehiclePreferencesCollTime"]
 
 
 class VehiclePreferencesCollTime(Preference[Combined[VehicleJointCost, VehicleTimeCost]]):
-    def __init__(self, ignore_second=False):
-        self.ignore_second = ignore_second
+    def __init__(self):
         self.collision = CollisionPreference()
         self.scalar_pref = SmallerPreferredTol(D(0))
         self.lexi = LexicographicPreference((self.collision, self.scalar_pref, self.scalar_pref))
@@ -35,8 +34,8 @@ class VehiclePreferencesCollTime(Preference[Combined[VehicleJointCost, VehicleTi
     def compare(
         self, a: Combined[VehicleJointCost, VehicleTimeCost], b: Combined[VehicleJointCost, VehicleTimeCost]
     ) -> ComparisonOutcome:
-        ct_a = (a.joint.collision, a.joint.safety_dist, a.personal.duration)
-        ct_b = (b.joint.collision, b.joint.safety_dist, b.personal.duration)
+        ct_a = (a.joint.collision, a.joint.safety_dist_violation.distance, a.personal.duration)
+        ct_b = (b.joint.collision, b.joint.safety_dist_violation.distance, b.personal.duration)
 
         res = self.lexi.compare(ct_a, ct_b)
         assert res in COMP_OUTCOMES, (res, self.lexi)

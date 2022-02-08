@@ -1,14 +1,15 @@
-from decimal import Decimal as D
+from math import pi
 from typing import Mapping, Optional, Tuple
 
 from nose.tools import assert_equal
 
-from dg_commons.sim import IMPACT_FRONT, CollisionReportPlayer
-from driving_games import CollisionPreference, VehicleTimeCost
+from dg_commons import PlayerName
+from driving_games import CollisionPreference, VehicleTimeCost, SimpleCollision
 from driving_games import logger
 from driving_games.zoo import get_asym
 from games import Combined
 from games.solve.solution_utils import get_outcome_preferences_for_players
+from possibilities import PossibilityMonad, PossibilitySet
 from preferences import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -17,11 +18,15 @@ from preferences import (
     StrictProductPreferenceDict,
 )
 
+P1 = PlayerName("p1")
+P2 = PlayerName("p2")
+P3 = PlayerName("p3")
+
 
 def test1() -> None:
-    C1 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(1), D(0), 0)
-    C2 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(2), D(0), 0)
-    expect: Mapping[Tuple[Optional[CollisionReportPlayer], Optional[CollisionReportPlayer]], ComparisonOutcome]
+    C1 = SimpleCollision(0, False, rel_impact_direction=-pi / 5, impact_rel_speed=78)
+    C2 = SimpleCollision(0, True, rel_impact_direction=pi / 5, impact_rel_speed=35)
+    expect: Mapping[Tuple[Optional[SimpleCollision], Optional[SimpleCollision]], ComparisonOutcome]
     expect = {
         (None, None): INDIFFERENT,
         (C1, C1): INDIFFERENT,
@@ -33,7 +38,6 @@ def test1() -> None:
     pref = CollisionPreference()
     for (a, b), c in expect.items():
         res = pref.compare(a, b)
-
         assert_equal(res, c)
 
 
@@ -51,17 +55,22 @@ def test2() -> None:
     # > │     │ │ │ p2: {VehicleActions(accel=Dec 1) *}:
     # > │     │ │ fset
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
-    game = get_asym().game
-    p1, p2 = list(game.players)
-    c0 = CollisionReportPlayer(IMPACT_FRONT, True, None, D(1), D(0), 0)
+    ps: PossibilityMonad = PossibilitySet()
+
+    c0 = SimpleCollision(
+        0.0,
+        True,
+        5,
+        3,
+    )
 
     o_A = {
-        p1: game.ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
-        p2: game.ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
+        P1: ps.unit(Combined(VehicleTimeCost(3), c0)),
+        P2: ps.unit(Combined(VehicleTimeCost(3), c0)),
     }
     o_B = {
-        p1: game.ps.unit(Combined(VehicleTimeCost(D(13)), None)),
-        p2: game.ps.unit(Combined(VehicleTimeCost(D(4)), None)),
+        P1: ps.unit(Combined(VehicleTimeCost(13), None)),
+        P2: ps.unit(Combined(VehicleTimeCost(4), None)),
     }
 
     preferences = get_outcome_preferences_for_players(game)

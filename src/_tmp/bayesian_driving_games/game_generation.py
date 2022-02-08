@@ -19,7 +19,7 @@ from _tmp.bayesian_driving_games.structures import (
 from driving_games import DGSimpleParams, VehicleTrackDynamics
 from games import (
     GameVisualization,
-    get_accessible_states,
+    get_reachable_states,
     PlayerName,
     UncertaintyParams,
 )
@@ -135,10 +135,10 @@ def get_bayesian_driving_game(vehicles_params: DGSimpleParams, uncertainty_param
     p1_personal_reward_structure = BayesianVehiclePersonalRewardStructureScalar(max_path, p1_types)
     p2_personal_reward_structure = BayesianVehiclePersonalRewardStructureScalar(max_path, p2_types)
 
-    g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
+    g1 = get_reachable_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
     p1_possible_states = cast(ASet[BayesianVehicleState], frozenset(g1.nodes))
     # todo check why bayesian vehicle state
-    g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
+    g2 = get_reachable_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
     p2_possible_states = cast(ASet[BayesianVehicleState], frozenset(g2.nodes))
 
     # logger.info("npossiblestates", p1=len(p1_possible_states), p2=len(p2_possible_states))
