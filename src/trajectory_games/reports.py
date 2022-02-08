@@ -28,8 +28,8 @@ from .trajectory_game import (
     LeaderFollowerGame,
     LeaderFollowerGameStage,
 )
-from .visualization import TrajGameVisualization
-from .visualization import tone_down_color, ZOrder
+from .visualization_dev import TrajGameVisualization
+from .visualization_dev import tone_down_color, ZOrder
 
 EXPORT_PDF = True
 STACK_JPG = False

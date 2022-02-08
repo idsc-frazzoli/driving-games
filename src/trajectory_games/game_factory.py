@@ -23,7 +23,7 @@ from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_generator import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
-from .visualization import TrajGameVisualization
+from .visualization_dev import TrajGameVisualization
 
 __all__ = [
     "get_trajectory_game",

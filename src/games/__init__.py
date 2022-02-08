@@ -15,7 +15,11 @@ class GameConstants:
     """
 
 
-from .access import *
+# Old
+# from .access import *
+# New
+#from games.preprocess import preprocess_game, get_accessible_states
+
 from .game_def import *
 from games.solve.solution_structures import *
 from games.solve.equilibria import *
