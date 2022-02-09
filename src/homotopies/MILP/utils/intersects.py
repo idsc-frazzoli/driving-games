@@ -29,12 +29,11 @@ def find_intersects(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]) -> Dic
         path1 = traj2path(trajs[player1])  # extract (x,y) from sampled sequence
         path2 = traj2path(trajs[player2])
         intersects_w = find_intersect(path1, path2)  # find intersection point in world frame
-        if len(intersects_w) != 0:
-            for intersect in intersects_w:  # todo: currently only record the last intersection if 2 paths intersect more than once
-                intersect_s1 = compute_s(path1, intersect)  # intersection point in curvilinear frame
-                intersect_s2 = compute_s(path2, intersect)
-                intersects[player1][player2] = intersect_s1
-                intersects[player2][player1] = intersect_s2
+        if len(intersects_w) != 0:  # todo: currently only record the first intersection if 2 paths intersect more than once
+            intersect_s1 = compute_s(path1, intersects_w[0])  # intersection point in curvilinear frame
+            intersect_s2 = compute_s(path2, intersects_w[0])
+            intersects[player1][player2] = intersect_s1
+            intersects[player2][player1] = intersect_s2
     return intersects
 
 
@@ -185,7 +184,7 @@ def find_p_idx(path: List[Tuple[float, float]], point: Tuple[float, float]) -> T
 
 def pose_from_s(traj: DgSampledSequence[SE2value], s: float) -> SE2value:
     """
-    this function
+    extract the pose along a trajectory at longitudinal coord s by interpolation
     """
     path = traj2path(traj)
     path = np.array(path)
@@ -202,6 +201,7 @@ def pose_from_s(traj: DgSampledSequence[SE2value], s: float) -> SE2value:
 
 
 def get_box_size(pose1: SE2value, pose2: SE2value) -> Tuple[float, float]:
+    """get widths of the constraint box along s1 and s2 axis"""
     pose_21 = relative_pose(pose1, pose2)
     _, theta_21 = translation_angle_from_SE2(pose_21)
     sinth = abs(np.sin(theta_21))
@@ -217,6 +217,7 @@ def get_box(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
             intersects: Dict[PlayerName, Dict[PlayerName, SE2value]],
             player1: PlayerName,
             player2: PlayerName) -> Tuple[Tuple[float, float], float, float]:
+    """get the center coordinates and widths of the constraint box in s1-s2 frame"""
     s12 = intersects[player1][player2]
     s21 = intersects[player2][player1]
     pose12 = pose_from_s(trajs[player1], s12)
@@ -226,6 +227,7 @@ def get_box(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
 
 
 def compute_path_length(path: List[Tuple[float, float]]) -> float:
+    """compute the length of a given path"""
     s = 0
     length = len(path)
     path = np.array(path)
@@ -235,6 +237,7 @@ def compute_path_length(path: List[Tuple[float, float]]) -> float:
 
 
 def get_s_max(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]) -> Dict[PlayerName, float]:
+    """compute the length of each path"""
     s_max = {}
     for player in trajs.keys():
         path = traj2path(trajs[player])
