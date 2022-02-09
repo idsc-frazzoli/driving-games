@@ -51,7 +51,7 @@ class ProbPrefWorstCase(ProbPreference):
         raise NotImplementedError
         worst_A = ...
         worst_B = ...
-        return self.p0.compare(worst_A, worst_B)
+        return self.param_2p.compare(worst_A, worst_B)
 
 
 class ProbPrefStochasticDominance(ProbPreference):

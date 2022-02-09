@@ -1,16 +1,17 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M
+from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M, Optional
 
+from cytoolz import valmap
 from frozendict import frozendict
 from networkx import simple_cycles
-from toolz import valmap
 from zuper_commons.types import ZValueError
 
-from dg_commons import X, U, Y, RP, RJ, PlayerName
+from dg_commons import X, U, Y, RP, RJ, PlayerName, fd
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
+from games.checks import check_joint_state
 from games.create_joint_game_tree import create_game_graph
 from games.game_def import (
     Combined,
@@ -20,10 +21,10 @@ from games.game_def import (
     SR,
     UncertainCombined,
 )
+from games.performance import PerformanceStatistics
 from games.simulate import simulate1, Simulation
-from possibilities import Poss
-from .solution_ghost import get_ghost_tree
-from .solution_structures import (
+from games.solve.solution_ghost import get_ghost_tree
+from games.solve.solution_structures import (
     GameGraph,
     GameNode,
     GamePreprocessed,
@@ -36,17 +37,20 @@ from .solution_structures import (
     UsedResources,
     ValueAndActions,
 )
-from .solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
-from .solve_equilibria_ import solve_equilibria
+from games.solve.solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
+from games.solve.solve_equilibria import solve_equilibria
+
+from games.solve.solve_equilibria import solve_final_personal_both, solve_final_joint
+from possibilities import Poss
 
 __all__ = ["solve_main"]
-
-from ..checks import check_joint_state
 
 TOC = perf_counter()
 
 
-def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, RP, RJ, SR]:
+def solve_main(
+    gp: GamePreprocessed[X, U, Y, RP, RJ, SR], perf_stats: Optional[PerformanceStatistics] = None
+) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo
 
@@ -75,8 +79,6 @@ def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, 
     # We will fill this with some simulations of different policies
     sims: Dict[str, Simulation] = {}
 
-    logger.info("creating game tree")
-
     # Use game factorization only if the option is set
     if gp.game_factorization and gp.solver_params.use_factorization:
         gf = gp.game_factorization
@@ -88,8 +90,9 @@ def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
     initial_state = game_tree.states
-    # solve sequential games equilibria
+    # solve sequential games equilibria #todo not defined for n>2
     # sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+
     # solve simultaneous play (Nash equilibria)
     logger.info("solving game tree")
     game_solution = solve_game(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=initials)
@@ -125,8 +128,8 @@ def solve_main(gp: GamePreprocessed[X, U, Y, RP, RJ, SR]) -> Solutions[X, U, Y, 
 def solve_sequential_games(
     gp: GamePreprocessed, gg: GameGraph, initial_state: JointState, sims: Dict[str, Simulation]
 ) -> Dict[str, Simulation]:
-    """#todo
-
+    """
+    #todo these are currently not defined for n>2 players
     :param gp:
     :param gg:
     :param initial_state:
@@ -204,16 +207,16 @@ def solve_game(
         for player_name, player_state in state.items():
             if player_name in solved_gnode.va.mixed_actions:
                 policy_for_this_state = policies[player_name][player_state]
-                other_states = frozendict({k: v for k, v in state.items() if k != player_name})
+                other_states = fd({k: v for k, v in state.items() if k != player_name})
                 iset = ps.unit(other_states)
                 policy_for_this_state[iset] = solved_gnode.va.mixed_actions[player_name]
 
-    policies2 = frozendict({k: fd_r(v) for k, v in policies.items()})
+    policies2 = fd({k: fd_r(v) for k, v in policies.items()})
 
     return GameSolution(
         initials=frozenset(jss),
         policies=policies2,
-        states_to_solution=frozendict(states_to_solution),
+        states_to_solution=fd(states_to_solution),
     )
 
 
@@ -222,7 +225,7 @@ def _solve_game(
     js: JointState,
 ) -> SolvedGameNode[X, U, Y, RP, RJ, SR]:
     """
-    Actual recursive function that solves the game nodes with backward induction
+    Actual recursive function that solves the game nodes via backward induction
 
     :param sc: the solving context that is modified in place
     :param js: the current joint state
@@ -247,15 +250,13 @@ def _solve_game(
     solved_to_node = {}
 
     for pure_actions in gn.transitions:
-        # if we choose these actions, then these are the game nodes we could go in.
-        # Note that each player can go in a different joint state.
-        next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
-
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:
         def u(a: M[PlayerName, JointState]) -> M[PlayerName, JointState]:
-            return frozendict(valmap(lambda _: _solve_game(sc, _).states, a))
+            return fd(valmap(lambda _: _solve_game(sc, _).states, a))
 
+        # Note that each player can go in a different joint state.
+        next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         # Incremental costs incurred if choosing this action
@@ -285,7 +286,7 @@ def _solve_game(
             # logger.info(player_dist=player_dist)
             players_dist[player_name] = ps.join(ps.build(player_dist, f))
         # logger.info(players_dist=players_dist)
-        solved[pure_actions] = frozendict(players_dist)
+        solved[pure_actions] = fd(players_dist)
 
     va: ValueAndActions[U, RP, RJ]
     if gn.joint_final_rewards:  # final costs:
@@ -329,7 +330,7 @@ def _solve_game(
                     for k, sr_used in _.items():
                         if sr_used:
                             notempty[k] = sr_used
-                    return frozendict(notempty)
+                    return fd(notempty)
 
                 res: Poss[M[PlayerName, FSet[SR]]]
                 res = ps.build_multiple(used_by_players, remove_empty)
@@ -341,19 +342,19 @@ def _solve_game(
                 usages[i + 1] = f
 
         # logger.info(next_resources=next_resources, usages=usages)
-        ur = UsedResources(frozendict(usages))
+        ur = UsedResources(fd(usages))
     else:
-        usages_ = frozendict({D(0): usage_current})
+        usages_ = fd({D(0): usage_current})
         ur = UsedResources(usages_)
     try:
-        ret = SolvedGameNode(states=js, solved=frozendict(solved_to_node), va=va, ur=ur)
+        ret = SolvedGameNode(states=js, solved=fd(solved_to_node), va=va, ur=ur)
     except Exception as e:
         raise ZValueError(game_node=gn) from e
     sc.cache[js] = ret
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n % 30 == 0:
+    if n % 50 == 0:
         global TOC
         logger.info(
             js=js,
@@ -366,38 +367,3 @@ def _solve_game(
         TOC = perf_counter()
         # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
-
-
-def solve_final_joint(
-    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
-) -> ValueAndActions[U, RP, RJ]:
-    """
-    Solves a node which is a joint final node
-    """
-    game_value: Dict[PlayerName, UncertainCombined] = {}
-
-    for player_name, joint in gn.joint_final_rewards.items():
-        personal = sc.game.players[player_name].personal_reward_structure.personal_reward_identity()
-        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint))
-
-    game_value_ = frozendict(game_value)
-    actions = frozendict()
-    return ValueAndActions(game_value=game_value_, mixed_actions=actions)
-
-
-def solve_final_personal_both(
-    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
-) -> ValueAndActions[U, RP, RJ]:
-    """
-    Solves end game node which is final for both players (but not jointly final)
-    :param sc:
-    :param gn:
-    :return:
-    """
-    game_value: Dict[PlayerName, UncertainCombined] = {}
-    for player_name, personal in gn.personal_final_reward.items():
-        joint_id = sc.game.joint_reward.joint_reward_identity()
-        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint_id))
-    game_value_ = frozendict(game_value)
-    actions = frozendict()
-    return ValueAndActions(game_value=game_value_, mixed_actions=actions)
