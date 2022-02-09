@@ -3,7 +3,7 @@ import numpy as np
 from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.sim.models.vehicle import VehicleState
 from homotopies.MILP.utils.prediction import predict
-from homotopies.MILP.utils.intersects import find_intersects, traj2path, compute_s_max
+from homotopies.MILP.utils.intersects import find_intersects, traj2path, get_s_max
 from homotopies.MILP.utils.visualization import *
 
 state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=5, delta=0.03)
@@ -50,4 +50,5 @@ if player3 is not None:
 ax_3d = plt.figure().add_subplot(projection='3d')
 if player3 is not None and player3 in intersects[player1].keys() and player3 in intersects[player2].keys():
     visualize_box_3d(trajs, intersects, player1, player2, player3, ax_3d)
+
 plt.show()

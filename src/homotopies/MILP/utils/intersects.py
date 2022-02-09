@@ -225,10 +225,18 @@ def get_box(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
     return (s12, s21), w_s12, w_s21
 
 
-def compute_s_max(path: List[Tuple[float, float]]) -> float:
+def compute_path_length(path: List[Tuple[float, float]]) -> float:
     s = 0
     length = len(path)
     path = np.array(path)
     for i in range(length - 1):
         s += np.linalg.norm(path[i] - path[i + 1])
     return s
+
+
+def get_s_max(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]) -> Dict[PlayerName, float]:
+    s_max = {}
+    for player in trajs.keys():
+        path = traj2path(trajs[player])
+        s_max[player] = compute_path_length(path)
+    return s_max
