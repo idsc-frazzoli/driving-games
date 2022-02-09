@@ -40,7 +40,7 @@ class SimpleCollision:
             elif self.at > other.at:
                 return other
             else:
-                logger.warning(f"Performing sum between SimpleCollision occurred at the same instant. Monoid?")
+                # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant. Monoid?")
                 return replace(  # monoid?
                     self,
                     at_fault=self.at_fault or other.at_fault,

@@ -1,8 +1,9 @@
-FROM alezana/dg_base:3.8
+FROM alezana/dg_base:3.10
 
 # Install Driving Games
 WORKDIR /driving_games
 COPY requirements.txt .
+RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
 COPY . .

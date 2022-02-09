@@ -165,9 +165,10 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     for S in iterate_dict_combinations(init_states):
         G.add_node(
             S,
-            is_final_for=[],
-            is_joint_final=False,
+            is_joint_final_for="",
+            is_pers_final="",
             is_initial=True,
+            is_terminal=False,
             generation=0,
             in_game="-".join(S.keys()),
         )
@@ -184,7 +185,9 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         S = stack.pop()
         assert S in G.nodes
 
-        players_alive = filter(lambda x: x not in G.nodes[S]["is_final_for"], S)
+        players_alive = filter(
+            lambda x: x not in G.nodes[S]["is_joint_final_for"] and x not in G.nodes[S]["is_pers_final"], S
+        )
         successors: Dict[PlayerName : Mapping[U, Poss[X]]] = {}
         for p in players_alive:
             p_state = S[p]
@@ -197,23 +200,24 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             players_poss_next = dict(zip(players_n_actions, poss_next))
             for S2 in iterate_dict_combinations(players_poss_next):
                 if S2 not in G.nodes:
-                    ending_players = [
+                    personal_ending = {
                         p for p in S2 if players[p].personal_reward_structure.is_personal_final_state(S2[p])
-                    ]
+                    }
                     transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p in S2}
                     jointly_ending = game.joint_reward.is_joint_final_transition(transitions)
-                    ending_players.extend(jointly_ending)
-                    is_joint_final = len(jointly_ending) > 0
+                    ending_players = jointly_ending | personal_ending
+                    still_alive: bool = any(p not in ending_players for p in S2)
                     G.add_node(
                         S2,
-                        is_final_for=ending_players,
-                        is_joint_final=is_joint_final,
+                        is_joint_final_for="-".join(jointly_ending),
+                        is_pers_final="-".join(personal_ending),
                         is_initial=False,
+                        is_terminal=not still_alive,
                         generation=generation + 1,
                         in_game="-".join(S2.keys()),
                     )
                     # if anyone is still alive add to stack for further expansion
-                    if any(p not in ending_players for p in S2):
+                    if still_alive:
                         if S2 not in stack:
                             stack.append(S2)
                 G.add_edge(S, S2, action=players_n_actions)

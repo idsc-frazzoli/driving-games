@@ -15,18 +15,17 @@ from games import (
     report_solutions,
     solve_main,
 )
+from games.preprocess import preprocess_game
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]
-
-from games.preprocess import preprocess_game
 
 
 class DGDemo(QuickApp):
     """Main function"""
 
     def define_options(self, params: DecentParams):
-        params.add_string("games", default="asym_v1_sets")
-        params.add_string("solvers", default="solver-1-security-fact")
+        params.add_string("games", default="4way_int_3p_sets")
+        params.add_string("solvers", default="solver-2-pure-security_mNE-naive")
 
     def define_jobs_context(self, context: QuickAppContext):
 
@@ -67,21 +66,18 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
         dg = join(d, game_name)
         game = game_spec.game
         r_game = report_game_visualization(game)
-        r_game.to_html(join(dg, "r_animation.r_game"))
+        r_game.to_html(join(dg, "report_game.html"))
 
         for solver_name, solver_spec in solvers.items():
             ds = join(dg, solver_name)
             solver_params = solver_spec.solver_params
             game_preprocessed = preprocess_game(game, solver_params)
+            r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
+            r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+
             solutions = solve_main(game_preprocessed)
-            # random_sim = solve_random(game_preprocessed)
-
             r_solutions = report_solutions(game_preprocessed, solutions)
-            # todo fix later
-            # r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
-
             r_solutions.to_html(join(ds, "r_solutions.html"))
-            # r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
 
 
 dg_demo = DGDemo.get_sys_main()

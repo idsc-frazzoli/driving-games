@@ -24,7 +24,7 @@ def report_player(
     G = pp.player_graph
     r = Report(nid=player_name)
 
-    with r.data_file(("player"), mime=MIME_GRAPHML) as fn:
+    with r.data_file("player", mime=MIME_GRAPHML) as fn:
         G2 = convert_node_labels_to_integers(G)
         for (n1, n2, d) in G2.edges(data=True):
             d.clear()

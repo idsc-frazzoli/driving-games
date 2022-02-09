@@ -47,14 +47,15 @@ def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
     r = Report(nid="some_states", caption="Some interesting states.")
     G = game_pre.game_graph
 
-    final1 = [node for node in G if G.nodes[node]["is_final1"]]
-    final1 = random.sample(final1, 5)
-    visualize_states(game_pre, r, "final1", final1, "Some final nodes for p1")
+    terminal = [node for node in G if G.nodes[node]["is_terminal"]]
+    terminal = random.sample(terminal, 5)
+    visualize_states(game_pre, r, "terminal", terminal, "Some terminal nodes for everyone")
 
-    final2 = [node for node in G if G.nodes[node]["is_final2"]]
-    final2 = random.sample(final2, 5)
-    visualize_states(game_pre, r, "final2", final2, "Some final nodes for p2")
-    joint_final = [node for node in G if G.nodes[node]["is_joint_final"]]
+    pers_final = [node for node in G if G.nodes[node]["is_pers_final"]]
+    pers_final = random.sample(pers_final, 5)
+    visualize_states(game_pre, r, "pers_final", pers_final, "Some personal final nodes.")
+
+    joint_final = [node for node in G if G.nodes[node]["is_joint_final_for"]]
     joint_final = random.sample(joint_final, 5)
     visualize_states(game_pre, r, "joint_final", joint_final, "Some final joint nodes.")
 
@@ -77,7 +78,7 @@ def visualize_states(
             with viz.plot_arena(pylab, ax):
                 for player_name, player_state in node.items():
                     if player_state is not None:
-                        viz.plot_player(player_name, state=player_state, commands=None)
+                        viz.plot_player(player_name, state=player_state, commands=None, t=0)
     texts = list(map(debug_print, nodes))
 
     text = "\n".join(texts)
@@ -99,32 +100,29 @@ def report_game(game_pre: GamePreprocessed) -> Report:
 
     def color_node(n):
         is_initial = G.nodes[n]["is_initial"]
-        is_final1 = G.nodes[n]["is_final1"]
-        is_final2 = G.nodes[n]["is_final2"]
-        is_joint_final = G.nodes[n]["is_joint_final"]
+        is_joint_final_for = G.nodes[n]["is_joint_final_for"]
+        is_pers_final_for = G.nodes[n]["is_pers_final"]
+        is_terminal = G.nodes[n]["is_terminal"]
         in_game = G.nodes[n]["in_game"]
+        # todo fix terminal without collisions
         if is_initial:
             return "red"
-        if is_joint_final:
-            return "magenta"
-        if in_game == "AB":
-            if is_final1 and is_final2:
-                return "black"
+        elif is_joint_final_for:
+            return "brown"
+        elif is_terminal:
+            return "purple"
+        elif is_pers_final_for:
+            return "yellow"
+        else:
             return "green"
-        elif in_game == "A":
-            if is_final1:
-                return "teal"
-            else:
-                return "blue"
-        elif in_game == "B":
-            if is_final2:
-                return "orange"
-            else:
-                return "yellow"
 
-        return "grey"
-
-    caption = "green: both playing, blue/yellow: only one (final:teal, magenta). Initial: red. Joint final: magenta"
+    caption = (
+        "red: initial;\n"
+        "green: everyone is playing;\n"
+        "brown: jointly final for someone;\n"
+        "yellow: some personal one finish;\n"
+        "purple: all players end."
+    )
 
     node_size = 3
     node_color = [color_node(_) for _ in G.nodes]
