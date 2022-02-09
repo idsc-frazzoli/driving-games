@@ -52,7 +52,7 @@ param_2p = DgSimpleParams(
     scenario=simple_intersection,
     progress={P1: (D(135), D(160)), P2: (D(180), D(195))},
     plot_limits=[[40, 100], [-25, 25]],
-    min_safety_distance=4,
+    min_safety_distance=7,
 )
 
 param_3p = DgSimpleParams(
@@ -63,7 +63,7 @@ param_3p = DgSimpleParams(
     scenario=simple_intersection,
     progress={P1: (D(135), D(160)), P2: (D(180), D(195)), P3: (D(120), D(140))},
     plot_limits=[[40, 100], [-25, 25]],
-    min_safety_distance=4,
+    min_safety_distance=7,
 )
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetWorstCasePreference)

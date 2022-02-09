@@ -10,7 +10,7 @@ from driving_games.zoo_games import games_zoo
 from driving_games_tests import logger
 
 do_games_sets = [
-    "4way_int_2p_sets",
+    "4way_int_3p_sets",
     # "4way_int_3p_sets",
 ]
 do_solvers_sets = [

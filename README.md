@@ -66,3 +66,7 @@ Run some games using:
 Reformat with `black` using:
 
 	$ make black
+
+(For developers) Install the [pre-commit](https://pre-commit.com/) hook via:
+
+    $ pre-commit install

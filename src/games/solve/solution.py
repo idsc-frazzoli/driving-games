@@ -38,9 +38,7 @@ from games.solve.solution_structures import (
     ValueAndActions,
 )
 from games.solve.solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
-from games.solve.solve_equilibria import solve_equilibria
-
-from games.solve.solve_equilibria import solve_final_personal_both, solve_final_joint
+from games.solve.solve_equilibria import solve_equilibria, solve_final_for_everyone
 from possibilities import Poss
 
 __all__ = ["solve_main"]
@@ -289,12 +287,9 @@ def _solve_game(
         solved[pure_actions] = fd(players_dist)
 
     va: ValueAndActions[U, RP, RJ]
-    if gn.joint_final_rewards:  # final costs:
-        # fixme: when n > 2, it might be that only part of the crew ends
-        va = solve_final_joint(sc, gn)
-    elif set(gn.states) == set(gn.personal_final_reward):
-        # All the actives finish independently
-        va = solve_final_personal_both(sc, gn)
+    if set(gn.states) == set(gn.personal_final_reward) | set(gn.joint_final_rewards):
+        # All the actives finish
+        va = solve_final_for_everyone(sc, gn)
     else:
         va = solve_equilibria(sc, gn, solved)
 

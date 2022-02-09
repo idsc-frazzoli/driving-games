@@ -56,20 +56,20 @@ class SimpleCollision:
 class VehicleSafetyDistCost:
     """Minimum safety distance costs of the vehicle"""
 
-    distance: float
+    violation: float
     """ Violation of the minimum safety distance """
 
     # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "VehicleSafetyDistCost":
         # weighting costs, e.g. according to a probability
-        return replace(self, distance=self.distance * float(weight))
+        return replace(self, violation=self.violation * float(weight))
 
     __rmul__ = __mul__
 
     # Cost monoid to support sum
     def __add__(self, other: "VehicleSafetyDistCost") -> "VehicleSafetyDistCost":
         if isinstance(other, VehicleSafetyDistCost):
-            return replace(self, distance=self.distance + other.distance)
+            return replace(self, violation=self.violation + other.violation)
         elif other is None:
             return self
         else:

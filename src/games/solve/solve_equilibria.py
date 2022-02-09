@@ -1,4 +1,4 @@
-from typing import Dict, Mapping, MutableMapping
+from typing import Dict, Mapping
 
 from frozendict import frozendict
 from zuper_commons.types import ZNotImplementedError, ZValueError
@@ -26,7 +26,7 @@ from .solution_structures import (
 from .. import GameConstants
 from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 
-__all__ = ["solve_equilibria", "solve_final_personal_both", "solve_final_joint"]
+__all__ = ["solve_equilibria", "solve_final_for_everyone"]
 
 
 def solve_equilibria(
@@ -65,8 +65,11 @@ def solve_equilibria(
         for player_final, final_value in gn.personal_final_reward.items():
             joint_reward_id = sc.game.joint_reward.joint_reward_identity()
             game_value[player_final] = ps.unit(Combined(final_value, joint=joint_reward_id))
-        if set(game_value) != set(gn.states):
-            raise ZValueError("The game values are incomplete.", game_value=game_value, gn=gn)
+        # Get the game values for the players in a final state
+        game_value.update(get_final_value_for_endings(sc=sc, gn=gn))
+        if GameConstants.checks:
+            if set(game_value) != set(gn.states):
+                raise ZValueError("The game values are incomplete.", game_value=game_value, gn=gn)
         return ValueAndActions(game_value=fd(game_value), mixed_actions=eq)
     elif n_nondom_nash_equilibria > 1:
         # multiple non-dominated nash equilibria
@@ -91,19 +94,20 @@ def solve_equilibria(
 
             dist: Poss[JointPureActions] = ps.build_multiple(a=profile, f=f)
 
-            game_value1: MutableMapping[PlayerName, UncertainCombined]
-            game_value1 = {}
-            for player_name in gn.states:
+            game_value: Dict[PlayerName, UncertainCombined] = {}
+            for player_name in players_active:
 
                 def f(jpa: JointPureActions) -> UncertainCombined:
                     return solved[jpa][player_name]
 
-                game_value1[player_name] = ps.join(ps.build(dist, f))
+                game_value[player_name] = ps.join(ps.build(dist, f))
 
-            # logger.info(dist=dist)
-            # game_value1 = ps.join(ps.build(dist, solved.__getitem__))
-
-            return ValueAndActions(game_value=fd(game_value1), mixed_actions=fd(profile))
+            # Get the game values for the players in a final state
+            game_value.update(get_final_value_for_endings(sc=sc, gn=gn))
+            if GameConstants.checks:
+                if set(game_value) != set(gn.states):
+                    raise ZValueError("The game values are incomplete.", game_value=game_value, gn=gn)
+            return ValueAndActions(game_value=fd(game_value), mixed_actions=fd(profile))
         # Anything can happen
         elif mNE_strategy == SECURITY_MNE:
             # fixme: This makes sense when there are probabilities
@@ -118,16 +122,19 @@ def solve_equilibria(
                 check_joint_pure_actions(joint_mixed_actions)
             # logger.info(dist=dist)
             game_value = {}
-            for player_name in gn.states:
+            for player_name in players_active:
 
                 def f(jpa: JointPureActions) -> UncertainCombined:
                     return solved[jpa][player_name]
 
                 game_value[player_name] = ps.join(ps.build(dist, f))
 
-            # game_value: Mapping[PlayerName, UncertainCombined]
-            game_value_ = fd(game_value)
-            return ValueAndActions(game_value=game_value_, mixed_actions=security_policies)
+            # Get the game values for the players in a final state
+            game_value.update(get_final_value_for_endings(sc=sc, gn=gn))
+            if GameConstants.checks:
+                if set(game_value) != set(gn.states):
+                    raise ZValueError("The game values are incomplete.", game_value=game_value, gn=gn)
+            return ValueAndActions(game_value=fd(game_value), mixed_actions=security_policies)
         elif mNE_strategy == BAIL_MNE:
             msg = "Multiple Nash Equilibria"
             raise ZNotImplementedError(msg, ea=ea)
@@ -139,11 +146,11 @@ def solve_equilibria(
         raise ZNotImplementedError(msg, ea=ea)
 
 
-def solve_final_joint(
+def get_final_joint_value(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
-) -> ValueAndActions[U, RP, RJ]:
+) -> Dict[PlayerName, UncertainCombined]:
     """
-    Solves a node which is a joint final node
+    Return the ending value for the ones jointly terminating here.
     """
     game_value: Dict[PlayerName, UncertainCombined] = {}
 
@@ -151,24 +158,31 @@ def solve_final_joint(
         personal = sc.game.players[player_name].personal_reward_structure.personal_reward_identity()
         game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint))
 
-    game_value_ = fd(game_value)
-    actions = frozendict()
-    return ValueAndActions(game_value=game_value_, mixed_actions=actions)
+    return game_value
 
 
-def solve_final_personal_both(
+def get_final_value_for_endings(
+    sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
+) -> Dict[PlayerName, UncertainCombined]:
+    """Get the values for all the players ending in the node"""
+    # first the jointly ending
+    game_value: Dict[PlayerName, UncertainCombined] = get_final_joint_value(sc, gn)
+    # then the personal ones
+    for player_name, personal in gn.personal_final_reward.items():
+        if player_name in game_value:
+            # The joint ending wins over the personal ending, so we skip the ones that also jointly ended
+            continue
+        joint_id = sc.game.joint_reward.joint_reward_identity()
+        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint_id))
+    return game_value
+
+
+def solve_final_for_everyone(
     sc: SolvingContext[X, U, Y, RP, RJ, SR], gn: GameNode[X, U, Y, RP, RJ, SR]
 ) -> ValueAndActions[U, RP, RJ]:
     """
-    Solves end game node which is final for both players (but not jointly final)
-    :param sc:
-    :param gn:
-    :return:
+    Solves a node which is a final node for everyone
     """
-    game_value: Dict[PlayerName, UncertainCombined] = {}
-    for player_name, personal in gn.personal_final_reward.items():
-        joint_id = sc.game.joint_reward.joint_reward_identity()
-        game_value[player_name] = sc.game.ps.unit(Combined(personal=personal, joint=joint_id))
-    game_value_ = fd(game_value)
+    game_value = get_final_value_for_endings(sc, gn)
     actions = frozendict()
-    return ValueAndActions(game_value=game_value_, mixed_actions=actions)
+    return ValueAndActions(game_value=fd(game_value), mixed_actions=actions)
