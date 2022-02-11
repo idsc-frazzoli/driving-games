@@ -8,6 +8,7 @@ from dg_commons.maps import DgLanePose
 from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
 from dg_commons.seq.sequence import DgSampledSequence
 from dg_commons.sim.scenarios import DgScenario
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 
 __all__ = [
     "MetricEvaluationContext",
@@ -39,6 +40,7 @@ class MetricEvaluationContext:
     dgscenario: DgScenario
     trajectories: JointTrajectories
     goals: Mapping[PlayerName, PlanningGoal]
+    geos: Mapping[PlayerName, VehicleGeometry]
 
     """ Cached data for each player use for all rules. """
     points_cart: Mapping[PlayerName, List[SE2Transform]] = field(init=False, default_factory=dict)
