@@ -1,16 +1,17 @@
+import colorsys
 from typing import Optional, Mapping, Tuple
+
+import matplotlib
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
-import matplotlib
-from matplotlib import pyplot as plt
 from matplotlib import colors as mcolors
-import colorsys
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
-from dg_commons.planning import JointTrajectories, Trajectory, RefLaneGoal, PlanningGoal
 
 from dg_commons import PlayerName, Color
+from dg_commons.planning import Trajectory, RefLaneGoal, PlanningGoal
 from driving_games.metrics_structures import MetricEvaluationContext
 
 VehicleObservation = None
@@ -46,8 +47,11 @@ class EvaluationContextVisualization:
         yield
 
     def plot_arena(self, draw_labels: bool, axis: Axes = None):
+        self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = False
+        self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
         if draw_labels:
             self.commonroad_renderer.draw_params["lanelet"]["show_label"] = True
+
         self.evaluation_context.dgscenario.scenario.draw(self.commonroad_renderer)
         self.commonroad_renderer.render()
         return
