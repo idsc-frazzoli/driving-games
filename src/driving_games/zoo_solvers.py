@@ -3,6 +3,7 @@ from decimal import Decimal as D
 from itertools import product
 from typing import Dict
 
+from driving_games.resources import poly_resources_checker
 from games import SolverParams, MIX_MNE, SECURITY_MNE, FINITE_MIX_STRATEGIES, PURE_STRATEGIES
 
 __all__ = ["solvers_zoo"]
@@ -33,8 +34,9 @@ for adm_strat, mne_strat, dt, fact in product(*options_mix):
         dt=dt,
         admissible_strategies=adm_strat,
         strategy_multiple_nash=mne_strat,
-        use_factorization=fact[1],
         n_simulations=1,
+        use_factorization=fact[1],
+        f_resource_intersection=poly_resources_checker,
     )
     desc = (
         f"Admissible strategies = {adm_strat}; Multiple NE strategy = {mne_strat}; "

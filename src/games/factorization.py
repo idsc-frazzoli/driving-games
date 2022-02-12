@@ -22,11 +22,12 @@ from possibilities import PossibilityMonad, Poss
 def get_game_factorization(
     game: Game[X, U, Y, RP, RJ, SR],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
+    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool],
 ) -> GameFactorization[X]:
     """
-
     :param game:
     :param players_pre:
+    :param f_resource_intersection:
     :return:
     """
     ps = game.ps
@@ -74,7 +75,7 @@ def get_game_factorization(
             # todo need to add checks for the cases where one of the players has already finished?!
         else:
             resources_used = itemmap(get_ur, ljs)
-            deps = find_dependencies(ps, resources_used)
+            deps = find_dependencies(ps, resources_used, f_resource_intersection)
 
             # if special:
             #     logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
@@ -95,12 +96,6 @@ def get_game_factorization(
     mpartitions = valmap(frozenset, partitions)
     logger.info("stats", partitions=valmap(lambda _: len(_), partitions))
     return GameFactorization(mpartitions, ipartitions)
-
-
-def collapse_states(
-    gp: GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]
-) -> Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]:
-    return gp.gs.states_to_solution
 
 
 def find_dependencies(
@@ -164,3 +159,9 @@ def find_dependencies(
 def flatten_sets(c: Collection[AbstractSet[X]]) -> FSet[X]:
     sets = reduce(lambda a, b: a | b, c)
     return frozenset(sets)
+
+
+def collapse_states(
+    gp: GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]
+) -> Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]:
+    return gp.gs.states_to_solution

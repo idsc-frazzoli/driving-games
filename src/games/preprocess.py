@@ -61,7 +61,8 @@ def preprocess_game(
         individual_games,
     )
     if solver_params.use_factorization:
-        game_factorization = get_game_factorization(game, players_pre)
+        f_resource_intersection = solver_params.f_resource_intersection
+        game_factorization = get_game_factorization(game, players_pre, f_resource_intersection)
 
     gp = GamePreprocessed(
         game=game,

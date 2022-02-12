@@ -1,5 +1,9 @@
+from dataclasses import dataclass
 from decimal import Decimal as D
 
+from matplotlib import pyplot as plt
+
+from dg_commons.maps.shapely_viz import ShapelyViz
 from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from driving_games import VehicleTrackState
 from driving_games.zoo_games import games_zoo, P1, P2
@@ -14,6 +18,13 @@ def test_1():
     p1_res = p1_dyn.get_shared_resources(x1)
     x2: VehicleTrackState = VehicleTrackState(x=D(185.0), v=D(2.0), wait=D(0), light=NO_LIGHTS, has_collided=False)
     p2_res = p2_dyn.get_shared_resources(x2)
+    viz = ShapelyViz()
+    for poly in p1_res:
+        viz.add_shape(poly.as_polygon(), color="red")
+    viz.ax.autoscale()
+    viz.ax.set_aspect("equal")
+    plt.savefig("test.png")
+
     print(p1_res)
     print(p2_res)
     print(p1_res & p2_res)

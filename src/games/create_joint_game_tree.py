@@ -52,6 +52,8 @@ def create_game_graph(
     for js in initials:
         _create_game_graph(ic, js)
 
+    logger.info(f"Created game graph with {len(state2node)} game nodes")
+
     # create networkx graph
     G = get_networkx_graph(state2node)
     ti = get_timestep_info(G, dt)
@@ -184,7 +186,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         next_states: Poss[JointState] = ps.build_multiple(selected, f)
 
-        # here compute the joint rewards
+        # here compute the joint rewards (consider the non factorized next_state for the current stage cost)
         def transition_cost(_next_state: JointState) -> Mapping[PlayerName, Combined]:
             transitions = {
                 p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
@@ -197,18 +199,6 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         trans_cost: Poss[Mapping[PlayerName, Combined]] = ps.build(next_states, transition_cost)
         pure_incremental[joint_pure_action] = trans_cost
-
-        # here need to update who has collided (their state in next_states)
-        collided_in_transition = {pn for tc in trans_cost.support() for pn in tc if tc[pn].joint.collision is not None}
-        if collided_in_transition:
-
-            def update_states_collided(js: JointState) -> JointState:
-                js_new = dict(js)
-                for pn in collided_in_transition:
-                    js_new[pn] = replace(js[pn], has_collided=True)
-                return fd(js_new)
-
-            next_states = ps.build(next_states, update_states_collided)
 
         # here the generalized transition to support factorization
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
@@ -230,6 +220,24 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
                 return fkeyfilter(not_exiting, x)
 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
+
+        # here need to update who has collided (their state in next_states)(to be done after factorization)
+        collided_in_transition = {pn for tc in trans_cost.support() for pn in tc if tc[pn].joint.collision is not None}
+        if collided_in_transition:
+
+            def update_states_collided(pjs: Mapping[PlayerName, JointState]) -> Mapping[PlayerName, JointState]:
+                def update_js(js: JointState) -> JointState:
+                    js = dict(js)
+                    for pn in js:
+                        if pn in collided_in_transition:
+                            js[pn] = replace(js[pn], has_collided=True)
+                    return fd(js)
+
+                js_new = valmap(update_js, pjs)
+                return fd(js_new)
+
+            pnext_states = ps.build(pnext_states, update_states_collided)
+
         pure_transitions[pure_action] = pnext_states
 
         for pn in pnext_states.support():

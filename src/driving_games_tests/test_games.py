@@ -14,8 +14,8 @@ do_games_sets = [
     # "4way_int_3p_sets",
 ]
 do_solvers_sets = [
-    # "solver-2-pure-security_mNE-naive",
-    "solver-2-pure-security_mNE-fact"
+    "solver-2-pure-security_mNE-naive",
+    # "solver-2-pure-security_mNE-fact"
     # "solver-1-pure-security_mNE-fact",
     # "solver-1-finite_mix-mix_mNE-fact",
     # "solver-1-finite_mix-security_mNE-naive",

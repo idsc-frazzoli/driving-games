@@ -255,6 +255,8 @@ def _solve_game(
 
         # Note that each player can go in a different joint state.
         next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
+        if len(next_nodes.support()) > 1:
+            logger.info("Factorization happening", next_nodes=next_nodes)  # fixme temp
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         # Incremental costs incurred if choosing this action
@@ -303,7 +305,7 @@ def _solve_game(
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n % 50 == 0:
+    if n % 100 == 0:
         global TOC
         logger.info(
             js=js,
@@ -369,10 +371,10 @@ def get_used_resources(
                 usages[i + 1] = f
             else:
                 break
-            # fixme here you need dt? or the stage index?
+            # The stage index
             i += 1
 
-        logger.info(usages=usages)  #
+        # logger.info(usages=usages)  #
         ur = UsedResources(fd(usages))
     else:
         usages_ = fd({D(0): usage_current})

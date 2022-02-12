@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M
+from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M, Callable
 
 from networkx import MultiDiGraph
 
@@ -74,6 +74,8 @@ class SolverParams:
     """ Whether to use the factorization properties to reduce the game graph."""
     n_simulations: int
     """ Number of sampled simulations from solutions. """
+    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool] = lambda x, y: bool(x & y)
+    """ Function to check if two sets of resources are intersecting."""
 
 
 @dataclass(frozen=False, unsafe_hash=True, order=True)

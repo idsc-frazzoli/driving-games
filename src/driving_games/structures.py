@@ -56,7 +56,7 @@ class VehicleTrackState:
     has_collided: bool
     """ Whether the vehicle has collided with something/someone. """
 
-    __print_order__ = ["x", "v"]  # only print these attribute
+    __print_order__ = ["x", "v", "has_collided"]  # only print these attribute
 
     # todo another candidate for caching
     def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
