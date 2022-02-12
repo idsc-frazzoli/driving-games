@@ -72,6 +72,8 @@ class SolverParams:
     """ The delta-t when discretizing. """
     use_factorization: bool
     """ Whether to use the factorization properties to reduce the game graph."""
+    n_simulations: int
+    """ Number of sampled simulations from solutions. """
 
 
 @dataclass(frozen=False, unsafe_hash=True, order=True)

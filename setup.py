@@ -1,4 +1,4 @@
-import distutils
+import distutils.text_file
 from pathlib import Path
 from typing import List
 

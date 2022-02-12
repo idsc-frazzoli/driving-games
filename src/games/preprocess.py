@@ -125,10 +125,10 @@ def get_reachable_states(
         G.add_node(node, is_final=False)
 
     stack = list(initial.support())
-    i: int = 0
+    # i: int = 0
     expanded = set()
     while stack:
-        i += 1
+        # i += 1
         s1 = stack.pop(0)
         assert s1 in G.nodes
         if s1 in expanded:

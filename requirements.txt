@@ -20,5 +20,5 @@ setuptools>=57.4.0
 cachetools>=5.0.0
 networkx>=2.6.3
 
-commonroad-io==2021.3
-dg-commons>=0.0.18
+commonroad-io==2021.4
+dg-commons>=0.0.19

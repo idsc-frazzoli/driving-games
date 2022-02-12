@@ -30,7 +30,11 @@ options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact
 
 for adm_strat, mne_strat, dt, fact in product(*options_mix):
     params = SolverParams(
-        dt=dt, admissible_strategies=adm_strat, strategy_multiple_nash=mne_strat, use_factorization=fact[1]
+        dt=dt,
+        admissible_strategies=adm_strat,
+        strategy_multiple_nash=mne_strat,
+        use_factorization=fact[1],
+        n_simulations=1,
     )
     desc = (
         f"Admissible strategies = {adm_strat}; Multiple NE strategy = {mne_strat}; "
