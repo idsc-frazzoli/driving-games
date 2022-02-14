@@ -1,11 +1,6 @@
 from decimal import Decimal as D
 from typing import Type
 
-from zuper_typing import debug_print
-
-from driving_games.collisions import VehicleJointCost
-from driving_games.preferences_collision import CollisionPreference
-from driving_games.structures import VehicleTimeCost
 from games import Combined
 from preferences import (
     COMP_OUTCOMES,
@@ -14,6 +9,10 @@ from preferences import (
     Preference,
     SmallerPreferredTol,
 )
+from zuper_typing import debug_print
+from .collisions import VehicleJointCost
+from .preferences_collision import CollisionPreference
+from .structures import VehicleTimeCost
 
 __all__ = ["VehiclePreferencesCollTime"]
 

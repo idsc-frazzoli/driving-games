@@ -3,8 +3,8 @@ from decimal import Decimal as D
 from itertools import product
 from typing import Dict
 
-from driving_games.resources import poly_resources_checker
-from games import SolverParams, MIX_MNE, SECURITY_MNE, FINITE_MIX_STRATEGIES, PURE_STRATEGIES
+from games import FINITE_MIX_STRATEGIES, MIX_MNE, PURE_STRATEGIES, SECURITY_MNE, SolverParams
+from .resources import poly_resources_checker
 
 __all__ = ["solvers_zoo"]
 

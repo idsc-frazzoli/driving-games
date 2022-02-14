@@ -4,7 +4,7 @@ from typing import Type, Set
 from dg_commons import fd
 from networkx import DiGraph, has_path
 
-from driving_games.metrics_structures import PlayerEvaluatedMetrics
+from .metrics_structures import PlayerEvaluatedMetrics
 from preferences import (
     Preference,
     ComparisonOutcome,

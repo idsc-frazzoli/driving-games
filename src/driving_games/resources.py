@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import FrozenSet as FSet, Tuple
 
-from geometry import SE2value
 from shapely.geometry import Polygon
 
 from dg_commons import apply_SE2_to_shapely_geo
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from driving_games import VehicleTrackState
+from geometry import SE2value
+from .structures import VehicleTrackState
 
 
 @dataclass(frozen=True)
@@ -23,7 +23,8 @@ class PolygonHashable:
         return cls(points=tuple(p for p in polygon.exterior.coords))
 
 
-def get_resources_used(vs: VehicleTrackState, vg: VehicleGeometry, ref: DgLanelet, ds: float) -> PolygonHashable:
+def get_resources_used(vs: VehicleTrackState, vg: VehicleGeometry, ref: DgLanelet,
+                       ds: float) -> PolygonHashable:
     """Gets the rectangles that contain the vehicle."""
     q: SE2value = vs.to_global_pose(ref).as_SE2()
     occupancy: Polygon = apply_SE2_to_shapely_geo(vg.outline_as_polygon, q)

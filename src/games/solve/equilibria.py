@@ -25,7 +25,7 @@ from .solution_structures import (
     PURE_STRATEGIES,
 )
 
-__all__ = []
+__all__ = ['EquilibriaAnalysis']
 
 
 @dataclass

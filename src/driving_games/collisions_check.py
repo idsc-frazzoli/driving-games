@@ -10,8 +10,10 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Polygon, Point
 from zuper_commons.types import ZValueError
 
-from dg_commons import PlayerName, DgSampledSequence, Timestamp, norm_between_SE2value, apply_SE2_to_shapely_geo, fd
-from dg_commons.sim import CollisionReportPlayer, ImpactLocation, IMPACT_FRONT, IMPACT_LEFT, IMPACT_BACK, IMPACT_RIGHT
+from dg_commons import (PlayerName, DgSampledSequence, Timestamp, norm_between_SE2value,
+                        apply_SE2_to_shapely_geo, fd)
+from dg_commons.sim import (CollisionReportPlayer, ImpactLocation, IMPACT_FRONT, IMPACT_LEFT, IMPACT_BACK,
+                            IMPACT_RIGHT)
 from dg_commons.sim.collision_utils import (
     check_who_is_at_fault,
     compute_impact_geometry,
@@ -24,7 +26,7 @@ from dg_commons.sim.collision_utils import (
 from dg_commons.sim.models import extract_pose_from_state
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from driving_games import VehicleJointCost, VehicleSafetyDistCost, SimpleCollision
+from .collisions import VehicleJointCost, VehicleSafetyDistCost, SimpleCollision
 from games import GameConstants
 
 __all__ = ["joint_collision_cost_simple"]
@@ -134,7 +136,8 @@ def _locations_from_impact_direction(direction: float) -> ImpactLocation:
 
 def _simple_check_is_at_fault(direction: float) -> bool:
     """
-    This functions approximates who is at fault in a collision based on the impact directions (in polar coordinates).
+    This functions approximates who is at fault in a collision based on the impact directions (in polar
+    coordinates).
     :return:
     """
     if direction <= pi / 2 or direction >= pi * 3 / 2:
@@ -182,7 +185,8 @@ def joint_collision_cost(
         n2 = int((t2_end - t2_start) / col_dt)
         ts2 = [t2_end - i * col_dt for i in range(n2 + 1)]
         ts2.reverse()
-        # fixme could assert that all these timestamps are the same and do the above only once outside the loop
+        # fixme could assert that all these timestamps are the same and do the above only once outside the
+        #  loop
 
         for t1, t2 in zip(ts1, ts2):
             x1, x2 = trans1.at_interp(t1), trans2.at_interp(t2)
@@ -210,7 +214,8 @@ def joint_collision_cost(
                 r_bp = np.array(impact_point.coords[0]) - np.array([x2.x, x2.y])
 
                 p_at_fault = check_who_is_at_fault(
-                    p_poses={player1: q1, player2: q2}, impact_point=impact_point, lanelet_network=lanelet_network
+                    p_poses={player1: q1, player2: q2}, impact_point=impact_point,
+                    lanelet_network=lanelet_network
                 )
                 j_n = compute_impulse_response(
                     n=impact_normal, vel_ab=rel_velocity_atP, r_ap=r_ap, r_bp=r_bp, a_geom=g1, b_geom=g2
@@ -218,7 +223,8 @@ def joint_collision_cost(
                 # Apply impulse to models
                 a_vel_after = velocity_after_collision(impact_normal, a_vel, g1.m, j_n)
                 b_vel_after = velocity_after_collision(-impact_normal, b_vel, g2.m, j_n)
-                a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, np.array([0, 0, a_omega]), g1.Iz, j_n)
+                a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, np.array([0, 0, a_omega]),
+                                                             g1.Iz, j_n)
                 b_omega_after = rot_velocity_after_collision(
                     r_bp, -impact_normal, np.array([0, 0, b_omega]), g2.Iz, j_n
                 )
@@ -242,7 +248,8 @@ def joint_collision_cost(
                     velocity_after=(b_vel_after, b_omega_after),
                     energy_delta=b_kenergy_delta,
                 )
-                # todo combine report for players, what if one players collides with multiple ones in one transition?
+                # todo combine report for players, what if one players collides with multiple ones in one
+                #  transition?
                 assert player1 not in accidents and player2 not in b_report
                 accidents.update({player1: a_report, player2: b_report})
                 # exit from subtransition checking

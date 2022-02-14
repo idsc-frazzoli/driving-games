@@ -8,13 +8,14 @@ from shapely.geometry import Polygon
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
-from driving_games import VehicleTrackDynamicsParams
-from driving_games.structures import VehicleTrackState, VehicleActions, VehicleTimeCost
-from driving_games.vehicle_observation import VehicleObs
+from .vehicle_dynamics import VehicleTrackDynamicsParams
+from .structures import VehicleTrackState, VehicleActions, VehicleTimeCost
+from .vehicle_observation import VehicleObs
 from games import GamePlayer, Game
 
 
-class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):
+class DrivingGame(
+    Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):
     pass
 
 
