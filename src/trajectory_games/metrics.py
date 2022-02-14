@@ -316,7 +316,7 @@ class Clearance(Metric, metaclass=ABCMeta):
         L: float = 0.0
         for p in players:
             g = context.get_world().get_geometry(p)
-            L += (g.l ** 2 + g.w ** 2) ** 0.5
+            L += (g.l**2 + g.w**2) ** 0.5
         values: List[float] = []
         t1, t2 = list(iter(joint_traj[players[0]])), list(iter(joint_traj[players[1]]))
         len1, len2 = min(len(t1), len(t2)), max(len(t1), len(t2))
@@ -333,7 +333,7 @@ class Clearance(Metric, metaclass=ABCMeta):
             # Coarse check
             dx = state1.x - state2.x
             dy = state1.y - state2.y
-            dist = (dx ** 2 + dy ** 2) ** 0.5
+            dist = (dx**2 + dy**2) ** 0.5
             if self.check_threshold(dist=dist - L, states=states, geos=geos):
                 values.append(0.0)
                 continue
@@ -403,7 +403,7 @@ class CollisionEnergy(Clearance):
         # Calculate values based on relative velocity between both vehicles
         state1, state2 = states
         vel_proj = math.cos(state1.th - state2.th)
-        vel_relsq = state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj
+        vel_relsq = state1.v**2 + state2.v**2 - 2 * state1.v * state2.v * vel_proj
         energy_coll = vel_relsq * self.scale
         return energy_coll
 

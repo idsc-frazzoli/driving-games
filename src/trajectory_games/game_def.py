@@ -77,7 +77,7 @@ class PlotStackDictionary(Generic[Key]):
         """
         n_nodes = len(values)
         assert n_nodes > 0
-        self.cols = math.ceil(n_nodes ** 0.5) if not row else min(n_nodes, 6)
+        self.cols = math.ceil(n_nodes**0.5) if not row else min(n_nodes, 6)
         self.rows = math.ceil(n_nodes / self.cols)
         self.next_idx = 0
         self.indices: Dict[Key, Tuple[int, int]] = {}

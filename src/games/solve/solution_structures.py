@@ -65,7 +65,7 @@ StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 """ How to deal with multiple nash equilibria. """
 MIX_MNE = StrategyForMultipleNash("mix_mNE")
 """ Mix all the states/actions in the multiple nash equilibria.
-This can result in off equilibria joint strategy profiles (if the players select different equilibria at 
+This can result in off equilibria joint strategy profiles (if the players select different equilibria at
 game time) """
 SECURITY_MNE = StrategyForMultipleNash("security_mNE")
 """ Use a security policy. """  # fixme, better explanation for this
@@ -226,8 +226,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                         )
                         raise ZValueError(msg, GameNode=self)
                     if player_name in self.joint_final_rewards:
-                        msg = f"The player {player_name!r} is transitioning to a state but it is marked as " \
-                              f"joint final."
+                        msg = (
+                            f"The player {player_name!r} is transitioning to a state but it is marked as "
+                            f"joint final."
+                        )
                         raise ZValueError(msg, GameNode=self)
 
 

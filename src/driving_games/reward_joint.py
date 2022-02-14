@@ -46,8 +46,7 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
                 return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
 
             global_xs[p] = txs[p].transform_values(to_vehicle_state, VehicleState)
-        res = joint_collision_cost_simple(fd(global_xs), self.geometries, self.col_check_dt,
-                                          self.min_safety_distance)
+        res = joint_collision_cost_simple(fd(global_xs), self.geometries, self.col_check_dt, self.min_safety_distance)
         return res
 
     def joint_reward_reduce(self, r1: VehicleJointCost, r2: VehicleJointCost) -> VehicleJointCost:

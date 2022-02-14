@@ -8,15 +8,13 @@ from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 __all__ = ["VehiclePersonalRewardStructureTime"]
 
 
-class VehiclePersonalRewardStructureTime(
-    PersonalRewardStructure[VehicleTrackState, VehicleActions, VehicleTimeCost]):
+class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackState, VehicleActions, VehicleTimeCost]):
     goal_progress: D
 
     def __init__(self, goal_progress: D):
         self.goal_progress = goal_progress
 
-    def personal_reward_incremental(self, x: VehicleTrackState, u: VehicleActions,
-                                    dt: Timestamp) -> VehicleTimeCost:
+    def personal_reward_incremental(self, x: VehicleTrackState, u: VehicleActions, dt: Timestamp) -> VehicleTimeCost:
         check_isinstance(x, VehicleTrackState)
         check_isinstance(u, VehicleActions)
         return VehicleTimeCost(float(dt))

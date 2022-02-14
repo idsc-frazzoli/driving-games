@@ -204,7 +204,7 @@ def build_networkx_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDi
         players_alive = filter(
             lambda x: x not in G.nodes[S]["is_joint_final_for"] and x not in G.nodes[S]["is_pers_final"], S
         )
-        successors: Dict[PlayerName: Mapping[U, Poss[X]]] = {}
+        successors: Dict[PlayerName : Mapping[U, Poss[X]]] = {}
         for p in players_alive:
             p_state = S[p]
             p_succs = players[p].dynamics.successors(p_state, dt)
@@ -219,8 +219,7 @@ def build_networkx_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDi
                     personal_ending = {
                         p for p in S2 if players[p].personal_reward_structure.is_personal_final_state(S2[p])
                     }
-                    transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p
-                                   in S2}
+                    transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p in S2}
                     jointly_ending = game.joint_reward.is_joint_final_transition(transitions)
                     ending_players = jointly_ending | personal_ending
                     still_alive: bool = any(p not in ending_players for p in S2)

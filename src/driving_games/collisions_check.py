@@ -10,10 +10,8 @@ from shapely.affinity import affine_transform
 from shapely.geometry import Polygon, Point
 from zuper_commons.types import ZValueError
 
-from dg_commons import (PlayerName, DgSampledSequence, Timestamp, norm_between_SE2value,
-                        apply_SE2_to_shapely_geo, fd)
-from dg_commons.sim import (CollisionReportPlayer, ImpactLocation, IMPACT_FRONT, IMPACT_LEFT, IMPACT_BACK,
-                            IMPACT_RIGHT)
+from dg_commons import PlayerName, DgSampledSequence, Timestamp, norm_between_SE2value, apply_SE2_to_shapely_geo, fd
+from dg_commons.sim import CollisionReportPlayer, ImpactLocation, IMPACT_FRONT, IMPACT_LEFT, IMPACT_BACK, IMPACT_RIGHT
 from dg_commons.sim.collision_utils import (
     check_who_is_at_fault,
     compute_impact_geometry,
@@ -214,8 +212,7 @@ def joint_collision_cost(
                 r_bp = np.array(impact_point.coords[0]) - np.array([x2.x, x2.y])
 
                 p_at_fault = check_who_is_at_fault(
-                    p_poses={player1: q1, player2: q2}, impact_point=impact_point,
-                    lanelet_network=lanelet_network
+                    p_poses={player1: q1, player2: q2}, impact_point=impact_point, lanelet_network=lanelet_network
                 )
                 j_n = compute_impulse_response(
                     n=impact_normal, vel_ab=rel_velocity_atP, r_ap=r_ap, r_bp=r_bp, a_geom=g1, b_geom=g2
@@ -223,8 +220,7 @@ def joint_collision_cost(
                 # Apply impulse to models
                 a_vel_after = velocity_after_collision(impact_normal, a_vel, g1.m, j_n)
                 b_vel_after = velocity_after_collision(-impact_normal, b_vel, g2.m, j_n)
-                a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, np.array([0, 0, a_omega]),
-                                                             g1.Iz, j_n)
+                a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, np.array([0, 0, a_omega]), g1.Iz, j_n)
                 b_omega_after = rot_velocity_after_collision(
                     r_bp, -impact_normal, np.array([0, 0, b_omega]), g2.Iz, j_n
                 )

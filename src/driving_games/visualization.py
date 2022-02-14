@@ -11,6 +11,7 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.simulator_animation import adjust_axes_limits, lights_colors_from_lights_cmd
 from dg_commons.sim.simulator_visualisation import plot_vehicle, ZOrders
 from games import GameVisualization
+
 # from matplotlib import image
 from geometry import translation_angle_from_SE2
 from .dg_def import DgSimpleParams

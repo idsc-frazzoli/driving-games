@@ -350,6 +350,7 @@ def get_used_resources(
             def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
                 for pname in va.mixed_actions:
+
                     def get_its(y: M[PlayerName, FSet[SR]]) -> FSet[SR]:
                         return y.get(pname, frozenset())
 

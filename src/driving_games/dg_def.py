@@ -14,8 +14,7 @@ from .vehicle_observation import VehicleObs
 from games import GamePlayer, Game
 
 
-class DrivingGame(
-    Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):
+class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):
     pass
 
 

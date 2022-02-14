@@ -23,8 +23,7 @@ class PolygonHashable:
         return cls(points=tuple(p for p in polygon.exterior.coords))
 
 
-def get_resources_used(vs: VehicleTrackState, vg: VehicleGeometry, ref: DgLanelet,
-                       ds: float) -> PolygonHashable:
+def get_resources_used(vs: VehicleTrackState, vg: VehicleGeometry, ref: DgLanelet, ds: float) -> PolygonHashable:
     """Gets the rectangles that contain the vehicle."""
     q: SE2value = vs.to_global_pose(ref).as_SE2()
     occupancy: Polygon = apply_SE2_to_shapely_geo(vg.outline_as_polygon, q)
