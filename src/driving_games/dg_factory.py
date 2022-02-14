@@ -25,10 +25,10 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
     ps: PossibilityMonad = uncertainty_params.poss_monad
     players: Dict[PlayerName, DrivingGamePlayer] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
-    cc = list(cycler(color=["c", "m", "y", "k"]))
+    cc = list(cycler(color=["c", "m", "y", "gray", "b", "g", "r"]))
 
     for i, (p, lane) in enumerate(dg_params.ref_lanes.items()):
-        g = VehicleGeometry.default_car(color=cc[i]["color"])
+        g = VehicleGeometry.default_car(color=cc[i]["color"], w_half=0.8)
         geometries[p] = g
         p_dynamics = VehicleTrackDynamics(
             ref=lane,
@@ -40,7 +40,7 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         # p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
         p_x = VehicleTrackState(
             x=p_init_progress,
-            v=dg_params.track_dynamics_param.min_speed,
+            v=dg_params.track_dynamics_param.min_speed + D(1),
             wait=D(0),
             light=NO_LIGHTS,
             has_collided=False,

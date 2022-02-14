@@ -32,12 +32,12 @@ P1 = PlayerName("P1")
 P2 = PlayerName("P2")
 P3 = PlayerName("P3")
 P4 = PlayerName("P4")
+P5 = PlayerName("P5")
+P6 = PlayerName("P6")
+P7 = PlayerName("P7")
+P8 = PlayerName("P8")
 
 SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
-# complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
-# c_lane1 = dglane_from_position(np.array([0, 0]), complex_intersection.lanelet_network)
-# c_lane2 = dglane_from_position(np.array([5, 5]), complex_intersection.lanelet_network)
-# fixme complex intersection needs to be intialized properly
 
 simple_intersection, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
 s_lane1 = dglane_from_position(np.array([0, 0]), simple_intersection.lanelet_network, succ_lane_selection=1)
@@ -50,7 +50,7 @@ param_2p = DgSimpleParams(
     col_check_dt=D("0.51"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
-    progress={P1: (D(135), D(160)), P2: (D(180), D(195))},
+    progress={P1: (D(140), D(165)), P2: (D(180), D(200))},
     plot_limits=[[40, 100], [-25, 25]],
     min_safety_distance=7,
 )
@@ -61,7 +61,7 @@ param_3p = DgSimpleParams(
     col_check_dt=D("0.51"),
     ref_lanes={P1: s_lane1, P2: s_lane2, P3: s_lane3},
     scenario=simple_intersection,
-    progress={P1: (D(135), D(160)), P2: (D(180), D(195)), P3: (D(120), D(140))},
+    progress={P1: (D(140), D(165)), P2: (D(180), D(200)), P3: (D(115), D(140))},
     plot_limits=[[40, 100], [-25, 25]],
     min_safety_distance=7,
 )
@@ -100,12 +100,58 @@ def get_4way_int_3p_prob() -> GameSpec:
     return GameSpec(desc, get_driving_game(copy(param_3p), uncertainty_prob))
 
 
+complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
+
+c_lane1 = dglane_from_position(np.array([-19, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane2 = dglane_from_position(np.array([10, -14]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane3 = dglane_from_position(np.array([15, -10]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane4 = dglane_from_position(np.array([-10, -12]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane5 = dglane_from_position(
+    np.array([-10, -17]), complex_intersection.lanelet_network, init_lane_selection=1, succ_lane_selection=0
+)
+c_lane6 = dglane_from_position(np.array([30, 9]), complex_intersection.lanelet_network, succ_lane_selection=1)
+
+c_param_6p = DgSimpleParams(
+    track_dynamics_param=dyn_p0,
+    shared_resources_ds=D(1),
+    col_check_dt=D("0.51"),
+    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4, P5: c_lane5, P6: c_lane6},
+    scenario=complex_intersection,
+    progress={
+        P1: (D(30), D(60)),
+        P2: (D(10), D(50)),
+        P3: (D(10), D(60)),
+        P4: (D(30), D(70)),
+        P5: (D(25), D(60)),
+        P6: (D(20), D(60)),
+    },
+    plot_limits=[[-50, 50], [-50, 50]],
+    min_safety_distance=7,
+)
+
+
+def get_complex_int_6p_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
+
+
+def get_complex_int_xxp_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
+
+
 driving_games_zoo: Mapping[str, GameSpec] = fd(
     {
         "4way_int_2p_sets": get_4way_int_2p_sets(),
         "4way_int_3p_sets": get_4way_int_3p_sets(),
         "4way_int_2p_prob": get_4way_int_2p_prob(),
         "4way_int_3p_prob": get_4way_int_3p_prob(),
+        "complex_int_6p_sets": get_complex_int_6p_sets(),
+        "complex_int_xxp_sets": get_complex_int_xxp_sets(),
     }
 )
 

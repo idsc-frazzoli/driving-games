@@ -1,7 +1,18 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M, Callable
+from typing import (
+    AbstractSet,
+    Dict,
+    FrozenSet as FSet,
+    Generic,
+    Mapping,
+    NewType,
+    Set,
+    Mapping as M,
+    Callable,
+    Optional,
+)
 
 from networkx import MultiDiGraph
 
@@ -17,6 +28,7 @@ from games.game_def import (
     Combined,
     UncertainCombined,
 )
+from games.performance import PerformanceStatistics
 from games.simulate import Simulation
 from possibilities import check_poss, Poss
 from preferences import Preference
@@ -305,13 +317,13 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
     """ The pre-processed data for each player"""
 
-    game_graph: MultiDiGraph
+    game_graph_nx: MultiDiGraph
     """ A NetworkX graph used only for visualization """
 
     solver_params: SolverParams
     """ The solver parameters. """
 
-    game_factorization: GameFactorization[X]
+    game_factorization: Optional[GameFactorization[X]]
     """ The factorization information for the game"""
 
 

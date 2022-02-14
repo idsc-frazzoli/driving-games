@@ -10,8 +10,10 @@ from driving_games.zoo_solvers import solvers_zoo
 from driving_games_tests import logger
 
 do_games_sets = [
+    # "4way_int_2p_sets",
     "4way_int_3p_sets",
     # "4way_int_3p_sets",
+    # "complex_int_6p_sets"
 ]
 do_solvers_sets = [
     "solver-2-pure-security_mNE-naive",

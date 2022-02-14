@@ -10,23 +10,27 @@ from driving_games.zoo_games import *
 
 def test_available_cars():
     # testing some basic visualisation. Might be useful also to find interesting initial conditions
-    vehicles_params: DgSimpleParams = param_3p
+    dg_params: DgSimpleParams = c_param_6p
+
     g1 = VehicleGeometry.default_car(color=(1, 0, 0))
     g2 = VehicleGeometry.default_car(color=(0, 0, 1))
     g3 = VehicleGeometry.default_car(color=(0, 1, 1))
-    geometries = {P1: g1, P2: g2, P3: g3}
+    geometries = {}  # {P1: g1, P2: g2, P3: g3}
     p1_x = VehicleTrackState(
-        x=D(vehicles_params.progress[P1][0]),
+        x=D(dg_params.progress[P1][0]),
         wait=D(0),
         v=D(0),
         light=NO_LIGHTS,
         has_collided=False,
     )
-    p2_x = replace(p1_x, x=D(vehicles_params.progress[P2][0]))
-    p3_x = replace(p1_x, x=D(vehicles_params.progress[P3][0]))
+    p2_x = replace(p1_x, x=D(dg_params.progress[P2][0]))
+    p3_x = replace(p1_x, x=D(dg_params.progress[P3][0]))
 
     dg_vis = DrivingGameVisualization(
-        param_3p, geometries=geometries, ds=vehicles_params.shared_resources_ds, plot_limits=param_3p.plot_limits
+        dg_params,
+        geometries=geometries,
+        ds=dg_params.shared_resources_ds,
+        plot_limits=[[0, 50], [0, 50]],  # param_3p.plot_limits
     )
     fig, ax = plt.subplots()
     fig.set_tight_layout(True)

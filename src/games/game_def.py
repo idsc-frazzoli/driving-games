@@ -103,7 +103,7 @@ class Dynamics(Generic[X, U, SR], ABC):
         """For each state, returns a dictionary U -> Possible Xs"""
 
     @abstractmethod
-    def get_shared_resources(self, x: X) -> FrozenSet[SR]:
+    def get_shared_resources(self, x: X, dt: D) -> FrozenSet[SR]:
         """Returns the "shared resources" for each state. For example,
         the set of spatio-temporal cells occupied by the agent."""
 

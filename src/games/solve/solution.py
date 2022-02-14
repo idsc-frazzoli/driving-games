@@ -1,14 +1,14 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M, Optional
+from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M, Mapping, List
 
 from cytoolz import valmap
 from frozendict import frozendict
 from networkx import simple_cycles
 from zuper_commons.types import ZValueError
 
-from dg_commons import X, U, Y, RP, RJ, PlayerName, fd
+from dg_commons import X, U, Y, RP, RJ, PlayerName, fd, iterate_dict_combinations
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.checks import check_joint_state
@@ -47,7 +47,7 @@ TOC = perf_counter()
 
 
 def solve_main(
-    gp: GamePreprocessed[X, U, Y, RP, RJ, SR], perf_stats: Optional[PerformanceStatistics] = None
+    gp: GamePreprocessed[X, U, Y, RP, RJ, SR], perf_stats: PerformanceStatistics
 ) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo
@@ -55,15 +55,17 @@ def solve_main(
     :param gp:
     :return:
     """
-    G = gp.game_graph
-    dt = gp.solver_params.dt
-    # find initial states
+    G = gp.game_graph_nx
     # noinspection PyCallingNonCallable
     initials = list((node for node, degree in G.in_degree() if degree == 0))
-
     logger.info(initials=initials)
     assert len(initials) == 1
     initial = initials[0]
+
+    # fixme this can substitute the networkx game graph
+    init_states_players: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), gp.game.players)
+    init_states: List[JointState] = [js for js in iterate_dict_combinations(init_states_players)]
+    assert init_states == initials
 
     # noinspection PyCallingNonCallable
     finals = list(node for node, degree in G.out_degree() if degree == 0)
@@ -83,7 +85,10 @@ def solve_main(
     else:
         gf = None
 
+    tic = perf_counter()
     gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf)
+    toc = perf_counter()
+    perf_stats.build_joint_game_tree = toc - tic
 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
@@ -97,7 +102,7 @@ def solve_main(
     controllers0 = {}
     for player_name, pp in gp.players_pre.items():
         policy = game_solution.policies[player_name]
-        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy)
+        controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy, player_name, gf=gf)
 
     logger.info(
         f"Value of joint solution",
@@ -255,8 +260,8 @@ def _solve_game(
 
         # Note that each player can go in a different joint state.
         next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
-        if len(next_nodes.support()) > 1:
-            logger.info("Factorization happening", next_nodes=next_nodes)  # fixme temp
+        # if len(next_nodes.support()) > 1:
+        #     logger.info("Factorization happening", next_nodes=next_nodes)  # fixme temp
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         # Incremental costs incurred if choosing this action
@@ -305,7 +310,7 @@ def _solve_game(
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n % 100 == 0:
+    if n % 1000 == 0:
         global TOC
         logger.info(
             js=js,

@@ -49,42 +49,16 @@ def get_game_factorization(
         js_: Dict[PlayerName, JointState] = {}
         for player_name, joint_state_redundant in ljs.items():
             js_.update(joint_state_redundant)
-        # fixme joint states factorized?!
+        # fixme joint states factorized?! skip if the state has been already factorized
         jsf = fd(js_)
 
-        special = all(_.x == 0 for _ in jsf.values())  # fixme this can go?!
-        # Note that if this is a final (collision) state, it is very important
-        # that we do not consider it decoupled.. otherwise there is no collision ever detected
+        resources_used = itemmap(get_ur, ljs)
+        deps = find_dependencies(ps, resources_used, f_resource_intersection)
 
-        # todo is this sufficient? now collisions are detected on transitions
-        players_colliding = {}  # game.joint_reward.is_joint_final_states(jsf)
-
-        if players_colliding:
-            # logger.info('Found collision states', jsf=jsf, players_colliding=players_colliding)
-            partition = frozenset({frozenset(players_colliding)})
-            partitions[partition].add(jsf)
-            ipartitions[jsf] = partition
-
-            if special:
-                logger.info(
-                    "Found that the players are colliding",
-                    jsf=jsf,
-                    players_colliding=players_colliding,
-                    partition=partition,
-                )
-            # todo need to add checks for the cases where one of the players has already finished?!
-        else:
-            resources_used = itemmap(get_ur, ljs)
-            deps = find_dependencies(ps, resources_used, f_resource_intersection)
-
-            # if special:
-            #     logger.info("the players are not colliding", jsf=jsf, resources_used=resources_used)
-            for players_subsets, independent in deps.items():
-                if special:
-                    logger.info(" - ", players_subsets=players_subsets, independent=independent)
-                jsf_subset = fkeyfilter(players_subsets.__contains__, jsf)
-                partitions[independent].add(jsf_subset)
-                ipartitions[jsf_subset] = independent
+        for players_subsets, independent in deps.items():
+            jsf_subset = fkeyfilter(players_subsets.__contains__, jsf)
+            partitions[independent].add(jsf_subset)
+            ipartitions[jsf_subset] = independent
 
     # also for the single ones
     for player_name, player_states in known.items():
@@ -108,9 +82,8 @@ def find_dependencies(
     Returns the partitions of players that are independent.
 
     Example: for 3 players '{a,b,c}' this could return  `{{a}, {b,c}}`.
-    That means that `a` is independent
-    of b and c. A return of  `{{a}, {b}, {c}}` means that all three are independent.
-
+    That means that `a` is independent  of b and c.
+    A return of  `{{a}, {b}, {c}}` means that all three are independent.
     For n players, it returns all combinations of subsets.
     """
     interaction_graph = Graph()
@@ -128,9 +101,9 @@ def find_dependencies(
             else:
                 at_i: Poss[Mapping[PlayerName, FSet[SR]]] = ur.used[i]
                 at_i_player: Poss[FSet[SR]]
-                # todo  It could be that the player already finished for some actions (does not use any resources)
-                #  and for some actions he didn't finish (uses resources) -> return default value empty set
-                at_i_player = ps.build(at_i, lambda _: _[player_name])
+                # It could be that the player already finished for some actions (does not use any resources)
+                # -> return default value empty set
+                at_i_player = ps.build(at_i, lambda _: _.get(player_name, frozenset()))
                 support_sets = flatten_sets(at_i_player.support())
                 res = support_sets
 

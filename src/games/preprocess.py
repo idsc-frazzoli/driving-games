@@ -1,6 +1,8 @@
 import random
 from collections import defaultdict
 from decimal import Decimal as D
+from functools import partial
+from time import perf_counter
 from typing import Dict, List, Mapping, Set, Optional, NoReturn
 
 import numpy as np
@@ -24,6 +26,7 @@ from games.game_def import (
     SR,
 )
 from games.get_indiv_games import get_individual_games
+from games.performance import PerformanceStatistics
 from games.solve.solution import solve_game
 from games.solve.solution_structures import (
     GameFactorization,
@@ -39,8 +42,7 @@ __all__ = ["preprocess_game", "get_reachable_states"]
 
 
 def preprocess_game(
-    game: Game[X, U, Y, RP, RJ, SR],
-    solver_params: SolverParams,
+    game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams, perf_stats: PerformanceStatistics
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     1. Preprocesses the game computing the general game graph (MultiDiGraph used for visualisation)
@@ -49,25 +51,30 @@ def preprocess_game(
 
     :param game:
     :param solver_params:
+    :param perf_stats: Object used to collect performance statistics
     :return:
     """
-    game_factorization: Optional[GameFactorization[X]] = None
 
-    game_graph = get_game_graph(game, dt=solver_params.dt)
-    compute_graph_layout(game_graph, iterations=1)
+    game_graph_nx = build_networkx_game_graph(game, dt=solver_params.dt)
+    compute_graph_layout(game_graph_nx, iterations=1)
+    # game_graph_nx = MultiDiGraph() # temp for complex scenario
+
     individual_games = get_individual_games(game)
-    players_pre = valmap(
-        lambda individual_game: preprocess_player(solver_params=solver_params, individual_game=individual_game),
-        individual_games,
-    )
+    partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
+    players_pre = valmap(partial_preprocess_player, individual_games)
+
+    game_factorization: Optional[GameFactorization[X]] = None
     if solver_params.use_factorization:
         f_resource_intersection = solver_params.f_resource_intersection
+        tic = perf_counter()
         game_factorization = get_game_factorization(game, players_pre, f_resource_intersection)
+        toc = perf_counter()
+        perf_stats.find_factorization.append(toc - tic)
 
     gp = GamePreprocessed(
         game=game,
         players_pre=players_pre,
-        game_graph=game_graph,
+        game_graph_nx=game_graph_nx,
         solver_params=solver_params,
         game_factorization=game_factorization,
     )
@@ -76,8 +83,7 @@ def preprocess_game(
 
 
 def preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR],
-    solver_params: SolverParams,
+    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams, perf_stats: PerformanceStatistics
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # Preprocess a single player by solving their individual games (i.e. optimal control problem)
@@ -94,11 +100,14 @@ def preprocess_player(
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
 
+    tic = perf_counter()
     game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
-
+    tic2 = perf_counter()
     gs: GameSolution[X, U, Y, RP, RJ, SR]
     gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
-
+    toc = perf_counter()
+    perf_stats.build_individual_game_trees.append(tic2 - tic)
+    perf_stats.solve_individual_game_trees.append(toc - tic2)
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
 
@@ -155,8 +164,10 @@ def get_reachable_states(
 
 
 @time_function
-def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
-    """Gets the game graph, ?used only for visualisation? the real game is built in create_joint_game_tree"""
+def build_networkx_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
+    """Gets the game graph, currently used only for visualisation.
+    Note that the real game is built in create_joint_game_tree.
+    If factorization is used this game graph will differ from the one that is actually solved."""
     players = game.players
     init_states: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), players)
 

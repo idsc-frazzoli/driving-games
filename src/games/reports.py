@@ -45,7 +45,7 @@ def report_game_visualization(game: Game) -> Report:
 
 def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
     r = Report(nid="some_states", caption="Some interesting states.")
-    G = game_pre.game_graph
+    G = game_pre.game_graph_nx
 
     terminal = [node for node in G if G.nodes[node]["is_terminal"]]
     terminal = random.sample(terminal, 5)
@@ -87,7 +87,7 @@ def visualize_states(
 
 
 def report_game(game_pre: GamePreprocessed) -> Report:
-    G = game_pre.game_graph
+    G = game_pre.game_graph_nx
 
     r = Report(nid="game")
 

@@ -75,6 +75,7 @@ def simulate1(
             break
 
         if game.joint_reward.is_joint_final_states(s1):
+            # this is not okay for solutions that do not terminate for everyone
             S_joint_costs.add(t1, game.joint_reward.joint_final_reward(s1))
             break
 
@@ -86,8 +87,7 @@ def simulate1(
             player = game.players[player_name]
             prs = player.personal_reward_structure
             is_final = prs.is_personal_final_state(state_self)
-            if is_final:
-                # no actions for him
+            if is_final:  # no actions for him
                 personal_costs[player_name] = prs.personal_final_reward(state_self)
                 continue
 

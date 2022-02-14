@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 from zuper_commons.types import ZValueError, ZException
 
 from dg_commons.maps import DgLanelet
-from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd
+from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd, NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
@@ -69,7 +69,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
             res.add(VehicleActions(acc=accel, light=light))
         return frozenset(res)
 
-    @lru_cache(None)
+    @lru_cache(maxsize=2048)
     def successors(self, x: VehicleTrackState, dt: D) -> Mapping[VehicleActions, Poss[VehicleTrackState]]:
         """For each state, returns a dictionary U -> Possible Xs"""
         # only allow accelerations that make the speed non-negative
@@ -119,6 +119,13 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
 
         return ret
 
-    def get_shared_resources(self, x: VehicleTrackState) -> FrozenSet[PolygonHashable]:
+    def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[PolygonHashable]:
         # todo: this is not correct, we should use the lanelet graph
-        return get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
+        max_acc_cmds = self._get_max_acc_commands()
+        max_future_x = self.successor(x, max_acc_cmds, dt)
+        poly1 = get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
+        poly2 = get_resources_used(vs=max_future_x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
+        return frozenset([poly1, poly2])
+
+    def _get_max_acc_commands(self) -> VehicleActions:
+        return VehicleActions(acc=max(self.param.available_accels), light=NO_LIGHTS)

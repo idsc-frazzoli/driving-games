@@ -39,7 +39,7 @@ class DgSimpleParams:
     min_safety_distance: float
     """Minimum safety distance for the joint cost of the players"""
     shared_resources_ds: D
-    """"""
+    """Shared resources discretization resolution"""
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 
     def __post__init__(self):
