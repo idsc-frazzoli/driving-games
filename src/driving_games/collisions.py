@@ -2,10 +2,8 @@ from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Optional
 
-from zuper_commons.types import ZValueError
-
 from dg_commons import Timestamp
-from driving_games import logger
+from zuper_commons.types import ZValueError
 
 __all__ = ["SimpleCollision", "VehicleSafetyDistCost", "VehicleJointCost"]
 
@@ -40,7 +38,8 @@ class SimpleCollision:
             elif self.at > other.at:
                 return other
             else:
-                # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant. Monoid?")
+                # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant.
+                # Monoid?")
                 return replace(  # monoid?
                     self,
                     at_fault=self.at_fault or other.at_fault,

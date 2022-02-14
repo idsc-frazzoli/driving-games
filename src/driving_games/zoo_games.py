@@ -12,7 +12,7 @@ from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from dg_commons_dev.utils import get_project_root_dir
 from games import GameSpec, UncertaintyParams
-from possibilities import PossibilitySet, PossibilityDist
+from possibilities import PossibilityDist, PossibilitySet
 from preferences import SetWorstCasePreference
 from preferences.preferences_probability import ProbPrefExpectedValue
 from . import VehicleTrackDynamicsParams

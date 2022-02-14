@@ -1,12 +1,12 @@
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Mapping, Tuple, Optional
+from typing import Dict, List, Mapping, Optional, Tuple
 
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.maps import DgLanePose
 from dg_commons.seq.seq_op import seq_integrate
-from dg_commons.seq.sequence import Timestamp, DgSampledSequence
+from dg_commons.seq.sequence import DgSampledSequence, Timestamp
 from .paths import Trajectory
 from .trajectory_world import TrajectoryWorld
 

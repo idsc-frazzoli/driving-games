@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Mapping, List, Optional, Tuple
+from typing import List, Mapping, Optional, Tuple
 
 from shapely.geometry import Polygon
 

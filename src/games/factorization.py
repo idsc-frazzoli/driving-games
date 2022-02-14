@@ -2,13 +2,13 @@ import itertools
 from collections import defaultdict
 from decimal import Decimal as D
 from functools import reduce
-from typing import Dict, FrozenSet as FSet, Mapping, Set, Tuple, AbstractSet, Collection, Callable
+from typing import AbstractSet, Callable, Collection, Dict, FrozenSet as FSet, Mapping, Set, Tuple
 
 from cytoolz import itemmap, valmap
 from networkx import connected_components, Graph
 
-from dg_commons import PlayerName, X, U, Y, RP, RJ, logger
-from dg_commons.utils_toolz import iterate_dict_combinations, fkeyfilter, fd
+from dg_commons import logger, PlayerName, RJ, RP, U, X, Y
+from dg_commons.utils_toolz import fd, fkeyfilter, iterate_dict_combinations
 from games.game_def import Game, JointState, SR
 from games.solve.solution_structures import (
     GameFactorization,
@@ -16,7 +16,7 @@ from games.solve.solution_structures import (
     SolvedGameNode,
     UsedResources,
 )
-from possibilities import PossibilityMonad, Poss
+from possibilities import Poss, PossibilityMonad
 
 
 def get_game_factorization(
@@ -72,6 +72,9 @@ def get_game_factorization(
     return GameFactorization(mpartitions, ipartitions)
 
 
+# bug: need to also have reachable resources
+# then can check with optimal resources if single-player game
+# otherwise need to use reachable
 def find_dependencies(
     ps: PossibilityMonad,
     resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],

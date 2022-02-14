@@ -1,18 +1,18 @@
 from typing import List, Mapping
 
 from decent_params import DecentParams
+
 from quickapp import QuickApp, QuickAppContext
 from reprep import Report
-
 from trajectory_games import (
     get_trajectory_game,
     preprocess_full_game,
-    TrajectoryGame,
+    report_game_visualization,
+    report_preferences,
     Solution,
     SolvedTrajectoryGame,
-    report_preferences,
     SolvingContext,
-    report_game_visualization,
+    TrajectoryGame,
 )
 from trajectory_games_tests.test_game import create_reports
 

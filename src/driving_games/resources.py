@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import FrozenSet as FSet, Tuple
 
-from geometry import SE2value
 from shapely.geometry import Polygon
 
 from dg_commons import apply_SE2_to_shapely_geo
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from driving_games import VehicleTrackState
+from geometry import SE2value
+from .structures import VehicleTrackState
 
 
 @dataclass(frozen=True)

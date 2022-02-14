@@ -1,17 +1,16 @@
-
 #map_name: Map to load (from scenarios)
 #map_name: "USA_Lanker-1_1_T-1"
-map_name:       "USA_Peach-4_3_T-1"
+map_name: "USA_Peach-4_3_T-1"
 
 # Goal params
 #max_length: Max reference lane length in m
 goal:
-  max_length:     75.0
-  long_dist:      2.0
-  lat_dist:       10.0
+  max_length: 75.0
+  long_dist: 2.0
+  lat_dist: 10.0
 
 #plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
-plot_limits:    [[-30, 20], [-15, 35]]
+plot_limits: [[-30, 20], [-15, 35]]
 
 #players:    List of players in the game
 #  P1:        Player Name
@@ -25,77 +24,77 @@ plot_limits:    [[-30, 20], [-15, 35]]
 basic:
   players:
     P1:
-      state:    "state_1_peach"
-#      goals:    null
-      goals:    [[-15.0,13.5], [-15.0,17]]
-      traj:     "traj_1_3"
-      pref:     "pref_d6"
-      vg:       "green_car"
+      state: "state_1_peach"
+      #      goals:    null
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "pref_d6"
+      vg: "green_car"
     P2:
-      state:    "state_2_peach"
-#      goals:    null
-      goals:    [[-3.5,-5.0], [-7.0,-5.0]]
-      traj:     "traj_1_3"
-      pref:     "pref_d6"
-      vg:       "blue_car"
+      state: "state_2_peach"
+      #      goals:    null
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "pref_d6"
+      vg: "blue_car"
     P3:
-      state:    "state_3_peach"
-#      goals:    null
-      goals:    [[-15.0,13.5], [-15.0,17]]
-      traj:     "traj_1_3"
-      pref:     "pref_d6"
-      vg:       "red_car"
+      state: "state_3_peach"
+      #      goals:    null
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "pref_d6"
+      vg: "red_car"
 
 basic2:
   players:
     P1:
-      state:    "state_1_peach"
-#      goals:    null
-      goals:    [[4.5,30.0], [8.0,30.0]]
-      traj:     "traj_1_5"
-      pref:     "pref_d6"
-      vg:       "green_car"
+      state: "state_1_peach"
+      #      goals:    null
+      goals: [[4.5,30.0], [8.0,30.0]]
+      traj: "traj_1_5"
+      pref: "pref_d6"
+      vg: "green_car"
     P2:
-      state:    "state_2_peach"
-#      goals:    null
-      goals:    [[-3.5,-10.0], [-7.0,-10.0]]
-      traj:     "traj_1_5"
-      pref:     "pref_10_i"
-      vg:       "blue_car"
+      state: "state_2_peach"
+      #      goals:    null
+      goals: [[-3.5,-10.0], [-7.0,-10.0]]
+      traj: "traj_1_5"
+      pref: "pref_10_i"
+      vg: "blue_car"
     P3:
-      state:    "state_3_peach"
-#      goals:    null
-      goals:    [[-20.0,13.5], [-20.0,17]]
-      traj:     "traj_1_5"
-      pref:     "pref_10_2"
-      vg:       "red_car"
+      state: "state_3_peach"
+      #      goals:    null
+      goals: [[-20.0,13.5], [-20.0,17]]
+      traj: "traj_1_5"
+      pref: "pref_10_2"
+      vg: "red_car"
 
 
 ## Lexi config
 lexi:
   players:
     P1:
-      state:    "state_3"
-      traj:     "traj_2"
-      pref:     "NoPreference"
-      lane:     ["lu2"]
-      vg:       "red_bicycle"
+      state: "state_3"
+      traj: "traj_2"
+      pref: "NoPreference"
+      lane: ["lu2"]
+      vg: "red_bicycle"
 
-  states:       ["state_5", "state_6"]
-  prefs:        ["pref_8", "pref_9"]
+  states: ["state_5", "state_6"]
+  prefs: ["pref_8", "pref_9"]
 
 ## LF Players
 lf:
   players:
     P1:
-      state:    "state_1"
-      traj:     "traj_1_r"
-      pref:     "pref_d6"
-      lane:     ["rl2"]
-      vg:       "green_car"
+      state: "state_1"
+      traj: "traj_1_r"
+      pref: "pref_d6"
+      lane: ["rl2"]
+      vg: "green_car"
     P2:
-      state:    "state_2"
-      traj:     "traj_1_rs"
-      pref:     "pref_d6"
-      lane:     ["dl2"]
-      vg:       "blue_car"
+      state: "state_2"
+      traj: "traj_1_rs"
+      pref: "pref_d6"
+      lane: ["dl2"]
+      vg: "blue_car"

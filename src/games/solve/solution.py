@@ -1,14 +1,13 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M, Mapping, List
+from typing import AbstractSet, Dict, FrozenSet as FSet, List, Mapping, Mapping as M
 
 from cytoolz import valmap
 from frozendict import frozendict
 from networkx import simple_cycles
-from zuper_commons.types import ZValueError
 
-from dg_commons import X, U, Y, RP, RJ, PlayerName, fd, iterate_dict_combinations
+from dg_commons import fd, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.checks import check_joint_state
@@ -23,8 +22,10 @@ from games.game_def import (
 )
 from games.performance import PerformanceStatistics
 from games.simulate import simulate1, Simulation
-from games.solve.solution_ghost import get_ghost_tree
-from games.solve.solution_structures import (
+from possibilities import Poss
+from zuper_commons.types import ZValueError
+from .solution_ghost import get_ghost_tree
+from .solution_structures import (
     GameGraph,
     GameNode,
     GamePreprocessed,
@@ -37,9 +38,8 @@ from games.solve.solution_structures import (
     UsedResources,
     ValueAndActions,
 )
-from games.solve.solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
-from games.solve.solve_equilibria import solve_equilibria, solve_final_for_everyone
-from possibilities import Poss
+from .solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
+from .solve_equilibria import solve_equilibria, solve_final_for_everyone
 
 __all__ = ["solve_main"]
 
@@ -190,12 +190,13 @@ def solve_game(
     jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
-    Computes the solution of the game rooted in `jss` and extract the policy for each player, for each game node
+    Computes the solution of the game rooted in `jss` and extract the policy for each player, for each game
+    node
 
     :param game:
     :param solver_params:
     :param gg:
-    :param jss:
+    :param jss: all the initial states
     :return:
     """
     outcome_preferences = get_outcome_preferences_for_players(game)
@@ -351,7 +352,7 @@ def get_used_resources(
         usages = {D(0): usage_current}
         # Π = 1
         i = D(0)
-        while True:  # todo: use the range that's needed
+        while True:
             default = ps.unit(frozendict())
 
             def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:

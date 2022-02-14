@@ -2,22 +2,19 @@ from dataclasses import dataclass
 from decimal import Decimal as D, localcontext
 from functools import lru_cache
 from itertools import product
-from typing import Mapping, FrozenSet
+from typing import FrozenSet, Mapping
 
 from frozendict import frozendict
 from shapely.geometry import Polygon
-from zuper_commons.types import ZValueError, ZException
 
 from dg_commons.maps import DgLanelet
-from dg_commons.sim.models.vehicle_ligths import LightsValues, LightsCmd, NO_LIGHTS
+from dg_commons.sim.models.vehicle_ligths import LightsCmd, LightsValues, NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
+from zuper_commons.types import ZException, ZValueError
 from .resources import get_resources_used, PolygonHashable
-from .structures import (
-    VehicleTrackState,
-    VehicleActions,
-)
+from .structures import VehicleActions, VehicleTrackState
 
 __all__ = ["VehicleTrackDynamicsParams", "VehicleTrackDynamics", "InvalidAction"]
 

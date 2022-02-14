@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Sequence, Optional
+from typing import Sequence
 
 from reprep import Report
 from zuper_commons.text import remove_escapes

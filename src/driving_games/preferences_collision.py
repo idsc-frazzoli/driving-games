@@ -1,8 +1,5 @@
 from typing import Optional, Type
 
-from zuper_typing import debug_print
-
-from driving_games.collisions import SimpleCollision
 from preferences import (
     COMP_OUTCOMES,
     ComparisonOutcome,
@@ -12,6 +9,8 @@ from preferences import (
     SECOND_PREFERRED,
     SmallerPreferred,
 )
+from zuper_typing import debug_print
+from .collisions import SimpleCollision
 
 __all__ = ["CollisionPreference"]
 

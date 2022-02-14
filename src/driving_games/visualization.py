@@ -1,22 +1,22 @@
 from decimal import Decimal as D
-from typing import Mapping, Optional, Tuple, Sequence, Union
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
-
-# from matplotlib import image
-from geometry import translation_angle_from_SE2
 
 from dg_commons import PlayerName, Timestamp
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from dg_commons.sim.simulator_animation import lights_colors_from_lights_cmd, adjust_axes_limits
+from dg_commons.sim.simulator_animation import adjust_axes_limits, lights_colors_from_lights_cmd
 from dg_commons.sim.simulator_visualisation import plot_vehicle, ZOrders
-from driving_games.dg_def import DgSimpleParams
-from driving_games.structures import VehicleActions, VehicleTimeCost, VehicleTrackState
-from driving_games.vehicle_observation import VehicleObs
 from games import GameVisualization
+
+# from matplotlib import image
+from geometry import translation_angle_from_SE2
+from .dg_def import DgSimpleParams
+from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
+from .vehicle_observation import VehicleObs
 
 __all__ = ["DrivingGameVisualization"]
 

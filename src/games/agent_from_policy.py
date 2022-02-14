@@ -1,9 +1,8 @@
 from typing import Mapping, Optional
 
-from zuper_commons.types import ZException, ZNotImplementedError, ZValueError
-
-from dg_commons import X, U, PlayerName, fd, fkeyfilter
+from dg_commons import fd, fkeyfilter, PlayerName, U, X
 from possibilities import Poss, PossibilityMonad
+from zuper_commons.types import ZException, ZNotImplementedError, ZValueError
 from .game_def import AgentBelief, JointState
 from .solve.solution_structures import GameFactorization
 
@@ -67,7 +66,8 @@ class AgentFromPolicy(AgentBelief[X, U]):
 
     def _get_reduced_state_others(self, state_self: X, state_others: Poss[JointState]) -> Poss[JointState]:
         """
-        Get a reduced state_others for which the players not relevant (found in game factorization) are removed.
+        Get a reduced state_others for which the players not relevant (found in game factorization) are
+        removed.
         :param state_self: The agents own state
         :param state_others: Distribution over the other players possible states
         """

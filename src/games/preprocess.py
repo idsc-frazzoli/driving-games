@@ -3,15 +3,14 @@ from collections import defaultdict
 from decimal import Decimal as D
 from functools import partial
 from time import perf_counter
-from typing import Dict, List, Mapping, Set, Optional, NoReturn
+from typing import Dict, List, Mapping, NoReturn, Optional, Set
 
 import numpy as np
 from cytoolz import valmap
 from frozendict import frozendict
 from networkx import MultiDiGraph
-from zuper_commons.types import ZException
 
-from dg_commons import DgSampledSequence, PlayerName, X, U, Y, RP, RJ
+from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.time import time_function
 from dg_commons.utils_toolz import iterate_dict_combinations
 from games import logger
@@ -37,6 +36,7 @@ from games.solve.solution_structures import (
     SolverParams,
 )
 from possibilities import check_poss, Poss
+from zuper_commons.types import ZException
 
 __all__ = ["preprocess_game", "get_reachable_states"]
 
@@ -59,7 +59,9 @@ def preprocess_game(
     compute_graph_layout(game_graph_nx, iterations=1)
     # game_graph_nx = MultiDiGraph() # temp for complex scenario
 
+    # get the individual game
     individual_games = get_individual_games(game)
+
     partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
     players_pre = valmap(partial_preprocess_player, individual_games)
 
@@ -95,12 +97,14 @@ def preprocess_player(
     assert len(l) == 1
     player_name = l[0]
     player: GamePlayer = individual_game.players[player_name]
+    # create the NX game graph for the player
     graph = get_player_graph(player, solver_params.dt)
 
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
 
     tic = perf_counter()
+    # create the actual game graph for the player
     game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
     tic2 = perf_counter()
     gs: GameSolution[X, U, Y, RP, RJ, SR]

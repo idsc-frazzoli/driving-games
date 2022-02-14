@@ -70,3 +70,13 @@ Reformat with `black` using:
 (For developers) Install the [pre-commit](https://pre-commit.com/) hook via:
 
     $ pre-commit install
+
+## Installation on OS-X ARM
+
+Install geos using homebrew:
+
+    $ brew install geos
+
+Then shapely will install:
+
+    $ pip install shapely

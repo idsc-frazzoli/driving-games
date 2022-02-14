@@ -1,21 +1,21 @@
 import os
 from decimal import Decimal as D
 from queue import PriorityQueue
-from typing import Type, Dict, Mapping, Set, NewType, Tuple, Union
+from typing import Dict, Mapping, NewType, Set, Tuple, Type, Union
 
 from frozendict import frozendict
-from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
+from networkx import all_simple_paths, DiGraph, has_path, is_directed_acyclic_graph
 from yaml import safe_load
 
 from driving_games.metrics_structures import Metric, PlayerEvaluatedMetrics
 from preferences import (
-    Preference,
     ComparisonOutcome,
-    SmallerPreferredTol,
-    INDIFFERENT,
-    INCOMPARABLE,
     FIRST_PREFERRED,
+    INCOMPARABLE,
+    INDIFFERENT,
+    Preference,
     SECOND_PREFERRED,
+    SmallerPreferredTol,
 )
 from .config import CONFIG_DIR
 from .config.ral import config_dir_ral

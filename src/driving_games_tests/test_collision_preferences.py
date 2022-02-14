@@ -1,12 +1,11 @@
 from math import pi
 from typing import Mapping, Optional, Tuple
 
+from driving_games.zoo import get_asym
 from nose.tools import assert_equal
 
 from dg_commons import PlayerName
-from driving_games import CollisionPreference, VehicleTimeCost, SimpleCollision
-from driving_games import logger
-from driving_games.zoo import get_asym
+from driving_games import CollisionPreference, logger, SimpleCollision, VehicleTimeCost
 from games import Combined
 from games.solve.solution_utils import get_outcome_preferences_for_players
 from possibilities import PossibilityMonad, PossibilitySet

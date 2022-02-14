@@ -2,7 +2,7 @@ import os
 from typing import Mapping
 
 from dg_commons import PlayerName
-from dg_commons.planning import Trajectory, RefLaneGoal
+from dg_commons.planning import RefLaneGoal, Trajectory
 from dg_commons.sim.scenarios import DgScenario, load_commonroad_scenario
 from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import MetricEvaluationContext
