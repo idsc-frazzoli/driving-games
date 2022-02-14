@@ -88,8 +88,8 @@ def find_dependencies(
     """
     interaction_graph = Graph()
     interaction_graph.add_nodes_from(resources_used)
-    max_instants = max(max(_.used) if _.used else 0 for _ in resources_used.values())
-    for i in range(int(max_instants)):
+    max_stages = max(max(_.used) if _.used else 0 for _ in resources_used.values())
+    for i in range(int(max_stages)):
         i = D(i)
 
         def get_used(items) -> Tuple[PlayerName, FSet[SR]]:
@@ -121,6 +121,8 @@ def find_dependencies(
     players = set(resources_used)
     n = len(players)
     result = {}
+    # fixme this last part is not necessary if we are factorizing while building the game tree?!
+    #   or we need to store the results somewhere
     for nplayers in range(2, n + 1):
         for players_subset in itertools.combinations(players, nplayers):
             G = interaction_graph.subgraph(players_subset)

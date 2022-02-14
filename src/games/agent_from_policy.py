@@ -47,6 +47,7 @@ class AgentFromPolicy(AgentBelief[X, U]):
         if state_others in lookup:
             return lookup[state_others]
         elif self.gf:
+            # todo fixme for building factorization while creating the game tree
             reduced_state_others = self._get_reduced_state_others(state_self, state_others)
             if reduced_state_others in lookup:
                 return lookup[reduced_state_others]

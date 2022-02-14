@@ -12,7 +12,7 @@ from dg_commons import X, U, Y, RP, RJ, PlayerName, fd, iterate_dict_combination
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.checks import check_joint_state
-from games.create_joint_game_tree import create_game_graph
+from games.create_joint_game_tree_fact import create_game_graph_fact
 from games.game_def import (
     Combined,
     Game,
@@ -47,7 +47,8 @@ TOC = perf_counter()
 
 
 def solve_main(
-    gp: GamePreprocessed[X, U, Y, RP, RJ, SR], perf_stats: PerformanceStatistics
+    gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
+    perf_stats: PerformanceStatistics,
 ) -> Solutions[X, U, Y, RP, RJ, SR]:
     """
     Documentation todo
@@ -86,7 +87,14 @@ def solve_main(
         gf = None
 
     tic = perf_counter()
-    gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf)
+    # gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf)
+    gg = create_game_graph_fact(
+        gp.game,
+        gp.solver_params.dt,
+        {initial},
+        players_pre=gp.players_pre,
+        f_resource_intersection=gp.solver_params.f_resource_intersection,
+    )
     toc = perf_counter()
     perf_stats.build_joint_game_tree = toc - tic
 
@@ -338,7 +346,7 @@ def get_used_resources(
     if va.mixed_actions:  # i.e. it's not a terminal node
         next_states: Poss[M[PlayerName, JointState]]
         next_states = ps.join(ps.build_multiple(va.mixed_actions, solved_to_node.__getitem__))
-
+        next_states = ps.join(ps.build_multiple(gn.transitions, solved_to_node.__getitem__))
         usages: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
         usages = {D(0): usage_current}
         # Π = 1
