@@ -1,12 +1,11 @@
 from fractions import Fraction
 from typing import Dict
 
-from nose.tools import eq_, assert_equal
-from zuper_commons.types import ZValueError
+from nose.tools import assert_equal, eq_
 
-from dg_commons import PlayerName
-from dg_commons import valmap
-from possibilities.prob import enumerate_prob_assignments, PossibilityDist, ProbDist, A, expected_value
+from dg_commons import PlayerName, valmap
+from possibilities.prob import A, enumerate_prob_assignments, expected_value, PossibilityDist, ProbDist
+from zuper_commons.types import ZValueError
 from . import logger
 from .test_sets import check_possibilities
 

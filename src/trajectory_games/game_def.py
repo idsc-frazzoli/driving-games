@@ -2,18 +2,18 @@ import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Mapping, Callable, TypeVar, Generic, FrozenSet, Optional, Tuple, Dict, Set, NewType, Union, Sequence
+from typing import Callable, Dict, FrozenSet, Generic, Mapping, NewType, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from matplotlib.collections import LineCollection
 
-from dg_commons import PlayerName, U, X, Color
+from dg_commons import Color, PlayerName, U, X
 from games import (
-    P,
+    AdmissibleStrategies,
     JointPureActions,
     MonadicPreferenceBuilder,
-    AdmissibleStrategies,
-    StrategyForMultipleNash,
+    P,
     SolverParams,
+    StrategyForMultipleNash,
 )
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
@@ -34,7 +34,6 @@ __all__ = [
     "EXP_ACCOMP",
     "JOIN_ACCOMP",
 ]
-
 
 W = TypeVar("W")
 """Generic variable for a world"""

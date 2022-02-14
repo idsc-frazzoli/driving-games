@@ -5,13 +5,12 @@ from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
 
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
-from zuper_commons.types import ZValueError
 
-from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
+from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.utils_toolz import *
 from games import logger
 from games.checks import check_joint_state
-from games.game_def import Game, JointPureActions, JointState, SR, Combined
+from games.game_def import Combined, Game, JointPureActions, JointState, SR
 from games.solve.solution_structures import (
     AccessibilityInfo,
     GameFactorization,
@@ -19,6 +18,7 @@ from games.solve.solution_structures import (
     GameNode,
 )
 from possibilities import Poss
+from zuper_commons.types import ZValueError
 
 
 @dataclass

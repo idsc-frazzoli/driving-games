@@ -1,11 +1,12 @@
 import math
-from itertools import product
-from typing import FrozenSet, Set, Mapping, Tuple, List
 from decimal import Decimal as D
-from scipy.integrate import solve_ivp
-import numpy as np
+from itertools import product
+from typing import FrozenSet, List, Mapping, Set, Tuple
 
-from .structures import VehicleState, VehicleActions, VehicleGeometry, TrajectoryParams
+import numpy as np
+from scipy.integrate import solve_ivp
+
+from .structures import TrajectoryParams, VehicleActions, VehicleGeometry, VehicleState
 
 __all__ = ["BicycleDynamics"]
 

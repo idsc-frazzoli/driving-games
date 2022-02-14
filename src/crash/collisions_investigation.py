@@ -18,7 +18,8 @@ def _first_collision_for(player: PlayerName, coll_report: List[CollisionReport])
 
 def investigate_collision_report(coll_reports: List[CollisionReport]) -> (List[CollisionReport], DiGraph):
     """We get a collision report for every step of the simulation in which a collision is detected.
-    Yet an accident is *one* accident even if the two cars are in a collision state for multiple simulation steps.
+    Yet an accident is *one* accident even if the two cars are in a collision state for multiple simulation
+    steps.
     This function aims to compress the list of collision report to a list of "accidents"
     Assumptions:
         - For each episode two players can have an accidents with each other only once

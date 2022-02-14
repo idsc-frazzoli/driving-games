@@ -3,32 +3,31 @@ from dataclasses import dataclass
 from decimal import Decimal as D
 from typing import (
     AbstractSet,
+    Callable,
     Dict,
     FrozenSet as FSet,
     Generic,
     Mapping,
-    NewType,
-    Set,
     Mapping as M,
-    Callable,
+    NewType,
     Optional,
+    Set,
 )
 
 from networkx import MultiDiGraph
 
-from dg_commons import fkeyfilter, iterate_dict_combinations, Timestamp, X, Y, U, RJ, RP, PlayerName
+from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, Timestamp, U, X, Y
 from games.checks import *
 from games.game_def import (
+    Combined,
     Game,
     JointMixedActions,
     JointPureActions,
     JointState,
     PlayerOptions,
     SR,
-    Combined,
     UncertainCombined,
 )
-from games.performance import PerformanceStatistics
 from games.simulate import Simulation
 from possibilities import check_poss, Poss
 from preferences import Preference

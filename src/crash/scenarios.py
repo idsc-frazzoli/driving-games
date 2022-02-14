@@ -4,19 +4,18 @@ from typing import List
 
 import numpy as np
 from commonroad.scenario.lanelet import Lanelet
-from geometry import xytheta_from_SE2
 from numpy import deg2rad, linspace
 
 from crash.agents import B1Agent, B2Agent
 from dg_commons import DgSampledSequence, PlayerName
-from dg_commons.controllers.speed import SpeedControllerParam, SpeedController
-from dg_commons.controllers.steer import SteerControllerParam, SteerController
+from dg_commons.controllers.speed import SpeedController, SpeedControllerParam
+from dg_commons.controllers.steer import SteerController, SteerControllerParam
 from dg_commons.maps.lanes import DgLanelet
 from dg_commons.sim import SimTime
 from dg_commons.sim.agents.agent import NPAgent
 from dg_commons.sim.models import kmh2ms, PEDESTRIAN
-from dg_commons.sim.models.pedestrian import PedestrianState, PedestrianModel, PedestrianCommands
-from dg_commons.sim.models.vehicle_dynamic import VehicleStateDyn, VehicleModelDyn
+from dg_commons.sim.models.pedestrian import PedestrianCommands, PedestrianModel, PedestrianState
+from dg_commons.sim.models.vehicle_dynamic import VehicleModelDyn, VehicleStateDyn
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
@@ -24,6 +23,7 @@ from dg_commons.sim.scenarios.factory import get_scenario_commonroad_replica
 from dg_commons.sim.scenarios.structures import DgScenario
 from dg_commons.sim.simulator import SimContext
 from dg_commons.sim.simulator_structures import SimParameters
+from geometry import xytheta_from_SE2
 
 __all__ = [
     "get_scenario_bicycles",

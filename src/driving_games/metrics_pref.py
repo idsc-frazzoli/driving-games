@@ -1,19 +1,19 @@
 from queue import PriorityQueue
-from typing import Type, Set
+from typing import Set, Type
 
-from dg_commons import fd
 from networkx import DiGraph, has_path
 
-from .metrics_structures import PlayerEvaluatedMetrics
+from dg_commons import fd
 from preferences import (
-    Preference,
     ComparisonOutcome,
-    INCOMPARABLE,
     FIRST_PREFERRED,
-    SECOND_PREFERRED,
+    INCOMPARABLE,
     INDIFFERENT,
+    Preference,
+    SECOND_PREFERRED,
     SmallerPreferred,
 )
+from .metrics_structures import PlayerEvaluatedMetrics
 
 
 class PosetalPrefBuilder:

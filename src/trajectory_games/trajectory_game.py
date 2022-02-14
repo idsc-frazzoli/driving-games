@@ -2,26 +2,25 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from time import perf_counter
-from typing import Dict, Set, FrozenSet, Mapping, Optional
+from typing import Dict, FrozenSet, Mapping, Optional, Set
 
-from dg_commons import PlayerName
-from dg_commons import iterate_dict_combinations
-from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from frozendict import frozendict
 
+from dg_commons import iterate_dict_combinations, PlayerName
+from dg_commons.seq.sequence import DgSampledSequence, Timestamp
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
-from games import PURE_STRATEGIES, BAIL_MNE
+from games import BAIL_MNE, PURE_STRATEGIES
 from possibilities import Poss
 from preferences import Preference
 from .game_def import (
+    AntichainComparison,
+    EXP_ACCOMP,
     Game,
     GamePlayer,
-    SolvingContext,
     SolvedGameNode,
+    SolvingContext,
     StaticSolverParams,
-    EXP_ACCOMP,
-    AntichainComparison,
 )
 from .paths import Trajectory
 from .structures import VehicleState

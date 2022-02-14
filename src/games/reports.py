@@ -3,13 +3,13 @@ from typing import List, Tuple
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
+
+from games.solve.solution_structures import GamePreprocessed
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
-
-from games.solve.solution_structures import GamePreprocessed
 from . import logger
-from .game_def import Game, JointState, RJ, RP, U, X, Y, SR
+from .game_def import Game, JointState, RJ, RP, SR, U, X, Y
 from .reports_player import report_player
 
 __all__ = [

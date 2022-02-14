@@ -2,9 +2,8 @@ from abc import abstractmethod
 from functools import lru_cache
 from typing import FrozenSet, Type
 
-from zuper_typing import debug_print
-
 from possibilities.sets import SetPoss
+from zuper_typing import debug_print
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,

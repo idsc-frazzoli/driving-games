@@ -3,23 +3,23 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from functools import partial
 from time import perf_counter
-from typing import Tuple, List, Dict, Callable, Set, Mapping
+from typing import Callable, Dict, List, Mapping, Set, Tuple
 
-import geometry as geo
 import numpy as np
 from frozendict import frozendict
 
-from dg_commons import PlayerName, SE2Transform, seq_differentiate, fd
+import geometry as geo
+from dg_commons import fd, PlayerName, SE2Transform, seq_differentiate
 from dg_commons.maps import DgLanePose
-from dg_commons.planning import Trajectory, JointTrajectories
+from dg_commons.planning import JointTrajectories, Trajectory
 from dg_commons.seq.sequence import DgSampledSequence
 from driving_games.metrics_structures import (
     EvaluatedMetric,
     JointEvaluatedMetric,
+    JointPlayerEvaluatedMetrics,
     Metric,
     MetricEvaluationContext,
     PlayerEvaluatedMetrics,
-    JointPlayerEvaluatedMetrics,
 )
 from .structures import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
@@ -141,7 +141,7 @@ class DrivableAreaViolation(Metric):
 class ProgressAlongReference(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = (
-        "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
+        "This metric computes how far the robot drove **along the reference path** (negative for smaller " "preferred)"
     )
 
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:

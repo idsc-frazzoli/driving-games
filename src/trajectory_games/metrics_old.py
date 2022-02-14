@@ -3,24 +3,23 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from functools import partial
 from time import perf_counter
-from typing import Tuple, List, Dict, Callable, Set, Mapping, Hashable
+from typing import Callable, Dict, Hashable, List, Mapping, Set, Tuple
 
-import geometry as geo
 import numpy as np
-from duckietown_world import LanePose
-from duckietown_world import SE2Transform
+from duckietown_world import LanePose, SE2Transform
 from frozendict import frozendict
 
+import geometry as geo
 from dg_commons import PlayerName
 from dg_commons.seq.sequence import Timestamp
 from .metrics_def import (
+    differentiate,
+    EvaluatedMetric,
     Metric,
     MetricEvaluationContext,
-    EvaluatedMetric,
     MetricEvaluationResult,
-    TrajGameOutcome,
     PlayerOutcome,
-    differentiate,
+    TrajGameOutcome,
 )
 from .paths import Trajectory
 from .structures import VehicleGeometry, VehicleState
@@ -158,7 +157,7 @@ class DrivableAreaViolation(Metric):
 class ProgressAlongReference(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = (
-        "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
+        "This metric computes how far the robot drove **along the reference path** (negative for smaller " "preferred)"
     )
     scale: float = 0.2
 

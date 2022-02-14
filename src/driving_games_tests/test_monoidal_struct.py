@@ -1,4 +1,4 @@
-from decimal import Decimal as D, Decimal
+from decimal import Decimal, Decimal as D
 from fractions import Fraction
 from functools import reduce
 from operator import add

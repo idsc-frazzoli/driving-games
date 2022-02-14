@@ -1,17 +1,17 @@
 import math
 from time import perf_counter
-from typing import FrozenSet, Set, List, Dict, Tuple, Mapping, Optional
+from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple
 
-import geometry as geo
 import numpy as np
 from scipy.optimize import minimize
 
+import geometry as geo
 from dg_commons import PlayerName, relative_pose, SE2_apply_T2
 from dg_commons.maps import DgLanelet
 from .bicycle_dynamics import BicycleDynamics
 from .game_def import ActionSetGenerator
 from .paths import Trajectory, TrajectoryGraph
-from .structures import VehicleState, TrajectoryParams, VehicleActions
+from .structures import TrajectoryParams, VehicleActions, VehicleState
 from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TransitionGenerator"]

@@ -1,8 +1,6 @@
 from decimal import Decimal as D
 from typing import Type, Union
 
-from zuper_commons.types import check_isinstance
-
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,

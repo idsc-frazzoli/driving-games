@@ -1,11 +1,11 @@
 from abc import abstractmethod
-from typing import Type
 from decimal import Decimal as D
-from zuper_typing import debug_print
+from typing import Type
 
-from possibilities.prob import ProbDist, expected_value
-from preferences import Preference, ComparisonOutcome
+from possibilities.prob import expected_value, ProbDist
+from preferences import ComparisonOutcome, Preference
 from preferences.preferences_base import P
+from zuper_typing import debug_print
 
 
 class ProbPreference(Preference[ProbDist[P]]):

@@ -1,28 +1,15 @@
 from typing import Dict, Mapping
 
 from frozendict import frozendict
-from zuper_commons.types import ZNotImplementedError, ZValueError
 
-from dg_commons import fd, X, U, Y, RP, RJ, PlayerName
-from games.game_def import (
-    JointMixedActions,
-    JointPureActions,
-    SR,
-    Combined,
-    UncertainCombined,
-)
+from dg_commons import fd, PlayerName, RJ, RP, U, X, Y
+from games.game_def import Combined, JointMixedActions, JointPureActions, SR, UncertainCombined
 from games.solve.equilibria import analyze_equilibria, EquilibriaAnalysis
 from games.solve.solution_security import get_mixed_joint_actions, get_security_policies
 from possibilities import Poss
 from preferences import Preference
-from .solution_structures import (
-    GameNode,
-    SolvingContext,
-    BAIL_MNE,
-    MIX_MNE,
-    SECURITY_MNE,
-    ValueAndActions,
-)
+from zuper_commons.types import ZNotImplementedError, ZValueError
+from .solution_structures import BAIL_MNE, GameNode, MIX_MNE, SECURITY_MNE, SolvingContext, ValueAndActions
 from .. import GameConstants
 from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 

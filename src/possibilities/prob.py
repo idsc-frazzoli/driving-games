@@ -2,7 +2,7 @@ import itertools
 from collections import defaultdict
 from dataclasses import dataclass
 from fractions import Fraction
-from functools import reduce, lru_cache
+from functools import lru_cache, reduce
 from itertools import permutations
 from math import isclose
 from operator import add
@@ -21,9 +21,9 @@ from typing import (
 from frozendict import frozendict
 from numpy.random.mtrand import RandomState
 from toolz import valfilter
-from zuper_commons.types import ZTypeError
 
 from games import GameConstants
+from zuper_commons.types import ZTypeError
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
@@ -67,7 +67,8 @@ class ProbDist(Poss[A]):
 
 def expected_value(dist: ProbDist[A]) -> A:
     """
-    maybe this in the future will move to an enriched Dist that expands the current one with a bunch of operations.
+    maybe this in the future will move to an enriched Dist that expands the current one with a bunch of
+    operations.
     also it could be moved to be an independent method
     :return:
     """
@@ -84,7 +85,8 @@ def expected_value(dist: ProbDist[A]) -> A:
 
 
 class PossibilityDist(PossibilityMonad):
-    """Extension of the [distribution monad](https://ncatlab.org/nlab/show/distribution+monad#finite_distributions)."""
+    """Extension of the [distribution monad](
+    https://ncatlab.org/nlab/show/distribution+monad#finite_distributions)."""
 
     def unit(self, a: A) -> ProbDist[A]:
         return self.lift_many([a])

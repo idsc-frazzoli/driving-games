@@ -3,11 +3,11 @@ from itertools import product
 from typing import Optional
 
 from dg_commons.dynamics import BicycleDynamics
-from dg_commons.planning.motion_primitives import MPGParam, MotionPrimitivesGenerator
+from dg_commons.planning.motion_primitives import MotionPrimitivesGenerator, MPGParam
+from dg_commons.sim import DrawableTrajectoryType
 from dg_commons.sim.agents.lane_follower import LFAgent
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
-from dg_commons.sim import DrawableTrajectoryType
 
 __all__ = ["B2Agent"]
 

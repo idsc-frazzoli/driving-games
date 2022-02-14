@@ -1,13 +1,13 @@
 from dataclasses import replace
 from decimal import Decimal as D
 from math import pi
-from typing import Mapping, Hashable
+from typing import Hashable, Mapping
 
-from dg_commons import PlayerName, SE2Transform, DgSampledSequence
+from dg_commons import DgSampledSequence, PlayerName, SE2Transform
 from dg_commons.maps import DgLanelet, LaneCtrPoint
 from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from driving_games import VehicleTrackState, VehicleJointCost, VehicleSafetyDistCost
+from driving_games import VehicleJointCost, VehicleSafetyDistCost, VehicleTrackState
 from driving_games.reward_joint import VehicleJointReward
 from games.game_def import JointTransition
 

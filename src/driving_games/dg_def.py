@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Tuple, Mapping, Sequence, Union, Optional
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
@@ -8,10 +8,10 @@ from shapely.geometry import Polygon
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
+from games import Game, GamePlayer
+from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 from .vehicle_dynamics import VehicleTrackDynamicsParams
-from .structures import VehicleTrackState, VehicleActions, VehicleTimeCost
 from .vehicle_observation import VehicleObs
-from games import GamePlayer, Game
 
 
 class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):

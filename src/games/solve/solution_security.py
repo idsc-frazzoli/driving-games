@@ -3,7 +3,6 @@ from typing import Dict, FrozenSet, List, Mapping
 
 from frozendict import frozendict
 from toolz import keyfilter
-from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, RJ, RP, U, X, Y
 from games.game_def import (
@@ -13,6 +12,7 @@ from games.game_def import (
 )
 from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference, remove_dominated, worst_cases
+from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
 from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 

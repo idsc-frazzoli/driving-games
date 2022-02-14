@@ -1,14 +1,13 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from time import perf_counter
-from typing import AbstractSet, Dict, FrozenSet as FSet, Mapping as M, Mapping, List
+from typing import AbstractSet, Dict, FrozenSet as FSet, List, Mapping, Mapping as M
 
 from cytoolz import valmap
 from frozendict import frozendict
 from networkx import simple_cycles
-from zuper_commons.types import ZValueError
 
-from dg_commons import X, U, Y, RP, RJ, PlayerName, fd, iterate_dict_combinations
+from dg_commons import fd, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.checks import check_joint_state
@@ -37,9 +36,10 @@ from games.solve.solution_structures import (
     UsedResources,
     ValueAndActions,
 )
-from games.solve.solution_utils import get_outcome_preferences_for_players, add_incremental_cost_player, fd_r
+from games.solve.solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
 from games.solve.solve_equilibria import solve_equilibria, solve_final_for_everyone
 from possibilities import Poss
+from zuper_commons.types import ZValueError
 
 __all__ = ["solve_main"]
 

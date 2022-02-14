@@ -1,26 +1,26 @@
 import itertools
 from copy import deepcopy
 from decimal import Decimal as D
-from typing import Set, Dict, Tuple
+from typing import Dict, Set, Tuple
 
-from networkx import DiGraph, topological_sort, has_path
+from networkx import DiGraph, has_path, topological_sort
 from nose.tools import assert_equal
 
-from driving_games.metrics_structures import Metric, EvaluatedMetric
-from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
-from trajectory_games import PosetalPreference, DgSampledSequence, WeightedMetricPreference
+from driving_games.metrics_structures import EvaluatedMetric, Metric
+from preferences import ComparisonOutcome, FIRST_PREFERRED, INCOMPARABLE, INDIFFERENT, SECOND_PREFERRED
+from trajectory_games import DgSampledSequence, PosetalPreference, WeightedMetricPreference
 from trajectory_games.metrics import (
-    get_metrics_set,
-    EpisodeTime,
-    DeviationLateral,
-    DeviationHeading,
-    DrivableAreaViolation,
-    ProgressAlongReference,
-    LongitudinalAcceleration,
-    LateralComfort,
-    SteeringAngle,
     CollisionEnergy,
+    DeviationHeading,
+    DeviationLateral,
+    DrivableAreaViolation,
+    EpisodeTime,
+    get_metrics_set,
+    LateralComfort,
+    LongitudinalAcceleration,
     MinimumClearance,
+    ProgressAlongReference,
+    SteeringAngle,
 )
 
 

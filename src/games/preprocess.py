@@ -3,15 +3,14 @@ from collections import defaultdict
 from decimal import Decimal as D
 from functools import partial
 from time import perf_counter
-from typing import Dict, List, Mapping, Set, Optional, NoReturn
+from typing import Dict, List, Mapping, NoReturn, Optional, Set
 
 import numpy as np
 from cytoolz import valmap
 from frozendict import frozendict
 from networkx import MultiDiGraph
-from zuper_commons.types import ZException
 
-from dg_commons import DgSampledSequence, PlayerName, X, U, Y, RP, RJ
+from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.time import time_function
 from dg_commons.utils_toolz import iterate_dict_combinations
 from games import logger
@@ -37,6 +36,7 @@ from games.solve.solution_structures import (
     SolverParams,
 )
 from possibilities import check_poss, Poss
+from zuper_commons.types import ZException
 
 __all__ = ["preprocess_game", "get_reachable_states"]
 
