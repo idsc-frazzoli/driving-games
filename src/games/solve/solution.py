@@ -182,12 +182,13 @@ def solve_game(
     jss: AbstractSet[JointState],
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
-    Computes the solution of the game rooted in `jss` and extract the policy for each player, for each game node
+    Computes the solution of the game rooted in `jss` and extract the policy for each player, for each game
+    node
 
     :param game:
     :param solver_params:
     :param gg:
-    :param jss:
+    :param jss: all the initial states
     :return:
     """
     outcome_preferences = get_outcome_preferences_for_players(game)
@@ -343,13 +344,12 @@ def get_used_resources(
         usages = {D(0): usage_current}
         # Π = 1
         i = D(0)
-        while True:  # todo: use the range that's needed
+        while True:
             default = ps.unit(frozendict())
 
             def get_data(x: M[PlayerName, JointState]) -> Poss[M[PlayerName, FSet[SR]]]:
                 used_by_players: Dict[PlayerName, Poss[FSet[SR]]] = {}
                 for pname in va.mixed_actions:
-
                     def get_its(y: M[PlayerName, FSet[SR]]) -> FSet[SR]:
                         return y.get(pname, frozenset())
 

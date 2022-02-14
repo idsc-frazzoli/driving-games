@@ -24,7 +24,7 @@ from .game_def import (
     SR,
 )
 
-__all__ = []
+__all__ = ['Simulation']
 
 
 @dataclass
@@ -112,7 +112,8 @@ def simulate1(
 
         inc_joint: Mapping[PlayerName, RJ]
         transitions = {
-            p: DgSampledSequence[X](timestamps=(D(0), dt), values=(s1[p], next_states[p])) for p in next_states
+            p: DgSampledSequence[X](timestamps=(D(0), dt), values=(s1[p], next_states[p])) for p in
+            next_states
         }
         inc_joint = game.joint_reward.joint_reward_incremental(txs=transitions)
         S_joint_costs.add(t1, inc_joint)

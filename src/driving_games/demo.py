@@ -6,8 +6,8 @@ from quickapp import QuickApp, QuickAppContext
 from zuper_commons.text import expand_string
 from zuper_commons.types import ZValueError
 
-from driving_games.zoo_games import games_zoo
-from driving_games.zoo_solvers import solvers_zoo, SolverSpec
+from .zoo_games import games_zoo
+from .zoo_solvers import solvers_zoo, SolverSpec
 from games import GameSpec
 from games import (
     create_report_preprocessed,

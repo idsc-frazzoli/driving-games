@@ -59,7 +59,9 @@ def preprocess_game(
     compute_graph_layout(game_graph_nx, iterations=1)
     # game_graph_nx = MultiDiGraph() # temp for complex scenario
 
+    # get the individual game
     individual_games = get_individual_games(game)
+
     partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
     players_pre = valmap(partial_preprocess_player, individual_games)
 
@@ -95,12 +97,14 @@ def preprocess_player(
     assert len(l) == 1
     player_name = l[0]
     player: GamePlayer = individual_game.players[player_name]
+    # create the NX game graph for the player
     graph = get_player_graph(player, solver_params.dt)
 
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
 
     tic = perf_counter()
+    # create the actual game graph for the player
     game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
     tic2 = perf_counter()
     gs: GameSolution[X, U, Y, RP, RJ, SR]
@@ -200,7 +204,7 @@ def build_networkx_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDi
         players_alive = filter(
             lambda x: x not in G.nodes[S]["is_joint_final_for"] and x not in G.nodes[S]["is_pers_final"], S
         )
-        successors: Dict[PlayerName : Mapping[U, Poss[X]]] = {}
+        successors: Dict[PlayerName: Mapping[U, Poss[X]]] = {}
         for p in players_alive:
             p_state = S[p]
             p_succs = players[p].dynamics.successors(p_state, dt)
@@ -215,7 +219,8 @@ def build_networkx_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDi
                     personal_ending = {
                         p for p in S2 if players[p].personal_reward_structure.is_personal_final_state(S2[p])
                     }
-                    transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p in S2}
+                    transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p
+                                   in S2}
                     jointly_ending = game.joint_reward.is_joint_final_transition(transitions)
                     ending_players = jointly_ending | personal_ending
                     still_alive: bool = any(p not in ending_players for p in S2)
