@@ -22,8 +22,10 @@ from games.game_def import (
 )
 from games.performance import PerformanceStatistics
 from games.simulate import simulate1, Simulation
-from games.solve.solution_ghost import get_ghost_tree
-from games.solve.solution_structures import (
+from possibilities import Poss
+from zuper_commons.types import ZValueError
+from .solution_ghost import get_ghost_tree
+from .solution_structures import (
     GameGraph,
     GameNode,
     GamePreprocessed,
@@ -36,10 +38,8 @@ from games.solve.solution_structures import (
     UsedResources,
     ValueAndActions,
 )
-from games.solve.solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
-from games.solve.solve_equilibria import solve_equilibria, solve_final_for_everyone
-from possibilities import Poss
-from zuper_commons.types import ZValueError
+from .solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
+from .solve_equilibria import solve_equilibria, solve_final_for_everyone
 
 __all__ = ["solve_main"]
 

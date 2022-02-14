@@ -36,6 +36,11 @@ test: clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(xunitmp)
 
+test-310: clean
+	mkdir -p  $(tr)
+	DISABLE_CONTRACTS=1 nose2  src  -v
+
+
 test-docker: clean
 	mkdir -p  $(tr)
 	docker run -it \

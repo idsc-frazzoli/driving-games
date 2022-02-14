@@ -18,7 +18,7 @@ from preferences import (
 from zuper_commons.types import ZNotImplementedError, ZValueError
 from .solution_structures import FINITE_MIX_STRATEGIES, GameNode, MIX_STRATEGIES, PURE_STRATEGIES, SolverParams
 
-__all__ = ["EquilibriaAnalysis"]
+__all__ = ["EquilibriaAnalysis", "analyze_equilibria"]
 
 
 @dataclass

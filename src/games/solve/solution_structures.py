@@ -49,6 +49,8 @@ __all__ = [
     "PURE_STRATEGIES",
     "FINITE_MIX_STRATEGIES",
     "MIX_STRATEGIES",
+    "GameSolution",
+    "GameFactorization",
 ]
 
 AdmissibleStrategies = NewType("AdmissableStrategies", str)
