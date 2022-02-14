@@ -364,6 +364,29 @@ class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
+class ReachableStates(Generic[X, U, Y, RP, RJ, SR]):
+    """The used *future* resources for a particular state."""
+
+    used: Mapping[D, Mapping[PlayerName, FSet[X]]]
+    """
+        For each delta time (D = 0 means now. +1 means next step, etc.)
+        what states are the agents going to use.
+        For each delta time we have a distribution of spatial resource occupancy.
+    """
+
+
+#
+# def get_used_resources(cache, solved_game) -> ReachablesStates:
+#     pass
+#
+# def get_reachable(cache, game) -> ReachablesStates:
+#     pass
+#
+# def get_resources(rs: ReachablesStates, lookup: Mapping[X, FSet[SR]]) -> UsedResources:
+#     pass
+
+
+@dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     """A solved game node."""
 
@@ -380,6 +403,8 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ The future used resources when playing equilibrium. """
 
     # TODO: add accessible resources as well
+    accessible: UsedResources[X, U, Y, RP, RJ, SR]
+    """ The future used resources when playing equilibrium. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:

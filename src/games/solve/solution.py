@@ -340,7 +340,11 @@ def get_used_resources(
     gn: GameNode,
     solved_to_node: Dict[JointPureActions, Poss[M[PlayerName, JointState]]],
 ) -> UsedResources[X, U, Y, RP, RJ, SR]:
-    """Computes the future resources of a solved sub game (game node 'gn')"""
+    """
+    Computes the future resources of a solved sub game (game node 'gn')
+
+    Assumes future nodes are already solved and in sc.cache
+    """
     ps = sc.game.ps
     usage_current = ps.unit(gn.resources)
     # logger.info(va=va)
@@ -363,7 +367,7 @@ def get_used_resources(
                         return y.get(pname, frozenset())
 
                     st = x[pname]
-                    gn_ = sc.cache[st]
+                    gn_ = sc.cache[st]  # recursive part
                     ui = gn_.ur.used.get(i, default)
                     used_at_i_by_player: Poss[FSet[SR]] = ps.build(ui, get_its)
                     used_by_players[pname] = used_at_i_by_player

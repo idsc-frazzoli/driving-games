@@ -224,8 +224,13 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
                     return pname, ic.known[pname][alone_js].ur
 
                 resources_used = itemmap(get_ur, js_continuing)
+                deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
+
+                # bug: we cannot use the optimal resources to factorize sets of >1 players
+
                 deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
 
+                pset: FSet[PlayerName]
                 for pset in deps[frozenset(js_continuing)]:
                     jsf: JointState = fd({p: js0[p] for p in pset})
                     for p in pset:
@@ -254,8 +259,6 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
                 return fd(js_new)
 
             pnext_states = ps.build(pnext_states, update_states_collided)
-
-        # todo factorized the possible next states
 
         pure_transitions[pure_action] = pnext_states
 
