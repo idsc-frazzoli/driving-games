@@ -33,6 +33,7 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
             vg=g,
             poss_monad=ps,
             param=dg_params.track_dynamics_param,
+            min_safety_distance=D(dg_params.min_safety_distance),
         )
         p_init_progress = dg_params.progress[p][0]
         # p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point

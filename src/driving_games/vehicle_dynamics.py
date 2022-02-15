@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal as D, localcontext
 from functools import lru_cache
 from itertools import product
@@ -46,6 +46,8 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     """ The vehicle's geometry. """
     param: VehicleTrackDynamicsParams
     """ The parameters for the dynamics. """
+    min_safety_distance: D
+    """ The minimum safety distance. Used to construct shared resources that bound the joint costs. """
 
     def __init__(
         self,
@@ -53,11 +55,13 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         vg: VehicleGeometry,
         poss_monad: PossibilityMonad,
         param: VehicleTrackDynamicsParams,
+        min_safety_distance: D,
     ):
         self.ref = ref
         self.vg = vg
         self.ps = poss_monad
         self.param = param
+        self.min_safety_distance = min_safety_distance
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
@@ -91,7 +95,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     @lru_cache(None)
     def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
-            ctx.prec = 5
+            ctx.prec = 4
             v2 = x.v + u.acc * dt
             if not (self.param.min_speed <= v2 <= self.param.max_speed):
                 msg = "Invalid action gives speed out of bounds"
@@ -120,9 +124,11 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         # todo: this is not correct, we should use the lanelet graph
         max_acc_cmds = self._get_max_acc_commands()
         max_future_x = self.successor(x, max_acc_cmds, dt)
+        max_future_x2 = replace(max_future_x, x=max_future_x.x + self.min_safety_distance)
         poly1 = get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
         poly2 = get_resources_used(vs=max_future_x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
-        return frozenset([poly1, poly2])
+        poly3 = get_resources_used(vs=max_future_x2, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
+        return frozenset([poly1, poly2, poly3])
 
     def _get_max_acc_commands(self) -> VehicleActions:
         return VehicleActions(acc=max(self.param.available_accels), light=NO_LIGHTS)

@@ -5,6 +5,7 @@ from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
 
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
+from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.utils_toolz import *
@@ -18,7 +19,6 @@ from games.solve.solution_structures import (
     GameNode,
 )
 from possibilities import Poss
-from zuper_commons.types import ZValueError
 
 
 @dataclass
@@ -33,7 +33,7 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """ Nodes that were already computed. """
     depth: int
     """ The current depth. """
-    gf: Optional[GameFactorization[X]]
+    gf: Optional[GameFactorization[X]] = None
     """ Optional GameFactorization that will be used in the
         graph creation to recognize decoupled states.
     """
@@ -43,12 +43,11 @@ def create_game_graph(
     game: Game[X, U, Y, RP, RJ, SR],
     dt: D,
     initials: AbstractSet[JointState],
-    gf: Optional[GameFactorization[X]],
+    # gf: Optional[GameFactorization[X]],
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """Create the game graph."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
-    ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
-    logger.info("Creating game tree")
+    ic = IterationContext(game, dt, state2node, depth=0, gf=None)
     for js in initials:
         _create_game_graph(ic, js)
 

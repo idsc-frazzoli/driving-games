@@ -3,19 +3,19 @@ from collections import defaultdict
 from decimal import Decimal as D
 from functools import partial
 from time import perf_counter
-from typing import Dict, List, Mapping, NoReturn, Optional, Set
+from typing import Dict, List, Mapping, NoReturn, Set
 
 import numpy as np
 from cytoolz import valmap
 from frozendict import frozendict
 from networkx import MultiDiGraph
+from zuper_commons.types import ZException
 
 from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.time import time_function
 from dg_commons.utils_toolz import iterate_dict_combinations
 from games import logger
 from games.create_joint_game_tree import create_game_graph
-from games.factorization import get_game_factorization
 from games.game_def import (
     Dynamics,
     Game,
@@ -28,7 +28,6 @@ from games.get_indiv_games import get_individual_games
 from games.performance import PerformanceStatistics
 from games.solve.solution import solve_game
 from games.solve.solution_structures import (
-    GameFactorization,
     GameGraph,
     GamePlayerPreprocessed,
     GamePreprocessed,
@@ -36,7 +35,6 @@ from games.solve.solution_structures import (
     SolverParams,
 )
 from possibilities import check_poss, Poss
-from zuper_commons.types import ZException
 
 __all__ = ["preprocess_game", "get_reachable_states"]
 
@@ -55,30 +53,32 @@ def preprocess_game(
     :return:
     """
 
-    game_graph_nx = build_networkx_game_graph(game, dt=solver_params.dt)
-    compute_graph_layout(game_graph_nx, iterations=1)
-    # game_graph_nx = MultiDiGraph() # temp for complex scenario
+    if solver_params.extra:  # for very heavy graphs this slows down a lot
+        game_graph_nx = build_networkx_game_graph(game, dt=solver_params.dt)
+        compute_graph_layout(game_graph_nx, iterations=1)
+    else:
+        game_graph_nx = MultiDiGraph()
 
     # get the individual game
     individual_games = get_individual_games(game)
-
     partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
     players_pre = valmap(partial_preprocess_player, individual_games)
 
-    game_factorization: Optional[GameFactorization[X]] = None
-    if solver_params.use_factorization:
-        f_resource_intersection = solver_params.f_resource_intersection
-        tic = perf_counter()
-        game_factorization = get_game_factorization(game, players_pre, f_resource_intersection)
-        toc = perf_counter()
-        perf_stats.find_factorization.append(toc - tic)
+    # game_factorization: Optional[GameFactorization[X]] = None
+    # if solver_params.use_factorization:
+    #     f_resource_intersection = solver_params.f_resource_intersection
+    #     tic = perf_counter()
+    #     game_factorization = get_game_factorization(game, players_pre, f_resource_intersection)
+    #     toc = perf_counter()
+    #     perf_stats.find_factorization.append(toc - tic)
+    # todo this part has been moved to directly factorizing while building the game tree
 
     gp = GamePreprocessed(
         game=game,
         players_pre=players_pre,
         game_graph_nx=game_graph_nx,
         solver_params=solver_params,
-        game_factorization=game_factorization,
+        game_factorization=None,
     )
 
     return gp
@@ -105,7 +105,7 @@ def preprocess_player(
 
     tic = perf_counter()
     # create the actual game graph for the player
-    game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
+    game_graph = create_game_graph(individual_game, solver_params.dt, initials)
     tic2 = perf_counter()
     gs: GameSolution[X, U, Y, RP, RJ, SR]
     gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)

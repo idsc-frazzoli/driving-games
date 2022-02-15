@@ -26,10 +26,11 @@ discretization_steps = [
     D(1.0),
 ]
 fact_options = [("fact", True), ("naive", False)]
+extra_options = [("extra", True), ("noextra", False)]
 
-options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact_options]
+options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact_options, extra_options]
 
-for adm_strat, mne_strat, dt, fact in product(*options_mix):
+for adm_strat, mne_strat, dt, fact, extra in product(*options_mix):
     params = SolverParams(
         dt=dt,
         admissible_strategies=adm_strat,
@@ -37,14 +38,10 @@ for adm_strat, mne_strat, dt, fact in product(*options_mix):
         n_simulations=1,
         use_factorization=fact[1],
         f_resource_intersection=poly_resources_checker,
+        extra=extra[1],
     )
     desc = (
         f"Admissible strategies = {adm_strat}; Multiple NE strategy = {mne_strat}; "
         f"discretization = {dt}; factorization = {fact[1]}"
     )
-    solvers_zoo[f"solver-{dt}-{adm_strat}-{mne_strat}-{fact[0]}"] = SolverSpec(desc, params)
-
-#
-# solvers_zoo["solver0.5"] = SolverSpec(
-#     "discretization = 0.5", SolverParams(dt=D(0.5), strategy_multiple_nash=STRATEGY_SECURITY)
-# )
+    solvers_zoo[f"solver-{dt}-{adm_strat}-{mne_strat}-{fact[0]}-{extra[0]}"] = SolverSpec(desc, params)

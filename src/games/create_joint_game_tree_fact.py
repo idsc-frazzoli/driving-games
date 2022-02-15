@@ -55,8 +55,6 @@ def create_game_graph_fact(
     ic = IterationContextFact(
         game, dt, state2node, depth=0, known=known, f_resource_intersection=f_resource_intersection
     )
-
-    logger.info("Creating game tree")
     # todo ideally one could check if the initial state can be already factorized
     for js in initials:
         _create_game_graph_fact(ic, js)
@@ -221,11 +219,13 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
                 def get_ur(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
                     pname, state = items
                     alone_js = fd({pname: state})
-                    return pname, ic.known[pname][alone_js].optimal_resources
+                    return pname, ic.known[pname][alone_js].reachable_res
 
                 resources_used = itemmap(get_ur, js_continuing)
+                deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
                 deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
 
+                pset: FSet[PlayerName]
                 for pset in deps[frozenset(js_continuing)]:
                     jsf: JointState = fd({p: js0[p] for p in pset})
                     for p in pset:

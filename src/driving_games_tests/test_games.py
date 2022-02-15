@@ -16,8 +16,8 @@ do_games_sets = [
     # "complex_int_6p_sets"
 ]
 do_solvers_sets = [
-    "solver-2-pure-security_mNE-naive",
-    # "solver-2-pure-security_mNE-fact"
+    "solver-2-pure-security_mNE-naive-noextra",
+    "solver-2-pure-security_mNE-fact-noextra"
     # "solver-1-pure-security_mNE-fact",
     # "solver-1-finite_mix-mix_mNE-fact",
     # "solver-1-finite_mix-security_mNE-naive",
@@ -38,7 +38,7 @@ def test_games_sets(game_str: str, solver_str: str) -> None:
 
 do_games_prob = ["4way_int_2p_prob", "4way_int_3p_prob"]
 do_solvers_prob = [
-    "solver-1-pure-mix_mNE-fact",
+    "solver-1-pure-mix_mNE-fact-extra",
     # "solver-1-security-naive",
     # "solver-1-finite_mix-mix_mNE-fact",
 ]

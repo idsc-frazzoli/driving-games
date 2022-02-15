@@ -1,6 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
+from enum import unique, IntEnum
 from typing import (
     AbstractSet,
     Callable,
@@ -86,6 +87,8 @@ class SolverParams:
     """ The delta-t when discretizing. """
     use_factorization: bool
     """ Whether to use the factorization properties to reduce the game graph."""
+    extra: bool
+    """ Whether to compute extra things not strictly necessary, such as networkx graphs."""
     n_simulations: int
     """ Number of sampled simulations from solutions. """
     f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool] = lambda x, y: bool(x & y)
@@ -126,7 +129,7 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ For the players that terminate here due to "collision", their final rewards. """
 
     resources: Mapping[PlayerName, FSet[SR]]
-    """ Resources used by each player """
+    """ Resources used by each player, for the current stage a bound on the usable resources for the current stage. """
 
     __print_order__ = [
         "states",
@@ -325,7 +328,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
     solver_params: SolverParams
     """ The solver parameters. """
-
+    # fixme candidate for being removed as we build factorization on the fly now
     game_factorization: Optional[GameFactorization[X]]
     """ The factorization information for the game"""
 
@@ -361,6 +364,21 @@ class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
     """
 
 
+#
+# def get_reachable_solutions(cache, solved_game) -> ReachablesStates:
+#     pass
+#
+# def get_reachable(cache, game) -> ReachablesStates:
+#     pass
+#
+# def get_resources(rs: ReachablesStates, lookup: Mapping[X, FSet[SR]]) -> UsedResources:
+#     pass
+@unique
+class ResourcesType(IntEnum):
+    OPTIMAL = 0
+    REACHABLE = 1
+
+
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     """A solved game node."""
@@ -374,10 +392,10 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
 
-    optimal_res: UsedResources[X, U, Y, RP, RJ, SR]
+    optimal_res: Optional[UsedResources[X, U, Y, RP, RJ, SR]]
     """ The future used resources when playing equilibrium. """
 
-    reachable_res: UsedResources[X, U, Y, RP, RJ, SR]
+    reachable_res: Optional[UsedResources[X, U, Y, RP, RJ, SR]]
     """ The reachable resources. """
 
     def __post_init__(self) -> None:
@@ -396,6 +414,10 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
             if (p not in self.va.game_value) and (p not in str(list(self.va.game_value.keys()))):
                 msg = f"There is no player {p!r} appearing in the game value"
                 raise ZValueError(msg, SolvedGameNode=self)
+        if self.optimal_res is not None and self.reachable_res is not None:
+            check_isinstance(self.optimal_res, UsedResources, SolvedGameNode=self)
+            check_isinstance(self.reachable_res, UsedResources, SolvedGameNode=self)
+            # todo assert that optimal are contained in reachable
 
 
 @dataclass
@@ -419,6 +441,9 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
 
     solver_params: SolverParams
     """ The solver parameters. """
+
+    compute_res: bool
+    """ Whether to compute the reachable/optimal resources. """
 
 
 @dataclass

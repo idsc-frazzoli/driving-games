@@ -41,7 +41,7 @@ def get_game_factorization(
 
     def get_ur(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
         pname, state = items
-        return pname, known[pname][state].optimal_resources
+        return pname, known[pname][state].reachable_res
 
     # iterate all combinations
     for ljs in iterate_dict_combinations(known):
