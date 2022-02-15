@@ -221,7 +221,7 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
                 def get_ur(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
                     pname, state = items
                     alone_js = fd({pname: state})
-                    return pname, ic.known[pname][alone_js].ur
+                    return pname, ic.known[pname][alone_js].optimal_resources
 
                 resources_used = itemmap(get_ur, js_continuing)
                 deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
@@ -238,7 +238,8 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
 
-        # here need to update who has collided (their state in next_states)(to be done after factorization)
+        # here need to update who has collided
+        # (their state in next_states)(to be done after factorization)(this breaks generality)
         collided_in_transition = {pn for tc in trans_cost.support() for pn in tc if tc[pn].joint.collision is not None}
         if collided_in_transition:
 
@@ -254,8 +255,6 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
                 return fd(js_new)
 
             pnext_states = ps.build(pnext_states, update_states_collided)
-
-        # todo factorized the possible next states
 
         pure_transitions[pure_action] = pnext_states
 

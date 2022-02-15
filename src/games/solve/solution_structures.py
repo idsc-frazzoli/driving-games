@@ -121,8 +121,6 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
     incremental: Mapping[JointPureActions, Poss[Mapping[PlayerName, Combined]]]
     """ Incremental cost according to action taken."""
-    # fixme here the Poss comes only from already having taken into account the stochastic transitions?
-    #  check that in build game tree and solutions we do not account for the stochastic dynamics twice
 
     joint_final_rewards: Mapping[PlayerName, RJ]
     """ For the players that terminate here due to "collision", their final rewards. """
@@ -376,10 +374,11 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
 
-    ur: UsedResources[X, U, Y, RP, RJ, SR]
+    optimal_res: UsedResources[X, U, Y, RP, RJ, SR]
     """ The future used resources when playing equilibrium. """
 
-    # TODO: add accessible resources as well
+    reachable_res: UsedResources[X, U, Y, RP, RJ, SR]
+    """ The reachable resources. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:

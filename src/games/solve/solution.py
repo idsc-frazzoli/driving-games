@@ -364,7 +364,7 @@ def get_used_resources(
 
                     st = x[pname]
                     gn_ = sc.cache[st]
-                    ui = gn_.ur.used.get(i, default)
+                    ui = gn_.optimal_resources.used.get(i, default)
                     used_at_i_by_player: Poss[FSet[SR]] = ps.build(ui, get_its)
                     used_by_players[pname] = used_at_i_by_player
 
