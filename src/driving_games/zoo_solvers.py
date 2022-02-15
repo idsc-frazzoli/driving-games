@@ -4,7 +4,7 @@ from itertools import product
 from typing import Dict
 
 from games import FINITE_MIX_STRATEGIES, MIX_MNE, PURE_STRATEGIES, SECURITY_MNE, SolverParams
-from .resources import poly_resources_checker
+from .resources_occupancy import cells_resources_checker
 
 __all__ = ["solvers_zoo"]
 
@@ -37,7 +37,7 @@ for adm_strat, mne_strat, dt, fact, extra in product(*options_mix):
         strategy_multiple_nash=mne_strat,
         n_simulations=1,
         use_factorization=fact[1],
-        f_resource_intersection=poly_resources_checker,
+        f_resource_intersection=cells_resources_checker,
         extra=extra[1],
     )
     desc = (

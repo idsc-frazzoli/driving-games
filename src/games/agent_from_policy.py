@@ -1,11 +1,12 @@
 from functools import partial
 from itertools import combinations, chain
-from typing import Mapping
+from typing import Mapping, AbstractSet
 
 from frozendict import frozendict
 from zuper_commons.types import ZException
 
 from dg_commons import PlayerName, U, X
+from dg_commons.utils_toolz import V, K
 from possibilities import Poss, PossibilityMonad
 from .game_def import AgentBelief, JointState
 
@@ -68,23 +69,24 @@ class AgentFromPolicy(AgentBelief[X, U]):
         :param state_others: Distribution over the other players possible states
         """
 
-        def gen_candidates(state_others_: JointState) -> Poss[JointState]:
-            power_js = frozenset(fpowerdict(state_others_))
-            return self.ps.lift_many(power_js)
+        def gen_candidates(state_others_: JointState) -> Poss[Poss[JointState]]:
+            power_js: AbstractSet[JointState] = set(fpowerdict(state_others_))
+            return self.ps.lift_many([self.ps.unit(js_) for js_ in power_js])
 
-        candidates: Poss[Poss[JointState]] = self.ps.build(state_others, gen_candidates)
-        # fixme  here there could be repetition, don't we need a join?
+        candidates: Poss[Poss[JointState]] = self.ps.join(self.ps.build(state_others, gen_candidates))
         found = [js for js in candidates.support() if js in lookup]
         if len(found) == 1:
-            return lookup[found[0]]
+            return found[0]
         else:
             raise DoesNotKnowPolicy(
                 state_others=state_others,
                 lookup=lookup,
+                candidates=candidates,
+                found=found,
             )
 
 
-def fpowerdict(dict_):
+def fpowerdict(dict_: Mapping[K, V]):
     return map(frozendict, powerset(dict_.items()))
 
 

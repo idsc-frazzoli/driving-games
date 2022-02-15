@@ -2,7 +2,7 @@ from dataclasses import dataclass, replace
 from decimal import Decimal as D, localcontext
 from functools import lru_cache
 from itertools import product
-from typing import FrozenSet, Mapping
+from typing import FrozenSet, Mapping, Set
 
 from frozendict import frozendict
 from shapely.geometry import Polygon
@@ -13,7 +13,8 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
 from zuper_commons.types import ZException, ZValueError
-from .resources import get_resources_used, PolygonHashable
+from .resources import get_poly_occupancy, PolygonHashable
+from .resources_occupancy import ResourcesOccupancy, CellID
 from .structures import VehicleActions, VehicleTrackState
 
 __all__ = ["VehicleTrackDynamicsParams", "VehicleTrackDynamics", "InvalidAction"]
@@ -48,6 +49,8 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     """ The parameters for the dynamics. """
     min_safety_distance: D
     """ The minimum safety distance. Used to construct shared resources that bound the joint costs. """
+    resources_occupancy: ResourcesOccupancy
+    """ A structure to extract the occupied resources"""
 
     def __init__(
         self,
@@ -56,12 +59,14 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         poss_monad: PossibilityMonad,
         param: VehicleTrackDynamicsParams,
         min_safety_distance: D,
+        resources_occupancy: ResourcesOccupancy,
     ):
         self.ref = ref
         self.vg = vg
         self.ps = poss_monad
         self.param = param
         self.min_safety_distance = min_safety_distance
+        self.resources_occupancy = resources_occupancy
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
@@ -120,15 +125,17 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
 
         return ret
 
-    def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[PolygonHashable]:
+    def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[CellID]:
         # todo: this is not correct, we should use the lanelet graph
         max_acc_cmds = self._get_max_acc_commands()
         max_future_x = self.successor(x, max_acc_cmds, dt)
         max_future_x2 = replace(max_future_x, x=max_future_x.x + self.min_safety_distance)
-        poly1 = get_resources_used(vs=x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
-        poly2 = get_resources_used(vs=max_future_x, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
-        poly3 = get_resources_used(vs=max_future_x2, vg=self.vg, ref=self.ref, ds=self.param.shared_resources_ds)
-        return frozenset([poly1, poly2, poly3])
+        res: Set[CellID] = set()
+        for x in [x, max_future_x, max_future_x2]:
+            poly = get_poly_occupancy(vs=x, vg=self.vg, ref=self.ref)
+            ids = self.resources_occupancy.strtree.query_items(poly)
+            res.update(ids)
+        return frozenset(res)
 
     def _get_max_acc_commands(self) -> VehicleActions:
         return VehicleActions(acc=max(self.param.available_accels), light=NO_LIGHTS)

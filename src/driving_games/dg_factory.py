@@ -10,6 +10,7 @@ from games import UncertaintyParams
 from possibilities import PossibilityMonad
 from .dg_def import DgSimpleParams, DrivingGame, DrivingGamePlayer
 from .preferences_coll_time import VehiclePreferencesCollTime
+from .resources_occupancy import ResourcesOccupancy
 from .reward_joint import VehicleJointReward
 from .reward_personal import VehiclePersonalRewardStructureTime
 from .structures import VehicleTrackState
@@ -24,19 +25,23 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
     players: Dict[PlayerName, DrivingGamePlayer] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     cc = list(cycler(color=["c", "m", "y", "gray", "b", "g", "r"]))
+    resources_occ = ResourcesOccupancy(
+        lanelet_network=dg_params.scenario.lanelet_network, cell_resolution=dg_params.shared_resources_ds
+    )
 
     for i, (p, lane) in enumerate(dg_params.ref_lanes.items()):
         g = VehicleGeometry.default_car(color=cc[i]["color"], w_half=0.8)
         geometries[p] = g
+
         p_dynamics = VehicleTrackDynamics(
             ref=lane,
             vg=g,
             poss_monad=ps,
             param=dg_params.track_dynamics_param,
             min_safety_distance=D(dg_params.min_safety_distance),
+            resources_occupancy=resources_occ,
         )
         p_init_progress = dg_params.progress[p][0]
-        # p_ref = lane.lane_pose(float(p_init_progress), 0, 0).center_point
         p_x = VehicleTrackState(
             x=p_init_progress,
             v=dg_params.track_dynamics_param.min_speed + D(1),
