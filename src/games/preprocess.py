@@ -15,7 +15,7 @@ from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.time import time_function
 from dg_commons.utils_toolz import iterate_dict_combinations, fd
 from games import logger
-from games.create_joint_game_tree import create_game_graph
+from games.create_joint_game_graph import create_game_graph
 from games.game_def import (
     Dynamics,
     Game,
@@ -67,6 +67,7 @@ def preprocess_game(
     else:
         players_pre = fd({})
 
+    # Note this part has been moved to directly factorizing while building the game tree
     # game_factorization: Optional[GameFactorization[X]] = None
     # if solver_params.use_factorization:
     #     f_resource_intersection = solver_params.f_resource_intersection
@@ -74,7 +75,6 @@ def preprocess_game(
     #     game_factorization = get_game_factorization(game, players_pre, f_resource_intersection)
     #     toc = perf_counter()
     #     perf_stats.find_factorization.append(toc - tic)
-    # todo this part has been moved to directly factorizing while building the game tree
 
     gp = GamePreprocessed(
         game=game,
@@ -108,7 +108,9 @@ def preprocess_player(
 
     tic = perf_counter()
     # create the actual game graph for the player
-    game_graph = create_game_graph(individual_game, solver_params.dt, initials)
+    game_graph = create_game_graph(
+        individual_game, solver_params.dt, initials, players_pre=fd({}), fact_algo=solver_params.factorization_algorithm
+    )
     tic2 = perf_counter()
     gs: GameSolution[X, U, Y, RP, RJ, SR]
     gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)

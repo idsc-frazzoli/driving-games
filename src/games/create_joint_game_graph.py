@@ -1,31 +1,30 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Callable, Dict, FrozenSet as FSet, Generic, Mapping, Set, Tuple
+from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple
 
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
-from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
+from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
 from dg_commons.utils_toolz import *
-from possibilities import Poss
-from . import logger
-from .checks import check_joint_state
-from .factorization import collapse_states, find_dependencies
-from .game_def import Combined, Game, JointPureActions, JointState, SR
-from .solve.solution_structures import (
+from games import logger
+from games.checks import check_joint_state
+from games.factorization import collapse_states
+from games.game_def import Game, JointPureActions, JointState, SR, Combined
+from games.solve.solution_structures import (
     AccessibilityInfo,
     GameGraph,
     GameNode,
     GamePlayerPreprocessed,
     SolvedGameNode,
-    UsedResources,
+    FactAlgo,
 )
-from possibilities import Poss, PossibilityMonad
+from possibilities import Poss
 
 
 @dataclass
-class IterationContextFact(Generic[X, U, Y, RP, RJ, SR]):
+class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """Iteration structure while creating the game graph."""
 
     game: Game[X, U, Y, RP, RJ, SR]
@@ -38,27 +37,25 @@ class IterationContextFact(Generic[X, U, Y, RP, RJ, SR]):
     """ The current depth. """
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     """Known preprocessed players"""
-    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool]
+    fact_algo: FactAlgo
     """Function to check for intersection of resources"""
 
 
-def create_game_graph_fact(
+def create_game_graph(
     game: Game[X, U, Y, RP, RJ, SR],
     dt: D,
     initials: AbstractSet[JointState],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
-    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool],
+    fact_algo: FactAlgo,
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """Create the game graph checking for factorization at the same time."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
-    ic = IterationContextFact(
-        game, dt, state2node, depth=0, known=known, f_resource_intersection=f_resource_intersection
-    )
+    ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo)
     # todo ideally one could check if the initial state can be already factorized
     for js in initials:
-        _create_game_graph_fact(ic, js)
+        _create_game_graph(ic, js)
 
     logger.info(f"Created game graph with {len(state2node)} game nodes")
 
@@ -114,9 +111,7 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     return G
 
 
-def get_moves(
-    ic: IterationContextFact[X, U, Y, RP, RJ, SR], js: JointState
-) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
+def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
     """Returns the possible moves and the corresponding possible future states."""
     res = {}
     state: X
@@ -136,7 +131,7 @@ def get_moves(
     return res
 
 
-def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
+def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     """
     Builds a game node from the joint state.
     :param ic:
@@ -236,7 +231,7 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
             #     for p in js_continuing:
             #         fact_states[p] = js0
             # return fd(fact_states)
-            return factorize1(js_continuing, ic, ps)
+            return ic.fact_algo.factorize(js_continuing, ic.known, ps)
 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
 
@@ -262,7 +257,7 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph_fact(ic2, js_)
+                _create_game_graph(ic2, js_)
 
     resources = {}
     for player_name, player_state in states.items():
@@ -282,27 +277,27 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
     return res
 
 
-def factorize1(js0: JointState, ic: IterationContextFact, ps: PossibilityMonad) -> Mapping[PlayerName, JointState]:
-    fact_states: Dict[PlayerName, JointState] = {}
-
-    if len(js0) > 1:
-
-        def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
-            pname, state = items
-            alone_js = fd({pname: state})
-            return pname, ic.known[pname][alone_js].reachable_res
-
-        resources_used = itemmap(get_reachable_res, js0)
-        deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
-        deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
-
-        pset: FSet[PlayerName]
-        for pset in deps[frozenset(js0)]:
-            jsf: JointState = fd({p: js0[p] for p in pset})
-            for p in pset:
-                fact_states[p] = jsf
-        # logger.info(deps=deps, fact_states=fact_states)
-    else:
-        for p in js0:
-            fact_states[p] = js0
-    return fd(fact_states)
+# def factorize1(js0: JointState, ic: IterationContextFact, ps: PossibilityMonad) -> Mapping[PlayerName, JointState]:
+#     fact_states: Dict[PlayerName, JointState] = {}
+#
+#     if len(js0) > 1:
+#
+#         def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
+#             pname, state = items
+#             alone_js = fd({pname: state})
+#             return pname, ic.known[pname][alone_js].reachable_res
+#
+#         resources_used = itemmap(get_reachable_res, js0)
+#         deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
+#         deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
+#
+#         pset: FSet[PlayerName]
+#         for pset in deps[frozenset(js0)]:
+#             jsf: JointState = fd({p: js0[p] for p in pset})
+#             for p in pset:
+#                 fact_states[p] = jsf
+#         # logger.info(deps=deps, fact_states=fact_states)
+#     else:
+#         for p in js0:
+#             fact_states[p] = js0
+#     return fd(fact_states)

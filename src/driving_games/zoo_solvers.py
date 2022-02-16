@@ -4,6 +4,7 @@ from itertools import product
 from typing import Dict
 
 from games import FINITE_MIX_STRATEGIES, MIX_MNE, PURE_STRATEGIES, SECURITY_MNE, SolverParams
+from games.factorization_algo import FactAlgoNoFact, FactAlgoReachableRes
 from .resources_occupancy import cells_resources_checker
 
 __all__ = ["solvers_zoo"]
@@ -25,7 +26,7 @@ discretization_steps = [
     D(2.0),
     D(1.0),
 ]
-fact_options = [("fact", True), ("naive", False)]
+fact_options = [("fact", True, FactAlgoReachableRes), ("naive", False, FactAlgoNoFact)]
 extra_options = [("extra", True), ("noextra", False)]
 
 options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact_options, extra_options]
@@ -37,11 +38,12 @@ for adm_strat, mne_strat, dt, fact, extra in product(*options_mix):
         strategy_multiple_nash=mne_strat,
         n_simulations=1,
         use_factorization=fact[1],
-        f_resource_intersection=cells_resources_checker,
+        factorization_algorithm=fact[2](cells_resources_checker),
         extra=extra[1],
     )
     desc = (
         f"Admissible strategies = {adm_strat}; Multiple NE strategy = {mne_strat}; "
-        f"discretization = {dt}; factorization = {fact[1]}"
+        f"discretization = {dt}; factorization = {fact[2].__name__}; extra = {extra[1]}"
     )
+    # todo: update with algo fact name
     solvers_zoo[f"solver-{dt}-{adm_strat}-{mne_strat}-{fact[0]}-{extra[0]}"] = SolverSpec(desc, params)

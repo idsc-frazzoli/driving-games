@@ -16,8 +16,8 @@ if __name__ == "__main__":
         # "complex_int_6p_sets"
     ]
     do_solvers_sets = [
+        "solver-2-pure-security_mNE-fact-noextra",
         "solver-2-pure-security_mNE-naive-noextra",
-        "solver-2-pure-security_mNE-fact-noextra"
         # "solver-1-pure-security_mNE-fact",
         # "solver-1-finite_mix-mix_mNE-fact",
         # "solver-1-finite_mix-security_mNE-naive",
@@ -26,6 +26,7 @@ if __name__ == "__main__":
     games_sets = {k: games_zoo[k] for k in do_games_sets}
     solvers_sets = {k: solvers_zoo[k] for k in do_solvers_sets}
 
+    # Note. This is not reliable for timing as the order affects the caching.
     logger.info("Starting experiments")
     tic = perf_counter()
     res = without_compmake(games_sets, solvers_sets)

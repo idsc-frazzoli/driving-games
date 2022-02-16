@@ -13,7 +13,6 @@ from dg_commons import fd, iterate_dict_combinations, PlayerName, RJ, RP, U, X, 
 from games import logger
 from games.agent_from_policy import AgentFromPolicy
 from games.checks import check_joint_state
-from games.create_joint_game_tree_fact import create_game_graph_fact
 from games.game_def import (
     Combined,
     Game,
@@ -42,11 +41,9 @@ from .solution_structures import (
 )
 from .solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
 from .solve_equilibria import solve_equilibria, solve_final_for_everyone
-from ..create_joint_game_tree import create_game_graph
+from ..create_joint_game_graph import create_game_graph
 
 __all__ = ["solve_main"]
-
-TOC = perf_counter()
 
 
 def solve_main(
@@ -83,25 +80,13 @@ def solve_main(
     sims: Dict[str, Simulation] = {}
 
     tic = perf_counter()
-    # gg = create_game_graph(gp.game, gp.solver_params.dt, {initial}, gf=gf)
-    if gp.solver_params.use_factorization:
-        # Use game factorization only if the option is set (this ugly if-else will disappear)
-        gg = create_game_graph_fact(
-            gp.game,
-            gp.solver_params.dt,
-            {initial},
-            players_pre=gp.players_pre,
-            f_resource_intersection=gp.solver_params.f_resource_intersection,
-        )
-    else:
-        gg = create_game_graph(
-            gp.game,
-            gp.solver_params.dt,
-            {initial},
-            # players_pre=gp.players_pre,
-            # f_resource_intersection=gp.solver_params.f_resource_intersection,
-        )
-
+    gg = create_game_graph(
+        gp.game,
+        gp.solver_params.dt,
+        {initial},
+        players_pre=gp.players_pre,
+        fact_algo=gp.solver_params.factorization_algorithm,
+    )
     toc = perf_counter()
     perf_stats.build_joint_game_tree = toc - tic
 

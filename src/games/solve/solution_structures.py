@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
@@ -19,6 +20,8 @@ from networkx import MultiDiGraph
 
 from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, Timestamp, U, X, Y
 from games.checks import *
+
+# from games.factorization_algo import FactAlgo, FactAlgoNoFact
 from games.game_def import (
     Combined,
     Game,
@@ -30,7 +33,7 @@ from games.game_def import (
     UncertainCombined,
 )
 from games.simulate import Simulation
-from possibilities import check_poss, Poss
+from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference
 
 __all__ = [
@@ -52,8 +55,7 @@ __all__ = [
     "MIX_STRATEGIES",
     "GameSolution",
     "GameFactorization",
-    "AccessibilityInfo",
-    "UsedResources",
+    "FactAlgo",
 ]
 
 AdmissibleStrategies = NewType("AdmissableStrategies", str)
@@ -93,8 +95,8 @@ class SolverParams:
     """ Whether to compute extra things not strictly necessary, such as networkx graphs."""
     n_simulations: int
     """ Number of sampled simulations from solutions. """
-    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool] = lambda x, y: bool(x & y)
-    """ Function to check if two sets of resources are intersecting."""
+    factorization_algorithm: "FactAlgo"
+    """ The factorization algorithm to use. """
 
 
 @dataclass(frozen=False, unsafe_hash=True, order=True)
@@ -330,7 +332,6 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
     solver_params: SolverParams
     """ The solver parameters. """
-
     # fixme candidate for being removed as we build factorization on the fly now
     game_factorization: Optional[GameFactorization[X]]
     """ The factorization information for the game"""
@@ -487,3 +488,22 @@ class Solutions(Generic[X, U, Y, RP, RJ, SR]):
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
     game_tree: GameNode[X, U, Y, RP, RJ, SR]
     sims: Mapping[str, Simulation]
+
+
+class FactAlgo(ABC):
+    """Base container class for factorization algorithms."""
+
+    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool]
+    """Function to check for intersection of resources"""
+
+    def __init__(self, f_resource_intersection=lambda x, y: bool(x & y)):
+        self.f_resource_intersection = f_resource_intersection
+
+    @abstractmethod
+    def factorize(
+        self,
+        s0: JointState,
+        known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]],
+        ps: PossibilityMonad,
+    ) -> Mapping[PlayerName, JointState]:
+        pass
