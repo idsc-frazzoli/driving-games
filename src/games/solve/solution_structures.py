@@ -54,7 +54,6 @@ __all__ = [
     "GameFactorization",
     "AccessibilityInfo",
     "UsedResources",
-    "ReachableStates",
 ]
 
 AdmissibleStrategies = NewType("AdmissableStrategies", str)
@@ -331,6 +330,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
     solver_params: SolverParams
     """ The solver parameters. """
+
     # fixme candidate for being removed as we build factorization on the fly now
     game_factorization: Optional[GameFactorization[X]]
     """ The factorization information for the game"""
