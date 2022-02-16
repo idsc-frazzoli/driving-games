@@ -446,7 +446,7 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
     """ Whether to compute the reachable/optimal resources. """
 
 
-@dataclass
+@dataclass(frozen=True)
 class GameSolution(Generic[X, U, Y, RP, RJ, SR]):
     """Solution of a game."""
 
@@ -478,7 +478,7 @@ class SolutionsPlayer(Generic[X, U, Y, RP, RJ, SR]):
     alone_solutions: Mapping[X, GameSolution[X, U, Y, RP, RJ, SR]]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Solutions(Generic[X, U, Y, RP, RJ, SR]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]

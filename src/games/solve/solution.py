@@ -122,7 +122,7 @@ def solve_main(
     perf_stats.solve_joint_game_tree = toc - tic
 
     controllers0 = {}
-    for player_name, pp in gp.players_pre.items():
+    for player_name in gp.game.players:
         policy = game_solution.policies[player_name]
         controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy, player_name)
 

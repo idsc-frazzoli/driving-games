@@ -6,14 +6,14 @@ from typing import FrozenSet, Mapping, Set
 
 from frozendict import frozendict
 from shapely.geometry import Polygon
+from zuper_commons.types import ZException, ZValueError
 
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.models.vehicle_ligths import LightsCmd, LightsValues, NO_LIGHTS
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
-from zuper_commons.types import ZException, ZValueError
-from .resources import get_poly_occupancy, PolygonHashable
+from .resources import get_poly_occupancy
 from .resources_occupancy import ResourcesOccupancy, CellID
 from .structures import VehicleActions, VehicleTrackState
 
@@ -38,6 +38,11 @@ class VehicleTrackDynamicsParams:
     """ Allowed light commands """
     shared_resources_ds: float
     """ Size of the spatial cells to consider as resources [m]"""
+
+    def __post_init__(self):
+        if not self.min_speed >= 0:
+            msg = "Only forward driving is supported"
+            raise ZValueError(msg, min_speed=self.min_speed)
 
 
 class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon]):
@@ -100,17 +105,17 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     @lru_cache(None)
     def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D):
         with localcontext() as ctx:
-            ctx.prec = 4
+            ctx.prec = 3
             v2 = x.v + u.acc * dt
             if not (self.param.min_speed <= v2 <= self.param.max_speed):
                 msg = "Invalid action gives speed out of bounds"
                 raise InvalidAction(msg, x=x, u=u, v2=v2, max_speed=self.param.max_speed)
             # only forward moving
-            assert v2 >= 0, v2
             x2 = x.x + (x.v + D("0.5") * u.acc * dt) * dt
             if x2 < x.x:
                 raise ZValueError(
                     x=x,
+                    x2=x2,
                     u=u,
                     acc=u.acc,
                 )
@@ -126,7 +131,6 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         return ret
 
     def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[CellID]:
-        # todo: this is not correct, we should use the lanelet graph
         max_acc_cmds = self._get_max_acc_commands()
         max_future_x = self.successor(x, max_acc_cmds, dt)
         max_future_x2 = replace(max_future_x, x=max_future_x.x + self.min_safety_distance)

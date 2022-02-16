@@ -20,7 +20,7 @@ class DGDemo(QuickApp):
 
     def define_options(self, params: DecentParams):
         params.add_string("games", default="4way_int_3p_sets")
-        params.add_string("solvers", default="solver-2-pure-security_mNE-naive")
+        params.add_string("solvers", default="solver-2-pure-security_mNE-fact-noextra")
 
     def define_jobs_context(self, context: QuickAppContext):
 

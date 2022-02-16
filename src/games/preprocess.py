@@ -13,7 +13,7 @@ from zuper_commons.types import ZException
 
 from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.time import time_function
-from dg_commons.utils_toolz import iterate_dict_combinations
+from dg_commons.utils_toolz import iterate_dict_combinations, fd
 from games import logger
 from games.create_joint_game_tree import create_game_graph
 from games.game_def import (
@@ -60,9 +60,12 @@ def preprocess_game(
         game_graph_nx = MultiDiGraph()
 
     # get the individual game
-    individual_games = get_individual_games(game)
-    partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
-    players_pre = valmap(partial_preprocess_player, individual_games)
+    if solver_params.use_factorization:
+        individual_games = get_individual_games(game)
+        partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
+        players_pre = valmap(partial_preprocess_player, individual_games)
+    else:
+        players_pre = fd({})
 
     # game_factorization: Optional[GameFactorization[X]] = None
     # if solver_params.use_factorization:
