@@ -5,8 +5,10 @@ from typing import Dict, Mapping
 
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork
+from geometry import SO2_from_angle, SO2value, T2value, SE2_from_xytheta, SE2value
 from shapely.affinity import affine_transform
 from shapely.geometry import Point, Polygon
+from zuper_commons.types import ZValueError
 
 from dg_commons import apply_SE2_to_shapely_geo, DgSampledSequence, fd, norm_between_SE2value, PlayerName, Timestamp
 from dg_commons.sim import CollisionReportPlayer, IMPACT_BACK, IMPACT_FRONT, IMPACT_LEFT, IMPACT_RIGHT, ImpactLocation
@@ -23,14 +25,12 @@ from dg_commons.sim.models import extract_pose_from_state
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import GameConstants
-from geometry import SO2_from_angle, SO2value, T2value
-from zuper_commons.types import ZValueError
 from .collisions import SimpleCollision, VehicleJointCost, VehicleSafetyDistCost
 
 __all__ = ["joint_collision_cost_simple"]
 
 
-@lru_cache(maxsize=None)  # todo adjust maxsize
+@lru_cache(maxsize=200000)
 def joint_collision_cost_simple(
     transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
@@ -66,7 +66,7 @@ def joint_collision_cost_simple(
         ts.reverse()
         for t in ts:
             x1, x2 = trans1.at_interp(t), trans2.at_interp(t)
-            q1, q2 = extract_pose_from_state(x1), extract_pose_from_state(x2)
+            q1, q2 = _extract_pose_from_state(x1), _extract_pose_from_state(x2)
             dist = norm_between_SE2value(q1, q2)
             if dist < min_safety_dist:
                 # update cost for safety distance violation
@@ -113,6 +113,12 @@ def _approx_velocity(x: VehicleState) -> T2value:
     rot: SO2value = SO2_from_angle(x.theta)
     v_g = rot @ v_l
     return v_g
+
+
+@lru_cache(maxsize=None)
+def _extract_pose_from_state(state: VehicleState) -> SE2value:
+    pose = SE2_from_xytheta([state.x, state.y, state.theta])
+    return pose
 
 
 def _locations_from_impact_direction(direction: float) -> ImpactLocation:
