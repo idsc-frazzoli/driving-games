@@ -1,7 +1,7 @@
 from frozendict import frozendict
 
-from games import GameConstants
-from games.game_def import JointMixedActions, JointPureActions, JointState, PlayerOptions
+from . import GameConstants
+from .game_def import JointMixedActions, JointPureActions, JointState, PlayerOptions
 from possibilities import Poss
 from zuper_commons.types import check_isinstance, ZValueError
 

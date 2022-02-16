@@ -1,18 +1,19 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple, Callable, FrozenSet as FSet
+from typing import AbstractSet, Callable, Dict, FrozenSet as FSet, Generic, Mapping, Set, Tuple
 
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
 
-from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
+from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.utils_toolz import *
-from games import logger
-from games.checks import check_joint_state
-from games.factorization import collapse_states, find_dependencies
-from games.game_def import Game, JointPureActions, JointState, SR, Combined
-from games.solve.solution_structures import (
+from possibilities import Poss
+from . import logger
+from .checks import check_joint_state
+from .factorization import collapse_states, find_dependencies
+from .game_def import Combined, Game, JointPureActions, JointState, SR
+from .solve.solution_structures import (
     AccessibilityInfo,
     GameGraph,
     GameNode,
@@ -20,7 +21,6 @@ from games.solve.solution_structures import (
     SolvedGameNode,
     UsedResources,
 )
-from possibilities import Poss
 
 
 @dataclass

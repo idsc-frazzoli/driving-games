@@ -13,6 +13,7 @@ __all__ = [
     "VehicleActions",
     "VehicleState",
     "TrajectoryParams",
+    "VehicleGeometry",
 ]
 
 

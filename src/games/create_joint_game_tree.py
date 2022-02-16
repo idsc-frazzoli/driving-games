@@ -8,17 +8,17 @@ from toolz import itemmap
 
 from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.utils_toolz import *
-from games import logger
-from games.checks import check_joint_state
-from games.game_def import Combined, Game, JointPureActions, JointState, SR
-from games.solve.solution_structures import (
+from possibilities import Poss
+from zuper_commons.types import ZValueError
+from . import logger
+from .checks import check_joint_state
+from .game_def import Combined, Game, JointPureActions, JointState, SR
+from .solve.solution_structures import (
     AccessibilityInfo,
     GameFactorization,
     GameGraph,
     GameNode,
 )
-from possibilities import Poss
-from zuper_commons.types import ZValueError
 
 
 @dataclass

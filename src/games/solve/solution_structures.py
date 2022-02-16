@@ -51,6 +51,9 @@ __all__ = [
     "MIX_STRATEGIES",
     "GameSolution",
     "GameFactorization",
+    "AccessibilityInfo",
+    "UsedResources",
+    "ReachableStates",
 ]
 
 AdmissibleStrategies = NewType("AdmissableStrategies", str)

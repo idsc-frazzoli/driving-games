@@ -3,9 +3,8 @@ from decimal import Decimal as D
 from typing import Type
 
 from possibilities.prob import expected_value, ProbDist
-from preferences import ComparisonOutcome, Preference
-from preferences.preferences_base import P
 from zuper_typing import debug_print
+from .preferences_base import ComparisonOutcome, P, Preference
 
 
 class ProbPreference(Preference[ProbDist[P]]):
