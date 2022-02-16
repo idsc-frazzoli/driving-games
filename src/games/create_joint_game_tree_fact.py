@@ -21,6 +21,7 @@ from .solve.solution_structures import (
     SolvedGameNode,
     UsedResources,
 )
+from possibilities import Poss, PossibilityMonad
 
 
 @dataclass
@@ -55,8 +56,6 @@ def create_game_graph_fact(
     ic = IterationContextFact(
         game, dt, state2node, depth=0, known=known, f_resource_intersection=f_resource_intersection
     )
-
-    logger.info("Creating game tree")
     # todo ideally one could check if the initial state can be already factorized
     for js in initials:
         _create_game_graph_fact(ic, js)
@@ -214,36 +213,35 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
         # here the generalized transition to support factorization
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
             js_continuing = fkeyfilter(not_exiting, js0)
-            fact_states: Dict[PlayerName, JointState] = {}
-
-            if len(js_continuing) > 1:
-
-                def get_ur(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
-                    pname, state = items
-                    alone_js = fd({pname: state})
-                    return pname, ic.known[pname][alone_js].ur
-
-                resources_used = itemmap(get_ur, js_continuing)
-                deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
-
-                # bug: we cannot use the optimal resources to factorize sets of >1 players
-
-                deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
-
-                pset: FSet[PlayerName]
-                for pset in deps[frozenset(js_continuing)]:
-                    jsf: JointState = fd({p: js0[p] for p in pset})
-                    for p in pset:
-                        fact_states[p] = jsf
-                # logger.info(deps=deps, fact_states=fact_states)
-            else:
-                for p in js_continuing:
-                    fact_states[p] = js0
-            return fd(fact_states)
+            # fact_states: Dict[PlayerName, JointState] = {}
+            #
+            # if len(js_continuing) > 1:
+            #
+            #     def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
+            #         pname, state = items
+            #         alone_js = fd({pname: state})
+            #         return pname, ic.known[pname][alone_js].reachable_res
+            #
+            #     resources_used = itemmap(get_reachable_res, js_continuing)
+            #     deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
+            #     deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
+            #
+            #     pset: FSet[PlayerName]
+            #     for pset in deps[frozenset(js_continuing)]:
+            #         jsf: JointState = fd({p: js0[p] for p in pset})
+            #         for p in pset:
+            #             fact_states[p] = jsf
+            #     logger.info(deps=deps, fact_states=fact_states)
+            # else:
+            #     for p in js_continuing:
+            #         fact_states[p] = js0
+            # return fd(fact_states)
+            return factorize1(js_continuing, ic, ps)
 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
 
-        # here need to update who has collided (their state in next_states)(to be done after factorization)
+        # here need to update who has collided
+        # (their state in next_states)(to be done after factorization)(this breaks generality)
         collided_in_transition = {pn for tc in trans_cost.support() for pn in tc if tc[pn].joint.collision is not None}
         if collided_in_transition:
 
@@ -282,3 +280,29 @@ def _create_game_graph_fact(ic: IterationContextFact, states: JointState) -> Gam
     )
     ic.cache[states] = res
     return res
+
+
+def factorize1(js0: JointState, ic: IterationContextFact, ps: PossibilityMonad) -> Mapping[PlayerName, JointState]:
+    fact_states: Dict[PlayerName, JointState] = {}
+
+    if len(js0) > 1:
+
+        def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
+            pname, state = items
+            alone_js = fd({pname: state})
+            return pname, ic.known[pname][alone_js].reachable_res
+
+        resources_used = itemmap(get_reachable_res, js0)
+        deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
+        deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
+
+        pset: FSet[PlayerName]
+        for pset in deps[frozenset(js0)]:
+            jsf: JointState = fd({p: js0[p] for p in pset})
+            for p in pset:
+                fact_states[p] = jsf
+        # logger.info(deps=deps, fact_states=fact_states)
+    else:
+        for p in js0:
+            fact_states[p] = js0
+    return fd(fact_states)

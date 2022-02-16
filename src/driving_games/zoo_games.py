@@ -61,7 +61,7 @@ param_3p = DgSimpleParams(
     col_check_dt=D("0.51"),
     ref_lanes={P1: s_lane1, P2: s_lane2, P3: s_lane3},
     scenario=simple_intersection,
-    progress={P1: (D(140), D(165)), P2: (D(180), D(200)), P3: (D(115), D(140))},
+    progress={P1: (D(140), D(165)), P2: (D(178), D(200)), P3: (D(115), D(140))},
     plot_limits=[[40, 100], [-25, 25]],
     min_safety_distance=7,
 )

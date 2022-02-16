@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Sequence
+from typing import List
 
 from reprep import Report
 from zuper_commons.text import remove_escapes
@@ -15,9 +15,9 @@ class PerformanceStatistics:
     """The solver id. Used to retrieve it from the zoo."""
     build_joint_game_tree: float = 0
     solve_joint_game_tree: float = 0
-    find_factorization: Sequence[float] = field(default_factory=list)
-    build_individual_game_trees: Sequence[float] = field(default_factory=list)
-    solve_individual_game_trees: Sequence[float] = field(default_factory=list)
+    find_factorization: List[float] = field(default_factory=list)
+    build_individual_game_trees: List[float] = field(default_factory=list)
+    solve_individual_game_trees: List[float] = field(default_factory=list)
 
 
 def report_performance_stats(perf_stats: PerformanceStatistics) -> Report:

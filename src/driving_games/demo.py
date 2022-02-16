@@ -20,7 +20,7 @@ class DGDemo(QuickApp):
 
     def define_options(self, params: DecentParams):
         params.add_string("games", default="4way_int_3p_sets")
-        params.add_string("solvers", default="solver-2-pure-security_mNE-naive")
+        params.add_string("solvers", default="solver-2-pure-security_mNE-fact-noextra")
 
     def define_jobs_context(self, context: QuickAppContext):
 
@@ -71,8 +71,9 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
             perf_stats = PerformanceStatistics(game_name=game_name, solver_name=solver_name)
             game_preprocessed = preprocess_game(game, solver_params, perf_stats=perf_stats)
 
-            r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
-            r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+            if solver_params.extra:
+                r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
+                r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
 
             solutions = solve_main(game_preprocessed, perf_stats=perf_stats)
             r_solutions = report_solutions(game_preprocessed, solutions)

@@ -30,14 +30,14 @@ from .collisions import SimpleCollision, VehicleJointCost, VehicleSafetyDistCost
 __all__ = ["joint_collision_cost_simple"]
 
 
-@lru_cache(maxsize=1024)  # todo adjust maxsize
+@lru_cache(maxsize=None)  # todo adjust maxsize
 def joint_collision_cost_simple(
     transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
     col_dt: Timestamp,
     min_safety_dist: float,
 ) -> Mapping[PlayerName, VehicleJointCost]:
-    """This is an involved version of the collision check."""
+    """This is simple version of the collision check."""
     if GameConstants.checks:
         if not set(transitions.keys()).issubset(set(geometries.keys())):
             msg = "Transitions must be a subset of geometries"
