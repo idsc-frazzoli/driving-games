@@ -3,6 +3,7 @@ from typing import List
 
 from reprep import Report
 from zuper_commons.text import remove_escapes
+from zuper_typing import debug_print
 
 
 @dataclass
@@ -21,6 +22,6 @@ class PerformanceStatistics:
 
 
 def report_performance_stats(perf_stats: PerformanceStatistics) -> Report:
-    r = Report(nid=perf_stats.game_name + "-" + perf_stats.solver_name)
-    r.text("PerformanceStatistics", remove_escapes(perf_stats.__str__()))
+    r = Report(nid="performance-stats")
+    r.text("PerformanceStatistics", remove_escapes(debug_print(perf_stats)))
     return r

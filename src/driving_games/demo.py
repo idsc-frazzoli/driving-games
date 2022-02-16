@@ -2,13 +2,14 @@ from os.path import join
 from typing import Mapping
 
 from decent_params import DecentParams
+from quickapp import QuickApp, QuickAppContext
+from reprep import Report
+from zuper_commons.text import expand_string
+from zuper_commons.types import ZValueError
 
 from games import create_report_preprocessed, GameSpec, report_game_visualization, report_solutions, solve_main
 from games.performance import PerformanceStatistics, report_performance_stats
 from games.preprocess import preprocess_game
-from quickapp import QuickApp, QuickAppContext
-from zuper_commons.text import expand_string
-from zuper_commons.types import ZValueError
 from .zoo_games import games_zoo
 from .zoo_solvers import solvers_zoo, SolverSpec
 
@@ -63,24 +64,30 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
         dg = join(d, game_name)
         game = game_spec.game
         r_game = report_game_visualization(game)
-        r_game.to_html(join(dg, "report_game.html"))
+        r_game.text("description", text=game_spec.desc)
 
         for solver_name, solver_spec in solvers.items():
-            ds = join(dg, solver_name)
+            # ds = join(dg, solver_name)
+            r_solver = Report(solver_name)
             solver_params = solver_spec.solver_params
             perf_stats = PerformanceStatistics(game_name=game_name, solver_name=solver_name)
             game_preprocessed = preprocess_game(game, solver_params, perf_stats=perf_stats)
 
             if solver_params.extra:
                 r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
-                r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+                r_solver.add_child(r_preprocessed)
+                # r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
 
             solutions = solve_main(game_preprocessed, perf_stats=perf_stats)
             r_solutions = report_solutions(game_preprocessed, solutions)
-            r_solutions.to_html(join(ds, "r_solutions.html"))
+            r_solver.add_child(r_solutions)
+            # r_solutions.to_html(join(ds, "r_solutions.html"))
 
             r_perf_stats = report_performance_stats(perf_stats)
-            r_perf_stats.to_html(join(ds, "r_perf_stats.html"))
+            r_solver.add_child(r_perf_stats)
+            # r_perf_stats.to_html(join(ds, "r_perf_stats.html"))
+            r_game.add_child(r_solver)
+        r_game.to_html(join(dg, "report_game.html"))
 
 
 dg_demo = DGDemo.get_sys_main()
