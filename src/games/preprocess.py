@@ -81,7 +81,7 @@ def preprocess_game(
         players_pre=players_pre,
         game_graph_nx=game_graph_nx,
         solver_params=solver_params,
-        game_factorization=None,
+        perf_stats=perf_stats,
     )
 
     return gp
@@ -112,11 +112,12 @@ def preprocess_player(
         individual_game, solver_params.dt, initials, players_pre=fd({}), fact_algo=solver_params.factorization_algorithm
     )
     tic2 = perf_counter()
+    perf_stats.individual_game_graphs_nodes.append(len(game_graph.state2node))
     gs: GameSolution[X, U, Y, RP, RJ, SR]
     gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
     toc = perf_counter()
-    perf_stats.build_individual_game_trees.append(tic2 - tic)
-    perf_stats.solve_individual_game_trees.append(toc - tic2)
+    perf_stats.build_individual_game_graphs.append(tic2 - tic)
+    perf_stats.solve_individual_game_graphs.append(toc - tic2)
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
 

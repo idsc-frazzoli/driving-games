@@ -1,5 +1,6 @@
 import os
 from copy import copy
+from dataclasses import replace
 from decimal import Decimal as D
 from typing import Dict, Mapping
 
@@ -47,7 +48,7 @@ s_lane3 = dglane_from_position(np.array([85, 8]), simple_intersection.lanelet_ne
 param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(1),
-    col_check_dt=D("1.01"),
+    col_check_dt=D("0.76"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
     progress={P1: (D(140), D(165)), P2: (D(180), D(200))},
@@ -55,15 +56,10 @@ param_2p = DgSimpleParams(
     min_safety_distance=7,
 )
 
-param_3p = DgSimpleParams(
-    track_dynamics_param=dyn_p0,
-    shared_resources_ds=D(1),
-    col_check_dt=D("1.01"),
+param_3p = replace(
+    param_2p,
     ref_lanes={P1: s_lane1, P2: s_lane2, P3: s_lane3},
-    scenario=simple_intersection,
     progress={P1: (D(140), D(165)), P2: (D(178), D(200)), P3: (D(115), D(140))},
-    plot_limits=[[40, 100], [-25, 25]],
-    min_safety_distance=7,
 )
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetWorstCasePreference)

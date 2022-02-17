@@ -81,6 +81,14 @@ run-with-mounted-src:
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
+run-dg-experiments: build
+	mkdir -p $(out-docker)
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		dg-demo -o /out/result --reset -c "rmake" \
+		--games "4way_int_2p_sets","4way_int_3p_sets" \
+		--solvers "solver-2-pure-security_mNE-naive-noextra","solver-2-pure-security_mNE-fact1-noextra","solver-2-pure-security_mNE-fact2-noextra"
+
 run-posets-exp: build
 	mkdir -p $(out-docker)
 	docker run -it \

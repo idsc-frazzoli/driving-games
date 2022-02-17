@@ -6,6 +6,10 @@ from zuper_commons.logs import ZLogger
 logger = ZLogger(__name__)
 logging.getLogger("matplotlib.font_manager").disabled = True
 
+from dg_commons import DgCommonsConstants
+
+DgCommonsConstants.checks = False
+
 
 class GameConstants:
     """Global constants for the program."""

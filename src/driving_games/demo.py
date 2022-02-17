@@ -1,5 +1,5 @@
 from os.path import join
-from typing import Mapping, NewType
+from typing import Mapping
 
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
@@ -21,7 +21,7 @@ class DGDemo(QuickApp):
 
     def define_options(self, params: DecentParams):
         params.add_string("games", default="4way_int_3p_sets")
-        params.add_string("solvers", default="solver-2-pure-security_mNE-fact-noextra")
+        params.add_string("solvers", default="solver-2-pure-security_mNE-fact1-noextra")
 
     def define_jobs_context(self, context: QuickAppContext):
 
@@ -41,7 +41,7 @@ class DGDemo(QuickApp):
             cgame = context.child(game_name, extra_report_keys=dict(game=game_name))
             game = games_zoo[game_name].game
             rgame = cgame.comp(report_game_visualization, game)
-            cgame.add_report(rgame, "game_tree")
+            cgame.add_report(rgame, "game_setup")
             for solver_name in do_solvers:
                 c = cgame.child(solver_name, extra_report_keys=dict(solver=solver_name))
                 solver_params = solvers_zoo[solver_name].solver_params
@@ -49,13 +49,23 @@ class DGDemo(QuickApp):
 
                 # individual = c.comp(compute_individual_solutions, game, solver_params)
                 game_preprocessed = c.comp(preprocess_game, game, solver_params, perf_stats)
+                if solver_params.extra:
+                    r = c.comp(create_report_preprocessed, game_name, game_preprocessed)
+                    c.add_report(r, "preprocessed")
 
-                r = c.comp(create_report_preprocessed, game_name, game_preprocessed)
-                c.add_report(r, "preprocessed")
-
-                solutions = c.comp(solve_main, game_preprocessed, perf_stats)
-                r = c.comp(report_solutions, game_preprocessed, solutions)
+                # solutions = c.comp(solve_main, game_preprocessed, perf_stats)
+                # r = c.comp(report_solutions, game_preprocessed, solutions)
+                r = c.comp(solve_main_and_report_solutions, game_preprocessed)
                 c.add_report(r, "solutions")
+
+
+# workarounds for compmake that cannot pickle new types
+def solve_main_and_report_solutions(game_preprocessed) -> Report:
+    solutions = solve_main(game_preprocessed, game_preprocessed.perf_stats)
+    r_solution = report_solutions(game_preprocessed, solutions)
+    r_perf_stats = report_performance_stats(game_preprocessed.perf_stats)
+    r_solution.add_child(r_perf_stats)
+    return r_solution
 
 
 def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, SolverSpec]):

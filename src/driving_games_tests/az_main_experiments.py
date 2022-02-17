@@ -16,7 +16,7 @@ if __name__ == "__main__":
         # "complex_int_6p_sets"
     ]
     do_solvers_sets = [
-        "solver-2-pure-security_mNE-fact-noextra",
+        "solver-2-pure-security_mNE-fact1-noextra",
         "solver-2-pure-security_mNE-naive-noextra",
         # "solver-1-pure-security_mNE-fact",
         # "solver-1-finite_mix-mix_mNE-fact",
@@ -32,6 +32,6 @@ if __name__ == "__main__":
     res = without_compmake(games_sets, solvers_sets)
     toc = timedelta(seconds=perf_counter() - tic)
     logger.info(f"Running all experiment took: {toc}")
-    print(joint_simple_collision_cost.cache_info())
+    # print(joint_simple_collision_cost.cache_info())
     print(VehicleTrackState.to_global_pose.cache_info())
     print(get_poly_occupancy.cache_info())

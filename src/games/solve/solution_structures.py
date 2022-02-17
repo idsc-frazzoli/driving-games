@@ -32,6 +32,7 @@ from games.game_def import (
     SR,
     UncertainCombined,
 )
+from games.performance import PerformanceStatistics
 from games.simulate import Simulation
 from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference
@@ -332,9 +333,9 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
 
     solver_params: SolverParams
     """ The solver parameters. """
-    # fixme candidate for being removed as we build factorization on the fly now
-    game_factorization: Optional[GameFactorization[X]]
-    """ The factorization information for the game"""
+
+    perf_stats: Optional[PerformanceStatistics] = None
+    """ The performance statistics for the pre-processed game"""
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)

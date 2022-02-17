@@ -112,26 +112,6 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     return G
 
 
-def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
-    """Returns the possible moves and the corresponding possible future states."""
-    res = {}
-    state: X
-    ps = ic.game.ps
-    dt = ic.dt
-    for player_name, state in js.items():
-        player = ic.game.players[player_name]
-        # is it a final state?
-        is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
-        # todo check if we also need to add the check on the state collided
-
-        if state is None or is_final:
-            succ = {None: ps.unit(None)}
-        else:
-            succ = player.dynamics.successors(state, dt)
-        res[player_name] = succ
-    return res
-
-
 def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     """
     Builds a game node from the joint state.
@@ -143,11 +123,11 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     if states in ic.cache:
         return ic.cache[states]
 
-    moves_to_state_everybody = get_moves(ic, states)
+    moves_to_state_everybody = _get_moves(ic, states)
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
-    # ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
+    ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
 
     is_personal_final = {}
     for player_name, player_state in states.items():
@@ -155,10 +135,10 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         if _.personal_reward_structure.is_personal_final_state(player_state):
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_personal_final[player_name] = f
-    who_has_collided = frozenset(ic.game.joint_reward.is_joint_final_states(states))
+    is_jointly_final = frozenset(ic.game.joint_reward.is_joint_final_states(states))
     joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
 
-    players_exiting = set(who_has_collided) | set(is_personal_final)
+    players_exiting = set(is_jointly_final) | set(is_personal_final)
     # Consider only the moves of whom remains
     not_exiting = lambda pn: pn not in players_exiting
     moves_to_state_remaining = fkeyfilter(not_exiting, moves_to_state_everybody)
@@ -235,7 +215,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph(ic, js_)  # fixme it used to be ic2
+                _create_game_graph(ic2, js_)  # fixme it used to be ic2
 
     resources = {}
     for player_name, player_state in states.items():
@@ -252,4 +232,23 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         resources=fd(resources),
     )
     ic.cache[states] = res
+    return res
+
+
+def _get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
+    """Returns the possible moves and the corresponding possible future states."""
+    res = {}
+    state: X
+    # ps = ic.game.ps
+    dt = ic.dt
+    for player_name, state in js.items():
+        player = ic.game.players[player_name]
+        # az not needed
+        # is it a final state?
+        # is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
+        # if state is None or is_final:
+        #     succ = {None: ps.unit(None)}
+        # else:
+        succ = player.dynamics.successors(state, dt)
+        res[player_name] = succ
     return res

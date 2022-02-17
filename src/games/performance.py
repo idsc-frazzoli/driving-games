@@ -15,10 +15,19 @@ class PerformanceStatistics:
     solver_name: str
     """The solver id. Used to retrieve it from the zoo."""
     build_joint_game_tree: float = 0
-    solve_joint_game_tree: float = 0
-    find_factorization: List[float] = field(default_factory=list)
-    build_individual_game_trees: List[float] = field(default_factory=list)
-    solve_individual_game_trees: List[float] = field(default_factory=list)
+    """Time to build the joint game tree."""
+    joint_game_tree_nodes: int = 0
+    """Number of nodes in the joint game tree."""
+    solve_joint_game_graph: float = 0
+    """Time to solve the joint game graph."""
+    factorization_time: float = field(default_factory=list)
+    """Time spent factorizing the game"""
+    build_individual_game_graphs: List[float] = field(default_factory=list)
+    """Time to build the individual game graphs."""
+    solve_individual_game_graphs: List[float] = field(default_factory=list)
+    """Time to solve the individual game graphs."""
+    individual_game_graphs_nodes: List[int] = field(default_factory=list)
+    """Number of nodes in the individual game graphs."""
 
 
 def report_performance_stats(perf_stats: PerformanceStatistics) -> Report:

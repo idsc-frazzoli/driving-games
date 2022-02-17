@@ -89,6 +89,7 @@ def solve_main(
     )
     toc = perf_counter()
     perf_stats.build_joint_game_tree = toc - tic
+    perf_stats.joint_game_tree_nodes = len(gg.state2node)
 
     game_tree = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
@@ -104,7 +105,7 @@ def solve_main(
     tic = perf_counter()
     game_solution = solve_game(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=init_states, compute_res=False)
     toc = perf_counter()
-    perf_stats.solve_joint_game_tree = toc - tic
+    perf_stats.solve_joint_game_graph = toc - tic
 
     controllers0 = {}
     for player_name in gp.game.players:

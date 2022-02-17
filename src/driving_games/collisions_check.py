@@ -53,18 +53,17 @@ def joint_simple_collision_cost(
     joint_costs: Dict[PlayerName, VehicleJointCost] = {
         p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in transitions
     }
-    # if transitions:
-    #     k0 = list(transitions.keys())[0]
-    #     dt = transitions[k0].get_end()
+    # assumes there is at leas one player in transitions and that they are all over the same time span
+    k0 = list(transitions.keys())[0]
+    t1_end, t1_start = transitions[k0].get_end(), transitions[k0].get_start()
+    # we up-sample the transition according to col_dt from the end going backwards
+    n1 = int((t1_end - t1_start) / col_dt)
+    ts = [t1_end - i * col_dt for i in range(n1 + 1)]
+    # but we evaluate them forward in time (for early exit)
+    ts.reverse()
+
     for player1, player2 in combinations(transitions, 2):
         trans1, trans2 = transitions[player1], transitions[player2]
-
-        # we up-sample the transition according to col_dt from the end going backwards
-        t1_end, t1_start = trans1.get_end(), trans1.get_start()
-        n1 = int((t1_end - t1_start) / col_dt)
-        ts = [t1_end - i * col_dt for i in range(n1 + 1)]
-        # but we evaluate them forward in time
-        ts.reverse()
         for t in ts:
             x1, x2 = trans1.at_interp(t), trans2.at_interp(t)
             q1, q2 = _extract_SE2Transform_from_state(x1), _extract_SE2Transform_from_state(x2)
