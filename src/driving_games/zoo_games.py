@@ -47,7 +47,7 @@ s_lane3 = dglane_from_position(np.array([85, 8]), simple_intersection.lanelet_ne
 param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(1),
-    col_check_dt=D("0.51"),
+    col_check_dt=D("1.01"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
     progress={P1: (D(140), D(165)), P2: (D(180), D(200))},
@@ -58,7 +58,7 @@ param_2p = DgSimpleParams(
 param_3p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(1),
-    col_check_dt=D("0.51"),
+    col_check_dt=D("1.01"),
     ref_lanes={P1: s_lane1, P2: s_lane2, P3: s_lane3},
     scenario=simple_intersection,
     progress={P1: (D(140), D(165)), P2: (D(178), D(200)), P3: (D(115), D(140))},
@@ -119,14 +119,14 @@ c_param_6p = DgSimpleParams(
     scenario=complex_intersection,
     progress={
         P1: (D(30), D(60)),
-        P2: (D(10), D(50)),
-        P3: (D(10), D(60)),
+        P2: (D(10), D(40)),
+        P3: (D(10), D(50)),
         P4: (D(30), D(70)),
-        P5: (D(25), D(60)),
-        P6: (D(20), D(60)),
+        P5: (D(25), D(50)),
+        P6: (D(20), D(50)),
     },
     plot_limits=[[-50, 50], [-50, 50]],
-    min_safety_distance=7,
+    min_safety_distance=6,
 )
 
 

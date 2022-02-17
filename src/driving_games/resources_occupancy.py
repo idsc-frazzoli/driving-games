@@ -13,6 +13,7 @@ from dg_commons.maps import DgLanelet
 __all__ = ["ResourcesOccupancy", "CellID"]
 
 CellID = Tuple[int, int]
+CellIdx = int
 
 
 class ResourcesOccupancy:
@@ -22,6 +23,8 @@ class ResourcesOccupancy:
         self.cell_resolution = float(cell_resolution)
         """corresponds to the max/average subdivision of the cells in the rtree"""
         self.strtree: STRtree = self._create_rtree()
+        self._res_idx = None
+        self._res_poly = None
 
     def get_occupied_cells(
         self,
@@ -37,7 +40,9 @@ class ResourcesOccupancy:
             resources.update(lanelet_res)
 
         res_idx, res_poly = zip(*resources.items())
-        srtree = STRtree(geoms=res_poly, items=res_idx, node_capacity=3)
+        self._res_idx = res_idx
+        # avoid using custom items for speed
+        srtree = STRtree(geoms=res_poly, node_capacity=3)
         return srtree
 
     def _subdivide_lanelet_into_polygons(self, lanelet: Lanelet) -> Dict[CellID, Polygon]:
@@ -48,7 +53,7 @@ class ResourcesOccupancy:
 
         def get_left_right_point(along_lane_: float) -> Tuple[np.ndarray, np.ndarray]:
             beta = dg_lanelet.beta_from_along_lane(along_lane_)
-            q = dg_lanelet.center_point(beta)
+            q = dg_lanelet.center_point_fast_SE2Transform(beta).as_SE2()
             r = dg_lanelet.radius(beta)
             delta_left = np.array([0, r])
             delta_right = np.array([0, -r])
@@ -68,6 +73,6 @@ class ResourcesOccupancy:
         return resources
 
 
-def cells_resources_checker(a: FSet[CellID], b: FSet[CellID]) -> bool:
+def cells_resources_checker(a: FSet[CellIdx], b: FSet[CellIdx]) -> bool:
     """Do two future resources intersect?"""
     return bool(a & b)

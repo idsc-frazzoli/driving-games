@@ -72,8 +72,8 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         geometries=geometries,
         ref_lanes=dg_params.ref_lanes,
         col_check_dt=dg_params.col_check_dt,
-        lanelet_network=dg_params.scenario.lanelet_network,
         min_safety_distance=dg_params.min_safety_distance,
+        players_dynamics={p: players[p].dynamics for p in players},  # temp for quick checking of resources
     )
     game_visualization = DrivingGameVisualization(
         dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits

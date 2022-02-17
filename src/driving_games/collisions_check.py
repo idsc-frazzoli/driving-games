@@ -1,37 +1,35 @@
 from functools import lru_cache
 from itertools import combinations
 from math import pi
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Tuple
 
 import numpy as np
-from commonroad.scenario.lanelet import LaneletNetwork
-from geometry import SO2_from_angle, SO2value, T2value, SE2_from_xytheta, SE2value
-from shapely.affinity import affine_transform
+from geometry import SO2_from_angle, SO2value, T2value
 from shapely.geometry import Point, Polygon
 from zuper_commons.types import ZValueError
 
-from dg_commons import apply_SE2_to_shapely_geo, DgSampledSequence, fd, norm_between_SE2value, PlayerName, Timestamp
-from dg_commons.sim import CollisionReportPlayer, IMPACT_BACK, IMPACT_FRONT, IMPACT_LEFT, IMPACT_RIGHT, ImpactLocation
+from dg_commons import DgSampledSequence, PlayerName, Timestamp, SE2Transform
+from dg_commons.sim import IMPACT_BACK, IMPACT_FRONT, IMPACT_LEFT, IMPACT_RIGHT, ImpactLocation
 from dg_commons.sim.collision_utils import (
-    check_who_is_at_fault,
-    compute_impact_geometry,
-    compute_impulse_response,
     get_impact_point_direction,
-    kinetic_energy,
-    rot_velocity_after_collision,
-    velocity_after_collision,
 )
-from dg_commons.sim.models import extract_pose_from_state
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import GameConstants
-from .collisions import SimpleCollision, VehicleJointCost, VehicleSafetyDistCost
+from .collisions import (
+    SimpleCollision,
+    VehicleJointCost,
+    VehicleSafetyDistCost,
+    VehicleJointCostBCollision,
+    BooleanCollision,
+)
+from .resources import apply_SE2transform_to_wkt_poly
 
-__all__ = ["joint_collision_cost_simple"]
+__all__ = ["joint_simple_collision_cost", "joint_boolean_collision_cost"]
 
 
-@lru_cache(maxsize=200000)
-def joint_collision_cost_simple(
+# @lru_cache(maxsize=200000)
+def joint_simple_collision_cost(
     transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
     col_dt: Timestamp,
@@ -55,6 +53,9 @@ def joint_collision_cost_simple(
     joint_costs: Dict[PlayerName, VehicleJointCost] = {
         p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in transitions
     }
+    # if transitions:
+    #     k0 = list(transitions.keys())[0]
+    #     dt = transitions[k0].get_end()
     for player1, player2 in combinations(transitions, 2):
         trans1, trans2 = transitions[player1], transitions[player2]
 
@@ -66,45 +67,109 @@ def joint_collision_cost_simple(
         ts.reverse()
         for t in ts:
             x1, x2 = trans1.at_interp(t), trans2.at_interp(t)
-            q1, q2 = _extract_pose_from_state(x1), _extract_pose_from_state(x2)
-            dist = norm_between_SE2value(q1, q2)
+            q1, q2 = _extract_SE2Transform_from_state(x1), _extract_SE2Transform_from_state(x2)
+            dist = np.linalg.norm(q1.p - q2.p)
             if dist < min_safety_dist:
                 # update cost for safety distance violation
                 tmp_safety_dist_violation = min_safety_dist - dist
                 for p in [player1, player2]:
                     joint_costs[p] += VehicleJointCost(VehicleSafetyDistCost(tmp_safety_dist_violation))
                 # check if there has been an actual physical collision
-                a_shape = geometries[player1].outline_as_polygon
-                b_shape = geometries[player2].outline_as_polygon
-                a_shape_tra: Polygon = apply_SE2_to_shapely_geo(a_shape, q1)
-                b_shape_tra: Polygon = apply_SE2_to_shapely_geo(b_shape, q2)
+                a_shape: str = geometries[player1].outline_as_polygon_wkt
+                b_shape: str = geometries[player2].outline_as_polygon_wkt
+                a_shape_tra: Polygon = apply_SE2transform_to_wkt_poly(a_shape, q1)
+                b_shape_tra: Polygon = apply_SE2transform_to_wkt_poly(b_shape, q2)
 
                 if a_shape_tra.intersects(b_shape_tra):  # collision
-                    # many simplifications here
-                    impact_point = _get_impact_point(a_shape_tra, b_shape_tra)
-                    a_direction = get_impact_point_direction(x1, impact_point)
-                    b_direction = get_impact_point_direction(x2, impact_point)
-
-                    a_vel, b_vel = _approx_velocity(x1), _approx_velocity(x2)
-                    rel_velocity_atP_norm = np.linalg.norm(a_vel - b_vel)
-
-                    a_report = SimpleCollision(
-                        at=t,
-                        at_fault=_simple_check_is_at_fault(a_direction),
-                        rel_impact_direction=a_direction,
-                        impact_rel_speed=rel_velocity_atP_norm,
-                    )
-                    b_report = SimpleCollision(
-                        at=t,
-                        at_fault=_simple_check_is_at_fault(b_direction),
-                        rel_impact_direction=b_direction,
-                        impact_rel_speed=rel_velocity_atP_norm,
-                    )
+                    a_report, b_report = compute_simple_collision_reports(a_shape_tra, b_shape_tra, x1, x2, t)
                     joint_costs[player1] += VehicleJointCost(VehicleSafetyDistCost(0), collision=a_report)
                     joint_costs[player2] += VehicleJointCost(VehicleSafetyDistCost(0), collision=b_report)
                     break
 
-    return fd(joint_costs)
+    return joint_costs
+
+
+def compute_simple_collision_reports(
+    a_shape: Polygon, b_shape: Polygon, x1: VehicleState, x2: VehicleState, t: Timestamp
+) -> Tuple[SimpleCollision, SimpleCollision]:
+    impact_point = _get_impact_point(a_shape, b_shape)
+    a_direction = get_impact_point_direction(x1, impact_point)
+    b_direction = get_impact_point_direction(x2, impact_point)
+
+    a_vel, b_vel = _approx_velocity(x1), _approx_velocity(x2)
+    rel_velocity_atP_norm = np.linalg.norm(a_vel - b_vel)
+
+    a_report = SimpleCollision(
+        at=t,
+        at_fault=_simple_check_is_at_fault(a_direction),
+        rel_impact_direction=a_direction,
+        impact_rel_speed=rel_velocity_atP_norm,
+    )
+    b_report = SimpleCollision(
+        at=t,
+        at_fault=_simple_check_is_at_fault(b_direction),
+        rel_impact_direction=b_direction,
+        impact_rel_speed=rel_velocity_atP_norm,
+    )
+    return a_report, b_report
+
+
+@lru_cache(maxsize=200000)
+def joint_boolean_collision_cost(
+    transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
+    geometries: Mapping[PlayerName, VehicleGeometry],
+    col_dt: Timestamp,
+    min_safety_dist: float,
+) -> Mapping[PlayerName, VehicleJointCostBCollision]:
+    """This is simple version of the collision check."""
+    if GameConstants.checks:
+        if not set(transitions.keys()).issubset(set(geometries.keys())):
+            msg = "Transitions must be a subset of geometries"
+            raise ZValueError(msg, transitions=transitions, geometries=geometries)
+        # check transitions happen at the same
+        for player1, player2 in combinations(transitions, 2):
+            trans1, trans2 = transitions[player1], transitions[player2]
+            t1_end, t1_start = trans1.get_end(), trans1.get_start()
+            t2_end, t2_start = trans2.get_end(), trans2.get_start()
+            if t1_start != t2_start or t1_end != t2_end:
+                msg = "Transitions must have same initial and ending timestamp"
+                raise ZValueError(msg, transitions=transitions)
+
+    # init costs
+    joint_costs: Dict[PlayerName, VehicleJointCostBCollision] = {
+        p: VehicleJointCostBCollision(VehicleSafetyDistCost(0)) for p in transitions
+    }
+    for player1, player2 in combinations(transitions, 2):
+        trans1, trans2 = transitions[player1], transitions[player2]
+
+        # we up-sample the transition according to col_dt from the end going backwards
+        t1_end, t1_start = trans1.get_end(), trans1.get_start()
+        n1 = int((t1_end - t1_start) / col_dt)
+        ts = [t1_end - i * col_dt for i in range(n1 + 1)]
+        # but we evaluate them forward in time
+        ts.reverse()
+        for t in ts:
+            x1, x2 = trans1.at_interp(t), trans2.at_interp(t)
+            q1, q2 = _extract_SE2Transform_from_state(x1), _extract_SE2Transform_from_state(x2)
+            dist = np.linalg.norm(q1.p - q2.p)
+            if dist < min_safety_dist:
+                # update cost for safety distance violation
+                tmp_safety_dist_violation = min_safety_dist - dist
+                for p in [player1, player2]:
+                    joint_costs[p] += VehicleJointCost(VehicleSafetyDistCost(tmp_safety_dist_violation))
+                # check if there has been an actual physical collision
+                a_shape: str = geometries[player1].outline_as_polygon_wkt
+                b_shape: str = geometries[player2].outline_as_polygon_wkt
+                a_shape_tra: Polygon = apply_SE2transform_to_wkt_poly(a_shape, q1)
+                b_shape_tra: Polygon = apply_SE2transform_to_wkt_poly(b_shape, q2)
+
+                if a_shape_tra.intersects(b_shape_tra):  # collision
+                    a_report, b_report = BooleanCollision(at=t, collided=True), BooleanCollision(at=t, collided=True)
+                    joint_costs[player1] += VehicleJointCostBCollision(VehicleSafetyDistCost(0), collision=a_report)
+                    joint_costs[player2] += VehicleJointCostBCollision(VehicleSafetyDistCost(0), collision=b_report)
+                    break
+
+    return joint_costs
 
 
 def _approx_velocity(x: VehicleState) -> T2value:
@@ -116,8 +181,8 @@ def _approx_velocity(x: VehicleState) -> T2value:
 
 
 @lru_cache(maxsize=None)
-def _extract_pose_from_state(state: VehicleState) -> SE2value:
-    pose = SE2_from_xytheta([state.x, state.y, state.theta])
+def _extract_SE2Transform_from_state(state: VehicleState) -> SE2Transform:
+    pose = SE2Transform(p=[state.x, state.y], theta=state.theta)
     return pose
 
 
@@ -159,102 +224,104 @@ def _get_impact_point(a_shape: Polygon, b_shape: Polygon) -> Point:
     return int_shape.centroid
 
 
-def joint_collision_cost(
-    transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
-    geometries: Mapping[PlayerName, VehicleGeometry],
-    col_dt: Timestamp,
-    min_safety_dist: float,
-    lanelet_network: LaneletNetwork,
-) -> Mapping[PlayerName, VehicleJointCost]:
-    """This is a more involved version of the collision cost (Not used at the moment).
-    Computing damages and similar based on more realistic collision resolution"""
-    raise NotImplementedError("This is not used at the moment")
-    if GameConstants.checks:
-        assert set(transitions.keys()) == set(geometries.keys())
-    accidents: Dict[PlayerName, VehicleJointCost] = {}
+#### Deprecated after here
 
-    for player1, player2 in combinations(transitions, 2):
-        trans1, trans2 = transitions[player1], transitions[player2]
-        g1, g2 = geometries[player1], geometries[player2]
-
-        a_shape: Polygon = g1.outline_as_polygon
-        b_shape: Polygon = g2.outline_as_polygon
-
-        # we up-sample the transition according to col_dt from the end going backwards
-        t1_end, t1_start = trans1.get_end(), trans1.get_start()
-        n1 = int((t1_end - t1_start) / col_dt)
-        ts1 = [t1_end - i * col_dt for i in range(n1 + 1)]
-        ts1.reverse()
-        t2_end, t2_start = trans2.get_end(), trans2.get_start()
-        n2 = int((t2_end - t2_start) / col_dt)
-        ts2 = [t2_end - i * col_dt for i in range(n2 + 1)]
-        ts2.reverse()
-        # fixme could assert that all these timestamps are the same and do the above only once outside the
-        #  loop
-
-        for t1, t2 in zip(ts1, ts2):
-            x1, x2 = trans1.at_interp(t1), trans2.at_interp(t2)
-            q1, q2 = extract_pose_from_state(x1), extract_pose_from_state(x2)
-            a_matrix_coeff = q1[0, :2].tolist() + q1[1, :2].tolist() + q1[:2, 2].tolist()
-            a_shape_tra = affine_transform(a_shape, a_matrix_coeff)
-            b_matrix_coeff = q2[0, :2].tolist() + q2[1, :2].tolist() + q2[:2, 2].tolist()
-            b_shape_tra = affine_transform(b_shape, b_matrix_coeff)
-            if a_shape_tra.intersects(b_shape_tra):  # collision
-                # many approximations here,
-                # see `collision_resolution` in the simulator for a proper collision resolution
-                impact_normal, impact_point = compute_impact_geometry(a_shape_tra, b_shape_tra)
-
-                a_loc = [
-                    _locations_from_impact_direction(x1, impact_point),
-                ]
-                b_loc = [
-                    _locations_from_impact_direction(x2, impact_point),
-                ]
-                a_vel, b_vel = _approx_velocity(x1), _approx_velocity(x2)
-                rel_velocity_atP = a_vel - b_vel
-                a_omega, b_omega = 0, 0
-
-                r_ap = np.array(impact_point.coords[0]) - np.array([x1.x, x1.y])
-                r_bp = np.array(impact_point.coords[0]) - np.array([x2.x, x2.y])
-
-                p_at_fault = check_who_is_at_fault(
-                    p_poses={player1: q1, player2: q2}, impact_point=impact_point, lanelet_network=lanelet_network
-                )
-                j_n = compute_impulse_response(
-                    n=impact_normal, vel_ab=rel_velocity_atP, r_ap=r_ap, r_bp=r_bp, a_geom=g1, b_geom=g2
-                )
-                # Apply impulse to models
-                a_vel_after = velocity_after_collision(impact_normal, a_vel, g1.m, j_n)
-                b_vel_after = velocity_after_collision(-impact_normal, b_vel, g2.m, j_n)
-                a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, np.array([0, 0, a_omega]), g1.Iz, j_n)
-                b_omega_after = rot_velocity_after_collision(
-                    r_bp, -impact_normal, np.array([0, 0, b_omega]), g2.Iz, j_n
-                )
-
-                # Log reports
-                a_kenergy_delta = kinetic_energy(a_vel_after, g1.m) - kinetic_energy(a_vel, g1.m)
-                b_kenergy_delta = kinetic_energy(b_vel_after, g2.m) - kinetic_energy(b_vel, g2.m)
-                a_report = CollisionReportPlayer(
-                    locations=list(zip(a_loc, impact_point.buffer(0.5))),
-                    at_fault=p_at_fault[player1],
-                    footprint=a_shape,
-                    velocity=(a_vel, a_omega),
-                    velocity_after=(a_vel_after, a_omega_after),
-                    energy_delta=a_kenergy_delta,
-                )
-                b_report = CollisionReportPlayer(
-                    locations=list(zip(b_loc, impact_point.buffer(0.5))),
-                    at_fault=p_at_fault[player2],
-                    footprint=b_shape,
-                    velocity=(b_vel, b_omega),
-                    velocity_after=(b_vel_after, b_omega_after),
-                    energy_delta=b_kenergy_delta,
-                )
-                # todo combine report for players, what if one players collides with multiple ones in one
-                #  transition?
-                assert player1 not in accidents and player2 not in b_report
-                accidents.update({player1: a_report, player2: b_report})
-                # exit from subtransition checking
-                break
-
-    return accidents
+# def joint_collision_cost(
+#     transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
+#     geometries: Mapping[PlayerName, VehicleGeometry],
+#     col_dt: Timestamp,
+#     min_safety_dist: float,
+#     lanelet_network: LaneletNetwork,
+# ) -> Mapping[PlayerName, VehicleJointCost]:
+#     """This is a more involved version of the collision cost (Not used at the moment).
+#     Computing damages and similar based on more realistic collision resolution"""
+#     raise NotImplementedError("This is not used at the moment")
+#     if GameConstants.checks:
+#         assert set(transitions.keys()) == set(geometries.keys())
+#     accidents: Dict[PlayerName, VehicleJointCost] = {}
+#
+#     for player1, player2 in combinations(transitions, 2):
+#         trans1, trans2 = transitions[player1], transitions[player2]
+#         g1, g2 = geometries[player1], geometries[player2]
+#
+#         a_shape: Polygon = g1.outline_as_polygon
+#         b_shape: Polygon = g2.outline_as_polygon
+#
+#         # we up-sample the transition according to col_dt from the end going backwards
+#         t1_end, t1_start = trans1.get_end(), trans1.get_start()
+#         n1 = int((t1_end - t1_start) / col_dt)
+#         ts1 = [t1_end - i * col_dt for i in range(n1 + 1)]
+#         ts1.reverse()
+#         t2_end, t2_start = trans2.get_end(), trans2.get_start()
+#         n2 = int((t2_end - t2_start) / col_dt)
+#         ts2 = [t2_end - i * col_dt for i in range(n2 + 1)]
+#         ts2.reverse()
+#         # fixme could assert that all these timestamps are the same and do the above only once outside the
+#         #  loop
+#
+#         for t1, t2 in zip(ts1, ts2):
+#             x1, x2 = trans1.at_interp(t1), trans2.at_interp(t2)
+#             q1, q2 = extract_pose_from_state(x1), extract_pose_from_state(x2)
+#             a_matrix_coeff = q1[0, :2].tolist() + q1[1, :2].tolist() + q1[:2, 2].tolist()
+#             a_shape_tra = affine_transform(a_shape, a_matrix_coeff)
+#             b_matrix_coeff = q2[0, :2].tolist() + q2[1, :2].tolist() + q2[:2, 2].tolist()
+#             b_shape_tra = affine_transform(b_shape, b_matrix_coeff)
+#             if a_shape_tra.intersects(b_shape_tra):  # collision
+#                 # many approximations here,
+#                 # see `collision_resolution` in the simulator for a proper collision resolution
+#                 impact_normal, impact_point = compute_impact_geometry(a_shape_tra, b_shape_tra)
+#
+#                 a_loc = [
+#                     _locations_from_impact_direction(x1, impact_point),
+#                 ]
+#                 b_loc = [
+#                     _locations_from_impact_direction(x2, impact_point),
+#                 ]
+#                 a_vel, b_vel = _approx_velocity(x1), _approx_velocity(x2)
+#                 rel_velocity_atP = a_vel - b_vel
+#                 a_omega, b_omega = 0, 0
+#
+#                 r_ap = np.array(impact_point.coords[0]) - np.array([x1.x, x1.y])
+#                 r_bp = np.array(impact_point.coords[0]) - np.array([x2.x, x2.y])
+#
+#                 p_at_fault = check_who_is_at_fault(
+#                     p_poses={player1: q1, player2: q2}, impact_point=impact_point, lanelet_network=lanelet_network
+#                 )
+#                 j_n = compute_impulse_response(
+#                     n=impact_normal, vel_ab=rel_velocity_atP, r_ap=r_ap, r_bp=r_bp, a_geom=g1, b_geom=g2
+#                 )
+#                 # Apply impulse to models
+#                 a_vel_after = velocity_after_collision(impact_normal, a_vel, g1.m, j_n)
+#                 b_vel_after = velocity_after_collision(-impact_normal, b_vel, g2.m, j_n)
+#                 a_omega_after = rot_velocity_after_collision(r_ap, impact_normal, np.array([0, 0, a_omega]), g1.Iz, j_n)
+#                 b_omega_after = rot_velocity_after_collision(
+#                     r_bp, -impact_normal, np.array([0, 0, b_omega]), g2.Iz, j_n
+#                 )
+#
+#                 # Log reports
+#                 a_kenergy_delta = kinetic_energy(a_vel_after, g1.m) - kinetic_energy(a_vel, g1.m)
+#                 b_kenergy_delta = kinetic_energy(b_vel_after, g2.m) - kinetic_energy(b_vel, g2.m)
+#                 a_report = CollisionReportPlayer(
+#                     locations=list(zip(a_loc, impact_point.buffer(0.5))),
+#                     at_fault=p_at_fault[player1],
+#                     footprint=a_shape,
+#                     velocity=(a_vel, a_omega),
+#                     velocity_after=(a_vel_after, a_omega_after),
+#                     energy_delta=a_kenergy_delta,
+#                 )
+#                 b_report = CollisionReportPlayer(
+#                     locations=list(zip(b_loc, impact_point.buffer(0.5))),
+#                     at_fault=p_at_fault[player2],
+#                     footprint=b_shape,
+#                     velocity=(b_vel, b_omega),
+#                     velocity_after=(b_vel_after, b_omega_after),
+#                     energy_delta=b_kenergy_delta,
+#                 )
+#                 # todo combine report for players, what if one players collides with multiple ones in one
+#                 #  transition?
+#                 assert player1 not in accidents and player2 not in b_report
+#                 accidents.update({player1: a_report, player2: b_report})
+#                 # exit from subtransition checking
+#                 break
+#
+#     return accidents

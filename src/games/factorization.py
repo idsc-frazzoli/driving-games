@@ -117,6 +117,8 @@ def find_dependencies(
         p1: PlayerName
         p2: PlayerName
         for p1, p2 in itertools.combinations(resources_used, 2):
+            if interaction_graph.has_edge(p1, p2):
+                continue
             intersects = f_resource_intersection(used_at_i[p1], used_at_i[p2])
             if intersects:
                 interaction_graph.add_edge(p1, p2)

@@ -4,7 +4,7 @@ from itertools import product
 from typing import Dict
 
 from games import FINITE_MIX_STRATEGIES, MIX_MNE, PURE_STRATEGIES, SECURITY_MNE, SolverParams
-from games.factorization_algo import FactAlgoNoFact, FactAlgoReachableRes
+from games.factorization_algo import FactAlgoNoFact, FactAlgoReachableRes, FactAlgoOptimalRes
 from .resources_occupancy import cells_resources_checker
 
 __all__ = ["solvers_zoo"]
@@ -26,7 +26,11 @@ discretization_steps = [
     D(2.0),
     D(1.0),
 ]
-fact_options = [("fact", True, FactAlgoReachableRes), ("naive", False, FactAlgoNoFact)]
+fact_options = [
+    ("naive", False, FactAlgoNoFact),
+    ("fact1", True, FactAlgoReachableRes),
+    ("fact2", True, FactAlgoOptimalRes),
+]
 extra_options = [("extra", True), ("noextra", False)]
 
 options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact_options, extra_options]

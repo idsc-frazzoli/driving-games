@@ -1,6 +1,8 @@
 from decimal import Decimal as D
 from typing import Type
 
+from zuper_typing import debug_print
+
 from games import Combined
 from preferences import (
     COMP_OUTCOMES,
@@ -9,9 +11,8 @@ from preferences import (
     Preference,
     SmallerPreferredTol,
 )
-from zuper_typing import debug_print
-from .collisions import VehicleJointCost
-from .preferences_collision import CollisionPreference
+from .collisions import VehicleJointCost, VehicleJointCostBCollision
+from .preferences_collision import CollisionPreference, BooleanCollisionPreference
 from .structures import VehicleTimeCost
 
 __all__ = ["VehiclePreferencesCollTime"]
@@ -28,10 +29,37 @@ class VehiclePreferencesCollTime(Preference[Combined[VehicleJointCost, VehicleTi
 
     def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
-        return "VehiclePreferencesCollTime: " + debug_print(d)
+        return self.__name__ + ": " + debug_print(d)
 
     def compare(
         self, a: Combined[VehicleJointCost, VehicleTimeCost], b: Combined[VehicleJointCost, VehicleTimeCost]
+    ) -> ComparisonOutcome:
+        ct_a = (a.joint.collision, a.joint.safety_dist_violation.violation, a.personal.duration)
+        ct_b = (b.joint.collision, b.joint.safety_dist_violation.violation, b.personal.duration)
+
+        res = self.lexi.compare(ct_a, ct_b)
+        assert res in COMP_OUTCOMES, (res, self.lexi)
+        # logger.info(ct_a=ct_a, ct_b=ct_b, res=res)
+        return res
+
+
+class VehiclePreferencesBCollTime(Preference[Combined[VehicleJointCostBCollision, VehicleTimeCost]]):
+    def __init__(self):
+        self.collision = BooleanCollisionPreference()
+        self.scalar_pref = SmallerPreferredTol(D(0))
+        self.lexi = LexicographicPreference((self.collision, self.scalar_pref, self.scalar_pref))
+
+    def get_type(self) -> Type[Combined[VehicleJointCostBCollision, D]]:
+        return Combined[VehicleJointCostBCollision, VehicleTimeCost]
+
+    def __repr__(self) -> str:
+        d = {"P": self.get_type(), "lexi": self.lexi}
+        return self.__name__ + ": " + debug_print(d)
+
+    def compare(
+        self,
+        a: Combined[VehicleJointCostBCollision, VehicleTimeCost],
+        b: Combined[VehicleJointCostBCollision, VehicleTimeCost],
     ) -> ComparisonOutcome:
         ct_a = (a.joint.collision, a.joint.safety_dist_violation.violation, a.personal.duration)
         ct_b = (b.joint.collision, b.joint.safety_dist_violation.violation, b.personal.duration)

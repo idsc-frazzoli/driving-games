@@ -130,6 +130,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
 
         return ret
 
+    @lru_cache(None)
     def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[CellID]:
         max_acc_cmds = self._get_max_acc_commands()
         max_future_x = self.successor(x, max_acc_cmds, dt)

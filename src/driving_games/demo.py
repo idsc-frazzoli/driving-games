@@ -1,5 +1,5 @@
 from os.path import join
-from typing import Mapping
+from typing import Mapping, NewType
 
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
@@ -65,9 +65,10 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
         game = game_spec.game
         r_game = report_game_visualization(game)
         r_game.text("description", text=game_spec.desc)
+        r_game.to_html(join(dg, "report_game.html"))
 
         for solver_name, solver_spec in solvers.items():
-            # ds = join(dg, solver_name)
+            ds = join(dg, solver_name)
             r_solver = Report(solver_name)
             solver_params = solver_spec.solver_params
             perf_stats = PerformanceStatistics(game_name=game_name, solver_name=solver_name)
@@ -85,9 +86,8 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
 
             r_perf_stats = report_performance_stats(perf_stats)
             r_solver.add_child(r_perf_stats)
-            # r_perf_stats.to_html(join(ds, "r_perf_stats.html"))
-            r_game.add_child(r_solver)
-        r_game.to_html(join(dg, "report_game.html"))
+            # r_perf_stats.to_html())
+            r_solver.to_html(join(ds, "solutions.html"))
 
 
 dg_demo = DGDemo.get_sys_main()

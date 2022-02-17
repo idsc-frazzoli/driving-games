@@ -2,7 +2,7 @@ from datetime import timedelta
 from time import perf_counter
 
 from driving_games import without_compmake, VehicleTrackState
-from driving_games.collisions_check import joint_collision_cost_simple
+from driving_games.collisions_check import joint_simple_collision_cost
 from driving_games.resources import get_poly_occupancy
 from driving_games.zoo_games import games_zoo
 from driving_games.zoo_solvers import solvers_zoo
@@ -32,6 +32,6 @@ if __name__ == "__main__":
     res = without_compmake(games_sets, solvers_sets)
     toc = timedelta(seconds=perf_counter() - tic)
     logger.info(f"Running all experiment took: {toc}")
-    print(joint_collision_cost_simple.cache_info())
+    print(joint_simple_collision_cost.cache_info())
     print(VehicleTrackState.to_global_pose.cache_info())
     print(get_poly_occupancy.cache_info())

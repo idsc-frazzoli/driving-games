@@ -8,7 +8,21 @@ from games.factorization import find_dependencies
 from games.solve.solution_structures import UsedResources, SolvedGameNode, FactAlgo
 from possibilities import PossibilityMonad
 
-__all__ = ["FactAlgoReachableRes", "FactAlgoNoFact"]
+__all__ = ["FactAlgoReachableRes", "FactAlgoNoFact", "FactAlgoOptimalRes"]
+
+
+class FactAlgoNoFact(FactAlgo):
+    """This is the vanilla implementation that does *not* factorize"""
+
+    def factorize(
+        self,
+        js0: JointState,
+        known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]],
+        ps: PossibilityMonad,
+    ) -> Mapping[PlayerName, JointState]:
+        js1: Dict[PlayerName, JointState]
+        js1 = {k_: js0 for k_ in js0}
+        return fd(js1)
 
 
 class FactAlgoReachableRes(FactAlgo):
@@ -45,8 +59,8 @@ class FactAlgoReachableRes(FactAlgo):
         return fd(fact_states)
 
 
-class FactAlgoNoFact(FactAlgo):
-    """This is the vanilla implementation that does *not* factorize"""
+class FactAlgoOptimalRes(FactAlgo):
+    """Factorize according to the optimal resources"""
 
     def factorize(
         self,
@@ -54,6 +68,26 @@ class FactAlgoNoFact(FactAlgo):
         known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]],
         ps: PossibilityMonad,
     ) -> Mapping[PlayerName, JointState]:
-        js1: Dict[PlayerName, JointState]
-        js1 = {k_: js0 for k_ in js0}
-        return fd(js1)
+        fact_states: Dict[PlayerName, JointState] = {}
+
+        if len(js0) > 1:
+
+            def get_optimal_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
+                pname, state = items
+                alone_js = fd({pname: state})
+                return pname, known[pname][alone_js].optimal_res
+
+            resources_used = itemmap(get_optimal_res, js0)
+            deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
+            deps = find_dependencies(ps, resources_used, self.f_resource_intersection)
+
+            pset: FSet[PlayerName]
+            for pset in deps[frozenset(js0)]:
+                jsf: JointState = fd({p: js0[p] for p in pset})
+                for p in pset:
+                    fact_states[p] = jsf
+            # logger.info(deps=deps, fact_states=fact_states)
+        else:
+            for p in js0:
+                fact_states[p] = js0
+        return fd(fact_states)

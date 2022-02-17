@@ -53,7 +53,8 @@ def create_game_graph(
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
     ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo)
-    # todo ideally one could check if the initial state can be already factorized
+    # todo check if already the initial state can be  factorized
+
     for js in initials:
         _create_game_graph(ic, js)
 
@@ -146,7 +147,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth + 1)
+    # ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
 
     is_personal_final = {}
     for player_name, player_state in states.items():
@@ -208,29 +209,6 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         # here the generalized transition to support factorization
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
             js_continuing = fkeyfilter(not_exiting, js0)
-            # fact_states: Dict[PlayerName, JointState] = {}
-            #
-            # if len(js_continuing) > 1:
-            #
-            #     def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
-            #         pname, state = items
-            #         alone_js = fd({pname: state})
-            #         return pname, ic.known[pname][alone_js].reachable_res
-            #
-            #     resources_used = itemmap(get_reachable_res, js_continuing)
-            #     deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
-            #     deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
-            #
-            #     pset: FSet[PlayerName]
-            #     for pset in deps[frozenset(js_continuing)]:
-            #         jsf: JointState = fd({p: js0[p] for p in pset})
-            #         for p in pset:
-            #             fact_states[p] = jsf
-            #     logger.info(deps=deps, fact_states=fact_states)
-            # else:
-            #     for p in js_continuing:
-            #         fact_states[p] = js0
-            # return fd(fact_states)
             return ic.fact_algo.factorize(js_continuing, ic.known, ps)
 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
@@ -257,7 +235,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph(ic2, js_)
+                _create_game_graph(ic, js_)  # fixme it used to be ic2
 
     resources = {}
     for player_name, player_state in states.items():
@@ -275,29 +253,3 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     )
     ic.cache[states] = res
     return res
-
-
-# def factorize1(js0: JointState, ic: IterationContextFact, ps: PossibilityMonad) -> Mapping[PlayerName, JointState]:
-#     fact_states: Dict[PlayerName, JointState] = {}
-#
-#     if len(js0) > 1:
-#
-#         def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
-#             pname, state = items
-#             alone_js = fd({pname: state})
-#             return pname, ic.known[pname][alone_js].reachable_res
-#
-#         resources_used = itemmap(get_reachable_res, js0)
-#         deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
-#         deps = find_dependencies(ps, resources_used, ic.f_resource_intersection)
-#
-#         pset: FSet[PlayerName]
-#         for pset in deps[frozenset(js0)]:
-#             jsf: JointState = fd({p: js0[p] for p in pset})
-#             for p in pset:
-#                 fact_states[p] = jsf
-#         # logger.info(deps=deps, fact_states=fact_states)
-#     else:
-#         for p in js0:
-#             fact_states[p] = js0
-#     return fd(fact_states)

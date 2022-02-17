@@ -1,14 +1,22 @@
 from dataclasses import dataclass, replace
 from fractions import Fraction
+from functools import cached_property
 from typing import Optional
 
-from dg_commons import Timestamp
 from zuper_commons.types import ZValueError
 
-__all__ = ["SimpleCollision", "VehicleSafetyDistCost", "VehicleJointCost"]
+from dg_commons import Timestamp
+
+__all__ = [
+    "SimpleCollision",
+    "BooleanCollision",
+    "VehicleSafetyDistCost",
+    "VehicleJointCost",
+    "VehicleJointCostBCollision",
+]
 
 
-@dataclass(unsafe_hash=True, frozen=True)
+@dataclass(frozen=True)
 class SimpleCollision:
     at: Timestamp
     """When the collision happened."""
@@ -51,6 +59,44 @@ class SimpleCollision:
     __radd__ = __add__
 
 
+@dataclass(frozen=True)
+class BooleanCollision:
+    at: Timestamp
+    """When the collision happened."""
+    collided: bool
+    """Whether there was a collision or not."""
+
+    # ZZZ: this monoidal structure cna be controversial
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "BooleanCollision":
+        # weighting costs, e.g. according to a probability
+
+        return replace(self, collided=bool(weight) and self.collided)
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "BooleanCollision") -> "BooleanCollision":
+        if other is None:
+            return self
+        elif isinstance(other, BooleanCollision):
+            if self.at < other.at:
+                return self
+            elif self.at > other.at:
+                return other
+            else:
+                # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant.
+                # Monoid?")
+                return replace(  # monoid?
+                    self,
+                    collided=self.collided or other.collided,
+                )
+        else:
+            raise ZValueError("Cannot add a BooleanCollision to a non-BooleanCollision", other=type(other))
+
+    __radd__ = __add__
+
+
 @dataclass(unsafe_hash=True, frozen=True)
 class VehicleSafetyDistCost:
     """Minimum safety distance costs of the vehicle"""
@@ -75,12 +121,6 @@ class VehicleSafetyDistCost:
             raise NotImplementedError
 
     __radd__ = __add__
-
-    # def __neg__(self) -> "VehicleSafetyDistCost":
-    #     return replace(self, distance=-self.distance)
-    #
-    # def __sub__(self, other: "VehicleSafetyDistCost"):
-    #     return self + (-other)
 
 
 @dataclass(unsafe_hash=True, frozen=True)
@@ -107,5 +147,33 @@ class VehicleJointCost:
             )
         else:
             raise ZValueError("Cannot add a VehicleJointCost to a non-VehicleJointCost", other=type(other))
+
+    __radd__ = __add__
+
+
+@dataclass(unsafe_hash=True, frozen=True)
+class VehicleJointCostBCollision:
+    safety_dist_violation: VehicleSafetyDistCost
+    collision: Optional[BooleanCollision] = None
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "VehicleJointCostBCollision":
+        # weighting costs, e.g. according to a probability
+        return replace(
+            self, safety_dist_violation=self.safety_dist_violation * weight, collision=self.collision * weight
+        )
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "VehicleJointCostBCollision") -> "VehicleJointCostBCollision":
+        if isinstance(other, VehicleJointCostBCollision):
+            return replace(
+                self,
+                safety_dist_violation=self.safety_dist_violation + other.safety_dist_violation,
+                collision=self.collision if other.collision is None else self.collision + other.collision,
+            )
+        else:
+            raise ZValueError("Cannot add a VehicleJointCostBCollision to a non-VehicleJointCost", other=type(other))
 
     __radd__ = __add__
