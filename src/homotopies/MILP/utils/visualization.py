@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from matplotlib.axes import Axes
+from matplotlib.animation import FuncAnimation
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from itertools import combinations
@@ -12,7 +14,7 @@ from homotopies.MILP.utils.intersects import traj2path, pose_from_s, get_box, ge
 vehicle_geometry = VehicleGeometry.default_car()
 
 
-def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax, color='b'):
+def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax: Axes, color='b'):
     w = vehicle_geometry.w_half
     path = np.array(traj2path(traj))  # N*2 array
     ax.plot(path[:, 0], path[:, 1], color=color, marker='o', markersize=3, linestyle='-', label=player, zorder=2)
@@ -26,31 +28,54 @@ def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax, co
     ax.legend()
 
 
-def visualize_pose(pose: SE2value, ax):
+def visualize_pose(pose: SE2value, ax: Axes):
     t, theta = translation_angle_from_SE2(pose)
     dx = 3 * np.cos(theta)
     dy = 3 * np.sin(theta)
     ax.arrow(x=t[0], y=t[1], dx=dx, dy=dy, width=.2, color='r', zorder=10)
 
 
-def visualize_intersect_w(intersect: Tuple[float, float], ax):
+def visualize_intersect_from_w(intersect: Tuple[float, float], ax: Axes):
     ax.plot(intersect[0], intersect[1], 'r*')
 
 
-def visualize_intersect_s(traj: DgSampledSequence[SE2value], intersect: float, ax):
+def visualize_intersect_from_s(traj: DgSampledSequence[SE2value], intersect: float, ax: Axes):
     pose = pose_from_s(traj, intersect)
     t, _ = translation_angle_from_SE2(pose)
     ax.plot(t[0], t[1], 'r*')
+
+
+def visualize_trajs_all(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
+                        intersects: Dict[PlayerName, Dict[PlayerName, float]],
+                        ax_traj: Axes,
+                        color: Dict[PlayerName, str]):
+    for player1 in trajs.keys():
+        visualize_traj(trajs[player1], player1, ax_traj, color[player1])
+        for player2 in intersects[player1].keys():
+            visualize_intersect_from_s(trajs[player1], intersects[player1][player2], ax_traj)
+            pose1 = pose_from_s(trajs[player1], intersects[player1][player2])
+            visualize_pose(pose1, ax_traj)
 
 
 def visualize_box_2d(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
                      intersects: Dict[PlayerName, Dict[PlayerName, SE2value]],
                      player1: PlayerName,
                      player2: PlayerName,
-                     ax):
-    center, w_s12, w_s21 = get_box(trajs, intersects, player1, player2)
-    rect = patches.Rectangle((center[0] - w_s12 / 2, center[1] - w_s21 / 2), w_s12, w_s21, linewidth=1, edgecolor='r')
-    ax.add_patch(rect)
+                     ax: Axes,
+                     box_buffer: float = 1.):
+    s_max = get_s_max(trajs)
+    ax.set_xlim(0, s_max[player1])
+    ax.set_ylim(0, s_max[player2])
+    center, w_s12, w_s21 = get_box(trajs, intersects, player1, player2, box_buffer)
+    rect_buffered = patches.Rectangle((center[0] - w_s12 / 2, center[1] - w_s21 / 2), w_s12, w_s21, linewidth=1)
+    ax.add_patch(rect_buffered)
+    w_s12_init = w_s12 / box_buffer
+    w_s21_init = w_s21 / box_buffer
+    rect_init = patches.Rectangle((center[0] - w_s12_init / 2, center[1] - w_s21_init / 2), w_s12_init, w_s21_init,
+                                  linewidth=1, edgecolor='r')
+    ax.add_patch(rect_init)
+    ax.set_xlabel(player1)
+    ax.set_ylabel(player2)
 
 
 def visualize_box_3d(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
@@ -58,7 +83,7 @@ def visualize_box_3d(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
                      player1: PlayerName,
                      player2: PlayerName,
                      player3: PlayerName,
-                     ax):
+                     ax: Axes):
     s_max = get_s_max(trajs)
     x, y, z = np.indices((int(s_max[player1]), int(s_max[player2]), int(s_max[player3])))
     center12, w_s12, w_s21 = get_box(trajs, intersects, player1, player2)
@@ -91,31 +116,11 @@ def visualize_box_3d(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
     ax.plot_surface(x[:, 0, :], (center12[1] + w_s21 / 2), z[:, 0, :], alpha=0.2, color='b')
     ax.plot_surface(x[:, 0, :], (center23[0] - w_s23 / 2), z[:, 0, :], alpha=0.2, color='k')
     ax.plot_surface(x[:, 0, :], (center23[0] + w_s23 / 2), z[:, 0, :], alpha=0.2, color='k')
-    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0])*(center13[1] - w_s31 / 2), alpha=0.2, color='g')
-    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0])*(center13[1] + w_s31 / 2), alpha=0.2, color='g')
-    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0])*(center23[1] - w_s32 / 2), alpha=0.2, color='k')
-    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0])*(center23[1] + w_s32 / 2), alpha=0.2, color='k')
+    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0]) * (center13[1] - w_s31 / 2), alpha=0.2, color='g')
+    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0]) * (center13[1] + w_s31 / 2), alpha=0.2, color='g')
+    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0]) * (center23[1] - w_s32 / 2), alpha=0.2, color='k')
+    ax.plot_surface(x[:, :, 0], y[:, :, 0], np.ones_like(x[:, :, 0]) * (center23[1] + w_s32 / 2), alpha=0.2, color='k')
 
     ax.set_xlabel(player1)
     ax.set_ylabel(player2)
     ax.set_zlabel(player3)
-
-
-def visualize_intersect_all(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
-                            intersects: Dict[PlayerName, Dict[PlayerName, float]],
-                            player1: PlayerName,
-                            player2: PlayerName,
-                            ax_traj,
-                            ax_box):
-    s_max = get_s_max(trajs)
-    ax_box.set_xlim([0, s_max[player1]])
-    ax_box.set_ylim([0, s_max[player2]])
-    visualize_intersect_s(trajs[player1], intersects[player1][player2], ax_traj)
-    visualize_intersect_s(trajs[player2], intersects[player2][player1], ax_traj)
-    pose1 = pose_from_s(trajs[player1], intersects[player1][player2])
-    pose2 = pose_from_s(trajs[player2], intersects[player2][player1])
-    visualize_pose(pose1, ax_traj)
-    visualize_pose(pose2, ax_traj)
-    visualize_box_2d(trajs, intersects, player1, player2, ax_box)
-    ax_box.set_xlabel(player1)
-    ax_box.set_ylabel(player2)

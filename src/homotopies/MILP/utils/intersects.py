@@ -5,6 +5,7 @@ from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.geo import SE2_interpolate, relative_pose
 from geometry import SE2value, translation_angle_from_SE2
 from itertools import combinations
+from homotopies import logger
 
 vehicle_geometry = VehicleGeometry.default_car()
 
@@ -191,6 +192,9 @@ def pose_from_s(traj: DgSampledSequence[SE2value], s: float) -> SE2value:
     temp_s = 0
     idx = 0
     while temp_s < s:
+        if idx >= path.shape[0] - 1:
+            logger.info(f"Vehicle exceeds reference path!")
+            return traj.at(traj.get_end())
         temp_s += np.linalg.norm(path[idx] - path[idx + 1])
         idx += 1
     ratio = (temp_s - s) / np.linalg.norm(path[idx - 1] - path[idx])
@@ -208,22 +212,23 @@ def get_box_size(pose1: SE2value, pose2: SE2value) -> Tuple[float, float]:
     tanth = abs(np.tan(theta_21))
     w1 = vehicle_geometry.width
     w2 = vehicle_geometry.width
-    w_s1 = w1 / tanth + w2 / sinth
-    w_s2 = w2 / tanth + w1 / sinth
+    w_s1 = w1 / tanth + w2 / sinth + vehicle_geometry.length
+    w_s2 = w2 / tanth + w1 / sinth + vehicle_geometry.length
     return w_s1, w_s2
 
 
 def get_box(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
             intersects: Dict[PlayerName, Dict[PlayerName, SE2value]],
             player1: PlayerName,
-            player2: PlayerName) -> Tuple[Tuple[float, float], float, float]:
+            player2: PlayerName,
+            buffer: float = 1) -> Tuple[Tuple[float, float], float, float]:
     """get the center coordinates and widths of the constraint box in s1-s2 frame"""
     s12 = intersects[player1][player2]
     s21 = intersects[player2][player1]
     pose12 = pose_from_s(trajs[player1], s12)
     pose21 = pose_from_s(trajs[player2], s21)
     w_s12, w_s21 = get_box_size(pose12, pose21)
-    return (s12, s21), w_s12, w_s21
+    return (s12, s21), w_s12 * buffer, w_s21 * buffer
 
 
 def compute_path_length(path: List[Tuple[float, float]]) -> float:
