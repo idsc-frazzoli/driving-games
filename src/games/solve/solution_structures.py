@@ -1,24 +1,40 @@
+from abc import abstractmethod, ABC
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, FrozenSet as FSet, Generic, Mapping, NewType, Set, Mapping as M
+from enum import unique, IntEnum
+from typing import (
+    AbstractSet,
+    Callable,
+    Dict,
+    FrozenSet as FSet,
+    Generic,
+    Mapping,
+    Mapping as M,
+    NewType,
+    Optional,
+    Set,
+)
 
 from networkx import MultiDiGraph
 
-from dg_commons import fkeyfilter, iterate_dict_combinations, Timestamp, X, Y, U, RJ, RP, PlayerName
+from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, Timestamp, U, X, Y
 from games.checks import *
+
+# from games.factorization_algo import FactAlgo, FactAlgoNoFact
 from games.game_def import (
+    Combined,
     Game,
     JointMixedActions,
     JointPureActions,
     JointState,
     PlayerOptions,
     SR,
-    Combined,
     UncertainCombined,
 )
+from games.performance import PerformanceStatistics
 from games.simulate import Simulation
-from possibilities import check_poss, Poss
+from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference
 
 __all__ = [
@@ -38,6 +54,9 @@ __all__ = [
     "PURE_STRATEGIES",
     "FINITE_MIX_STRATEGIES",
     "MIX_STRATEGIES",
+    "GameSolution",
+    "GameFactorization",
+    "FactAlgo",
 ]
 
 AdmissibleStrategies = NewType("AdmissableStrategies", str)
@@ -53,7 +72,8 @@ StrategyForMultipleNash = NewType("StrategyForMultipleNash", str)
 """ How to deal with multiple nash equilibria. """
 MIX_MNE = StrategyForMultipleNash("mix_mNE")
 """ Mix all the states/actions in the multiple nash equilibria.
-This can result in off equilibria joint strategy profiles (if the players select different equilibria at game time) """
+This can result in off equilibria joint strategy profiles (if the players select different equilibria at
+game time) """
 SECURITY_MNE = StrategyForMultipleNash("security_mNE")
 """ Use a security policy. """  # fixme, better explanation for this
 BAIL_MNE = StrategyForMultipleNash("bail_mNE")
@@ -72,6 +92,12 @@ class SolverParams:
     """ The delta-t when discretizing. """
     use_factorization: bool
     """ Whether to use the factorization properties to reduce the game graph."""
+    extra: bool
+    """ Whether to compute extra things not strictly necessary, such as networkx graphs."""
+    n_simulations: int
+    """ Number of sampled simulations from solutions. """
+    factorization_algorithm: "FactAlgo"
+    """ The factorization algorithm to use. """
 
 
 @dataclass(frozen=False, unsafe_hash=True, order=True)
@@ -103,14 +129,12 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
 
     incremental: Mapping[JointPureActions, Poss[Mapping[PlayerName, Combined]]]
     """ Incremental cost according to action taken."""
-    # fixme here the Poss comes only from already having taken into account the stochastic transitions?
-    #  check that in build game tree and solutions we do not account for the stochastic dynamics twice
 
     joint_final_rewards: Mapping[PlayerName, RJ]
     """ For the players that terminate here due to "collision", their final rewards. """
 
     resources: Mapping[PlayerName, FSet[SR]]
-    """ Resources used by each player """
+    """ Resources used by each player, for the current stage a bound on the usable resources for the current stage. """
 
     __print_order__ = [
         "states",
@@ -209,7 +233,10 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                         )
                         raise ZValueError(msg, GameNode=self)
                     if player_name in self.joint_final_rewards:
-                        msg = f"The player {player_name!r} is transitioning to a state but it is marked as joint final."
+                        msg = (
+                            f"The player {player_name!r} is transitioning to a state but it is marked as "
+                            f"joint final."
+                        )
                         raise ZValueError(msg, GameNode=self)
 
 
@@ -301,14 +328,14 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
     """ The pre-processed data for each player"""
 
-    game_graph: MultiDiGraph
+    game_graph_nx: MultiDiGraph
     """ A NetworkX graph used only for visualization """
 
     solver_params: SolverParams
     """ The solver parameters. """
 
-    game_factorization: GameFactorization[X]
-    """ The factorization information for the game"""
+    perf_stats: Optional[PerformanceStatistics] = None
+    """ The performance statistics for the pre-processed game"""
 
 
 @dataclass(frozen=True, unsafe_hash=True, order=True)
@@ -342,6 +369,21 @@ class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
     """
 
 
+#
+# def get_reachable_solutions(cache, solved_game) -> ReachablesStates:
+#     pass
+#
+# def get_reachable(cache, game) -> ReachablesStates:
+#     pass
+#
+# def get_resources(rs: ReachablesStates, lookup: Mapping[X, FSet[SR]]) -> UsedResources:
+#     pass
+@unique
+class ResourcesType(IntEnum):
+    OPTIMAL = 0
+    REACHABLE = 1
+
+
 @dataclass(frozen=True, unsafe_hash=True, order=True)
 class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     """A solved game node."""
@@ -355,8 +397,11 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
 
-    ur: UsedResources[X, U, Y, RP, RJ, SR]
-    """ The future used resources. """
+    optimal_res: Optional[UsedResources[X, U, Y, RP, RJ, SR]]
+    """ The future used resources when playing equilibrium. """
+
+    reachable_res: Optional[UsedResources[X, U, Y, RP, RJ, SR]]
+    """ The reachable resources. """
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -374,6 +419,10 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
             if (p not in self.va.game_value) and (p not in str(list(self.va.game_value.keys()))):
                 msg = f"There is no player {p!r} appearing in the game value"
                 raise ZValueError(msg, SolvedGameNode=self)
+        if self.optimal_res is not None and self.reachable_res is not None:
+            check_isinstance(self.optimal_res, UsedResources, SolvedGameNode=self)
+            check_isinstance(self.reachable_res, UsedResources, SolvedGameNode=self)
+            # todo assert that optimal are contained in reachable
 
 
 @dataclass
@@ -398,8 +447,11 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
     solver_params: SolverParams
     """ The solver parameters. """
 
+    compute_res: bool
+    """ Whether to compute the reachable/optimal resources. """
 
-@dataclass
+
+@dataclass(frozen=True)
 class GameSolution(Generic[X, U, Y, RP, RJ, SR]):
     """Solution of a game."""
 
@@ -431,9 +483,28 @@ class SolutionsPlayer(Generic[X, U, Y, RP, RJ, SR]):
     alone_solutions: Mapping[X, GameSolution[X, U, Y, RP, RJ, SR]]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Solutions(Generic[X, U, Y, RP, RJ, SR]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
     game_tree: GameNode[X, U, Y, RP, RJ, SR]
     sims: Mapping[str, Simulation]
+
+
+class FactAlgo(ABC):
+    """Base container class for factorization algorithms."""
+
+    f_resource_intersection: Callable[[FSet[SR], FSet[SR]], bool]
+    """Function to check for intersection of resources"""
+
+    def __init__(self, f_resource_intersection=lambda x, y: bool(x & y)):
+        self.f_resource_intersection = f_resource_intersection
+
+    @abstractmethod
+    def factorize(
+        self,
+        s0: JointState,
+        known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]],
+        ps: PossibilityMonad,
+    ) -> Mapping[PlayerName, JointState]:
+        pass

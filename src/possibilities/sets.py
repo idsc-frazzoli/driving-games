@@ -10,7 +10,7 @@ from .base import PossibilityMonad, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
 
-__all__ = ["PossibilitySet"]
+__all__ = ["PossibilitySet", "SetPoss"]
 
 A = TypeVar("A")
 B = TypeVar("B")

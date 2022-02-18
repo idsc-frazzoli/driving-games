@@ -2,7 +2,7 @@ import math
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet, Dict
+from typing import Dict, FrozenSet
 
 from yaml import safe_load
 
@@ -13,6 +13,7 @@ __all__ = [
     "VehicleActions",
     "VehicleState",
     "TrajectoryParams",
+    "VehicleGeometry",
 ]
 
 

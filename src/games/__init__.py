@@ -6,11 +6,15 @@ from zuper_commons.logs import ZLogger
 logger = ZLogger(__name__)
 logging.getLogger("matplotlib.font_manager").disabled = True
 
+from dg_commons import DgCommonsConstants
+
+DgCommonsConstants.checks = False
+
 
 class GameConstants:
     """Global constants for the program."""
 
-    checks: ClassVar[bool] = False  # True  # False
+    checks: ClassVar[bool] = False  # True
     """
         If true activates extensive checks and assertions.
         Slows down the solving a lot.

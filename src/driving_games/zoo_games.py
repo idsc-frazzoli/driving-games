@@ -13,7 +13,7 @@ from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from dg_commons_dev.utils import get_project_root_dir
 from games import GameSpec, UncertaintyParams
-from possibilities import PossibilitySet, PossibilityDist
+from possibilities import PossibilityDist, PossibilitySet
 from preferences import SetWorstCasePreference
 from preferences.preferences_probability import ProbPrefExpectedValue
 from . import VehicleTrackDynamicsParams
@@ -31,69 +31,123 @@ dyn_p0 = VehicleTrackDynamicsParams(
 
 P1 = PlayerName("P1")
 P2 = PlayerName("P2")
-SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+P3 = PlayerName("P3")
+P4 = PlayerName("P4")
+P5 = PlayerName("P5")
+P6 = PlayerName("P6")
+P7 = PlayerName("P7")
+P8 = PlayerName("P8")
 
-# complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
-# c_lane1 = dglane_from_position(np.array([0, 0]), complex_intersection.lanelet_network)
-# c_lane2 = dglane_from_position(np.array([5, 5]), complex_intersection.lanelet_network)
-# fixme complex intersection needs to be intialized properly
+SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 simple_intersection, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
 s_lane1 = dglane_from_position(np.array([0, 0]), simple_intersection.lanelet_network, succ_lane_selection=1)
 s_lane2 = dglane_from_position(np.array([70, -14]), simple_intersection.lanelet_network, succ_lane_selection=0)
+s_lane3 = dglane_from_position(np.array([85, 8]), simple_intersection.lanelet_network, succ_lane_selection=0)
 
-p0 = DgSimpleParams(
+param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
-    shared_resources_ds=D(0),
-    col_check_dt=D("0.51"),
+    shared_resources_ds=D(1),
+    col_check_dt=D("0.76"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
-    progress={P1: (D(135), D(160)), P2: (D(175), D(190))},
+    progress={P1: (D(140), D(165)), P2: (D(180), D(200))},
     plot_limits=[[40, 100], [-25, 25]],
-    min_safety_distance=4,
+    min_safety_distance=7,
+)
+
+param_3p = replace(
+    param_2p,
+    ref_lanes={P1: s_lane1, P2: s_lane2, P3: s_lane3},
+    progress={P1: (D(140), D(165)), P2: (D(178), D(200)), P3: (D(115), D(140))},
 )
 
 uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=SetWorstCasePreference)
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 
-p_asym = replace(p0, progress={P1: (D(140), D(160)), P2: (D(175), D(190))})
 
-
-def get_sym() -> GameSpec:
+def get_4way_int_2p_sets() -> GameSpec:
     desc = """
-    Simple intersection. (Super) symmetric case. Min v = 1. Set-based uncertainty.
+    Plain 4way intersection. 2 players. Set-based uncertainty.
     """
-    return GameSpec(desc, get_driving_game(p0, uncertainty_sets))
+    return GameSpec(desc, get_driving_game(param_2p, uncertainty_sets))
 
 
-def get_asym() -> GameSpec:
+def get_4way_int_3p_sets() -> GameSpec:
     desc = """
-    Slightly asymmetric case. Min v = 1. Set-based uncertainty.
+    Plain 4way intersection. 3 players. Set-based uncertainty.
     """
-    return GameSpec(desc, get_driving_game(p_asym, uncertainty_sets))
+    return GameSpec(desc, get_driving_game(param_3p, uncertainty_sets))
 
 
-def get_sym_prob() -> GameSpec:
+def get_4way_int_2p_prob() -> GameSpec:
     desc = """
-    Super symmetric case. Min v = 1.
+    Plain 4way intersection. 2 players.
     Probability-based uncertainty (expected value).
     """
-    return GameSpec(desc, get_driving_game(copy(p0), uncertainty_prob))
+    return GameSpec(desc, get_driving_game(copy(param_2p), uncertainty_prob))
 
 
-def get_asym_prob() -> GameSpec:
+def get_4way_int_3p_prob() -> GameSpec:
     desc = """
-    Slightly asymmetric case. Probability-based uncertainty (expected value).
+    Plain 4way intersection. 3 players.
+    Probability-based uncertainty (expected value).
     """
-    return GameSpec(desc, get_driving_game(copy(p_asym), uncertainty_prob))
+    return GameSpec(desc, get_driving_game(copy(param_3p), uncertainty_prob))
+
+
+complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
+
+c_lane1 = dglane_from_position(np.array([-19, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane2 = dglane_from_position(np.array([10, -14]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane3 = dglane_from_position(np.array([15, -10]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane4 = dglane_from_position(np.array([-10, -12]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane5 = dglane_from_position(
+    np.array([-10, -17]), complex_intersection.lanelet_network, init_lane_selection=1, succ_lane_selection=0
+)
+c_lane6 = dglane_from_position(np.array([30, 9]), complex_intersection.lanelet_network, succ_lane_selection=1)
+
+c_param_6p = DgSimpleParams(
+    track_dynamics_param=dyn_p0,
+    shared_resources_ds=D(1),
+    col_check_dt=D("0.51"),
+    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4, P5: c_lane5, P6: c_lane6},
+    scenario=complex_intersection,
+    progress={
+        P1: (D(30), D(60)),
+        P2: (D(10), D(40)),
+        P3: (D(10), D(50)),
+        P4: (D(30), D(70)),
+        P5: (D(25), D(50)),
+        P6: (D(20), D(50)),
+    },
+    plot_limits=[[-50, 50], [-50, 50]],
+    min_safety_distance=6,
+)
+
+
+def get_complex_int_6p_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
+
+
+def get_complex_int_xxp_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
 
 
 driving_games_zoo: Mapping[str, GameSpec] = fd(
     {
-        "sym_v1_sets": get_sym(),
-        "asym_v1_sets": get_asym(),
-        "sym_v1_prob": get_sym_prob(),
-        "asym_v1_prob": get_asym_prob(),
+        "4way_int_2p_sets": get_4way_int_2p_sets(),
+        "4way_int_3p_sets": get_4way_int_3p_sets(),
+        "4way_int_2p_prob": get_4way_int_2p_prob(),
+        "4way_int_3p_prob": get_4way_int_3p_prob(),
+        "complex_int_6p_sets": get_complex_int_6p_sets(),
+        "complex_int_xxp_sets": get_complex_int_xxp_sets(),
     }
 )
 

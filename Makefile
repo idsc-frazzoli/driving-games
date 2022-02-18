@@ -36,6 +36,11 @@ test: clean
 	mkdir -p  $(tr)
 	DISABLE_CONTRACTS=1 nosetests $(extra) $(coverage) src  -v --nologcapture $(xunitmp)
 
+test-310: clean
+	mkdir -p  $(tr)
+	DISABLE_CONTRACTS=1 nose2  src  -v
+
+
 test-docker: clean
 	mkdir -p  $(tr)
 	docker run -it \
@@ -75,6 +80,14 @@ run-with-mounted-src:
 		-v $(PWD)/src:/driving_games/src:ro \
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
+
+run-dg-experiments: build
+	mkdir -p $(out-docker)
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		dg-demo -o /out/result --reset -c "rmake" \
+		--games "4way_int_2p_sets","4way_int_3p_sets" \
+		--solvers "solver-2-pure-security_mNE-naive-noextra","solver-2-pure-security_mNE-fact1-noextra","solver-2-pure-security_mNE-fact2-noextra"
 
 run-posets-exp: build
 	mkdir -p $(out-docker)

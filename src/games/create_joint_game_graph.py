@@ -1,22 +1,24 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Optional, Set, Tuple
+from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple
 
 from networkx import DiGraph, topological_sort
 from toolz import itemmap
-from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
 from dg_commons.utils_toolz import *
 from games import logger
 from games.checks import check_joint_state
+from games.factorization import collapse_states
 from games.game_def import Game, JointPureActions, JointState, SR, Combined
 from games.solve.solution_structures import (
     AccessibilityInfo,
-    GameFactorization,
     GameGraph,
     GameNode,
+    GamePlayerPreprocessed,
+    SolvedGameNode,
+    FactAlgo,
 )
 from possibilities import Poss
 
@@ -33,24 +35,30 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """ Nodes that were already computed. """
     depth: int
     """ The current depth. """
-    gf: Optional[GameFactorization[X]]
-    """ Optional GameFactorization that will be used in the
-        graph creation to recognize decoupled states.
-    """
+    known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
+    """Known preprocessed players"""
+    fact_algo: FactAlgo
+    """Function to check for intersection of resources"""
 
 
 def create_game_graph(
     game: Game[X, U, Y, RP, RJ, SR],
     dt: D,
     initials: AbstractSet[JointState],
-    gf: Optional[GameFactorization[X]],
+    players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
+    fact_algo: FactAlgo,
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
-    """Create the game graph."""
+    """Create the game graph checking for factorization at the same time."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
-    ic = IterationContext(game, dt, state2node, depth=0, gf=gf)
-    logger.info("Creating game tree")
+    known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
+    known = valmap(collapse_states, players_pre)
+    ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo)
+    # todo check if already the initial state can be  factorized
+
     for js in initials:
         _create_game_graph(ic, js)
+
+    logger.info(f"Created game graph with {len(state2node)} game nodes")
 
     # create networkx graph
     G = get_networkx_graph(state2node)
@@ -104,26 +112,6 @@ def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR
     return G
 
 
-def get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
-    """Returns the possible moves and the corresponding possible future states."""
-    res = {}
-    state: X
-    ps = ic.game.ps
-    dt = ic.dt
-    for player_name, state in js.items():
-        player = ic.game.players[player_name]
-        # is it a final state?
-        is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
-        # todo check if we also need to add the check on the state collided
-
-        if state is None or is_final:
-            succ = {None: ps.unit(None)}
-        else:
-            succ = player.dynamics.successors(state, dt)
-        res[player_name] = succ
-    return res
-
-
 def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, U, Y, RP, RJ, SR]:
     """
     Builds a game node from the joint state.
@@ -135,11 +123,11 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     if states in ic.cache:
         return ic.cache[states]
 
-    moves_to_state_everybody = get_moves(ic, states)
+    moves_to_state_everybody = _get_moves(ic, states)
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth + 1)
+    ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
 
     is_personal_final = {}
     for player_name, player_state in states.items():
@@ -147,10 +135,10 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         if _.personal_reward_structure.is_personal_final_state(player_state):
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_personal_final[player_name] = f
-    who_has_collided = frozenset(ic.game.joint_reward.is_joint_final_states(states))
+    is_jointly_final = frozenset(ic.game.joint_reward.is_joint_final_states(states))
     joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
 
-    players_exiting = set(who_has_collided) | set(is_personal_final)
+    players_exiting = set(is_jointly_final) | set(is_personal_final)
     # Consider only the moves of whom remains
     not_exiting = lambda pn: pn not in players_exiting
     moves_to_state_remaining = fkeyfilter(not_exiting, moves_to_state_everybody)
@@ -184,7 +172,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         next_states: Poss[JointState] = ps.build_multiple(selected, f)
 
-        # here compute the joint rewards
+        # here compute the joint rewards (consider the non factorized next_state for the current stage cost)
         def transition_cost(_next_state: JointState) -> Mapping[PlayerName, Combined]:
             transitions = {
                 p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
@@ -198,48 +186,41 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         trans_cost: Poss[Mapping[PlayerName, Combined]] = ps.build(next_states, transition_cost)
         pure_incremental[joint_pure_action] = trans_cost
 
-        # here need to update who has collided (their state in next_states)
+        # here the generalized transition to support factorization
+        def r(js0: JointState) -> Mapping[PlayerName, JointState]:
+            js_continuing = fkeyfilter(not_exiting, js0)
+            return ic.fact_algo.factorize(js_continuing, ic.known, ps)
+
+        pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
+
+        # here need to update who has collided
+        # (their state in next_states)(to be done after factorization)(this breaks generality)
         collided_in_transition = {pn for tc in trans_cost.support() for pn in tc if tc[pn].joint.collision is not None}
         if collided_in_transition:
 
-            def update_states_collided(js: JointState) -> JointState:
-                js_new = dict(js)
-                for pn in collided_in_transition:
-                    js_new[pn] = replace(js[pn], has_collided=True)
+            def update_states_collided(pjs: Mapping[PlayerName, JointState]) -> Mapping[PlayerName, JointState]:
+                def update_js(js: JointState) -> JointState:
+                    js = dict(js)
+                    for pn in js:
+                        if pn in collided_in_transition:
+                            js[pn] = replace(js[pn], has_collided=True)
+                    return fd(js)
+
+                js_new = valmap(update_js, pjs)
                 return fd(js_new)
 
-            next_states = ps.build(next_states, update_states_collided)
+            pnext_states = ps.build(pnext_states, update_states_collided)
 
-        # here the generalized transition to support factorization
-        def r(js0: JointState) -> Mapping[PlayerName, JointState]:
-            if ic.gf is not None:
-                # using game factorization
-                js_continuing = fkeyfilter(not_exiting, js0)
-                if js_continuing not in ic.gf.ipartitions:
-                    msg = "Cannot find the state in the factorization info"
-                    raise ZValueError(msg, js0=js_continuing, known=set(ic.gf.ipartitions))
-                partitions = ic.gf.ipartitions[js_continuing]
-                re = {}
-                for players_in_partition in partitions:
-                    this_partition_state = fkeyfilter(lambda pn: pn in players_in_partition, js_continuing)
-                    for pname in players_in_partition:
-                        re[pname] = this_partition_state
-                return fd(re)
-            else:
-                x = {k_: js0 for k_ in states}
-                return fkeyfilter(not_exiting, x)
-
-        pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
         pure_transitions[pure_action] = pnext_states
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph(ic2, js_)
+                _create_game_graph(ic2, js_)  # fixme it used to be ic2
 
     resources = {}
     for player_name, player_state in states.items():
         dynamics = ic.game.players[player_name].dynamics
-        resources[player_name] = dynamics.get_shared_resources(player_state)
+        resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
 
     res = GameNode(
         states=fd(states),
@@ -251,4 +232,23 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         resources=fd(resources),
     )
     ic.cache[states] = res
+    return res
+
+
+def _get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Mapping[PlayerName, Mapping[U, Poss[X]]]:
+    """Returns the possible moves and the corresponding possible future states."""
+    res = {}
+    state: X
+    # ps = ic.game.ps
+    dt = ic.dt
+    for player_name, state in js.items():
+        player = ic.game.players[player_name]
+        # az not needed
+        # is it a final state?
+        # is_final = player.personal_reward_structure.is_personal_final_state(state) if state else True
+        # if state is None or is_final:
+        #     succ = {None: ps.unit(None)}
+        # else:
+        succ = player.dynamics.successors(state, dt)
+        res[player_name] = succ
     return res

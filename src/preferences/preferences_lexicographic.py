@@ -1,7 +1,6 @@
-from typing import Tuple, Type, Any
+from typing import Any, Tuple, Type
 
 from zuper_typing import debug_print, make_Tuple
-
 from .preferences_base import (
     COMP_OUTCOMES,
     ComparisonOutcome,

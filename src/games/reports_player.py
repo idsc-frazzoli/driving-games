@@ -2,10 +2,10 @@ import logging
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
-from reprep import MIME_GRAPHML, Report
 
-from .game_def import GamePlayer, PlayerName, RJ, RP, U, X, Y, SR
 from games.solve.solution_structures import GamePreprocessed
+from reprep import MIME_GRAPHML, Report
+from .game_def import GamePlayer, PlayerName, RJ, RP, SR, U, X, Y
 
 logging.getLogger("matplotlib.backends.backend_pdf").setLevel(logging.CRITICAL)
 logging.getLogger("matplotlib.animation").setLevel(logging.CRITICAL)
@@ -24,7 +24,7 @@ def report_player(
     G = pp.player_graph
     r = Report(nid=player_name)
 
-    with r.data_file(("player"), mime=MIME_GRAPHML) as fn:
+    with r.data_file("player", mime=MIME_GRAPHML) as fn:
         G2 = convert_node_labels_to_integers(G)
         for (n1, n2, d) in G2.edges(data=True):
             d.clear()

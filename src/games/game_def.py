@@ -4,7 +4,7 @@ from decimal import Decimal as D
 from fractions import Fraction
 from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar
 
-from dg_commons import PlayerName, U, X, RP, RJ, Y, Timestamp, DgSampledSequence
+from dg_commons import DgSampledSequence, PlayerName, RJ, RP, Timestamp, U, X, Y
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
 
@@ -103,7 +103,7 @@ class Dynamics(Generic[X, U, SR], ABC):
         """For each state, returns a dictionary U -> Possible Xs"""
 
     @abstractmethod
-    def get_shared_resources(self, x: X) -> FrozenSet[SR]:
+    def get_shared_resources(self, x: X, dt: D) -> FrozenSet[SR]:
         """Returns the "shared resources" for each state. For example,
         the set of spatio-temporal cells occupied by the agent."""
 

@@ -5,8 +5,8 @@ from typing import FrozenSet, Mapping, Optional, Union
 
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.sim.models.vehicle_ligths import LightsCmd
-from driving_games.structures import VehicleTrackState
 from games import Observations
+from .structures import VehicleTrackState
 
 __all__ = ["NotSeen", "Seen", "VehicleObs", "VehicleDirectObservations"]
 

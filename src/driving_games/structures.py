@@ -1,6 +1,7 @@
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
+from functools import lru_cache
 
 from dg_commons import SE2Transform
 from dg_commons.maps import DgLanelet
@@ -56,12 +57,14 @@ class VehicleTrackState:
     has_collided: bool
     """ Whether the vehicle has collided with something/someone. """
 
-    __print_order__ = ["x", "v"]  # only print these attribute
+    __print_order__ = ["x", "v", "has_collided"]  # only print these attribute
 
-    # todo another candidate for caching
+    @lru_cache(maxsize=None)
     def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
         beta = ref_lane.beta_from_along_lane(float(self.x))
-        return SE2Transform.from_SE2(ref_lane.center_point(beta))
+        # fixme temporary test for speed up
+        # return SE2Transform.from_SE2(ref_lane.center_point(beta))
+        return ref_lane.center_point_fast_SE2Transform(beta)
 
     # support weight multiplication for interpolation
     def __mul__(self, weight: float) -> "VehicleTrackState":

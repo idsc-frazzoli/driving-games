@@ -1,10 +1,9 @@
 from decimal import Decimal as D, localcontext
 
-from zuper_commons.types import check_isinstance
-
 from dg_commons import Timestamp
 from games import PersonalRewardStructure
-from driving_games.structures import VehicleActions, VehicleTimeCost, VehicleTrackState
+from zuper_commons.types import check_isinstance
+from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 
 __all__ = ["VehiclePersonalRewardStructureTime"]
 

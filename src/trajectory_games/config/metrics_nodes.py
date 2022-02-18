@@ -2,11 +2,11 @@ import os
 from typing import Mapping
 
 from yaml import safe_load
-from zuper_commons.types import ZValueError
 
 from driving_games.metrics_structures import Metric
 from trajectory_games import WeightedMetricPreference
 from trajectory_games.config import CONFIG_DIR
+from zuper_commons.types import ZValueError
 
 
 class MetricNodesServer:

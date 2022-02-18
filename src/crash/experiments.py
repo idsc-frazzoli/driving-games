@@ -2,11 +2,11 @@ import os
 from datetime import datetime
 
 from decent_params import DecentParams
-from quickapp import QuickApp, QuickAppContext
 
 from crash.experiment_def import *
 from crash.reports import generate_report
 from dg_commons.sim.simulator import SimContext, Simulator
+from quickapp import QuickApp, QuickAppContext
 
 __all__ = ["CrashingExperiments", "run_crashing_experiments"]
 

@@ -2,14 +2,8 @@ from typing import Dict, Mapping
 
 from frozendict import frozendict
 
-from dg_commons import RJ, RP, Y, U, X, PlayerName
-from games.game_def import (
-    UncertainCombined,
-    SR,
-    Game,
-    MonadicPreferenceBuilder,
-    Combined,
-)
+from dg_commons import PlayerName, RJ, RP, U, X, Y
+from games.game_def import Combined, Game, MonadicPreferenceBuilder, SR, UncertainCombined
 from possibilities import Poss
 from preferences import Preference
 

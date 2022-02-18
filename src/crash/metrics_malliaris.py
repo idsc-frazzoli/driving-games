@@ -1,13 +1,13 @@
 from dataclasses import dataclass
-from enum import unique, IntEnum
+from enum import IntEnum, unique
 from math import pi
-from typing import Tuple, Mapping, Dict
+from typing import Dict, Mapping, Tuple
 
 import numpy as np
 from numpy import deg2rad
 from shapely.geometry import Point
 
-from dg_commons import X, PlayerName
+from dg_commons import PlayerName, X
 from dg_commons.sim import CollisionReport
 from dg_commons.sim.collision_utils import get_impact_point_direction
 from dg_commons.sim.models import ms2mph

@@ -1,18 +1,17 @@
 from copy import deepcopy
 from random import choice
 from time import perf_counter
-from typing import Mapping, Dict, FrozenSet, Set, Tuple, Optional
+from typing import Dict, FrozenSet, Mapping, Optional, Set, Tuple
 
 from frozendict import frozendict
 
-from dg_commons import PlayerName
-from dg_commons import iterate_dict_combinations
+from dg_commons import iterate_dict_combinations, PlayerName
 from dg_commons.planning import JointTrajectories
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
-from preferences import ComparisonOutcome, SECOND_PREFERRED, INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, Preference
-from .game_def import SolvingContext, JointOutcome
+from preferences import ComparisonOutcome, FIRST_PREFERRED, INCOMPARABLE, INDIFFERENT, Preference, SECOND_PREFERRED
+from .game_def import JointOutcome, SolvingContext
 from .paths import Trajectory
-from .trajectory_game import SolvedTrajectoryGameNode, SolvedTrajectoryGame
+from .trajectory_game import SolvedTrajectoryGame, SolvedTrajectoryGameNode
 
 JointTrajSet = Mapping[PlayerName, FrozenSet[Trajectory]]
 EqOutcome = Tuple[Optional[JointTrajectories], Optional[JointOutcome], bool, bool, bool, bool]

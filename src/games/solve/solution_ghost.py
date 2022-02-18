@@ -1,13 +1,11 @@
 from dataclasses import dataclass, replace
 from typing import Dict, Mapping
 
-from zuper_commons.types import ZValueError
-
-from dg_commons import PlayerName, RJ, RP, U, X, Y
-from dg_commons import fd, iterate_dict_combinations, valmap
+from dg_commons import fd, iterate_dict_combinations, PlayerName, RJ, RP, U, valmap, X, Y
 from games import logger
 from games.game_def import AgentBelief, Game, JointPureActions, JointState, SR
 from possibilities import Poss
+from zuper_commons.types import ZValueError
 from .solution_structures import GameGraph, GameNode
 
 
@@ -45,7 +43,8 @@ class ROContext:
     controllers: Mapping[PlayerName, AgentBelief[X, U]]
     """ The controllers of the players playing ahead of the players playing last"""
     follower: PlayerName
-    """ The player tha plays subject to the others. Note that it is not a *follower* in the Stackelberg sense."""
+    """ The player tha plays subject to the others. Note that it is not a *follower* in the Stackelberg
+    sense."""
 
 
 def replace_others(

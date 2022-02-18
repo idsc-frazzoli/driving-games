@@ -1,35 +1,34 @@
 import itertools
 from decimal import Decimal as D
 from time import perf_counter
-from typing import Mapping, Dict, Set, Tuple, List, Optional
+from typing import Dict, List, Mapping, Optional, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
-from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG, MIME_PDF
 from shapely.geometry import Polygon
-from zuper_commons.text import remove_escapes
 
-from dg_commons import PlayerName, Color
+from dg_commons import Color, PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.simulator_animation import adjust_axes_limits
 from preferences import Preference
-from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
+from reprep import MIME_GIF, MIME_JPG, MIME_PDF, MIME_PNG, Report, RepRepDefaults
+from zuper_commons.text import remove_escapes
+from .game_def import Game, GamePlayer, GameVisualization, SolvedGameNode
 from .metrics_def import PlayerOutcome
 from .paths import Trajectory
 from .preference import PosetalPreference
 from .structures import VehicleState
 from .trajectory_game import (
-    SolvedTrajectoryGame,
-    SolvedTrajectoryGameNode,
-    SolvedLeaderFollowerGame,
-    SolvedRecursiveLeaderFollowerGame,
     LeaderFollowerGame,
     LeaderFollowerGameStage,
+    SolvedLeaderFollowerGame,
+    SolvedRecursiveLeaderFollowerGame,
+    SolvedTrajectoryGame,
+    SolvedTrajectoryGameNode,
 )
-from .visualization_dev import TrajGameVisualization
-from .visualization_dev import tone_down_color, ZOrder
+from .visualization import tone_down_color, TrajGameVisualization, ZOrder
 
 EXPORT_PDF = True
 STACK_JPG = False
@@ -79,7 +78,7 @@ def report_states(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
             for node in node_set:
                 for player, action in node.actions.items():
                     texts.append(
-                        f"\t{player}: action={action},\n" f"\t\toutcome={list(node.outcomes[player].values())}"
+                        f"\t{player}: action={action},\n" f"\t\toutcome=" f"{list(node.outcomes[player].values())}"
                     )
                 texts.append("\n")
         text = "\n".join(texts)

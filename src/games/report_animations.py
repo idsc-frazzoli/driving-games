@@ -1,22 +1,22 @@
 from bisect import bisect_right
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 from reprep import MIME_GIF, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
 
-from dg_commons import UndefinedAtTime, PlayerName
+from dg_commons import PlayerName, UndefinedAtTime
 from driving_games import VehicleTrackState
 from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
-from .game_def import JointState, RJ, RP, U, X, Y, SR
+from .game_def import JointState, RJ, RP, SR, U, X, Y
 from .simulate import Simulation
 
 __all__ = ["report_solutions"]
 
 
 def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, U, Y, RP, RJ, SR]):
-    r = Report()
+    r = Report("solutions")
 
     sims = dict(s.sims)
 

@@ -3,24 +3,23 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from functools import partial
 from time import perf_counter
-from typing import Tuple, List, Dict, Callable, Set, Mapping, Hashable
+from typing import Callable, Dict, Hashable, List, Mapping, Set, Tuple
 
-import geometry as geo
 import numpy as np
-from duckietown_world import LanePose
-from duckietown_world import SE2Transform
+from duckietown_world import LanePose, SE2Transform
 from frozendict import frozendict
 
+import geometry as geo
 from dg_commons import PlayerName
 from dg_commons.seq.sequence import Timestamp
 from .metrics_def import (
+    differentiate,
+    EvaluatedMetric,
     Metric,
     MetricEvaluationContext,
-    EvaluatedMetric,
     MetricEvaluationResult,
-    TrajGameOutcome,
     PlayerOutcome,
-    differentiate,
+    TrajGameOutcome,
 )
 from .paths import Trajectory
 from .structures import VehicleGeometry, VehicleState
@@ -158,7 +157,7 @@ class DrivableAreaViolation(Metric):
 class ProgressAlongReference(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = (
-        "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
+        "This metric computes how far the robot drove **along the reference path** (negative for smaller " "preferred)"
     )
     scale: float = 0.2
 
@@ -338,7 +337,7 @@ class Clearance(Metric, metaclass=ABCMeta):
         L: float = 0.0
         for p in players:
             g = context.get_world().get_geometry(p)
-            L += (g.l ** 2 + g.w ** 2) ** 0.5
+            L += (g.l**2 + g.w**2) ** 0.5
         values: List[float] = []
         t1, t2 = list(iter(joint_traj[players[0]])), list(iter(joint_traj[players[1]]))
         len1, len2 = min(len(t1), len(t2)), max(len(t1), len(t2))
@@ -355,7 +354,7 @@ class Clearance(Metric, metaclass=ABCMeta):
             # Coarse check
             dx = state1.x - state2.x
             dy = state1.y - state2.y
-            dist = (dx ** 2 + dy ** 2) ** 0.5
+            dist = (dx**2 + dy**2) ** 0.5
             if self.check_threshold(dist=dist - L, states=states, geos=geos):
                 values.append(0.0)
                 continue
@@ -431,7 +430,7 @@ class CollisionEnergy(Clearance):
         # Calculate values based on relative velocity between both vehicles
         state1, state2 = states
         vel_proj = math.cos(state1.th - state2.th)
-        vel_relsq = state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj
+        vel_relsq = state1.v**2 + state2.v**2 - 2 * state1.v * state2.v * vel_proj
         energy_coll = vel_relsq * self.scale
         return energy_coll
 

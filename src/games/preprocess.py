@@ -1,7 +1,9 @@
 import random
 from collections import defaultdict
 from decimal import Decimal as D
-from typing import Dict, List, Mapping, Set, Optional, NoReturn
+from functools import partial
+from time import perf_counter
+from typing import Dict, List, Mapping, NoReturn, Set
 
 import numpy as np
 from cytoolz import valmap
@@ -9,12 +11,11 @@ from frozendict import frozendict
 from networkx import MultiDiGraph
 from zuper_commons.types import ZException
 
-from dg_commons import DgSampledSequence, PlayerName, X, U, Y, RP, RJ
+from dg_commons import DgSampledSequence, PlayerName, RJ, RP, U, X, Y
 from dg_commons.time import time_function
-from dg_commons.utils_toolz import iterate_dict_combinations
+from dg_commons.utils_toolz import iterate_dict_combinations, fd
 from games import logger
-from games.create_joint_game_tree import create_game_graph
-from games.factorization import get_game_factorization
+from games.create_joint_game_graph import create_game_graph
 from games.game_def import (
     Dynamics,
     Game,
@@ -24,9 +25,9 @@ from games.game_def import (
     SR,
 )
 from games.get_indiv_games import get_individual_games
+from games.performance import PerformanceStatistics
 from games.solve.solution import solve_game
 from games.solve.solution_structures import (
-    GameFactorization,
     GameGraph,
     GamePlayerPreprocessed,
     GamePreprocessed,
@@ -39,8 +40,7 @@ __all__ = ["preprocess_game", "get_reachable_states"]
 
 
 def preprocess_game(
-    game: Game[X, U, Y, RP, RJ, SR],
-    solver_params: SolverParams,
+    game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams, perf_stats: PerformanceStatistics
 ) -> GamePreprocessed[X, U, Y, RP, RJ, SR]:
     """
     1. Preprocesses the game computing the general game graph (MultiDiGraph used for visualisation)
@@ -49,34 +49,46 @@ def preprocess_game(
 
     :param game:
     :param solver_params:
+    :param perf_stats: Object used to collect performance statistics
     :return:
     """
-    game_factorization: Optional[GameFactorization[X]] = None
 
-    game_graph = get_game_graph(game, dt=solver_params.dt)
-    compute_graph_layout(game_graph, iterations=1)
-    individual_games = get_individual_games(game)
-    players_pre = valmap(
-        lambda individual_game: preprocess_player(solver_params=solver_params, individual_game=individual_game),
-        individual_games,
-    )
+    if solver_params.extra:  # for very heavy graphs this slows down a lot
+        game_graph_nx = build_networkx_game_graph(game, dt=solver_params.dt)
+        compute_graph_layout(game_graph_nx, iterations=1)
+    else:
+        game_graph_nx = MultiDiGraph()
+
+    # get the individual game
     if solver_params.use_factorization:
-        game_factorization = get_game_factorization(game, players_pre)
+        individual_games = get_individual_games(game)
+        partial_preprocess_player = partial(preprocess_player, solver_params=solver_params, perf_stats=perf_stats)
+        players_pre = valmap(partial_preprocess_player, individual_games)
+    else:
+        players_pre = fd({})
+
+    # Note this part has been moved to directly factorizing while building the game tree
+    # game_factorization: Optional[GameFactorization[X]] = None
+    # if solver_params.use_factorization:
+    #     f_resource_intersection = solver_params.f_resource_intersection
+    #     tic = perf_counter()
+    #     game_factorization = get_game_factorization(game, players_pre, f_resource_intersection)
+    #     toc = perf_counter()
+    #     perf_stats.find_factorization.append(toc - tic)
 
     gp = GamePreprocessed(
         game=game,
         players_pre=players_pre,
-        game_graph=game_graph,
+        game_graph_nx=game_graph_nx,
         solver_params=solver_params,
-        game_factorization=game_factorization,
+        perf_stats=perf_stats,
     )
 
     return gp
 
 
 def preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR],
-    solver_params: SolverParams,
+    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams, perf_stats: PerformanceStatistics
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # Preprocess a single player by solving their individual games (i.e. optimal control problem)
@@ -88,16 +100,24 @@ def preprocess_player(
     assert len(l) == 1
     player_name = l[0]
     player: GamePlayer = individual_game.players[player_name]
+    # create the NX game graph for the player
     graph = get_player_graph(player, solver_params.dt)
 
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
 
-    game_graph = create_game_graph(individual_game, solver_params.dt, initials, gf=None)
-
+    tic = perf_counter()
+    # create the actual game graph for the player
+    game_graph = create_game_graph(
+        individual_game, solver_params.dt, initials, players_pre=fd({}), fact_algo=solver_params.factorization_algorithm
+    )
+    tic2 = perf_counter()
+    perf_stats.individual_game_graphs_nodes.append(len(game_graph.state2node))
     gs: GameSolution[X, U, Y, RP, RJ, SR]
     gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
-
+    toc = perf_counter()
+    perf_stats.build_individual_game_graphs.append(tic2 - tic)
+    perf_stats.solve_individual_game_graphs.append(toc - tic2)
     return GamePlayerPreprocessed(graph, game_graph, gs)
 
 
@@ -125,10 +145,10 @@ def get_reachable_states(
         G.add_node(node, is_final=False)
 
     stack = list(initial.support())
-    i: int = 0
+    # i: int = 0
     expanded = set()
     while stack:
-        i += 1
+        # i += 1
         s1 = stack.pop(0)
         assert s1 in G.nodes
         if s1 in expanded:
@@ -154,8 +174,10 @@ def get_reachable_states(
 
 
 @time_function
-def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
-    """Gets the game graph, ?used only for visualisation? the real game is built in create_joint_game_tree"""
+def build_networkx_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
+    """Gets the game graph, currently used only for visualisation.
+    Note that the real game is built in create_joint_game_tree.
+    If factorization is used this game graph will differ from the one that is actually solved."""
     players = game.players
     init_states: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), players)
 
@@ -165,9 +187,10 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
     for S in iterate_dict_combinations(init_states):
         G.add_node(
             S,
-            is_final_for=[],
-            is_joint_final=False,
+            is_joint_final_for="",
+            is_pers_final="",
             is_initial=True,
+            is_terminal=False,
             generation=0,
             in_game="-".join(S.keys()),
         )
@@ -184,7 +207,9 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
         S = stack.pop()
         assert S in G.nodes
 
-        players_alive = filter(lambda x: x not in G.nodes[S]["is_final_for"], S)
+        players_alive = filter(
+            lambda x: x not in G.nodes[S]["is_joint_final_for"] and x not in G.nodes[S]["is_pers_final"], S
+        )
         successors: Dict[PlayerName : Mapping[U, Poss[X]]] = {}
         for p in players_alive:
             p_state = S[p]
@@ -197,23 +222,24 @@ def get_game_graph(game: Game[X, U, Y, RP, RJ, SR], dt: D) -> MultiDiGraph:
             players_poss_next = dict(zip(players_n_actions, poss_next))
             for S2 in iterate_dict_combinations(players_poss_next):
                 if S2 not in G.nodes:
-                    ending_players = [
+                    personal_ending = {
                         p for p in S2 if players[p].personal_reward_structure.is_personal_final_state(S2[p])
-                    ]
+                    }
                     transitions = {p: DgSampledSequence[X](timestamps=(D(0), dt), values=(S[p], S2[p])) for p in S2}
                     jointly_ending = game.joint_reward.is_joint_final_transition(transitions)
-                    ending_players.extend(jointly_ending)
-                    is_joint_final = len(jointly_ending) > 0
+                    ending_players = jointly_ending | personal_ending
+                    still_alive: bool = any(p not in ending_players for p in S2)
                     G.add_node(
                         S2,
-                        is_final_for=ending_players,
-                        is_joint_final=is_joint_final,
+                        is_joint_final_for="-".join(jointly_ending),
+                        is_pers_final="-".join(personal_ending),
                         is_initial=False,
+                        is_terminal=not still_alive,
                         generation=generation + 1,
                         in_game="-".join(S2.keys()),
                     )
                     # if anyone is still alive add to stack for further expansion
-                    if any(p not in ending_players for p in S2):
+                    if still_alive:
                         if S2 not in stack:
                             stack.append(S2)
                 G.add_edge(S, S2, action=players_n_actions)

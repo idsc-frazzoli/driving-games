@@ -1,7 +1,6 @@
 from nose.tools import assert_equal
 
 from possibilities import PossibilityMonad, PossibilitySet
-
 from . import logger
 
 
