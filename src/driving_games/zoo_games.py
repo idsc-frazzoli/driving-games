@@ -26,7 +26,6 @@ dyn_p0 = VehicleTrackDynamicsParams(
     available_accels=fs({D(-1), D(0), D(1)}),
     max_wait=D(0),
     lights_commands=fs({NO_LIGHTS}),
-    shared_resources_ds=1.5,
 )
 
 P1 = PlayerName("P1")
@@ -47,7 +46,7 @@ s_lane3 = dglane_from_position(np.array([85, 8]), simple_intersection.lanelet_ne
 
 param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
-    shared_resources_ds=D(1),
+    shared_resources_ds=D("1.5"),
     col_check_dt=D("0.76"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
@@ -96,6 +95,65 @@ def get_4way_int_3p_prob() -> GameSpec:
     return GameSpec(desc, get_driving_game(copy(param_3p), uncertainty_prob))
 
 
+multilane_intersection, _ = load_commonroad_scenario("USA_Lanker-1_1_T-1.xml", SCENARIOS_DIR)
+mint_lane1 = dglane_from_position(np.array([0, 25]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane2 = dglane_from_position(np.array([-8, -2]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane3 = dglane_from_position(np.array([20, 10]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane4 = dglane_from_position(np.array([9, 28]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane5 = dglane_from_position(np.array([-15, 18]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane6 = dglane_from_position(np.array([23, 12]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+
+mint_param_4p = DgSimpleParams(
+    track_dynamics_param=dyn_p0,
+    shared_resources_ds=D(1.5),
+    col_check_dt=D("0.51"),
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4},
+    scenario=multilane_intersection,
+    progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(15), D(40))},
+    # progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(10), D(40))}, # node with no eq among 1,2,3
+    plot_limits=[[-35, 35], [-18, 35]],
+    min_safety_distance=6,
+)
+mint_param_5p = replace(
+    mint_param_4p,
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5},
+    progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(10), D(40)), P5: (D(5), D(40))},
+)
+mint_param_6p = replace(
+    mint_param_4p,
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5, P6: mint_lane6},
+    progress={
+        P1: (D(10), D(35)),
+        P2: (D(5), D(35)),
+        P3: (D(10), D(40)),
+        P4: (D(10), D(40)),
+        P5: (D(5), D(40)),
+        P6: (D(10), D(35)),
+    },
+)
+
+
+def get_multilane_int_4p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_4p, uncertainty_sets))
+
+
+def get_multilane_int_5p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_5p, uncertainty_sets))
+
+
+def get_multilane_int_6p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_6p, uncertainty_sets))
+
+
 complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
 
 c_lane1 = dglane_from_position(np.array([-19, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
@@ -109,7 +167,7 @@ c_lane6 = dglane_from_position(np.array([30, 9]), complex_intersection.lanelet_n
 
 c_param_6p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
-    shared_resources_ds=D(1),
+    shared_resources_ds=D(1.5),
     col_check_dt=D("0.51"),
     ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4, P5: c_lane5, P6: c_lane6},
     scenario=complex_intersection,
@@ -146,6 +204,9 @@ driving_games_zoo: Mapping[str, GameSpec] = fd(
         "4way_int_3p_sets": get_4way_int_3p_sets(),
         "4way_int_2p_prob": get_4way_int_2p_prob(),
         "4way_int_3p_prob": get_4way_int_3p_prob(),
+        "multilane_int_4p_sets": get_multilane_int_4p_sets(),
+        "multilane_int_5p_sets": get_multilane_int_5p_sets(),
+        "multilane_int_6p_sets": get_multilane_int_6p_sets(),
         "complex_int_6p_sets": get_complex_int_6p_sets(),
         "complex_int_xxp_sets": get_complex_int_xxp_sets(),
     }

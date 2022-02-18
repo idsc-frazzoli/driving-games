@@ -1,3 +1,4 @@
+from decimal import Decimal
 from functools import lru_cache
 from itertools import combinations
 from math import pi
@@ -9,13 +10,12 @@ from shapely.geometry import Point, Polygon
 from zuper_commons.types import ZValueError
 
 from dg_commons import DgSampledSequence, PlayerName, Timestamp, SE2Transform
+from dg_commons.maps import DgLanelet
 from dg_commons.sim import IMPACT_BACK, IMPACT_FRONT, IMPACT_LEFT, IMPACT_RIGHT, ImpactLocation
-from dg_commons.sim.collision_utils import (
-    get_impact_point_direction,
-)
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import GameConstants
+from . import VehicleTrackState
 from .collisions import (
     SimpleCollision,
     VehicleJointCost,
@@ -30,8 +30,10 @@ __all__ = ["joint_simple_collision_cost", "joint_boolean_collision_cost"]
 
 # @lru_cache(maxsize=200000)
 def joint_simple_collision_cost(
-    transitions: Mapping[PlayerName, DgSampledSequence[VehicleState]],
+    *,
+    transitions: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]],
     geometries: Mapping[PlayerName, VehicleGeometry],
+    ref_lane: Mapping[PlayerName, DgLanelet],
     col_dt: Timestamp,
     min_safety_dist: float,
 ) -> Mapping[PlayerName, VehicleJointCost]:
@@ -53,20 +55,23 @@ def joint_simple_collision_cost(
     joint_costs: Dict[PlayerName, VehicleJointCost] = {
         p: VehicleJointCost(VehicleSafetyDistCost(0)) for p in transitions
     }
-    # assumes there is at leas one player in transitions and that they are all over the same time span
-    k0 = list(transitions.keys())[0]
-    t1_end, t1_start = transitions[k0].get_end(), transitions[k0].get_start()
-    # we up-sample the transition according to col_dt from the end going backwards
-    n1 = int((t1_end - t1_start) / col_dt)
-    ts = [t1_end - i * col_dt for i in range(n1 + 1)]
-    # but we evaluate them forward in time (for early exit)
-    ts.reverse()
+    # # assumes there is at leas one player in transitions and that they are all over the same time span
+    # k0 = list(transitions.keys())[0]
+    # t1_end, t1_start = transitions[k0].get_end(), transitions[k0].get_start()
+    # # we up-sample the transition according to col_dt from the end going backwards
+    # n1 = int((t1_end - t1_start) / col_dt)
+    # ts = [t1_end - i * col_dt for i in range(n1 + 1)]
+    # # but we evaluate them forward in time (for early exit)
+    # ts.reverse()
 
     for player1, player2 in combinations(transitions, 2):
         trans1, trans2 = transitions[player1], transitions[player2]
-        for t in ts:
-            x1, x2 = trans1.at_interp(t), trans2.at_interp(t)
-            q1, q2 = _extract_SE2Transform_from_state(x1), _extract_SE2Transform_from_state(x2)
+        for t in trans1.timestamps:
+            x1 = trans1.at(t)
+            x2 = trans2.at(t)
+            q1 = x1.to_global_pose(ref_lane=ref_lane[player1])
+            q2 = x2.to_global_pose(ref_lane=ref_lane[player2])
+            # q1, q2 = _extract_SE2Transform_from_state(x1), _extract_SE2Transform_from_state(x2)
             dist = np.linalg.norm(q1.p - q2.p)
             if dist < min_safety_dist:
                 # update cost for safety distance violation
@@ -80,7 +85,9 @@ def joint_simple_collision_cost(
                 b_shape_tra: Polygon = apply_SE2transform_to_wkt_poly(b_shape, q2)
 
                 if a_shape_tra.intersects(b_shape_tra):  # collision
-                    a_report, b_report = compute_simple_collision_reports(a_shape_tra, b_shape_tra, x1, x2, t)
+                    a_report, b_report = compute_simple_collision_reports(
+                        a_shape_tra, b_shape_tra, q1, q2, x1.v, x2.v, t
+                    )
                     joint_costs[player1] += VehicleJointCost(VehicleSafetyDistCost(0), collision=a_report)
                     joint_costs[player2] += VehicleJointCost(VehicleSafetyDistCost(0), collision=b_report)
                     break
@@ -89,24 +96,32 @@ def joint_simple_collision_cost(
 
 
 def compute_simple_collision_reports(
-    a_shape: Polygon, b_shape: Polygon, x1: VehicleState, x2: VehicleState, t: Timestamp
+    a_shape: Polygon,
+    b_shape: Polygon,
+    a_pose: SE2Transform,
+    b_pose: SE2Transform,
+    a_vx: Decimal,
+    b_vx: Decimal,
+    t: Timestamp,
 ) -> Tuple[SimpleCollision, SimpleCollision]:
     impact_point = _get_impact_point(a_shape, b_shape)
-    a_direction = get_impact_point_direction(x1, impact_point)
-    b_direction = get_impact_point_direction(x2, impact_point)
+    a_direction = _get_impact_point_direction(a_pose, impact_point)
+    b_direction = _get_impact_point_direction(b_pose, impact_point)
 
-    a_vel, b_vel = _approx_velocity(x1), _approx_velocity(x2)
+    a_vel, b_vel = _approx_velocity_2(a_pose.theta, float(a_vx)), _approx_velocity_2(b_pose.theta, float(b_vx))
     rel_velocity_atP_norm = np.linalg.norm(a_vel - b_vel)
 
     a_report = SimpleCollision(
         at=t,
         at_fault=_simple_check_is_at_fault(a_direction),
+        # at_fault=True,  # fixme temporary to respect pot game assumption
         rel_impact_direction=a_direction,
         impact_rel_speed=rel_velocity_atP_norm,
     )
     b_report = SimpleCollision(
         at=t,
         at_fault=_simple_check_is_at_fault(b_direction),
+        # at_fault=True,  # fixme temporary to respect pot game assumption
         rel_impact_direction=b_direction,
         impact_rel_speed=rel_velocity_atP_norm,
     )
@@ -171,10 +186,26 @@ def joint_boolean_collision_cost(
     return joint_costs
 
 
+def _get_impact_point_direction(pose: SE2Transform, impact_point: Point) -> float:
+    """returns the impact point angle wrt to the vehicle"""
+    # Direction of Force (DOF) -> vector that goes from car center to impact point
+    abs_angle_dof = np.arctan2(impact_point.y - pose.p[1], impact_point.x - pose.p[0])
+    car_heading: float = pose.theta
+    return abs_angle_dof - car_heading
+
+
 def _approx_velocity(x: VehicleState) -> T2value:
     """This does not take into account lateral velocities"""
     v_l = np.array([x.vx, 0])
     rot: SO2value = SO2_from_angle(x.theta)
+    v_g = rot @ v_l
+    return v_g
+
+
+def _approx_velocity_2(theta: float, vx: float) -> T2value:
+    """This does not take into account lateral velocities"""
+    v_l = np.array([vx, 0])
+    rot: SO2value = SO2_from_angle(theta)
     v_g = rot @ v_l
     return v_g
 

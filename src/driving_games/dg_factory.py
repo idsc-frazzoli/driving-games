@@ -40,6 +40,7 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
             param=dg_params.track_dynamics_param,
             min_safety_distance=D(dg_params.min_safety_distance),
             resources_occupancy=resources_occ,
+            goal_progress=dg_params.progress[p][1],
         )
         p_init_progress = dg_params.progress[p][0]
         p_x = VehicleTrackState(
@@ -76,7 +77,10 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         players_dynamics={p: players[p].dynamics for p in players},  # temp for quick checking of resources
     )
     game_visualization = DrivingGameVisualization(
-        dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits
+        dg_params,
+        geometries=geometries,
+        plot_limits=dg_params.plot_limits,
+        dynamics=fd({p: players[p].dynamics for p in players}),
     )
 
     game: DrivingGame = DrivingGame(

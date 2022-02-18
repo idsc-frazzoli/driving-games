@@ -1,20 +1,23 @@
 from decimal import Decimal as D
-from typing import Mapping, Optional, Sequence, Tuple, Union
+from typing import Mapping, Optional, Sequence, Tuple, Union, FrozenSet
 
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
 
+# from matplotlib import image
+from geometry import translation_angle_from_SE2
+
 from dg_commons import PlayerName, Timestamp
+from dg_commons.maps.shapely_viz import ShapelyViz
 from dg_commons.sim import CollisionReportPlayer
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.simulator_animation import adjust_axes_limits, lights_colors_from_lights_cmd
 from dg_commons.sim.simulator_visualisation import plot_vehicle, ZOrders
 from games import GameVisualization
-
-# from matplotlib import image
-from geometry import translation_angle_from_SE2
+from . import VehicleTrackDynamics
 from .dg_def import DgSimpleParams
+from .resources_occupancy import CellIdx
 from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 from .vehicle_observation import VehicleObs
 
@@ -30,22 +33,24 @@ class DrivingGameVisualization(
         self,
         params: DgSimpleParams,
         geometries: Mapping[PlayerName, VehicleGeometry],
-        ds: D,
-        plot_limits: Union[str, Sequence[Sequence[float]]] = "auto",
+        dynamics: Mapping[PlayerName, VehicleTrackDynamics],
+        plot_limits: Union[str, Sequence[Sequence[float]]] = "auto",  # fixme alre\ady in params
         *args,
         **kwargs
     ):
         self.params: DgSimpleParams = params
-        self.commonroad_renderer: MPRenderer = MPRenderer(*args, **kwargs)
         self.geometries: Mapping[PlayerName, VehicleGeometry] = geometries
-        self.ds: D = ds
+        self.dynamics: Mapping[PlayerName, VehicleTrackDynamics] = dynamics
         self.plot_limits = plot_limits
+        self.commonroad_renderer: MPRenderer = MPRenderer(*args, **kwargs)
         self.pylab = None
+        self._shapely_vis = ShapelyViz()
 
     @contextmanager
     def plot_arena(self, pylab, ax):
         self.pylab = pylab
         self.commonroad_renderer.ax = ax
+        self._shapely_vis.ax = ax
         self.params.scenario.lanelet_network.draw(
             self.commonroad_renderer,
             draw_params={"traffic_light": {"draw_traffic_lights": False}},
@@ -66,6 +71,7 @@ class DrivingGameVisualization(
         state: VehicleTrackState,
         commands: Optional[VehicleActions],
         t: Timestamp,
+        dt: Optional[Timestamp] = None,
         opacity: float = 1.0,
     ):
         """Draw the player at a certain state doing certain commands (if given)"""
@@ -76,15 +82,13 @@ class DrivingGameVisualization(
 
         vg = self.geometries[player_name]
         # todo adjust the resource plotting
-        # resources: FrozenSet[Rectangle]
-        # vcolor = np.array(vg.color) * 0.5 + np.array([0.5, 0.5, 0.5]) * 0.5
-        # resources = get_resources_used(vs=state, vg=vg, ds=self.ds)
-        # for rectangle in resources:
-        #     countour_points = np.array(get_rectangle_countour(rectangle)).T
-        #
-        #     x, y = countour_points[0, :], countour_points[1, :]
-        #
-        #     self.pylab.plot(x, y, "-", linewidth=0.3, color=vcolor)
+        if dt is not None:  # not too nice to have this triggering the res visualisation
+            dyn = self.dynamics[player_name]
+            res: FrozenSet[CellIdx]
+            res = dyn.get_shared_resources(state, dt)
+            for cell in res:
+                poly = dyn.resources_occupancy.get_poly_from_idx(cell)
+                self._shapely_vis.add_shape(poly, zorder=ZOrders.ENV_OBSTACLE, color=vg.color, alpha=0.5)
         acc = 0 if commands is None else float(commands.acc)
         lights_colors = lights_colors_from_lights_cmd(state.light, acc, t)
         plot_vehicle(

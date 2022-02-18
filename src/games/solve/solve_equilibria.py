@@ -33,16 +33,13 @@ def solve_equilibria(
     # logger.info(gn=gn, solved=solved)
     # logger.info(possibilities=list(solved))
     players_active = set(gn.moves)
-    preferences: Dict[PlayerName, Preference[UncertainCombined]]
-    preferences = {k: sc.outcome_preferences[k] for k in players_active}
+    preferences: Mapping[PlayerName, Preference[UncertainCombined]]
+    preferences = fd({k: sc.outcome_preferences[k] for k in players_active})
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
-    # tic = perf_counter()
     ea = analyze_equilibria(
         ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, solver_params=sc.solver_params
     )
-    # toc = perf_counter() - tic
-    # logger.info(f"Time taken to analyze equilibria: {toc:.2f} [s]")
     # logger.info(ea=ea)
     n_nondom_nash_equilibria = len(ea.nondom_nash_equilibria)
     if n_nondom_nash_equilibria == 1:
@@ -130,7 +127,7 @@ def solve_equilibria(
             raise ZNotImplementedError(msg, mNE_strategy=mNE_strategy)
     else:
         msg = "Unable to find Nash Equilibria for the node."
-        raise ZNotImplementedError(msg, ea=ea)
+        raise ZNotImplementedError(msg, states=gn.states, ea=ea)
 
 
 def get_final_joint_value(

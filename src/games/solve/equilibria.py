@@ -2,6 +2,8 @@ import itertools
 from dataclasses import dataclass
 from typing import Dict, FrozenSet, Generic, Mapping, Set
 
+from zuper_commons.types import ZNotImplementedError, ZValueError
+
 from dg_commons import fd, PlayerName, RJ, RP, U, valmap, X, Y
 from games import GameConstants
 from games.checks import check_joint_mixed_actions
@@ -15,7 +17,6 @@ from preferences import (
     remove_dominated,
     StrictProductPreferenceDict,
 )
-from zuper_commons.types import ZNotImplementedError, ZValueError
 from .solution_structures import FINITE_MIX_STRATEGIES, GameNode, MIX_STRATEGIES, PURE_STRATEGIES, SolverParams
 
 __all__ = ["EquilibriaAnalysis", "analyze_equilibria"]
@@ -26,7 +27,7 @@ class PointStats(Generic[X, U, Y, RP, RJ]):
     happy: FrozenSet[PlayerName]
     unhappy: FrozenSet[PlayerName]
     outcome: Mapping[PlayerName, UncertainCombined]
-    alternatives: Mapping[PlayerName, FrozenSet[ComparisonOutcome]]
+    alternatives: Mapping[PlayerName, Mapping[U, ComparisonOutcome]]
 
     def __post_init__(self):
         if not GameConstants.checks:
@@ -41,7 +42,7 @@ class EquilibriaAnalysis(Generic[X, U, Y, RP, RJ]):
     """The non-dominated NE strategy profiles and the corresponding outcome."""
     nash_equilibria: Mapping[JointMixedActions, Mapping[PlayerName, UncertainCombined]]
     """The NE strategy profiles and the corresponding outcome."""
-    ps: Dict[JointMixedActions, PointStats]
+    ps: Mapping[JointMixedActions, PointStats]
 
     def __post_init__(self) -> None:
         if not GameConstants.checks:
@@ -99,7 +100,7 @@ def analyze_equilibria(
     # now we do the product of the mixed strategies, let's order them
     players_ordered = list(player_mixed_strategies)  # only the active ones
     players_strategies = [player_mixed_strategies[_] for _ in players_ordered]
-    all_players = set(gn.states)
+    # all_players = set(gn.states)
     active_players = set(gn.moves)
 
     results: Dict[JointMixedActions, Mapping[PlayerName, UncertainCombined]] = {}
@@ -110,11 +111,10 @@ def analyze_equilibria(
             return y
 
         dist: Poss[JointPureActions] = ps.build_multiple(a=choice, f=f)
-
         mixed_outcome: Poss[Mapping[PlayerName, UncertainCombined]]
         mixed_outcome = ps.build(dist, solved.__getitem__)
         res: Dict[PlayerName, UncertainCombined] = {}
-        for player_name in active_players:  # all of them, not only the active ones
+        for player_name in active_players:  # all of them, not only the active ones ## AZ why?!
 
             def g(_: Mapping[PlayerName, UncertainCombined]) -> UncertainCombined:
                 if player_name not in _:
@@ -135,7 +135,7 @@ def analyze_equilibria(
         results[choice] = fd(res)
         # results[choice] = solved[choice]
     # logger.info(results=results)
-    return analyze(player_mixed_strategies, results, preferences)
+    return analyze(player_mixed_strategies, fd(results), preferences)
 
 
 def analyze(
@@ -150,20 +150,21 @@ def analyze(
     a1: JointMixedActions
     player_names = set(player_mixed_strategies)
     nash_equilibria = {}
-    action_to_change: FrozenSet[U]
+    # this is the "unilateral deviation" of a player
+    action_to_change: Poss[U]
     for a0 in results:
         happy_players = set()
         unhappy_players = set()
-        alternatives = {}
+        alternatives: Dict[PlayerName, Mapping[Poss[U], ComparisonOutcome]] = {}
         for player_name in player_names:
             pref: Preference[UncertainCombined] = preferences[player_name]
             is_happy: bool = True
-            variations_: Mapping[U, JointMixedActions]
+            variations_: Mapping[Poss[U], JointMixedActions]
             variations_ = variations(player_mixed_strategies, a0, player_name)
             alternatives_player = {}
             # logger.info('looking for variations', variations_=variations_)
             for action_to_change, a1 in variations_.items():
-                # zassert(x1 in results, a1=a1, results=set(results))
+                # a1 is the new joint profile given from a0
                 o0: UncertainCombined = results[a0][player_name]
                 o1: UncertainCombined = results[a1][player_name]
                 res = pref.compare(o1, o0)
@@ -199,27 +200,26 @@ def analyze(
         player_mixed_strategies=player_mixed_strategies,
         nondom_nash_equilibria=nondom_nash_equilibria,
         nash_equilibria=nash_equilibria,
-        ps=ps,
+        ps=fd(ps),
     )
 
 
 def variations(
     player_mixed_strategies: Mapping[PlayerName, FrozenSet[Poss[U]]],
-    x0: Mapping[PlayerName, Poss[U]],
+    a0: JointMixedActions,
     player_name: PlayerName,
-) -> Mapping[U, Mapping[PlayerName, Poss[U]]]:
+) -> Mapping[Poss[U], Mapping[PlayerName, Poss[U]]]:
+    """Returns the unilateral deviation in strategy that a player can have with respect to the current one"""
     # check_joint_pure_actions(x0)
     all_mixed_actions: Set[Poss[U]] = set(player_mixed_strategies[player_name])
-    current_action: Poss[U] = x0[player_name]
+    current_action: Poss[U] = a0[player_name]
     assert current_action in all_mixed_actions, (current_action, all_mixed_actions)
     all_mixed_actions.remove(current_action)
 
     # assert len(all_actions) >= 1, c.player2choices[player_name]
-    res = {}
+    res: Dict[Poss[U], Mapping[PlayerName, Poss[U]]] = {}
     for alternative in all_mixed_actions:
-        d = dict(x0)
+        d = dict(a0)
         d[player_name] = alternative
-        _ = fd(d)
-
-        res[alternative] = _
+        res[alternative] = fd(d)
     return fd(res)

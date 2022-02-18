@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 from decimal import Decimal as D, localcontext
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from itertools import product
 from typing import FrozenSet, Mapping, Set
 
@@ -14,7 +14,7 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import Dynamics
 from possibilities import Poss, PossibilityMonad
 from .resources import get_poly_occupancy
-from .resources_occupancy import ResourcesOccupancy, CellID
+from .resources_occupancy import ResourcesOccupancy, CellIdx
 from .structures import VehicleActions, VehicleTrackState
 
 __all__ = ["VehicleTrackDynamicsParams", "VehicleTrackDynamics", "InvalidAction"]
@@ -36,8 +36,6 @@ class VehicleTrackDynamicsParams:
     """ Maximum wait [s] -- maximum duration at v=0. """
     lights_commands: FrozenSet[LightsCmd]
     """ Allowed light commands """
-    shared_resources_ds: float
-    """ Size of the spatial cells to consider as resources [m]"""
 
     def __post_init__(self):
         if not self.min_speed >= 0:
@@ -65,6 +63,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         param: VehicleTrackDynamicsParams,
         min_safety_distance: D,
         resources_occupancy: ResourcesOccupancy,
+        goal_progress: D,
     ):
         self.ref = ref
         self.vg = vg
@@ -72,6 +71,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         self.param = param
         self.min_safety_distance = min_safety_distance
         self.resources_occupancy = resources_occupancy
+        self.goal_progress = goal_progress
 
     @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
@@ -131,16 +131,27 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         return ret
 
     @lru_cache(None)
-    def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[CellID]:
+    def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[CellIdx]:
         max_acc_cmds = self._get_max_acc_commands()
         max_future_x = self.successor(x, max_acc_cmds, dt)
-        max_future_x2 = replace(max_future_x, x=max_future_x.x + self.min_safety_distance)
-        res: Set[CellID] = set()
-        for x in [x, max_future_x, max_future_x2]:
-            poly = get_poly_occupancy(vs=x, vg=self.vg, ref=self.ref)
+        max_progress = min(max_future_x.x + self.min_safety_distance / 2, self.goal_progress)
+        min_progress = x.x  # max(D(0), x.x- self.min_safety_distance/2)
+        n_samples = (max_progress - min_progress) // self.occupancy_length
+        res: Set[CellIdx] = set()
+        for i in range(int(n_samples) + 1):
+            x2 = replace(x, x=min_progress + self.occupancy_length * i)
+            poly = get_poly_occupancy(vs=x2, vg=self.vg, ref=self.ref)
             ids = self.resources_occupancy.strtree.query_items(poly)
+            ids = filter(lambda j: poly.intersects(self.resources_occupancy.strtree._geoms[j]), ids)
             res.update(ids)
         return frozenset(res)
 
     def _get_max_acc_commands(self) -> VehicleActions:
         return VehicleActions(acc=max(self.param.available_accels), light=NO_LIGHTS)
+
+    @cached_property
+    def occupancy_length(self) -> D:
+        with localcontext() as ctx:
+            ctx.prec = 3
+            res = self.resources_occupancy.cell_resolution + D(self.vg.length + sum(self.vg.bumpers_length))
+        return res

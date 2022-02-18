@@ -173,7 +173,7 @@ def create_log_animation(
         with viz.plot_arena(plt, ax):
             for player_name, player_state in interpolated.items():
                 if player_state is not None:
-                    viz.plot_player(player_name, state=player_state, commands=None, t=t)
+                    viz.plot_player(player_name, state=player_state, commands=None, t=t, dt=gp.solver_params.dt)
         ax.set_title(f"t = {t}")
         return []
 

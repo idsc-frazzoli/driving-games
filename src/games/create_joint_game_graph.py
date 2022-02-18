@@ -53,10 +53,13 @@ def create_game_graph(
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
     ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo)
-    # todo check if already the initial state can be  factorized
 
     for js in initials:
-        _create_game_graph(ic, js)
+        # check if already you can factorize the initial state
+        f_initials = set(ic.fact_algo.factorize(js, ic.known, game.ps).values())
+        # logger.info(f"Initial states: {f_initials}")
+        for jsf in f_initials:
+            _create_game_graph(ic, jsf)
 
     logger.info(f"Created game graph with {len(state2node)} game nodes")
 
@@ -168,16 +171,20 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         selected = itemmap(f, pure_action)
 
         def f(a: Mapping[PlayerName, U]) -> JointState:
+            # fixme this is redundant?
             return fkeyfilter(not_exiting, a)
 
         next_states: Poss[JointState] = ps.build_multiple(selected, f)
 
         # here compute the joint rewards (consider the non factorized next_state for the current stage cost)
+        # if two have collided shouldn't they be considered anyway? they don't physically disappear..
         def transition_cost(_next_state: JointState) -> Mapping[PlayerName, Combined]:
-            transitions = {
-                p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
-                for p in _next_state
-            }
+            transitions = fd(
+                {
+                    p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
+                    for p in _next_state
+                }
+            )
             m_pn_rj = ic.game.joint_reward.joint_reward_incremental(transitions)
             return fd(
                 {p: Combined(personal=pers_incremental_cost[p][pure_action[p]], joint=m_pn_rj[p]) for p in _next_state}
@@ -215,7 +222,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph(ic2, js_)  # fixme it used to be ic2
+                _create_game_graph(ic2, js_)
 
     resources = {}
     for player_name, player_state in states.items():
@@ -239,7 +246,6 @@ def _get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Map
     """Returns the possible moves and the corresponding possible future states."""
     res = {}
     state: X
-    # ps = ic.game.ps
     dt = ic.dt
     for player_name, state in js.items():
         player = ic.game.players[player_name]
@@ -249,6 +255,7 @@ def _get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Map
         # if state is None or is_final:
         #     succ = {None: ps.unit(None)}
         # else:
+        # todo maybe here the part on the collided ones?
         succ = player.dynamics.successors(state, dt)
         res[player_name] = succ
     return res

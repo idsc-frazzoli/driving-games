@@ -226,8 +226,6 @@ def _solve_game(
 
         # Note that each player can go in a different joint state.
         next_nodes: Poss[M[PlayerName, JointState]] = gn.transitions[pure_actions]
-        # if len(next_nodes.support()) > 1:
-        #     logger.info("Factorization happening", next_nodes=next_nodes)  # fixme temp
         solved_to_node[pure_actions] = ps.build(next_nodes, u)
         players_dist: Dict[PlayerName, UncertainCombined] = {}
         # Incremental costs incurred if choosing this action
@@ -264,11 +262,11 @@ def _solve_game(
         # All the actives finish
         va = solve_final_for_everyone(sc, gn)
     else:
-        va = solve_equilibria(sc, gn, solved)
+        va = solve_equilibria(sc, gn, fd(solved))
 
-    optr, reachr = (
-        get_used_resources(sc, va=va, gn=gn, solved_to_node=solved_to_node) if sc.compute_res else (None, None)
-    )
+    optr, reachr = None, None
+    if sc.compute_res:
+        optr, reachr = get_used_resources(sc, va=va, gn=gn, solved_to_node=solved_to_node)
 
     try:
         ret = SolvedGameNode(states=js, solved=fd(solved_to_node), va=va, optimal_res=optr, reachable_res=reachr)
@@ -310,7 +308,6 @@ def get_used_resources(
     opt_res: Dict[D, Poss[M[PlayerName, FSet[SR]]]]
     opt_res = {i: usage_current}
     reach_res = {i: usage_current}
-    # todo check that i is not passed by reference
 
     # logger.info(va=va)
     if va.mixed_actions:  # i.e. it's not a terminal node
@@ -319,7 +316,7 @@ def get_used_resources(
         reach_next_states: Poss[M[PlayerName, JointState]]
 
         def f(a: Mapping[JointPureActions, Mapping[PlayerName, JointState]]) -> Poss[Mapping[PlayerName, JointState]]:
-            return ps.lift_many(a.values())  # todo check  (plot resources)
+            return ps.lift_many(a.values())
 
         reach_next_states = ps.join(ps.build_multiple(gn.transitions, f))
 

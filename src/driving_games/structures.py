@@ -62,8 +62,6 @@ class VehicleTrackState:
     @lru_cache(maxsize=None)
     def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
         beta = ref_lane.beta_from_along_lane(float(self.x))
-        # fixme temporary test for speed up
-        # return SE2Transform.from_SE2(ref_lane.center_point(beta))
         return ref_lane.center_point_fast_SE2Transform(beta)
 
     # support weight multiplication for interpolation

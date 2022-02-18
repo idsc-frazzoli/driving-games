@@ -215,6 +215,11 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                 msg = f"Pure action {pure_actions!r} does not have any transition"
                 raise ZValueError(msg, action=pure_actions, GameNode=self)
 
+        # check that the costs are coherent
+        # print("hello")
+        # for pure_actions in iterate_dict_combinations(self.incremental.values()):
+        #    pass
+
     def _check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""
         jpa: JointPureActions
@@ -392,7 +397,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ The joint state for this node. """
 
     solved: M[JointPureActions, Poss[M[PlayerName, JointState]]]
-    """ For each joint action, this is the outcome (where each player goes). """
+    """ For each joint action, this is the transition (where each player goes). """
 
     va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
@@ -422,7 +427,10 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         if self.optimal_res is not None and self.reachable_res is not None:
             check_isinstance(self.optimal_res, UsedResources, SolvedGameNode=self)
             check_isinstance(self.reachable_res, UsedResources, SolvedGameNode=self)
-            # todo assert that optimal are contained in reachable
+            for i in self.optimal_res.used:
+                if i not in self.reachable_res.used:
+                    msg = f"There is no delta time {i!r} appearing in the reachable resources"
+                    raise ZValueError(msg, SolvedGameNode=self)
 
 
 @dataclass

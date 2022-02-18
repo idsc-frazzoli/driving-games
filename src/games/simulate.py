@@ -89,6 +89,7 @@ def simulate1(
             is_final = prs.is_personal_final_state(state_self)
             if is_final:  # no actions for him
                 personal_costs[player_name] = prs.personal_final_reward(state_self)
+                # todo add jointly terminal
                 continue
 
             policy = policies[player_name]

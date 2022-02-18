@@ -225,6 +225,7 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         state: X,
         commands: Optional[U],
         t: Timestamp,
+        dt: Optional[Timestamp] = None,
         opacity: float = 1.0,
     ):
         """Draw the player at a certain state doing certain commands (if given)"""

@@ -5,17 +5,17 @@ from time import perf_counter
 from parameterized import parameterized
 
 from driving_games import VehicleTrackState
-from driving_games.collisions_check import joint_simple_collision_cost
 from driving_games.demo import without_compmake
-from driving_games.resources import get_poly_occupancy
 from driving_games.zoo_games import games_zoo
 from driving_games.zoo_solvers import solvers_zoo
 from driving_games_tests import logger
 
 do_games_sets = [
     # "4way_int_2p_sets",
-    "4way_int_3p_sets",
     # "4way_int_3p_sets",
+    "multilane_int_4p_sets",
+    # "multilane_int_5p_sets",
+    # "multilane_int_6p_sets",
     # "complex_int_6p_sets"
 ]
 do_solvers_sets = [
@@ -40,7 +40,7 @@ def test_games_sets(game_str: str, solver_str: str) -> None:
     res = without_compmake(game, solver)
     # print(joint_simple_collision_cost.cache_info())
     print(VehicleTrackState.to_global_pose.cache_info())
-    print(get_poly_occupancy.cache_info())
+    # print(get_poly_occupancy.cache_info())
 
 
 do_games_prob = ["4way_int_2p_prob", "4way_int_3p_prob"]
