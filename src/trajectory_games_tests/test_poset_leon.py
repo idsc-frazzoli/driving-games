@@ -19,8 +19,8 @@ from trajectory_games.metrics import (
     LateralComfort,
     SteeringAngle,
     SteeringRate,
-    CollisionEnergy,
-    MinimumClearance,
+    CollisionEnergy_old,
+    MinimumClearance_old,
 )
 
 from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
@@ -49,15 +49,15 @@ def test_poset_leon():
     #assert_equal(pref2.compare(p1, p2), INDIFFERENT)
     assert_equal(pref3.compare(p1, p2), INDIFFERENT)
 
-    p2[CollisionEnergy()].total = D("1")
+    p2[CollisionEnergy_old()].total = D("1")
     # CollEn: p1>p2
     assert_equal(pref1.compare(p1, p2), FIRST_PREFERRED)
     #assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
 
-    p2[CollisionEnergy()].total = D("0")
+    p2[CollisionEnergy_old()].total = D("0")
     p1[LateralComfort()].total = D("1")
-    p2[MinimumClearance()].total = D("1")
+    p2[MinimumClearance_old()].total = D("1")
     # MinClear: p1>p2, LatComf: p1<p2
     assert_equal(pref1.compare(p1, p2), INCOMPARABLE)
     #assert_equal(pref2.compare(p1, p2), INDIFFERENT)
@@ -112,16 +112,16 @@ def test_poset_leon():
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
 
-    p2[CollisionEnergy()].total = D("1")
+    p2[CollisionEnergy_old()].total = D("1")
     # LongJerk: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2, Coll: p1>p2
     assert_equal(pref1.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
 
-    p2[MinimumClearance()].total = D("0")
+    p2[MinimumClearance_old()].total = D("0")
     p1[DrivableAreaViolation()].total = D("0")
     p2[DeviationHeading()].total = D("0")
-    p2[CollisionEnergy()].total = D("0")
+    p2[CollisionEnergy_old()].total = D("0")
     # DevLat: p1<p2
     assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)

@@ -17,7 +17,8 @@ from dg_commons.sim.scenarios import DgScenario, load_commonroad_scenario
 from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import MetricEvaluationContext
 from trajectory_games.metrics import EpisodeTime, DeviationLateral, DeviationHeading, DrivableAreaViolation, \
-    ProgressAlongReference, LongitudinalAcceleration, LateralComfort, SteeringAngle, SteeringRate
+    ProgressAlongReference, LongitudinalAcceleration, LateralComfort, SteeringAngle, SteeringRate, Clearance, \
+    MinimumClearance, CollisionEnergy, ClearanceViolationTime
 from trajectory_games.visualization_dev import EvaluationContextVisualization
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 
@@ -57,9 +58,9 @@ class PlayerOffsets:
         if not self.y_offset:
             self.y_offset = [self.y_default_value for _ in range(self.size)]
         if not self.v_offset:
-            self.v_offset = [self.theta_default_value + i * self.acc_default_value for i in range(self.size)]
+            self.v_offset = [self.v_default_value + i * self.acc_default_value for i in range(self.size)]
         if not self.theta_offset:
-            self.theta_offset = [self.v_default_value for _ in range(self.size)]
+            self.theta_offset = [self.theta_default_value for _ in range(self.size)]
         if not self.delta_offset:
             self.delta_offset = [self.delta_default_value + i * self.delta_rate_default_value for i in range(self.size)]
 
@@ -268,7 +269,7 @@ def test_lateral_deviation():
     # P3 had 90-degree angle curve -> offset (-1,-1) and (1,1) should be similar
     assert_greater(deviations_lat_1[P1].value, deviations_lat_2[P1].value)
     assert_greater(deviations_lat_2[P2].value, deviations_lat_1[P2].value)
-    assert_almost_equal(deviations_lat_1[P3].value, deviations_lat_2[P3].value, delta=0.2)
+    assert_almost_equal(deviations_lat_1[P3].value, deviations_lat_2[P3].value, delta=1.0)
 
     # scenario 1 vs scenario 3
     # P1 has vertical trajectory (x approx constant) -> offset in y should not change the metric too much
@@ -393,7 +394,7 @@ def test_heading_deviation():
 
 
 def test_drivable_area_violation():
-    show_plots = True
+    show_plots = False
     area_violation = DrivableAreaViolation()
     evaluation_context = get_default_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
@@ -478,7 +479,7 @@ def test_drivable_area_violation():
 
 
 def test_progress_along_reference():
-    show_plots = False
+    show_plots = True
     progress = ProgressAlongReference()
     evaluation_context = get_default_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
@@ -763,28 +764,184 @@ def test_steering_rate():
 
 
 def test_clearance():
-    # todo
-    return
+    show_plots = False
+    clearance = Clearance()
+    evaluation_context = get_default_evaluation_context()
+    visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+    clearance_0 = clearance.evaluate(context=evaluation_context)
+    logger.info(f"Test clearance results:")
+    logger.info(f"No Offset.")
+    logger.info(f"Clearance: {clearance_0}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 0
+    assert_greater(clearance_0[P1].value, 0)
+    assert_greater(clearance_0[P2].value, 0)
+    assert_greater(clearance_0[P3].value, 0)
+
+    logger.info(f"Test clearance finished.")
 
 
 def test_collision_energy():
-    # todo
-    return
+    show_plots = False
+    coll_energy = CollisionEnergy()
+    evaluation_context = get_default_evaluation_context()
+    visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+    coll_energy_0 = coll_energy.evaluate(context=evaluation_context)
+    logger.info(f"Test collision energy results:")
+    logger.info(f"No Offset.")
+    logger.info(f"Collision Energy: {coll_energy_0}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 0: velocity is zero so collision energy should be zero
+    assert_almost_equal(coll_energy_0[P1].value, 0)
+    assert_almost_equal(coll_energy_0[P2].value, 0)
+    assert_almost_equal(coll_energy_0[P3].value, 0)
+
+    joint_player_offsets_1 = {
+        P1: PlayerOffsets(size=size_p1_trajectory, v_default_value=2.0),
+        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0),
+        P3: PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0),
+    }
+
+    evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
+    visualize_evaluation_context(context=evaluation_context_1, show_plot=show_plots)
+    coll_energy_1 = coll_energy.evaluate(context=evaluation_context_1)
+    logger.info(f"Test collision energy results:")
+    logger.info(joint_player_offsets_1)
+    logger.info(f"Collision Energy: {coll_energy_1}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 1 vs scenario 0
+    # in scenario 1, velocity is greater and therefore collision energy should be greater than zero,
+    # since in this scenario there is a collision taking place.
+    # P3 should not have any collision
+    assert_greater(coll_energy_1[P1].value, coll_energy_0[P1].value)
+    assert_greater(coll_energy_1[P2].value, coll_energy_0[P2].value)
+    assert_almost_equal(coll_energy_0[P3].value, 0)
+    # check that cost is symmetric
+    assert_almost_equal(coll_energy_1[P1].value, coll_energy_1[P2].value)
+
+    joint_player_offsets_2 = {
+        P1: PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0, v_default_value=2.0),
+        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0),
+        P3: PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0),
+    }
+
+    evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
+    visualize_evaluation_context(context=evaluation_context_2, show_plot=show_plots)
+    coll_energy_2 = coll_energy.evaluate(context=evaluation_context_2)
+    logger.info(f"Test collision energy results:")
+    logger.info(joint_player_offsets_2)
+    logger.info(f"Collision Energy: {coll_energy_2}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 2
+    # by shifting the trajectory of P1 in y direction, there should be no more collision.
+    assert_almost_equal(coll_energy_0[P1].value, 0)
+    assert_almost_equal(coll_energy_0[P2].value, 0)
+    assert_almost_equal(coll_energy_0[P3].value, 0)
+
+    logger.info(f"Test collision finished.")
 
 
 def test_minimum_clearance():
-    # todo
-    return
+    show_plots = False
+    min_clearance = MinimumClearance()
+    evaluation_context = get_default_evaluation_context()
+    visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+    min_clearance_0 = min_clearance.evaluate(context=evaluation_context)
+    logger.info(f"Test minimum clearance results:")
+    logger.info(f"No Offset.")
+    logger.info(f"Minimum clearance: {min_clearance_0}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 0: clearance is always greater than 0
+    assert_greater(min_clearance_0[P1].value, 0)
+    assert_greater(min_clearance_0[P2].value, 0)
+    assert_greater(min_clearance_0[P3].value, 0)
+
+    min_clearance_new = MinimumClearance()
+    min_clearance_new.min_clearance = 3.0
+    min_clearance_1 = min_clearance_new.evaluate(context=evaluation_context)
+    logger.info(f"Test minimum clearance results:")
+    logger.info(f"No Offset, but new minimum clearance threshold: {3.0}")
+    logger.info(f"Minimum Clearance: {min_clearance_1}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 1 vs scenario 0: decreasing clearance threshold from 10.0 (default) to 5.0 should decrease metric
+    assert_greater(min_clearance_0[P1].value, min_clearance_1[P1].value)
+    assert_greater(min_clearance_0[P2].value, min_clearance_1[P2].value)
+    assert_greater(min_clearance_0[P3].value, min_clearance_1[P3].value)
+
+    joint_player_offsets_1 = {
+        P1: PlayerOffsets(size=size_p1_trajectory),
+        P2: PlayerOffsets(size=size_p2_trajectory),
+        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=5.0),
+    }
+
+    evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
+    visualize_evaluation_context(context=evaluation_context_1, show_plot=show_plots)
+    min_clearance_2 = min_clearance_new.evaluate(context=evaluation_context_1)
+    logger.info(f"Test minimum clearance results:")
+    logger.info(joint_player_offsets_1)
+    logger.info(f"Minimum clearance: {min_clearance_2}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 2 vs scenario 1: shifting trajectory of P3 in positive x direction should increase clearance violation
+    assert_greater(min_clearance_2[P3].value, min_clearance_1[P3].value)
+    assert_greater(min_clearance_2[P1].value, min_clearance_1[P1].value)
+
+
+def test_clearance_time_violation():
+    show_plots = False
+    clear_viol_time = ClearanceViolationTime()
+    evaluation_context = get_default_evaluation_context()
+    visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+    viol_time_0 = clear_viol_time.evaluate(context=evaluation_context)
+    logger.info(f"Test clearance violation time results:")
+    logger.info(f"No Offset.")
+    logger.info(f"Minimum Clearance Violation Time: {viol_time_0}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 0: check that all metrics are greater than 0
+    assert_greater(viol_time_0[P1].value, 0)
+    assert_greater(viol_time_0[P2].value, 0)
+    assert_greater(viol_time_0[P3].value, 0)
+
+    joint_player_offsets_1 = {
+        P1: PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0),
+        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=5.0),
+        P3: PlayerOffsets(size=size_p3_trajectory, y_default_value=5.0),
+    }
+
+    evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
+    visualize_evaluation_context(context=evaluation_context_1, show_plot=show_plots)
+    viol_time_1 = clear_viol_time.evaluate(context=evaluation_context_1)
+    logger.info(f"Test clearance violation time results:")
+    logger.info(joint_player_offsets_1)
+    logger.info(f"Minimum Clearance Violation Time: {viol_time_1}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 1 vs scenario 0: moving red trajectory out of the way
+    # should decrease violation times for the other trajectories
+    assert_almost_equal(viol_time_1[P1].value, 0)
+    assert_greater(viol_time_0[P2].value, viol_time_1[P2].value)
+    assert_greater(viol_time_0[P3].value, viol_time_1[P3].value)
 
 
 if __name__ == "__main__":
     matplotlib.use('TkAgg')
-    #test_times()
-    #test_lateral_deviation()
-    #test_heading_deviation()
-    test_drivable_area_violation()
-    # test_progress_along_reference()
+    """test_times()
+    test_lateral_deviation()
+    test_heading_deviation()
+    test_drivable_area_violation()"""
+    #test_progress_along_reference()
     #test_longitudinal_acceleration()
     #test_lateral_comfort()
     #test_steering_angle()
     #test_steering_rate()
+    test_clearance()
+    test_collision_energy()
+    test_minimum_clearance()
+    test_clearance_time_violation()

@@ -19,8 +19,8 @@ from trajectory_games.metrics import (
     LongitudinalAcceleration,
     LateralComfort,
     SteeringAngle,
-    CollisionEnergy,
-    MinimumClearance,
+    CollisionEnergy_old,
+    MinimumClearance_old,
 )
 
 
@@ -57,7 +57,7 @@ def test_poset():
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
 
-    p2[MinimumClearance()].value = D("1")
+    p2[MinimumClearance_old()].value = D("1")
     # LongAcc: p1>p2, LatComf: p1<p2, LongJerk: p1>p2
     assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref2.compare(p1, p2), INCOMPARABLE)
@@ -95,16 +95,16 @@ def test_poset():
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
 
-    p2[CollisionEnergy()].value = D("1")
+    p2[CollisionEnergy_old()].value = D("1")
     # LongJerk: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2, Coll: p1>p2
     assert_equal(pref1.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
 
-    p2[MinimumClearance()].value = D("0")
+    p2[MinimumClearance_old()].value = D("0")
     p1[DrivableAreaViolation()].value = D("0")
     p2[DeviationHeading()].value = D("0")
-    p2[CollisionEnergy()].value = D("0")
+    p2[CollisionEnergy_old()].value = D("0")
     # DevLat: p1<p2
     assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
     assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)

@@ -14,7 +14,7 @@ from driving_games.metrics_structures import EvaluatedMetric, Metric
 from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
-from .metrics import Clearance
+from .metrics import Clearance_old
 from .metrics_def import PlayerOutcome
 from .paths import Trajectory
 from .solve import get_best_responses
@@ -307,7 +307,7 @@ def solve_recursive_game(game: LeaderFollowerGame) -> SolvedRecursiveLeaderFollo
                         if Trajectory.trim_trajectory(states=states_p, goal=goal):
                             done = True
                 states[pname] = state
-        if Clearance.get_clearance(players=clearance_dict) < 1e-3:
+        if Clearance_old.get_clearance(players=clearance_dict) < 1e-3:
             print(f"\n\nCollision detected !!! Stopping")
             break
         if done:

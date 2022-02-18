@@ -37,15 +37,6 @@ class EvaluationContextVisualization:
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
         self.joint_trajectories: Optional[Mapping[PlayerName, Trajectory]] = evaluation_context.trajectories
 
-    @contextmanager
-    def plot_arena_next(self, axis: Axes = None):
-        self.commonroad_renderer.ax = axis
-        self.commonroad_renderer.f = axis.figure
-        self.evaluation_context.dgscenario.scenario.draw(self.commonroad_renderer)
-        self.commonroad_renderer.render()
-        plt.show()
-        yield
-
     def plot_arena(self, draw_labels: bool, axis: Axes = None):
         self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = False
         self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
