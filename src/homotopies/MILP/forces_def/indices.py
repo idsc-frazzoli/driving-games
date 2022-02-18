@@ -36,7 +36,6 @@ class IdxInputC(IntEnum):
 @unique
 class IdxState(IntEnum):
     S = 1
-    """x-position in world frame"""
     dS = 2
 
 
