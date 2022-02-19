@@ -113,15 +113,15 @@ def compute_simple_collision_reports(
 
     a_report = SimpleCollision(
         at=t,
-        at_fault=_simple_check_is_at_fault(a_direction),
-        # at_fault=True,  # fixme temporary to respect pot game assumption
+        # at_fault=_simple_check_is_at_fault(a_direction),
+        at_fault=True,  # fixme temporary to respect pot game assumption
         rel_impact_direction=a_direction,
         impact_rel_speed=rel_velocity_atP_norm,
     )
     b_report = SimpleCollision(
         at=t,
-        at_fault=_simple_check_is_at_fault(b_direction),
-        # at_fault=True,  # fixme temporary to respect pot game assumption
+        # at_fault=_simple_check_is_at_fault(b_direction),
+        at_fault=True,  # fixme temporary to respect pot game assumption
         rel_impact_direction=b_direction,
         impact_rel_speed=rel_velocity_atP_norm,
     )

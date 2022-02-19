@@ -14,7 +14,7 @@ from driving_games.zoo_games import games_zoo, P1, P2, P3, P4, mint_param_4p
 
 
 def test_resources():
-    game = games_zoo["4way_int_2p_sets"].game
+    game = games_zoo["simple_int_2p_sets"].game
     # solver = solvers_zoo["solver-2-pure-security_mNE-fact-noextra"]
     dg_params: DgSimpleParams = game.game_visualization.params
     res_occupancy = ResourcesOccupancy(lanelet_network=dg_params.scenario.lanelet_network, cell_resolution=D("1.5"))
@@ -34,7 +34,7 @@ def test_resources():
 
 
 def test_res_intersection():
-    game = games_zoo["4way_int_3p_sets"].game
+    game = games_zoo["simple_int_3p_sets"].game
     p1_dyn: VehicleTrackDynamics = game.players[P1].dynamics
     p2_dyn: VehicleTrackDynamics = game.players[P2].dynamics
     dt = D("2")

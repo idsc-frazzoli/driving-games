@@ -141,7 +141,15 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     is_jointly_final = frozenset(ic.game.joint_reward.is_joint_final_states(states))
     joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
 
-    players_exiting = set(is_jointly_final) | set(is_personal_final)
+    players_exiting = set(is_personal_final)
+    if set(is_jointly_final) | set(is_personal_final) == set(states):
+        # we remove the collided ones only if it's really the end for everyone
+        players_exiting |= set(is_jointly_final)
+        # debug
+        # if any(is_jointly_final) and any(is_personal_final):
+        #     logger.info(f"Found a final state: {states}, players exiting: {players_exiting}, "
+        #                 f"is_jointly_final: {is_jointly_final}, is_personal_final: {is_personal_final}")
+
     # Consider only the moves of whom remains
     not_exiting = lambda pn: pn not in players_exiting
     moves_to_state_remaining = fkeyfilter(not_exiting, moves_to_state_everybody)

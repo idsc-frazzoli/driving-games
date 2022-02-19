@@ -65,21 +65,21 @@ uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 
 
-def get_4way_int_2p_sets() -> GameSpec:
+def get_simple_int_2p_sets() -> GameSpec:
     desc = """
     Plain 4way intersection. 2 players. Set-based uncertainty.
     """
     return GameSpec(desc, get_driving_game(param_2p, uncertainty_sets))
 
 
-def get_4way_int_3p_sets() -> GameSpec:
+def get_simple_int_3p_sets() -> GameSpec:
     desc = """
     Plain 4way intersection. 3 players. Set-based uncertainty.
     """
     return GameSpec(desc, get_driving_game(param_3p, uncertainty_sets))
 
 
-def get_4way_int_2p_prob() -> GameSpec:
+def get_simple_int_2p_prob() -> GameSpec:
     desc = """
     Plain 4way intersection. 2 players.
     Probability-based uncertainty (expected value).
@@ -87,7 +87,7 @@ def get_4way_int_2p_prob() -> GameSpec:
     return GameSpec(desc, get_driving_game(copy(param_2p), uncertainty_prob))
 
 
-def get_4way_int_3p_prob() -> GameSpec:
+def get_simple_int_3p_prob() -> GameSpec:
     desc = """
     Plain 4way intersection. 3 players.
     Probability-based uncertainty (expected value).
@@ -117,7 +117,7 @@ mint_param_4p = DgSimpleParams(
 mint_param_5p = replace(
     mint_param_4p,
     ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5},
-    progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(10), D(40)), P5: (D(5), D(40))},
+    progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(10), D(40)), P5: (D(5), D(35))},
 )
 mint_param_6p = replace(
     mint_param_4p,
@@ -127,7 +127,7 @@ mint_param_6p = replace(
         P2: (D(5), D(35)),
         P3: (D(10), D(40)),
         P4: (D(10), D(40)),
-        P5: (D(5), D(40)),
+        P5: (D(5), D(35)),
         P6: (D(10), D(35)),
     },
 )
@@ -200,10 +200,10 @@ def get_complex_int_xxp_sets() -> GameSpec:
 
 driving_games_zoo: Mapping[str, GameSpec] = fd(
     {
-        "4way_int_2p_sets": get_4way_int_2p_sets(),
-        "4way_int_3p_sets": get_4way_int_3p_sets(),
-        "4way_int_2p_prob": get_4way_int_2p_prob(),
-        "4way_int_3p_prob": get_4way_int_3p_prob(),
+        "simple_int_2p_sets": get_simple_int_2p_sets(),
+        "simple_int_3p_sets": get_simple_int_3p_sets(),
+        "simple_int_2p_prob": get_simple_int_2p_prob(),
+        "simple_int_3p_prob": get_simple_int_3p_prob(),
         "multilane_int_4p_sets": get_multilane_int_4p_sets(),
         "multilane_int_5p_sets": get_multilane_int_5p_sets(),
         "multilane_int_6p_sets": get_multilane_int_6p_sets(),

@@ -73,7 +73,6 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         self.resources_occupancy = resources_occupancy
         self.goal_progress = goal_progress
 
-    @lru_cache(None)
     def all_actions(self) -> FrozenSet[VehicleActions]:
         res = set()
         for light, accel in product(LightsValues, self.param.available_accels):
@@ -83,12 +82,19 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     @lru_cache(maxsize=2048)
     def successors(self, x: VehicleTrackState, dt: D) -> Mapping[VehicleActions, Poss[VehicleTrackState]]:
         """For each state, returns a dictionary U -> Possible Xs"""
-        # only allow accelerations that make the speed non-negative
-        accels = [_ for _ in self.param.available_accels if _ * dt + x.v >= 0]
-        # if the speed is 0 make sure we cannot wait forever
-        if x.wait > self.param.max_wait:
-            assert x.v == 0, x
-            accels.remove(D(0))
+        if x.has_collided:
+            # special case for the collided ones, they are forced to stop
+            acc_min = min(self.param.available_accels)
+            accels = [acc_min if acc_min * dt + x.v >= 0 else D(0)]
+            # only one action available for a collided vehicle (either slow down or stay put)
+            assert len(accels) == 1, accels
+        else:
+            # only allow accelerations that make the speed non-negative
+            accels = [_ for _ in self.param.available_accels if _ * dt + x.v >= 0]
+            # if the speed is 0 make sure we cannot wait forever
+            if x.wait > self.param.max_wait:
+                assert x.v == 0, x
+                accels.remove(D(0))
 
         possible = {}
         for light, accel in product(self.param.lights_commands, accels):
@@ -103,7 +109,7 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         return frozendict(possible)
 
     @lru_cache(None)
-    def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D):
+    def successor(self, x: VehicleTrackState, u: VehicleActions, dt: D) -> VehicleTrackState:
         with localcontext() as ctx:
             ctx.prec = 3
             v2 = x.v + u.acc * dt
@@ -121,7 +127,8 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
                 )
         if v2 == 0:
             wait2 = x.wait + dt
-            if wait2 > self.param.max_wait:
+            # who has collided can wait there unlimited time
+            if wait2 > self.param.max_wait and not x.has_collided:
                 msg = f"Invalid action gives wait of {wait2}"
                 raise InvalidAction(msg, x=x, u=u)
         else:
@@ -148,6 +155,9 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
 
     def _get_max_acc_commands(self) -> VehicleActions:
         return VehicleActions(acc=max(self.param.available_accels), light=NO_LIGHTS)
+
+    def _get_min_acc_commands(self) -> VehicleActions:
+        return VehicleActions(acc=min(self.param.available_accels), light=NO_LIGHTS)
 
     @cached_property
     def occupancy_length(self) -> D:

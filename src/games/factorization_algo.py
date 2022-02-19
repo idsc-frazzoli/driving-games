@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Mapping, Tuple, FrozenSet as FSet, Dict
 
 from cytoolz import itemmap
@@ -40,6 +41,8 @@ class FactAlgoReachableRes(FactAlgo):
 
             def get_reachable_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
                 pname, state = items
+                # breaks generality
+                state = replace(state, has_collided=False) if state.has_collided else state
                 alone_js = fd({pname: state})
                 return pname, known[pname][alone_js].reachable_res
 
@@ -74,6 +77,8 @@ class FactAlgoOptimalRes(FactAlgo):
 
             def get_optimal_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
                 pname, state = items
+                # breaks generality
+                state = replace(state, has_collided=False) if state.has_collided else state
                 alone_js = fd({pname: state})
                 return pname, known[pname][alone_js].optimal_res
 

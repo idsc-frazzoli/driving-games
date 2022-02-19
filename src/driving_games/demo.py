@@ -20,7 +20,7 @@ class DGDemo(QuickApp):
     """Main function"""
 
     def define_options(self, params: DecentParams):
-        params.add_string("games", default="4way_int_3p_sets")
+        params.add_string("games", default="simple_int_3p_sets")
         params.add_string("solvers", default="solver-2-pure-security_mNE-fact1-noextra")
 
     def define_jobs_context(self, context: QuickAppContext):
@@ -31,10 +31,10 @@ class DGDemo(QuickApp):
         do_games = expand_string(do_games, list(games_zoo))
         do_solvers = expand_string(do_solvers, list(solvers_zoo))
         for game_name in do_games:
-            if not game_name in games_zoo:
+            if game_name not in games_zoo:
                 raise ZValueError(f"Cannot find {game_name!r}", available=set(games_zoo))
         for solver_name in do_solvers:
-            if not solver_name in solvers_zoo:
+            if solver_name not in solvers_zoo:
                 raise ZValueError(f"Cannot find {solver_name!r}", available=set(solvers_zoo))
 
         for game_name in do_games:

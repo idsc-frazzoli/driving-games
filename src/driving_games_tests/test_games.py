@@ -11,11 +11,11 @@ from driving_games.zoo_solvers import solvers_zoo
 from driving_games_tests import logger
 
 do_games_sets = [
-    # "4way_int_2p_sets",
-    # "4way_int_3p_sets",
-    "multilane_int_4p_sets",
+    # "simple_int_2p_sets",
+    # "simple_int_3p_sets",
+    # "multilane_int_4p_sets",
     # "multilane_int_5p_sets",
-    # "multilane_int_6p_sets",
+    "multilane_int_6p_sets",
     # "complex_int_6p_sets"
 ]
 do_solvers_sets = [
@@ -43,7 +43,7 @@ def test_games_sets(game_str: str, solver_str: str) -> None:
     # print(get_poly_occupancy.cache_info())
 
 
-do_games_prob = ["4way_int_2p_prob", "4way_int_3p_prob"]
+do_games_prob = ["simple_int_2p_prob", "simple_int_3p_prob"]
 do_solvers_prob = [
     "solver-1-pure-mix_mNE-fact1-extra",
     # "solver-1-security-naive",
