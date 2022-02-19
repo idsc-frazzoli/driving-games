@@ -2,7 +2,7 @@ import os
 from copy import copy
 from dataclasses import replace
 from decimal import Decimal as D
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Callable
 
 import numpy as np
 
@@ -198,20 +198,21 @@ def get_complex_int_xxp_sets() -> GameSpec:
     return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
 
 
-driving_games_zoo: Mapping[str, GameSpec] = fd(
+# made into a callable to avoid long import times
+driving_games_zoo: Mapping[str, Callable[[], GameSpec]] = fd(
     {
-        "simple_int_2p_sets": get_simple_int_2p_sets(),
-        "simple_int_3p_sets": get_simple_int_3p_sets(),
-        "simple_int_2p_prob": get_simple_int_2p_prob(),
-        "simple_int_3p_prob": get_simple_int_3p_prob(),
-        "multilane_int_4p_sets": get_multilane_int_4p_sets(),
-        "multilane_int_5p_sets": get_multilane_int_5p_sets(),
-        "multilane_int_6p_sets": get_multilane_int_6p_sets(),
-        "complex_int_6p_sets": get_complex_int_6p_sets(),
-        "complex_int_xxp_sets": get_complex_int_xxp_sets(),
+        "simple_int_2p_sets": get_simple_int_2p_sets,
+        "simple_int_3p_sets": get_simple_int_3p_sets,
+        "simple_int_2p_prob": get_simple_int_2p_prob,
+        "simple_int_3p_prob": get_simple_int_3p_prob,
+        "multilane_int_4p_sets": get_multilane_int_4p_sets,
+        "multilane_int_5p_sets": get_multilane_int_5p_sets,
+        "multilane_int_6p_sets": get_multilane_int_6p_sets,
+        "complex_int_6p_sets": get_complex_int_6p_sets,
+        "complex_int_xxp_sets": get_complex_int_xxp_sets,
     }
 )
 
-games_zoo: Dict[str, GameSpec] = {}
+games_zoo: Dict[str, Callable[[], GameSpec]] = {}
 
 games_zoo.update(driving_games_zoo)

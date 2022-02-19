@@ -1,5 +1,5 @@
 from dataclasses import dataclass, replace
-from decimal import Decimal as D
+from decimal import Decimal as D, Decimal
 from fractions import Fraction
 from functools import lru_cache
 
@@ -18,13 +18,14 @@ __all__ = [
 class VehicleTimeCost:
     """The personal costs of the vehicle"""
 
-    duration: float
+    duration: Decimal
     """ Duration of the episode. """
 
     # support weight multiplication for expected value
     def __mul__(self, weight: Fraction) -> "VehicleTimeCost":
+        # fixme better efficency?
         # weighting costs, e.g. according to a probability
-        return replace(self, duration=self.duration * weight)
+        return replace(self, duration=self.duration * Decimal(float(weight)))
 
     __rmul__ = __mul__
 

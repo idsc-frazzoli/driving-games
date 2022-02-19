@@ -1,4 +1,4 @@
-FROM alezana/dg_base:3.9
+FROM alezana/dg_base:3.10
 
 # Install Driving Games
 WORKDIR /driving_games

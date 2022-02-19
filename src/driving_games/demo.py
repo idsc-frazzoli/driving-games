@@ -1,5 +1,5 @@
 from os.path import join
-from typing import Mapping
+from typing import Mapping, Callable
 
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
@@ -39,7 +39,7 @@ class DGDemo(QuickApp):
 
         for game_name in do_games:
             cgame = context.child(game_name, extra_report_keys=dict(game=game_name))
-            game = games_zoo[game_name].game
+            game = games_zoo[game_name]().game
             rgame = cgame.comp(report_game_visualization, game)
             cgame.add_report(rgame, "game_setup")
             for solver_name in do_solvers:
@@ -68,10 +68,11 @@ def solve_main_and_report_solutions(game_preprocessed) -> Report:
     return r_solution
 
 
-def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, SolverSpec]):
+def without_compmake(games: Mapping[str, Callable[[], GameSpec]], solvers: Mapping[str, SolverSpec]):
     d = "out/tests/"
-    for game_name, game_spec in games.items():
+    for game_name, game_getter in games.items():
         dg = join(d, game_name)
+        game_spec = game_getter()
         game = game_spec.game
         r_game = report_game_visualization(game)
         r_game.text("description", text=game_spec.desc)
