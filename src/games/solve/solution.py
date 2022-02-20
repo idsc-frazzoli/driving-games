@@ -277,7 +277,7 @@ def _solve_game(
     sc.processing.remove(js)
 
     n = len(sc.cache)
-    if n % 1000 == 0:
+    if n % 1e4 == 0:
         global TOC
         logger.info(
             js=js,
