@@ -35,7 +35,7 @@ class DrivingGameVisualization(
         params: DgSimpleParams,
         geometries: Mapping[PlayerName, VehicleGeometry],
         dynamics: Mapping[PlayerName, VehicleTrackDynamics],
-        plot_limits: Union[str, Sequence[Sequence[float]]] = "auto",  # fixme alre\ady in params
+        plot_limits: Union[str, Sequence[Sequence[float]]] = "auto",  # fixme already in params
         *args,
         **kwargs
     ):

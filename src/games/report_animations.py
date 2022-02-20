@@ -135,7 +135,7 @@ def create_log_animation(
     sim: Simulation[X, U, Y, RP, RJ],
     fn: str,
     frame_period: Optional[int] = 100,  # todo upsample to default ms between frames
-    dpi=100,
+    dpi=200,
 ):
     """
     :param gp: game preprocessed
