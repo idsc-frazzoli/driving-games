@@ -103,6 +103,7 @@ class DrivingGameVisualization(
             vg=vg,
             vehicle_poly=vehicle_poly,
             plot_wheels=True,
+            edgecolor="k",
         )
         return patches
 
