@@ -1,4 +1,4 @@
-from decimal import Decimal as D, localcontext
+from decimal import Decimal as D, localcontext, DivisionByZero
 
 from dg_commons import Timestamp
 from games import PersonalRewardStructure
@@ -30,7 +30,10 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackSta
 
         with localcontext() as ctx:
             ctx.prec = 3
-            remaining = (self.goal_progress - x.x) / x.v
+            try:
+                remaining = (self.goal_progress - x.x) / x.v
+            except:
+                remaining = D(0)
             return VehicleTimeCost(remaining)
 
     def is_personal_final_state(self, x: VehicleTrackState) -> bool:

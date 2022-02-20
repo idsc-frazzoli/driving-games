@@ -39,20 +39,24 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """Known preprocessed players"""
     fact_algo: FactAlgo
     """Function to check for intersection of resources"""
+    compute_res: bool
+    """Whether to compute resources associated to the GameNode"""
 
 
 def create_game_graph(
+    *,
     game: Game[X, U, Y, RP, RJ, SR],
     dt: D,
     initials: AbstractSet[JointState],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
     fact_algo: FactAlgo,
+    compute_res=True,
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """Create the game graph checking for factorization at the same time."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = valmap(collapse_states, players_pre)
-    ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo)
+    ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo, compute_res=compute_res)
 
     for js in initials:
         # check if already you can factorize the initial state
@@ -233,9 +237,10 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
                 _create_game_graph(ic2, js_)
 
     resources = {}
-    for player_name, player_state in states.items():
-        dynamics = ic.game.players[player_name].dynamics
-        resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
+    if ic.compute_res:
+        for player_name, player_state in states.items():
+            dynamics = ic.game.players[player_name].dynamics
+            resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
 
     res = GameNode(
         states=fd(states),

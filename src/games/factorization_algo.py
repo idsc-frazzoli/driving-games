@@ -2,6 +2,7 @@ from dataclasses import replace
 from typing import Mapping, Tuple, FrozenSet as FSet, Dict
 
 from cytoolz import itemmap
+from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, X, fd, U, Y, RP, RJ
 from games import JointState, SR
@@ -44,6 +45,12 @@ class FactAlgoReachableRes(FactAlgo):
                 # breaks generality
                 state = replace(state, has_collided=False) if state.has_collided else state
                 alone_js = fd({pname: state})
+                # fixme debug
+                if alone_js not in known[pname]:
+                    raise ZValueError(
+                        f"{alone_js} not in known",
+                        known=list(known[pname].keys()),
+                    )
                 return pname, known[pname][alone_js].reachable_res
 
             resources_used = itemmap(get_reachable_res, js0)

@@ -1,6 +1,9 @@
 from bisect import bisect_right
-from typing import Dict, Optional
+from itertools import chain
+from math import ceil
+from typing import Dict, Optional, List
 
+from matplotlib.artist import Artist
 from reprep import MIME_GIF, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
@@ -132,6 +135,7 @@ def create_log_animation(
     sim: Simulation[X, U, Y, RP, RJ],
     fn: str,
     frame_period: Optional[int] = 100,  # todo upsample to default ms between frames
+    dpi=100,
 ):
     """
     :param gp: game preprocessed
@@ -147,6 +151,28 @@ def create_log_animation(
     fig.set_tight_layout(True)
     ax.set_aspect("equal")
     viz = gp.game.game_visualization
+    # dictionaries with the handles of the plotting stuff
+    states, actions, resources, texts = {}, {}, {}, {}
+
+    def _iterable_of_artists() -> List[Artist]:
+        # fixme this is supposed to be an iterable of artists
+        return (
+            list(chain.from_iterable(states.values()))
+            + list(chain.from_iterable(actions.values()))
+            + list(resources.values())
+            + list(texts.values())
+        )
+
+    # todo in the future to speed-up visualisation once the shapely vis is done
+    # def init_function() -> Iterable[Artist]:
+    #     t = sim.states.get_start()
+    #     interpolated = sim.states.at(t)
+    #     with viz.plot_arena(plt, ax):
+    #         for player_name, player_state in interpolated.items():
+    #             if player_state is not None:
+    #                 states[player_name] = viz.plot_player(player_name, state=player_state, commands=None, t=t,
+    #                                                       dt=gp.solver_params.dt)
+    #     return _iterable_of_artists()
 
     def update(frame: int = 0):
         t: float = frame * frame_period / 1000.0
@@ -173,12 +199,40 @@ def create_log_animation(
         with viz.plot_arena(plt, ax):
             for player_name, player_state in interpolated.items():
                 if player_state is not None:
-                    viz.plot_player(player_name, state=player_state, commands=None, t=t, dt=gp.solver_params.dt)
+                    states[player_name] = viz.plot_player(
+                        player_name,
+                        state=player_state,
+                        commands=None,
+                        t=t,
+                        dt=gp.solver_params.dt,
+                        # todo in the future to speed-up visualisation once the shapely vis is done
+                        # vehicle_poly=states[player_name],
+                        # resources_poly = resources[player_name]
+                    )
         ax.set_title(f"t = {t}")
-        return []
+        return _iterable_of_artists()
 
     # noinspection PyTypeChecker
     time_begin, time_end = sim.states.get_start(), sim.states.get_end()
     frame_count: int = int(float(time_end - time_begin) // (frame_period / 1000.0))
-    anim = FuncAnimation(fig, func=update, frames=frame_count, blit=True, interval=frame_period)
-    anim.save(fn, dpi=80, writer="imagemagick")
+    anim = FuncAnimation(
+        fig,
+        # todo in the future to speed-up visualisation once the shapely vis is done
+        #                      init_func=init_function,
+        func=update,
+        frames=frame_count,
+        blit=True,
+        interval=frame_period,
+    )
+    fps = int(ceil(1000.0 / frame_period))
+    anim.save(
+        fn,
+        dpi=dpi,
+        writer="ffmpeg",
+        fps=fps,
+        # extra_args=["-g", "1", "-keyint_min", str(interval_seconds)]
+    )
+    # anim.save(fn,
+    #           dpi=80,
+    #           writer="ffmpeg"
+    #           )

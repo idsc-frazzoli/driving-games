@@ -52,7 +52,7 @@ param_2p = DgSimpleParams(
     scenario=simple_intersection,
     progress={P1: (D(140), D(165)), P2: (D(180), D(200))},
     plot_limits=[[40, 100], [-25, 25]],
-    min_safety_distance=7,
+    min_safety_distance=6,
 )
 
 param_3p = replace(
@@ -100,37 +100,71 @@ mint_lane1 = dglane_from_position(np.array([0, 25]), multilane_intersection.lane
 mint_lane2 = dglane_from_position(np.array([-8, -2]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 mint_lane3 = dglane_from_position(np.array([20, 10]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 mint_lane4 = dglane_from_position(np.array([9, 28]), multilane_intersection.lanelet_network, succ_lane_selection=0)
-mint_lane5 = dglane_from_position(np.array([-15, 18]), multilane_intersection.lanelet_network, succ_lane_selection=0)
-mint_lane6 = dglane_from_position(np.array([23, 12]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane5 = dglane_from_position(np.array([-15, 13]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane6 = dglane_from_position(np.array([5, 25]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 
+mint_param_2p = DgSimpleParams(
+    track_dynamics_param=dyn_p0,
+    shared_resources_ds=D(1.5),
+    col_check_dt=D("0.76"),
+    ref_lanes={P1: mint_lane1, P2: mint_lane2},
+    scenario=multilane_intersection,
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35))},
+    plot_limits=[[-30, 30], [-12, 35]],
+    min_safety_distance=6,
+)
+mint_param_3p = DgSimpleParams(
+    track_dynamics_param=dyn_p0,
+    shared_resources_ds=D(1.5),
+    col_check_dt=D("0.76"),
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3},
+    scenario=multilane_intersection,
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(15), D(40))},
+    plot_limits=[[-30, 30], [-12, 35]],
+    min_safety_distance=6,
+)
 mint_param_4p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
     shared_resources_ds=D(1.5),
-    col_check_dt=D("0.51"),
+    col_check_dt=D("0.76"),
     ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4},
     scenario=multilane_intersection,
-    progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(15), D(40))},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(15), D(40)), P4: (D(15), D(40))},
     # progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(10), D(40))}, # node with no eq among 1,2,3
-    plot_limits=[[-35, 35], [-18, 35]],
+    plot_limits=[[-30, 30], [-12, 35]],
     min_safety_distance=6,
 )
 mint_param_5p = replace(
     mint_param_4p,
     ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5},
-    progress={P1: (D(10), D(35)), P2: (D(5), D(35)), P3: (D(10), D(40)), P4: (D(10), D(40)), P5: (D(5), D(35))},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(15), D(40)), P4: (D(15), D(40)), P5: (D(0), D(20))},
 )
 mint_param_6p = replace(
     mint_param_4p,
     ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5, P6: mint_lane6},
     progress={
-        P1: (D(10), D(35)),
-        P2: (D(5), D(35)),
-        P3: (D(10), D(40)),
-        P4: (D(10), D(40)),
-        P5: (D(5), D(35)),
-        P6: (D(10), D(35)),
+        P1: (D(10), D(30)),
+        P2: (D(10), D(35)),
+        P3: (D(15), D(40)),
+        P4: (D(15), D(40)),
+        P5: (D(0), D(20)),
+        P6: (D(10), D(30)),
     },
 )
+
+
+def get_multilane_int_2p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_2p, uncertainty_sets))
+
+
+def get_multilane_int_3p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_3p, uncertainty_sets))
 
 
 def get_multilane_int_4p_sets() -> GameSpec:
@@ -205,6 +239,8 @@ driving_games_zoo: Mapping[str, Callable[[], GameSpec]] = fd(
         "simple_int_3p_sets": get_simple_int_3p_sets,
         "simple_int_2p_prob": get_simple_int_2p_prob,
         "simple_int_3p_prob": get_simple_int_3p_prob,
+        "multilane_int_2p_sets": get_multilane_int_2p_sets,
+        "multilane_int_3p_sets": get_multilane_int_3p_sets,
         "multilane_int_4p_sets": get_multilane_int_4p_sets,
         "multilane_int_5p_sets": get_multilane_int_5p_sets,
         "multilane_int_6p_sets": get_multilane_int_6p_sets,

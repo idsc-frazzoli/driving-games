@@ -14,13 +14,16 @@ do_games_sets = [
     # "simple_int_2p_sets",
     # "simple_int_3p_sets",
     # "multilane_int_4p_sets",
-    "multilane_int_5p_sets",
-    # "multilane_int_6p_sets",
+    # "multilane_int_4p_sets",
+    # "multilane_int_5p_sets",
+    # "multilane_int_5p_sets",
+    "multilane_int_6p_sets",
     # "complex_int_6p_sets"
 ]
 do_solvers_sets = [
-    "solver-2-pure-security_mNE-naive-noextra",
-    "solver-2-pure-security_mNE-fact1-noextra" "solver-2-pure-security_mNE-fact2-noextra"
+    # "solver-2-pure-security_mNE-naive-noextra",
+    "solver-2-pure-security_mNE-fact1-noextra"
+    # "solver-2-pure-security_mNE-fact2-noextra"
     # "solver-1-pure-security_mNE-fact",
     # "solver-1-finite_mix-mix_mNE-fact",
     # "solver-1-finite_mix-security_mNE-naive",
@@ -34,7 +37,7 @@ games_n_solvers_sets = list(product(games_sets, solvers_sets))
 @parameterized(games_n_solvers_sets)
 def test_games_sets(game_str: str, solver_str: str) -> None:
     logger.info(f"Starting game test:\n\tName: {game_str}\n\tSolver:{solver_str}")
-    game = {game_str: games_zoo[game_str]()}
+    game = {game_str: games_zoo[game_str]}
     solver = {solver_str: solvers_zoo[solver_str]}
     res = without_compmake(game, solver)
     # print(joint_simple_collision_cost.cache_info())

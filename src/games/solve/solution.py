@@ -81,11 +81,12 @@ def solve_main(
 
     tic = perf_counter()
     gg = create_game_graph(
-        gp.game,
-        gp.solver_params.dt,
-        {initial},
+        game=gp.game,
+        dt=gp.solver_params.dt,
+        initials={initial},
         players_pre=gp.players_pre,
         fact_algo=gp.solver_params.factorization_algorithm,
+        compute_res=False,
     )
     toc = perf_counter()
     perf_stats.build_joint_game_tree = toc - tic

@@ -33,7 +33,9 @@ class VehicleTrackDynamicsParams:
     available_accels: FrozenSet[D]
     """ Available acceleration values. """
     max_wait: D
-    """ Maximum wait [s] -- maximum duration at v=0. """
+    """ Maximum wait [s] -- maximum duration at v=0.
+    Note that 0 means that the vehicle can stop for maximum 1 stage.
+    Set to a negative value if the vehicles should never stop. """
     lights_commands: FrozenSet[LightsCmd]
     """ Allowed light commands """
 
@@ -79,21 +81,20 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
             res.add(VehicleActions(acc=accel, light=light))
         return frozenset(res)
 
-    @lru_cache(maxsize=2048)
+    @lru_cache(maxsize=None)
     def successors(self, x: VehicleTrackState, dt: D) -> Mapping[VehicleActions, Poss[VehicleTrackState]]:
         """For each state, returns a dictionary U -> Possible Xs"""
         if x.has_collided:
             # special case for the collided ones, they are forced to stop
             acc_min = min(self.param.available_accels)
-            accels = [acc_min if acc_min * dt + x.v >= 0 else D(0)]
+            accels = [acc_min if acc_min * dt + x.v > 0 else D(0)]
             # only one action available for a collided vehicle (either slow down or stay put)
             assert len(accels) == 1, accels
         else:
             # only allow accelerations that make the speed non-negative
             accels = [_ for _ in self.param.available_accels if _ * dt + x.v >= 0]
-            # if the speed is 0 make sure we cannot wait forever
+            # if are waiting make sure we cannot wait forever
             if x.wait > self.param.max_wait:
-                assert x.v == 0, x
                 accels.remove(D(0))
 
         possible = {}
@@ -119,23 +120,14 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
             # only forward moving
             x2 = x.x + (x.v + D("0.5") * u.acc * dt) * dt
             if x2 < x.x:
-                raise ZValueError(
-                    x=x,
-                    x2=x2,
-                    u=u,
-                    acc=u.acc,
-                )
-        if v2 == 0:
-            wait2 = x.wait + dt
-            # who has collided can wait there unlimited time
-            if wait2 > self.param.max_wait and not x.has_collided:
-                msg = f"Invalid action gives wait of {wait2}"
-                raise InvalidAction(msg, x=x, u=u)
-        else:
-            wait2 = D(0)
-        ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light, has_collided=x.has_collided)
+                raise ZValueError(x=x, x2=x2, u=u, acc=u.acc)
+            if x.v == 0:  # who has collided can wait there unlimited time
+                wait2 = x.wait + dt if not x.has_collided else x.wait
+            else:
+                wait2 = D(0)
+            ret = VehicleTrackState(x=x2, v=v2, wait=wait2, light=u.light, has_collided=x.has_collided)
 
-        return ret
+            return ret
 
     @lru_cache(None)
     def get_shared_resources(self, x: VehicleTrackState, dt: D) -> FrozenSet[CellIdx]:

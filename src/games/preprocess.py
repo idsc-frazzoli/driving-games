@@ -109,7 +109,11 @@ def preprocess_player(
     tic = perf_counter()
     # create the actual game graph for the player
     game_graph = create_game_graph(
-        individual_game, solver_params.dt, initials, players_pre=fd({}), fact_algo=solver_params.factorization_algorithm
+        game=individual_game,
+        dt=solver_params.dt,
+        initials=initials,
+        players_pre=fd({}),
+        fact_algo=solver_params.factorization_algorithm,
     )
     tic2 = perf_counter()
     perf_stats.individual_game_graphs_nodes.append(len(game_graph.state2node))

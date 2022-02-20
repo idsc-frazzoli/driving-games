@@ -39,7 +39,8 @@ def report_game_visualization(game: Game) -> Report:
             for player_name, player in game.players.items():
                 for x in player.initial.support():
                     viz.plot_player(player_name, state=x, commands=None, t=0)
-
+        pylab.xticks([])
+        pylab.yticks([])
     return r
 
 
