@@ -2,7 +2,6 @@ from dataclasses import replace
 from typing import Mapping, Tuple, FrozenSet as FSet, Dict
 
 from cytoolz import itemmap
-from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, X, fd, U, Y, RP, RJ
 from games import JointState, SR
@@ -45,12 +44,11 @@ class FactAlgoReachableRes(FactAlgo):
                 # breaks generality
                 state = replace(state, has_collided=False) if state.has_collided else state
                 alone_js = fd({pname: state})
-                # fixme debug
-                if alone_js not in known[pname]:
-                    raise ZValueError(
-                        f"{alone_js} not in known",
-                        known=list(known[pname].keys()),
-                    )
+                # if alone_js not in known[pname]:
+                #     raise ZValueError(
+                #         f"{alone_js} not in known",
+                #         known=list(known[pname].keys()),
+                #     )
                 return pname, known[pname][alone_js].reachable_res
 
             resources_used = itemmap(get_reachable_res, js0)
@@ -81,20 +79,46 @@ class FactAlgoOptimalRes(FactAlgo):
         fact_states: Dict[PlayerName, JointState] = {}
 
         if len(js0) > 1:
+            js0_minus_collision: Dict[PlayerName, X] = dict(js0)
+            # so that they can be found in the known
+            for p, x in js0_minus_collision.items():
+                if x.has_collided:  # breaks generality
+                    js0_minus_collision[p] = replace(x, has_collided=False)
 
             def get_optimal_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
                 pname, state = items
-                # breaks generality
-                state = replace(state, has_collided=False) if state.has_collided else state
                 alone_js = fd({pname: state})
                 return pname, known[pname][alone_js].optimal_res
 
-            resources_used = itemmap(get_optimal_res, js0)
+            opt_resources_used = itemmap(get_optimal_res, js0_minus_collision)
             deps: Mapping[FSet[PlayerName], FSet[FSet[PlayerName]]]
-            deps = find_dependencies(ps, resources_used, self.f_resource_intersection)
+            deps = find_dependencies(ps, opt_resources_used, self.f_resource_intersection)
+            candidate_fact = deps[frozenset(js0)]
+            current_n_pset = 1
+            while len(candidate_fact) > current_n_pset:
+                current_n_pset = len(candidate_fact)
 
-            pset: FSet[PlayerName]
-            for pset in deps[frozenset(js0)]:
+                def get_opt_or_reachable_res(pset: FSet[PlayerName]) -> Mapping[PlayerName, UsedResources]:
+                    used_res: Dict[PlayerName, UsedResources] = {}
+                    for pname in pset:
+                        alone_js = fd({pname: js0_minus_collision[pname]})
+                        pname_res = (
+                            known[pname][alone_js].optimal_res
+                            if len(pset) == 1
+                            else known[pname][alone_js].reachable_res
+                        )
+                        used_res.update({pname: pname_res})
+
+                    return fd(used_res)
+
+                resources_used = {}
+                for pset in candidate_fact:
+                    resources_used.update(get_opt_or_reachable_res(pset))
+                deps = find_dependencies(ps, fd(resources_used), self.f_resource_intersection)
+                candidate_fact = deps[frozenset(js0)]
+
+            pset: FSet[PlayerName]  # a partition of players
+            for pset in candidate_fact:
                 jsf: JointState = fd({p: js0[p] for p in pset})
                 for p in pset:
                     fact_states[p] = jsf

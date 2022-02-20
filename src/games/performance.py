@@ -33,4 +33,16 @@ class PerformanceStatistics:
 def report_performance_stats(perf_stats: PerformanceStatistics) -> Report:
     r = Report(nid="performance-stats")
     r.text("PerformanceStatistics", remove_escapes(debug_print(perf_stats)))
+    total_time_ind = sum(perf_stats.build_individual_game_graphs) + sum(perf_stats.solve_individual_game_graphs)
+    total_time_joint = perf_stats.build_joint_game_tree + perf_stats.solve_joint_game_graph
+    total_individual_gg_nodes = sum(perf_stats.individual_game_graphs_nodes)
+    times_str = (
+        f"Total time ind:\t{total_time_ind:.2f}\n"
+        + f"Total time joint:\t{total_time_joint:.2f}\n"
+        + f"Total time:\t{total_time_joint + total_time_ind:.2f}\n"
+        + f"Individual game graph nodes:\t{total_individual_gg_nodes}\n"
+        + f"Total game nodes:\t{total_individual_gg_nodes + perf_stats.joint_game_tree_nodes}"
+    )
+    r.text("PerformanceStatistics2", remove_escapes(debug_print(times_str)))
+
     return r
