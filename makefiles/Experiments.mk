@@ -4,8 +4,18 @@ run-dg-experiments: build
 	docker run -it --user $$(id -u) \
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/dgfact --reset -c "rparmake" \
-		--games "multilane_int_2p_sets","multilane_int_3p_sets","multilane_int_4p_sets","multilane_int_5p_sets","multilane_int_6p_sets" \
+		--games "multilane_int_2p_sets","multilane_int_3p_sets","multilane_int_4p_sets" \
 		--solvers "solver-2-pure-security_mNE-fact2-noextra","solver-2-pure-security_mNE-fact1-noextra","solver-2-pure-security_mNE-naive-noextra"
+
+run-dg-experiments-many-players: build
+	mkdir -p $(out-docker)
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		dg-demo -o /out/dgfact_many --reset -c "rparmake" \
+		--games "multilane_int_5p_sets","multilane_int_6p_sets" \
+		--solvers "solver-2-pure-security_mNE-fact2-noextra","solver-2-pure-security_mNE-fact1-noextra"
+
+
 
 #,"solver-2-pure-security_mNE-fact2-noextra"
 #"solver-2-pure-security_mNE-naive-noextra",
