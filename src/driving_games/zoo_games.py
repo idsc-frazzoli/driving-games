@@ -100,8 +100,8 @@ mint_lane1 = dglane_from_position(np.array([0, 25]), multilane_intersection.lane
 mint_lane2 = dglane_from_position(np.array([-8, -2]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 mint_lane3 = dglane_from_position(np.array([20, 10]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 mint_lane4 = dglane_from_position(np.array([9, 28]), multilane_intersection.lanelet_network, succ_lane_selection=0)
-mint_lane5 = dglane_from_position(np.array([-15, 13]), multilane_intersection.lanelet_network, succ_lane_selection=0)
-mint_lane6 = dglane_from_position(np.array([5, 25]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane5 = dglane_from_position(np.array([20, 13]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane6 = dglane_from_position(np.array([-8, 26]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 
 mint_param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
@@ -110,7 +110,7 @@ mint_param_2p = DgSimpleParams(
     ref_lanes={P1: mint_lane1, P2: mint_lane2},
     scenario=multilane_intersection,
     progress={P1: (D(10), D(30)), P2: (D(10), D(35))},
-    plot_limits=[[-21, 21], [-2, 30]],
+    plot_limits=[[-21, 21], [-2, 32]],
     min_safety_distance=6,
 )
 mint_param_3p = replace(
@@ -126,7 +126,7 @@ mint_param_4p = replace(
 mint_param_5p = replace(
     mint_param_2p,
     ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5},
-    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40)), P4: (D(15), D(40)), P5: (D(0), D(20))},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40)), P4: (D(15), D(40)), P5: (D(10), D(35))},
 )
 mint_param_6p = replace(
     mint_param_2p,
@@ -136,8 +136,8 @@ mint_param_6p = replace(
         P2: (D(10), D(35)),
         P3: (D(17), D(40)),
         P4: (D(15), D(40)),
-        P5: (D(0), D(20)),
-        P6: (D(5), D(25)),
+        P5: (D(10), D(35)),
+        P6: (D(0), D(20)),
     },
 )
 

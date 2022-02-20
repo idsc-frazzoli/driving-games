@@ -134,7 +134,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
+    # ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
 
     is_personal_final = {}
     for player_name, player_state in states.items():
@@ -234,7 +234,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph(ic2, js_)
+                _create_game_graph(ic, js_)  # ic2
 
     resources = {}
     if ic.compute_res:
