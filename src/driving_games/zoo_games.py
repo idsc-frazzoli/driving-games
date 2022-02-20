@@ -126,7 +126,7 @@ mint_param_4p = replace(
 mint_param_5p = replace(
     mint_param_2p,
     ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5},
-    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40)), P4: (D(15), D(40)), P5: (D(0), D(20))},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40)), P4: (D(15), D(40)), P5: (D(1), D(20))},
 )
 mint_param_6p = replace(
     mint_param_2p,
@@ -136,8 +136,8 @@ mint_param_6p = replace(
         P2: (D(10), D(35)),
         P3: (D(17), D(40)),
         P4: (D(15), D(40)),
-        P5: (D(0), D(20)),
-        P6: (D(5), D(35)),
+        P5: (D(1), D(20)),
+        P6: (D(10), D(35)),
     },
 )
 
