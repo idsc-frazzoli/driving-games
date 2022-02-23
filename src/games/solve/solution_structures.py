@@ -493,7 +493,7 @@ class SolutionsPlayer(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass(frozen=True)
 class Solutions(Generic[X, U, Y, RP, RJ, SR]):
-    solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
+    solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]  # fixme currently not used
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
     game_tree: GameNode[X, U, Y, RP, RJ, SR]
     sims: Mapping[str, Simulation]

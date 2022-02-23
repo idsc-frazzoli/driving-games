@@ -10,6 +10,7 @@ from zuper_commons.types import ZValueError
 from games import create_report_preprocessed, GameSpec, report_game_visualization, report_solutions, solve_main
 from games.performance import PerformanceStatistics, report_performance_stats
 from games.preprocess import preprocess_game
+from games.reports import report_game_nodes_stats
 from .zoo_games import games_zoo
 from .zoo_solvers import solvers_zoo, SolverSpec
 
@@ -97,6 +98,9 @@ def without_compmake(games: Mapping[str, Callable[[], GameSpec]], solvers: Mappi
 
             r_perf_stats = report_performance_stats(perf_stats)
             r_solver.add_child(r_perf_stats)
+
+            r_game_nodes_stats = report_game_nodes_stats(solutions)
+            r_solver.add_child(r_game_nodes_stats)
             # r_perf_stats.to_html())
             r_solver.to_html(join(ds, "solutions.html"))
 

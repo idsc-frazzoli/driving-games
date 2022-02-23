@@ -38,7 +38,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
     for k, sim in list(sims.items()):
         if "joint" not in k:
             continue
-        logger.info(f"drawing episode {k!r}")
+        logger.info(f"Drawing episode {k!r}")
         with f.data_file((k), MIME_GIF) as fn:
             create_log_animation(gp, sim, fn=fn)
         write_states(r, k, sim)
@@ -87,30 +87,30 @@ def write_states(r: Report, k: str, sim: Simulation):
 #     return r
 
 
-def upsample(gp, states0, actions0, n: int):
-    states2 = {}
-    dt = gp.solver_params.game_dt
-    dt2 = dt / n
-    for i, (t, s0) in enumerate(states0.items()):
-
-        states2[t] = s0
-
-        if i == len(states0) - 1:
-            break
-        actions = actions0[t]
-
-        # logger.info('original', i=i, t=t, actions=actions)
-
-        prev_state = s0
-        for _ in range(n - 1):
-            next_state = get_next_state(gp, prev_state, actions, dt2=dt2)
-            this_t = t + (_ + 1) * dt2
-            assert this_t not in states2
-            states2[this_t] = next_state
-            # logger.info('this_t', _=_, this_t=this_t)
-            prev_state = next_state
-
-    return states2
+# def upsample(gp, states0, actions0, n: int):
+#     states2 = {}
+#     dt = gp.solver_params.game_dt
+#     dt2 = dt / n
+#     for i, (t, s0) in enumerate(states0.items()):
+#
+#         states2[t] = s0
+#
+#         if i == len(states0) - 1:
+#             break
+#         actions = actions0[t]
+#
+#         # logger.info('original', i=i, t=t, actions=actions)
+#
+#         prev_state = s0
+#         for _ in range(n - 1):
+#             next_state = get_next_state(gp, prev_state, actions, dt2=dt2)
+#             this_t = t + (_ + 1) * dt2
+#             assert this_t not in states2
+#             states2[this_t] = next_state
+#             # logger.info('this_t', _=_, this_t=this_t)
+#             prev_state = next_state
+#
+#     return states2
 
 
 def get_next_state(gp, s0, actions, dt2):

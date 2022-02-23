@@ -16,6 +16,7 @@ __all__ = [
     "P",
     "PlayerOptions",
     "Observations",
+    "StageIdx",
     "JointState",
     "JointTransition",
     "JointPureActions",
@@ -35,6 +36,9 @@ __all__ = [
 
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
+
+StageIdx = int
+""" Index of the stage. Alias to avoid confusion with discretization step """
 
 JointState = Mapping[PlayerName, X]
 """ A joint state: the state for each player. """
@@ -142,8 +146,9 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
         """The identity for the monoid"""
 
     @abstractmethod
-    def is_personal_final_state(self, x: X) -> bool:
-        """True if this is a final state from the perspective of the agent."""
+    def is_personal_final_state(self, x: X, depth: StageIdx = 0) -> bool:
+        """True if this is a final state from the perspective of the agent.
+        Conditions can satisfy a terminal set or a maximum lookahead."""
 
 
 P = TypeVar("P")

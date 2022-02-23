@@ -1,13 +1,14 @@
 import random
-from typing import List, Tuple
+from collections import defaultdict
+from typing import List, Tuple, Dict
 
 import networkx as nx
 from networkx import convert_node_labels_to_integers
-
-from games.solve.solution_structures import GamePreprocessed
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
+
+from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
 from .game_def import Game, JointState, RJ, RP, SR, U, X, Y
 from .reports_player import report_player
@@ -150,4 +151,22 @@ def report_game(game_pre: GamePreprocessed) -> Report:
         )
         plt.xlabel("x")
         plt.ylabel("v")
+    return r
+
+
+def report_game_nodes_stats(solutions: Solutions) -> Report:
+    r = Report(nid="nodes_stats")
+    nodes_stats: Dict[int, int] = defaultdict(int)
+    for pname, alone_sol in solutions.solutions_players.items():  # fixme this is not used at the moment
+        n_states = len(alone_sol.alone_solutions)
+        # it's single players' game
+        nodes_stats[1] += n_states
+
+    for js in solutions.game_solution.states_to_solution.keys():
+        nodes_stats[len(js)] += 1
+
+    title: str = "How many n players nodes? (Mapping[n players, n nodes])\n"
+    msg = title + remove_escapes(debug_print(nodes_stats))
+    r.text("nodes_stats", msg)
+
     return r

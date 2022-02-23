@@ -1,8 +1,10 @@
-from decimal import Decimal as D, localcontext, DivisionByZero
+from decimal import Decimal as D, localcontext
+from math import inf
+
+from zuper_commons.types import check_isinstance
 
 from dg_commons import Timestamp
-from games import PersonalRewardStructure
-from zuper_commons.types import check_isinstance
+from games import PersonalRewardStructure, StageIdx
 from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 
 __all__ = ["VehiclePersonalRewardStructureTime"]
@@ -11,8 +13,9 @@ __all__ = ["VehiclePersonalRewardStructureTime"]
 class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackState, VehicleActions, VehicleTimeCost]):
     goal_progress: D
 
-    def __init__(self, goal_progress: D):
+    def __init__(self, goal_progress: D, maximum_depth: StageIdx = +inf):
         self.goal_progress = goal_progress
+        self.maximum_depth = maximum_depth
 
     def personal_reward_incremental(self, x: VehicleTrackState, u: VehicleActions, dt: Timestamp) -> VehicleTimeCost:
         check_isinstance(x, VehicleTrackState)
@@ -36,6 +39,6 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackSta
                 remaining = D(0)
             return VehicleTimeCost(remaining)
 
-    def is_personal_final_state(self, x: VehicleTrackState) -> bool:
+    def is_personal_final_state(self, x: VehicleTrackState, depth: StageIdx = 0) -> bool:
         check_isinstance(x, VehicleTrackState)
-        return x.x >= self.goal_progress
+        return x.x >= self.goal_progress or depth >= self.maximum_depth

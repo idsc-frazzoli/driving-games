@@ -11,7 +11,7 @@ from dg_commons.utils_toolz import *
 from games import logger
 from games.checks import check_joint_state
 from games.factorization import collapse_states
-from games.game_def import Game, JointPureActions, JointState, SR, Combined
+from games.game_def import Game, JointPureActions, JointState, SR, Combined, StageIdx
 from games.solve.solution_structures import (
     AccessibilityInfo,
     GameGraph,
@@ -33,14 +33,14 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """ Solver discretization time """
     cache: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]
     """ Nodes that were already computed. """
-    depth: int
+    depth: StageIdx
     """ The current depth. """
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     """Known preprocessed players"""
     fact_algo: FactAlgo
-    """Function to check for intersection of resources"""
+    """Factorization algorithm"""
     compute_res: bool
-    """Whether to compute resources associated to the GameNode"""
+    """Whether or not to compute resources associated to the GameNode"""
 
 
 def create_game_graph(
@@ -134,12 +134,12 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
-    # ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
+    ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
 
     is_personal_final = {}
     for player_name, player_state in states.items():
         _ = ic.game.players[player_name]
-        if _.personal_reward_structure.is_personal_final_state(player_state):
+        if _.personal_reward_structure.is_personal_final_state(player_state, ic.depth):
             f = _.personal_reward_structure.personal_final_reward(player_state)
             is_personal_final[player_name] = f
     is_jointly_final = frozenset(ic.game.joint_reward.is_joint_final_states(states))
@@ -234,7 +234,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         for pn in pnext_states.support():
             for _, js_ in pn.items():
-                _create_game_graph(ic, js_)  # ic2
+                _create_game_graph(ic2, js_)
 
     resources = {}
     if ic.compute_res:

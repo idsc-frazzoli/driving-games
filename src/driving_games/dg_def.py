@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
+from math import inf
 from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from commonroad.scenario.scenario import Scenario
@@ -8,7 +9,7 @@ from shapely.geometry import Polygon
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
-from games import Game, GamePlayer
+from games import Game, GamePlayer, StageIdx
 from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
 from .vehicle_dynamics import VehicleTrackDynamicsParams
 from .vehicle_observation import VehicleObs
@@ -40,6 +41,8 @@ class DgSimpleParams:
     """Minimum safety distance for the joint cost of the players"""
     shared_resources_ds: D
     """Shared resources discretization resolution"""
+    max_stages: StageIdx = inf
+    """Maximum number of stages"""
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 
     def __post__init__(self):

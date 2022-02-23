@@ -96,7 +96,7 @@ def simulate1(
 
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
             belief_state_others = ps.unit(state_others)
-
+            # todo collect the factorization state transition for the simulated solution
             p_action = policy.get_commands(state_self, belief_state_others)
 
             action = sampler.sample(p_action)
