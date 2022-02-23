@@ -31,12 +31,12 @@ def report_player(
         nx.write_graphml(G2, fn)
 
     def color_node(n) -> str:
-        is_final = G.nodes[n]["is_final"]
+        is_final = G.nodes[n]["is_pers_final"]
         return "blue" if is_final else "green"
 
     node_size = 20
     node_color = [color_node(_) for _ in G.nodes]
-    pos = {_: viz.hint_graph_node_pos(_) for _ in G.nodes}
+    pos = {_: viz.hint_graph_node_pos(_[player_name]) for _ in G.nodes}
 
     with r.plot("one") as plt:
         nx.draw(G, pos=pos, node_color=node_color, cmap=plt.cm.Blues, node_size=node_size)

@@ -6,7 +6,6 @@ from typing import AbstractSet, Dict, FrozenSet as FSet, List, Mapping, Mapping 
 
 from cytoolz import valmap
 from frozendict import frozendict
-from networkx import simple_cycles
 from zuper_commons.types import ZValueError
 
 from dg_commons import fd, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y
@@ -42,6 +41,7 @@ from .solution_structures import (
 from .solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
 from .solve_equilibria import solve_equilibria, solve_final_for_everyone
 from ..create_joint_game_graph import create_game_graph
+from ..game_graph_to_nx import build_networkx_from_game_graph, compute_graph_layout
 
 __all__ = ["solve_main"]
 
@@ -63,21 +63,18 @@ def solve_main(
     initial = init_states[0]
     logger.info(initials=initial)
 
-    if gp.solver_params.extra:
-        G = gp.game_graph_nx
-        # noinspection PyCallingNonCallable
-        initials = list((node for node, degree in G.in_degree() if degree == 0))
-        # noinspection PyCallingNonCallable
-        finals = list(node for node, degree in G.out_degree() if degree == 0)
-        logger.info(finals=len(finals))
-        assert init_states == initials
-        cycles = list(simple_cycles(G))
-        if cycles:
-            msg = "Did not expect cycles in the graph"
-            raise ZValueError(msg, cycles=cycles)
-
-    # We will fill this with some simulations of different policies
-    sims: Dict[str, Simulation] = {}
+    # if gp.solver_params.extra:
+    #     G = gp.game_graph_nx
+    #     # noinspection PyCallingNonCallable
+    #     initials = list((node for node, degree in G.in_degree() if degree == 0))
+    #     # noinspection PyCallingNonCallable
+    #     finals = list(node for node, degree in G.out_degree() if degree == 0)
+    #     logger.info(finals=len(finals))
+    #     assert init_states == initials
+    #     cycles = list(simple_cycles(G))
+    #     if cycles:
+    #         msg = "Did not expect cycles in the graph"
+    #         raise ZValueError(msg, cycles=cycles)
 
     tic = perf_counter()
     gg = create_game_graph(
@@ -92,10 +89,22 @@ def solve_main(
     perf_stats.build_joint_game_tree = toc - tic
     perf_stats.joint_game_tree_nodes = len(gg.state2node)
 
-    game_tree = gg.state2node[initial]
+    game_graph = gg.state2node[initial]
     solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
-    initial_state = game_tree.states
-    # todo check which one to use for solving game tree, if factorized initial_state is != initial
+    initial_state = game_graph.states
+
+    if gp.solver_params.extra:
+        limit_nodes = 5000
+        if len(gg.state2node) > limit_nodes:
+            logger.info(
+                f"Attempting to create networkx graph with more than {limit_nodes} nodes.\n"
+                f'If stuck retry with "noextra" option for the solver.'
+            )
+        game_graph_nx = build_networkx_from_game_graph(gg)
+        compute_graph_layout(game_graph_nx, iterations=1)
+    else:
+        game_graph_nx = None
+
     # solve sequential games equilibria # todo not defined for n>2
     # sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
 
@@ -118,11 +127,14 @@ def solve_main(
         game_value=game_solution.states_to_solution[initial_state].va.game_value,
         # policy=solution_ghost.policies,
     )
+
+    # We will fill this with some simulations of different policies
+    sims: Dict[str, Simulation] = {}
     for seed in range(gp.solver_params.n_simulations):
         sim_joint = simulate1(
             gp.game,
             policies=controllers0,
-            initial_states=game_tree.states,
+            initial_states=game_graph.states,
             dt=gp.solver_params.dt,
             seed=seed,
         )
@@ -130,11 +142,11 @@ def solve_main(
 
     return Solutions(
         game_solution=game_solution,
-        game_tree=game_tree,
+        game_graph=game_graph,
         solutions_players=solutions_players,
         sims=sims,
+        game_graph_nx=game_graph_nx,
     )
-    # logger.info(game_tree=game_tree)
 
 
 def solve_game(

@@ -333,7 +333,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
     """ The pre-processed data for each player"""
 
-    game_graph_nx: MultiDiGraph
+    game_graph_nx: Optional[MultiDiGraph]
     """ A NetworkX graph used only for visualization """
 
     solver_params: SolverParams
@@ -495,8 +495,9 @@ class SolutionsPlayer(Generic[X, U, Y, RP, RJ, SR]):
 class Solutions(Generic[X, U, Y, RP, RJ, SR]):
     solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]  # fixme currently not used
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
-    game_tree: GameNode[X, U, Y, RP, RJ, SR]
+    game_graph: GameNode[X, U, Y, RP, RJ, SR]
     sims: Mapping[str, Simulation]
+    game_graph_nx: Optional[MultiDiGraph]
 
 
 class FactAlgo(ABC):

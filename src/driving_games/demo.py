@@ -89,7 +89,7 @@ def without_compmake(games: Mapping[str, Callable[[], GameSpec]], solvers: Mappi
             if solver_params.extra:
                 r_preprocessed = create_report_preprocessed(game_name, game_preprocessed)
                 r_solver.add_child(r_preprocessed)
-                # r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
+                r_preprocessed.to_html(join(ds, "r_preprocessed.html"))
 
             solutions = solve_main(game_preprocessed, perf_stats=perf_stats)
             r_solutions = report_solutions(game_preprocessed, solutions)

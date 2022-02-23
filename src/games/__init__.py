@@ -21,12 +21,10 @@ class GameConstants:
     """
 
 
-from .preprocess import *
 from .game_def import *
-from games.solve.solution_structures import *
-from games.solve.equilibria import *
-from games.solve.solution import *
+from .preprocess import *
+from .solve import *
 from .reports_player import *
 from .reports import *
 from .simulate import *
-from .report_animations import *
+from .reports_solutions import *

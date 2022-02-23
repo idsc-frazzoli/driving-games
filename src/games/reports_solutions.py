@@ -13,6 +13,7 @@ from driving_games import VehicleTrackState
 from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
 from .game_def import JointState, RJ, RP, SR, U, X, Y
+from .reports import report_game_graph, report_game_graph_for_factorization
 from .simulate import Simulation
 
 __all__ = ["report_solutions"]
@@ -48,6 +49,11 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
         st = remove_escapes(debug_print(js))
         st += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[js].va.game_value))
         r.text(f"joint_st{i}", st)
+
+    if s.game_graph_nx is not None:
+        r.add_child(report_game_graph_for_factorization(s.game_graph_nx))
+        r.add_child(report_game_graph(s.game_graph_nx))
+    # r.add_child(report_game_joint_final(game_pre))
 
     return r
 

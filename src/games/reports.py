@@ -3,9 +3,10 @@ from collections import defaultdict
 from typing import List, Tuple, Dict
 
 import networkx as nx
-from networkx import convert_node_labels_to_integers
+from networkx import convert_node_labels_to_integers, MultiDiGraph
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
+from zuper_commons.types import ZValueError
 from zuper_typing import debug_print
 
 from games.solve.solution_structures import GamePreprocessed, Solutions
@@ -21,12 +22,12 @@ __all__ = [
 
 
 def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Report:
+    """Report for the preprocessed players"""
     r = Report(nid=game_name)
-    for player_name, player in game_pre.game.players.items():
-        r.add_child(report_player(game_pre, player_name, player))
-        # break  # only one
-    r.add_child(report_game(game_pre))
-    r.add_child(report_game_joint_final(game_pre))
+    for player_name in game_pre.players_pre:
+        r.add_child(report_player(game_pre, player_name, game_pre.game.players[player_name]))
+    # r.add_child(report_game_graph(game_pre))
+    # r.add_child(report_game_joint_final(game_pre))
     return r
 
 
@@ -46,6 +47,7 @@ def report_game_visualization(game: Game) -> Report:
 
 
 def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
+    # todo needs to be updated given the last modifications
     r = Report(nid="some_states", caption="Some interesting states.")
     G = game_pre.game_graph_nx
 
@@ -88,9 +90,7 @@ def visualize_states(
     return f
 
 
-def report_game(game_pre: GamePreprocessed) -> Report:
-    G = game_pre.game_graph_nx
-
+def report_game_graph(G: MultiDiGraph) -> Report:
     r = Report(nid="game")
 
     with r.data_file("game", mime=MIME_GRAPHML) as fn:
@@ -124,6 +124,70 @@ def report_game(game_pre: GamePreprocessed) -> Report:
         "brown: jointly final for someone;\n"
         "yellow: some personal one finish;\n"
         "purple: all players end."
+    )
+
+    node_size = 3
+    node_color = [color_node(_) for _ in G.nodes]
+    # logger.info('layout')
+    # pos = graphviz_layout(G, prog='dot')
+    logger.info("drawing")
+
+    def pos_node(n: Tuple[X, X]):
+        x = G.nodes[n]["x"]
+        y = G.nodes[n]["y"]
+        return float(x), float(y)
+
+    pos = {_: pos_node(_) for _ in G.nodes}
+
+    with r.plot("s", caption=caption) as plt:
+        nx.draw(
+            G,
+            pos=pos,
+            node_color=node_color,
+            cmap=plt.cm.Blues,
+            arrows=False,
+            edge_color=(0, 0, 0, 0.1),
+            node_size=node_size,
+        )
+        plt.xlabel("x")
+        plt.ylabel("v")
+    return r
+
+
+def report_game_graph_for_factorization(G: MultiDiGraph) -> Report:
+    r = Report(nid="fact_game")
+
+    with r.data_file("game", mime=MIME_GRAPHML) as fn:
+        logger.info(f"done writing {fn}")
+        G2 = convert_node_labels_to_integers(G)
+        for (n1, n2, d) in G2.edges(data=True):
+            d.clear()
+        nx.write_graphml(G2, fn)
+
+    def color_node(n):
+        n_players = G.nodes[n]["n_players"]
+        if n_players > 5:
+            return "purple"
+        elif n_players == 5:
+            return "red"
+        elif n_players == 4:
+            return "orangered"
+        elif n_players == 3:
+            return "orange"
+        elif n_players == 2:
+            return "yellow"
+        elif n_players == 1:
+            return "green"
+        else:
+            raise ZValueError(f"Unsupported number of players when drawing the graph", n_players=n_players)
+
+    caption = (
+        "purple: >5 players;\n"
+        "red: 5 players;\n"
+        "orangered: 4 players;\n"
+        "orange: 3 players;\n"
+        "yellow: 2 players;\n"
+        "green: 1 player."
     )
 
     node_size = 3
