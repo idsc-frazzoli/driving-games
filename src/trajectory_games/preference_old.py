@@ -77,7 +77,7 @@ class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
             value = (
                 metric.evaluate(outcome=outcome)
                 if isinstance(metric, WeightedMetricPreference)
-                else D(outcome[metric].total)
+                else D(outcome[metric].value)
             )
             w += value * weight
         return w
