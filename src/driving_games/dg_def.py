@@ -41,8 +41,6 @@ class DgSimpleParams:
     """Minimum safety distance for the joint cost of the players"""
     shared_resources_ds: D
     """Shared resources discretization resolution"""
-    max_stages: StageIdx = inf
-    """Maximum number of stages"""
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 
     def __post__init__(self):

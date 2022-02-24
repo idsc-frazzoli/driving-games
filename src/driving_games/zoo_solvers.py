@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
 from itertools import product
+from math import inf
 from typing import Dict
 
 from games import FINITE_MIX_STRATEGIES, MIX_MNE, PURE_STRATEGIES, SECURITY_MNE, SolverParams
@@ -33,9 +34,17 @@ fact_options = [
 ]
 extra_options = [("extra", True), ("noextra", False)]
 
-options_mix = [admissible_strategies, mne_strategies, discretization_steps, fact_options, extra_options]
+max_depth_options = [inf, 10, 20]
+options_mix = [
+    admissible_strategies,
+    mne_strategies,
+    discretization_steps,
+    fact_options,
+    extra_options,
+    max_depth_options,
+]
 
-for adm_strat, mne_strat, dt, fact, extra in product(*options_mix):
+for adm_strat, mne_strat, dt, fact, extra, max_depth in product(*options_mix):
     params = SolverParams(
         dt=dt,
         admissible_strategies=adm_strat,
@@ -44,10 +53,12 @@ for adm_strat, mne_strat, dt, fact, extra in product(*options_mix):
         use_factorization=fact[1],
         factorization_algorithm=fact[2](cells_resources_checker),
         extra=extra[1],
+        max_depth=max_depth,
     )
     desc = (
         f"Admissible strategies = {adm_strat}; Multiple NE strategy = {mne_strat}; "
-        f"discretization = {dt}; factorization = {fact[2].__name__}; extra = {extra[1]}"
+        f"discretization = {dt}; factorization = {fact[2].__name__}; extra = {extra[1]}; "
+        f"max_depth = {max_depth}"
     )
     # todo: update with algo fact name
-    solvers_zoo[f"solver-{dt}-{adm_strat}-{mne_strat}-{fact[0]}-{extra[0]}"] = SolverSpec(desc, params)
+    solvers_zoo[f"solver-{dt}-{adm_strat}-{mne_strat}-{fact[0]}-{extra[0]}-{max_depth}"] = SolverSpec(desc, params)

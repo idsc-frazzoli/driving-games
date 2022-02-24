@@ -68,9 +68,7 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
             has_collided=False,
         )
         p_initial = ps.unit(p_x)
-        p_personal_reward_structure = VehiclePersonalRewardStructureTime(
-            goal_progress=dg_params.progress[p][1], maximum_depth=dg_params.max_stages
-        )
+        p_personal_reward_structure = VehiclePersonalRewardStructureTime(goal_progress=dg_params.progress[p][1])
         p_preferences = VehiclePreferencesCollTime()
 
         # this part about observations is not used at the moment
@@ -93,7 +91,7 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         ref_lanes=dg_params.ref_lanes,
         col_check_dt=dg_params.col_check_dt,
         min_safety_distance=dg_params.min_safety_distance,
-        players_dynamics={p: players[p].dynamics for p in players},  # temp for quick checking of resources
+        players_dynamics=fd({p: players[p].dynamics for p in players}),  # temp for quick checking of resources
     )
     game_visualization = DrivingGameVisualization(
         dg_params,

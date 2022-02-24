@@ -2,7 +2,7 @@ from collections import defaultdict
 from decimal import Decimal as D
 from functools import partial
 from time import perf_counter
-from typing import AbstractSet, Dict, FrozenSet as FSet, List, Mapping, Mapping as M, Tuple
+from typing import Dict, FrozenSet as FSet, List, Mapping, Mapping as M, Tuple, AbstractSet
 
 from cytoolz import valmap
 from frozendict import frozendict
@@ -30,17 +30,18 @@ from .solution_structures import (
     GamePreprocessed,
     GameSolution,
     Solutions,
-    SolutionsPlayer,
     SolvedGameNode,
     SolverParams,
     SolvingContext,
     UsedResources,
     ValueAndActions,
     ResourcesType,
+    SolutionsPlayer,
 )
 from .solution_utils import add_incremental_cost_player, fd_r, get_outcome_preferences_for_players
 from .solve_equilibria import solve_equilibria, solve_final_for_everyone
 from ..create_joint_game_graph import create_game_graph
+from ..factorization import collapse_states
 from ..game_graph_to_nx import build_networkx_from_game_graph, compute_graph_layout
 
 __all__ = ["solve_main"]
@@ -59,39 +60,24 @@ def solve_main(
 
     init_states_players: Mapping[PlayerName, X] = valmap(lambda x: x.initial.support(), gp.game.players)
     init_states: List[JointState] = [js for js in iterate_dict_combinations(init_states_players)]
-    assert len(init_states) == 1
-    initial = init_states[0]
-    logger.info(initials=initial)
-
-    # if gp.solver_params.extra:
-    #     G = gp.game_graph_nx
-    #     # noinspection PyCallingNonCallable
-    #     initials = list((node for node, degree in G.in_degree() if degree == 0))
-    #     # noinspection PyCallingNonCallable
-    #     finals = list(node for node, degree in G.out_degree() if degree == 0)
-    #     logger.info(finals=len(finals))
-    #     assert init_states == initials
-    #     cycles = list(simple_cycles(G))
-    #     if cycles:
-    #         msg = "Did not expect cycles in the graph"
-    #         raise ZValueError(msg, cycles=cycles)
+    assert len(init_states) == 1, init_states
+    no_fact_initial = init_states[0]
+    logger.info(initial=no_fact_initial)
 
     tic = perf_counter()
+    # Create the game graph
     gg = create_game_graph(
         game=gp.game,
         dt=gp.solver_params.dt,
-        initials={initial},
+        initials={no_fact_initial},
         players_pre=gp.players_pre,
         fact_algo=gp.solver_params.factorization_algorithm,
         compute_res=False,
+        max_depth=gp.solver_params.max_depth,
     )
     toc = perf_counter()
     perf_stats.build_joint_game_tree = toc - tic
     perf_stats.joint_game_tree_nodes = len(gg.state2node)
-
-    game_graph = gg.state2node[initial]
-    solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
-    initial_state = game_graph.states
 
     if gp.solver_params.extra:
         limit_nodes = 5000
@@ -107,13 +93,24 @@ def solve_main(
 
     # solve sequential games equilibria # todo not defined for n>2
     # sims = solve_sequential_games(gp=gp, gg=gg, initial_state=initial_state, sims=sims)
+    # get the game graphs
+
+    # why is this not used?!
+    solutions_players: Dict[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]] = {}
 
     # solve simultaneous play (Nash equilibria)
     logger.info("Solving joint game tree")
     global TOC
     TOC = perf_counter()
     tic = perf_counter()
-    game_solution = solve_game(game=gp.game, gg=gg, solver_params=gp.solver_params, jss=init_states, compute_res=False)
+    factorize = gp.solver_params.factorization_algorithm.factorize
+    fact_jss: FSet[JointState] = frozenset(
+        factorize(no_fact_initial, known=valmap(collapse_states, gp.players_pre), ps=gp.game.ps).values()
+    )
+
+    game_solution = solve_game(
+        game=gp.game, gg=gg, initials=fact_jss, solver_params=gp.solver_params, compute_res=False
+    )
     toc = perf_counter()
     perf_stats.solve_joint_game_graph = toc - tic
 
@@ -123,8 +120,8 @@ def solve_main(
         controllers0[player_name] = AgentFromPolicy(gp.game.ps, policy, player_name)
 
     logger.info(
-        f"Value of joint solution",
-        game_value=game_solution.states_to_solution[initial_state].va.game_value,
+        f"Value of initial states joint solution",
+        game_values=[game_solution.states_to_solution[js_].va.game_value for js_ in fact_jss],
         # policy=solution_ghost.policies,
     )
 
@@ -134,15 +131,16 @@ def solve_main(
         sim_joint = simulate1(
             gp.game,
             policies=controllers0,
-            initial_states=game_graph.states,
+            initial_states=no_fact_initial,
             dt=gp.solver_params.dt,
             seed=seed,
+            max_stages=gp.solver_params.max_depth,
         )
         sims[f"joint-{seed}"] = sim_joint
 
     return Solutions(
         game_solution=game_solution,
-        game_graph=game_graph,
+        game_graph=gg,
         solutions_players=solutions_players,
         sims=sims,
         game_graph_nx=game_graph_nx,
@@ -154,7 +152,7 @@ def solve_game(
     game: Game[X, U, Y, RP, RJ, SR],
     solver_params: SolverParams,
     gg: GameGraph[X, U, Y, RP, RJ, SR],
-    jss: AbstractSet[JointState],
+    initials: AbstractSet[JointState],
     compute_res: bool = True,
 ) -> GameSolution[X, U, Y, RP, RJ, SR]:
     """
@@ -163,8 +161,8 @@ def solve_game(
 
     :param game:
     :param solver_params:
-    :param gg: the game graph to solve
-    :param jss: all the initial states
+    :param gg: The Game Graph
+    :param initials: The initials states, must be already factorized!
     :param compute_res: weather or not to collect the used resources by the game nodes
     :return:
     """
@@ -179,7 +177,8 @@ def solve_game(
         solver_params=solver_params,
         compute_res=compute_res,
     )
-    for js0 in jss:
+
+    for js0 in initials:
         _solve_game(sc, js0)
 
     policies: Dict[PlayerName, Dict[X, Dict[Poss[JointState], Poss[U]]]]
@@ -196,7 +195,7 @@ def solve_game(
     policies2 = fd({k: fd_r(v) for k, v in policies.items()})
 
     return GameSolution(
-        initials=frozenset(jss),
+        initials=gg.initials,
         policies=policies2,
         states_to_solution=fd(states_to_solution),
     )
@@ -273,6 +272,7 @@ def _solve_game(
     va: ValueAndActions[U, RP, RJ]
     if set(gn.states) == set(gn.personal_final_reward) | set(gn.joint_final_rewards):
         # All the actives finish
+        # todo for supporting max depth we land here if we reach max depth?
         va = solve_final_for_everyone(sc, gn)
     else:
         va = solve_equilibria(sc, gn, fd(solved))

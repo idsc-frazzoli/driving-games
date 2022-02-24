@@ -1,17 +1,18 @@
 from bisect import bisect_right
 from itertools import chain
 from math import ceil
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, FrozenSet
 
 from matplotlib.artist import Artist
 from reprep import MIME_GIF, Report
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
 
-from dg_commons import PlayerName, UndefinedAtTime
+from dg_commons import PlayerName, UndefinedAtTime, valmap
 from driving_games import VehicleTrackState
 from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
+from .factorization import collapse_states
 from .game_def import JointState, RJ, RP, SR, U, X, Y
 from .reports import report_game_graph, report_game_graph_for_factorization
 from .simulate import Simulation
@@ -46,8 +47,13 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
         sims.pop(k)
     js: JointState
     for i, js in enumerate(s.game_solution.initials):
-        st = remove_escapes(debug_print(js))
-        st += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[js].va.game_value))
+        factorize = gp.solver_params.factorization_algorithm.factorize
+        fact_jss: FrozenSet[JointState] = frozenset(
+            factorize(js, known=valmap(collapse_states, gp.players_pre), ps=gp.game.ps).values()
+        )
+        for fjs in fact_jss:
+            st = remove_escapes(debug_print(fjs))
+            st += ":\n" + remove_escapes(debug_print(s.game_solution.states_to_solution[fjs].va.game_value))
         r.text(f"joint_st{i}", st)
 
     if s.game_graph_nx is not None:

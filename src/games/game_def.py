@@ -146,9 +146,8 @@ class PersonalRewardStructure(Generic[X, U, RP], ABC):
         """The identity for the monoid"""
 
     @abstractmethod
-    def is_personal_final_state(self, x: X, depth: StageIdx = 0) -> bool:
-        """True if this is a final state from the perspective of the agent.
-        Conditions can satisfy a terminal set or a maximum lookahead."""
+    def is_personal_final_state(self, x: X) -> bool:
+        """True if this is a final state from the perspective of the agent."""
 
 
 P = TypeVar("P")

@@ -13,9 +13,8 @@ __all__ = ["VehiclePersonalRewardStructureTime"]
 class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackState, VehicleActions, VehicleTimeCost]):
     goal_progress: D
 
-    def __init__(self, goal_progress: D, maximum_depth: StageIdx = +inf):
+    def __init__(self, goal_progress: D):
         self.goal_progress = goal_progress
-        self.maximum_depth = maximum_depth
 
     def personal_reward_incremental(self, x: VehicleTrackState, u: VehicleActions, dt: Timestamp) -> VehicleTimeCost:
         check_isinstance(x, VehicleTrackState)
@@ -35,10 +34,10 @@ class VehiclePersonalRewardStructureTime(PersonalRewardStructure[VehicleTrackSta
             ctx.prec = 3
             try:
                 remaining = (self.goal_progress - x.x) / x.v
-            except:
-                remaining = D(0)
+            except:  # mainly division by zero
+                remaining = D(99)
             return VehicleTimeCost(remaining)
 
-    def is_personal_final_state(self, x: VehicleTrackState, depth: StageIdx = 0) -> bool:
+    def is_personal_final_state(self, x: VehicleTrackState) -> bool:
         check_isinstance(x, VehicleTrackState)
-        return x.x >= self.goal_progress or depth >= self.maximum_depth
+        return x.x >= self.goal_progress

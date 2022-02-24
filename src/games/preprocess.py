@@ -61,7 +61,9 @@ def preprocess_game(
 
 
 def preprocess_player(
-    individual_game: Game[X, U, Y, RP, RJ, SR], solver_params: SolverParams, perf_stats: PerformanceStatistics
+    individual_game: Game[X, U, Y, RP, RJ, SR],
+    solver_params: SolverParams,
+    perf_stats: PerformanceStatistics,
 ) -> GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]:
     """
     # Preprocess a single player by solving their individual games (i.e. optimal control problem)
@@ -74,6 +76,7 @@ def preprocess_player(
     player_name = l[0]
     player: GamePlayer = individual_game.players[player_name]
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
+    assert len(initials) == 1
 
     tic = perf_counter()
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
@@ -84,11 +87,12 @@ def preprocess_player(
         initials=initials,
         players_pre=fd({}),
         fact_algo=solver_params.factorization_algorithm,
+        max_depth=solver_params.max_depth,
     )
     tic2 = perf_counter()
     perf_stats.individual_game_graphs_nodes.append(len(game_graph.state2node))
     gs: GameSolution[X, U, Y, RP, RJ, SR]
-    gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, jss=initials)
+    gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, initials=initials)
     toc = perf_counter()
     perf_stats.build_individual_game_graphs.append(tic2 - tic)
     perf_stats.solve_individual_game_graphs.append(toc - tic2)

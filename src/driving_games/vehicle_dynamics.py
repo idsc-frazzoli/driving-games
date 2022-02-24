@@ -87,7 +87,8 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
         if x.has_collided:
             # special case for the collided ones, they are forced to stop
             acc_min = min(self.param.available_accels)
-            accels = [acc_min if acc_min * dt + x.v > 0 else D(0)]
+            # accels = [acc_min if acc_min * dt + x.v > 0 else D(0)]
+            accels = [D(0)]
             # only one action available for a collided vehicle (either slow down or stay put)
             assert len(accels) == 1, accels
         else:

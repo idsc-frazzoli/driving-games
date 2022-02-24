@@ -2,9 +2,10 @@ from dataclasses import replace
 from typing import Mapping, Tuple, FrozenSet as FSet, Dict
 
 from cytoolz import itemmap
+from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, X, fd, U, Y, RP, RJ
-from games import JointState, SR
+from games import JointState, SR, logger
 from games.factorization import find_dependencies
 from games.solve.solution_structures import UsedResources, SolvedGameNode, FactAlgo
 from possibilities import PossibilityMonad
@@ -88,6 +89,12 @@ class FactAlgoOptimalRes(FactAlgo):
             def get_optimal_res(items: Tuple[PlayerName, X]) -> Tuple[PlayerName, UsedResources]:
                 pname, state = items
                 alone_js = fd({pname: state})
+                if alone_js not in known[pname]:
+                    raise ZValueError(
+                        f"{alone_js} not in known",
+                        alone_js=alone_js,
+                        known=list(known[pname].keys()),
+                    )
                 return pname, known[pname][alone_js].optimal_res
 
             opt_resources_used = itemmap(get_optimal_res, js0_minus_collision)
