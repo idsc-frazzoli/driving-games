@@ -1,25 +1,27 @@
 import os
 from decimal import Decimal as D
 from queue import PriorityQueue
-from typing import Dict, Mapping, NewType, Set, Tuple, Type, Union
+from typing import Type, Dict, Mapping, Set, NewType, Tuple, Union
+from dg_commons.time import time_function
 
 from frozendict import frozendict
-from networkx import all_simple_paths, DiGraph, has_path, is_directed_acyclic_graph
+from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
 from yaml import safe_load
 
 from driving_games.metrics_structures import Metric, PlayerEvaluatedMetrics
 from preferences import (
-    ComparisonOutcome,
-    FIRST_PREFERRED,
-    INCOMPARABLE,
-    INDIFFERENT,
     Preference,
-    SECOND_PREFERRED,
+    ComparisonOutcome,
     SmallerPreferredTol,
+    INDIFFERENT,
+    INCOMPARABLE,
+    FIRST_PREFERRED,
+    SECOND_PREFERRED,
 )
 from .config import CONFIG_DIR
 from .config.ral import config_dir_ral
 from .metrics import get_metrics_set
+from .metrics import *
 
 __all__ = [
     "WeightedMetricPreference",
@@ -33,7 +35,7 @@ class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
     """Compare the total weighted values between evaluated metrics"""
 
     name: str
-    weights: Mapping[Metric, float]
+    weights: Mapping[Metric, D]
     """ Weights of the different nodes. Each node can either be a metric or a weighted preference """
 
     """ Internal parameters """
@@ -42,8 +44,8 @@ class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
     _metric_dict: Dict[str, AllMetrics] = None
 
     def __init__(
-        self,
-        weights_str: str,
+            self,
+            weights_str: str,
     ):
         if WeightedMetricPreference._config is None:
             filename = os.path.join(CONFIG_DIR, "pref_nodes.yaml")
@@ -54,17 +56,18 @@ class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
         self.name = weights_str
         weights: Dict[AllMetrics, D] = {}
         for k, v in WeightedMetricPreference._config[weights_str].items():
-            if k not in WeightedMetricPreference._metric_dict:
+            if k not in WeightedMetricPreference._metric_dict:  # todo: check exactly what this does in debugger
                 try:
-                    w_metric = WeightedMetricPreference(weights_str=k)
+                    w_metric = WeightedMetricPreference(
+                        weights_str=k)  # todo: is this for nested weights (weights in weights)
                 except:
                     raise ValueError(f"Key {k} not found in metrics or weighted metrics!")
                 WeightedMetricPreference._metric_dict[k] = w_metric
-            weights[WeightedMetricPreference._metric_dict[k]] = D(v)
+            weights[WeightedMetricPreference._metric_dict[k]] = D(v)  # todo: check what this does
         self.weights = weights
 
     def get_type(
-        self,
+            self,
     ) -> Type[PlayerEvaluatedMetrics]:
         return PlayerEvaluatedMetrics
 
@@ -77,7 +80,7 @@ class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
             value = (
                 metric.evaluate(outcome=outcome)
                 if isinstance(metric, WeightedMetricPreference)
-                else D(outcome[metric].total)
+                else D(outcome[metric].value)
             )
             w += value * weight
         return w
@@ -95,16 +98,17 @@ class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
         return len(self.weights) < len(other.weights)
 
 
-metric_type = NewType("metric", WeightedMetricPreference)  # fixme this does not seem right
+# todo: remove
+# metric_type = NewType("metric", WeightedMetricPreference)  # fixme this does not seem right
 
 
 class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
-    """A preference specified over the various nodes.
-    Each node is a metric or a weighted combination of metrics (or weighted nodes)"""
+    """A preference specified over several nodes.
+    Each node is a metric or a weighted combination of metrics (or weighted nodes), see WeightedMetricPreference"""
 
     graph: DiGraph
     """ Preference graph """
-    level_nodes: Mapping[int, Set[metric_type]]
+    level_nodes: Mapping[int, Set[WeightedMetricPreference]]
     """ All nodes used, and sorted by level """
     pref_str: str
     """ Name of preference """
@@ -120,7 +124,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
         INCOMPARABLE: INCOMPARABLE,
     }
     _cache: Dict[Tuple[PlayerEvaluatedMetrics, PlayerEvaluatedMetrics], ComparisonOutcome]
-    _node_dict: Dict[str, metric_type] = {}
+    _node_dict: Dict[str, WeightedMetricPreference] = {}
 
     def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:
@@ -144,7 +148,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
     def __hash__(self):
         return hash(self.pref_str)
 
-    def add_node(self, name: str) -> metric_type:
+    def add_node(self, name: str) -> WeightedMetricPreference:
         if name not in PosetalPreference._node_dict:
             node = WeightedMetricPreference(weights_str=name)
             PosetalPreference._node_dict[name] = node
@@ -168,7 +172,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
         assert is_directed_acyclic_graph(self.graph)
 
     def calculate_levels(self):
-        level_nodes: Dict[int, Set[metric_type]] = {}
+        level_nodes: Dict[int, Set[WeightedMetricPreference]] = {}
 
         # Roots don't have input edges, degree = 0
         roots = [n for n, d in self.graph.in_degree() if d == 0]
@@ -203,11 +207,157 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
         self.level_nodes = level_nodes
 
     def get_type(
-        self,
+            self,
     ) -> Type[PlayerEvaluatedMetrics]:
         return PlayerEvaluatedMetrics
 
+    @staticmethod
+    def compare_layer(layer_a: Set[WeightedMetricPreference],
+                      layer_b: Set[WeightedMetricPreference]) -> ComparisonOutcome:
+
+        layer_a = list(layer_a)
+        layer_b = list(layer_b)
+        ret = 0
+        assert len(layer_a) == len(layer_b), "Layers must contain same number of nodes"
+
+        # check if first preferred
+        for i, node in enumerate(layer_a):
+            if layer_a[i] > layer_b[i]:  # check if first is not preferred
+                ret = 0
+                break
+            if layer_a[i] < layer_b[i]:
+                if i == len(layer_a) - 1:
+                    return FIRST_PREFERRED
+                continue
+
+        # check if second preferred
+        for i, node in enumerate(layer_a):
+            if layer_a[i] < layer_b[i]:  # check if second is not preferred
+                ret = 0
+                break
+            if layer_a[i] > layer_b[i]:
+                if i == len(layer_a) - 1:
+                    return SECOND_PREFERRED
+                continue
+
+        # check if indifferent
+        for i, node in enumerate(layer_a):
+            if layer_a[i] != layer_b[i]:  # todo: add tolerance
+                ret = 0
+                break
+            return INDIFFERENT
+
+        if ret == 0:
+            ret = INCOMPARABLE
+        return ret
+
+    @staticmethod
+    def get_metric_instance(name: str):
+        if name == "EpisodeTime":
+            return EpisodeTime()
+        if name == "DeviationLateral":
+            return DeviationLateral()
+        if name == "DeviationHeading":
+            return DeviationHeading()
+        if name == "DrivableAreaViolation":
+            return DrivableAreaViolation()
+        if name == "ProgressAlongReference":
+            return ProgressAlongReference()
+        if name == "LongitudinalAcceleration":
+            return LongitudinalAcceleration()
+        if name == "LateralComfort":
+            return LateralComfort()
+        if name == "SteeringAngle":
+            return SteeringAngle()
+        if name == "SteeringRate":
+            return SteeringRate()
+        if name == "CollisionEnergy":
+            return CollisionEnergy()
+        if name == "MinimumClearance":
+            return MinimumClearance()
+
     def compare(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
+
+        if self.no_pref:  # todo: make fct robust to a,b that are different from actual graph we have in self.graph
+            return INDIFFERENT
+        for level, nodes in self.level_nodes.items():
+            layer_a = []
+            layer_b = []
+            for node in nodes:
+                val_a = a[self.get_metric_instance(node.name)].value  # fixme: need more elegant solution
+                layer_a.append(val_a)
+                val_b = b[self.get_metric_instance(node.name)].value  # fixme: need more elegant solution
+                layer_b.append(val_b)
+
+            level_comparison = self.compare_layer(layer_a=layer_a, layer_b=layer_b)
+            if level_comparison == FIRST_PREFERRED:
+                return FIRST_PREFERRED
+            if level_comparison == SECOND_PREFERRED:
+                return SECOND_PREFERRED
+            if level_comparison == INCOMPARABLE:
+                return INCOMPARABLE
+
+        return INDIFFERENT
+
+    @time_function
+    def compare_new(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
+
+        if self.no_pref:
+            return INDIFFERENT
+
+        #queue = [root for root in self.level_nodes[0]]  # initialize queue with roots
+        queue = PriorityQueue(100)
+        for root in self.level_nodes[0]:
+            queue.put((0, root))
+
+        outcomes = []
+        discriminants = []  # list of metrics that are not equal between outcomes and therefore allow discriminating
+
+        # compare roots
+        while queue.qsize() > 0:
+            if INCOMPARABLE in outcomes or (FIRST_PREFERRED in outcomes and SECOND_PREFERRED in outcomes):
+                break
+            _, metric = queue.get()
+            comp = metric.compare(a, b)
+
+            # if one metric is incomparable, return incomparable
+            if comp == INCOMPARABLE:
+                return INCOMPARABLE
+
+            skip = False
+            # skip all children when the parent node already yields a comparison that is not indifferent
+            for discr in discriminants:
+                if has_path(G=self.graph, source=discr, target=metric):
+                    skip = True
+
+            if skip:
+                continue
+
+            # if first or second outcome are preferred, store result and metric
+            if comp == FIRST_PREFERRED or comp == SECOND_PREFERRED:
+                outcomes.append(comp)
+                discriminants.append(metric)
+
+            # if a node yields indifferent, search in its successors
+            if comp == INDIFFERENT:
+                for child in self.graph.successors(metric):
+                    #queue.append(self.graph.nodes[child]["level"],child)
+                    queue.put((self.graph.nodes[child]["level"], child))
+
+        # final step: combine outcomes
+        if INCOMPARABLE in outcomes or (FIRST_PREFERRED in outcomes and SECOND_PREFERRED in outcomes):
+            return INCOMPARABLE
+        elif FIRST_PREFERRED in outcomes:
+            return FIRST_PREFERRED
+        elif SECOND_PREFERRED in outcomes:
+            return SECOND_PREFERRED
+
+        assert FIRST_PREFERRED not in outcomes and SECOND_PREFERRED not in outcomes, "Something went wrong"
+
+        return INDIFFERENT
+
+    @time_function
+    def compare_old(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
 
         if self.no_pref:
             return INDIFFERENT
@@ -221,8 +371,8 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
             if (b, a) in self._cache:
                 return self._complement[(self._cache[(b, a)])]
         OPEN = PriorityQueue(100)
-        DONE: Set[metric_type] = set()
-        CLOSED: Set[metric_type] = set()
+        DONE: Set[WeightedMetricPreference] = set()
+        CLOSED: Set[WeightedMetricPreference] = set()
         OUTCOMES: Set[ComparisonOutcome] = set()
 
         for root in self.level_nodes[0]:
@@ -260,3 +410,17 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
         if self.use_cache:
             self._cache[(a, b)] = ret
         return ret
+
+    def build_graph_old(self, pref_str: str):
+        self.graph = DiGraph()
+        if pref_str == "NoPreference":
+            self.no_pref = True
+            return
+        if pref_str not in self._config:
+            raise ValueError(f"{pref_str} not found in keys = {self._config.keys()}")
+        for key, parents in self._config[pref_str].items():
+            node = self.add_node(name=key)
+            for p in parents:
+                p_node = self.add_node(name=p)
+                self.graph.add_edge(p_node, node)
+        assert is_directed_acyclic_graph(self.graph)

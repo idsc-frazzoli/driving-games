@@ -2,33 +2,31 @@ import math
 from copy import deepcopy
 from random import choice
 from time import perf_counter
-from typing import Callable, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Mapping, Dict, Set, List, Callable, Tuple, Optional
 
 from frozendict import frozendict
 from shapely.geometry import Polygon
 
-from dg_commons import iterate_dict_combinations, PlayerName, SE2Transform
+from dg_commons import PlayerName, SE2Transform, iterate_dict_combinations
 from dg_commons.maps import DgLanelet
-from dg_commons.seq import DgSampledSequence, Timestamp
-from driving_games.metrics_structures import EvaluatedMetric, Metric
+from dg_commons.seq import Timestamp, DgSampledSequence
+from driving_games.metrics_structures import EvaluatedMetric, Metric, PlayerOutcome
 from possibilities import Poss, PossibilityMonad
-from preferences import ComparisonOutcome, FIRST_PREFERRED, Preference, SECOND_PREFERRED
+from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
-from .metrics import Clearance_old
-from .metrics_def import PlayerOutcome
 from .paths import Trajectory
 from .solve import get_best_responses
-from .structures import VehicleGeometry, VehicleState
+from .structures import VehicleState, VehicleGeometry
 from .trajectory_game import (
-    LeaderFollowerGame,
-    LeaderFollowerGameNode,
-    LeaderFollowerGameSolvingContext,
-    LeaderFollowerGameStage,
-    preprocess_full_game,
-    SolvedLeaderFollowerGame,
-    SolvedRecursiveLeaderFollowerGame,
-    SolvedTrajectoryGame,
     SolvedTrajectoryGameNode,
+    SolvedTrajectoryGame,
+    SolvedLeaderFollowerGame,
+    LeaderFollowerGameSolvingContext,
+    LeaderFollowerGameNode,
+    LeaderFollowerGameStage,
+    LeaderFollowerGame,
+    preprocess_full_game,
+    SolvedRecursiveLeaderFollowerGame,
 )
 
 
@@ -263,7 +261,7 @@ def solve_recursive_game_stage(
     # Update estimate of follower prefs using action as measurement
     if game.lf.update_prefs:
         game.lf.prefs_follower_est = update_follower_prefs(stage=stage, ps=game.ps)
-        print(f"Updated Estimated Preferences - remaining = " f"{len(game.lf.prefs_follower_est.support())} " f"types")
+        print(f"Updated Estimated Preferences - remaining = " f"{len(game.lf.prefs_follower_est.support())} types")
 
     return stage
 

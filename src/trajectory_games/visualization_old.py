@@ -19,7 +19,7 @@ from dg_commons.sim.simulator_visualisation import transform_xy
 from .game_def import GameVisualization
 # from .paths import Trajectory
 from dg_commons.planning import Trajectory
-from .preference import PosetalPreference, WeightedMetricPreference
+from .preference_old import PosetalPreference, WeightedMetricPreference
 from .structures import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
 from driving_games.metrics_structures import MetricEvaluationContext

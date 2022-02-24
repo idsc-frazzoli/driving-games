@@ -1,7 +1,7 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Set, Tuple, Optional, List
 
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork
@@ -11,16 +11,16 @@ from yaml import safe_load
 
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.maps import DgLanelet
-from dg_commons.sim.scenarios import load_commonroad_scenario
 from games import MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference
+from dg_commons.sim.scenarios import load_commonroad_scenario
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
-from .preference import PosetalPreference
-from .structures import TrajectoryParams, VehicleGeometry, VehicleState
-from .trajectory_game import LeaderFollowerGame, LeaderFollowerParams, TrajectoryGame, TrajectoryGamePlayer
+from .preference_old import PosetalPreference
+from .structures import VehicleGeometry, VehicleState, TrajectoryParams
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_generator import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization_dev import TrajGameVisualization
@@ -59,7 +59,8 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     scenario: Scenario
     print(f"Loading Scenario: {config['map_name']}", end=" ...")
-    scenario, _ = load_commonroad_scenario(config["map_name"])
+    scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
+    scenario, _ = load_commonroad_scenario(config["map_name"], scenarios_dir=scenarios_dir)
     print("Done")
     lane_network: LaneletNetwork = scenario.lanelet_network
 
