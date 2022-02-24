@@ -443,7 +443,31 @@ class CollisionEnergy(Clearance):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
+# todo: refine metric when needed and test
+class AngularViolation(Metric):
+    description = "This metric describes the deviation (in radians) from a circular sector d"
 
+    def __init__(self, min_angle: float, max_angle: float):
+        self.min_angle = min_angle
+        self.max_angle = max_angle
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            headings = [heading for heading in traj.values.theta]
+            for idx, head in enumerate(headings):
+                if head > self.min_angle and head < self.max_angle:
+                    headings[idx] = 0
+                elif head > self.max_angle:
+                    headings[idx] = head - self.max_angle
+                elif head < self.min_angle:
+                    headings[idx] = - self.max_angle - head
+            ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                values=headings, timestamps=traj.get_sampling_points()))
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 # fixme probably all these metrics is better to have them as Type[Metric]?
