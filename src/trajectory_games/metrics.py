@@ -1,9 +1,4 @@
-import math
-from abc import ABCMeta, abstractmethod
-from copy import deepcopy
-from functools import partial
 from itertools import combinations
-from time import perf_counter
 from typing import Tuple, List, Dict, Callable, Set, Mapping, Any
 
 from shapely.geometry import Polygon
@@ -11,14 +6,11 @@ import geometry as geo
 import numpy as np
 from frozendict import frozendict
 
-import dg_commons.seq.seq_op
-from dg_commons import PlayerName, SE2Transform, seq_differentiate, fd, apply_SE2_to_shapely_geo, Timestamp
+from dg_commons import PlayerName, SE2Transform, seq_differentiate, apply_SE2_to_shapely_geo, Timestamp
 from dg_commons.maps import DgLanePose
 from dg_commons.planning import Trajectory, JointTrajectories
 from dg_commons.seq.sequence import DgSampledSequence
 from dg_commons.time import time_function
-from dg_commons.sim.collision_utils import get_impact_point_direction
-from dg_commons.sim.models import extract_pose_from_state
 from driving_games.metrics_structures import (
     EvaluatedMetric,
     JointEvaluatedMetric,
@@ -41,9 +33,10 @@ __all__ = [
     "LateralComfort",
     "SteeringAngle",
     "SteeringRate",
-    "Clearance_old",
-    "CollisionEnergy_old",
-    "MinimumClearance_old",
+    "Clearance",
+    "CollisionEnergy",
+    "ClearanceViolationTime",
+    "MinimumClearance",
     "MetricEvaluation",
 ]
 
@@ -169,7 +162,10 @@ class ProgressAlongReference(Metric):
 
             # negative for smaller preferred
             final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
-            ret = self.get_metric(seq=DgSampledSequence[float](timestamps=[0.0], values=final_progress))
+            ret = EvaluatedMetric(
+                name=type(self).__name__,
+                value=final_progress[0]
+            )
             self.cache[traj] = ret
             return ret
 
@@ -197,7 +193,7 @@ class LongitudinalAcceleration(Metric):
 
 
 def _get_lat_comf(x: VehicleState) -> float:
-    return abs(x.vx * x.st)
+    return abs(x.vx * x.delta)
 
 
 class LateralComfort(Metric):
@@ -231,7 +227,7 @@ class SteeringAngle(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            st_seq = traj.transform_values(lambda x: abs(x.st), float)
+            st_seq = traj.transform_values(lambda x: abs(x.delta), float)
             ret = self.get_integrated_metric(seq=st_seq)
             self.cache[traj] = ret
             return ret
@@ -250,7 +246,7 @@ class SteeringRate(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            st_traj = traj.transform_values(lambda x: x.st, float)
+            st_traj = traj.transform_values(lambda x: x.delta, float)
             dst = seq_differentiate(st_traj)
             ret = self.get_integrated_metric(dst)
             self.cache[traj] = ret
@@ -447,197 +443,7 @@ class CollisionEnergy(Clearance):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-class Clearance_old(Metric, metaclass=ABCMeta):
-    PlayersInstance = Mapping[PlayerName, Tuple[SE2Transform, VehicleGeometry]]
-    cache_dist: Dict[PlayersInstance, float] = {}
-    coeffs = [(+1, +1), (+1, -1), (-1, +1), (-1, -1)]
-    THRESHOLD: float
-    time: float
-    cache_vals: Dict[JointTrajectories, Dict[PlayerName, List[float]]]
-    cache_metrics: Dict[JointTrajectories, Dict[PlayerName, EvaluatedMetric]]
 
-    @staticmethod
-    def get_clearance(players: PlayersInstance) -> float:
-        key = frozendict({name: state for name, (state, _) in players.items()})
-        if key in Clearance_old.cache_dist:
-            return Clearance_old.cache_dist[key]
-
-        players_list = list(players.values())
-        min_dist = float("inf")
-
-        for i in range(2):
-            p1, geo1 = players_list[i]
-            p2, geo2 = players_list[1 - i]
-            q1, q2 = p1.as_SE2(), p2.as_SE2()
-            g = geo.SE2.multiply(geo.SE2.inverse(q1), q2)
-            x0, y0, theta = geo.xytheta_from_SE2(g)
-            costh, sinth = math.cos(theta), math.sin(theta)
-            l, w = geo1.l, geo1.w
-            lx, ly = geo2.l * costh, +geo2.l * sinth
-            wx, wy = geo2.w * sinth, -geo2.w * costh
-            for cl, cw in Clearance_old.coeffs:
-                x = x0 + lx * cl + wx * cw
-                y = y0 + ly * cl + wy * cw
-                dr = np.array([abs(x) - l, abs(y) - w])
-                if all(dr <= 0):
-                    min_dist = 0.0
-                    break
-                elif dr[0] <= 0:
-                    min_dist = min(min_dist, dr[1])
-                elif dr[1] <= 0:
-                    min_dist = min(min_dist, dr[0])
-                else:
-                    dist = np.linalg.norm(dr)
-                    min_dist = min(min_dist, dist)
-            if min_dist < 1e-3:
-                min_dist = 0.0
-                break
-
-        Clearance_old.cache_dist[key] = min_dist
-        return min_dist
-
-    @abstractmethod
-    def get_cost(
-            self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
-    ) -> float:
-        """ "Calculate cost for given state"""
-
-    @abstractmethod
-    def check_threshold(
-            self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
-    ) -> bool:
-        """ "Check if value is greater than threshold for given state"""
-
-    def calculate_value(self, context: MetricEvaluationContext, players: List[PlayerName]) -> List[float]:
-        assert len(players) == 2
-        joint_traj: JointTrajectories = frozendict({p: context.trajectories[p] for p in players})
-        if joint_traj in self.cache_vals:
-            return self.cache_vals[joint_traj][players[0]]
-        if players[0] == players[1]:
-            values = [0.0 for _ in context.get_interval(players[0])]
-            self.cache_vals[joint_traj] = {players[0]: values}
-            return values
-
-        L: float = 0.0
-        for p in players:
-            g = context.get_world().get_geometry(p)
-            L += (g.l ** 2 + g.w ** 2) ** 0.5
-        values: List[float] = []
-        t1, t2 = list(iter(joint_traj[players[0]])), list(iter(joint_traj[players[1]]))
-        len1, len2 = min(len(t1), len(t2)), max(len(t1), len(t2))
-        if len(t1) == len1:
-            p1, p2 = players[0], players[1]
-        else:
-            p2, p1 = players[0], players[1]
-        geo1, geo2 = context.get_world().get_geometry(p1), context.get_world().get_geometry(p2)
-        geos = (geo1, geo2)
-        for i in range(len1):
-            _, state1 = t1[i]
-            _, state2 = t2[i]
-            states = (state1, state2)
-            # Coarse check
-            dx = state1.x - state2.x
-            dy = state1.y - state2.y
-            dist = (dx ** 2 + dy ** 2) ** 0.5
-            if self.check_threshold(dist=dist - L, states=states, geos=geos):
-                values.append(0.0)
-                continue
-            se2_1 = Trajectory.state_to_se2(x=state1)
-            se2_2 = Trajectory.state_to_se2(x=state2)
-            clear_dict = {p1: (se2_1, geo1), p2: (se2_2, geo2)}
-            dist = self.get_clearance(players=clear_dict)
-            values.append(self.get_cost(dist=dist, states=states, geos=geos))
-
-        if joint_traj not in self.cache_vals:
-            self.cache_vals[joint_traj] = {}
-        values_cp = deepcopy(values)
-        for i in range(len1, len2):
-            values_cp.append(0.0)
-        self.cache_vals[joint_traj] = {p1: values, p2: values_cp}
-        return self.cache_vals[joint_traj][players[0]]
-
-    def calculate_metric(self, player1: PlayerName, context: MetricEvaluationContext) -> EvaluatedMetric:
-
-        joint_traj_all: JointTrajectories = fd(context.trajectories)
-        if joint_traj_all in self.cache_metrics and player1 in self.cache_metrics[joint_traj_all]:
-            return self.cache_metrics[joint_traj_all][player1]
-
-        # all_values: List[float] = []
-        total_value: float = 0.0
-        for player2 in context.get_players():
-            values = self.calculate_value(context=context, players=[player1, player2])
-            total_value += sum(values)
-            # if not all_values:
-            #     all_values = values
-            # else:
-            #     tic_comb = perf_counter()
-            #     assert len(all_values) == len(values)
-            #     all_values = [full + val for full, val in zip(all_values, values)]
-            #     self.time_comb += perf_counter() - tic_comb
-
-        # TODO[SIR]: Integration is slow, skipping since it's not used
-        ret = EvaluatedMetric(name=type(self).__name__, pointwise=None, value=total_value)
-        # interval = context.get_interval(player1)
-        # ret = self.get_integrated_metric(timestamps=interval, values=all_values)
-        if joint_traj_all not in self.cache_metrics:
-            self.cache_metrics[joint_traj_all] = {}
-        self.cache_metrics[joint_traj_all][player1] = ret
-        return ret
-
-    @time_function
-    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
-        tic = perf_counter()
-        metric_func = partial(self.calculate_metric, context=context)
-        return_val = get_evaluated_metric(context.get_players(), metric_func)
-        self.time += perf_counter() - tic
-        return return_val
-
-
-class CollisionEnergy_old(Clearance_old):
-    description = "This metric computes the energy of collision between agents."
-    time = 0.0
-    THRESHOLD = 0.1
-    cache_vals: Dict[JointTrajectories, Dict[PlayerName, List[float]]] = {}
-    cache_metrics: Dict[JointTrajectories, Dict[PlayerName, EvaluatedMetric]] = {}
-    scale: float = 0.01
-
-    def get_cost(
-            self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
-    ) -> float:
-        if self.check_threshold(dist=dist, states=states, geos=geos):
-            return 0.0
-        # Calculate values based on relative velocity between both vehicles
-        state1, state2 = states
-        vel_proj = math.cos(state1.th - state2.th)
-        vel_relsq = state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj
-        energy_coll = vel_relsq * self.scale
-        return energy_coll
-
-    def check_threshold(
-            self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
-    ) -> bool:
-        return dist > self.THRESHOLD
-
-
-class MinimumClearance_old(Clearance_old):
-    description = "This metric computes the cost when minimum clearance not available between agents."
-    time = 0.0
-    THRESHOLD = 0.25  # Time between vehicles
-    cache_vals: Dict[JointTrajectories, Dict[PlayerName, List[float]]] = {}
-    cache_metrics: Dict[JointTrajectories, Dict[PlayerName, EvaluatedMetric]] = {}
-    scale: float = 1.0
-
-    def get_cost(
-            self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
-    ) -> float:
-        if self.check_threshold(dist=dist, states=states, geos=geos):
-            return 0.0
-        return (self.THRESHOLD * max(x.v for x in states) - dist) * self.scale
-
-    def check_threshold(
-            self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
-    ) -> bool:
-        return dist > self.THRESHOLD * max(x.v for x in states)
 
 
 # fixme probably all these metrics is better to have them as Type[Metric]?
@@ -657,7 +463,7 @@ def get_personal_metrics() -> Set[Metric]:
 
 
 def get_joint_metrics() -> Set[Metric]:
-    metrics: Set[Metric] = {CollisionEnergy_old(), MinimumClearance_old()}
+    metrics: Set[Metric] = {CollisionEnergy(), MinimumClearance(), ClearanceViolationTime()}
     return metrics
 
 
