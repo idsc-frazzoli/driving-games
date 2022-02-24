@@ -18,7 +18,7 @@ from dg_commons.sim.scenarios import load_commonroad_scenario
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
-from .preference import PosetalPreference
+from .preference_old import PosetalPreference
 from .structures import VehicleGeometry, VehicleState, TrajectoryParams
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_generator import TransitionGenerator
@@ -59,7 +59,8 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     scenario: Scenario
     print(f"Loading Scenario: {config['map_name']}", end=" ...")
-    scenario, _ = load_commonroad_scenario(config["map_name"])
+    scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
+    scenario, _ = load_commonroad_scenario(config["map_name"], scenarios_dir=scenarios_dir)
     print("Done")
     lane_network: LaneletNetwork = scenario.lanelet_network
 

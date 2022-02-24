@@ -10,12 +10,10 @@ from shapely.geometry import Polygon
 from dg_commons import PlayerName, SE2Transform, iterate_dict_combinations
 from dg_commons.maps import DgLanelet
 from dg_commons.seq import Timestamp, DgSampledSequence
-from driving_games.metrics_structures import EvaluatedMetric, Metric
+from driving_games.metrics_structures import EvaluatedMetric, Metric, PlayerOutcome
 from possibilities import Poss, PossibilityMonad
 from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Preference
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
-from .metrics import Clearance_old
-from .metrics_def import PlayerOutcome
 from .paths import Trajectory
 from .solve import get_best_responses
 from .structures import VehicleState, VehicleGeometry

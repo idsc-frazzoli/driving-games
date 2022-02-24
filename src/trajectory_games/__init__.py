@@ -1,4 +1,4 @@
-"""from .config import *
+from .config import *
 from .game_def import *
 from .paths import *
 from .structures import *
@@ -7,9 +7,9 @@ from .metrics import *
 from .bicycle_dynamics import *
 from .trajectory_generator import *
 from .trajectory_game import *
-from .preference import *
+from .preference_dev import *
 from .solve import *
 from .solve_lf_game import *
 from .visualization_dev import *
 from .reports import *
-from .game_factory import *"""
+from .game_factory import *

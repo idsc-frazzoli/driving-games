@@ -129,8 +129,8 @@ def test_trajectory_game_lexi():
 def test_trajectory_game_levels():
     folder = "levels_cases/"
     pref = "pref_level"
-
-    game = get_trajectory_game(config_str="basic")
+    config_str = "ral_01_level_0"
+    game = get_trajectory_game(config_str=config_str)
     sol = Solution()
 
     def update_prefs(suffix: str):

@@ -9,6 +9,7 @@ from shapely.geometry import Polygon, Point
 
 from dg_commons import SE2Transform
 from dg_commons.maps import DgLanelet
+from dg_commons.planning import Trajectory
 from dg_commons.seq import Timestamp, DgSampledSequence
 from .game_def import ActionGraph
 from .structures import VehicleState

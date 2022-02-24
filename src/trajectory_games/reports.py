@@ -16,9 +16,9 @@ from dg_commons.maps import DgLanelet
 from dg_commons.sim.simulator_animation import adjust_axes_limits
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
-from .metrics_def import PlayerOutcome
+from driving_games.metrics_structures import PlayerOutcome
 from .paths import Trajectory
-from .preference import PosetalPreference
+from .preference_old import PosetalPreference
 from .structures import VehicleState
 from .trajectory_game import (
     SolvedTrajectoryGame,
