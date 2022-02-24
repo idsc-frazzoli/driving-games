@@ -277,3 +277,23 @@ pref_ambulance_az2:
   DrivableAreaViolation: [ "MinimumClearance" ]
   weights_comf: [ "DrivableAreaViolation" ]
   weighted_ref_deviation: [ "weights_comf", ]
+
+# Test Preferences
+test_1:                       &test_1
+  CollisionEnergy:            []
+  ProgressAlongReference:     ["CollisionEnergy"]
+  DrivableAreaViolation:      ["CollisionEnergy"]
+  LateralComfort:             ["CollisionEnergy"]
+  DeviationLateral:           ["ProgressAlongReference"]
+
+test_2:                       &test_2
+  <<: *test_1
+  DeviationHeading:           ["DeviationLateral"]
+  MinimumClearance:           ["DrivableAreaViolation", "DeviationHeading"]
+  LongitudinalAcceleration:   ["LateralComfort", "MinimumClearance"]
+
+test_3:                       &test_3
+  <<: *test_2
+  EpisodeTime:                ["LateralComfort"]
+  SteeringRate:               ["DrivableAreaViolation", "EpisodeTime"]
+  SteeringAngle:              ["ProgressAlongReference", "SteeringRate"]
