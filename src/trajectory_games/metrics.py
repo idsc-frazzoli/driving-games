@@ -1,7 +1,6 @@
 from itertools import combinations
-from typing import Tuple, List, Dict, Callable, Set, Mapping, Any
+from typing import Tuple, List, Dict, Callable, Set, Mapping
 
-from shapely.geometry import Polygon
 import geometry as geo
 import numpy as np
 from frozendict import frozendict
@@ -19,7 +18,7 @@ from driving_games.metrics_structures import (
     PlayerEvaluatedMetrics,
     JointPlayerEvaluatedMetrics,
 )
-from .structures import VehicleGeometry, VehicleState
+from dg_commons.sim.models.vehicle import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
@@ -159,7 +158,8 @@ class ProgressAlongReference(Metric):
                 return self.cache[traj]
 
             traj_sn = context.points_curv[player]
-
+            a= traj_sn[0].along_lane
+            b= traj_sn[-1].along_lane
             # negative for smaller preferred
             final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
             ret = EvaluatedMetric(
@@ -198,7 +198,7 @@ def _get_lat_comf(x: VehicleState) -> float:
 
 class LateralComfort(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric computes the lateral discomfort or lateral acceleration the robot."
+    description = "This metric computes the lateral comfort of the robot."
     scale: float = 0.5
 
     @time_function
@@ -218,7 +218,7 @@ class LateralComfort(Metric):
 
 class SteeringAngle(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric computes the steering angle the robot."
+    description = "This metric computes the steering angle of the robot."
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
@@ -237,7 +237,7 @@ class SteeringAngle(Metric):
 
 class SteeringRate(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric computes the rate of change of steering angle the robot."
+    description = "This metric computes the rate of change of steering angle of the robot."
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
@@ -276,21 +276,21 @@ class Clearance(Metric):
         else:
             a_shape = geos[0].outline_as_polygon
             b_shape = geos[1].outline_as_polygon
-            a_shape_tra: Polygon = apply_SE2_to_shapely_geo(a_shape, q1.as_SE2())
-            b_shape_tra: Polygon = apply_SE2_to_shapely_geo(b_shape, q2.as_SE2())
+            a_shape_tra = apply_SE2_to_shapely_geo(a_shape, q1.as_SE2())
+            b_shape_tra = apply_SE2_to_shapely_geo(b_shape, q2.as_SE2())
             return a_shape_tra.distance(b_shape_tra)
 
     def calculate_all_clearances(self, context: MetricEvaluationContext) -> PairwiseValues:
         joint_values: PairwiseValues = {}
 
         for pair in combinations(context.get_players(), r=2):
-            assert context.trajectories[pair[0]].get_start() == context.trajectories[pair[1]].get_start() and \
-                   context.trajectories[pair[0]].get_end() == context.trajectories[pair[1]].get_end(), \
-                "The start and end time of different trajectories needs to be the same"
-
-            clearance = []
             t_start = context.trajectories[pair[0]].get_start()
             t_end = context.trajectories[pair[0]].get_end()
+            assert t_start == context.trajectories[pair[1]].get_start() and \
+                   t_end == context.trajectories[pair[1]].get_end(), \
+                   "The start and end time of different trajectories needs to be the same"
+
+            clearance = []
             n_points = int((t_end - t_start) / self.sampling_time)
             # up-sample going backwards and reverse
             timestamps = [t_end - i * self.sampling_time for i in range(n_points + 1)]
@@ -313,7 +313,7 @@ class Clearance(Metric):
         timestamps = list(clearances.values())[0].timestamps
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            clearance = np.array([0 for n in range(len(timestamps))])
+            clearance = np.array([0 for _ in range(len(timestamps))])
             for player_pair in clearances.keys():
                 if player in player_pair:
                     clear = np.array(clearances[player_pair].values)
@@ -327,7 +327,7 @@ class Clearance(Metric):
 
 class MinimumClearance(Clearance):
     description = "This metric returns a cost (inverse to clearance)" \
-                  " when minimum clearance is not available between agents."
+                  " when minimum clearance is not respected between agents."
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
@@ -354,19 +354,8 @@ class MinimumClearance(Clearance):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-"""def get_interpolation_factor_1d(values: Tuple[float, float], value_in_between: float):
-    assert values[0] <= value_in_between <= values[1] and values[0] < values[1] and len(values) == 2, \
-        "Range of interpolation must include 2 values, with the second greater than the first. The value_in_between" \
-        "must be in the values interval."
-    return (value_in_between - values[0]) / (values[1] - values[0])
-
-
-def interpolate_1d(values: Tuple[float, float], factor: float):
-    return values[0] + factor * (values[1] - values[0])"""
-
-
 class ClearanceViolationTime(Clearance):
-    description = "This metric computes the time a minimum clearance is available between agents."
+    description = "This metric computes the time a minimum clearance is violated between agents."
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
@@ -383,7 +372,7 @@ class ClearanceViolationTime(Clearance):
                 if player in player_pair:
                     clear = np.array(clearances[player_pair].values)
                     idx_bad = clear <= self.min_clearance
-                    clear[idx_bad] = self.sampling_time
+                    clear[idx_bad] = self.sampling_time  # approximation: could violate Bellman optimality
                     clear[~idx_bad] = 0.0
                     clearance_seq = np.add(clearance_seq, clear)
             seq = DgSampledSequence[float](values=clearance_seq, timestamps=timestamps)
@@ -402,11 +391,15 @@ def get_2d_velocity(x: VehicleState) -> geo.T2value:
     return v_g
 
 
+Crashes = Mapping[Tuple[PlayerName, PlayerName], Timestamp]
+
+
 class CollisionEnergy(Clearance):
     description = "This metric computes the energy of collision between agents."
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
+    earliest_collisions: List[Tuple] = []
 
     @staticmethod
     def get_collision_energy(geometries: Tuple[VehicleGeometry, VehicleGeometry],
@@ -416,11 +409,50 @@ class CollisionEnergy(Clearance):
         energy = 0.5 * (geometries[0].m + geometries[1].m) * np.linalg.norm(vel_1 - vel_2) ** 2
         return energy
 
-    @time_function
-    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+    def crashes_taking_place(self, context: MetricEvaluationContext) -> Crashes:
+
+        # keep first time clearance is 0 for each player pair
+        def compute_hypothetical_crashes() -> Crashes:
+            crashes: Crashes = {}
+            for player_pair in clearances.keys():
+                pair_clearance = clearances[player_pair]
+                # just consider first crash for each pair
+                first_crash = np.where(np.array(pair_clearance.values) < 0.0001)[0][0]  # account for numerical errors
+                crashes[player_pair] = first_crash  # store index
+            return crashes
 
         clearances = self.calculate_all_clearances(context=context)
+        hyp_crashes = compute_hypothetical_crashes()
+
+        crashez: Crashes = {}
+        actual_crashes: Crashes = {}
+        # find first crash for each player (discard pairs where the crash happens subsequently)
+        for player in context.get_players():
+            idx_first_player_crash = 999999
+            pair_crashing = (None, None)
+            for player_pair, t_crash in hyp_crashes.items():
+                if player in player_pair and t_crash < idx_first_player_crash:
+                    idx_first_player_crash = t_crash
+                    pair_crashing = player_pair
+
+            crashez[pair_crashing] = idx_first_player_crash
+
+        # discard crashes not happening
+        for player_pair, t_crash in crashez.items():
+            swapped_pair = (player_pair[1], player_pair[0])
+            if crashez[player_pair] == crashez[swapped_pair]:
+                assert t_crash == crashez[swapped_pair]
+                actual_crashes[player_pair] = t_crash
+
+        return actual_crashes
+
+    @time_function
+    # todo: finish this function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+
+        clearances = self.calculate_all_clearances(context=context) # calculated twice, make more efficient
         timestamps = list(clearances.values())[0].timestamps
+        crashes = self.crashes_taking_place(context=context)
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             coll_energies_seq = np.array([0 for _ in range(len(timestamps))])
@@ -432,8 +464,8 @@ class CollisionEnergy(Clearance):
                         geos = (context.geos[player_pair[0]], context.geos[player_pair[1]])
                         state_1 = context.trajectories[player_pair[0]].values[first_crash[0]]
                         state_2 = context.trajectories[player_pair[1]].values[first_crash[0]]
-                        states = (state_1, state_2)
-                        coll_energy = self.get_collision_energy(geometries=geos, states=states)
+                        crash_states = (state_1, state_2)
+                        coll_energy = self.get_collision_energy(geometries=geos, states=crash_states)
                         coll_energies_seq[first_crash[0]] = coll_energy
 
             seq = DgSampledSequence[float](values=coll_energies_seq, timestamps=timestamps)
@@ -443,9 +475,9 @@ class CollisionEnergy(Clearance):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-# todo: refine metric when needed and test
+# todo: refine metric if needed and test
 class AngularViolation(Metric):
-    description = "This metric describes the deviation (in radians) from a circular sector d"
+    description = "This metric describes the deviation (in radians) from a circular sector"
 
     def __init__(self, min_angle: float, max_angle: float):
         self.min_angle = min_angle
@@ -455,9 +487,9 @@ class AngularViolation(Metric):
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             traj: Trajectory = context.trajectories[player]
-            headings = [heading for heading in traj.values.theta]
+            headings = [heading.theta for heading in traj.values]
             for idx, head in enumerate(headings):
-                if head > self.min_angle and head < self.max_angle:
+                if self.min_angle < head < self.max_angle:
                     headings[idx] = 0
                 elif head > self.max_angle:
                     headings[idx] = head - self.max_angle
@@ -487,7 +519,11 @@ def get_personal_metrics() -> Set[Metric]:
 
 
 def get_joint_metrics() -> Set[Metric]:
-    metrics: Set[Metric] = {CollisionEnergy(), MinimumClearance(), ClearanceViolationTime()}
+    metrics: Set[Metric] = {
+        CollisionEnergy(),
+        MinimumClearance(),
+        ClearanceViolationTime()
+    }
     return metrics
 
 
@@ -512,7 +548,8 @@ class MetricEvaluation:
         if traj in MetricEvaluation._cache:
             return MetricEvaluation._cache[traj]
 
-        context = MetricEvaluationContext(scenario=world.scenario, trajectories=traj, goals=world.goals)
+        context = MetricEvaluationContext(dgscenario=world.scenario, trajectories=traj,
+                                          goals=world.goals, geos=world.geo)
         metric_results: Dict[Metric, JointEvaluatedMetric] = {}
         for metric in MetricEvaluation.metrics:
             metric_results[metric] = metric.evaluate(context)

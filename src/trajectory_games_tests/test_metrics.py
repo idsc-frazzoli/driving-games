@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from math import pi
-from typing import Mapping, Optional, List
+from typing import Mapping, Optional
 
 import matplotlib
 import numpy as np
@@ -9,16 +9,14 @@ from geometry.poses import translation_angle_from_SE2
 from nose.tools import assert_equal, assert_greater, assert_almost_equal
 
 from crash import logger
-from dg_commons import PlayerName, fd
+from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.planning import JointTrajectories, Trajectory, RefLaneGoal
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.scenarios import DgScenario, load_commonroad_scenario
 from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import MetricEvaluationContext
-from trajectory_games.metrics import EpisodeTime, DeviationLateral, DeviationHeading, DrivableAreaViolation, \
-    ProgressAlongReference, LongitudinalAcceleration, LateralComfort, SteeringAngle, SteeringRate, Clearance, \
-    MinimumClearance, CollisionEnergy, ClearanceViolationTime
+from trajectory_games.metrics import *
 from trajectory_games.visualization_dev import EvaluationContextVisualization
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 
@@ -479,7 +477,7 @@ def test_drivable_area_violation():
 
 
 def test_progress_along_reference():
-    show_plots = True
+    show_plots = False
     progress = ProgressAlongReference()
     evaluation_context = get_default_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
@@ -503,18 +501,19 @@ def test_progress_along_reference():
     logger.info(f"Progress along reference: {progress_1}")
     logger.info(f"--------------------------------------------\n")
 
-    # scenario 1
-    # P3: offset in positive x and positive y should decrease progress
-    # todo: change all values from 1.0 to other values
-    assert_greater(1.0, progress_1[P3].value)
+    # scenario 0
+    # P3: check all progresses are smaller than 0
+    assert_greater(0.0, progress_0[P1].value)
+    assert_greater(0.0, progress_0[P2].value)
+    assert_greater(0.0, progress_0[P3].value)
 
     # scenario 1 vs scenario 0
-    # P1: offset in y should not increase progress
-    # P2: offset in x should not increase progress
-    # P3: offset in positive x and positive y should decrease progress
-    #assert_almost_equal(progress_1[P1].value, progress_0[P1].value, delta=0.1) #todo: fix
-    #assert_almost_equal(progress_1[P2].value, progress_0[P2].value, delta=0.1) # todo: fix
-    #assert_greater(progress_0[P3].value, progress_1[P3].value) #todo: fix
+    # P1: offset in positive y should improve (i.e. decrease) progress
+    # P2: offset in positive x should improve (i.e. decrease) progress
+    # P3: offset in positive x and positive y should worsen (i.e. increase) progress
+    assert_greater(progress_0[P1].value, progress_1[P1].value)
+    assert_greater(progress_0[P2].value, progress_1[P2].value)
+    assert_greater(progress_1[P3].value, progress_0[P3].value)
 
     joint_player_offsets_2 = {
         P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
@@ -531,18 +530,18 @@ def test_progress_along_reference():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 2
-    # P1: offset in x should increase progress
-    # P2: offset in y should increase progress
-    #assert_almost_equal(progress_1[P1].value, 1.0, delta=0.01) # todo:fix
-    #assert_almost_equal(progress_1[P2].value, 1.0, delta=0.01) # todo: fix
+    # P1: offset in x should have small impact on progress
+    # P2: offset in y should have small impact on progress
+    # P3: offset in negative x and negative y should improve (i.e. decrease) progress
+    assert_almost_equal(progress_2[P1].value, progress_0[P1].value, delta=1.0)
+    assert_almost_equal(progress_2[P2].value, progress_0[P2].value, delta=1.0)
+    assert_greater(progress_0[P3].value, progress_2[P3].value)
 
     # scenario 2 vs scenario 0 and scenario 2 vs scenario 1
-    # P1: offset in x should increase progress
-    # P2: offset in y should increase progress
-    # P3: offset in positive x and positive y should decrease progress
-    assert_greater(progress_2[P1].value, progress_0[P1].value)
+    # P1: offset in positive y should improve (i.e. decrease) progress
+    # P2: offset in positive x should improve (i.e. decrease) progress
+    # P3: offset in negative x and negative y should improve (i.e. decrease) progress
     assert_greater(progress_2[P1].value, progress_1[P1].value)
-    assert_greater(progress_2[P2].value, progress_0[P2].value)
     assert_greater(progress_2[P2].value, progress_1[P2].value)
     assert_greater(progress_0[P3].value, progress_2[P3].value)
     assert_greater(progress_1[P3].value, progress_2[P3].value)
@@ -567,27 +566,10 @@ def test_progress_along_reference():
     # P1: offset in theta should not change progress
     # P2: offset in velocity should not change progress
     # scenario 3 vs scenario 1
-    # P3: larger offset in positive x and positive y should decrease progress
+    # P3: larger offset in positive x and positive y should worsen progress (i.e. increase)
     assert_almost_equal(progress_3[P1].value, progress_0[P1].value, delta=0.01)
     assert_almost_equal(progress_3[P2].value, progress_0[P2].value, delta=0.01)
-    #assert_greater(progress_1[P3].value, progress_3[P3].value) # todo: fix
-    #assert_greater(progress_0[P3].value, progress_3[P3].value) # todo: fix
-
-    joint_player_offsets_4 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=5.0,
-                          theta_default_value=pi / 3),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=0.0,
-                          v_default_value=10),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=0.0, y_default_value=5.0, theta_default_value=0.0),
-    }
-
-    evaluation_context_4 = get_default_evaluation_context(joint_player_offsets_4)
-    visualize_evaluation_context(context=evaluation_context_4, show_plot=show_plots)
-    progress_4 = progress.evaluate(context=evaluation_context_4)
-    logger.info(f"Test progress along reference results:")
-    logger.info(joint_player_offsets_4)
-    logger.info(f"Progress along reference: {progress_4}")
-    logger.info(f"--------------------------------------------\n")
+    assert_greater(progress_3[P3].value, progress_1[P3].value)
 
     logger.info(f"Test Progress Along Reference finished.")
 
@@ -609,7 +591,7 @@ def test_longitudinal_acceleration():
         P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0,
                           y_default_value=0.0, theta_default_value=0.0, acc_default_value=-1.0),
         P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=0.0,
-                          y_default_value=3.0, theta_default_value=0.0, acc_default_value=2.0),
+                          y_default_value=3.0, theta_default_value=0.0, acc_default_value=1.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -628,14 +610,38 @@ def test_longitudinal_acceleration():
     assert_equal(long_acc_0[P2].value, 0.0)
     assert_equal(long_acc_0[P3].value, 0.0)
 
-    # scenario 1
-    # P1: longitudinal acceleration should be 1
-    # P2: longitudinal acceleration should be -1
-    # P3: longitudinal acceleration should be 2
-    # allow for numerical errors
-    assert_greater(long_acc_1[P3].value, long_acc_1[P1].value)
-    assert_greater(long_acc_1[P3].value, abs(long_acc_1[P2].value))
-    #assert_almost_equal(abs(long_acc_1[P1].value), abs(long_acc_1[P2].value)) # todo:fix
+    # scenario 1 vs scenario 0
+    # P1: longitudinal acceleration should be greater than 0
+    # P2: longitudinal acceleration should smaller than 0
+    # P3: longitudinal acceleration should greater than 0
+    assert_greater(long_acc_1[P1].value, long_acc_0[P1].value)
+    assert_greater(long_acc_0[P2].value, long_acc_1[P2].value)
+    assert_greater(long_acc_1[P3].value, long_acc_0[P3].value)
+
+    joint_player_offsets_2 = {
+        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0,
+                          y_default_value=2.0, theta_default_value=0.0, acc_default_value=2.0),
+        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0,
+                          y_default_value=0.0, theta_default_value=0.0, acc_default_value=-2.0),
+        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=0.0,
+                          y_default_value=3.0, theta_default_value=0.0, acc_default_value=2.0),
+    }
+
+    evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
+    visualize_evaluation_context(context=evaluation_context_2, show_plot=show_plots)
+    long_acc_2 = longitudinal_acceleration.evaluate(context=evaluation_context_2)
+    logger.info(f"Test longitudinal acceleration results:")
+    logger.info(joint_player_offsets_2)
+    logger.info(f"Longitudinal acceleration: {long_acc_2}")
+    logger.info(f"--------------------------------------------\n")
+
+    # scenario 2 vs scenario 1
+    # P1: longitudinal acceleration should be greater in scenario 2
+    # P2: longitudinal acceleration should smaller in scenario 2
+    # P3: longitudinal acceleration should greater in scenario 2
+    assert_greater(long_acc_2[P1].value, long_acc_1[P1].value)
+    assert_greater(long_acc_1[P2].value, long_acc_2[P2].value)
+    assert_greater(long_acc_2[P3].value, long_acc_1[P3].value)
 
     logger.info(f"Test Longitudinal Acceleration finished.")
 
@@ -957,8 +963,7 @@ if __name__ == "__main__":
     test_lateral_comfort()
     test_steering_angle()
     test_steering_rate()
-
     test_clearance()
-    test_collision_energy()
+    # test_collision_energy()
     test_minimum_clearance()
     test_clearance_time_violation()
