@@ -12,9 +12,9 @@ from driving_games_tests import logger
 do_games_sets = [
     # "simple_int_2p_sets",
     # "simple_int_3p_sets",
-    # "multilane_int_2p_sets",
-    # "multilane_int_3p_sets",
-    # "multilane_int_4p_sets",
+    "multilane_int_2p_sets",
+    "multilane_int_3p_sets",
+    "multilane_int_4p_sets",
     # "multilane_int_5p_sets",
     # "multilane_int_5p_sets",
     # "multilane_int_6p_sets",
@@ -22,11 +22,11 @@ do_games_sets = [
     # "complex_int_3p_sets",
     # "complex_int_4p_sets",
     # "complex_int_5p_sets",
-    "complex_int_6p_sets",
+    # "complex_int_6p_sets",
 ]
 do_solvers_sets = [
-    # "solver-2-pure-security_mNE-naive-extra-inf",
-    # "solver-2-pure-security_mNE-fact1-noextra-inf",
+    "solver-2-pure-security_mNE-naive-extra-inf",
+    "solver-2-pure-security_mNE-fact1-noextra-inf",
     "solver-2-pure-security_mNE-fact2-noextra-inf"
     # "solver-2-pure-security_mNE-fact2-extra"
     # "solver-1-pure-security_mNE-fact",

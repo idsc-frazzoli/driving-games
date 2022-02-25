@@ -44,7 +44,7 @@ from ..create_joint_game_graph import create_game_graph
 from ..factorization import collapse_states
 from ..game_graph_to_nx import build_networkx_from_game_graph, compute_graph_layout
 
-__all__ = ["solve_main"]
+__all__ = ["solve_main", "solve_game"]
 
 
 def solve_main(

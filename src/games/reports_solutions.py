@@ -14,7 +14,7 @@ from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
 from .factorization import collapse_states
 from .game_def import JointState, RJ, RP, SR, U, X, Y
-from .reports import report_game_graph, report_game_graph_for_factorization
+from .reports import report_game_graph, report_game_graph_for_factorization, report_game_nodes_stats
 from .simulate import Simulation
 
 __all__ = ["report_solutions"]
@@ -59,8 +59,9 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
     if s.game_graph_nx is not None:
         r.add_child(report_game_graph_for_factorization(s.game_graph_nx))
         r.add_child(report_game_graph(s.game_graph_nx))
-    # r.add_child(report_game_joint_final(game_pre))
 
+    r.add_child(report_game_nodes_stats(s))
+    # r.add_child(report_game_joint_final(game_pre))
     return r
 
 

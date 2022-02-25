@@ -22,8 +22,8 @@ class GameConstants:
 
 
 from .game_def import *
-from .preprocess import *
 from .solve import *
+from .preprocess import *
 from .reports_player import *
 from .reports import *
 from .simulate import *

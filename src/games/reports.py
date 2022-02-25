@@ -219,7 +219,7 @@ def report_game_graph_for_factorization(G: MultiDiGraph) -> Report:
 
 
 def report_game_nodes_stats(solutions: Solutions) -> Report:
-    r = Report(nid="nodes_stats")
+    r = Report(nid="NodesStats")
     nodes_stats: Dict[int, int] = defaultdict(int)
     for pname, alone_sol in solutions.solutions_players.items():  # fixme this is not used at the moment
         n_states = len(alone_sol.alone_solutions)
