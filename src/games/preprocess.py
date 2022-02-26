@@ -78,24 +78,22 @@ def preprocess_player(
     initials = frozenset(map(lambda x: frozendict({player_name: x}), player.initial.support()))
     assert len(initials) == 1
 
-    tic = perf_counter()
     game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     # create the actual game graph for the player
     game_graph = create_game_graph(
         game=individual_game,
-        dt=solver_params.dt,
         initials=initials,
         players_pre=fd({}),
-        fact_algo=solver_params.factorization_algorithm,
-        max_depth=solver_params.max_depth,
+        solver_params=solver_params,
+        perf_stats=perf_stats,
     )
-    tic2 = perf_counter()
     perf_stats.individual_game_graphs_nodes.append(len(game_graph.state2node))
+    # solving
     gs: GameSolution[X, U, Y, RP, RJ, SR]
+    tic = perf_counter()
     gs = solve_game(game=individual_game, solver_params=solver_params, gg=game_graph, initials=initials)
     toc = perf_counter()
-    perf_stats.build_individual_game_graphs.append(tic2 - tic)
-    perf_stats.solve_individual_game_graphs.append(toc - tic2)
+    perf_stats.solve_individual_game_graphs.append(toc - tic)
     # create the NX game graph for the player
     graph_nx = build_networkx_from_game_graph(game_graph)
     return GamePlayerPreprocessed(graph_nx, game_graph, gs)

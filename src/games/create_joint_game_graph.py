@@ -1,19 +1,20 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from math import inf
+from time import perf_counter
 from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple, FrozenSet
 
 from networkx import DiGraph, topological_sort, simple_cycles
 from toolz import itemmap
 from zuper_commons.types import ZValueError
 
-from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
+from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence, Timestamp
 from dg_commons.utils_toolz import *
 from games import logger
 from games.checks import check_joint_state
 from games.factorization import collapse_states
 from games.game_def import Game, JointPureActions, JointState, SR, Combined, StageIdx
+from games.performance import PerformanceStatistics
 from games.solve.solution_structures import (
     AccessibilityInfo,
     GameGraph,
@@ -21,6 +22,7 @@ from games.solve.solution_structures import (
     GamePlayerPreprocessed,
     SolvedGameNode,
     FactAlgo,
+    SolverParams,
 )
 from possibilities import Poss
 
@@ -50,43 +52,42 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
 def create_game_graph(
     *,
     game: Game[X, U, Y, RP, RJ, SR],
-    dt: D,
     initials: AbstractSet[JointState],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
-    fact_algo: FactAlgo,
+    solver_params: SolverParams,
+    perf_stats: PerformanceStatistics,
     compute_res=True,
-    max_depth: StageIdx = +inf,
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """Create the game graph checking for factorization at the same time."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     known = fvalmap(collapse_states, players_pre)
+    dt: D = solver_params.dt
+    max_depth: StageIdx = solver_params.max_depth
+    fact_algo: FactAlgo = solver_params.factorization_algorithm
     ic = IterationContext(
         game, dt, state2node, depth=0, max_depth=max_depth, known=known, fact_algo=fact_algo, compute_res=compute_res
     )
 
+    tic = perf_counter()
     for js in initials:
         # check if already you can factorize the initial state
         f_initials = set(ic.fact_algo.factorize(js, ic.known, game.ps).values())
         # logger.info(f"Initial states: {f_initials}")
         for jsf in f_initials:
             _create_game_graph(ic, jsf)
+    toc = perf_counter()
+    if len(game.players) == 1:
+        perf_stats.build_individual_game_graphs.append(toc - tic)
+    else:
+        perf_stats.build_joint_game_tree = toc - tic
 
     logger.info(f"Created game graph with {len(state2node)} game nodes")
 
     # create networkx graph
-    # fixme this part is a bit redundant with the other build_networkx_from_game_graph
     G = get_lightweight_nx_graph(state2node)
     ti = get_timestep_info(G, dt)
 
-    # visualize number of states by time
-    sizes = {}
-    for t, states in ti.time2states.items():
-        res = defaultdict(lambda: 0)
-        for js in states:
-            res[len(js)] += 1
-        sizes[t] = dict(sorted(res.items()))
-    logger.info("Number of states by time", sizes=sizes)
     # safety check
     cycles = list(simple_cycles(G))
     if cycles:
@@ -117,6 +118,18 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
                 state2times[n2].add(t2)
                 time2states[t2].add(n2)
     return AccessibilityInfo(state2times, time2states)
+
+
+def get_states_numbers_at_times(ti: AccessibilityInfo[X]) -> Mapping[Timestamp, Mapping[int, int]]:
+    """Computes the number of states at each stage. The states are grouped by the cardinality of their joint state."""
+    sizes = {}
+    for t, states in ti.time2states.items():
+        res = defaultdict(lambda: 0)
+        for js in states:
+            res[len(js)] += 1
+        sizes[t] = dict(sorted(res.items()))
+    logger.info("Number of states by time", sizes=sizes)
+    return fd(sizes)
 
 
 def get_lightweight_nx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]) -> DiGraph:

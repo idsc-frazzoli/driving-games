@@ -11,6 +11,7 @@ from zuper_typing import debug_print
 
 from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
+from .create_joint_game_graph import get_states_numbers_at_times
 from .game_def import Game, JointState, RJ, RP, SR, U, X, Y
 from .reports_player import report_player
 
@@ -232,5 +233,11 @@ def report_game_nodes_stats(solutions: Solutions) -> Report:
     title: str = "How many n players nodes? (Mapping[n players, n nodes])\n"
     msg = title + remove_escapes(debug_print(nodes_stats))
     r.text("nodes_stats", msg)
+
+    title: str = "How many n players nodes per stage? (Mapping[t, Mapping[n players, n nodes]])\n"
+    # visualize number of states by time
+    sizes = get_states_numbers_at_times(solutions.game_graph.ti)
+    msg = title + remove_escapes(debug_print(sizes))
+    r.text("nodes_stats_2", msg)
 
     return r

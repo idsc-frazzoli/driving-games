@@ -64,19 +64,15 @@ def solve_main(
     no_fact_initial = init_states[0]
     logger.info(initial=no_fact_initial)
 
-    tic = perf_counter()
     # Create the game graph
     gg = create_game_graph(
         game=gp.game,
-        dt=gp.solver_params.dt,
         initials={no_fact_initial},
         players_pre=gp.players_pre,
-        fact_algo=gp.solver_params.factorization_algorithm,
+        solver_params=gp.solver_params,
+        perf_stats=perf_stats,
         compute_res=False,
-        max_depth=gp.solver_params.max_depth,
     )
-    toc = perf_counter()
-    perf_stats.build_joint_game_tree = toc - tic
     perf_stats.joint_game_tree_nodes = len(gg.state2node)
 
     if gp.solver_params.extra:
@@ -100,8 +96,6 @@ def solve_main(
 
     # solve simultaneous play (Nash equilibria)
     logger.info("Solving joint game tree")
-    global TOC
-    TOC = perf_counter()
     tic = perf_counter()
     factorize = gp.solver_params.factorization_algorithm.factorize
     fact_jss: FSet[JointState] = frozenset(

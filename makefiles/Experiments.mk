@@ -3,10 +3,11 @@ run-dg-experiments: build
 	mkdir -p $(out-docker)
 	docker run -it --user $$(id -u) \
 		-v $(PWD)/$(out-docker):/out $(tag) \
-		dg-demo -o /out/dgfact --reset -c "rparmake" \
+		dg-demo -o /out/dgfact --reset -c "rmake" \
 		--games "multilane_int_2p_sets","multilane_int_3p_sets","multilane_int_4p_sets" \
 		--solvers "solver-2-pure-security_mNE-naive-noextra-inf","solver-2-pure-security_mNE-fact2-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf"
 
+#
   # ,"multilane_int_4p_sets" \
 
 run-dg-experiments-many-players: build

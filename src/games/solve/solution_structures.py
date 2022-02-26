@@ -18,7 +18,7 @@ from typing import (
 
 from networkx import MultiDiGraph
 
-from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, Timestamp, U, X, Y
+from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y, Timestamp
 from games.checks import *
 
 # from games.factorization_algo import FactAlgo, FactAlgoNoFact
