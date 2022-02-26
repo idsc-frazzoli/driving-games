@@ -16,7 +16,7 @@ run-dg-experiments-many-players: build
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/dgfact_many --reset -c "rparmake" \
 		--games "multilane_int_5p_sets","multilane_int_6p_sets" \
-		--solvers "solver-2-pure-security_mNE-fact2-noextra","solver-2-pure-security_mNE-fact1-noextra"
+		--solvers "solver-2-pure-security_mNE-fact2-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf"
 
 
 
