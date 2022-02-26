@@ -284,17 +284,13 @@ def _solve_game(
 
     n = len(sc.cache)
     if n % 1e4 == 0:
-        global TOC
-        logger.info(
+        logger.debug(
             js=js,
             states=gn.states,
             value=va.game_value,
             processing=len(sc.processing),
             solved=len(sc.cache),
-            delta_time=perf_counter() - TOC,
         )
-        TOC = perf_counter()
-        # logger.info(f"nsolved: {n}")  # , game_value=va.game_value)
     return ret
 
 
