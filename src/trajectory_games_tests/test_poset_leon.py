@@ -25,8 +25,6 @@ from trajectory_games.metrics import (
 from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
 
 
-
-
 def test_poset():
     metrics: Set[Metric] = get_metrics_set()
     pref1 = PosetalPreference(pref_str="test_1", use_cache=False)
@@ -43,18 +41,14 @@ def test_poset():
     p1 = deepcopy(p_def)
     p2 = deepcopy(p_def)
 
-
     # p1==p2
     assert_equal(pref1.compare_old(p1, p2), INDIFFERENT)
     assert_equal(pref2.compare_old(p1, p2), INDIFFERENT)
     assert_equal(pref3.compare_old(p1, p2), INDIFFERENT)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p2[LongitudinalAcceleration()].value = D("1")
     # LongAcc: p1>p2
@@ -62,14 +56,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), FIRST_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-
-
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[LateralComfort()].value = D("1")
     # LongAcc: p1>p2, LatComf: p1<p2
@@ -77,13 +66,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), SECOND_PREFERRED)
 
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p2[MinimumClearance()].value = D("1")
     # LongAcc: p1>p2, LatComf: p1<p2, MinClear: p1>p2
@@ -91,12 +76,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), INCOMPARABLE)
     assert_equal(pref3.compare_old(p1, p2), INCOMPARABLE)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[LateralComfort()].value = D("0")
     p2[LongitudinalAcceleration()].value = D("0")
@@ -106,12 +88,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), SECOND_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[ProgressAlongReference()].value = D("0")
     # MinClear: p1>p2
@@ -119,12 +98,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), FIRST_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[DrivableAreaViolation()].value = D("1")
     # MinClear: p1>p2, Area: p1<p2
@@ -132,12 +108,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), SECOND_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p2[DeviationHeading()].value = D("1")
     # MinClear: p1>p2, Area: p1<p2, DevHead: p1>p2
@@ -145,12 +118,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), INCOMPARABLE)
     assert_equal(pref3.compare_old(p1, p2), INCOMPARABLE)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[DeviationLateral()].value = D("1")
     # MinClear: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2
@@ -158,12 +128,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), SECOND_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p2[CollisionEnergy()].value = D("1")
     # MinClear: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2, Coll: p1>p2
@@ -171,12 +138,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), FIRST_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p2[MinimumClearance()].value = D("0")
     p1[DrivableAreaViolation()].value = D("0")
@@ -187,12 +151,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), SECOND_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p2[SteeringAngle()].value = D("1")
     # DevLat: p1<p2, StAng: p1>p2
@@ -200,12 +161,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), INCOMPARABLE)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[EpisodeTime()].value = D("1")
     p2[LongitudinalAcceleration()].value = D("1")
@@ -214,12 +172,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), SECOND_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), SECOND_PREFERRED)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[DeviationLateral()].value = D("0")
     p2[SteeringAngle()].value = D("0")
@@ -228,12 +183,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), FIRST_PREFERRED)
     assert_equal(pref3.compare_old(p1, p2), INCOMPARABLE)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     p1[EpisodeTime()].value = D("0")
     p2[LongitudinalAcceleration()].value = D("0")
@@ -242,12 +194,9 @@ def test_poset():
     assert_equal(pref2.compare_old(p1, p2), INDIFFERENT)
     assert_equal(pref3.compare_old(p1, p2), INDIFFERENT)
 
-    assert_equal(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    assert_equal(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    assert_equal(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
-    # print(pref1.compare_old(p1, p2), pref1.compare_new(p1, p2))
-    # print(pref2.compare_old(p1, p2), pref2.compare_new(p1, p2))
-    # print(pref3.compare_old(p1, p2), pref3.compare_new(p1, p2))
+    assert_equal(pref1.compare_old(p1, p2), pref1.compare(p1, p2))
+    assert_equal(pref2.compare_old(p1, p2), pref2.compare(p1, p2))
+    assert_equal(pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     return
 
