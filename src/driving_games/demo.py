@@ -99,8 +99,8 @@ def without_compmake(games: Mapping[str, Callable[[], GameSpec]], solvers: Mappi
             r_perf_stats = report_performance_stats(perf_stats)
             r_solver.add_child(r_perf_stats)
 
-            r_game_nodes_stats = report_game_nodes_stats(solutions)
-            r_solver.add_child(r_game_nodes_stats)
+            # r_game_nodes_stats = report_game_nodes_stats(solutions)
+            # r_solver.add_child(r_game_nodes_stats)
             # r_perf_stats.to_html())
             r_solver.to_html(join(ds, "solutions.html"))
 

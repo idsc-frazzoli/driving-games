@@ -1,7 +1,7 @@
 from collections import defaultdict
 from decimal import Decimal as D
 from functools import partial
-from time import perf_counter
+from time import process_time
 from typing import Dict, FrozenSet as FSet, List, Mapping, Mapping as M, Tuple, AbstractSet
 
 from cytoolz import valmap
@@ -96,7 +96,7 @@ def solve_main(
 
     # solve simultaneous play (Nash equilibria)
     logger.info("Solving joint game tree")
-    tic = perf_counter()
+    tic = process_time()
     factorize = gp.solver_params.factorization_algorithm.factorize
     fact_jss: FSet[JointState] = frozenset(
         factorize(no_fact_initial, known=valmap(collapse_states, gp.players_pre), ps=gp.game.ps).values()
@@ -105,7 +105,7 @@ def solve_main(
     game_solution = solve_game(
         game=gp.game, gg=gg, initials=fact_jss, solver_params=gp.solver_params, compute_res=False
     )
-    toc = perf_counter()
+    toc = process_time()
     perf_stats.solve_joint_game_graph = toc - tic
 
     controllers0 = {}

@@ -3,6 +3,9 @@ from collections import defaultdict
 from typing import List, Tuple, Dict
 
 import networkx as nx
+import numpy as np
+from cytoolz import unique
+from matplotlib.ticker import MaxNLocator
 from networkx import convert_node_labels_to_integers, MultiDiGraph
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
@@ -239,5 +242,31 @@ def report_game_nodes_stats(solutions: Solutions) -> Report:
     sizes = get_states_numbers_at_times(solutions.game_graph.ti)
     msg = title + remove_escapes(debug_print(sizes))
     r.text("nodes_stats_2", msg)
+
+    # plot visualisation of number of states by time
+    set_n_players = list(unique([n for stage in sizes.values() for n in stage.keys()]))
+    stages: List[int] = list(range(len(sizes.keys())))
+    stages.sort()
+    set_n_players.sort()
+    colors = {1: "g", 2: "y", 3: "orange", 4: "r", 5: "purple", 6: "m"}
+    with r.plot("Node_stats2_viz", figsize=(10, 3)) as plt:
+        ax = plt.gca()
+        bottom = np.zeros(len(stages))
+        for n_players in set_n_players:
+            values = np.array([sizes[t].get(n_players, bottom[i]) for i, t in enumerate(sizes)])
+            ax.bar(
+                stages,
+                values,
+                bottom=bottom,
+                color=colors[n_players],
+                label=f"{n_players}-players game",
+            )
+            bottom += values
+        ax.set_ylabel("Game nodes")
+        ax.set_xlabel("Stages")
+        ax.set_xlim(xmin=0, xmax=len(stages))
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.set_title("Reachable game nodes size per stage")
+        ax.legend()
 
     return r

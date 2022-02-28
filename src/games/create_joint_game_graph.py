@@ -1,7 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from time import perf_counter
+from time import process_time
 from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple, FrozenSet
 
 from networkx import DiGraph, topological_sort, simple_cycles
@@ -69,14 +69,14 @@ def create_game_graph(
         game, dt, state2node, depth=0, max_depth=max_depth, known=known, fact_algo=fact_algo, compute_res=compute_res
     )
 
-    tic = perf_counter()
+    tic = process_time()
     for js in initials:
         # check if already you can factorize the initial state
         f_initials = set(ic.fact_algo.factorize(js, ic.known, game.ps).values())
         # logger.info(f"Initial states: {f_initials}")
         for jsf in f_initials:
             _create_game_graph(ic, jsf)
-    toc = perf_counter()
+    toc = process_time()
     if len(game.players) == 1:
         perf_stats.build_individual_game_graphs.append(toc - tic)
     else:
