@@ -1,12 +1,13 @@
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.sim.models.utils import extract_pose_from_state
 from dg_commons.maps.lanes import DgLanelet
-from geometry import SE2value, translation_angle_from_SE2
+from geometry import SE2value, translation_angle_from_SE2, SE2_from_xytheta
+from dg_commons.sim.scenarios import load_commonroad_scenario
 
 vehicle_params = VehicleParameters.default_car()
 vehicle_geometry = VehicleGeometry.default_car()
@@ -22,7 +23,7 @@ def predict(obs: Dict[PlayerName, VehicleState]) -> Dict[PlayerName, DgSampledSe
     trajs = {}
     for player in obs.keys():
         state = obs[player]
-        traj = state2traj(state, 20, 0.3)  # (state, prediction horizon, time step)
+        traj = state2traj(state, 15, 0.3)  # (state, prediction horizon, time step)
         trajs[player] = traj
     return trajs
 
@@ -48,12 +49,10 @@ def state2traj(state: VehicleState, horizon: float, dt: float) -> DgSampledSeque
         t, theta = translation_angle_from_SE2(traj[i])
         dtheta = v * np.tan(delta) / vehicle_geometry.length
         vy = dtheta * vehicle_geometry.lr
-        curr_state = VehicleState(x=t[0] + dt * (v * np.cos(theta) - vy * np.sin(theta)),
-                                  y=t[1] + dt * (v * np.sin(theta) + vy * np.cos(theta)),
-                                  theta=theta + dt * dtheta,
-                                  vx=v,
-                                  delta=delta)
-        curr_pose = extract_pose_from_state(curr_state)
+        curr_xytheta = [t[0] + dt * (v * np.cos(theta) - vy * np.sin(theta)),
+                        t[1] + dt * (v * np.sin(theta) + vy * np.cos(theta)),
+                        theta + dt * dtheta]
+        curr_pose = SE2_from_xytheta(curr_xytheta)
         time += [time[i] + dt]
         traj += [curr_pose]
     return DgSampledSequence[SE2value](time, values=traj)
@@ -70,6 +69,9 @@ def traj2path(traj: DgSampledSequence[SE2value]) -> List[Tuple[float, float]]:
 
 
 def traj2lane(traj: DgSampledSequence[SE2value]) -> DgLanelet:
+    """
+    create DgLanelet for better visualization of occupancy(not used yet)
+    """
     w = vehicle_geometry.w_half
     center_vertices = np.array(traj2path(traj))
     left_vertices = np.zeros_like(center_vertices)
@@ -86,3 +88,23 @@ def traj2lane(traj: DgSampledSequence[SE2value]) -> DgLanelet:
         right_vertices[idx + 1, :] = np.array([p2[0] - n[0], p2[1] - n[1]])
     lane = DgLanelet.from_vertices(left_vertices, right_vertices, center_vertices)
     return lane
+
+
+def traj_from_commonroad(scenario_name, scenario_dir, obstacle_id, offset: Optional[Tuple[float, float]] = None):
+    """extract complex trajectory from commonroad dynamic obstacles"""
+    scenario, _ = load_commonroad_scenario(scenario_name, scenario_dir)
+    if offset is not None:
+        offset = np.array(offset)
+    else:
+        offset = np.zeros(2)
+    poses = []
+    timestamp = []
+    for obs in scenario.dynamic_obstacles:
+        if obstacle_id == obs.obstacle_id:
+            states = obs.prediction.trajectory.state_list
+            for state in states:
+                pos = state.position + offset
+                new_pose = pos.tolist() + [state.orientation]
+                poses += [SE2_from_xytheta(new_pose)]
+                timestamp += [scenario.dt * (state.time_step-1)]
+    return DgSampledSequence[SE2value](timestamp, values=poses)
