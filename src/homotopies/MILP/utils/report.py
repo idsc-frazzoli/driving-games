@@ -1,6 +1,4 @@
 from reprep import Report
-import glob
-import os
 from dg_commons import PlayerName, DgSampledSequence
 from typing import Dict
 from geometry import SE2value

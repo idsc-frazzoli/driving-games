@@ -1,10 +1,7 @@
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.axes import Axes
-from matplotlib.animation import FuncAnimation
 import numpy as np
-from typing import Dict, List, Tuple, Optional
-from itertools import combinations
+from typing import Dict, Tuple
 from geometry import SE2value, translation_angle_from_SE2
 from dg_commons import PlayerName, DgSampledSequence
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
@@ -14,25 +11,57 @@ from homotopies.MILP.utils.intersects import traj2path, pose_from_s, get_box, ge
 vehicle_geometry = VehicleGeometry.default_car()
 
 
-def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax: Axes, color='b'):
+def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax: Axes, color='b', plot_occupancy=True,
+                   is_ref=False):
     w = vehicle_geometry.w_half
     path = np.array(traj2path(traj))  # N*2 array
-    ax.plot(path[:, 0], path[:, 1], color=color, marker='o', markersize=3, linestyle='-', label=player, zorder=2)
+    if is_ref:
+        alpha = 0.3
+        label = "{player}_ref".format(player=player)
+    else:
+        alpha = 1
+        label = "{player}".format(player=player)
+
+    ax.plot(path[:, 0], path[:, 1], color=color, markersize=3, linestyle='-', label=label, alpha=alpha, zorder=50)
     for idx in range(path.shape[0] - 1):
         p1 = path[idx, :]
         p2 = path[idx + 1, :]
-        slope_n = np.arctan2(p2[1] - p1[1], p2[0] - p1[0]) + np.pi / 2
-        n = np.array([w * np.cos(slope_n), w * np.sin(slope_n)])
-        ax.plot([p1[0] + n[0], p2[0] + n[0]], [p1[1] + n[1], p2[1] + n[1]], color=color, linestyle='-', zorder=2)
-        ax.plot([p1[0] - n[0], p2[0] - n[0]], [p1[1] - n[1], p2[1] - n[1]], color=color, linestyle='-', zorder=2)
+        if plot_occupancy:
+            slope_n = np.arctan2(p2[1] - p1[1], p2[0] - p1[0]) + np.pi / 2
+            n = np.array([w * np.cos(slope_n), w * np.sin(slope_n)])
+            ax.plot([p1[0] + n[0], p2[0] + n[0]], [p1[1] + n[1], p2[1] + n[1]], color=color, linestyle='-', alpha=alpha,
+                    zorder=50)
+            ax.plot([p1[0] - n[0], p2[0] - n[0]], [p1[1] - n[1], p2[1] - n[1]], color=color, linestyle='-', alpha=alpha,
+                    zorder=50)
     ax.legend()
+
+
+def visualize_car(pose: SE2value, ax: Axes, color='b', is_ref=False):
+    w_half = vehicle_geometry.w_half
+    l_r = vehicle_geometry.lr
+    l_f = vehicle_geometry.lf
+    outline = np.array([[-l_r, l_f, l_f, -l_r, -l_r],
+                        [w_half, w_half, -w_half, -w_half, w_half]])
+    points = np.row_stack([outline, np.ones(outline.shape[1])])
+    gk = pose @ points
+    if is_ref:
+        alpha = 0.3
+    else:
+        alpha = 1
+    car = patches.Polygon(gk[0:2, :].T,
+                          color=color,
+                          zorder=51,
+                          alpha=alpha)
+
+    # car.set_alpha(alpha)
+    ax.add_patch(car)
 
 
 def visualize_pose(pose: SE2value, ax: Axes):
     t, theta = translation_angle_from_SE2(pose)
     dx = 3 * np.cos(theta)
     dy = 3 * np.sin(theta)
-    ax.arrow(x=t[0], y=t[1], dx=dx, dy=dy, width=.2, color='r', zorder=10)
+    ax.arrow(x=t[0], y=t[1], dx=dx, dy=dy, width=.2, color='r', zorder=52)
 
 
 def visualize_intersect_from_w(intersect: Tuple[float, float], ax: Axes):
@@ -67,6 +96,7 @@ def visualize_box_2d(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
     ax.set_xlim(0, s_max[player1])
     ax.set_ylim(0, s_max[player2])
     center, w_s12, w_s21 = get_box(trajs, intersects, player1, player2, box_buffer)
+    ax.plot(center[0], center[1], 'r+')
     rect_buffered = patches.Rectangle((center[0] - w_s12 / 2, center[1] - w_s21 / 2), w_s12, w_s21, linewidth=1)
     ax.add_patch(rect_buffered)
     w_s12_init = w_s12 / box_buffer

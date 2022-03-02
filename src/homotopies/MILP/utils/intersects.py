@@ -90,8 +90,7 @@ def find_intersect(path1: List[Tuple[float, float]], path2: List[Tuple[float, fl
         return intersect
 
 
-def check_intersect(line1: List[Tuple[float, float]], line2: List[Tuple[float, float]]) -> Optional[
-    Tuple[float, float]]:
+def check_intersect(line1: List[Tuple[float, float]], line2: List[Tuple[float, float]]) -> Optional[Tuple[float, float]]:
     """
     this function checks if the two line segments intersect
     line equation used here: Ax+By=C, where
@@ -106,8 +105,10 @@ def check_intersect(line1: List[Tuple[float, float]], line2: List[Tuple[float, f
     """
     line1 = np.array(line1)
     line2 = np.array(line2)
-    if max(line1[:, 0]) < min(line2[:, 0]) or max(line2[:, 0]) < min(line1[:, 0]) or \
-            max(line1[:, 1]) < min(line2[:, 1]) or max(line2[:, 1]) < min(line1[:, 1]):
+    if max(line1[:, 0]) < min(line2[:, 0]) \
+            or max(line2[:, 0]) < min(line1[:, 0]) \
+            or max(line1[:, 1]) < min(line2[:, 1]) \
+            or max(line2[:, 1]) < min(line1[:, 1]):
         return None  # 2segments don't have mutual interval
     A1 = line1[1, 1] - line1[0, 1]
     B1 = line1[0, 0] - line1[1, 0]
@@ -122,10 +123,10 @@ def check_intersect(line1: List[Tuple[float, float]], line2: List[Tuple[float, f
         x = (B2 * C1 - B1 * C2) / det
         y = (A1 * C2 - A2 * C1) / det
     buffer = 0.0001
-    if max(line1[:, 0]) + buffer >= x >= min(line1[:, 0]) - buffer and max(line1[:, 1]) + buffer >= y >= min(
-            line1[:, 1]) - buffer \
-            and max(line2[:, 0]) + buffer >= x >= min(line2[:, 0]) - buffer and max(line2[:, 1]) + buffer >= y >= min(
-        line2[:, 1]) - buffer:
+    if max(line1[:, 0]) + buffer >= x >= min(line1[:, 0]) - buffer \
+            and max(line1[:, 1]) + buffer >= y >= min(line1[:, 1]) - buffer \
+            and max(line2[:, 0]) + buffer >= x >= min(line2[:, 0]) - buffer \
+            and max(line2[:, 1]) + buffer >= y >= min(line2[:, 1]) - buffer:
         return x, y
     else:
         return None  # intersection point not on the segments
@@ -171,8 +172,8 @@ def find_p_idx(path: List[Tuple[float, float]], point: Tuple[float, float]) -> T
     elif min_idx == 0:
         p1_idx = min_idx
         p2_idx = min_idx + 1
-    elif max(path[min_idx:min_idx + 2, 0]) >= point[0] >= min(path[min_idx:min_idx + 2, 0]) and \
-            max(path[min_idx:min_idx + 2, 1]) >= point[1] >= min(path[min_idx:min_idx + 2, 0]):
+    elif max(path[min_idx:min_idx + 2, 0]) >= point[0] >= min(path[min_idx:min_idx + 2, 0]) \
+            and max(path[min_idx:min_idx + 2, 1]) >= point[1] >= min(path[min_idx:min_idx + 2, 0]):
         # check whether point is on line(p_{idx-1}, p_idx) or (p_idx, p_{idx+1})
         p1_idx = min_idx
         p2_idx = min_idx + 1
@@ -223,11 +224,15 @@ def get_box(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
             player2: PlayerName,
             buffer: float = 1) -> Tuple[Tuple[float, float], float, float]:
     """get the center coordinates and widths of the constraint box in s1-s2 frame"""
-    s12 = intersects[player1][player2]
-    s21 = intersects[player2][player1]
-    pose12 = pose_from_s(trajs[player1], s12)
-    pose21 = pose_from_s(trajs[player2], s21)
-    w_s12, w_s21 = get_box_size(pose12, pose21)
+    if player2 not in intersects[player1].keys():
+        s12 = s21 = -1
+        w_s12 = w_s21 = 0
+    else:
+        s12 = intersects[player1][player2]
+        s21 = intersects[player2][player1]
+        pose12 = pose_from_s(trajs[player1], s12)
+        pose21 = pose_from_s(trajs[player2], s21)
+        w_s12, w_s21 = get_box_size(pose12, pose21)
     return (s12, s21), w_s12 * buffer, w_s21 * buffer
 
 
