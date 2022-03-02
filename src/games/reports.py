@@ -1,14 +1,20 @@
 import random
-from typing import List, Tuple
+from collections import defaultdict
+from typing import List, Tuple, Dict
 
 import networkx as nx
-from networkx import convert_node_labels_to_integers
-
-from games.solve.solution_structures import GamePreprocessed
+import numpy as np
+from cytoolz import unique
+from matplotlib.ticker import MaxNLocator
+from networkx import convert_node_labels_to_integers, MultiDiGraph
 from reprep import MIME_GRAPHML, Report
 from zuper_commons.text import remove_escapes
+from zuper_commons.types import ZValueError
 from zuper_typing import debug_print
+
+from games.solve.solution_structures import GamePreprocessed, Solutions
 from . import logger
+from .create_joint_game_graph import get_states_numbers_at_times
 from .game_def import Game, JointState, RJ, RP, SR, U, X, Y
 from .reports_player import report_player
 
@@ -20,12 +26,12 @@ __all__ = [
 
 
 def create_report_preprocessed(game_name: str, game_pre: GamePreprocessed) -> Report:
+    """Report for the preprocessed players"""
     r = Report(nid=game_name)
-    for player_name, player in game_pre.game.players.items():
-        r.add_child(report_player(game_pre, player_name, player))
-        # break  # only one
-    r.add_child(report_game(game_pre))
-    r.add_child(report_game_joint_final(game_pre))
+    for player_name in game_pre.players_pre:
+        r.add_child(report_player(game_pre, player_name, game_pre.game.players[player_name]))
+    # r.add_child(report_game_graph(game_pre))
+    # r.add_child(report_game_joint_final(game_pre))
     return r
 
 
@@ -39,11 +45,13 @@ def report_game_visualization(game: Game) -> Report:
             for player_name, player in game.players.items():
                 for x in player.initial.support():
                     viz.plot_player(player_name, state=x, commands=None, t=0)
-
+        pylab.xticks([])
+        pylab.yticks([])
     return r
 
 
 def report_game_joint_final(game_pre: GamePreprocessed) -> Report:
+    # todo needs to be updated given the last modifications
     r = Report(nid="some_states", caption="Some interesting states.")
     G = game_pre.game_graph_nx
 
@@ -86,9 +94,7 @@ def visualize_states(
     return f
 
 
-def report_game(game_pre: GamePreprocessed) -> Report:
-    G = game_pre.game_graph_nx
-
+def report_game_graph(G: MultiDiGraph) -> Report:
     r = Report(nid="game")
 
     with r.data_file("game", mime=MIME_GRAPHML) as fn:
@@ -149,4 +155,118 @@ def report_game(game_pre: GamePreprocessed) -> Report:
         )
         plt.xlabel("x")
         plt.ylabel("v")
+    return r
+
+
+def report_game_graph_for_factorization(G: MultiDiGraph) -> Report:
+    r = Report(nid="fact_game")
+
+    with r.data_file("game", mime=MIME_GRAPHML) as fn:
+        logger.info(f"done writing {fn}")
+        G2 = convert_node_labels_to_integers(G)
+        for (n1, n2, d) in G2.edges(data=True):
+            d.clear()
+        nx.write_graphml(G2, fn)
+
+    def color_node(n):
+        n_players = G.nodes[n]["n_players"]
+        if n_players > 5:
+            return "purple"
+        elif n_players == 5:
+            return "red"
+        elif n_players == 4:
+            return "orangered"
+        elif n_players == 3:
+            return "orange"
+        elif n_players == 2:
+            return "yellow"
+        elif n_players == 1:
+            return "green"
+        else:
+            raise ZValueError(f"Unsupported number of players when drawing the graph", n_players=n_players)
+
+    caption = (
+        "purple: >5 players;\n"
+        "red: 5 players;\n"
+        "orangered: 4 players;\n"
+        "orange: 3 players;\n"
+        "yellow: 2 players;\n"
+        "green: 1 player."
+    )
+
+    node_size = 3
+    node_color = [color_node(_) for _ in G.nodes]
+    # logger.info('layout')
+    # pos = graphviz_layout(G, prog='dot')
+    logger.info("drawing")
+
+    def pos_node(n: Tuple[X, X]):
+        x = G.nodes[n]["x"]
+        y = G.nodes[n]["y"]
+        return float(x), float(y)
+
+    pos = {_: pos_node(_) for _ in G.nodes}
+
+    with r.plot("s", caption=caption) as plt:
+        nx.draw(
+            G,
+            pos=pos,
+            node_color=node_color,
+            cmap=plt.cm.Blues,
+            arrows=False,
+            edge_color=(0, 0, 0, 0.1),
+            node_size=node_size,
+        )
+        plt.xlabel("x")
+        plt.ylabel("v")
+    return r
+
+
+def report_game_nodes_stats(solutions: Solutions) -> Report:
+    r = Report(nid="NodesStats")
+    nodes_stats: Dict[int, int] = defaultdict(int)
+    for pname, alone_sol in solutions.solutions_players.items():  # fixme this is not used at the moment
+        n_states = len(alone_sol.alone_solutions)
+        # it's single players' game
+        nodes_stats[1] += n_states
+
+    for js in solutions.game_solution.states_to_solution.keys():
+        nodes_stats[len(js)] += 1
+
+    title: str = "How many n players nodes? (Mapping[n players, n nodes])\n"
+    msg = title + remove_escapes(debug_print(nodes_stats))
+    r.text("nodes_stats", msg)
+
+    title: str = "How many n players nodes per stage? (Mapping[t, Mapping[n players, n nodes]])\n"
+    # visualize number of states by time
+    sizes = get_states_numbers_at_times(solutions.game_graph.ti)
+    msg = title + remove_escapes(debug_print(sizes))
+    r.text("nodes_stats_2", msg)
+
+    # plot visualisation of number of states by time
+    set_n_players = list(unique([n for stage in sizes.values() for n in stage.keys()]))
+    stages: List[int] = list(range(len(sizes.keys())))
+    stages.sort()
+    set_n_players.sort()
+    colors = {1: "g", 2: "y", 3: "orange", 4: "r", 5: "purple", 6: "m"}
+    with r.plot("Node_stats2_viz", figsize=(10, 3)) as plt:
+        ax = plt.gca()
+        bottom = np.zeros(len(stages))
+        for n_players in set_n_players:
+            values = np.array([sizes[t].get(n_players, bottom[i]) for i, t in enumerate(sizes)])
+            ax.bar(
+                stages,
+                values,
+                bottom=bottom,
+                color=colors[n_players],
+                label=f"{n_players}-players game",
+            )
+            bottom += values
+        ax.set_ylabel("Game nodes")
+        ax.set_xlabel("Stages")
+        ax.set_xlim(xmin=0, xmax=len(stages))
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.set_title("Reachable game nodes size per stage")
+        ax.legend()
+
     return r

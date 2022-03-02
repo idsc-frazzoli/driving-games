@@ -10,9 +10,9 @@ from driving_games_tests import logger
 
 if __name__ == "__main__":
     do_games_sets = [
-        "4way_int_2p_sets",
-        "4way_int_3p_sets",
-        # "4way_int_3p_sets",
+        "simple_int_2p_sets",
+        "simple_int_3p_sets",
+        # "simple_int_3p_sets",
         # "complex_int_6p_sets"
     ]
     do_solvers_sets = [

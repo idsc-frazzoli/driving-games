@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
+from math import inf
 from typing import Generic, Mapping, Optional, TypeVar
 
 from frozendict import frozendict
@@ -22,6 +23,7 @@ from .game_def import (
     JointPureActions,
     JointState,
     SR,
+    StageIdx,
 )
 
 __all__ = ["Simulation"]
@@ -55,6 +57,7 @@ def simulate1(
     initial_states: JointState,
     dt: D,
     seed: int,
+    max_stages: StageIdx = +inf,
 ) -> Simulation[X, U, Y, RP, RJ]:
     S_states: DgSSBuilder[JointState] = DgSSBuilder[JointState]()
     S_actions: DgSSBuilder[JointPureActions] = DgSSBuilder[JointPureActions]()
@@ -65,17 +68,18 @@ def simulate1(
     ps = game.ps
     sampler = ps.get_sampler(seed)
 
+    stage_idx: StageIdx = 0
     while True:
         # last time and state
         t1: Timestamp = S_states.timestamps[-1]
         s1: JointState = S_states.values[-1]
         players_active = set(s1)
 
-        if not players_active:
+        if not players_active or stage_idx > max_stages:
             break
 
         if game.joint_reward.is_joint_final_states(s1):
-            # this is not okay for solutions that do not terminate for everyone
+            # fixme this is not okay for solutions that do not terminate for everyone
             S_joint_costs.add(t1, game.joint_reward.joint_final_reward(s1))
             break
 
@@ -89,13 +93,14 @@ def simulate1(
             is_final = prs.is_personal_final_state(state_self)
             if is_final:  # no actions for him
                 personal_costs[player_name] = prs.personal_final_reward(state_self)
+                # todo add jointly terminal
                 continue
 
             policy = policies[player_name]
 
             state_others = frozendict({k: v for k, v in s1.items() if k != player_name})
             belief_state_others = ps.unit(state_others)
-
+            # todo collect the factorization state transition for the simulated solution
             p_action = policy.get_commands(state_self, belief_state_others)
 
             action = sampler.sample(p_action)
@@ -120,6 +125,7 @@ def simulate1(
         S_actions.add(t1, frozendict(s1_actions))
         S_costs.add(t1, frozendict(personal_costs))
         t2 = t1 + dt
+        stage_idx += 1
         S_states.add(t2, frozendict(next_states))
 
     return Simulation(

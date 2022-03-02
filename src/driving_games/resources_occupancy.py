@@ -4,7 +4,7 @@ from typing import FrozenSet as FSet, Tuple, Dict
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from cytoolz import sliding_window
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, CAP_STYLE
 from shapely.strtree import STRtree
 
 from dg_commons import SE2_apply_T2
@@ -20,16 +20,17 @@ class ResourcesOccupancy:
     def __init__(self, lanelet_network: LaneletNetwork, cell_resolution: Decimal):
         self.lanelet_network = lanelet_network
         """the commonroad lanelet network"""
-        self.cell_resolution = float(cell_resolution)
+        self.cell_resolution = cell_resolution
         """corresponds to the max/average subdivision of the cells in the rtree"""
         self.strtree: STRtree = self._create_rtree()
-        self._res_idx = None
-        self._res_poly = None
 
     def get_occupied_cells(
         self,
     ) -> FSet[CellID]:
         pass
+
+    def get_poly_from_idx(self, idx: CellIdx) -> Polygon:
+        return self.strtree._geoms[idx]
 
     def _create_rtree(self) -> STRtree:
         """Creates a subdivision of the lanes in smaller pieces storing them in a rtree structure"""
@@ -40,7 +41,6 @@ class ResourcesOccupancy:
             resources.update(lanelet_res)
 
         res_idx, res_poly = zip(*resources.items())
-        self._res_idx = res_idx
         # avoid using custom items for speed
         srtree = STRtree(geoms=res_poly, node_capacity=3)
         return srtree
@@ -48,13 +48,15 @@ class ResourcesOccupancy:
     def _subdivide_lanelet_into_polygons(self, lanelet: Lanelet) -> Dict[CellID, Polygon]:
         dg_lanelet = DgLanelet.from_commonroad_lanelet(lanelet)
         lanelet_length = dg_lanelet.get_lane_length()
-        n_polygons: int = int(lanelet_length // self.cell_resolution)
+        n_polygons: int = int(lanelet_length // float(self.cell_resolution))
         resources: Dict[CellID, Polygon] = {}
 
         def get_left_right_point(along_lane_: float) -> Tuple[np.ndarray, np.ndarray]:
             beta = dg_lanelet.beta_from_along_lane(along_lane_)
-            q = dg_lanelet.center_point_fast_SE2Transform(beta).as_SE2()
-            r = dg_lanelet.radius(beta)
+            # q = dg_lanelet.center_point_fast_SE2Transform(beta).as_SE2()
+            q = dg_lanelet.center_point(beta)
+            # small epsilon to not have overlapping resources on adjacent lanes
+            r = dg_lanelet.radius(beta) - 0.2
             delta_left = np.array([0, r])
             delta_right = np.array([0, -r])
             left = SE2_apply_T2(q, delta_left)

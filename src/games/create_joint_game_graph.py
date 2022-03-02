@@ -1,17 +1,20 @@
 from collections import defaultdict
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
-from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple
+from time import process_time
+from typing import AbstractSet, Dict, Generic, Mapping, Set, Tuple, FrozenSet
 
-from networkx import DiGraph, topological_sort
+from networkx import DiGraph, topological_sort, simple_cycles
 from toolz import itemmap
+from zuper_commons.types import ZValueError
 
-from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence
+from dg_commons import PlayerName, RJ, RP, U, X, Y, DgSampledSequence, Timestamp
 from dg_commons.utils_toolz import *
 from games import logger
 from games.checks import check_joint_state
 from games.factorization import collapse_states
-from games.game_def import Game, JointPureActions, JointState, SR, Combined
+from games.game_def import Game, JointPureActions, JointState, SR, Combined, StageIdx
+from games.performance import PerformanceStatistics
 from games.solve.solution_structures import (
     AccessibilityInfo,
     GameGraph,
@@ -19,6 +22,7 @@ from games.solve.solution_structures import (
     GamePlayerPreprocessed,
     SolvedGameNode,
     FactAlgo,
+    SolverParams,
 )
 from possibilities import Poss
 
@@ -33,46 +37,62 @@ class IterationContext(Generic[X, U, Y, RP, RJ, SR]):
     """ Solver discretization time """
     cache: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]
     """ Nodes that were already computed. """
-    depth: int
+    depth: StageIdx
     """ The current depth. """
+    max_depth: StageIdx
+    """ The maximum depth. It corresponds to a maximum lookahead for the players. """
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
     """Known preprocessed players"""
     fact_algo: FactAlgo
-    """Function to check for intersection of resources"""
+    """Factorization algorithm"""
+    compute_res: bool
+    """Whether or not to compute resources associated to the GameNode"""
 
 
 def create_game_graph(
+    *,
     game: Game[X, U, Y, RP, RJ, SR],
-    dt: D,
     initials: AbstractSet[JointState],
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]],
-    fact_algo: FactAlgo,
+    solver_params: SolverParams,
+    perf_stats: PerformanceStatistics,
+    compute_res=True,
 ) -> GameGraph[X, U, Y, RP, RJ, SR]:
     """Create the game graph checking for factorization at the same time."""
     state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]] = {}
     known: Mapping[PlayerName, Mapping[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]]
-    known = valmap(collapse_states, players_pre)
-    ic = IterationContext(game, dt, state2node, depth=0, known=known, fact_algo=fact_algo)
-    # todo check if already the initial state can be  factorized
+    known = fvalmap(collapse_states, players_pre)
+    dt: D = solver_params.dt
+    max_depth: StageIdx = solver_params.max_depth
+    fact_algo: FactAlgo = solver_params.factorization_algorithm
+    ic = IterationContext(
+        game, dt, state2node, depth=0, max_depth=max_depth, known=known, fact_algo=fact_algo, compute_res=compute_res
+    )
 
+    tic = process_time()
     for js in initials:
-        _create_game_graph(ic, js)
+        # check if already you can factorize the initial state
+        f_initials = set(ic.fact_algo.factorize(js, ic.known, game.ps).values())
+        # logger.info(f"Initial states: {f_initials}")
+        for jsf in f_initials:
+            _create_game_graph(ic, jsf)
+    toc = process_time()
+    if len(game.players) == 1:
+        perf_stats.build_individual_game_graphs.append(toc - tic)
+    else:
+        perf_stats.build_joint_game_tree = toc - tic
 
     logger.info(f"Created game graph with {len(state2node)} game nodes")
 
     # create networkx graph
-    G = get_networkx_graph(state2node)
+    G = get_lightweight_nx_graph(state2node)
     ti = get_timestep_info(G, dt)
 
-    # visualize number of states by time
-    sizes = {}
-    for t, states in ti.time2states.items():
-        res = defaultdict(lambda: 0)
-        for js in states:
-            res[len(js)] += 1
-        sizes[t] = dict(sorted(res.items()))
-    logger.info("Number of states by time", sizes=sizes)
-
+    # safety check
+    cycles = list(simple_cycles(G))
+    if cycles:
+        msg = "Did not expect cycles in the graph"
+        raise ZValueError(msg, cycles=cycles)
     return GameGraph(initials, state2node, ti)
 
 
@@ -100,7 +120,19 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
     return AccessibilityInfo(state2times, time2states)
 
 
-def get_networkx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]) -> DiGraph:
+def get_states_numbers_at_times(ti: AccessibilityInfo[X]) -> Mapping[Timestamp, Mapping[int, int]]:
+    """Computes the number of states at each stage. The states are grouped by the cardinality of their joint state."""
+    sizes = {}
+    for t, states in ti.time2states.items():
+        res = defaultdict(lambda: 0)
+        for js in states:
+            res[len(js)] += 1
+        sizes[t] = dict(sorted(res.items()))
+    logger.info("Number of states by time", sizes=sizes)
+    return fd(sizes)
+
+
+def get_lightweight_nx_graph(state2node: Dict[JointState, GameNode[X, U, Y, RP, RJ, SR]]) -> DiGraph:
     """Returns a NetworkX DiGraph that summarizes the relation of the nodes."""
     G = DiGraph()
     G.add_nodes_from(state2node)
@@ -127,7 +159,7 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     pure_transitions: Dict[JointPureActions, Poss[Mapping[PlayerName, JointState]]] = {}
     pure_incremental: Dict[JointPureActions, Poss[Mapping[PlayerName, Combined]]] = {}
     ps = ic.game.ps
-    ic2 = replace(ic, depth=ic.depth + 1)  # fixme could speed up a little bit (~5% less time?)
+    ic2 = replace(ic, depth=ic.depth + 1)
 
     is_personal_final = {}
     for player_name, player_state in states.items():
@@ -138,10 +170,18 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
     is_jointly_final = frozenset(ic.game.joint_reward.is_joint_final_states(states))
     joint_final_rewards = ic.game.joint_reward.joint_final_reward(states)
 
-    players_exiting = set(is_jointly_final) | set(is_personal_final)
+    players_exiting = set(is_personal_final)
+    if set(is_jointly_final) | set(is_personal_final) == set(states):
+        # we remove the collided ones only if it's really the end for everyone
+        players_exiting |= set(is_jointly_final)
+        # debug
+        # if any(is_jointly_final) and any(is_personal_final):
+        #     logger.info(f"Found a final state: {states}, players exiting: {players_exiting}, "
+        #                 f"is_jointly_final: {is_jointly_final}, is_personal_final: {is_personal_final}")
+
     # Consider only the moves of whom remains
-    not_exiting = lambda pn: pn not in players_exiting
-    moves_to_state_remaining = fkeyfilter(not_exiting, moves_to_state_everybody)
+    moves_to_state_remaining: Mapping[PlayerName, Mapping[U, Poss[X]]]
+    moves_to_state_remaining = fkeyfilter(lambda pn: pn not in players_exiting, moves_to_state_everybody)
     movesets_for_remaining = fvalmap(frozenset, moves_to_state_remaining)
 
     # Compute the personal incremental costs for the moves
@@ -167,17 +207,22 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         selected: Dict[PlayerName, Poss[X]]
         selected = itemmap(f, pure_action)
 
-        def f(a: Mapping[PlayerName, U]) -> JointState:
-            return fkeyfilter(not_exiting, a)
+        def f(a: Mapping[PlayerName, X]) -> JointState:
+            # fixme the filter is redundant?
+            # return fkeyfilter(not_exiting, a)
+            return a
 
         next_states: Poss[JointState] = ps.build_multiple(selected, f)
 
         # here compute the joint rewards (consider the non factorized next_state for the current stage cost)
+        # if two have collided shouldn't they be considered anyway? they don't physically disappear..
         def transition_cost(_next_state: JointState) -> Mapping[PlayerName, Combined]:
-            transitions = {
-                p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
-                for p in _next_state
-            }
+            transitions = fd(
+                {
+                    p: DgSampledSequence[X](timestamps=(D(0), ic.dt), values=(states[p], _next_state[p]))
+                    for p in _next_state
+                }
+            )
             m_pn_rj = ic.game.joint_reward.joint_reward_incremental(transitions)
             return fd(
                 {p: Combined(personal=pers_incremental_cost[p][pure_action[p]], joint=m_pn_rj[p]) for p in _next_state}
@@ -188,8 +233,8 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
 
         # here the generalized transition to support factorization
         def r(js0: JointState) -> Mapping[PlayerName, JointState]:
-            js_continuing = fkeyfilter(not_exiting, js0)
-            return ic.fact_algo.factorize(js_continuing, ic.known, ps)
+            # js_continuing = fkeyfilter(not_exiting, js0)
+            return ic.fact_algo.factorize(js0, ic.known, ps)
 
         pnext_states: Poss[Mapping[PlayerName, JointState]] = ps.build(next_states, r)
 
@@ -214,13 +259,15 @@ def _create_game_graph(ic: IterationContext, states: JointState) -> GameNode[X, 
         pure_transitions[pure_action] = pnext_states
 
         for pn in pnext_states.support():
-            for _, js_ in pn.items():
-                _create_game_graph(ic2, js_)  # fixme it used to be ic2
+            if not ic2.depth > ic.max_depth:  # limit lookahead
+                for _, js_ in pn.items():
+                    _create_game_graph(ic2, js_)
 
-    resources = {}
-    for player_name, player_state in states.items():
-        dynamics = ic.game.players[player_name].dynamics
-        resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
+    resources: Dict[PlayerName, FrozenSet[SR]] = {}
+    if ic.compute_res:
+        for player_name, player_state in states.items():
+            dynamics = ic.game.players[player_name].dynamics
+            resources[player_name] = dynamics.get_shared_resources(player_state, ic.dt)
 
     res = GameNode(
         states=fd(states),
@@ -239,7 +286,6 @@ def _get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Map
     """Returns the possible moves and the corresponding possible future states."""
     res = {}
     state: X
-    # ps = ic.game.ps
     dt = ic.dt
     for player_name, state in js.items():
         player = ic.game.players[player_name]
@@ -249,6 +295,7 @@ def _get_moves(ic: IterationContext[X, U, Y, RP, RJ, SR], js: JointState) -> Map
         # if state is None or is_final:
         #     succ = {None: ps.unit(None)}
         # else:
+        # todo maybe here the part on the collided ones?
         succ = player.dynamics.successors(state, dt)
         res[player_name] = succ
     return res

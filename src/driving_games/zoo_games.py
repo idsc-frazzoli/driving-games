@@ -2,7 +2,7 @@ import os
 from copy import copy
 from dataclasses import replace
 from decimal import Decimal as D
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Callable
 
 import numpy as np
 
@@ -26,7 +26,6 @@ dyn_p0 = VehicleTrackDynamicsParams(
     available_accels=fs({D(-1), D(0), D(1)}),
     max_wait=D(0),
     lights_commands=fs({NO_LIGHTS}),
-    shared_resources_ds=1.5,
 )
 
 P1 = PlayerName("P1")
@@ -47,13 +46,13 @@ s_lane3 = dglane_from_position(np.array([85, 8]), simple_intersection.lanelet_ne
 
 param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
-    shared_resources_ds=D(1),
+    shared_resources_ds=D("1.5"),
     col_check_dt=D("0.76"),
     ref_lanes={P1: s_lane1, P2: s_lane2},
     scenario=simple_intersection,
     progress={P1: (D(140), D(165)), P2: (D(180), D(200))},
     plot_limits=[[40, 100], [-25, 25]],
-    min_safety_distance=7,
+    min_safety_distance=6,
 )
 
 param_3p = replace(
@@ -66,21 +65,21 @@ uncertainty_sets = UncertaintyParams(poss_monad=PossibilitySet(), mpref_builder=
 uncertainty_prob = UncertaintyParams(poss_monad=PossibilityDist(), mpref_builder=ProbPrefExpectedValue)
 
 
-def get_4way_int_2p_sets() -> GameSpec:
+def get_simple_int_2p_sets() -> GameSpec:
     desc = """
     Plain 4way intersection. 2 players. Set-based uncertainty.
     """
     return GameSpec(desc, get_driving_game(param_2p, uncertainty_sets))
 
 
-def get_4way_int_3p_sets() -> GameSpec:
+def get_simple_int_3p_sets() -> GameSpec:
     desc = """
     Plain 4way intersection. 3 players. Set-based uncertainty.
     """
     return GameSpec(desc, get_driving_game(param_3p, uncertainty_sets))
 
 
-def get_4way_int_2p_prob() -> GameSpec:
+def get_simple_int_2p_prob() -> GameSpec:
     desc = """
     Plain 4way intersection. 2 players.
     Probability-based uncertainty (expected value).
@@ -88,7 +87,7 @@ def get_4way_int_2p_prob() -> GameSpec:
     return GameSpec(desc, get_driving_game(copy(param_2p), uncertainty_prob))
 
 
-def get_4way_int_3p_prob() -> GameSpec:
+def get_simple_int_3p_prob() -> GameSpec:
     desc = """
     Plain 4way intersection. 3 players.
     Probability-based uncertainty (expected value).
@@ -96,34 +95,177 @@ def get_4way_int_3p_prob() -> GameSpec:
     return GameSpec(desc, get_driving_game(copy(param_3p), uncertainty_prob))
 
 
-complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
+multilane_intersection, _ = load_commonroad_scenario("USA_Lanker-1_1_T-1.xml", SCENARIOS_DIR)
+mint_lane1 = dglane_from_position(np.array([0, 25]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane2 = dglane_from_position(np.array([-8, -2]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane3 = dglane_from_position(np.array([20, 10]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane4 = dglane_from_position(np.array([9, 28]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane5 = dglane_from_position(np.array([-8, 26]), multilane_intersection.lanelet_network, succ_lane_selection=0)
+mint_lane6 = dglane_from_position(np.array([20, 13]), multilane_intersection.lanelet_network, succ_lane_selection=0)
 
-c_lane1 = dglane_from_position(np.array([-19, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
-c_lane2 = dglane_from_position(np.array([10, -14]), complex_intersection.lanelet_network, succ_lane_selection=0)
-c_lane3 = dglane_from_position(np.array([15, -10]), complex_intersection.lanelet_network, succ_lane_selection=0)
-c_lane4 = dglane_from_position(np.array([-10, -12]), complex_intersection.lanelet_network, succ_lane_selection=0)
-c_lane5 = dglane_from_position(
-    np.array([-10, -17]), complex_intersection.lanelet_network, init_lane_selection=1, succ_lane_selection=0
-)
-c_lane6 = dglane_from_position(np.array([30, 9]), complex_intersection.lanelet_network, succ_lane_selection=1)
-
-c_param_6p = DgSimpleParams(
+mint_param_2p = DgSimpleParams(
     track_dynamics_param=dyn_p0,
-    shared_resources_ds=D(1),
-    col_check_dt=D("0.51"),
-    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4, P5: c_lane5, P6: c_lane6},
-    scenario=complex_intersection,
-    progress={
-        P1: (D(30), D(60)),
-        P2: (D(10), D(40)),
-        P3: (D(10), D(50)),
-        P4: (D(30), D(70)),
-        P5: (D(25), D(50)),
-        P6: (D(20), D(50)),
-    },
-    plot_limits=[[-50, 50], [-50, 50]],
+    shared_resources_ds=D("1.5"),
+    col_check_dt=D("0.76"),
+    ref_lanes={P1: mint_lane1, P2: mint_lane2},
+    scenario=multilane_intersection,
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35))},
+    plot_limits=[[-21, 21], [-2, 32]],
     min_safety_distance=6,
 )
+mint_param_3p = replace(
+    mint_param_2p,
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40))},
+)
+mint_param_4p = replace(
+    mint_param_2p,
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40)), P4: (D(15), D(40))},
+)
+mint_param_5p = replace(
+    mint_param_2p,
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5},
+    progress={P1: (D(10), D(30)), P2: (D(10), D(35)), P3: (D(17), D(40)), P4: (D(15), D(40)), P5: (D(1), D(20))},
+)
+mint_param_6p = replace(
+    mint_param_2p,
+    ref_lanes={P1: mint_lane1, P2: mint_lane2, P3: mint_lane3, P4: mint_lane4, P5: mint_lane5, P6: mint_lane6},
+    progress={
+        P1: (D(10), D(30)),
+        P2: (D(10), D(35)),
+        P3: (D(17), D(40)),
+        P4: (D(15), D(40)),
+        P5: (D(1), D(20)),
+        P6: (D(10), D(35)),
+    },
+)
+
+
+def get_multilane_int_2p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. 2 players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_2p, uncertainty_sets))
+
+
+def get_multilane_int_3p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. 3 players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_3p, uncertainty_sets))
+
+
+def get_multilane_int_4p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. 4 players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_4p, uncertainty_sets))
+
+
+def get_multilane_int_5p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. 5 players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_5p, uncertainty_sets))
+
+
+def get_multilane_int_6p_sets() -> GameSpec:
+    desc = """
+    Multilane intersection modeled after USA_Lanker-1_1_T-1. 6 players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(mint_param_6p, uncertainty_sets))
+
+
+complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
+
+c_lane1 = dglane_from_position(np.array([-33, -4]), complex_intersection.lanelet_network, succ_lane_selection=1)
+c_lane2 = dglane_from_position(np.array([-45, -5]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane3 = dglane_from_position(np.array([-28, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane4 = dglane_from_position(np.array([-35, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane5 = dglane_from_position(np.array([-19, -3]), complex_intersection.lanelet_network, succ_lane_selection=0)
+c_lane6 = dglane_from_position(np.array([-31, 2]), complex_intersection.lanelet_network, succ_lane_selection=0)
+
+c_param_2p = DgSimpleParams(
+    track_dynamics_param=dyn_p0,
+    shared_resources_ds=D("1.5"),
+    col_check_dt=D("0.51"),
+    ref_lanes={P1: c_lane1, P2: c_lane2},
+    scenario=complex_intersection,
+    progress={P1: (D(0), D(25)), P2: (D(20), D(45))},
+    plot_limits=[[-50, -10], [-30, 10]],
+    min_safety_distance=6,
+)
+c_param_3p = replace(
+    c_param_2p,
+    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3},
+    progress={
+        P1: (D(0), D(25)),
+        P2: (D(20), D(45)),
+        P3: (D(10), D(40)),
+    },
+)
+c_param_4p = replace(
+    c_param_2p,
+    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4},
+    progress={
+        P1: (D(0), D(25)),
+        P2: (D(20), D(45)),
+        P3: (D(10), D(40)),
+        P4: (D(10), D(40)),
+    },
+)
+c_param_5p = replace(
+    c_param_2p,
+    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4, P5: c_lane5},
+    progress={
+        P1: (D(0), D(25)),
+        P2: (D(20), D(45)),
+        P3: (D(10), D(40)),
+        P4: (D(10), D(40)),
+        P5: (D(75), D(100)),
+    },
+)
+c_param_6p = replace(
+    c_param_2p,
+    ref_lanes={P1: c_lane1, P2: c_lane2, P3: c_lane3, P4: c_lane4, P5: c_lane5, P6: c_lane6},
+    progress={
+        P1: (D(0), D(25)),
+        P2: (D(20), D(45)),
+        P3: (D(10), D(40)),
+        P4: (D(10), D(40)),
+        P5: (D(75), D(100)),
+        P6: (D(15), D(35)),
+    },
+)
+
+
+def get_complex_int_2p_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_2p, uncertainty_sets))
+
+
+def get_complex_int_3p_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_3p, uncertainty_sets))
+
+
+def get_complex_int_4p_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_4p, uncertainty_sets))
+
+
+def get_complex_int_5p_sets() -> GameSpec:
+    desc = """
+    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
+    """
+    return GameSpec(desc, get_driving_game(c_param_5p, uncertainty_sets))
 
 
 def get_complex_int_6p_sets() -> GameSpec:
@@ -133,24 +275,26 @@ def get_complex_int_6p_sets() -> GameSpec:
     return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
 
 
-def get_complex_int_xxp_sets() -> GameSpec:
-    desc = """
-    Complex intersection modeled after DEU_Muc-1_1_T-1. xx players. Set-based uncertainty.
-    """
-    return GameSpec(desc, get_driving_game(c_param_6p, uncertainty_sets))
-
-
-driving_games_zoo: Mapping[str, GameSpec] = fd(
+# made into a callable to avoid long import times
+driving_games_zoo: Mapping[str, Callable[[], GameSpec]] = fd(
     {
-        "4way_int_2p_sets": get_4way_int_2p_sets(),
-        "4way_int_3p_sets": get_4way_int_3p_sets(),
-        "4way_int_2p_prob": get_4way_int_2p_prob(),
-        "4way_int_3p_prob": get_4way_int_3p_prob(),
-        "complex_int_6p_sets": get_complex_int_6p_sets(),
-        "complex_int_xxp_sets": get_complex_int_xxp_sets(),
+        "simple_int_2p_sets": get_simple_int_2p_sets,
+        "simple_int_3p_sets": get_simple_int_3p_sets,
+        "simple_int_2p_prob": get_simple_int_2p_prob,
+        "simple_int_3p_prob": get_simple_int_3p_prob,
+        "multilane_int_2p_sets": get_multilane_int_2p_sets,
+        "multilane_int_3p_sets": get_multilane_int_3p_sets,
+        "multilane_int_4p_sets": get_multilane_int_4p_sets,
+        "multilane_int_5p_sets": get_multilane_int_5p_sets,
+        "multilane_int_6p_sets": get_multilane_int_6p_sets,
+        "complex_int_2p_sets": get_complex_int_2p_sets,
+        "complex_int_3p_sets": get_complex_int_3p_sets,
+        "complex_int_4p_sets": get_complex_int_4p_sets,
+        "complex_int_5p_sets": get_complex_int_5p_sets,
+        "complex_int_6p_sets": get_complex_int_6p_sets,
     }
 )
 
-games_zoo: Dict[str, GameSpec] = {}
+games_zoo: Dict[str, Callable[[], GameSpec]] = {}
 
 games_zoo.update(driving_games_zoo)

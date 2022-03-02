@@ -1,6 +1,5 @@
 from dataclasses import dataclass, replace
 from fractions import Fraction
-from functools import cached_property
 from typing import Optional
 
 from zuper_commons.types import ZValueError
@@ -41,18 +40,14 @@ class SimpleCollision:
         if other is None:
             return self
         elif isinstance(other, SimpleCollision):
-            if self.at < other.at:
-                return self
-            elif self.at > other.at:
-                return other
-            else:
-                # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant.
-                # Monoid?")
-                return replace(  # monoid?
-                    self,
-                    at_fault=self.at_fault or other.at_fault,
-                    impact_rel_speed=self.impact_rel_speed + other.impact_rel_speed,
-                )
+            # this monoid is a bit delicate
+            # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant.
+            # Monoid?")
+            return replace(  # monoid?
+                self,
+                at_fault=self.at_fault or other.at_fault,
+                impact_rel_speed=self.impact_rel_speed + other.impact_rel_speed,
+            )
         else:
             raise ZValueError("Cannot add a SimpleCollision to a non-SimpleCollision", other=type(other))
 

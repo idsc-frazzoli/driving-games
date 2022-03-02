@@ -72,9 +72,6 @@ def get_game_factorization(
     return GameFactorization(mpartitions, ipartitions)
 
 
-# bug: need to also have reachable resources
-# then can check with optimal resources if single-player game
-# otherwise need to use reachable
 def find_dependencies(
     ps: PossibilityMonad,
     resources_used: Mapping[PlayerName, UsedResources[X, U, Y, RP, RJ, SR]],

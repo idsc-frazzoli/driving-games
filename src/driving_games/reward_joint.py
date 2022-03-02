@@ -1,13 +1,12 @@
 from dataclasses import replace
 from decimal import Decimal
-from typing import Dict, FrozenSet, Mapping
+from typing import Dict, Mapping, FrozenSet
 
 from dg_commons import DgSampledSequence, fd, PlayerName, Timestamp
 from dg_commons.maps import DgLanelet
-from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from games import JointRewardStructure
-from games.game_def import JointState, JointTransition
+from games.game_def import JointTransition, JointState
 from . import VehicleTrackDynamics
 from .collisions import VehicleJointCost, VehicleSafetyDistCost
 from .collisions_check import joint_simple_collision_cost
@@ -35,41 +34,44 @@ class VehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions,
         self.col_check_dt = col_check_dt
         self.min_safety_distance = min_safety_distance
         self.players_dynamics = players_dynamics
+        self._cached_dts = None
+        """ Assumes transition always of the same length"""
 
     def joint_reward_incremental(self, txs: JointTransition) -> Mapping[PlayerName, VehicleJointCost]:
         res: Dict[PlayerName, VehicleJointCost] = {}
         if len(txs) > 1:
-            # ####### temp
-            # k0 = list(txs.keys())[0]
-            # dt = txs[k0].get_end()
-            # interaction_graph = Graph()
-            # interaction_graph.clear()
-            # resources_used = {p: self.players_dynamics[p].get_shared_resources(txs[p].values[0], dt=dt) for p in txs}
-            # interaction_graph.add_nodes_from(resources_used)
-            # for p1, p2 in combinations(resources_used, 2):
-            #     intersects = bool(resources_used[p1] & resources_used[p2])
-            #     if intersects:
-            #         interaction_graph.add_edge(p1, p2)
-            # interacting_subsets = frozenset(map(frozenset, connected_components(interaction_graph)))
-            # for p_subset in interacting_subsets:
-            #    for p in p_subset:if len(p_subset) > 1:
-            # #######
-            global_xs: Dict[PlayerName:VehicleState] = {}
-            for p in txs:  # p_subset:
+            if self._cached_dts is None:
+                k0 = list(txs.keys())[0]
+                t1_end, t1_start = txs[k0].get_end(), txs[k0].get_start()
+                # we up-sample the transition according to col_dt from the end going backwards
+                n1 = int((t1_end - t1_start) / self.col_check_dt)
+                ts = [t1_end - i * self.col_check_dt for i in range(n1 + 1)]
+                # but we evaluate them forward in time (for early exit)
+                ts.reverse()
+                self._cached_dts = tuple(ts)
 
-                def to_vehicle_state(tx: VehicleTrackState):
-                    t = tx.to_global_pose(self.ref_lane[p])
-                    return VehicleState(x=t.p[0], y=t.p[1], theta=t.theta, vx=float(tx.v), delta=0)
-
-                global_xs[p] = txs[p].transform_values(to_vehicle_state, VehicleState)
-            res.update(
-                joint_simple_collision_cost(fd(global_xs), self.geometries, self.col_check_dt, self.min_safety_distance)
+            upsampled_txs: Mapping[PlayerName, DgSampledSequence[VehicleTrackState]]
+            upsampled_txs = fd(
+                {
+                    p: DgSampledSequence[VehicleTrackState](
+                        timestamps=self._cached_dts, values=(txs[p].at_interp(t) for t in self._cached_dts)
+                    )
+                    for p in txs
+                }
             )
-            # else:
-            #     res.update({p: self.joint_reward_identity() for p in p_subset})
+            res_ = joint_simple_collision_cost(
+                transitions=upsampled_txs,
+                geometries=self.geometries,
+                ref_lane=self.ref_lane,
+                col_dt=self.col_check_dt,
+                min_safety_dist=self.min_safety_distance,
+            )
+
+            res.update(res_)
         else:
             res.update({p: self.joint_reward_identity() for p in txs})
-        return res
+
+        return fd(res)
 
     def joint_reward_reduce(self, r1: VehicleJointCost, r2: VehicleJointCost) -> VehicleJointCost:
         return r1 + r2

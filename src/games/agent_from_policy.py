@@ -1,6 +1,6 @@
 from functools import partial
 from itertools import combinations, chain
-from typing import Mapping, AbstractSet
+from typing import Mapping, AbstractSet, List
 
 from frozendict import frozendict
 from zuper_commons.types import ZException
@@ -34,8 +34,10 @@ class AgentFromPolicy(AgentBelief[X, U]):
     def get_commands(self, state_self: X, state_others: Poss[JointState]) -> Poss[U]:
         if state_self not in self.policy:
             msg = "I do not know the policy for this state"
+            # fixme does not find policy if the state is collided
             raise DoesNotKnowPolicy(
                 msg,
+                player_name=self.my_name,
                 state_self=state_self,
                 state_others=state_others,
                 states_self_known=set(self.policy),
@@ -69,20 +71,26 @@ class AgentFromPolicy(AgentBelief[X, U]):
         :param state_others: Distribution over the other players possible states
         """
 
+        # fixme not sure this works if the state of other is not made only by ps.unit
+
         def gen_candidates(state_others_: JointState) -> Poss[Poss[JointState]]:
             power_js: AbstractSet[JointState] = set(fpowerdict(state_others_))
             return self.ps.lift_many([self.ps.unit(js_) for js_ in power_js])
 
         candidates: Poss[Poss[JointState]] = self.ps.join(self.ps.build(state_others, gen_candidates))
-        found = [js for js in candidates.support() if js in lookup]
+        found: List[Poss[JointState]] = [js for js in candidates.support() if js in lookup]
         if len(found) == 1:
             return found[0]
+        elif len(found) > 1:
+            # todo verify this hypotesis, shall we consider the match with the most players still active?
+            return max(found, key=lambda x: len(next(iter(x.support()))))  # max(found, key=lambda x: len(x.support()))
         else:
             raise DoesNotKnowPolicy(
                 state_others=state_others,
                 lookup=lookup,
                 candidates=candidates,
                 found=found,
+                len_found=len(found),
             )
 
 

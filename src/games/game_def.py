@@ -2,7 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, replace
 from decimal import Decimal as D
 from fractions import Fraction
-from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar
+from typing import Callable, FrozenSet, Generic, Mapping, NewType, Optional, Tuple, TypeVar, List
+
+from matplotlib.patches import Polygon
 
 from dg_commons import DgSampledSequence, PlayerName, RJ, RP, Timestamp, U, X, Y
 from possibilities import Poss, PossibilityMonad
@@ -14,6 +16,7 @@ __all__ = [
     "P",
     "PlayerOptions",
     "Observations",
+    "StageIdx",
     "JointState",
     "JointTransition",
     "JointPureActions",
@@ -33,6 +36,9 @@ __all__ = [
 
 SR = TypeVar("SR")
 """ Generic variable for the type of resources. """
+
+StageIdx = int
+""" Index of the stage. Alias to avoid confusion with discretization step """
 
 JointState = Mapping[PlayerName, X]
 """ A joint state: the state for each player. """
@@ -225,6 +231,9 @@ class GameVisualization(Generic[X, U, Y, RP, RJ], ABC):
         state: X,
         commands: Optional[U],
         t: Timestamp,
+        vehicle_poly: Optional[List[Polygon]] = None,
+        resources_poly: Optional[List[Polygon]] = None,
+        dt: Optional[Timestamp] = None,
         opacity: float = 1.0,
     ):
         """Draw the player at a certain state doing certain commands (if given)"""

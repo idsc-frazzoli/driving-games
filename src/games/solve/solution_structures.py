@@ -18,7 +18,7 @@ from typing import (
 
 from networkx import MultiDiGraph
 
-from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, Timestamp, U, X, Y
+from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y, Timestamp
 from games.checks import *
 
 # from games.factorization_algo import FactAlgo, FactAlgoNoFact
@@ -31,6 +31,7 @@ from games.game_def import (
     PlayerOptions,
     SR,
     UncertainCombined,
+    StageIdx,
 )
 from games.performance import PerformanceStatistics
 from games.simulate import Simulation
@@ -90,14 +91,15 @@ class SolverParams:
     """ How to deal with multiple Nash equilibria """
     dt: D
     """ The delta-t when discretizing. """
-    use_factorization: bool
-    """ Whether to use the factorization properties to reduce the game graph."""
-    extra: bool
-    """ Whether to compute extra things not strictly necessary, such as networkx graphs."""
-    n_simulations: int
-    """ Number of sampled simulations from solutions. """
     factorization_algorithm: "FactAlgo"
     """ The factorization algorithm to use. """
+    use_factorization: bool  # fixme redundant with factorization_algorithm
+    """ Whether to use the factorization properties to reduce the game graph."""
+    n_simulations: int
+    """ Number of sampled simulations from solutions. """
+    extra: bool
+    """ Whether to compute extra things not strictly necessary, such as networkx graphs."""
+    max_depth: StageIdx
 
 
 @dataclass(frozen=False, unsafe_hash=True, order=True)
@@ -215,6 +217,11 @@ class GameNode(Generic[X, U, Y, RP, RJ, SR]):
                 msg = f"Pure action {pure_actions!r} does not have any transition"
                 raise ZValueError(msg, action=pure_actions, GameNode=self)
 
+        # check that the costs are coherent
+        # print("hello")
+        # for pure_actions in iterate_dict_combinations(self.incremental.values()):
+        #    pass
+
     def _check_players_in_transition(self) -> None:
         """We want to make sure that each player transitions in a game in which he is present."""
         jpa: JointPureActions
@@ -266,7 +273,8 @@ class GameGraph(Generic[X, U, Y, RP, RJ, SR]):
     """The game graph."""
 
     initials: AbstractSet[JointState]
-    """ The initial states of the game. """
+    """ The initial states of the game. (Without factorization).
+     Note that if the initial state has been factorized, this will not appear in the state2node."""
 
     state2node: Mapping[JointState, GameNode[X, U, Y, RP, RJ, SR]]
     """
@@ -328,7 +336,7 @@ class GamePreprocessed(Generic[X, U, Y, RP, RJ, SR]):
     players_pre: Mapping[PlayerName, GamePlayerPreprocessed[X, U, Y, RP, RJ, SR]]
     """ The pre-processed data for each player"""
 
-    game_graph_nx: MultiDiGraph
+    game_graph_nx: Optional[MultiDiGraph]
     """ A NetworkX graph used only for visualization """
 
     solver_params: SolverParams
@@ -392,7 +400,7 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
     """ The joint state for this node. """
 
     solved: M[JointPureActions, Poss[M[PlayerName, JointState]]]
-    """ For each joint action, this is the outcome (where each player goes). """
+    """ For each joint action, this is the transition (where each player goes). """
 
     va: ValueAndActions[U, RP, RJ]
     """ The strategy profiles and the game values"""
@@ -422,7 +430,10 @@ class SolvedGameNode(Generic[X, U, Y, RP, RJ, SR]):
         if self.optimal_res is not None and self.reachable_res is not None:
             check_isinstance(self.optimal_res, UsedResources, SolvedGameNode=self)
             check_isinstance(self.reachable_res, UsedResources, SolvedGameNode=self)
-            # todo assert that optimal are contained in reachable
+            for i in self.optimal_res.used:
+                if i not in self.reachable_res.used:
+                    msg = f"There is no delta time {i!r} appearing in the reachable resources"
+                    raise ZValueError(msg, SolvedGameNode=self)
 
 
 @dataclass
@@ -431,24 +442,19 @@ class SolvingContext(Generic[X, U, Y, RP, RJ, SR]):
 
     game: Game[X, U, Y, RP, RJ, SR]
     """ The original game. """
-
     outcome_preferences: Mapping[PlayerName, Preference[UncertainCombined]]
     """ The preferences of each player"""
-
     cache: Dict[JointState, SolvedGameNode[X, U, Y, RP, RJ, SR]]
     """ The nodes already solved."""
-
     processing: Set[JointState]
     """ The nodes currently processing. """
-
     gg: GameGraph[X, U, Y, RP, RJ, SR]
     """ The game graph. """
-
     solver_params: SolverParams
     """ The solver parameters. """
-
     compute_res: bool
     """ Whether to compute the reachable/optimal resources. """
+    # depth: StageIdx
 
 
 @dataclass(frozen=True)
@@ -485,10 +491,11 @@ class SolutionsPlayer(Generic[X, U, Y, RP, RJ, SR]):
 
 @dataclass(frozen=True)
 class Solutions(Generic[X, U, Y, RP, RJ, SR]):
-    solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]
+    solutions_players: Mapping[PlayerName, SolutionsPlayer[X, U, Y, RP, RJ, SR]]  # fixme currently not used
     game_solution: GameSolution[X, U, Y, RP, RJ, SR]
-    game_tree: GameNode[X, U, Y, RP, RJ, SR]
+    game_graph: GameGraph[X, U, Y, RP, RJ, SR]
     sims: Mapping[str, Simulation]
+    game_graph_nx: Optional[MultiDiGraph]
 
 
 class FactAlgo(ABC):

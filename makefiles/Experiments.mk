@@ -1,0 +1,45 @@
+
+run-dg-experiments: build
+	mkdir -p $(out-docker)
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		dg-demo -o /out/dgfact --reset -c "rmake" \
+		--games "multilane_int_2p_sets","multilane_int_3p_sets","multilane_int_4p_sets" \
+		--solvers "solver-2-pure-security_mNE-naive-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf","solver-2-pure-security_mNE-fact2-noextra-inf"
+
+#
+  # ,"multilane_int_4p_sets" \
+
+run-dg-experiments-many-players: build
+	mkdir -p $(out-docker)
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		dg-demo -o /out/dgfact_many --reset -c "rmake" \
+		--games "multilane_int_5p_sets" \
+		--solvers "solver-2-pure-security_mNE-fact2-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf"
+
+# ,"multilane_int_6p_sets" \
+
+#,"solver-2-pure-security_mNE-fact2-noextra"
+#"solver-2-pure-security_mNE-naive-noextra",
+#"simple_int_2p_sets","simple_int_3p_sets","multilane_int_4p_sets", \
+#,"multilane_int_4p_sets","multilane_int_5p_sets" \
+#		--games "4way_int_2p_sets" \  #,"4way_int_3p_sets","multilane_int_4p_sets","multilane_int_5p_sets" \
+ #		--solvers "solver-2-pure-security_mNE-fact1-noextra"  #,"solver-2-pure-security_mNE-naive-noextra","solver-2-pure-security_mNE-fact2-noextra"
+#
+
+run-posets-exp: build
+	mkdir -p $(out-docker)
+	docker run -it \
+		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		posets-exp -o /out/posets --reset -c "rparmake"
+
+
+
+run-crashing_experiments: build
+	mkdir -p $(out-docker)
+	docker run -it --user $$(id -u) \
+		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
+		-v $(PWD)/$(out-docker):/out $(tag) \
+		crash-exp -o /out/crash --reset -c "rparmake"

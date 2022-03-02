@@ -24,13 +24,30 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
     ps: PossibilityMonad = uncertainty_params.poss_monad
     players: Dict[PlayerName, DrivingGamePlayer] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
-    cc = list(cycler(color=["c", "m", "y", "gray", "b", "g", "r"]))
+    cc = list(
+        cycler(
+            color=[
+                "c",
+                "m",
+                "y",
+                "b",
+                "g",
+                "r",
+                "gray",
+            ]
+        )
+    )
     resources_occ = ResourcesOccupancy(
         lanelet_network=dg_params.scenario.lanelet_network, cell_resolution=dg_params.shared_resources_ds
     )
 
     for i, (p, lane) in enumerate(dg_params.ref_lanes.items()):
-        g = VehicleGeometry.default_car(color=cc[i]["color"], w_half=0.8)
+        g = VehicleGeometry.default_car(
+            color=cc[i]["color"],
+            w_half=0.8,
+            lf=1.6,
+            lr=1.6,
+        )
         geometries[p] = g
 
         p_dynamics = VehicleTrackDynamics(
@@ -40,11 +57,12 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
             param=dg_params.track_dynamics_param,
             min_safety_distance=D(dg_params.min_safety_distance),
             resources_occupancy=resources_occ,
+            goal_progress=dg_params.progress[p][1],
         )
         p_init_progress = dg_params.progress[p][0]
         p_x = VehicleTrackState(
             x=p_init_progress,
-            v=dg_params.track_dynamics_param.min_speed + D(1),
+            v=dg_params.track_dynamics_param.min_speed + D("2.0"),
             wait=D(0),
             light=NO_LIGHTS,
             has_collided=False,
@@ -73,10 +91,13 @@ def get_driving_game(dg_params: DgSimpleParams, uncertainty_params: UncertaintyP
         ref_lanes=dg_params.ref_lanes,
         col_check_dt=dg_params.col_check_dt,
         min_safety_distance=dg_params.min_safety_distance,
-        players_dynamics={p: players[p].dynamics for p in players},  # temp for quick checking of resources
+        players_dynamics=fd({p: players[p].dynamics for p in players}),  # temp for quick checking of resources
     )
     game_visualization = DrivingGameVisualization(
-        dg_params, geometries=geometries, ds=dg_params.shared_resources_ds, plot_limits=dg_params.plot_limits
+        dg_params,
+        geometries=geometries,
+        plot_limits=dg_params.plot_limits,
+        dynamics=fd({p: players[p].dynamics for p in players}),
     )
 
     game: DrivingGame = DrivingGame(

@@ -1,5 +1,5 @@
 from os.path import join
-from typing import Mapping
+from typing import Mapping, Callable
 
 from decent_params import DecentParams
 from quickapp import QuickApp, QuickAppContext
@@ -10,7 +10,8 @@ from zuper_commons.types import ZValueError
 from games import create_report_preprocessed, GameSpec, report_game_visualization, report_solutions, solve_main
 from games.performance import PerformanceStatistics, report_performance_stats
 from games.preprocess import preprocess_game
-#from .zoo_games import games_zoo
+from games.reports import report_game_nodes_stats
+from .zoo_games import games_zoo
 from .zoo_solvers import solvers_zoo, SolverSpec
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]
@@ -20,7 +21,7 @@ class DGDemo(QuickApp):
     """Main function"""
 
     def define_options(self, params: DecentParams):
-        params.add_string("games", default="4way_int_3p_sets")
+        params.add_string("games", default="simple_int_3p_sets")
         params.add_string("solvers", default="solver-2-pure-security_mNE-fact1-noextra")
 
     def define_jobs_context(self, context: QuickAppContext):
@@ -31,15 +32,15 @@ class DGDemo(QuickApp):
         do_games = expand_string(do_games, list(games_zoo))
         do_solvers = expand_string(do_solvers, list(solvers_zoo))
         for game_name in do_games:
-            if not game_name in games_zoo:
+            if game_name not in games_zoo:
                 raise ZValueError(f"Cannot find {game_name!r}", available=set(games_zoo))
         for solver_name in do_solvers:
-            if not solver_name in solvers_zoo:
+            if solver_name not in solvers_zoo:
                 raise ZValueError(f"Cannot find {solver_name!r}", available=set(solvers_zoo))
 
         for game_name in do_games:
             cgame = context.child(game_name, extra_report_keys=dict(game=game_name))
-            game = games_zoo[game_name].game
+            game = games_zoo[game_name]().game
             rgame = cgame.comp(report_game_visualization, game)
             cgame.add_report(rgame, "game_setup")
             for solver_name in do_solvers:
@@ -68,10 +69,11 @@ def solve_main_and_report_solutions(game_preprocessed) -> Report:
     return r_solution
 
 
-def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, SolverSpec]):
+def without_compmake(games: Mapping[str, Callable[[], GameSpec]], solvers: Mapping[str, SolverSpec]):
     d = "out/tests/"
-    for game_name, game_spec in games.items():
+    for game_name, game_getter in games.items():
         dg = join(d, game_name)
+        game_spec = game_getter()
         game = game_spec.game
         r_game = report_game_visualization(game)
         r_game.text("description", text=game_spec.desc)
@@ -96,6 +98,9 @@ def without_compmake(games: Mapping[str, GameSpec], solvers: Mapping[str, Solver
 
             r_perf_stats = report_performance_stats(perf_stats)
             r_solver.add_child(r_perf_stats)
+
+            # r_game_nodes_stats = report_game_nodes_stats(solutions)
+            # r_solver.add_child(r_game_nodes_stats)
             # r_perf_stats.to_html())
             r_solver.to_html(join(ds, "solutions.html"))
 

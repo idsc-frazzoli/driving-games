@@ -1,19 +1,23 @@
-from dataclasses import replace
 from decimal import Decimal as D
-from math import pi
 from typing import Hashable, Mapping
 
-from dg_commons import DgSampledSequence, PlayerName, SE2Transform
-from dg_commons.maps import DgLanelet, LaneCtrPoint
-from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
-from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from driving_games import VehicleJointCost, VehicleSafetyDistCost, VehicleTrackState
-from driving_games.reward_joint import VehicleJointReward
-from games.game_def import JointTransition
+from matplotlib import pyplot as plt
+from zuper_commons.text import remove_escapes
+from zuper_typing import debug_print
 
-P1 = PlayerName("p1")
-P2 = PlayerName("p2")
-P3 = PlayerName("p3")
+from dg_commons import PlayerName, DgSampledSequence, fd
+from dg_commons.sim.models.vehicle_ligths import NO_LIGHTS
+from driving_games import (
+    VehicleJointCost,
+    VehicleSafetyDistCost,
+    VehicleTrackState,
+    VehicleTrackDynamics,
+    VehicleActions,
+    DrivingGameVisualization,
+)
+from driving_games.zoo_games import games_zoo, P4, mint_param_4p, P1, P2, P3
+from driving_games_tests import logger
+from games import JointTransition
 
 
 def test_VehicleJointCost():
@@ -21,44 +25,46 @@ def test_VehicleJointCost():
     assert isinstance(test_1, Hashable)
 
 
+def generate_transition(x: VehicleTrackState, dyn: VehicleTrackDynamics, u: VehicleActions, dt) -> VehicleTrackState:
+    return dyn.successor(x, u, dt=dt)
+
+
 def test_1():
-    geo: Mapping[PlayerName, VehicleGeometry] = {
-        P1: VehicleGeometry.default_car(),
-        P2: VehicleGeometry.default_car(),
-        P3: VehicleGeometry.default_bicycle(),
-    }
+    game = games_zoo["multilane_int_4p_sets"].game
 
-    l1 = DgLanelet(
-        [
-            LaneCtrPoint(SE2Transform(p=[0, -3], theta=pi / 2), r=2),
-            LaneCtrPoint(SE2Transform(p=[0, 3], theta=pi / 2), r=2),
-        ]
-    )
-    l2 = DgLanelet(
-        [LaneCtrPoint(SE2Transform(p=[-3, 0], theta=0), r=2), LaneCtrPoint(SE2Transform(p=[2, 0], theta=0), r=2)]
-    )
-    l3 = DgLanelet(
-        [
-            LaneCtrPoint(SE2Transform(p=[3, 3], theta=-pi * 3 / 2), r=2),
-            LaneCtrPoint(SE2Transform(p=[-3, -3], theta=-pi * 3 / 2), r=2),
-        ]
+    dt = D("2")
+    x1: VehicleTrackState = VehicleTrackState(x=D(14.0), v=D(1.0), wait=D(0), light=NO_LIGHTS, has_collided=False)
+    x2: VehicleTrackState = VehicleTrackState(x=D(9.0), v=D(1.0), wait=D(0), light=NO_LIGHTS, has_collided=False)
+    x3: VehicleTrackState = VehicleTrackState(x=D(14.0), v=D(1.0), wait=D(0), light=NO_LIGHTS, has_collided=False)
+    x4: VehicleTrackState = VehicleTrackState(x=D(21.0), v=D(3.0), wait=D(0), light=NO_LIGHTS, has_collided=False)
+    js0: Mapping[PlayerName, VehicleTrackState] = {P1: x1, P2: x2, P3: x3, P4: x4}
+    dynamics = {p: game.players[p].dynamics for p in game.players}
+
+    u1 = VehicleActions(acc=D(1), light=NO_LIGHTS)
+    u2 = VehicleActions(acc=D(0), light=NO_LIGHTS)
+    u3 = VehicleActions(acc=D(1), light=NO_LIGHTS)
+    u4 = VehicleActions(acc=D(1), light=NO_LIGHTS)
+    ju: Mapping[PlayerName, VehicleActions] = {P1: u1, P2: u2, P3: u3, P4: u4}
+    js1 = {p: generate_transition(js0[p], dynamics[p], ju[p], dt) for p in game.players}
+    txs: JointTransition = fd(
+        {p: DgSampledSequence[VehicleTrackState](timestamps=(0, dt), values=(js0[p], js1[p])) for p in game.players}
     )
 
-    ref_lanes: Mapping[PlayerName, DgLanelet] = {P1: l1, P2: l2, P3: l3}
-    jr = VehicleJointReward(geometries=geo, ref_lanes=ref_lanes, col_check_dt=0.21, min_safety_distance=5)
+    joint_reward = game.joint_reward.joint_reward_incremental(txs)
 
-    # todo create some of the joint transitions
-    dt = 1
-    x0 = VehicleTrackState(x=D(0), v=D(1), wait=D(0), light=NO_LIGHTS)
-    txs: JointTransition = {
-        P1: DgSampledSequence[VehicleTrackState](timestamps=(0, dt), values=(x0, replace(x0, x=D(4), v=D(0)))),
-        P2: DgSampledSequence[VehicleTrackState](timestamps=(0, dt), values=(x0, replace(x0, x=D(4), v=D(0)))),
-        P3: DgSampledSequence[VehicleTrackState](timestamps=(0, dt), values=(x0, replace(x0, x=D(0), v=D(0)))),
-    }
-
-    for _ in range(5):
-        res = jr.joint_reward_incremental(txs)
-    res2 = jr.is_joint_final_transition(txs)
-
-    print(res)
-    print(res2)
+    dg_vis = DrivingGameVisualization(
+        mint_param_4p,
+        geometries=game.joint_reward.geometries,
+        dynamics=dynamics,
+        plot_limits=mint_param_4p.plot_limits,  # param_3p.plot_limits
+    )
+    fig, ax = plt.subplots()
+    ax.set_aspect(1)
+    with dg_vis.plot_arena(plt, ax):
+        for player_name in game.players:
+            dg_vis.plot_player(player_name, js0[player_name], commands=None, t=0)
+            dg_vis.plot_player(player_name, js1[player_name], commands=None, t=0)
+    fig.set_tight_layout(True)
+    fig.savefig("test_joint_reward.png", dpi=300)
+    str_jr = remove_escapes(debug_print(joint_reward))
+    logger.info(f"joint_reward={str_jr}")

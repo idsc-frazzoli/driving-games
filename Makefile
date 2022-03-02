@@ -81,32 +81,6 @@ run-with-mounted-src:
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/result --reset -c "rparmake"
 
-run-dg-experiments: build
-	mkdir -p $(out-docker)
-	docker run -it --user $$(id -u) \
-		-v $(PWD)/$(out-docker):/out $(tag) \
-		dg-demo -o /out/result --reset -c "rmake" \
-		--games "4way_int_2p_sets","4way_int_3p_sets" \
-		--solvers "solver-2-pure-security_mNE-naive-noextra","solver-2-pure-security_mNE-fact1-noextra","solver-2-pure-security_mNE-fact2-noextra"
-
-run-posets-exp: build
-	mkdir -p $(out-docker)
-	docker run -it \
-		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
-		-v $(PWD)/$(out-docker):/out $(tag) \
-		posets-exp -o /out/posets --reset -c "rparmake"
-
-
-
-run-crashing_experiments: build
-	mkdir -p $(out-docker)
-	docker run -it --user $$(id -u) \
-		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
-		-v $(PWD)/$(out-docker):/out $(tag) \
-		crash-exp -o /out/crash --reset -c "rparmake"
-
-black:
-	black -l 120 --target-version py38 src
 
 coverage-report:
 	coverage html  -d $(coverage_dir)
@@ -124,4 +98,5 @@ docs-docker: build
 		sphinx-build src /driving-games/$(out)/docs
 
 
-include makefiles/Makefile.version
+include makefiles/Experiments.mk
+include makefiles/Pypi.mk
