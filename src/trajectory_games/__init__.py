@@ -12,4 +12,4 @@ from .solve import *
 from .solve_lf_game import *
 from .visualization_dev import *
 from .reports import *
-from .game_factory import *
+from .game_factory_dev import *

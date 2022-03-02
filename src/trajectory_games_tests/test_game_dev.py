@@ -10,6 +10,7 @@ from trajectory_games import (
     CONFIG_DIR,
     get_leader_follower_game,
     get_trajectory_game,
+    get_simple_traj_game_leon,
     iterative_best_response,
     PosetalPreference,
     preprocess_full_game,
@@ -36,7 +37,7 @@ filename = "r_game_all.html"
 
 
 def create_reports(
-    game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], r_game: Report, gif: bool = plot_gif
+        game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], r_game: Report, gif: bool = plot_gif
 ):
     if not only_traj:
         print(", ".join(f"{k.capitalize()} = {len(v)}" for k, v in nash_eq.items()))
@@ -126,6 +127,24 @@ def test_trajectory_game_lexi():
     report.to_html(join(d, folder + filename))
 
 
+def test_simple_trajectory_game_leon():
+    folder = "example_game_leon/"
+    config_str = "ral_01_level_0"
+    game: TrajectoryGame = get_simple_traj_game_leon(config_str=config_str)
+
+    context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
+
+    if only_traj:
+        nash_eq = {}
+    else:
+        sol = Solution()
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=context)
+        game.game_vis.init_plot_dict(values=nash_eq["weak"])
+    report_single(game=game, nash_eq=nash_eq, folder=folder)
+
+    return 0
+
+
 def test_trajectory_game_levels():
     folder = "levels_cases/"
     pref = "pref_level"
@@ -198,3 +217,4 @@ if __name__ == "__main__":
     # test_trajectory_game_brute_force()
     # test_trajectory_game_best_response()
     # test_trajectory_game_levels()
+    test_simple_trajectory_game_leon()

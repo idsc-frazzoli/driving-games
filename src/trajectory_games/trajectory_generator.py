@@ -100,6 +100,8 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                 if cond:
                     stack.append(s2)
                 transition = Trajectory.create(values=samp, lane=lane, goal=graph.goal, states=(s1, s2))
+                #timestamps = [0.1*id for id in range(len(samp))]
+                #transition = Trajectory(timestamps=timestamps, values=samp)
                 graph.add_edge(trajectory=transition, u=u)
 
         return graph
@@ -159,6 +161,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
         dt = float(self.params.dt)
         l = self.params.vg.l
+        #l = (self.params.vg.lf + self.params.vg.lr)
 
         # Calculate initial pose
         start_arr = np.array([state.x, state.y])
@@ -168,7 +171,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         # Calculate real axle translation and rotation
         offset_0, offset_i = np.array([0, 0]), np.array([-l, 0])
         p_i, th_i = self.get_target(lane=lane, progress=along_i, offset_target=offset_0)
-        q_start = geo.SE2_from_translation_angle(t=start_arr, theta=state.th)
+        q_start = geo.SE2_from_translation_angle(t=start_arr, theta=th_start)
         p_start = SE2_apply_T2(q_start, offset_i)
 
         def get_progress(acc: float, K: float) -> float:

@@ -10,7 +10,7 @@ from zuper_commons.types import ZValueError
 from games import create_report_preprocessed, GameSpec, report_game_visualization, report_solutions, solve_main
 from games.performance import PerformanceStatistics, report_performance_stats
 from games.preprocess import preprocess_game
-from .zoo_games import games_zoo
+#from .zoo_games import games_zoo
 from .zoo_solvers import solvers_zoo, SolverSpec
 
 __all__ = ["dg_demo", "DGDemo", "without_compmake"]

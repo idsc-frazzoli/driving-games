@@ -187,6 +187,8 @@ class BicycleDynamics:
         dx = x0.v
         dr = dx * math.tan(x0.st) / (2.0 * self.vg.l)
         dy = dr * self.vg.l
+        #dr = dx * math.tan(x0.st) / (2.0 * (self.vg.lf+self.vg.lr))
+        #dy = dr * (self.vg.lf+self.vg.lr)
         th_eq = x0.th + dr / 2.0 if mean else x0.th
         costh = math.cos(th_eq)
         sinth = math.sin(th_eq)

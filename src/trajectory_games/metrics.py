@@ -158,8 +158,8 @@ class ProgressAlongReference(Metric):
                 return self.cache[traj]
 
             traj_sn = context.points_curv[player]
-            a= traj_sn[0].along_lane
-            b= traj_sn[-1].along_lane
+            a = traj_sn[0].along_lane
+            b = traj_sn[-1].along_lane
             # negative for smaller preferred
             final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
             ret = EvaluatedMetric(
@@ -288,7 +288,7 @@ class Clearance(Metric):
             t_end = context.trajectories[pair[0]].get_end()
             assert t_start == context.trajectories[pair[1]].get_start() and \
                    t_end == context.trajectories[pair[1]].get_end(), \
-                   "The start and end time of different trajectories needs to be the same"
+                "The start and end time of different trajectories needs to be the same"
 
             clearance = []
             n_points = int((t_end - t_start) / self.sampling_time)
@@ -414,35 +414,41 @@ class CollisionEnergy(Clearance):
         # keep first time clearance is 0 for each player pair
         def compute_hypothetical_crashes() -> Crashes:
             crashes: Crashes = {}
-            for player_pair in clearances.keys():
-                pair_clearance = clearances[player_pair]
-                # just consider first crash for each pair
-                first_crash = np.where(np.array(pair_clearance.values) < 0.0001)[0][0]  # account for numerical errors
-                crashes[player_pair] = first_crash  # store index
+            for p_pair, pair_clearance in clearances.items():
+                # account for numerical errors
+                first_crash = np.where(np.array(pair_clearance.values) < 0.0001)[0].tolist()
+                if first_crash:
+                    first_crash = first_crash[0]
+                else:
+                    # no crash happening for this pair
+                    first_crash = None
+
+                crashes[p_pair] = first_crash
             return crashes
 
         clearances = self.calculate_all_clearances(context=context)
         hyp_crashes = compute_hypothetical_crashes()
 
-        crashez: Crashes = {}
+        crashes_temp: Crashes = {}
         actual_crashes: Crashes = {}
         # find first crash for each player (discard pairs where the crash happens subsequently)
         for player in context.get_players():
             idx_first_player_crash = 999999
-            pair_crashing = (None, None)
-            for player_pair, t_crash in hyp_crashes.items():
-                if player in player_pair and t_crash < idx_first_player_crash:
-                    idx_first_player_crash = t_crash
-                    pair_crashing = player_pair
+            pair_crashing = []
+            for player_pair, idx_crash in hyp_crashes.items():
+                if player in player_pair and idx_crash <= idx_first_player_crash:
+                    idx_first_player_crash = idx_crash
+                    pair_crashing.append(player_pair)
 
-            crashez[pair_crashing] = idx_first_player_crash
+            for pair in pair_crashing:
+                crashes_temp[pair] = idx_first_player_crash
 
-        # discard crashes not happening
-        for player_pair, t_crash in crashez.items():
+        # discard crashes not happening because a player in a pair is involved in another crash earlier
+        for player_pair, idx_crash in crashes_temp.items():
             swapped_pair = (player_pair[1], player_pair[0])
-            if crashez[player_pair] == crashez[swapped_pair]:
-                assert t_crash == crashez[swapped_pair]
-                actual_crashes[player_pair] = t_crash
+            if crashes_temp[player_pair] == crashes_temp[swapped_pair]:
+                assert idx_crash == crashes_temp[swapped_pair]
+                actual_crashes[player_pair] = idx_crash
 
         return actual_crashes
 
@@ -450,7 +456,7 @@ class CollisionEnergy(Clearance):
     # todo: finish this function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
 
-        clearances = self.calculate_all_clearances(context=context) # calculated twice, make more efficient
+        clearances = self.calculate_all_clearances(context=context)  # calculated twice, make more efficient
         timestamps = list(clearances.values())[0].timestamps
         crashes = self.crashes_taking_place(context=context)
 

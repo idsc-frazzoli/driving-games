@@ -28,7 +28,7 @@ from .trajectory_game import (
     LeaderFollowerGame,
     LeaderFollowerGameStage,
 )
-from .visualization_dev import TrajGameVisualization
+from .visualization_old import TrajGameVisualization
 from .visualization_dev import tone_down_color, ZOrder
 
 EXPORT_PDF = True

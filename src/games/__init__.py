@@ -6,9 +6,9 @@ from zuper_commons.logs import ZLogger
 logger = ZLogger(__name__)
 logging.getLogger("matplotlib.font_manager").disabled = True
 
-from dg_commons import DgCommonsConstants
+#from dg_commons import DgCommonsConstants
 
-DgCommonsConstants.checks = False
+#DgCommonsConstants.checks = False
 
 
 class GameConstants:
@@ -29,4 +29,4 @@ from games.solve.solution import *
 from .reports_player import *
 from .reports import *
 from .simulate import *
-from .report_animations import *
+#from .report_animations import *

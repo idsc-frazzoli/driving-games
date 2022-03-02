@@ -212,16 +212,17 @@ EXP_ACCOMP = AntichainComparison("exp_accomp")
 
 @dataclass(frozen=True)
 class StaticSolverParams(SolverParams):
-    admissible_strategies: AdmissibleStrategies
-    """ Allowed search space of strategies"""
-    strategy_multiple_nash: StrategyForMultipleNash
-    """ How to deal with multiple Nash equilibria """
-    antichain_comparison: AntichainComparison = EXP_ACCOMP
-    """ How to compare antichains. """
-    dt: Optional[Decimal] = None
-    use_factorization: Optional[bool] = None
-    use_best_response: bool = False
-    """ Only use best responses for leader - follower game or all possible actions """
+    pass
+    #admissible_strategies: AdmissibleStrategies
+    #""" Allowed search space of strategies"""
+    #strategy_multiple_nash: StrategyForMultipleNash
+    #""" How to deal with multiple Nash equilibria """
+    #antichain_comparison: AntichainComparison = EXP_ACCOMP
+    #""" How to compare antichains. """
+    #dt: Optional[Decimal] = None
+    #use_factorization: Optional[bool] = None
+    #use_best_response: bool = False
+    #""" Only use best responses for leader - follower game or all possible actions """
 
 
 @dataclass

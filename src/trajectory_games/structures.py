@@ -232,6 +232,7 @@ class TrajectoryParams:
 
             u_acc = get_set(inp="acc")
             u_dst = get_set(inp="dst")
+
             params = TrajectoryParams(
                 solve=config["solve"],
                 s_final=config["s_final"],
@@ -246,7 +247,7 @@ class TrajectoryParams:
                 dt_samp=D(config["dt_samp"]),
                 dst_scale=config["dst_scale"],
                 n_factor=config["n_factor"],
-                vg=VehicleGeometry.from_config(vg_name),
+                vg=VehicleGeometry.default_car(vg_name),
             )
         else:
             print(f"Failed to intialise {cls.__name__} from {name}, using default")
