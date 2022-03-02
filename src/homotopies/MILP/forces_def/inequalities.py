@@ -1,10 +1,10 @@
 import numpy as np
-from .parameters import params, x_idx, ub_idx, player_idx
-from homotopies.MILP.utils.intersects import get_box
 from typing import Dict, List, Tuple, Optional
-from dg_commons import PlayerName, DgSampledSequence
-from geometry import SE2value
 from itertools import combinations
+from geometry import SE2value
+from dg_commons import PlayerName, DgSampledSequence
+from homotopies.MILP.utils.intersects import get_box
+from .parameters import params, x_idx, ub_idx, player_idx
 
 
 def get_bounds(n_controlled: int,

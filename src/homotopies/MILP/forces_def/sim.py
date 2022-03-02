@@ -1,7 +1,7 @@
 import numpy as np
 from itertools import combinations
 from homotopies.MILP.utils.intersects import get_box
-from .parameters import params, player_idx, x_idx, ub_idx
+from .parameters import params, player_idx, x_idx, ub_idx, uc_idx
 
 
 def get_init_bin(X_curr, trajs, intersects, n_inter, box_buffer):
@@ -55,3 +55,38 @@ def extract_plans(solverout, n_controlled, n_inter):
                 solverout['bin{stage:02d}{inter:01d}'.format(stage=stage_idx + 1, inter=i_idx + 1)]
 
     return X_plan, dds_plan, bin_plan
+
+
+def check_status(bin_init, X_init, X_curr, players):
+    """
+    check if all vehicles have passed the intersections and have velocities not less than the initial velocity
+    binary variable order: (p1,p2), (p1,p3), (p2.p3)
+    """
+    task_status = {}
+    for player in players:
+        vx_idx = player_idx[player]*params.n_states + x_idx.dS - params.n_cinputs
+        if X_curr[vx_idx] < X_init[vx_idx]:
+            task_status[player] = False
+        else:
+            task_status[player] = True
+    for i_idx, player_pair in enumerate(combinations(players, 2)):
+        player1 = player_pair[0]
+        player2 = player_pair[1]
+        sigma1_p_idx = i_idx*params.n_binputs + ub_idx.Sigma1_p
+        sigma2_p_idx = i_idx*params.n_binputs + ub_idx.Sigma2_p
+        if bin_init[sigma1_p_idx] != 1:
+            task_status[player1] = False
+        if bin_init[sigma2_p_idx] != 1:
+            task_status[player2] = False
+    return task_status
+
+
+def update_evaluation(task_status, result, sim_time_idx, dds_plans):
+    """record time and total energy consumption of each vehicle when it finishes the task"""
+    for player in task_status.keys():
+        if task_status[player] and player not in result.keys():
+            time = sim_time_idx * params.dt
+            dds_idx = player_idx[player]*params.n_cinputs + uc_idx.ddS
+            energy = np.linalg.norm(dds_plans[dds_idx, 0, :])
+            result[player] = [time, energy]
+    return result

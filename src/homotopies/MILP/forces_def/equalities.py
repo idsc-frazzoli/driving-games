@@ -1,7 +1,5 @@
 import numpy as np
-from itertools import combinations
-from homotopies.MILP.utils.intersects import get_box
-from .parameters import params, player_idx, x_idx, ub_idx
+from .parameters import params
 
 
 def get_eq(n_controlled, n_inter):

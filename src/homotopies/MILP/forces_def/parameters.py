@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import IntEnum
-
 import numpy as np
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
@@ -37,3 +36,4 @@ x_idx = params.x_idx
 ub_idx = params.ub_idx
 uc_idx = params.uc_idx
 player_idx = {'p1': 0, 'p2': 1, 'p3': 2}
+inter_idx = {('p1', 'p2'): 0, ('p1', 'p3'): 1, ('p2', 'p3'): 2}

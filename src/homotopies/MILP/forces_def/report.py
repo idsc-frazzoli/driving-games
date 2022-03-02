@@ -1,22 +1,20 @@
-import matplotlib.patches as patches
-from commonroad.visualization.mp_renderer import MPRenderer
 import matplotlib.pyplot as plt
-from dg_commons.sim.scenarios import load_commonroad_scenario
 from typing import Dict, Optional
+from itertools import combinations
 import os
 import glob
-import numpy as np
-from .parameters import params, x_idx, ub_idx, uc_idx, player_idx
-from dg_commons import PlayerName, DgSampledSequence
-from homotopies.MILP.utils.intersects import pose_from_s, traj2path
-from homotopies.MILP.utils.visualization import *
-from homotopies.MILP.forces_def.visualization import *
 from geometry import SE2value
 from PIL import Image
 from reprep import Report, MIME_GIF
-from homotopies import logger
-from itertools import combinations
+from zuper_commons.text import remove_escapes
 
+from dg_commons import PlayerName, DgSampledSequence
+from homotopies.MILP.utils.intersects import pose_from_s, traj2path
+from homotopies.MILP.utils.visualization import visualize_box_2d, visualize_car, visualize_traj
+from homotopies.MILP.forces_def.visualization import *
+from homotopies import logger
+
+from .parameters import params, x_idx, ub_idx, uc_idx, player_idx
 
 def generate_report_s_traj(X_plans, trajs, intersects, buffer=1.):
     """generate report for the box and trajectory of each intersection"""
@@ -62,6 +60,29 @@ def generate_report_solvetime(solvetime):
         ax = pylab.gca()
         visualize_solvetime(solvetime, ax)
     return r_time
+
+
+def generate_report_evaluation(result):
+    r_eva = Report('Evaluation')
+    texts = []
+    total_time = 0
+    total_energy = 0
+    for player in result.keys():
+        texts.append(
+            f"\t{player}: \n"
+            f"\ttime={result[player][0]},\n"
+            f"\tenergy={result[player][1]}\n"
+        )
+        total_time += result[player][0]
+        total_energy += result[player][1]
+    texts.append(
+        f"\tsum: \n"
+        f"\ttime={total_time},\n"
+        f"\tenergy={total_energy}\n"
+    )
+    text = "\n".join(texts)
+    r_eva.text("Evaluation", remove_escapes(text))
+    return  r_eva
 
 
 def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
