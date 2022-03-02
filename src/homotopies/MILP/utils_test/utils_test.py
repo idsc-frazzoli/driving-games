@@ -9,14 +9,16 @@ from homotopies.MILP.utils.intersects import find_intersects
 from homotopies.MILP.utils.visualization import *
 from homotopies.MILP.utils.report import generate_report_all, generate_report_3d_boxes
 
-state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=5, delta=0.03)
-state2 = VehicleState(x=-5, y=0, theta=np.pi / 4, vx=5, delta=-0.03)
+# state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=5, delta=0.03)
+state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=4.5, delta=0)
+state2 = VehicleState(x=-5, y=20, theta=np.pi/3, vx=3.5, delta=0)
+# state2 = VehicleState(x=-5, y=0, theta=np.pi / 4, vx=5, delta=-0.03)
 state3 = VehicleState(x=-8, y=15, theta=0, vx=4, delta=0)
 
 player1 = PlayerName('p1')
 player2 = PlayerName('p2')
-# player3 = None
-player3 = PlayerName('p3')
+player3 = None
+# player3 = PlayerName('p3')
 if player3 is None:
     obs = {player1: state1, player2: state2}
 else:
@@ -31,7 +33,7 @@ colors = {player1: 'blue', player2: 'green', player3: 'black'}
 if player3 is not None:
     plotnum = 3
 else:
-    plotnum = 1
+    plotnum = 3
 
 matplotlib.use('TkAgg')
 fig, axs = plt.subplots(plotnum, 2)
@@ -42,7 +44,7 @@ for ax in axs[:, 0]:
 ax_traj = fig.add_subplot(gs[:, 0])
 
 visualize_trajs_all(trajs, intersects, ax_traj, colors)
-
+visualize_car(trajs[player1].at(0), ax_traj)
 if player2 in intersects[player1].keys():
     visualize_box_2d(trajs, intersects, player1, player2, axs[0, 1])
 if player3 is not None:
@@ -61,7 +63,5 @@ if player3 is not None \
 plt.show()
 
 # create report
-r = generate_report_all(trajs, intersects, colors)
-r.to_html('utils_report')
-
-#animation
+# r = generate_report_all(trajs, intersects, colors)
+# r.to_html('utils_report')

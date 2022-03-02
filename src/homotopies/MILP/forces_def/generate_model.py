@@ -2,10 +2,11 @@ import forcespro
 from .parameters import params, ub_idx
 from .equalities import get_eq
 from .objective import get_obj
-from .inequalities import get_bounds, get_ineq
+from .inequalities import get_bounds
 
 
 def get_bin_idx(n_inter):
+    """get all indexes of the binary variables"""
     bin_idx = []
     for i_idx in range(n_inter):
         bin_idx += [i_idx * (params.n_binputs + params.n_slacks) + i.value + 1 for i in ub_idx]  # 1-indexed
@@ -16,7 +17,7 @@ def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False):
     # Problem dimensions
     stages = forcespro.MultistageProblem(params.N)  # 0-indexed
     n_var = (params.n_binputs + params.n_slacks) * n_inter + (params.n_cinputs + params.n_states) * n_controlled
-    neq, C, D, c = get_eq(n_controlled, n_inter, use_bin_init)
+    neq, C, D, c = get_eq(n_controlled, n_inter)
     f, H = get_obj(n_controlled, n_inter)
     bounds = get_bounds(n_controlled, n_inter)
     for i in range(params.N):
@@ -38,7 +39,7 @@ def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False):
         # equality constraints
         if i > 0:
             stages.dims[i]['r'] = neq  # number of equality constraints
-        else:
+        else:  # at initial stage
             if use_bin_init:
                 stages.dims[i]['r'] = neq
             else:
@@ -59,8 +60,9 @@ def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False):
 
         # inequality constraints
         stages.dims[i]['p'] = params.n_ineq * n_inter  # number of polytopic constraints
-        stages.newParam('ineq_A{:02d}'.format(i + 1), [i + 1], 'ineq.p.A')  # as runtime parameter
+        stages.newParam('ineq_A{:02d}'.format(i + 1), [i + 1], 'ineq.p.A')  # set as runtime parameters
         stages.newParam('ineq_b{:02d}'.format(i + 1), [i + 1], 'ineq.p.b')
+
         # declare binary variables
         stages.bidx[i] = get_bin_idx(n_inter)  # which indices are binary? 1-indexed
 
