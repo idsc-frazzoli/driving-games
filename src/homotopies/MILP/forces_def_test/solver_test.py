@@ -6,24 +6,13 @@ from dg_commons import PlayerName
 from homotopies.MILP.utils.prediction import predict, traj2lane, traj_from_commonroad
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from homotopies.MILP.utils.intersects import find_intersects
-from homotopies.MILP.forces_def.equalities import get_init_bin
-from homotopies.MILP.forces_def.generate_solver import generate_solver, extract_plans
+from homotopies.MILP.forces_def.sim import get_init_bin, update_sim, extract_plans
+from homotopies.MILP.forces_def.generate_solver import generate_solver
 from homotopies.MILP.forces_def.inequalities import get_ineq
-from homotopies.MILP.forces_def.visualization import *
+from homotopies.MILP.forces_def.report import *
 from homotopies.MILP.forces_def.parameters import params
 from homotopies.MILP.forces_def.forces_utils import ForcesException
 from reprep import Report
-
-
-def update_sim(X, ddS, n_controlled):
-    next_X = np.zeros_like(X)
-    for p_idx in range(n_controlled):
-        x_idx = list(range(p_idx * params.n_states, (p_idx + 1) * params.n_states))
-        dds_idx = list(range(p_idx * params.n_cinputs, (p_idx + 1) * params.n_cinputs))
-        curr = np.hstack((ddS[dds_idx], X[x_idx])).reshape([-1, 1])
-        next_X[x_idx] = np.dot(params.C, curr).reshape([2, ])
-    return next_X
-
 
 # scenario settings
 n_player = 3
@@ -49,7 +38,7 @@ vx_p3 = 3
 
 trajs = predict(obs)
 
-if p3_from_commonroad:
+if n_player == 3 and p3_from_commonroad:
     trajs[player3] = traj_p3
 
 intersects = find_intersects(trajs)
@@ -73,10 +62,10 @@ import test_py
 problem = test_py.test_params
 
 # simulation
-sim_time = 60
-if n_player==2:
+sim_time = 45
+if n_player == 2:
     x0 = np.array([0, state1.vx, 0, state2.vx])
-elif n_player==3 and not p3_from_commonroad:
+elif n_player == 3 and not p3_from_commonroad:
     x0 = np.array([0, state1.vx, 0, state2.vx, 0, state3.vx])
 else:
     x0 = np.array([0, state1.vx, 0, state2.vx, 0, vx_p3])
@@ -87,7 +76,7 @@ dds_plans = np.zeros((params.n_cinputs * n_controlled, params.N, sim_time))
 bin_plans = np.zeros((params.n_binputs * n_inter, params.N, sim_time))
 X[:, 0] = x0
 
-h = {player1: {player2: 0, player3: 1}, player2: {player3: 1}}
+h = {player1: {player2: 1, player3: 1}, player2: {player3: 1}}
 box_buffer = 1.5
 A, b = get_ineq(n_controlled, n_inter, trajs, intersects, h, box_buffer=box_buffer)
 solvetime = np.zeros(sim_time)
@@ -130,7 +119,7 @@ for k in range(sim_time):
 colors = {player1: 'blue', player2: 'green', player3: 'black'}
 r = Report('test_solver')
 r.add_child(get_open_loop_animation(trajs, X_plans, colors, scenario))
-r.add_child(generate_report_s_plan(X_plans, trajs, intersects, player1, player2, buffer=box_buffer))
+r.add_child(generate_report_s_traj(X_plans, trajs, intersects, buffer=box_buffer))
 r.add_child(generate_report_input(dds_plans, n_controlled))
 r.add_child(generate_report_ds(X_plans, n_controlled))
 r.add_child(generate_report_solvetime(solvetime))
