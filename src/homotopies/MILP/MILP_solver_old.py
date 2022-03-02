@@ -1,32 +1,41 @@
 import forcespro
 import get_userid
+from reprep import Report
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import matplotlib.patches as patches
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from enum import IntEnum
-from indices import IdxState, IdxInput
+from homotopies.MILP.indices import IdxState, IdxInputB, IdxInputC
 
 vehicle_params = VehicleParameters.default_car()
 vehicle_geometry = VehicleGeometry.default_car()
 
 
 class MILPModelParams:
-    Nstages = 15
-    dT = 0.2
+    Nstages: int = 10
+    dT: float = 0.3
     x_idx: IntEnum = IdxState
-    u_idx: IntEnum = IdxInput
+    ub_idx: IntEnum = IdxInputB
+    uc_idx: IntEnum = IdxInputC
     nx: int = len([s.value for s in IdxState])
-    nu: int = len([u.value for u in IdxInput])
-    nz = nx + nu
+    nub: int = len([u.value for u in IdxInputB])
+    nuc: int = len([u.value for u in IdxInputC])
+    n_player = 1
+    n_intersect = 1
+    nu = n_intersect * nub + nuc * n_player
+    nz = n_intersect * nub + nuc * n_player + nx * n_player
     nineq = 2 + 4  # 2 homotopic, 4 box
-    neq = nx + 4  # dynamics + 4 auxiliary eqs on sigma
+    neq = nx * n_player + 4  # dynamics + 4 auxiliary eqs on sigma
     H = np.zeros((nz, nz))
-    H[u_idx.ddS, u_idx.ddS] = 1  # Hessian matrix in cost function
+    H[uc_idx.ddS, uc_idx.ddS] = 1  # Hessian matrix in cost function
+    # H[uc_idx.ddS+nuc, uc_idx.ddS+nuc] = 1
     f = np.zeros(nz)
-    f[x_idx.S] = -1  # linear term in cost function
+    f[x_idx.S] = -100  # linear term in cost function
+    # f[x_idx.S+nuc+nx] = -100
     C = np.array([[0, 1, dT],  # discretized dynamics [B,A], x_i+1 = Ax_i + Bu_i
                   [dT, 0, 1]])
     M = 1000
@@ -34,7 +43,8 @@ class MILPModelParams:
 
 params = MILPModelParams
 x_idx = params.x_idx
-u_idx = params.u_idx
+ub_idx = params.ub_idx
+uc_idx = params.uc_idx
 
 
 def set_bounds():
@@ -52,25 +62,27 @@ def set_bounds():
 
 def get_ineq_A(box):
     A = np.zeros((params.nineq, params.nz))
-    A[0, [u_idx.Sigma_L, u_idx.Sigma_A]] = -1
-    A[1, [u_idx.Sigma_R, u_idx.Sigma_B]] = -1
-    A[2, u_idx.Sigma_L] = params.M
+    A[0, [ub_idx.Sigma_L, ub_idx.Sigma_A]] = -1
+    A[1, [ub_idx.Sigma_R, ub_idx.Sigma_B]] = -1
+    A[2, ub_idx.Sigma_L] = params.M
     A[2, x_idx.S] = 1
-    A[3, u_idx.Sigma_R] = box[0, 1]
+    A[3, ub_idx.Sigma_R] = box[0, 1]
     A[3, x_idx.S] = -1
-    A[4, u_idx.Sigma_B] = params.M
-    A[5, u_idx.Sigma_A] = box[1, 1]
+    A[4, ub_idx.Sigma_B] = params.M
+    A[5, ub_idx.Sigma_A] = box[1, 1]
     return A
 
 
-def get_ineq_b(box, h, s2):
+def get_ineq_b(box, h, s2=None):
     b = np.zeros(params.nineq)
-    b[0] = -1 + h
-    b[1] = -h
-    b[2] = params.M + box[0, 0]
-    b[3] = 0
-    b[4] = box[1, 0] + params.M - s2
-    b[5] = s2
+    if s2 is not None:
+        b[0] = -1 + h
+        b[1] = -h
+        b[2] = params.M + box[0, 0]
+        b[3] = 0
+        b[4] = box[1, 0] + params.M - s2
+        b[5] = s2
+
     return b
 
 
@@ -89,10 +101,10 @@ def create_model():
         stages.dims[i]['l'] = params.nz  # number of lower bounds
         stages.dims[i]['u'] = params.nz  # number of upper bounds
         stages.dims[i]['p'] = params.nineq  # number of polytopic constraints
-        stages.bidx[i] = np.array([u_idx.Sigma_L + 1,
-                                   u_idx.Sigma_R + 1,
-                                   u_idx.Sigma_B + 1,
-                                   u_idx.Sigma_A + 1])  # which indices are binary? 1-indexed
+        stages.bidx[i] = np.array([ub_idx.Sigma_L + 1,
+                                   ub_idx.Sigma_R + 1,
+                                   ub_idx.Sigma_B + 1,
+                                   ub_idx.Sigma_A + 1])  # which indices are binary? 1-indexed
 
         # cost
         if i == params.Nstages - 1:
@@ -140,9 +152,10 @@ def generate_solver():
     # Solver generation
     # -----------------
     # set output
-    stages.newOutput('u', [1], [u_idx.ddS + 1])
-    stages.newOutput('x', [1], [x_idx.S + 1, x_idx.dS + 1])
-    stages.newOutput('bin', [1], range(u_idx.Sigma_L + 1, u_idx.Sigma_A + 1))
+    for i in range(params.Nstages):
+        stages.newOutput('u{:02d}'.format(i+1), [i+1], [uc_idx.ddS + 1])
+        stages.newOutput('x{:02d}'.format(i+1), [i+1], [x_idx.S + 1, x_idx.dS + 1])
+        stages.newOutput('bin{:02d}'.format(i+1), [i+1], range(ub_idx.Sigma_L + 1, ub_idx.Sigma_A + 2))
     # Set solver options
     # solver settings
     stages.codeoptions['name'] = 'MILP_MPC'
@@ -156,12 +169,15 @@ if __name__ == "__main__":
     # generate_solver()
     import MILP_MPC_py
 
-    # help(MILP_MPC_py)
+    help(MILP_MPC_py)
 
     problem = MILP_MPC_py.MILP_MPC_params
     x0 = np.array([0, 0])
     kmax = 30
     X = np.zeros((params.nx, kmax + 1))
+    X_plan = np.zeros((params.nx, params.Nstages, kmax + 1))
+    dds_plan = np.zeros((params.nuc, params.Nstages, kmax + 1))
+    bin_plan = np.zeros((4, params.Nstages, kmax + 1))
     X[:, 0] = x0
     ddS = np.zeros((1, kmax))
     bin = np.zeros((4, kmax))
@@ -169,6 +185,7 @@ if __name__ == "__main__":
                     [4, 5]])
     h = 0
     s2 = np.linspace(0, 20, params.Nstages + kmax)
+    solvetime = np.zeros(kmax)
     # simulation
     for k in range(0, kmax):
         problem['minus_x0'] = -X[:, k]
@@ -177,7 +194,12 @@ if __name__ == "__main__":
             problem['ineq_b{:02d}'.format(j + 1)] = get_ineq_b(box, h, s2[k + j])
         [solverout, exitflag, info] = MILP_MPC_py.MILP_MPC_solve(problem)
         if (exitflag == 1):
-            ddS[:, k] = solverout['u'][0]
+            ddS[:, k] = solverout['u01']
+            for j in range(params.Nstages):
+                X_plan[:, j, k] = solverout['x{:02d}'.format(j + 1)]
+                dds_plan[:, j, k] = solverout['u{:02d}'.format(j + 1)]
+                bin_plan[:, j, k] = solverout['bin{:02d}'.format(j + 1)]
+            solvetime[k] = info.solvetime * 1000
             print('Problem solved in %5.3f milliseconds (%d iterations).' % (1000.0 * info.solvetime, info.it))
         else:
             print(info)
@@ -187,16 +209,25 @@ if __name__ == "__main__":
         X[:, k + 1] = np.dot(params.C, curr).reshape([2, ])
 
     # plot
+    print(X[0, 0:kmax])
+    matplotlib.use('TkAgg')
     fig1 = plt.figure()
 
-    plt.subplot(2, 2, 2)
+    plt.subplot(4, 2, 2)
+    plt.step(range(0, kmax), X[0, 0:kmax], where='post')
+    plt.title('states: S')
+    plt.xlim(0, kmax)
+    plt.ylim(0, 36)
+    plt.grid()
+
+    plt.subplot(4, 2, 4)
     plt.step(range(0, kmax), X[1, 0:kmax], where='post')
     plt.title('states: dS')
     plt.xlim(0, kmax)
     plt.ylim(0, 36)
     plt.grid()
 
-    plt.subplot(2, 2, 4)
+    plt.subplot(4, 2, 6)
     plt.axhline(y=vehicle_params.acc_limits[0], c="red", zorder=0)
     plt.axhline(y=vehicle_params.acc_limits[1], c="red", zorder=0)
     plt.step(range(0, kmax), ddS[0, 0:kmax], where='post')
@@ -205,16 +236,26 @@ if __name__ == "__main__":
     plt.ylim(1.1 * vehicle_params.acc_limits[0], 1.1 * vehicle_params.acc_limits[1])
     plt.grid()
 
-    gs = GridSpec(2, 2, figure=fig1)
+    plt.subplot(4, 2, 8)
+    plt.plot(range(kmax), solvetime)
+    plt.title('solving time')
+    plt.xlim(0, kmax)
+    plt.grid()
+
+    gs = GridSpec(4, 2, figure=fig1)
     ax = fig1.add_subplot(gs[:, 0])
     width = box[0, 1] - box[0, 0]
     height = box[1, 1] - box[1, 0]
     rect = patches.Rectangle((box[0, 0], box[1, 0]), width, height, linewidth=1, edgecolor='r', facecolor='none')
     ax.add_patch(rect)
     ax.plot(X[0, :kmax], s2[:kmax], 'bo-', markersize=3)
+    for k in range(1):
+        ax.plot(X_plan[0, :, k], s2[k:k+params.Nstages], 'go-', markersize=3)
     plt.xlim([0, 15.])
     plt.ylim([0, 15.])
     plt.xlabel('s1')
     plt.ylabel('s2')
 
     plt.show()
+
+
