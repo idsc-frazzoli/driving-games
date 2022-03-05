@@ -1,22 +1,22 @@
-import matplotlib.pyplot as plt
 from typing import Dict, Optional
 from itertools import combinations
 import os
 import glob
 from geometry import SE2value
+import matplotlib.pyplot as plt
 from PIL import Image
 from reprep import Report, MIME_GIF
 from zuper_commons.text import remove_escapes
 
 from dg_commons import PlayerName, DgSampledSequence
-from homotopies.MILP.utils.intersects import pose_from_s, traj2path
 from homotopies.MILP.utils.visualization import visualize_box_2d, visualize_car, visualize_traj
 from homotopies.MILP.forces_def.visualization import *
 from homotopies import logger
 
 from .parameters import params, x_idx, ub_idx, uc_idx, player_idx
 
-def generate_report_s_traj(X_plans, trajs, intersects, buffer=1.):
+
+def generate_report_s_traj(X_plans, trajs, intersects, buffer=1.5):
     """generate report for the box and trajectory of each intersection"""
     r_s_plan = Report(nid='s_plan')
     for player_pair in combinations(trajs.keys(), 2):
@@ -62,27 +62,27 @@ def generate_report_solvetime(solvetime):
     return r_time
 
 
-def generate_report_evaluation(result):
-    r_eva = Report('Evaluation')
+def generate_report_performance(performance):
+    r_performance = Report('performance')
     texts = []
     total_time = 0
     total_energy = 0
-    for player in result.keys():
+    for player in performance.keys():
         texts.append(
             f"\t{player}: \n"
-            f"\ttime={result[player][0]},\n"
-            f"\tenergy={result[player][1]}\n"
+            f"\ttime={performance[player][0]},\n"
+            f"\tenergy={performance[player][1]}\n"
         )
-        total_time += result[player][0]
-        total_energy += result[player][1]
+        total_time += performance[player][0]
+        total_energy += performance[player][1]
     texts.append(
         f"\tsum: \n"
         f"\ttime={total_time},\n"
         f"\tenergy={total_energy}\n"
     )
     text = "\n".join(texts)
-    r_eva.text("Evaluation", remove_escapes(text))
-    return  r_eva
+    r_performance.text("Performance", remove_escapes(text))
+    return r_performance
 
 
 def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
@@ -111,22 +111,14 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
             visualize_traj(traj_plan, player, ax, color='r', plot_occupancy=False)
             visualize_car(pose=traj_plan.at(traj_plan.get_start()), ax=ax, color=colors[player], is_ref=False)
 
-            # fig = plot_traj(trajs[player], name='{player}_ref'.format(player=player), color=colors[player], opacity=0.2, fig=fig)
-            # fig = plot_car(pose=trajs[player].at_or_previous(k_pred*params.dt), fig=fig, player=player, colors=colors, is_ref=True)  # reference pose without external
-            # fig = plot_traj(traj_plan, name='{player}_plan'.format(player=player), fig=fig)
-            # fig = plot_car(pose=traj_plan.at(traj_plan.get_start()), fig=fig, player=player, colors=colors)
-            # fig.update_xaxes(
-            #     scaleanchor="y",
-            #     scaleratio=1,
-            # )
-        # fig.write_image(os.path.join(tmp_folder, f"fig{k_pred:05d}.png"))
-        ax.text(0.02,
-                0.96,
+        ax.text(0.14,
+                0.97,
                 f"t = {curr_t:.1f}s",
                 transform=ax.transAxes,
                 bbox=dict(facecolor="lightgreen", alpha=0.5),
                 zorder=50
                 )
+
         fig.savefig(os.path.join(tmp_folder, f"fig{t_idx:05d}.png"), dpi=300)
         plt.close(fig)
 
@@ -147,4 +139,19 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
             os.remove(filePath)
         except OSError:
             print("Error while deleting file")
+    return r
+
+
+def generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, homotopy, colors, scenario):
+    """generate all reports for solving the path planning problem with a given homotopy class"""
+    report_name = ""
+    for b in homotopy.h:
+        report_name += str(b)
+    r = Report(report_name)
+    r.add_child(get_open_loop_animation(trajs, X_plans, colors, scenario))
+    r.add_child(generate_report_s_traj(X_plans, trajs, intersects))
+    r.add_child(generate_report_input(dds_plans, n_controlled))
+    r.add_child(generate_report_ds(X_plans, n_controlled))
+    r.add_child(generate_report_solvetime(solvetime))
+    r.add_child(generate_report_performance(performance))
     return r

@@ -13,7 +13,7 @@ class Homotopy:
         self.intersects = intersects
         self.players = players
         self.homo_class = {}
-        n_inter = 0
+        self.n_inter = 0
         for player_pair in combinations(players, 2):
             player1 = player_pair[0]
             player2 = player_pair[1]
@@ -25,7 +25,7 @@ class Homotopy:
                 self.homo_class[player1][player2] = 0
             else:
                 self.homo_class[player1][player2] = h[n_inter]
-            n_inter += 1
+            self.n_inter += 1
         if vx_ref is not None:
             self.heuristic = self.heuristic_shortesttime(vx_ref)
         else:

@@ -8,6 +8,15 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 
 from homotopies.MILP.utils.intersects import traj2path, pose_from_s, get_box, get_s_max
 
+__all__ = ["visualize_traj",
+           "visualize_car",
+           "visualize_pose",
+           "visualize_intersect_from_s",
+           "visualize_trajs_all",
+           "visualize_box_2d",
+           "visualize_box_3d"]
+
+
 vehicle_geometry = VehicleGeometry.default_car()
 
 
@@ -22,7 +31,7 @@ def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax: Ax
         alpha = 1
         label = "{player}".format(player=player)
 
-    ax.plot(path[:, 0], path[:, 1], color=color, markersize=3, linestyle='-', label=label, alpha=alpha, zorder=50)
+    ax.plot(path[:, 0], path[:, 1], color=color, linewidth=3, linestyle='-', label=label, alpha=alpha, zorder=50)
     for idx in range(path.shape[0] - 1):
         p1 = path[idx, :]
         p2 = path[idx + 1, :]
@@ -33,7 +42,7 @@ def visualize_traj(traj: DgSampledSequence[SE2value], player: PlayerName, ax: Ax
                     zorder=50)
             ax.plot([p1[0] - n[0], p2[0] - n[0]], [p1[1] - n[1], p2[1] - n[1]], color=color, linestyle='-', alpha=alpha,
                     zorder=50)
-    ax.legend()
+    ax.legend(loc="upper left")
 
 
 def visualize_car(pose: SE2value, ax: Axes, color='b', is_ref=False):

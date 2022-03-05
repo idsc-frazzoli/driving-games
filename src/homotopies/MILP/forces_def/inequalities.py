@@ -5,6 +5,7 @@ from geometry import SE2value
 from dg_commons import PlayerName, DgSampledSequence
 from homotopies.MILP.utils.intersects import get_box
 from .parameters import params, x_idx, ub_idx, player_idx
+from ..homotopy.homotopy import Homotopy
 
 
 def get_bounds(n_controlled: int,
@@ -26,7 +27,7 @@ def get_ineq(n_controlled: int,
              n_inter: int,
              trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
              intersects: Dict[PlayerName, Dict[PlayerName, float]],
-             homotopies: Dict[PlayerName, Dict[PlayerName, int]],
+             homotopies: Homotopy,
              box_buffer: float = 1.):
     """
     This function returns matrices A and b for polytopic inequality constraints:
@@ -59,7 +60,11 @@ def get_ineq(n_controlled: int,
         A[ineq_idx, :] = temp_A
 
         box = get_box(trajs, intersects, player1, player2, box_buffer)
-        h = homotopies[player1][player2]
+        if player2 in intersects[player1].keys():
+            homo_class = homotopies.homo_class
+            h = homo_class[player1][player2]
+        else:  # player1 and player2 don't intersect, use default homotopy class h=0
+            h = 0
         b[ineq_idx, :] = get_ineq_b(box, h)
     return A, b
 

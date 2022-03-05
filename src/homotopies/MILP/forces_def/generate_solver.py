@@ -23,9 +23,12 @@ def generate_solver(n_player, n_controlled, n_inter, use_bin_init=False):
                              [stage_idx + 1],
                              list(range(z_idx + 1, z_idx + params.n_binputs + 1)))
     # solver settings
-    stages.codeoptions['name'] = 'test'
+    name = 'test'
+    stages.codeoptions['name'] = name
     stages.codeoptions['overwrite'] = 1
     stages.codeoptions['printlevel'] = 0
     stages.codeoptions.mip['queuesize'] = 1000  # increase it if solver returns exitflag=-2
     # generate code
     stages.generateCode(get_userid.userid)
+
+    return name

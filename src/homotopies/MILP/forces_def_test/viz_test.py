@@ -7,8 +7,6 @@ from homotopies.MILP.utils.visualization import visualize_traj
 from homotopies.MILP.utils.prediction import traj_from_commonroad
 
 
-
-
 #visualize vehicles
 scenario_name = "USA_Lanker-2_10_T-1"
 scenario_dir = "scenarios"
@@ -21,6 +19,7 @@ for item in scenario.dynamic_obstacles:
     scenario.lanelet_network.draw(rnd, draw_params={"traffic_light": {"draw_traffic_lights": False}})
     item.draw(rnd)
     rnd.render()
+
 
 #extract trajectory from commonroad states
 scenario_name = "USA_Lanker-2_10_T-1"

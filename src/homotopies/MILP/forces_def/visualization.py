@@ -1,22 +1,17 @@
-import matplotlib.patches as patches
 from commonroad.visualization.mp_renderer import MPRenderer
 import matplotlib.pyplot as plt
-from dg_commons.sim.scenarios import load_commonroad_scenario
-from typing import Dict, Optional
-import os
-import glob
-import numpy as np
 from .parameters import params, x_idx, ub_idx, uc_idx, player_idx
 from dg_commons import PlayerName, DgSampledSequence
-from homotopies.MILP.utils.intersects import pose_from_s, traj2path
-from homotopies.MILP.utils.visualization import *
+from homotopies.MILP.utils.intersects import pose_from_s
 from geometry import SE2value
-from plotly.graph_objs import Figure
-from PIL import Image
-import plotly.graph_objects as go
-from reprep import Report, MIME_GIF
-from homotopies import logger
-from itertools import combinations
+
+
+__all__ = ["visualize_s_traj",
+           "visualize_inputs",
+           "visualize_ds",
+           "visualize_solvetime",
+           "visualize_map",
+           "s2traj"]
 
 
 def visualize_s_traj(X_plans, player1, player2, ax):
@@ -75,66 +70,12 @@ def visualize_map(scenario):
     """plot commonroad map"""
     fig = plt.figure(figsize=(25, 10))
     fig.set_tight_layout(True)
+    ax = plt.gca()
     if scenario is not None:
         rnd = MPRenderer()
         scenario.lanelet_network.draw(rnd, draw_params={"traffic_light": {"draw_traffic_lights": False}})
         rnd.render()
-    ax = plt.gca()
-    ax.set_xlim(xmax=20, xmin=-50)
-    ax.set_ylim(ymax=0, ymin=-75)
+        ax.set_xlim(xmax=20, xmin=-50)
+        ax.set_ylim(ymax=0, ymin=-75)
     ax.set_aspect("equal")
     return fig
-
-
-# def plot_car(pose: SE2value, fig: Figure, player: PlayerName, colors: Dict[PlayerName, str], is_ref: bool=False) -> Figure:
-#     """plot the vehicle with plotly, not used"""
-#     w_half = params.vehicle_geometry.w_half
-#     l_r = params.vehicle_geometry.lr
-#     l_f = params.vehicle_geometry.lf
-#     outline = np.array([[-l_r, l_f, l_f, -l_r, -l_r],
-#                         [w_half, w_half, -w_half, -w_half, w_half]])
-#     points = np.row_stack([outline, np.ones(outline.shape[1])])
-#     gk = pose @ points
-#     if is_ref:
-#         opacity = 0.2
-#         name="{player}_ref".format(player=player)
-#     else:
-#         opacity = 1.
-#         name="{player}".format(player=player)
-#     fig.add_trace(
-#         go.Scatter(
-#             x=gk[0, :],
-#             y=gk[1, :],
-#             line=dict(color=colors[player], width=1),
-#             opacity=opacity,
-#             fill="toself",
-#             fillcolor=colors[player],
-#             mode="lines",
-#             name=name,
-#         )
-#     )
-#     return fig
-
-
-# def plot_traj(traj: DgSampledSequence[SE2value],
-#               color='red',
-#               name=None,
-#               opacity=1.,
-#               fig: Optional[Figure] = None) -> Figure:
-#     """plot trajectory with plotly, not used"""
-#     if fig is None:
-#         fig = go.Figure()
-#     path = traj2path(traj)
-#     path = np.array(path)
-#     fig.add_trace(
-#         go.Scatter(
-#             x=path[:, 0],
-#             y=path[:, 1],
-#             mode="lines",
-#             line=dict(color=color),
-#             name=name,
-#             showlegend=True,
-#             opacity=opacity
-#         )
-#     )
-#     return fig
