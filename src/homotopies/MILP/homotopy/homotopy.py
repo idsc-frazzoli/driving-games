@@ -1,17 +1,21 @@
 from itertools import combinations, product
 from typing import List, Dict
 from dg_commons import PlayerName
-from .parameters import player_idx
+from homotopies.MILP.forces_def.parameters import player_idx
 
 
 class Homotopy:
     def __init__(self, intersects, players, vx_ref=None, h=None):
         """
         vx_ref: vector of length = #player
-        h: vector of length = #intersection
+        h: vector of length = #intersection, e.g. h=[0,0,0]
         """
         self.intersects = intersects
         self.players = players
+        if h is not None:
+            self.h = h
+        else:
+            self.h = [0, 0, 0]
         self.homo_class = {}
         self.n_inter = 0
         for player_pair in combinations(players, 2):
@@ -24,7 +28,7 @@ class Homotopy:
             if h is None:
                 self.homo_class[player1][player2] = 0
             else:
-                self.homo_class[player1][player2] = h[n_inter]
+                self.homo_class[player1][player2] = h[self.n_inter]
             self.n_inter += 1
         if vx_ref is not None:
             self.heuristic = self.heuristic_shortesttime(vx_ref)
