@@ -27,19 +27,17 @@ for p_idx in range(n_player):
 n_controlled = n_player
 n_inter = int(n_player * (n_player - 1) / 2)
 use_bin_init = True
-use_homo = True
+use_homo = False
 solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init, use_homo)
 # solver_name = 'test'
 module_name = solver_name + '_py'
 
-homotopies_sorted = evaluate_homotopy(intersects, trajs.keys(), vx_ref)
-r = Report('homotopy_test')
-r.add_child(generate_homotopy_report(homotopies_sorted))
-for h in homotopies_sorted:
-    X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init)
-    # generate report
-    colors = {player1: 'blue', player2: 'green', player3: 'black'}
-    r.add_child(generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, h, colors,
-                               scenario))
-    report_file = "homotopy_test"
-    r.to_html(report_file)
+r = Report('no_homotopy_test')
+h = None
+X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init, use_homo)
+# generate report
+colors = {player1: 'blue', player2: 'green', player3: 'black'}
+r.add_child(generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, h, colors,
+                           scenario))
+report_file = "no_homotopy_test"
+r.to_html(report_file)

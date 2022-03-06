@@ -3,9 +3,9 @@ from .generate_model import generate_forces_model
 from .parameters import params, x_idx, ub_idx, uc_idx
 
 
-def generate_solver(n_player, n_controlled, n_inter, use_bin_init=False):
+def generate_solver(n_player, n_controlled, n_inter, use_bin_init=False, use_homo=True):
     # generate model
-    stages = generate_forces_model(n_player, n_controlled, n_inter, use_bin_init)
+    stages = generate_forces_model(n_player, n_controlled, n_inter, use_bin_init, use_homo)
 
     # set output
     for stage_idx in range(params.N):

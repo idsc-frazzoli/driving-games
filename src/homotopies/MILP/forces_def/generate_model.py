@@ -13,7 +13,7 @@ def get_bin_idx(n_inter):
     return bin_idx
 
 
-def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False):
+def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False, use_homo=True):
     # Problem dimensions
     stages = forcespro.MultistageProblem(params.N)  # 0-indexed
     n_var = (params.n_binputs + params.n_slacks) * n_inter + (params.n_cinputs + params.n_states) * n_controlled
@@ -59,7 +59,10 @@ def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False):
                 stages.eq[i]['D'] = D[i, eq_idx, :]
 
         # inequality constraints
-        stages.dims[i]['p'] = params.n_ineq * n_inter  # number of polytopic constraints
+        if use_homo:
+            stages.dims[i]['p'] = params.n_ineq * n_inter  # number of polytopic constraints
+        else:
+            stages.dims[i]['p'] = (params.n_ineq - 1) * n_inter
         stages.newParam('ineq_A{:02d}'.format(i + 1), [i + 1], 'ineq.p.A')  # set as runtime parameters
         stages.newParam('ineq_b{:02d}'.format(i + 1), [i + 1], 'ineq.p.b')
 

@@ -144,9 +144,12 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
 
 def generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, homotopy, colors, scenario):
     """generate all reports for solving the path planning problem with a given homotopy class"""
-    report_name = ""
-    for b in homotopy.h:
-        report_name += str(b)
+    if homotopy is not None:
+        report_name = ""
+        for b in homotopy.h:
+            report_name += str(b)
+    else:
+        report_name = "no_homo_test"
     r = Report(report_name)
     r.add_child(get_open_loop_animation(trajs, X_plans, colors, scenario))
     r.add_child(generate_report_s_traj(X_plans, trajs, intersects))

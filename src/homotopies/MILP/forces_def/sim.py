@@ -6,7 +6,7 @@ from homotopies.MILP.forces_def.forces_utils import ForcesException
 import importlib
 
 
-def sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init=True):
+def sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init=True, use_homo=True):
     solver_module = importlib.import_module(module_name)
     problem = solver_module.test_params
 
@@ -21,7 +21,7 @@ def sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_in
     X[:, 0] = x0
 
     box_buffer = 1.5
-    A, b = get_ineq(n_controlled, n_inter, trajs, intersects, h, box_buffer=box_buffer)
+    A, b = get_ineq(n_controlled, n_inter, trajs, intersects, h, box_buffer=box_buffer, use_homo=use_homo)
 
     # simulation
     for k in range(sim_time):

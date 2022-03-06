@@ -69,12 +69,19 @@ def check_status(bin_init, X_init, X_curr, players):
     binary variable order: (p1,p2), (p1,p3), (p2.p3)
     """
     task_status = {}
+    deadlock = True
     for player in players:
         vx_idx = player_idx[player]*params.n_states + x_idx.dS - params.n_cinputs
+        if X_curr[vx_idx]>0.001:
+            deadlock = False
         if X_curr[vx_idx] < X_init[vx_idx]:
             task_status[player] = False
         else:
             task_status[player] = True
+    if deadlock: 
+        for player in players:
+            task_status[player] = True
+        return task_status
     for i_idx, player_pair in enumerate(combinations(players, 2)):
         player1 = player_pair[0]
         player2 = player_pair[1]
