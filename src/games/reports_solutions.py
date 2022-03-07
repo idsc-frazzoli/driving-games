@@ -190,7 +190,7 @@ def create_log_animation(
 
     def update(frame: int = 0):
         t: float = frame * frame_period / 1000.0
-        logger.info(f"plotting t = {t:.3f}")
+        logger.info(f"plotting t = {t:.1f}")
         ax.clear()
 
         # interpolating between states
