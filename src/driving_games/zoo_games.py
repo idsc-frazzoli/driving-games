@@ -179,7 +179,7 @@ def get_multilane_int_6p_sets() -> GameSpec:
 
 complex_intersection, _ = load_commonroad_scenario("DEU_Muc-1_1_T-1", SCENARIOS_DIR)
 
-c_lane1 = dglane_from_position(np.array([-33, -4]), complex_intersection.lanelet_network, succ_lane_selection=1)
+c_lane1 = dglane_from_position(np.array([-33, -4]), complex_intersection.lanelet_network, succ_lane_selection=0)
 c_lane2 = dglane_from_position(np.array([-45, -5]), complex_intersection.lanelet_network, succ_lane_selection=0)
 c_lane3 = dglane_from_position(np.array([-28, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
 c_lane4 = dglane_from_position(np.array([-35, 0]), complex_intersection.lanelet_network, succ_lane_selection=0)
