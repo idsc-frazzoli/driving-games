@@ -4,7 +4,7 @@ run-dg-experiments: build
 	docker run -it --user $$(id -u) \
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/dgfact --reset -c "rmake" \
-		--games "multilane_int_2p_sets" \
+		--games "multilane_int_2p_sets","multilane_int_3p_sets","multilane_int_4p_sets" \
 		--solvers "solver-2-pure-security_mNE-naive-extra-inf","solver-2-pure-security_mNE-fact2-extra-inf"
 
 # ,"multilane_int_3p_sets","multilane_int_4p_sets" \

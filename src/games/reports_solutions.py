@@ -223,7 +223,7 @@ def create_log_animation(
                         # vehicle_poly=states[player_name],
                         # resources_poly = resources[player_name]
                     )
-        ax.set_title(f"t = {t:1f}")
+        ax.set_title(f"t = {t:.1f}")
         return _iterable_of_artists()
 
     # noinspection PyTypeChecker
