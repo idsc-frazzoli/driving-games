@@ -62,7 +62,7 @@ class DrivingGameVisualization(
             self.plot_goal(pn)
 
         yield
-        # pylab.axis("off")
+        pylab.axis("off")
         adjust_axes_limits(ax=ax, plot_limits=self.plot_limits)
         ax.set_aspect("equal")
 

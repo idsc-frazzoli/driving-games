@@ -5,10 +5,10 @@ run-dg-experiments: build
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/dgfact --reset -c "rmake" \
 		--games "multilane_int_2p_sets","multilane_int_3p_sets","multilane_int_4p_sets" \
-		--solvers "solver-2-pure-security_mNE-naive-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf","solver-2-pure-security_mNE-fact2-noextra-inf"
+		--solvers "solver-2-pure-security_mNE-naive-extra-inf","solver-2-pure-security_mNE-fact2-extra-inf"
 
-#
-  # ,"multilane_int_4p_sets" \
+# "solver-2-pure-security_mNE-naive-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf",
+  # ,"multilane_int_4p_sets" \,"multilane_int_4p_sets"
 
 run-dg-experiments-many-players: build
 	mkdir -p $(out-docker)
@@ -16,7 +16,7 @@ run-dg-experiments-many-players: build
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		dg-demo -o /out/dgfact_many --reset -c "rmake" \
 		--games "multilane_int_5p_sets" \
-		--solvers "solver-2-pure-security_mNE-fact2-noextra-inf","solver-2-pure-security_mNE-fact1-noextra-inf"
+		--solvers "solver-2-pure-security_mNE-fact2-noextra-inf"
 
 # ,"multilane_int_6p_sets" \
 
