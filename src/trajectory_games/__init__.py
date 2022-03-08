@@ -5,7 +5,7 @@ from .structures import *
 from .trajectory_world import *
 from .metrics import *
 from .bicycle_dynamics import *
-from .trajectory_generator import *
+from .trajectory_generator_dev import *
 from .trajectory_game import *
 from .preference_dev import *
 from .solve import *

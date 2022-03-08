@@ -22,11 +22,13 @@ from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
 from .preference_old import PosetalPreference
-from .structures import VehicleGeometry, VehicleState, TrajectoryParams
+from .structures import TrajectoryParams
+from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
-from .trajectory_generator import TransitionGenerator
+from .trajectory_generator_dev import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization_old import TrajGameVisualization
+from .config import CONFIG_DIR
 
 __all__ = [
     "get_trajectory_game",
@@ -43,6 +45,25 @@ with open(players_file) as load_file:
 # with open(leader_follower_file) as load_file:
 #     config_lf = safe_load(load_file)["leader_follower"]
 
+# todo: move this somewhere appropriate
+def from_config(name: str) -> "VehicleState":
+    filename = os.path.join(CONFIG_DIR, "initial_states.yaml")
+    with open(filename) as load_file:
+        config = safe_load(load_file)
+
+    if name in config.keys():
+        pconfig = config[name]
+        state = VehicleState(
+            x=pconfig["x0"],
+            y=pconfig["y0"],
+            theta=pconfig["th0"],
+            vx=pconfig["v0"],
+            delta=pconfig["st0"]
+        )
+    else:
+        print(f"Failed to initialise VehicleState from {name}")
+        state = None
+    return state
 
 def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
     beta, _ = lanelet.find_along_lane_closest_point(p=goal)
@@ -107,13 +128,14 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
         if pname == "Ambulance":
             continue
         logger.info(f"Extracting lanes: {pname}", end=" ...")
-        state = VehicleState.from_config(name=pconfig["state"])
+        state = from_config(name=pconfig["state"])
         state_init = np.array([state.x, state.y])
         p_goals = [np.array(goal) for goal in pconfig["goals"]]
-        goals[pname] = p_goals
+        #goals[pname] = p_goals
         lanes[pname] = [
             (get_lanelet_from_points(start=state_init, goal=p_goals[0], lanelet_network=scenario.lanelet_network), None)
         ]
+        goals[pname] = RefLaneGoal(ref_lane=lanes[pname][0][0], goal_progress=0.8)
         pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
         player_color = pconfig["vg"].replace("car_", "")
         geometries[pname] = VehicleGeometry.default_car(color=player_color)

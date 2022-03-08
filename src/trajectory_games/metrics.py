@@ -158,8 +158,6 @@ class ProgressAlongReference(Metric):
                 return self.cache[traj]
 
             traj_sn = context.points_curv[player]
-            a = traj_sn[0].along_lane
-            b = traj_sn[-1].along_lane
             # negative for smaller preferred
             final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
             ret = EvaluatedMetric(
@@ -582,7 +580,7 @@ class MetricEvaluation:
         traj_all: Dict[PlayerName, List[Trajectory]] = {}
         maxl: int = 0
         for player, traj in trajectories.items():
-            traj_all[player] = traj.get_trajectories()
+            traj_all[player] = [traj]#.get_trajectories()
             maxl = max(maxl, len(traj_all[player]))
 
         for i in range(maxl):

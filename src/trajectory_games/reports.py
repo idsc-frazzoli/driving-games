@@ -19,7 +19,8 @@ from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from driving_games.metrics_structures import PlayerOutcome
 from .paths import Trajectory
 from .preference_old import PosetalPreference
-from .structures import VehicleState
+#from .structures import VehicleState
+from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_game import (
     SolvedTrajectoryGame,
     SolvedTrajectoryGameNode,

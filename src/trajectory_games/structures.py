@@ -10,23 +10,23 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from .config import CONFIG_DIR
 
 __all__ = [
-    "VehicleActions",
-    "VehicleState",
+    "VehicleCommands",
+    #"VehicleState",
     "TrajectoryParams",
     "VehicleGeometry",
 ]
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
-class VehicleActions:
+class VehicleCommands:
     acc: float
     """ Acceleration [m/s2] """
     dst: float
     """ Steering rate [rad/s] """
 
-    def __add__(self, other: "VehicleActions") -> "VehicleActions":
+    def __add__(self, other: "VehicleCommands") -> "VehicleCommands":
         if type(other) == type(self):
-            return VehicleActions(acc=self.acc + other.acc, dst=self.dst + other.dst)
+            return VehicleCommands(acc=self.acc + other.acc, dst=self.dst + other.dst)
         elif other is None:
             return self
         else:
@@ -34,124 +34,124 @@ class VehicleActions:
 
     __radd__ = __add__
 
-    def __sub__(self, other: "VehicleActions") -> "VehicleActions":
+    def __sub__(self, other: "VehicleCommands") -> "VehicleCommands":
         return self + (other * -1.0)
 
-    def __mul__(self, factor: float) -> "VehicleActions":
-        return VehicleActions(acc=self.acc * factor, dst=self.dst * factor)
+    def __mul__(self, factor: float) -> "VehicleCommands":
+        return VehicleCommands(acc=self.acc * factor, dst=self.dst * factor)
 
     __rmul__ = __mul__
 
-    def __truediv__(self, factor: float) -> "VehicleActions":
+    def __truediv__(self, factor: float) -> "VehicleCommands":
         return self * (1 / factor)
 
 
-@dataclass(unsafe_hash=True, eq=True, order=True)
-class VehicleState:
-    x: float
-    """ CoG x location [m] """
-    y: float
-    """ CoG y location [m] """
-    th: float
-    """ CoG heading [rad] """
-    v: float
-    """ CoG longitudinal velocity [m/s] """
-    st: float
-    """ Steering angle [rad] """
-    t: D
-    """ Time [s] """
-
-    _config: Dict = None
-    """ Cached config, loaded from file """
-
-    @staticmethod
-    def zero():
-        return VehicleState(x=0.0, y=0.0, th=1.57, v=5.0, st=0.0, t=D("0"))
-
-    def __add__(self, other: "VehicleState") -> "VehicleState":
-        if type(other) == type(self):
-            return VehicleState(
-                x=self.x + other.x,
-                y=self.y + other.y,
-                th=self.th + other.th,
-                v=self.v + other.v,
-                st=self.st + other.st,
-                t=self.t + other.t,
-            )
-        elif other is None:
-            return self
-        else:
-            raise NotImplementedError
-
-    __radd__ = __add__
-
-    def __sub__(self, other: "VehicleState") -> "VehicleState":
-        return self + (other * -1.0)
-
-    def __mul__(self, factor: float) -> "VehicleState":
-        return VehicleState(
-            x=self.x * factor,
-            y=self.y * factor,
-            th=self.th * factor,
-            v=self.v * factor,
-            st=self.st * factor,
-            t=self.t * D(round(factor, 4)),
-        )
-
-    __rmul__ = __mul__
-
-    def __truediv__(self, factor: float) -> "VehicleState":
-        return self * (1 / factor)
-
-    def __repr__(self) -> str:
-        return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
-
-    def is_close(self, other: "VehicleState", tol: float = 1e-3) -> bool:
-        diff = self - other
-
-        def check(val: float) -> bool:
-            return abs(val) < tol
-
-        if (
-            check(diff.x)
-            and check(diff.y)
-            and check(diff.th)
-            and check(diff.v)
-            and check(diff.th)
-            and abs(diff.t) < 1e-3
-        ):
-            return True
-        return False
-
-    @classmethod
-    def default(cls) -> "VehicleState":
-        state = VehicleState(x=0.0, y=0.0, th=math.pi / 2.0, v=10.0, st=0.0, t=D("0"))
-        return state
-
-    @classmethod
-    def from_config(cls, name: str) -> "VehicleState":
-
-        if len(name) == 0:
-            return cls.default()
-
-        if cls._config is None:
-            filename = os.path.join(CONFIG_DIR, "initial_states.yaml")
-            with open(filename) as load_file:
-                cls._config = safe_load(load_file)
-        if name in cls._config.keys():
-            config = cls._config[name]
-            state = VehicleState(
-                x=config["x0"],
-                y=config["y0"],
-                th=config["th0"],
-                v=config["v0"],
-                st=config["st0"],
-                t=D(config["t0"]),
-            )
-        else:
-            print(f"Failed to intialise {cls.__name__} from {name}, using default")
-            state = cls.default()
-        return state
+# @dataclass(unsafe_hash=True, eq=True, order=True)
+# class VehicleState:
+#     x: float
+#     """ CoG x location [m] """
+#     y: float
+#     """ CoG y location [m] """
+#     th: float
+#     """ CoG heading [rad] """
+#     v: float
+#     """ CoG longitudinal velocity [m/s] """
+#     st: float
+#     """ Steering angle [rad] """
+#     t: D
+#     """ Time [s] """
+#
+#     _config: Dict = None
+#     """ Cached config, loaded from file """
+#
+#     @staticmethod
+#     def zero():
+#         return VehicleState(x=0.0, y=0.0, th=1.57, v=5.0, st=0.0, t=D("0"))
+#
+#     def __add__(self, other: "VehicleState") -> "VehicleState":
+#         if type(other) == type(self):
+#             return VehicleState(
+#                 x=self.x + other.x,
+#                 y=self.y + other.y,
+#                 th=self.th + other.th,
+#                 v=self.v + other.v,
+#                 st=self.st + other.st,
+#                 t=self.t + other.t,
+#             )
+#         elif other is None:
+#             return self
+#         else:
+#             raise NotImplementedError
+#
+#     __radd__ = __add__
+#
+#     def __sub__(self, other: "VehicleState") -> "VehicleState":
+#         return self + (other * -1.0)
+#
+#     def __mul__(self, factor: float) -> "VehicleState":
+#         return VehicleState(
+#             x=self.x * factor,
+#             y=self.y * factor,
+#             th=self.th * factor,
+#             v=self.v * factor,
+#             st=self.st * factor,
+#             t=self.t * D(round(factor, 4)),
+#         )
+#
+#     __rmul__ = __mul__
+#
+#     def __truediv__(self, factor: float) -> "VehicleState":
+#         return self * (1 / factor)
+#
+#     def __repr__(self) -> str:
+#         return str({k: round(float(v), 2) for k, v in self.__dict__.items() if not k.startswith("_")})
+#
+#     def is_close(self, other: "VehicleState", tol: float = 1e-3) -> bool:
+#         diff = self - other
+#
+#         def check(val: float) -> bool:
+#             return abs(val) < tol
+#
+#         if (
+#             check(diff.x)
+#             and check(diff.y)
+#             and check(diff.th)
+#             and check(diff.v)
+#             and check(diff.th)
+#             and abs(diff.t) < 1e-3
+#         ):
+#             return True
+#         return False
+#
+#     @classmethod
+#     def default(cls) -> "VehicleState":
+#         state = VehicleState(x=0.0, y=0.0, th=math.pi / 2.0, v=10.0, st=0.0, t=D("0"))
+#         return state
+#
+#     @classmethod
+#     def from_config(cls, name: str) -> "VehicleState":
+#
+#         if len(name) == 0:
+#             return cls.default()
+#
+#         if cls._config is None:
+#             filename = os.path.join(CONFIG_DIR, "initial_states.yaml")
+#             with open(filename) as load_file:
+#                 cls._config = safe_load(load_file)
+#         if name in cls._config.keys():
+#             config = cls._config[name]
+#             state = VehicleState(
+#                 x=config["x0"],
+#                 y=config["y0"],
+#                 th=config["th0"],
+#                 v=config["v0"],
+#                 st=config["st0"],
+#                 t=D(config["t0"]),
+#             )
+#         else:
+#             print(f"Failed to intialise {cls.__name__} from {name}, using default")
+#             state = cls.default()
+#         return state
 
 
 @dataclass

@@ -23,7 +23,8 @@ from .game_def import (
     StaticSolverParams,
 )
 from .paths import Trajectory
-from .structures import VehicleState
+#from .structures import VehicleState
+from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [

@@ -71,7 +71,7 @@ class EvaluationContextVisualization:
         if goals is not None:
             if isinstance(list(goals.values())[0], RefLaneGoal):
                 goal_segments = \
-                    [np.array([point.q.p for point in lane.ref_lane.control_points]) for _, lane in goals.items()]
+                    [np.array([point.q.p for point in lane.ref_lane.get_control_points]) for _, lane in goals.items()]
 
             goal_lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.goal)
             axis.add_collection(goal_lines)

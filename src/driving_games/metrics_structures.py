@@ -54,9 +54,9 @@ class MetricEvaluationContext:
         self.points_cart = valmap(lambda x: x.as_path(), self.trajectories)
         # precompute curvilinear coordinates for all the ones that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
-        for p, goal in self.goals.items():
-            if isinstance(goal, RefLaneGoal):
-                curv[p] = [goal.ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
+        for p, ref_lane in self.goals.items():
+            if isinstance(ref_lane, RefLaneGoal):
+                curv[p] = [ref_lane.ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
         self.points_curv = fd(curv) if curv else None
 
     def get_players(self) -> List[PlayerName]:

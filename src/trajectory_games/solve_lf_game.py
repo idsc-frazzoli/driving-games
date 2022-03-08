@@ -16,7 +16,8 @@ from preferences import ComparisonOutcome, SECOND_PREFERRED, FIRST_PREFERRED, Pr
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
 from .paths import Trajectory
 from .solve import get_best_responses
-from .structures import VehicleState, VehicleGeometry
+#from .structures import VehicleState, VehicleGeometry
+from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
 from .trajectory_game import (
     SolvedTrajectoryGameNode,
     SolvedTrajectoryGame,

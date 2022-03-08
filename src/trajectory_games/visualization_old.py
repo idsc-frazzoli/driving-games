@@ -20,7 +20,8 @@ from .game_def import GameVisualization
 # from .paths import Trajectory
 from dg_commons.planning import Trajectory
 from .preference_old import PosetalPreference, WeightedMetricPreference
-from .structures import VehicleGeometry, VehicleState
+#from .structures import VehicleGeometry, VehicleState
+from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
 from .trajectory_world import TrajectoryWorld
 from driving_games.metrics_structures import MetricEvaluationContext
 

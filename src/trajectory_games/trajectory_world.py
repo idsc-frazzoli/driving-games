@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
-from dg_commons.planning import PlanningGoal
+from dg_commons.planning import PlanningGoal, RefLaneGoal
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import DgScenario
 

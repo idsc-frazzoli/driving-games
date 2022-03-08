@@ -68,9 +68,9 @@ def get_skeleton_graph(po: DuckietownMap) -> SkeletonGraphResult:
                 None,
             )
 
-        # meeting_points[p0].point = lane_segment_transformed.control_points[0]
+        # meeting_points[p0].point = lane_segment_transformed.get_control_points[0]
         meeting_points[p0].outcoming.add(name)
-        # meeting_points[p1].point = lane_segment_transformed.control_points[-1]
+        # meeting_points[p1].point = lane_segment_transformed.get_control_points[-1]
         meeting_points[p1].incoming.add(name)
 
         meeting_points[p0].connects_to.add(p1)
