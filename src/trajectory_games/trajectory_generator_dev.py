@@ -1,20 +1,21 @@
 import math
 from time import perf_counter
-from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple
+from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Sequence
 
+import geometry as geo
 import numpy as np
 from scipy.optimize import minimize
-
 from shapely.geometry import Polygon, Point
-import geometry as geo
+
 from dg_commons import PlayerName, relative_pose, SE2_apply_T2, Timestamp
 from dg_commons.maps import DgLanelet
-from dg_commons.planning import Trajectory, TrajectoryGraph, TimedVehicleState
+from dg_commons.planning import Trajectory, TrajectoryGraph, TimedVehicleState, RefLaneGoal
+from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
 from .bicycle_dynamics import BicycleDynamics
 from .game_def import ActionSetGenerator
+
 # from .paths import Trajectory, TrajectoryGraph
 from .structures import TrajectoryParams
-from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
 from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TransitionGenerator"]
@@ -30,57 +31,53 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
     """ Internal data """
     _bicycle_dyn: BicycleDynamics
-    _cache: Dict[Tuple[PlayerName, VehicleState], Set[TrajectoryGraph]]
+    # _cache: Dict[Tuple[PlayerName, VehicleState], Set[TrajectoryGraph]]
 
-    def __init__(self, params: TrajectoryParams):
+    def __init__(self, params: TrajectoryParams, ref_lane_goals: Sequence[RefLaneGoal]):
         self.params = params
+        self.ref_lane_goals: Sequence[RefLaneGoal] = ref_lane_goals
         self._bicycle_dyn = BicycleDynamics(params=params)
-        self._cache = {}
 
-    def get_actions_dynamic(
-            self, state: VehicleState, player: PlayerName, world: TrajectoryWorld = None
-    ) -> Tuple[bool, Set[TrajectoryGraph]]:
+    #   self._cache = {}
+
+    def get_lanes_actions(self, state: VehicleState) -> Set[TrajectoryGraph]:
         """
         Computes dynamic graph of transitions for given state along reference
         Requires world for first instance, returns from cache if already computed
         """
-        if (player, state) in self._cache:
-            return True, self._cache[(player, state)]
-        assert world is not None
         tic = perf_counter()
         all_graphs: Set[TrajectoryGraph] = set()
-        for lane, goal in world.get_lanes(player=player): # todo clarify
-            graph: TrajectoryGraph = TrajectoryGraph()
-            self._get_trajectory_graph(state=state, lane=lane, goal=goal, graph=graph)
+        for ref_lane_goal in self.ref_lane_goals:
+            graph = self._get_trajectory_graph(state=state, lane=ref_lane_goal.ref_lane, goal=goal)
             all_graphs.add(graph)
         toc = perf_counter() - tic
-        print(f"Generating trajectory graphs for player: {player}\ttook: {toc:.2f} s")
-        self._cache[(player, state)] = all_graphs
-        return False, all_graphs
+        # print(f"Generating trajectory graphs for player: {player}\ttook: {toc:.2f} s")
+        # self._cache[(player, state)] = all_graphs
+        return all_graphs
 
-    def get_actions_static(
-            self, state: VehicleState, player: PlayerName, world: TrajectoryWorld = None
-    ) -> FrozenSet[Trajectory]:
+    def get_actions(self, state: VehicleState) -> FrozenSet[Trajectory]:
         """
         Computes set of static feasible trajectories for given state along reference lanes
         Requires world for first instance, returns from cache if already computed
         """
         tic = perf_counter()
-        cache, lane_graphs = self.get_actions_dynamic(state=state, player=player, world=world)
+        lane_graphs = self.get_lanes_actions(state=state)
         all_traj: Set[Trajectory] = set()
         for graph in lane_graphs:
-            all_traj |= self._trajectory_graph_to_list(graph=graph)
+            all_traj |= graph.get_all_trajectories()
         toc = perf_counter() - tic
-        if not cache:
-            print(
-                f"Player: {player}\n\tLanes = {len(lane_graphs)}"
-                f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s"
-            )
+        # if not cache:
+        #     print(
+        #         f"Player: {player}\n\tLanes = {len(lane_graphs)}"
+        #         f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s"
+        #     )
         return frozenset(all_traj)
 
-    def _get_trajectory_graph(self, state: VehicleState, lane: DgLanelet,
-                              graph: TrajectoryGraph, goal: Optional[Polygon] = None):
+    def _get_trajectory_graph(
+        self, state: VehicleState, lane: DgLanelet, goal: Optional[Polygon] = None
+    ) -> TrajectoryGraph:
         """Construct graph of states"""
+        graph: TrajectoryGraph = TrajectoryGraph()
         k_maxgen = 5
         t_init: Timestamp = 0.0
         init_state = (t_init, state)
@@ -120,6 +117,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
     @staticmethod
     def get_goal_reached_index(states: List[TimedVehicleState], goal: Polygon) -> Optional[int]:
+        # todo to adjust
         in_goal = [goal.contains(Point(x.x, x.y)) for x in states[1]]
         try:
             last = in_goal.index(True)
@@ -140,7 +138,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return along, r[1], mu
 
     @staticmethod
-    def get_target(lane: DgLanelet, progress: float, offset_target: np.array) -> Optional[Tuple[np.array, float]]:
+    def _get_target(lane: DgLanelet, progress: float, offset_target: np.array) -> Optional[Tuple[np.array, float]]:
         """Calculate target pose ([x, y], theta) at requested progress with additional offset"""
         beta_f = lane.beta_from_along_lane(along_lane=progress)
         q_f = lane.center_point(beta=beta_f)
@@ -149,7 +147,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return pos_f, ang_f
 
     def get_successor(
-            self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
+        self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
     ) -> Tuple[TimedVehicleState, List[TimedVehicleState]]:
         dt_samp = self.params.dt_samp if samp else self.params.dt
         return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt, dt_samp=dt_samp)
@@ -182,7 +180,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
         dt = float(self.params.dt)
         # l = self.params.vg.l
-        l = (self.params.vg.lf + self.params.vg.lr)/2 #todo lf or lr
+        l = (self.params.vg.lf + self.params.vg.lr) / 2  # todo lf or lr
 
         # Calculate initial pose
         start_arr = np.array([timed_state[1].x, timed_state[1].y])
@@ -191,7 +189,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
         # Calculate real axle translation and rotation
         offset_0, offset_i = np.array([0, 0]), np.array([-l, 0])
-        p_i, th_i = self.get_target(lane=lane, progress=along_i, offset_target=offset_0)
+        p_i, th_i = self._get_target(lane=lane, progress=along_i, offset_target=offset_0)
         q_start = geo.SE2_from_translation_angle(t=start_arr, theta=th_start)
         p_start = SE2_apply_T2(q_start, offset_i)
 
@@ -205,7 +203,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
             curv = 0.0
             dist = get_progress(acc=acc, K=curv)
             for i in range(5):
-                p_f, th_f = self.get_target(lane=lane, progress=along_i + dist, offset_target=offset_0)
+                p_f, th_f = self._get_target(lane=lane, progress=along_i + dist, offset_target=offset_0)
                 dlb = p_f - p_i
                 Lb = np.linalg.norm(dlb)
 
@@ -233,7 +231,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                 # Calculate target pose of rear axle
                 nf = self.params.n_factor * n_i + dst * n_scale
                 offset_t = np.array([-l, nf])
-                p_t, th_t = self.get_target(lane=lane, progress=along_i + distance, offset_target=offset_t)
+                p_t, th_t = self._get_target(lane=lane, progress=along_i + distance, offset_target=offset_t)
 
                 # Steer from initial to final position using kinematic model
                 #  No slip at rear axle assumption --> Rear axle moves along a circle
@@ -284,7 +282,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
         def get_dst_guess() -> float:
             """Initial guess for optimisation, obtained from target yaw rate"""
-            p_t, th_t = self.get_target(lane=lane, progress=s_init + distance, offset_target=np.array([0, 0]))
+            p_t, th_t = self._get_target(lane=lane, progress=s_init + distance, offset_target=np.array([0, 0]))
             d_ang = th_t - state.th
             while d_ang > +np.pi:
                 d_ang -= 2 * np.pi
@@ -337,6 +335,3 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         for target in leaves:
             trajectories.add(graph.get_trajectory(source=source, target=target))
         return trajectories
-
-
-

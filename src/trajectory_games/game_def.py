@@ -54,7 +54,7 @@ class ActionSetGenerator(Generic[X, U, W], ABC):
     """A generic generator for the possible actions"""
 
     @abstractmethod
-    def get_actions_static(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
+    def get_actions(self, state: X) -> FrozenSet[U]:
         pass
 
 
@@ -213,16 +213,16 @@ EXP_ACCOMP = AntichainComparison("exp_accomp")
 @dataclass(frozen=True)
 class StaticSolverParams(SolverParams):
     pass
-    #admissible_strategies: AdmissibleStrategies
-    #""" Allowed search space of strategies"""
-    #strategy_multiple_nash: StrategyForMultipleNash
-    #""" How to deal with multiple Nash equilibria """
-    #antichain_comparison: AntichainComparison = EXP_ACCOMP
-    #""" How to compare antichains. """
-    #dt: Optional[Decimal] = None
-    #use_factorization: Optional[bool] = None
-    #use_best_response: bool = False
-    #""" Only use best responses for leader - follower game or all possible actions """
+    # admissible_strategies: AdmissibleStrategies
+    # """ Allowed search space of strategies"""
+    # strategy_multiple_nash: StrategyForMultipleNash
+    # """ How to deal with multiple Nash equilibria """
+    # antichain_comparison: AntichainComparison = EXP_ACCOMP
+    # """ How to compare antichains. """
+    # dt: Optional[Decimal] = None
+    # use_factorization: Optional[bool] = None
+    # use_best_response: bool = False
+    # """ Only use best responses for leader - follower game or all possible actions """
 
 
 @dataclass

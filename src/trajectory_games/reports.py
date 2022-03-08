@@ -19,7 +19,8 @@ from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from driving_games.metrics_structures import PlayerOutcome
 from .paths import Trajectory
 from .preference_old import PosetalPreference
-#from .structures import VehicleState
+
+# from .structures import VehicleState
 from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_game import (
     SolvedTrajectoryGame,
@@ -49,9 +50,7 @@ def report_game_visualization(game: Game) -> Report:
                 for state in player.state.support():
                     states.append(state)
                     viz.plot_player(axis=ax, player_name=player_name, state=state)
-                    actions = player.actions_generator.get_actions_static(
-                        state=state, world=game.world, player=player.name
-                    )
+                    actions = player.actions_generator.get_actions(state=state, world=game.world, player=player.name)
                     viz.plot_actions(axis=ax, actions=actions, colour=tone_down_color(player.vg.colour), width=0.5)
                     size = np.linalg.norm(ax.bbox.size) / 10000.0
                     for path in actions:
@@ -282,7 +281,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
                     for state in player.state.support():
                         states.append(state)
                         viz.plot_player(axis=ax, player_name=player_name, state=state)
-                        actions_all = player.actions_generator.get_actions_static(
+                        actions_all = player.actions_generator.get_actions(
                             state=state, world=game.world, player=player.name
                         )
                         if plot_actions:

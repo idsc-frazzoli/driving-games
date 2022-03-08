@@ -7,7 +7,7 @@ import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.scenario import Scenario
 from dg_commons.sim.scenarios import DgScenario
-from dg_commons.planning import PlanningGoal, RefLaneGoal
+from dg_commons.planning import RefLaneGoal, RefLaneGoal
 from shapely.geometry import Polygon
 from yaml import safe_load
 from crash import logger
@@ -30,11 +30,7 @@ from .trajectory_world import TrajectoryWorld
 from .visualization_old import TrajGameVisualization
 from .config import CONFIG_DIR
 
-__all__ = [
-    "get_trajectory_game",
-    "get_leader_follower_game",
-    "get_simple_traj_game_leon"
-]
+__all__ = ["get_trajectory_game", "get_leader_follower_game", "get_simple_traj_game_leon"]
 
 players_file = os.path.join(config_dir_ral, "players.yaml")
 # leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
@@ -54,16 +50,13 @@ def from_config(name: str) -> "VehicleState":
     if name in config.keys():
         pconfig = config[name]
         state = VehicleState(
-            x=pconfig["x0"],
-            y=pconfig["y0"],
-            theta=pconfig["th0"],
-            vx=pconfig["v0"],
-            delta=pconfig["st0"]
+            x=pconfig["x0"], y=pconfig["y0"], theta=pconfig["th0"], vx=pconfig["v0"], delta=pconfig["st0"]
         )
     else:
         print(f"Failed to initialise VehicleState from {name}")
         state = None
     return state
+
 
 def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
     beta, _ = lanelet.find_along_lane_closest_point(p=goal)
@@ -72,9 +65,10 @@ def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
 
     for dx, dy in [(-1, -1), (-1, 1), (1, 1), (1, -1)]:
         s_f, n_f = progress + dy * config["goal"]["long_dist"], dx * config["goal"]["lat_dist"]
-        xy_f, _ = TransitionGenerator.get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
+        xy_f, _ = TransitionGenerator._get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
         points.append(xy_f)
     return Polygon(points)
+
 
 def lanelet_from_ids(lanelet_ids: List[int], network: LaneletNetwork):
     lanelets = []
@@ -96,7 +90,8 @@ def get_lanelet_from_points(start: np.ndarray, goal: np.ndarray, lanelet_network
 
     start_lanelet = lanelet_network.find_lanelet_by_id(start_id)
     all_lanes = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
-        lanelet=start_lanelet, network=lanelet_network, max_length=2000)
+        lanelet=start_lanelet, network=lanelet_network, max_length=2000
+    )
 
     merged_lanes, merged_lane_ids = all_lanes
 
@@ -107,14 +102,12 @@ def get_lanelet_from_points(start: np.ndarray, goal: np.ndarray, lanelet_network
     return None
 
 
-
-
 def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
     tic = perf_counter()
     lanes: Dict[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
-    goals: Dict[PlayerName, PlanningGoal] = {}
+    goals: Dict[PlayerName, RefLaneGoal] = {}
     scenario: DgScenario
     logger.info(f"Loading Scenario: {config['map_name']}", end=" ...")
     scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
@@ -131,7 +124,7 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
         state = from_config(name=pconfig["state"])
         state_init = np.array([state.x, state.y])
         p_goals = [np.array(goal) for goal in pconfig["goals"]]
-        #goals[pname] = p_goals
+        # goals[pname] = p_goals
         lanes[pname] = [
             (get_lanelet_from_points(start=state_init, goal=p_goals[0], lanelet_network=scenario.lanelet_network), None)
         ]

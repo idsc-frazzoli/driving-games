@@ -23,7 +23,8 @@ from .game_def import (
     StaticSolverParams,
 )
 from .paths import Trajectory
-#from .structures import VehicleState
+
+# from .structures import VehicleState
 from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_world import TrajectoryWorld
 
@@ -164,7 +165,7 @@ def compute_actions(sgame: Game) -> Mapping[PlayerName, FrozenSet[Trajectory]]:
         # In the future can be extended to uncertain initial state
         states = game_player.state.support()
         assert len(states) == 1, states
-        available_traj[player_name] = game_player.actions_generator.get_actions_static(
+        available_traj[player_name] = game_player.actions_generator.get_actions(
             state=next(iter(states)), world=sgame.world, player=player_name
         )
     return available_traj

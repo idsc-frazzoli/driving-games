@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
-from dg_commons.planning import PlanningGoal, RefLaneGoal
+from dg_commons.planning import RefLaneGoal, RefLaneGoal
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import DgScenario
 
@@ -24,7 +24,7 @@ class TrajectoryWorld:
     """ Geometry of each player """
     lanes: Mapping[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]]
     """ Reference lanes for each player """
-    goals: Mapping[PlayerName, PlanningGoal]
+    goals: Mapping[PlayerName, RefLaneGoal]
     """Goals for each player"""
 
     def __post_init__(self):
