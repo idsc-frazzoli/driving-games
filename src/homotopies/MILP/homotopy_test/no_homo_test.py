@@ -1,16 +1,11 @@
 import numpy as np
+from dg_commons import PlayerName
 from reprep import Report
-from dg_commons.sim.models.vehicle import VehicleState
-
 from homotopies.MILP.forces_def.generate_solver import generate_solver
 from homotopies.MILP.forces_def.parameters import params, x_idx
 from homotopies.MILP.forces_def.report import generate_report_solver
 from homotopies.MILP.forces_def.sim import sim
-from homotopies.MILP.homotopy.report import generate_homotopy_report
 from homotopies.MILP.scenario import get_simple_scenario, get_commonroad_scenario
-from homotopies.MILP.utils.prediction import predict
-from homotopies.MILP.utils.intersects import find_intersects
-from homotopies.MILP.homotopy.homotopy import *
 
 # scenario settings
 player1 = PlayerName('p1')
