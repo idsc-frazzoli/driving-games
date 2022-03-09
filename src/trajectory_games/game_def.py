@@ -50,7 +50,7 @@ class ActionGraph(Generic[U], ABC):
     """Dynamic action graph"""
 
 
-class ActionSetGenerator(Generic[X, U, W], ABC):
+class ActionSetGenerator(Generic[X, U], ABC):
     """A generic generator for the possible actions"""
 
     @abstractmethod

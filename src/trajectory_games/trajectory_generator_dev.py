@@ -1,22 +1,18 @@
 import math
-from time import perf_counter
 from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Sequence
 
 import geometry as geo
 import numpy as np
 from scipy.optimize import minimize
-from shapely.geometry import Polygon, Point
 
-from dg_commons import PlayerName, relative_pose, SE2_apply_T2, Timestamp
+from dg_commons import relative_pose, SE2_apply_T2, Timestamp, SE2Transform
 from dg_commons.maps import DgLanelet
 from dg_commons.planning import Trajectory, TrajectoryGraph, TimedVehicleState, RefLaneGoal
 from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
 from .bicycle_dynamics import BicycleDynamics
 from .game_def import ActionSetGenerator
 
-# from .paths import Trajectory, TrajectoryGraph
 from .structures import TrajectoryParams
-from .trajectory_world import TrajectoryWorld
 
 __all__ = ["TransitionGenerator"]
 
@@ -24,13 +20,14 @@ Successors = Mapping[VehicleCommands, Tuple[TimedVehicleState, List[TimedVehicle
 Solve_Tolerance = 1e-3
 
 
-class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, TrajectoryWorld]):
+class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     """Generate feasible trajectories for each player"""
 
     params: TrajectoryParams
 
     """ Internal data """
     _bicycle_dyn: BicycleDynamics
+
     # _cache: Dict[Tuple[PlayerName, VehicleState], Set[TrajectoryGraph]]
 
     def __init__(self, params: TrajectoryParams, ref_lane_goals: Sequence[RefLaneGoal]):
@@ -42,30 +39,28 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
 
     def get_lanes_actions(self, state: VehicleState) -> Set[TrajectoryGraph]:
         """
-        Computes dynamic graph of transitions for given state along reference
-        Requires world for first instance, returns from cache if already computed
+        Computes dynamic graph of transitions starting from state and for each reference lane
         """
-        tic = perf_counter()
+        # tic = perf_counter()
         all_graphs: Set[TrajectoryGraph] = set()
         for ref_lane_goal in self.ref_lane_goals:
-            graph = self._get_trajectory_graph(state=state, lane=ref_lane_goal.ref_lane, goal=goal)
+            graph = self._get_trajectory_graph(state=state, ref_lane_goal=ref_lane_goal)
             all_graphs.add(graph)
-        toc = perf_counter() - tic
+        # toc = perf_counter() - tic
         # print(f"Generating trajectory graphs for player: {player}\ttook: {toc:.2f} s")
         # self._cache[(player, state)] = all_graphs
         return all_graphs
 
     def get_actions(self, state: VehicleState) -> FrozenSet[Trajectory]:
         """
-        Computes set of static feasible trajectories for given state along reference lanes
-        Requires world for first instance, returns from cache if already computed
+        Computes set of feasible trajectories for given state along reference lanes
         """
-        tic = perf_counter()
+        # tic = perf_counter()
         lane_graphs = self.get_lanes_actions(state=state)
         all_traj: Set[Trajectory] = set()
         for graph in lane_graphs:
             all_traj |= graph.get_all_trajectories()
-        toc = perf_counter() - tic
+        # toc = perf_counter() - tic
         # if not cache:
         #     print(
         #         f"Player: {player}\n\tLanes = {len(lane_graphs)}"
@@ -74,15 +69,14 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return frozenset(all_traj)
 
     def _get_trajectory_graph(
-        self, state: VehicleState, lane: DgLanelet, goal: Optional[Polygon] = None
+            self, state: VehicleState, ref_lane_goal: RefLaneGoal
     ) -> TrajectoryGraph:
         """Construct graph of states"""
         graph: TrajectoryGraph = TrajectoryGraph()
         k_maxgen = 5
         t_init: Timestamp = 0.0
         init_state = (t_init, state)
-        stack = list([init_state])  # use timed state. Initial time is 0.
-        # graph.origin = state
+        stack: List[TimedVehicleState] = list([init_state])  # use timed state. Initial time is 0.
 
         # add root of graph
         if init_state not in graph.nodes:
@@ -95,11 +89,13 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                 continue
             current_gen = graph.nodes[s1]["gen"]
             expanded.add(s1)
-            successors = self.tree_func(timed_state=s1, lane=lane, gen=current_gen)
+            successors = self.tree_func(timed_state=s1, lane=ref_lane_goal.ref_lane, gen=current_gen)
             for u, (s2, samp) in successors.items():
-                if goal is not None:
+                if ref_lane_goal.goal_progress is not None:
                     # use finite distance condition
-                    cond = self.get_goal_reached_index(states=samp, goal=goal) is None and current_gen + 1 < k_maxgen
+                    # cond = self.get_goal_reached_index(states=samp, goal=goal) is None and current_gen + 1 < k_maxgen
+                    cond = current_gen + 1 < k_maxgen \
+                           and not self.goal_reached(states=samp, ref_lane_goal=ref_lane_goal)
                 else:
                     # use finite time condition (time = generations)
                     cond = current_gen + 1 < self.params.max_gen
@@ -116,14 +112,22 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return graph
 
     @staticmethod
-    def get_goal_reached_index(states: List[TimedVehicleState], goal: Polygon) -> Optional[int]:
-        # todo to adjust
-        in_goal = [goal.contains(Point(x.x, x.y)) for x in states[1]]
-        try:
-            last = in_goal.index(True)
-            return last
-        except:
-            return None
+    def goal_reached(states: List[TimedVehicleState], ref_lane_goal: RefLaneGoal):
+        ref_lane = ref_lane_goal.ref_lane
+        se2_transforms = [SE2Transform(p=np.array([x[1].x, x[1].y]), theta=x[1].theta) for x in states]
+        ref_lane_progress = [ref_lane.lane_pose_from_SE2Transform(q).along_lane for q in se2_transforms]
+
+        return any(progress >= ref_lane_goal.goal_progress for progress in ref_lane_progress)
+
+    # @staticmethod
+    # def get_goal_reached_index(states: List[TimedVehicleState], goal: Polygon) -> Optional[int]:
+    #     # todo to adjust
+    #     in_goal = [goal.contains(Point(x.x, x.y)) for x in states[1]]
+    #     try:
+    #         last = in_goal.index(True)
+    #         return last
+    #     except:
+    #         return None
 
     @staticmethod
     def get_curv(state: VehicleState, lane: DgLanelet) -> Tuple[float, float, float]:
@@ -147,7 +151,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
         return pos_f, ang_f
 
     def get_successor(
-        self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
+            self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
     ) -> Tuple[TimedVehicleState, List[TimedVehicleState]]:
         dt_samp = self.params.dt_samp if samp else self.params.dt
         return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt, dt_samp=dt_samp)
@@ -323,15 +327,15 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory, Trajector
                 successors[u_f] = (state_f, states_t)
         return successors
 
-    @staticmethod
-    def _trajectory_graph_to_list(graph: TrajectoryGraph) -> Set[Trajectory]:
-        """Convert state graph to list of trajectories"""
-        trajectories: Set[Trajectory] = set()
-        roots = [n for n, d in graph.in_degree() if d == 0]
-        assert len(roots) == 1
-        source = roots[0]
-        leaves = [n for n, d in graph.out_degree() if d == 0]
-
-        for target in leaves:
-            trajectories.add(graph.get_trajectory(source=source, target=target))
-        return trajectories
+    # @staticmethod
+    # def _trajectory_graph_to_list(graph: TrajectoryGraph) -> Set[Trajectory]:
+    #     """Convert state graph to list of trajectories"""
+    #     trajectories: Set[Trajectory] = set()
+    #     roots = [n for n, d in graph.in_degree() if d == 0]
+    #     assert len(roots) == 1
+    #     source = roots[0]
+    #     leaves = [n for n, d in graph.out_degree() if d == 0]
+    #
+    #     for target in leaves:
+    #         trajectories.add(graph.get_trajectory(source=source, target=target))
+    #     return trajectories

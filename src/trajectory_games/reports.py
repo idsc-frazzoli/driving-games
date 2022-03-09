@@ -30,8 +30,8 @@ from .trajectory_game import (
     LeaderFollowerGame,
     LeaderFollowerGameStage,
 )
-from .visualization_old import TrajGameVisualization
-from .visualization_dev import tone_down_color, ZOrder
+#from .visualization_old import TrajGameVisualization
+from .visualization_dev import tone_down_color, TrajGameVisualization, ZOrder
 
 EXPORT_PDF = True
 STACK_JPG = False
@@ -50,11 +50,14 @@ def report_game_visualization(game: Game) -> Report:
                 for state in player.state.support():
                     states.append(state)
                     viz.plot_player(axis=ax, player_name=player_name, state=state)
-                    actions = player.actions_generator.get_actions(state=state, world=game.world, player=player.name)
-                    viz.plot_actions(axis=ax, actions=actions, colour=tone_down_color(player.vg.colour), width=0.5)
+                    actions = player.actions_generator.get_actions(state=state)
+                    viz.plot_actions(axis=ax,
+                                     actions=actions,
+                                     colour=tone_down_color(player.vg.color.replace("_car", "")),
+                                     width=0.5)
                     size = np.linalg.norm(ax.bbox.size) / 10000.0
                     for path in actions:
-                        vals = [(x.x, x.y, x.v) for _, x in path]
+                        vals = [(x.x, x.y, x.vx) for _, x in path]
                         x, y, vel = zip(*vals)
                         ax.scatter(x, y, s=size, marker="o", c="k", alpha=0.2, zorder=ZOrder.scatter)
             ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
@@ -142,7 +145,7 @@ def stack_nodes(
                 viz.plot_equilibria(
                     axis=axis,
                     actions=frozenset([action]),
-                    colour=players[pname].vg.colour,
+                    colour=players[pname].vg.color.replace("_car",""),
                     width=width,
                     alpha=min(1.0, width),
                     ticks=False,
@@ -281,9 +284,7 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
                     for state in player.state.support():
                         states.append(state)
                         viz.plot_player(axis=ax, player_name=player_name, state=state)
-                        actions_all = player.actions_generator.get_actions(
-                            state=state, world=game.world, player=player.name
-                        )
+                        actions_all = player.actions_generator.get_actions(state=state)
                         if plot_actions:
                             viz.plot_actions(
                                 axis=ax,
@@ -294,14 +295,14 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
                                 ticks=False,
                                 plot_lanes=False,
                             )
-                        if plot_lanes:
-                            lanes: Dict[DgLanelet, Optional[Polygon]] = {}
-                            for traj in actions_all:
-                                lane, goal = traj.get_lane()
-                                lanes[lane] = goal
-                            viz.plot_actions(
-                                axis=ax, actions=frozenset(), colour=player.vg.colour, plot_lanes=True, lanes=lanes
-                            )
+                        # if plot_lanes:
+                        #     lanes: Dict[DgLanelet, Optional[Polygon]] = {}
+                        #     for traj in actions_all:
+                        #         lane, goal = traj.get_lane()
+                        #         lanes[lane] = goal
+                        #     viz.plot_actions(
+                        #         axis=ax, actions=frozenset(), colour=player.vg.colour, plot_lanes=True, lanes=lanes
+                        #     )
 
                 plot_eq_all(axis=ax, actions_all=actions_light, w=1.0, color="gold")
                 plot_eq_all(axis=ax, actions_all=actions_dark, w=1.0, color="red")

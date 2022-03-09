@@ -166,7 +166,7 @@ def compute_actions(sgame: Game) -> Mapping[PlayerName, FrozenSet[Trajectory]]:
         states = game_player.state.support()
         assert len(states) == 1, states
         available_traj[player_name] = game_player.actions_generator.get_actions(
-            state=next(iter(states)), world=sgame.world, player=player_name
+            state=next(iter(states)),
         )
     return available_traj
 
@@ -216,13 +216,22 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
         ac_comp = sgame.lf.antichain_comparison
     else:
         ac_comp = EXP_ACCOMP
-
+    # todo [LEON] are these correct? Not used right now
     solver_params = StaticSolverParams(
         admissible_strategies=PURE_STRATEGIES,
         strategy_multiple_nash=BAIL_MNE,
-        antichain_comparison=ac_comp,
-        use_best_response=True,
+        dt=1.,
+        factorization_algorithm="TEST",
+        use_factorization=False,
+        n_simulations=5,
+        extra=False,
+        max_depth=3
+
+
+        #antichain_comparison=ac_comp,
+        #use_best_response=True,
     )
+
     kwargs = {
         "player_actions": actions,
         "game_outcomes": sgame.get_outcomes,

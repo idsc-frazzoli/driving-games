@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Mapping, MutableMapping, Optional
+from typing import List, Mapping, MutableMapping, Optional, Sequence
 
 from dg_commons import fd, PlayerName, SE2Transform, seq_integrate, valmap
 from dg_commons.maps import DgLanePose
@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-@dataclass
+@dataclass(unsafe_hash=True) # todo[Leon] check that this argument does not cause any issue
 class EvaluatedMetric:
     name: str
     value: float
@@ -55,8 +55,8 @@ class MetricEvaluationContext:
         # precompute curvilinear coordinates for all the ones that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
         for p, ref_lane in self.goals.items():
-            if isinstance(ref_lane, RefLaneGoal):
-                curv[p] = [ref_lane.ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
+            if isinstance(ref_lane[0], RefLaneGoal): #todo solve this workaround
+                curv[p] = [ref_lane[0].ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
         self.points_curv = fd(curv) if curv else None
 
     def get_players(self) -> List[PlayerName]:

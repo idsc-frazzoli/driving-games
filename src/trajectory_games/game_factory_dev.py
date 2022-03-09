@@ -7,7 +7,7 @@ import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.scenario import Scenario
 from dg_commons.sim.scenarios import DgScenario
-from dg_commons.planning import RefLaneGoal, RefLaneGoal
+from dg_commons.planning import RefLaneGoal
 from shapely.geometry import Polygon
 from yaml import safe_load
 from crash import logger
@@ -27,7 +27,8 @@ from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_generator_dev import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
-from .visualization_old import TrajGameVisualization
+# from .visualization_old import TrajGameVisualization
+from .visualization_dev import TrajGameVisualization
 from .config import CONFIG_DIR
 
 __all__ = ["get_trajectory_game", "get_leader_follower_game", "get_simple_traj_game_leon"]
@@ -81,7 +82,6 @@ def lanelet_from_ids(lanelet_ids: List[int], network: LaneletNetwork):
     return merged_lanelet
 
 
-# basic version, just returns one possible lane but computes all (inefficient)
 def get_lanelet_from_points(start: np.ndarray, goal: np.ndarray, lanelet_network: LaneletNetwork):
     start_id = lanelet_network.find_lanelet_by_position([start])[0][0]
     goal_id = lanelet_network.find_lanelet_by_position([goal])[0][0]
@@ -95,45 +95,52 @@ def get_lanelet_from_points(start: np.ndarray, goal: np.ndarray, lanelet_network
 
     merged_lanes, merged_lane_ids = all_lanes
 
+    ref_lanes: List[DgLanelet] = []
     for enum, merged_lane_id in enumerate(merged_lane_ids):
         if goal_id in merged_lane_id:
-            return DgLanelet.from_commonroad_lanelet(merged_lanes[enum])
-
-    return None
+            ref_lanes.append(DgLanelet.from_commonroad_lanelet(merged_lanes[enum]))
+        else:
+            continue
+    return ref_lanes
 
 
 def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
     tic = perf_counter()
-    lanes: Dict[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]] = {}
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
-    goals: Dict[PlayerName, RefLaneGoal] = {}
+    goals: Dict[PlayerName, List[RefLaneGoal]] = {}
     scenario: DgScenario
     logger.info(f"Loading Scenario: {config['map_name']}", end=" ...")
     scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
     scenario, _ = load_commonroad_scenario(config["map_name"], scenarios_dir=scenarios_dir)
     logger.info("Done.")
 
+    required_goal_progress: float = 0.8
+
     ps = PossibilitySet()
     mpref_build: MonadicPreferenceBuilder = SetPreference
 
     for pname, pconfig in config[config_str]["players"].items():
-        if pname == "Ambulance":
-            continue
+        if pname == "Ambulance": #todo [LEON] Figure out why ambulance does not work
+             continue
         logger.info(f"Extracting lanes: {pname}", end=" ...")
+
+        # extract data from config file
         state = from_config(name=pconfig["state"])
         state_init = np.array([state.x, state.y])
         p_goals = [np.array(goal) for goal in pconfig["goals"]]
-        # goals[pname] = p_goals
-        lanes[pname] = [
-            (get_lanelet_from_points(start=state_init, goal=p_goals[0], lanelet_network=scenario.lanelet_network), None)
-        ]
-        goals[pname] = RefLaneGoal(ref_lane=lanes[pname][0][0], goal_progress=0.8)
-        pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
         player_color = pconfig["vg"].replace("car_", "")
+        pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
+
+        # transition generator
+        ref_lanes = get_lanelet_from_points(start=state_init, goal=p_goals[0], lanelet_network=scenario.lanelet_network)
+        ref_lane_goals = [RefLaneGoal(ref_lane=lane, goal_progress=required_goal_progress) for lane in ref_lanes]
+        trans_param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=player_color)
+        traj_gen = TransitionGenerator(params=trans_param, ref_lane_goals=ref_lane_goals)
+
+        goals[pname] = ref_lane_goals
+
         geometries[pname] = VehicleGeometry.default_car(color=player_color)
-        param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=player_color)
-        traj_gen = TransitionGenerator(params=param)
 
         players[pname] = TrajectoryGamePlayer(
             name=pname,
@@ -144,7 +151,7 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
             vg=geometries[pname],
         )
 
-    world = TrajectoryWorld(map_name=config["map_name"], scenario=scenario, geo=geometries, lanes=lanes, goals=goals)
+    world = TrajectoryWorld(map_name=config["map_name"], scenario=scenario, geo=geometries, goals=goals)
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
     game = TrajectoryGame(
         world=world,

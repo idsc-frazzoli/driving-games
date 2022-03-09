@@ -51,7 +51,7 @@ def report_single(game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGa
     prefs = {p.name: p.preference for p in game.game_players.values()}
     r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))
     r_game.to_html(join(d, folder + filename))
-    report_times()
+    #report_times()
 
 
 def report_times():
@@ -77,7 +77,7 @@ def test_trajectory_game_brute_force():
         game.game_vis.init_plot_dict(values=nash_eq["weak"])
     report_single(game=game, nash_eq=nash_eq, folder=folder)
 
-
+#only_traj = True
 def test_trajectory_game_best_response():
     folder = "best_response/"
     n_runs = 100  # Number of random runs for best response
@@ -128,8 +128,9 @@ def test_trajectory_game_lexi():
 
 
 def test_simple_trajectory_game_leon():
-    folder = "example_game_leon/"
-    config_str = "ral_01_level_0"
+    folder = "example_game_leon_3/"
+
+    config_str = "ral_01_level_2"
     game: TrajectoryGame = get_simple_traj_game_leon(config_str=config_str)
 
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
@@ -213,7 +214,7 @@ def test_leader_follower_recursive():
 
 
 if __name__ == "__main__":
-    d = "trajectory_games_tests/" + d
+    # d = "trajectory_games_tests/" + d
     # test_trajectory_game_brute_force()
     # test_trajectory_game_best_response()
     # test_trajectory_game_levels()

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Mapping, Optional, Tuple
+from typing import List, Mapping, Optional, Tuple, Sequence
 
 from shapely.geometry import Polygon
 
@@ -22,21 +22,27 @@ class TrajectoryWorld:
     """ DgScenario """
     geo: Mapping[PlayerName, VehicleGeometry]
     """ Geometry of each player """
-    lanes: Mapping[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]]
-    """ Reference lanes for each player """
-    goals: Mapping[PlayerName, RefLaneGoal]
+    goals: Mapping[PlayerName, Sequence[RefLaneGoal]]
     """Goals for each player"""
+    # lanes: Optional[Mapping[PlayerName, List[Tuple[DgLanelet, Optional[Polygon]]]]] = None
+    # """ Reference lanes for each player """
 
     def __post_init__(self):
+        # assert (
+        #     self.lanes.keys() == self.geo.keys() == self.goals.keys()
+        # ), f"Keys do not match: lanes = {self.lanes.keys()}, geo = {self.geo.keys()}"
         assert (
-            self.lanes.keys() == self.geo.keys() == self.goals.keys()
-        ), f"Keys do not match: lanes = {self.lanes.keys()}, geo = {self.geo.keys()}"
+            self.geo.keys() == self.goals.keys()
+        ), f"Keys do not match: goals = {self.goals.keys()}, geo = {self.geo.keys()}"
 
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())
 
-    def get_lanes(self, player: PlayerName) -> List[Tuple[DgLanelet, Optional[Polygon]]]:
-        return self.lanes[player]
+    # def get_lanes(self, player: PlayerName) -> List[Tuple[DgLanelet, Optional[Polygon]]]:
+    #     return self.lanes[player]
+
+    def get_goals(self, player: PlayerName) -> Sequence[RefLaneGoal]:
+        return self.goals[player]
 
     def get_geometry(self, player: PlayerName) -> VehicleGeometry:
         return self.geo[player]
