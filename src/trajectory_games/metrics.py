@@ -1,3 +1,4 @@
+from copy import deepcopy
 from itertools import combinations
 from typing import Tuple, List, Dict, Callable, Set, Mapping
 
@@ -392,12 +393,12 @@ def get_2d_velocity(x: VehicleState) -> geo.T2value:
 Crashes = Mapping[Tuple[PlayerName, PlayerName], Timestamp]
 
 
+# todo make better test since metric has changed
 class CollisionEnergy(Clearance):
     description = "This metric computes the energy of collision between agents."
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
-    earliest_collisions: List[Tuple] = []
 
     @staticmethod
     def get_collision_energy(geometries: Tuple[VehicleGeometry, VehicleGeometry],
@@ -407,70 +408,67 @@ class CollisionEnergy(Clearance):
         energy = 0.5 * (geometries[0].m + geometries[1].m) * np.linalg.norm(vel_1 - vel_2) ** 2
         return energy
 
-    def crashes_taking_place(self, context: MetricEvaluationContext) -> Crashes:
+    def crashes_taking_place(self, context: MetricEvaluationContext, tol: float = 1e-3) -> Crashes:
+        flag = 99999999
 
-        # keep first time clearance is 0 for each player pair
-        def compute_hypothetical_crashes() -> Crashes:
+        # keep first time clearance is 0 (with tolerance) for each player pair
+        def compute_first_collisions() -> Crashes:
             crashes: Crashes = {}
             for p_pair, pair_clearance in clearances.items():
                 # account for numerical errors
-                first_crash = np.where(np.array(pair_clearance.values) < 0.0001)[0].tolist()
+                first_crash = np.where(np.array(pair_clearance.values) < tol)[0].tolist()
                 if first_crash:
                     first_crash = first_crash[0]
-                else:
-                    # no crash happening for this pair
-                    first_crash = None
+                    crashes[p_pair] = first_crash
 
-                crashes[p_pair] = first_crash
             return crashes
 
         clearances = self.calculate_all_clearances(context=context)
-        hyp_crashes = compute_hypothetical_crashes()
+        hyp_crashes = compute_first_collisions()
 
-        crashes_temp: Crashes = {}
         actual_crashes: Crashes = {}
         # find first crash for each player (discard pairs where the crash happens subsequently)
         for player in context.get_players():
-            idx_first_player_crash = 999999
-            pair_crashing = []
+            player_idx = []
+            # compute the earliest collision (checking against collisions with all players)
             for player_pair, idx_crash in hyp_crashes.items():
-                if player in player_pair and idx_crash <= idx_first_player_crash:
-                    idx_first_player_crash = idx_crash
-                    pair_crashing.append(player_pair)
+                if player in player_pair:
+                    player_idx.append(idx_crash)
 
-            for pair in pair_crashing:
-                crashes_temp[pair] = idx_first_player_crash
+            # if player is not affected by any collision, continue to next player
+            if not player_idx:
+                continue
 
-        # discard crashes not happening because a player in a pair is involved in another crash earlier
-        for player_pair, idx_crash in crashes_temp.items():
-            swapped_pair = (player_pair[1], player_pair[0])
-            if crashes_temp[player_pair] == crashes_temp[swapped_pair]:
-                assert idx_crash == crashes_temp[swapped_pair]
-                actual_crashes[player_pair] = idx_crash
+            min_crash_idx = min(player_idx)
+
+            for player_pair, idx_crash in hyp_crashes.items():
+                if player in player_pair and idx_crash > min_crash_idx:
+                    hyp_crashes[player_pair] = flag  # flag for removal
+
+        # now only keep all crashes that were not filtered out previously
+        for key, value in hyp_crashes.items():
+            if value != flag:
+                actual_crashes[key] = value
 
         return actual_crashes
 
     @time_function
-    # todo: finish this function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
 
-        clearances = self.calculate_all_clearances(context=context)  # calculated twice, make more efficient
+        clearances = self.calculate_all_clearances(context=context)  # todo calculated twice, make more efficient
         timestamps = list(clearances.values())[0].timestamps
         crashes = self.crashes_taking_place(context=context)
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             coll_energies_seq = np.array([0 for _ in range(len(timestamps))])
-            for player_pair in clearances.keys():
+            for player_pair, crash_idx in crashes.items():
                 if player in player_pair:
-                    pair_clearance = clearances[player_pair]
-                    first_crash = np.where(np.array(pair_clearance.values) < 0.0001)[0]  # account for numerical errors
-                    if first_crash:
-                        geos = (context.geos[player_pair[0]], context.geos[player_pair[1]])
-                        state_1 = context.trajectories[player_pair[0]].values[first_crash[0]]
-                        state_2 = context.trajectories[player_pair[1]].values[first_crash[0]]
-                        crash_states = (state_1, state_2)
-                        coll_energy = self.get_collision_energy(geometries=geos, states=crash_states)
-                        coll_energies_seq[first_crash[0]] = coll_energy
+                    geos = (context.geos[player_pair[0]], context.geos[player_pair[1]])
+                    state_1 = context.trajectories[player_pair[0]].values[crash_idx]
+                    state_2 = context.trajectories[player_pair[1]].values[crash_idx]
+                    crash_states = (state_1, state_2)
+                    coll_energy = self.get_collision_energy(geometries=geos, states=crash_states)
+                    coll_energies_seq[crash_idx] = + coll_energy
 
             seq = DgSampledSequence[float](values=coll_energies_seq, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
@@ -580,7 +578,7 @@ class MetricEvaluation:
         traj_all: Dict[PlayerName, List[Trajectory]] = {}
         maxl: int = 0
         for player, traj in trajectories.items():
-            traj_all[player] = [traj]#.get_trajectories()
+            traj_all[player] = [traj]  # .get_trajectories()
             maxl = max(maxl, len(traj_all[player]))
 
         for i in range(maxl):
