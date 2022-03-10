@@ -127,25 +127,6 @@ def test_trajectory_game_lexi():
     report.to_html(join(d, folder + filename))
 
 
-def test_simple_trajectory_game_leon():
-    folder = "example_game_leon_3/"
-
-    config_str = "ral_01_level_2"
-    game: TrajectoryGame = get_simple_traj_game_leon(config_str=config_str)
-
-    context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
-
-    if only_traj:
-        nash_eq = {}
-    else:
-        sol = Solution()
-        nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=context)
-        game.game_vis.init_plot_dict(values=nash_eq["weak"])
-    report_single(game=game, nash_eq=nash_eq, folder=folder)
-
-    return 0
-
-
 def test_trajectory_game_levels():
     folder = "levels_cases/"
     pref = "pref_level"
@@ -211,6 +192,25 @@ def test_leader_follower_recursive():
     r_game.add_child(report_game_visualization(game=game_init))
     r_game.add_child(report_leader_follower_recursive(game=game_init, result=result, plot_gif=plot_gif))
     r_game.to_html(join(d, folder + filename))
+
+
+def test_simple_trajectory_game_leon():
+    folder = "example_game_leon_4/"
+
+    config_str = "leon_level_0"
+    game: TrajectoryGame = get_simple_traj_game_leon(config_str=config_str)
+
+    context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
+
+    if only_traj:
+        nash_eq = {}
+    else:
+        sol = Solution()
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=context)
+        game.game_vis.init_plot_dict(values=nash_eq["weak"])
+    report_single(game=game, nash_eq=nash_eq, folder=folder)
+
+    return 0
 
 
 if __name__ == "__main__":

@@ -11,9 +11,9 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons_dev.utils import get_project_root_dir
 
-from trajectory_games.trajectory_generator_dev import TransitionGenerator
+from trajectory_games.trajectory_generator import TransitionGenerator
 from trajectory_games.structures import TrajectoryParams
-from trajectory_games.visualization_dev import TrajectoryGenerationVisualization
+from trajectory_games.visualization import TrajectoryGenerationVisualization
 
 
 def test_trajectory_generation():
@@ -66,7 +66,7 @@ def test_trajectory_generation():
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(dir_path, "out/trajectory_generation_test.png")
-    viz.plot(show_plot=False, action_color="red", filename=filename)
+    viz.plot(show_plot=True, draw_labels=True, action_color="red", filename=filename)
     return 0
 
 

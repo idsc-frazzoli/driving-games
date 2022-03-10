@@ -220,7 +220,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         """Draw the player and his action set at a certain state."""
 
         vg: VehicleGeometry = self.world.get_geometry(player_name)
-        box = plot_car(axis=axis, player_name=player_name, state=state, vg=vg, alpha=alpha, box=box)
+        box = plot_car(axis=axis, state=state, vg=vg, alpha=alpha, box=box)
         return box
 
     def plot_equilibria(
@@ -329,8 +329,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
 
 def plot_car(
-        axis, player_name: PlayerName, state: VehicleState, vg: VehicleGeometry, alpha: float, box,
-        plot_wheels: bool = True
+        axis, state: VehicleState, vg: VehicleGeometry, alpha: float, box,
+        plot_wheels: bool = False
 ):
     # L = vg.l
     # W = vg.w

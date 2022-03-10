@@ -17,7 +17,7 @@ from dg_commons.sim.scenarios import DgScenario, load_commonroad_scenario
 from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import MetricEvaluationContext
 from trajectory_games.metrics import *
-from trajectory_games.visualization_dev import EvaluationContextVisualization
+from trajectory_games.visualization import EvaluationContextVisualization
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 
 P1 = PlayerName("p1")

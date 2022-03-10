@@ -18,7 +18,7 @@ from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
 from driving_games.metrics_structures import PlayerOutcome
 from .paths import Trajectory
-from .preference_old import PosetalPreference
+from .preference import PosetalPreference
 
 # from .structures import VehicleState
 from dg_commons.sim.models.vehicle import VehicleState
@@ -31,7 +31,7 @@ from .trajectory_game import (
     LeaderFollowerGameStage,
 )
 #from .visualization_old import TrajGameVisualization
-from .visualization_dev import tone_down_color, TrajGameVisualization, ZOrder
+from .visualization import tone_down_color, TrajGameVisualization, ZOrder
 
 EXPORT_PDF = True
 STACK_JPG = False

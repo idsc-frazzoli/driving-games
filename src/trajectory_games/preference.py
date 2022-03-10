@@ -272,57 +272,57 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
 
         return INDIFFERENT
 
-    @time_function
-    def compare_old(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
-
-        if self.no_pref:
-            return INDIFFERENT
-        if self.use_cache:
-            if isinstance(a, dict):
-                a = frozendict(a)
-            if isinstance(b, dict):
-                b = frozendict(a)
-            if (a, b) in self._cache:
-                return self._cache[(a, b)]
-            if (b, a) in self._cache:
-                return self._complement[(self._cache[(b, a)])]
-        OPEN = PriorityQueue(100)
-        DONE: Set[WeightedMetricPreference] = set()
-        CLOSED: Set[WeightedMetricPreference] = set()
-        OUTCOMES: Set[ComparisonOutcome] = set()
-
-        for root in self.level_nodes[0]:
-            OPEN.put((0, root))
-
-        while OPEN.qsize() > 0:
-            if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
-                break
-            _, metric = OPEN.get()
-            if metric in DONE:
-                continue
-            DONE.add(metric)
-            connected = False
-            for closed in CLOSED:
-                if has_path(G=self.graph, source=closed, target=metric):
-                    connected = True
-            if connected:
-                continue
-            outcome = metric.compare(a, b)
-            if outcome == INDIFFERENT:
-                for child in self.graph.successors(metric):
-                    OPEN.put((self.graph.nodes[child]["level"], child))
-            else:
-                OUTCOMES.add(outcome)
-                CLOSED.add(metric)
-
-        ret: ComparisonOutcome = INDIFFERENT
-        if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
-            ret = INCOMPARABLE
-        elif FIRST_PREFERRED in OUTCOMES:
-            ret = FIRST_PREFERRED
-        elif SECOND_PREFERRED in OUTCOMES:
-            ret = SECOND_PREFERRED
-
-        if self.use_cache:
-            self._cache[(a, b)] = ret
-        return ret
+    # @time_function
+    # def compare_old(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
+    #
+    #     if self.no_pref:
+    #         return INDIFFERENT
+    #     if self.use_cache:
+    #         if isinstance(a, dict):
+    #             a = frozendict(a)
+    #         if isinstance(b, dict):
+    #             b = frozendict(a)
+    #         if (a, b) in self._cache:
+    #             return self._cache[(a, b)]
+    #         if (b, a) in self._cache:
+    #             return self._complement[(self._cache[(b, a)])]
+    #     OPEN = PriorityQueue(100)
+    #     DONE: Set[WeightedMetricPreference] = set()
+    #     CLOSED: Set[WeightedMetricPreference] = set()
+    #     OUTCOMES: Set[ComparisonOutcome] = set()
+    #
+    #     for root in self.level_nodes[0]:
+    #         OPEN.put((0, root))
+    #
+    #     while OPEN.qsize() > 0:
+    #         if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
+    #             break
+    #         _, metric = OPEN.get()
+    #         if metric in DONE:
+    #             continue
+    #         DONE.add(metric)
+    #         connected = False
+    #         for closed in CLOSED:
+    #             if has_path(G=self.graph, source=closed, target=metric):
+    #                 connected = True
+    #         if connected:
+    #             continue
+    #         outcome = metric.compare(a, b)
+    #         if outcome == INDIFFERENT:
+    #             for child in self.graph.successors(metric):
+    #                 OPEN.put((self.graph.nodes[child]["level"], child))
+    #         else:
+    #             OUTCOMES.add(outcome)
+    #             CLOSED.add(metric)
+    #
+    #     ret: ComparisonOutcome = INDIFFERENT
+    #     if INCOMPARABLE in OUTCOMES or {FIRST_PREFERRED, SECOND_PREFERRED} <= OUTCOMES:
+    #         ret = INCOMPARABLE
+    #     elif FIRST_PREFERRED in OUTCOMES:
+    #         ret = FIRST_PREFERRED
+    #     elif SECOND_PREFERRED in OUTCOMES:
+    #         ret = SECOND_PREFERRED
+    #
+    #     if self.use_cache:
+    #         self._cache[(a, b)] = ret
+    #     return ret

@@ -1,6 +1,7 @@
 #map_name: Map to load (from scenarios)
 #map_name: "USA_Lanker-1_1_T-1"
-map_name: "USA_Peach-4_3_T-1"
+#map_name: "USA_Peach-4_3_T-1"
+map_name: "DEU_Ffb-1_7_T-1"
 
 # Goal params
 #max_length: Max reference lane length in m
@@ -38,6 +39,30 @@ ral_01_level_0:
     Average: &P3
       state: "state_3_peach"
       goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+leon_level_0:
+  players:
+    Ambulance:
+      <<: *P1
+      state: "state_1_deu"
+      goals: [[64.0,-24.0]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    Granny:
+      <<: *P2
+      state: "state_2_deu"
+      goals: [[29.0,4.0]]
+      traj: "traj_1_3"
+      pref: "pref_granny"
+      vg: "green_car"
+    Average:
+      <<: *P3
+      state: "state_3_deu"
+      goals: [[120.0,0.0]]
       traj: "traj_1_3"
       pref: "common_person"
       vg: "blue_car"

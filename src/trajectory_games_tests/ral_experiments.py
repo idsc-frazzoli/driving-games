@@ -14,7 +14,7 @@ from trajectory_games import (
     SolvingContext,
     TrajectoryGame,
 )
-from trajectory_games_tests.test_game import create_reports
+from trajectory_games_tests.test_games import create_reports
 
 
 def bruteforce_solve(context: SolvingContext) -> (Mapping[str, SolvedTrajectoryGame], Solution):
