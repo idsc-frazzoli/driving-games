@@ -120,7 +120,7 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
     mpref_build: MonadicPreferenceBuilder = SetPreference
 
     for pname, pconfig in config[config_str]["players"].items():
-        if pname == "Ambulance": #todo [LEON] does not work
+        if pname == "Ambulance": #todo [LEON] does not work. WHY?
              continue
         logger.info(f"Extracting lanes: {pname}", end=" ...")
 
