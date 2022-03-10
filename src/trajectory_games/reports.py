@@ -8,11 +8,9 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 from matplotlib.axes import Axes
 from reprep import Report, MIME_GIF, MIME_PNG, RepRepDefaults, MIME_JPG, MIME_PDF
-from shapely.geometry import Polygon
 from zuper_commons.text import remove_escapes
 
 from dg_commons import PlayerName, Color
-from dg_commons.maps import DgLanelet
 from dg_commons.sim.simulator_animation import adjust_axes_limits
 from preferences import Preference
 from .game_def import Game, SolvedGameNode, GameVisualization, GamePlayer
@@ -20,7 +18,6 @@ from driving_games.metrics_structures import PlayerOutcome
 from .paths import Trajectory
 from .preference import PosetalPreference
 
-# from .structures import VehicleState
 from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_game import (
     SolvedTrajectoryGame,
@@ -30,7 +27,6 @@ from .trajectory_game import (
     LeaderFollowerGame,
     LeaderFollowerGameStage,
 )
-#from .visualization_old import TrajGameVisualization
 from .visualization import tone_down_color, TrajGameVisualization, ZOrder
 
 EXPORT_PDF = True
@@ -50,6 +46,7 @@ def report_game_visualization(game: Game) -> Report:
                 for state in player.state.support():
                     states.append(state)
                     viz.plot_player(axis=ax, player_name=player_name, state=state)
+                    #todo [LEON]: are actions computed again?
                     actions = player.actions_generator.get_actions(state=state)
                     viz.plot_actions(axis=ax,
                                      actions=actions,
@@ -62,7 +59,8 @@ def report_game_visualization(game: Game) -> Report:
                         ax.scatter(x, y, s=size, marker="o", c="k", alpha=0.2, zorder=ZOrder.scatter)
             ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
             pylab.axis("off")
-            adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
+            # uncomment if you want to plot only area around players instead of entire scene
+            #adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
 
     toc = perf_counter() - tic
     print(f"Report game viz time = {toc:.2f} s")

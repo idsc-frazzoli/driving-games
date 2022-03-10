@@ -50,7 +50,7 @@ def from_config(name: str) -> "VehicleState":
     if name in config.keys():
         pconfig = config[name]
         state = VehicleState(
-            x=pconfig["x0"], y=pconfig["y0"], theta=pconfig["th0"], vx=pconfig["v0"], delta=pconfig["st0"]
+            x=pconfig["x0"], y=pconfig["y0"], theta=pconfig["theta"], vx=pconfig["v0"], delta=pconfig["delta"]
         )
     else:
         print(f"Failed to initialise VehicleState from {name}")
@@ -120,7 +120,7 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
     mpref_build: MonadicPreferenceBuilder = SetPreference
 
     for pname, pconfig in config[config_str]["players"].items():
-        if pname == "Ambulance": #todo [LEON] Figure out why ambulance does not work
+        if pname == "Ambulance": #todo [LEON] does not work
              continue
         logger.info(f"Extracting lanes: {pname}", end=" ...")
 

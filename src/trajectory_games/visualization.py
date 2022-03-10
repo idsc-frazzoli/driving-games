@@ -4,7 +4,8 @@ from contextlib import contextmanager
 from geometry import SE2_from_xytheta
 from matplotlib import colors as mcolors
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
-from shapely.geometry import Polygon
+# from shapely.geometry import Polygon
+from matplotlib.patches import Polygon, Circle
 from commonroad.scenario.scenario import Scenario
 
 from dg_commons.maps import DgLanelet
@@ -13,7 +14,7 @@ from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import MetricEvaluationContext
 from functools import lru_cache
-from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet
+from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet, List
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 import matplotlib
@@ -30,7 +31,8 @@ VehicleObservation = None
 VehicleCosts = None
 Collision = None
 
-#todo [LEON]: merge all these into one general visualizer
+
+# todo [LEON]: merge all these into one general visualizer
 
 class TrajectoryGenerationVisualization:
     """Visualization for commonroad scenario and generated trajectories"""
@@ -91,15 +93,14 @@ class TrajectoryGenerationVisualization:
         self.plot_arena(draw_labels=draw_labels)
         if self.trajectories:
             _ = self.plot_actions(
-                    axis=self.commonroad_renderer.ax,
-                    trajectories=self.trajectories,
-                    color=action_color
+                axis=self.commonroad_renderer.ax,
+                trajectories=self.trajectories,
+                color=action_color
             )
         if filename:
             plt.savefig(filename)
         if show_plot:
             plt.show()
-
 
 
 class EvaluationContextVisualization:
@@ -202,8 +203,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             **kwargs,
     ):
         self.world = world
-        self.plot_limits = "auto"
-        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
+        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, plot_limits=plot_limits, *args, figsize=(16, 16),
+                                                          **kwargs)
 
     @contextmanager
     def plot_arena(self, axis: Axes):
@@ -329,7 +330,11 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
 
 def plot_car(
-        axis, state: VehicleState, vg: VehicleGeometry, alpha: float, box,
+        axis,
+        state: VehicleState,
+        vg: VehicleGeometry,
+        alpha: float,
+        box,
         plot_wheels: bool = False
 ):
     # L = vg.l
@@ -342,6 +347,7 @@ def plot_car(
     xy_theta = (state.x, state.y, state.theta)
     q = SE2_from_xytheta(xy_theta)
     car = transform_xy(q, car)
+    alpha = 0.1
     if box is None:
         (vehicle_box,) = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
         box = [

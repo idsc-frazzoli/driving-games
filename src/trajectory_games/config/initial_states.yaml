@@ -1,15 +1,15 @@
 #state:
 #  s0:     Progress along lane (m)
 #  v0:     Velocity (m/s)
-#  st0:    Steering angle (rad)
+#  delta:    Steering angle (rad)
 #  t0:     Initial time (s) - string for decimal
 
 state_0: &state
   x0: 0.0
   y0: 0.0
-  th0: 0.0
+  theta: 0.0
   v0: 5.0
-  st0: 0.0
+  delta: 0.0
   t0: "0.0"
 
 state_1_lanker:
@@ -52,18 +52,21 @@ state_1_deu:
   x0: 22.0
   y0: 0.0
   v0: 3.0
+  theta: 0.0
 
 state_2_deu:
   <<: *state
   x0: 110.0
   y0: 6.0
   v0: 5.0
+  theta: -3.25
 
 state_3_deu:
   <<: *state
   x0: 65.0
   y0: 44.0
   v0: 1.0
+  theta: -1.50
 
 state_3:
   <<: *state
