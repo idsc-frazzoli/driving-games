@@ -19,7 +19,7 @@ __all__ = [
 ]
 
 
-@dataclass(unsafe_hash=True) # todo[Leon] check that this argument does not cause any issue
+@dataclass(frozen=True)  # todo[Leon] check that this argument does not cause any issue
 class EvaluatedMetric:
     name: str
     value: float

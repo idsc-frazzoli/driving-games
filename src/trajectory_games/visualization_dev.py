@@ -5,6 +5,7 @@ from geometry import SE2_from_xytheta
 from matplotlib import colors as mcolors
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 from shapely.geometry import Polygon
+from commonroad.scenario.scenario import Scenario
 
 from dg_commons.maps import DgLanelet
 from dg_commons.planning import RefLaneGoal
@@ -12,7 +13,7 @@ from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import MetricEvaluationContext
 from functools import lru_cache
-from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet, Dict
+from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 import matplotlib
@@ -22,13 +23,83 @@ from matplotlib.collections import LineCollection
 from dg_commons import Color, transform_xy
 from dg_commons import PlayerName
 from dg_commons.planning import Trajectory
-#from games import GameVisualization
 from trajectory_games.game_def import GameVisualization
 from trajectory_games import TrajectoryWorld, PosetalPreference, WeightedMetricPreference
 
 VehicleObservation = None
 VehicleCosts = None
 Collision = None
+
+#todo [LEON]: merge all these into one general visualizer
+
+class TrajectoryGenerationVisualization:
+    """Visualization for commonroad scenario and generated trajectories"""
+
+    commonroad_renderer: MPRenderer
+
+    def __init__(
+            self,
+            scenario: Scenario,
+            ax: Axes = None,
+            trajectories: Optional[FrozenSet[Trajectory]] = None,
+            plot_limits: Optional[str] = "auto",
+            *args,
+            **kwargs
+    ):
+        self.scenario = scenario
+        self.plot_limits = plot_limits
+        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
+        self.trajectories = trajectories
+        self.axis = ax
+
+    def plot_arena(self, draw_labels: bool):
+        self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = False
+        self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
+        if draw_labels:
+            self.commonroad_renderer.draw_params["lanelet"]["show_label"] = True
+
+        self.scenario.draw(self.commonroad_renderer)
+        self.commonroad_renderer.render()
+        return
+
+    @staticmethod
+    def plot_actions(
+            axis: Axes,
+            trajectories: FrozenSet[Trajectory],
+            color: Color = None) -> LineCollection:
+        segments = [np.array([np.array([x.x, x.y]) for _, x in traj]) for traj in trajectories]
+
+        # lines = LineCollection(segments=[], linewidths=width, alpha=alpha, zorder= #old
+        lines = LineCollection(segments=[], zorder=ZOrder.actions)
+        axis.add_collection(lines)
+
+        lines.set_segments(segments=segments)
+        if color is None:
+            color = "gray"
+        lines.set_color(color)
+
+        return lines
+
+    def plot(
+            self,
+            show_plot: bool = False,
+            draw_labels: bool = False,
+            action_color: Optional[Color] = None,
+            filename: Optional[str] = None
+    ):
+        matplotlib.use("TkAgg")
+        self.plot_arena(draw_labels=draw_labels)
+        if self.trajectories:
+            _ = self.plot_actions(
+                    axis=self.commonroad_renderer.ax,
+                    trajectories=self.trajectories,
+                    color=action_color
+            )
+        if filename:
+            plt.savefig(filename)
+        if show_plot:
+            plt.show()
+
 
 
 class EvaluationContextVisualization:
@@ -37,12 +108,12 @@ class EvaluationContextVisualization:
     commonroad_renderer: MPRenderer
 
     def __init__(
-        self,
-        evaluation_context: MetricEvaluationContext,
-        ax: Axes = None,
-        plot_limits: Optional[str] = "auto",
-        *args,
-        **kwargs
+            self,
+            evaluation_context: MetricEvaluationContext,
+            ax: Axes = None,
+            plot_limits: Optional[str] = "auto",
+            *args,
+            **kwargs
     ):
         self.evaluation_context = evaluation_context
         self.plot_limits = plot_limits
@@ -61,12 +132,12 @@ class EvaluationContextVisualization:
 
     @staticmethod
     def plot_actions(
-        axis: Axes,
-        actions: Mapping[PlayerName, Trajectory],
-        action_colors: Optional[Mapping[PlayerName, Color]] = None,
-        goals: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
-        width: float = 0.7,
-        alpha: float = 1.0,
+            axis: Axes,
+            actions: Mapping[PlayerName, Trajectory],
+            action_colors: Optional[Mapping[PlayerName, Color]] = None,
+            goals: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
+            width: float = 0.7,
+            alpha: float = 1.0,
     ) -> Tuple[LineCollection, LineCollection]:
         segments = [np.array([np.array([state.x, state.y]) for state in traj.values]) for _, traj in actions.items()]
         lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.actions)
@@ -99,13 +170,13 @@ class EvaluationContextVisualization:
         return lines, goal_lines
 
     def plot(
-        self,
-        show_plot: bool = False,
-        draw_labels: bool = False,
-        action_colors: Optional[Mapping[PlayerName, Color]] = None,
+            self,
+            show_plot: bool = False,
+            draw_labels: bool = False,
+            action_colors: Optional[Mapping[PlayerName, Color]] = None,
     ):
         matplotlib.use("TkAgg")
-        self.plot_arena(draw_labels=draw_labels)  # fixme: why does this not show anything with plot_arena_new (yield)
+        self.plot_arena(draw_labels=draw_labels)
         self.plot_actions(
             axis=self.commonroad_renderer.ax,
             actions=self.evaluation_context.trajectories,
@@ -114,6 +185,7 @@ class EvaluationContextVisualization:
         )
         if show_plot:
             plt.show()
+
 
 class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
     """Visualization for the trajectory games"""
@@ -130,7 +202,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             **kwargs,
     ):
         self.world = world
-        self.plot_limits = plot_limits
+        self.plot_limits = "auto"
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
 
     @contextmanager
@@ -241,9 +313,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         #         x = np.array(xp)
         #         y = np.array(yp)
         #         axis.fill(x, y, color=colour, alpha=0.2, zorder=ZOrder.lanes)
-                #  Toggle to plot goal region
-                # if goal is not None:
-                #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=ZOrder.goal)
+        #  Toggle to plot goal region
+        # if goal is not None:
+        #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=ZOrder.goal)
 
         if lines is None:
             if colour is None:

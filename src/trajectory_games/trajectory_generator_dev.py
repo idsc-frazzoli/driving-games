@@ -1,4 +1,5 @@
 import math
+from time import perf_counter
 from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Sequence
 
 import geometry as geo
@@ -55,17 +56,16 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         """
         Computes set of feasible trajectories for given state along reference lanes
         """
-        # tic = perf_counter()
+        tic = perf_counter()
         lane_graphs = self.get_lanes_actions(state=state)
         all_traj: Set[Trajectory] = set()
         for graph in lane_graphs:
             all_traj |= graph.get_all_trajectories()
-        # toc = perf_counter() - tic
-        # if not cache:
-        #     print(
-        #         f"Player: {player}\n\tLanes = {len(lane_graphs)}"
-        #         f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s"
-        #     )
+        toc = perf_counter() - tic
+        print(
+            f"Lanes = {len(lane_graphs)}"
+            f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s"
+        )
         return frozenset(all_traj)
 
     def _get_trajectory_graph(
@@ -168,10 +168,10 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0}
         acc_vals = self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0)
         if not cond_gen:
-            for acc in list(acc_vals):
-                if acc < 0.0:
+            for acc in list(acc_vals): # todo [LEON]: issue when acceleration values is =0!
+                if acc <= 0.0: #todo [LEON]: added <= instead of < -> fix this
                     acc_vals.remove(acc)
-                    acc_vals.add(0.0)
+                    #acc_vals.add(0.0) # todo [LEON]: removed temporarily.
         return acc_vals, dst_vals
 
     def get_successors_approx(self, timed_state: TimedVehicleState, lane: DgLanelet, gen: int) -> Successors:
@@ -184,7 +184,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         dt = float(self.params.dt)
         # l = self.params.vg.l
-        l = (self.params.vg.lf + self.params.vg.lr) / 2  # todo lf or lr
+        l = (self.params.vg.lf + self.params.vg.lr)# / 2  # todo lf or lr, /2?
 
         # Calculate initial pose
         start_arr = np.array([timed_state[1].x, timed_state[1].y])
@@ -205,7 +205,10 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_corrected_distance(acc: float) -> float:
             """Progress along reference iteratively corrected using curvature"""
             curv = 0.0
+            if acc == 0.0: #todo [LEON]: wokaround for now. Issue when acc==0.0 (division by zero happens in line 218)
+                acc = 0.1
             dist = get_progress(acc=acc, K=curv)
+            assert dist != 0, "Progress can't be zero.  Choose another acceleration."
             for i in range(5):
                 p_f, th_f = self._get_target(lane=lane, progress=along_i + dist, offset_target=offset_0)
                 dlb = p_f - p_i

@@ -27,7 +27,6 @@ from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_generator_dev import TransitionGenerator
 from .trajectory_world import TrajectoryWorld
-# from .visualization_old import TrajGameVisualization
 from .visualization_dev import TrajGameVisualization
 from .config import CONFIG_DIR
 
