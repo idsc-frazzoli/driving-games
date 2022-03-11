@@ -10,15 +10,15 @@ xunit_output=$(tr)/nose-$(CIRCLE_NODE_INDEX)-xunit.xml
 tag=driving_games
 
 test_packages=driving_games_tests,preferences_tests,games_tests,possibilities_tests,crash_tests,trajectory_games_tests
-cover_packages=$(test_packages),driving_games,preferences,games,possibilities,crash,trajectory_games
+cover_packages=driving_games,preferences,games,possibilities,crash,trajectory_games
 
-parallel=--processes=8 --process-timeout=1000 --process-restartworker
-coverage=--cover-html --cover-html-dir=$(coverage_dir) --cover-tests --with-coverage --cover-package=$(cover_packages)
+parallel=--workers auto
+coverage=--cov-config=.coveragerc --cov=$(cover_packages) --cov-report html
 
 xunitmp=--with-xunitmp --xunitmp-file=$(xunit_output)
-extra=--rednose --immediate
+extra=--capture=tee-sys -v
 
-
+################################
 all:
 	@echo "You can try:"
 	@echo

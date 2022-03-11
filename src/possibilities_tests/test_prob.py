@@ -1,11 +1,10 @@
 from fractions import Fraction
 from typing import Dict
 
-from nose.tools import assert_equal, eq_
+from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, valmap
 from possibilities.prob import A, enumerate_prob_assignments, expected_value, PossibilityDist, ProbDist
-from zuper_commons.types import ZValueError
 from . import logger
 from .test_sets import check_possibilities
 
@@ -22,7 +21,7 @@ def test_prob_mix():
     pmonad = PossibilityDist()
     r = pmonad.mix(S)
     logger.info(r=r)
-    assert_equal(r, {pmonad.lift_many({a}), pmonad.lift_many({b}), pmonad.lift_many({a, b})})
+    assert r == {pmonad.lift_many({a}), pmonad.lift_many({b}), pmonad.lift_many({a, b})}
 
 
 def test_prob_mix4():
@@ -51,7 +50,7 @@ def test_build_multiple1():
 
     ps = PossibilityDist()
     dist = ps.build_multiple(a, f)
-    eq_(dist, result)
+    assert dist == result
 
 
 def test_build_multiple2():
@@ -68,10 +67,10 @@ def test_build_multiple2():
 
     b = PossibilityDist()
     dist = b.build_multiple(a, f)
-    eq_(dist, result)
+    assert dist == result
 
 
 def test_expected_value():
     dist = ProbDist({1: Fraction(1, 3), 2: Fraction(2, 3)})
     dist_expectation = expected_value(dist)
-    assert_equal(dist_expectation, Fraction(5, 3))
+    assert dist_expectation == Fraction(5, 3)
