@@ -12,11 +12,9 @@ tag=driving_games
 test_packages=driving_games_tests,preferences_tests,games_tests,possibilities_tests,crash_tests,trajectory_games_tests
 cover_packages=driving_games,preferences,games,possibilities,crash,trajectory_games
 
-parallel=--workers auto
+parallel=-n auto --dist=loadfile
 coverage=--cov-config=.coveragerc --cov=$(cover_packages) --cov-report html
-
-xunitmp=--with-xunitmp --xunitmp-file=$(xunit_output)
-extra=--capture=tee-sys -v
+extra=--capture=no -v
 
 ################################
 all:
@@ -25,7 +23,6 @@ all:
 	@echo "  make build run"
 	@echo "  make docs "
 	@echo "  make test coverage-combine coverage-report"
-
 
 
 clean:
