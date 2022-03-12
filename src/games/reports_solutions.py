@@ -1,10 +1,10 @@
 from bisect import bisect_right
 from itertools import chain
 from math import ceil
-from typing import Dict, Optional, List, FrozenSet
+from typing import Dict, List, FrozenSet
 
 from matplotlib.artist import Artist
-from reprep import MIME_GIF, Report
+from reprep import MIME_GIF, Report, MIME_MP4
 from zuper_commons.text import remove_escapes
 from zuper_typing import debug_print
 
@@ -41,7 +41,7 @@ def report_solutions(gp: GamePreprocessed[X, U, Y, RP, RJ, SR], s: Solutions[X, 
         if "joint" not in k:
             continue
         logger.info(f"Drawing episode {k!r}")
-        with f.data_file((k), MIME_GIF) as fn:
+        with f.data_file((k), MIME_MP4) as fn:
             create_log_animation(gp, sim, fn=fn)
         write_states(r, k, sim)
         sims.pop(k)
@@ -147,14 +147,15 @@ def create_log_animation(
     gp: GamePreprocessed[X, U, Y, RP, RJ, SR],
     sim: Simulation[X, U, Y, RP, RJ],
     fn: str,
-    frame_period: Optional[int] = 100,  # todo upsample to default ms between frames
-    dpi=200,
+    frame_period: int = 50,
+    dpi: int = 200,
 ):
     """
     :param gp: game preprocessed
     :param sim: simulation log
     :param fn: filename
-    :param frame_period: : in ms (50 means 20Hz)
+    :param frame_period: in ms (50 means 20Hz)
+    :param dpi: resolution
     :return:
     """
     import matplotlib.pyplot as plt
@@ -208,7 +209,7 @@ def create_log_animation(
                     interpolated[p] = previous_js[p] * (1 - scale) + next_js[p] * scale
                 else:
                     continue
-
+        # plotting
         with viz.plot_arena(plt, ax):
             for player_name, player_state in interpolated.items():
                 if player_state is not None:
@@ -222,7 +223,7 @@ def create_log_animation(
                         # vehicle_poly=states[player_name],
                         # resources_poly = resources[player_name]
                     )
-        ax.set_title(f"t = {t}")
+        ax.set_title(f"t = {t:.1f}")
         return _iterable_of_artists()
 
     # noinspection PyTypeChecker

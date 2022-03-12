@@ -2,7 +2,7 @@ from datetime import timedelta
 from itertools import product
 from time import perf_counter
 
-from parameterized import parameterized
+import pytest
 
 from driving_games.demo import without_compmake
 from driving_games.zoo_games import games_zoo
@@ -12,8 +12,8 @@ from driving_games_tests import logger
 do_games_sets = [
     # "simple_int_2p_sets",
     # "simple_int_3p_sets",
-    # "multilane_int_2p_sets",
-    "multilane_int_3p_sets",
+    "multilane_int_2p_sets",
+    # "multilane_int_3p_sets",
     # "multilane_int_4p_sets",
     # "multilane_int_5p_sets",
     # "multilane_int_5p_sets",
@@ -25,9 +25,9 @@ do_games_sets = [
     # "complex_int_6p_sets",
 ]
 do_solvers_sets = [
-    # "solver-2-pure-security_mNE-naive-extra-inf",
+    "solver-2-pure-security_mNE-naive-extra-inf",
     # "solver-2-pure-security_mNE-fact1-noextra-inf",
-    "solver-2-pure-security_mNE-fact2-noextra-inf"
+    "solver-2-pure-security_mNE-fact2-extra-inf"
     # "solver-2-pure-security_mNE-fact2-extra"
     # "solver-1-pure-security_mNE-fact",
     # "solver-1-finite_mix-mix_mNE-fact",
@@ -39,7 +39,7 @@ solvers_sets = {k: solvers_zoo[k] for k in do_solvers_sets}
 games_n_solvers_sets = list(product(games_sets, solvers_sets))
 
 
-@parameterized(games_n_solvers_sets)
+@pytest.mark.parametrize("game_str, solver_str", games_n_solvers_sets)
 def test_games_sets(game_str: str, solver_str: str) -> None:
     logger.info(f"Starting game test:\n\tName: {game_str}\n\tSolver:{solver_str}")
     game = {game_str: games_zoo[game_str]}
@@ -61,8 +61,8 @@ solvers_prob = {k: solvers_zoo[k] for k in do_solvers_prob}
 games_n_solvers_prob = list(product(games_prob, solvers_prob))
 
 
-@parameterized(games_n_solvers_prob)
-def test_games_prob(game_str: str, solver_str: str) -> None:
+@pytest.mark.parametrize("game_str, solver_str", games_n_solvers_prob)
+def test_games_prob(game_str: str, solver_str: str):
     logger.info(f"Starting game test:\n\tName: {game_str}\n\tSolver: {solver_str}")
     games = {game_str: games_zoo[game_str]}
     solvers = {solver_str: solvers_zoo[solver_str]}

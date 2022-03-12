@@ -4,7 +4,7 @@ zuper-commons-z6>=6.1.5
 compmake-z6>=6.0.8,<7
 quickapp-z6>=6.0.5,<7
 reprep-z6>=6.0.3,<7
-zuper-typing-z6>=6.1.0
+zuper-typing-z6>=6.1.0,<7
 
 # libraries
 frozendict>=2.3.0
@@ -14,7 +14,7 @@ numpy>=1.21.2
 scipy>=1.7.1
 matplotlib>=3.4.3
 shapely>=1.8.0
-PyYAML~=5.4.1
+PyYAML>=5.4.1
 # imageio~=2.9.0 # candidate for removal?
 setuptools>=57.4.0
 cachetools>=5.0.0
