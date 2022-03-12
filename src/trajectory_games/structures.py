@@ -10,7 +10,7 @@ from .config import CONFIG_DIR
 
 __all__ = [
     "VehicleCommands",
-    "TrajectoryParams",
+    "TrajectoryGenParams",
 ]
 
 
@@ -44,7 +44,7 @@ class VehicleCommands:
 
 
 @dataclass
-class TrajectoryParams:
+class TrajectoryGenParams:
     solve: bool
     """ Generate trajectory by solving BVP at every stage or not """
     s_final: float
@@ -79,10 +79,10 @@ class TrajectoryParams:
     """ Cached config, loaded from file """
 
     @classmethod
-    def default(cls) -> "TrajectoryParams":
+    def default(cls) -> "TrajectoryGenParams":
         u_acc = frozenset([-1.0, 0.0, 1.0, 2.0])
         u_dst = frozenset([_ * 0.2 for _ in u_acc])
-        params = TrajectoryParams(
+        params = TrajectoryGenParams(
             solve=False,
             s_final=-1.0,
             max_gen=1,
@@ -101,7 +101,7 @@ class TrajectoryParams:
         return params
 
     @classmethod
-    def from_config(cls, name: str, vg_name: str) -> "TrajectoryParams":
+    def from_config(cls, name: str, vg_name: str) -> "TrajectoryGenParams":
         if cls._config is None:
             filename = os.path.join(CONFIG_DIR, "trajectories.yaml")
             with open(filename) as load_file:
@@ -122,7 +122,7 @@ class TrajectoryParams:
             u_acc = get_set(inp="acc")
             u_dst = get_set(inp="dst")
 
-            params = TrajectoryParams(
+            params = TrajectoryGenParams(
                 solve=config["solve"],
                 s_final=config["s_final"],
                 max_gen=config["max_gen"],

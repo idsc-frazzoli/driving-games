@@ -13,25 +13,25 @@ from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
 from .bicycle_dynamics import BicycleDynamics
 from .game_def import ActionSetGenerator
 
-from .structures import TrajectoryParams
+from .structures import TrajectoryGenParams
 
-__all__ = ["TransitionGenerator"]
+__all__ = ["TrajectoryGenerator"]
 
 Successors = Mapping[VehicleCommands, Tuple[TimedVehicleState, List[TimedVehicleState]]]
 Solve_Tolerance = 1e-3
 
 
-class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
+class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     """Generate feasible trajectories for each player"""
 
-    params: TrajectoryParams
+    params: TrajectoryGenParams
 
     """ Internal data """
     _bicycle_dyn: BicycleDynamics
 
     # _cache: Dict[Tuple[PlayerName, VehicleState], Set[TrajectoryGraph]]
 
-    def __init__(self, params: TrajectoryParams, ref_lane_goals: Sequence[RefLaneGoal]):
+    def __init__(self, params: TrajectoryGenParams, ref_lane_goals: Sequence[RefLaneGoal]):
         self.params = params
         self.ref_lane_goals: Sequence[RefLaneGoal] = ref_lane_goals
         self._bicycle_dyn = BicycleDynamics(params=params)
@@ -62,15 +62,10 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         for graph in lane_graphs:
             all_traj |= graph.get_all_trajectories()
         toc = perf_counter() - tic
-        print(
-            f"Lanes = {len(lane_graphs)}"
-            f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s"
-        )
+        print(f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(all_traj)}\n\ttime = {toc:.2f} s")
         return frozenset(all_traj)
 
-    def _get_trajectory_graph(
-            self, state: VehicleState, ref_lane_goal: RefLaneGoal
-    ) -> TrajectoryGraph:
+    def _get_trajectory_graph(self, state: VehicleState, ref_lane_goal: RefLaneGoal) -> TrajectoryGraph:
         """Construct graph of states"""
         graph: TrajectoryGraph = TrajectoryGraph()
         k_maxgen = 5
@@ -94,8 +89,9 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 if ref_lane_goal.goal_progress is not None:
                     # use finite distance condition
                     # cond = self.get_goal_reached_index(states=samp, goal=goal) is None and current_gen + 1 < k_maxgen
-                    cond = current_gen + 1 < k_maxgen \
-                           and not self.goal_reached(states=samp, ref_lane_goal=ref_lane_goal)
+                    cond = current_gen + 1 < k_maxgen and not self.goal_reached(
+                        states=samp, ref_lane_goal=ref_lane_goal
+                    )
                 else:
                     # use finite time condition (time = generations)
                     cond = current_gen + 1 < self.params.max_gen
@@ -151,7 +147,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         return pos_f, ang_f
 
     def get_successor(
-            self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
+        self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
     ) -> Tuple[TimedVehicleState, List[TimedVehicleState]]:
         dt_samp = self.params.dt_samp if samp else self.params.dt
         return self._bicycle_dyn.successor_ivp(x0=state, u=u, dt=self.params.dt, dt_samp=dt_samp)
@@ -168,10 +164,10 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0}
         acc_vals = self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0)
         if not cond_gen:
-            for acc in list(acc_vals): # todo [LEON]: issue when acceleration values is =0!
-                if acc <= 0.0: #todo [LEON]: added <= instead of < -> fix this
+            for acc in list(acc_vals):  # todo [LEON]: issue when acceleration values is =0!
+                if acc <= 0.0:  # todo [LEON]: added <= instead of < -> fix this
                     acc_vals.remove(acc)
-                    #acc_vals.add(0.0) # todo [LEON]: removed temporarily.
+                    # acc_vals.add(0.0) # todo [LEON]: removed temporarily.
         return acc_vals, dst_vals
 
     def get_successors_approx(self, timed_state: TimedVehicleState, lane: DgLanelet, gen: int) -> Successors:
@@ -184,7 +180,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         dt = float(self.params.dt)
         # l = self.params.vg.l
-        l = (self.params.vg.lf + self.params.vg.lr)# / 2  # todo lf or lr, /2?
+        l = self.params.vg.lf + self.params.vg.lr  # / 2  # todo lf or lr, /2?
 
         # Calculate initial pose
         start_arr = np.array([timed_state[1].x, timed_state[1].y])
@@ -205,7 +201,7 @@ class TransitionGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_corrected_distance(acc: float) -> float:
             """Progress along reference iteratively corrected using curvature"""
             curv = 0.0
-            if acc == 0.0: #todo [LEON]: wokaround for now. Issue when acc==0.0 (division by zero happens in line 218)
+            if acc == 0.0:  # todo [LEON]: wokaround for now. Issue when acc==0.0 (division by zero happens in line 218)
                 acc = 0.1
             dist = get_progress(acc=acc, K=curv)
             assert dist != 0, "Progress can't be zero.  Choose another acceleration."

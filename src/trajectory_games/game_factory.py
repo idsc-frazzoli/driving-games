@@ -22,10 +22,10 @@ from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
-from .structures import TrajectoryParams
+from .structures import TrajectoryGenParams
 from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
 from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
-from .trajectory_generator import TransitionGenerator
+from .trajectory_generator import TrajectoryGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
 from .config import CONFIG_DIR
@@ -65,7 +65,7 @@ def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
 
     for dx, dy in [(-1, -1), (-1, 1), (1, 1), (1, -1)]:
         s_f, n_f = progress + dy * config["goal"]["long_dist"], dx * config["goal"]["lat_dist"]
-        xy_f, _ = TransitionGenerator._get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
+        xy_f, _ = TrajectoryGenerator._get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
         points.append(xy_f)
     return Polygon(points)
 
@@ -120,8 +120,8 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
     mpref_build: MonadicPreferenceBuilder = SetPreference
 
     for pname, pconfig in config[config_str]["players"].items():
-        if pname == "Ambulance": #todo [LEON] does not work. WHY?
-             continue
+        if pname == "Ambulance":  # todo [LEON] does not work. WHY?
+            continue
         logger.info(f"Extracting lanes: {pname}", end=" ...")
 
         # extract data from config file
@@ -134,8 +134,8 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
         # transition generator
         ref_lanes = get_lanelet_from_points(start=state_init, goal=p_goals[0], lanelet_network=scenario.lanelet_network)
         ref_lane_goals = [RefLaneGoal(ref_lane=lane, goal_progress=required_goal_progress) for lane in ref_lanes]
-        trans_param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=player_color)
-        traj_gen = TransitionGenerator(params=trans_param, ref_lane_goals=ref_lane_goals)
+        trans_param = TrajectoryGenParams.from_config(name=pconfig["traj"], vg_name=player_color)
+        traj_gen = TrajectoryGenerator(params=trans_param, ref_lane_goals=ref_lane_goals)
 
         goals[pname] = ref_lane_goals
 
@@ -206,8 +206,8 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
         state.x, state.y, state.th = se2_init.p[0], se2_init.p[1], se2_init.theta
 
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
-        param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
-        traj_gen = TransitionGenerator(params=param)
+        param = TrajectoryGenParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
+        traj_gen = TrajectoryGenerator(params=param)
         pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
         players[pname] = TrajectoryGamePlayer(
             name=pname,

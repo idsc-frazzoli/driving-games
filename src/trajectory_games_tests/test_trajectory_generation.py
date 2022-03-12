@@ -11,8 +11,8 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons_dev.utils import get_project_root_dir
 
-from trajectory_games.trajectory_generator import TransitionGenerator
-from trajectory_games.structures import TrajectoryParams
+from trajectory_games.trajectory_generator import TrajectoryGenerator
+from trajectory_games.structures import TrajectoryGenParams
 from trajectory_games.visualization import TrajectoryGenerationVisualization
 
 
@@ -29,23 +29,26 @@ def test_trajectory_generation():
     lane_12 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49586))
     lane_13 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49568))
 
-    dglane_ctrl_points = lane_11.control_points[-points_from_last:-1] \
-                         + lane_12.control_points \
-                         + lane_13.control_points[1:points_from_first]
+    dglane_ctrl_points = (
+        lane_11.control_points[-points_from_last:-1]
+        + lane_12.control_points
+        + lane_13.control_points[1:points_from_first]
+    )
 
     dglanelet = DgLanelet(dglane_ctrl_points)
 
-    x_1_translation_angles = [translation_angle_from_SE2(dglanelet.center_point(beta)) for
-                              beta in range(len(dglanelet.control_points))]
+    x_1_translation_angles = [
+        translation_angle_from_SE2(dglanelet.center_point(beta)) for beta in range(len(dglanelet.control_points))
+    ]
 
     ref_lane_goals = [RefLaneGoal(ref_lane=dglanelet, goal_progress=0.9)]
     init_point = x_1_translation_angles[1]
     initial_state = VehicleState(x=init_point[0][0], y=init_point[0][1], vx=0, theta=init_point[1], delta=0)
     u_acc = frozenset([-1.0, 0.0, 1.0, 2.0, 3.0])
     u_dst = frozenset([_ * 0.2 for _ in u_acc])
-    params = TrajectoryParams(
+    params = TrajectoryGenParams(
         solve=False,
-        s_final=-1.,
+        s_final=-1.0,
         max_gen=10,
         dt=D("2"),
         u_acc=u_acc,
@@ -59,7 +62,7 @@ def test_trajectory_generation():
         n_factor=0.8,
         vg=VehicleGeometry.default_car(),
     )
-    generator = TransitionGenerator(params=params, ref_lane_goals=ref_lane_goals)
+    generator = TrajectoryGenerator(params=params, ref_lane_goals=ref_lane_goals)
     trajectories = generator.get_actions(state=initial_state)
 
     viz = TrajectoryGenerationVisualization(scenario=scenario, trajectories=trajectories)

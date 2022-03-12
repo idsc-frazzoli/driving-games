@@ -7,7 +7,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 from dg_commons import Timestamp
-from .structures import TrajectoryParams
+from .structures import TrajectoryGenParams
 from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands, VehicleGeometry
 
 __all__ = ["BicycleDynamics"]
@@ -30,7 +30,7 @@ class BicycleDynamics:
     u_dst: FrozenSet[float]
     """ Possible values of steering rate [rad/s] """
 
-    def __init__(self, params: TrajectoryParams):
+    def __init__(self, params: TrajectoryGenParams):
         self.v_max = params.v_max
         self.v_min = params.v_min
         self.st_max = params.st_max
@@ -73,9 +73,7 @@ class BicycleDynamics:
         dt_f = float(dt)
         u_dst = set(
             [
-                self.get_clipped(
-                    val=_ + u0.ddelta, lo=(-self.st_max - x.delta) / dt_f, hi=(self.st_max - x.delta)
-                )
+                self.get_clipped(val=_ + u0.ddelta, lo=(-self.st_max - x.delta) / dt_f, hi=(self.st_max - x.delta))
                 for _ in self.u_dst
             ]
         )
@@ -148,11 +146,11 @@ class BicycleDynamics:
         x0[1].vx += u.acc * dt_f
         x0[1].delta += u.ddelta * dt_f
         u0 = VehicleCommands(0.0, 0.0)
-        idx = {"x": 0, "y": 1, "th": 2, "v": 3, "st": 4, "ax": 5, "dst": 6} #"t": 5
+        idx = {"x": 0, "y": 1, "th": 2, "v": 3, "st": 4, "ax": 5, "dst": 6}  # "t": 5
         digits = get_digits(dt_samp)
 
         def array_from_state(x_s: VehicleState, u_s: VehicleCommands = u0) -> np.array:
-            return np.array([x_s.x, x_s.y, x_s.theta, x_s.vx, x_s.delta, u_s.acc, u_s.ddelta])#float(x_s.t)
+            return np.array([x_s.x, x_s.y, x_s.theta, x_s.vx, x_s.delta, u_s.acc, u_s.ddelta])  # float(x_s.t)
 
         def states_from_array(y: np.array) -> Tuple[VehicleState, VehicleCommands]:
             state = VehicleState(
@@ -161,7 +159,7 @@ class BicycleDynamics:
                 theta=y[idx["th"]],
                 vx=y[idx["v"]],
                 delta=y[idx["st"]],
-                #t=round(D(y[idx["t"]]), digits),
+                # t=round(D(y[idx["t"]]), digits),
             )
             action = VehicleCommands(acc=y[idx["ax"]], ddelta=y[idx["dst"]])
             return state, action
@@ -189,15 +187,15 @@ class BicycleDynamics:
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
         """Get rate of change of states for given control inputs"""
         dx = x0.vx
-        dr = dx * math.tan(x0.delta) / ((self.vg.lf + self.vg.lr)) # todo which lr or lf
-        dy = dr * (self.vg.lf + self.vg.lr)/2 # todo which lr og lf
-        #dr = dx * math.tan(x0.st) / (2.0 * (self.vg.lf+self.vg.lr))
-        #dy = dr * (self.vg.lf+self.vg.lr)
+        dr = dx * math.tan(x0.delta) / ((self.vg.lf + self.vg.lr))  # todo which lr or lf
+        dy = dr * (self.vg.lf + self.vg.lr) / 2  # todo which lr og lf
+        # dr = dx * math.tan(x0.st) / (2.0 * (self.vg.lf+self.vg.lr))
+        # dy = dr * (self.vg.lf+self.vg.lr)
         th_eq = x0.theta + dr / 2.0 if mean else x0.theta
         costh = math.cos(th_eq)
         sinth = math.sin(th_eq)
 
         xdot = dx * costh - dy * sinth
         ydot = dx * sinth + dy * costh
-        ret = VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)#, t=D("1"))
+        ret = VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)  # , t=D("1"))
         return ret
