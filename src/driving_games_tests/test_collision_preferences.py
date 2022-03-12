@@ -1,11 +1,10 @@
+from decimal import Decimal as D
 from math import pi
 from typing import Mapping, Optional, Tuple
 
-from driving_games.zoo import get_asym
-from nose.tools import assert_equal
-
 from dg_commons import PlayerName
 from driving_games import CollisionPreference, logger, SimpleCollision, VehicleTimeCost
+from driving_games.zoo_games import get_complex_int_2p_sets
 from games import Combined
 from games.solve.solution_utils import get_outcome_preferences_for_players
 from possibilities import PossibilityMonad, PossibilitySet
@@ -37,7 +36,7 @@ def test1() -> None:
     pref = CollisionPreference()
     for (a, b), c in expect.items():
         res = pref.compare(a, b)
-        assert_equal(res, c)
+        assert res == c
 
 
 def test2() -> None:
@@ -64,15 +63,15 @@ def test2() -> None:
     )
 
     o_A = {
-        P1: ps.unit(Combined(VehicleTimeCost(3), c0)),
-        P2: ps.unit(Combined(VehicleTimeCost(3), c0)),
+        P1: ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
+        P2: ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
     }
     o_B = {
-        P1: ps.unit(Combined(VehicleTimeCost(13), None)),
-        P2: ps.unit(Combined(VehicleTimeCost(4), None)),
+        P1: ps.unit(Combined(VehicleTimeCost(D(13)), None)),
+        P2: ps.unit(Combined(VehicleTimeCost(D(4)), None)),
     }
 
-    preferences = get_outcome_preferences_for_players(game)
+    preferences = get_outcome_preferences_for_players(get_complex_int_2p_sets().game)
 
     # preferences_ = tuple(preferences.values())
     eq_pref = StrictProductPreferenceDict(preferences)
@@ -83,8 +82,8 @@ def test2() -> None:
 
 
 def test_3() -> None:
-    game = get_asym().game
+    game = get_complex_int_2p_sets().game
     p1, p2 = list(game.players)
     s1 = list(game.players[p1].initial.support())[0]
-    sr = game.players[p1].dynamics.get_shared_resources(s1)
+    sr = game.players[p1].dynamics.get_shared_resources(s1, dt=D(1))
     logger.info(sr=sr)

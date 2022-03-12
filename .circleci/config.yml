@@ -44,6 +44,7 @@ jobs:
           command: |
             echo PATH=$PATH
             pip install -q --user --upgrade -r requirements.txt
+            pip install -q --user --upgrade -r requirements-extra.txt
       - run:
           name: List deps
           command: |
@@ -70,19 +71,9 @@ jobs:
       - run:
           name: Run tests
           command: |
-            make test
+            make test-parallel
       - store_test_results:
           path: out/test-results
-      - store_artifacts:
-          path: out/tests
-          destination: tests
-      - run:
-          name: Coverage report
-          when: always
-          command: |
-            make coverage-combine
-            make coverage-report
-            coverage xml
       - store_artifacts:
           path: out/coverage
           destination: coverage
@@ -90,6 +81,7 @@ jobs:
           name: CodeCov
           when: always
           command: |
+            coverage xml
             codecov
 
 
@@ -103,3 +95,6 @@ workflows:
       - install_docs_tests:
           name: "DrivingGamesCI:3.9"
           version: "3.9"
+      - install_docs_tests:
+          name: "DrivingGamesCI:3.10"
+          version: "3.10"
