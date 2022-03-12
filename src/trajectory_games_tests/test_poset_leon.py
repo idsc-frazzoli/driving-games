@@ -1,7 +1,6 @@
 from copy import deepcopy
 from typing import Set, Dict
 from decimal import Decimal as D
-from nose.tools import assert_equal
 
 from trajectory_games.preference import PosetalPreference
 from driving_games.metrics_structures import Metric, EvaluatedMetric

@@ -4,7 +4,6 @@ from decimal import Decimal as D
 from typing import Set, Dict, Tuple
 
 from networkx import DiGraph, topological_sort, has_path
-from nose.tools import assert_equal
 
 from driving_games.metrics_structures import Metric, EvaluatedMetric
 from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
@@ -19,8 +18,6 @@ from trajectory_games.metrics import (
     LongitudinalAcceleration,
     LateralComfort,
     SteeringAngle,
-    CollisionEnergy_old,
-    MinimumClearance_old,
 )
 
 
@@ -41,101 +38,97 @@ def test_poset():
     p2 = deepcopy(p_def)
 
     # p1==p2
-    assert_equal(pref1.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref2.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref3.compare(p1, p2), INDIFFERENT)
+    assert pref1.compare(p1, p2) == INDIFFERENT
+    assert pref2.compare(p1, p2) == INDIFFERENT
+    assert pref3.compare(p1, p2) == INDIFFERENT
 
     p2[LongitudinalAcceleration()].value = D("1")
     # LongAcc: p1>p2
-    assert_equal(pref1.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
+    assert pref1.compare(p1, p2) == INDIFFERENT
+    assert pref2.compare(p1, p2) == FIRST_PREFERRED
+    assert pref3.compare(p1, p2) == FIRST_PREFERRED
 
     p1[LateralComfort()].value = D("1")
     # LongAcc: p1>p2, LatComf: p1<p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == SECOND_PREFERRED
 
-    p2[MinimumClearance_old()].value = D("1")
     # LongAcc: p1>p2, LatComf: p1<p2, LongJerk: p1>p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), INCOMPARABLE)
-    assert_equal(pref3.compare(p1, p2), INCOMPARABLE)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == INCOMPARABLE
+    assert pref3.compare(p1, p2) == INCOMPARABLE
 
     p1[LateralComfort()].value = D("0")
     p2[LongitudinalAcceleration()].value = D("0")
     p1[ProgressAlongReference()].value = D("1")
     # LongJerk: p1>p2, Prog: p1<p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == SECOND_PREFERRED
 
     p1[ProgressAlongReference()].value = D("0")
     # LongJerk: p1>p2
-    assert_equal(pref1.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
+    assert pref1.compare(p1, p2) == INDIFFERENT
+    assert pref2.compare(p1, p2) == FIRST_PREFERRED
+    assert pref3.compare(p1, p2) == FIRST_PREFERRED
 
     p1[DrivableAreaViolation()].value = D("1")
     # LongJerk: p1>p2, Area: p1<p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == SECOND_PREFERRED
 
     p2[DeviationHeading()].value = D("1")
     # LongJerk: p1>p2, Area: p1<p2, DevHead: p1>p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), INCOMPARABLE)
-    assert_equal(pref3.compare(p1, p2), INCOMPARABLE)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == INCOMPARABLE
+    assert pref3.compare(p1, p2) == INCOMPARABLE
 
     p1[DeviationLateral()].value = D("1")
     # LongJerk: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == SECOND_PREFERRED
 
-    p2[CollisionEnergy_old()].value = D("1")
     # LongJerk: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2, Coll: p1>p2
-    assert_equal(pref1.compare(p1, p2), FIRST_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), FIRST_PREFERRED)
+    assert pref1.compare(p1, p2) == FIRST_PREFERRED
+    assert pref2.compare(p1, p2) == FIRST_PREFERRED
+    assert pref3.compare(p1, p2) == FIRST_PREFERRED
 
-    p2[MinimumClearance_old()].value = D("0")
     p1[DrivableAreaViolation()].value = D("0")
     p2[DeviationHeading()].value = D("0")
-    p2[CollisionEnergy_old()].value = D("0")
     # DevLat: p1<p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == SECOND_PREFERRED
 
     p2[SteeringAngle()].value = D("1")
     # DevLat: p1<p2, StAng: p1>p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), INCOMPARABLE)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == INCOMPARABLE
 
     p1[EpisodeTime()].value = D("1")
     p2[LongitudinalAcceleration()].value = D("1")
     # DevLat: p1<p2, StAng: p1>p2, Surv: p1<p2, LongAcc: p1>p2
-    assert_equal(pref1.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref2.compare(p1, p2), SECOND_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), SECOND_PREFERRED)
+    assert pref1.compare(p1, p2) == SECOND_PREFERRED
+    assert pref2.compare(p1, p2) == SECOND_PREFERRED
+    assert pref3.compare(p1, p2) == SECOND_PREFERRED
 
     p1[DeviationLateral()].value = D("0")
     p2[SteeringAngle()].value = D("0")
     # Surv: p1<p2, LongAcc: p1>p2
-    assert_equal(pref1.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref2.compare(p1, p2), FIRST_PREFERRED)
-    assert_equal(pref3.compare(p1, p2), INCOMPARABLE)
+    assert pref1.compare(p1, p2) == INDIFFERENT
+    assert pref2.compare(p1, p2) == FIRST_PREFERRED
+    assert pref3.compare(p1, p2) == INCOMPARABLE
 
     p1[EpisodeTime()].value = D("0")
     p2[LongitudinalAcceleration()].value = D("0")
     # p1==p2
-    assert_equal(pref1.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref2.compare(p1, p2), INDIFFERENT)
-    assert_equal(pref3.compare(p1, p2), INDIFFERENT)
+    assert pref1.compare(p1, p2) == INDIFFERENT
+    assert pref2.compare(p1, p2) == INDIFFERENT
+    assert pref3.compare(p1, p2) == INDIFFERENT
 
 
 CompareDict: Dict[Tuple[bool, bool], ComparisonOutcome] = {
@@ -265,7 +258,7 @@ def test_compare_posets():
 
     for (A, B), result in results.items():
         ab = compare_posets(prefs[A], prefs[B])
-        assert_equal(ab, result, f"A,B = {A, B}\t res,actual = {ab, result}")
+        assert ab == result, f"A,B = {A, B}\t res,actual = {ab, result}"
 
 
 if __name__ == "__main__":
