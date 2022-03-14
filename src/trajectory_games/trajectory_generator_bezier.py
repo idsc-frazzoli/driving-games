@@ -393,7 +393,7 @@ def test_sampling_points():
     sampled_points_x = [point[0] for point in sampled_points]
     sampled_points_y = [point[1] for point in sampled_points]
 
-    ax.scatter(sampled_points_x, sampled_points_y, marker='o', color='red')
+    ax.SCATTER(sampled_points_x, sampled_points_y, marker='o', color='red')
     plt.show()
 
     print(sampled_points)

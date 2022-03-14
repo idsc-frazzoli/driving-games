@@ -1,7 +1,7 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict, Set, Tuple, Optional, List
+from typing import Dict, Set, Tuple, Optional, List, Mapping
 
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
@@ -18,24 +18,32 @@ from games import MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference
 from dg_commons.sim.scenarios import load_commonroad_scenario
+from . import Solution
 from .config.ral import config_dir_ral
-from .game_def import EXP_ACCOMP, JOIN_ACCOMP
+from .decentralized_game import DecentralizedTrajectoryGame
+from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
 from .structures import TrajectoryGenParams
 from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
-from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams, \
+    preprocess_full_game, SolvedTrajectoryGame
 from .trajectory_generator import TrajectoryGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
 from .config import CONFIG_DIR
 
-__all__ = ["get_trajectory_game", "get_leader_follower_game", "get_simple_traj_game_leon"]
+__all__ = ["get_trajectory_game",
+           "get_leader_follower_game",
+           "get_simple_traj_game_leon",
+           "get_decentralized_traj_game"
+           ]
 
 players_file = os.path.join(config_dir_ral, "players.yaml")
 # leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
+    a=1
 
 
 # with open(leader_follower_file) as load_file:
@@ -71,7 +79,7 @@ def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
 
 
 def lanelet_from_ids(lanelet_ids: List[int], network: LaneletNetwork):
-    lanelets = []
+    # lanelets = []
     merged_lanelet = network.find_lanelet_by_id(lanelet_ids[0])
     for enum, current_id in enumerate(lanelet_ids):
         if enum == 0:
@@ -103,7 +111,7 @@ def get_lanelet_from_points(start: np.ndarray, goal: np.ndarray, lanelet_network
     return ref_lanes
 
 
-def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
+def get_simple_traj_game_leon(config_str: str, initial_states=None) -> TrajectoryGame:
     tic = perf_counter()
     geometries: Dict[PlayerName, VehicleGeometry] = {}
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
@@ -125,7 +133,11 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
         logger.info(f"Extracting lanes: {pname}", end=" ...")
 
         # extract data from config file
-        state = from_config(name=pconfig["state"])
+        if not initial_states:
+            state = from_config(name=pconfig["state"])
+        else:
+            state = initial_states[pname]
+
         state_init = np.array([state.x, state.y])
         p_goals = [np.array(goal) for goal in pconfig["goals"]]
         player_color = pconfig["vg"].replace("car_", "")
@@ -149,9 +161,10 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
             monadic_preference_builder=mpref_build,
             vg=geometries[pname],
         )
-
+    b = config["plot_limits"]
     world = TrajectoryWorld(map_name=config["map_name"], scenario=scenario, geo=geometries, goals=goals)
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
+    c = config["plot_limits"]
     game = TrajectoryGame(
         world=world,
         game_players=players,
@@ -164,6 +177,25 @@ def get_simple_traj_game_leon(config_str: str) -> TrajectoryGame:
     logger.info(f"Game creation time = {toc:.2f} s")
 
     return game
+
+
+def get_decentralized_traj_game(config_str: str, initial_states=None) -> DecentralizedTrajectoryGame:
+    games = {}
+    nash_eqs = {}
+    solving_contexts = {}
+    for pname, pconfig in config[config_str]["players"].items():
+        if pname == "Ambulance":  # todo [LEON] does not work. WHY?
+            continue
+
+        current_game = get_simple_traj_game_leon(config_str, initial_states)
+        games[pname] = current_game
+        current_context: SolvingContext = preprocess_full_game(sgame=current_game, only_traj=False)
+        solving_contexts[pname] = current_context
+        sol = Solution()
+        current_nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=current_context)
+        nash_eqs[pname] = current_nash_eq
+
+    return DecentralizedTrajectoryGame(games=games, solving_contexts=solving_contexts, nash_eqs=nash_eqs)
 
 
 def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:

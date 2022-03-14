@@ -56,11 +56,12 @@ def report_game_visualization(game: Game) -> Report:
                     for path in actions:
                         vals = [(x.x, x.y, x.vx) for _, x in path]
                         x, y, vel = zip(*vals)
-                        ax.scatter(x, y, s=size, marker="o", c="k", alpha=0.2, zorder=ZOrder.scatter)
+                        ax.SCATTER(x, y, s=size, marker="o", c="k", alpha=0.8, zorder=ZOrder.SCATTER)
             ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
             pylab.axis("off")
             # uncomment if you want to plot only area around players instead of entire scene
             #adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
+            adjust_axes_limits(ax=ax, plot_limits=None, players_states=states)
 
     toc = perf_counter() - tic
     print(f"Report game viz time = {toc:.2f} s")

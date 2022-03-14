@@ -1,7 +1,8 @@
 import colorsys
 from contextlib import contextmanager
+from dataclasses import asdict
 
-from geometry import SE2_from_xytheta
+from geometry import SE2_from_xytheta, SE2value
 from matplotlib import colors as mcolors
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 # from shapely.geometry import Polygon
@@ -72,7 +73,7 @@ class TrajectoryGenerationVisualization:
         segments = [np.array([np.array([x.x, x.y]) for _, x in traj]) for traj in trajectories]
 
         # lines = LineCollection(segments=[], linewidths=width, alpha=alpha, zorder= #old
-        lines = LineCollection(segments=[], zorder=ZOrder.actions)
+        lines = LineCollection(segments=[], zorder=ZOrder.ACTIONS)
         axis.add_collection(lines)
 
         lines.set_segments(segments=segments)
@@ -141,7 +142,7 @@ class EvaluationContextVisualization:
             alpha: float = 1.0,
     ) -> Tuple[LineCollection, LineCollection]:
         segments = [np.array([np.array([state.x, state.y]) for state in traj.values]) for _, traj in actions.items()]
-        lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.actions)
+        lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.ACTIONS)
         axis.add_collection(lines)
         lines.set_segments(segments=segments)
         if action_colors is not None:
@@ -158,7 +159,7 @@ class EvaluationContextVisualization:
                     np.array([point.q.p for point in lane.ref_lane.get_control_points]) for _, lane in goals.items()
                 ]
 
-            goal_lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.goal)
+            goal_lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.GOAL)
             axis.add_collection(goal_lines)
             goal_lines.set_segments(segments=goal_segments)
             goal_lines.set_linestyle("--")
@@ -198,13 +199,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             self,
             world: TrajectoryWorld,
             ax: Axes = None,
-            plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = "auto",
+            plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None,
             *args,
             **kwargs,
     ):
         self.world = world
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, plot_limits=plot_limits, *args, figsize=(16, 16),
                                                           **kwargs)
+        self.plot_limits = plot_limits
 
     @contextmanager
     def plot_arena(self, axis: Axes):
@@ -220,9 +222,39 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     def plot_player(self, axis, player_name: PlayerName, state: VehicleState, alpha: float = 0.95, box=None):
         """Draw the player and his action set at a certain state."""
 
-        vg: VehicleGeometry = self.world.get_geometry(player_name)
+
         box = plot_car(axis=axis, state=state, vg=vg, alpha=alpha, box=box)
         return box
+
+    def plot_player(
+            self,
+            axis: Axes,
+            player_name: PlayerName,
+            state: VehicleState,
+            model_poly: Optional[List[Polygon]] = None,
+            lights_patches: Optional[List[Circle]] = None,
+            alpha: float = 0.6,
+            plot_wheels: bool = False,
+            plot_lights: bool = False,
+    ) -> Tuple[List[Polygon], List[Circle]]:
+        """Draw the player the state."""
+        # todo make it nicer with a map of plotting functions based on the state type
+
+        vg: VehicleGeometry = self.world.get_geometry(player_name)
+        if issubclass(type(state), VehicleState):
+            return plot_vehicle(
+                ax=axis,
+                player_name=player_name,
+                state=state,
+                vg=vg,
+                alpha=alpha,
+                vehicle_poly=model_poly,
+                lights_patches=lights_patches,
+                plot_wheels=plot_wheels,
+                plot_ligths=plot_lights,
+            )
+        else:
+            raise RuntimeError
 
     def plot_equilibria(
             self,
@@ -321,66 +353,85 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         if lines is None:
             if colour is None:
                 colour = "gray"  # Black
-            lines = LineCollection(segments=[], linewidths=width, alpha=alpha, zorder=ZOrder.actions)
+            lines = LineCollection(segments=[], linewidths=width, alpha=alpha, zorder=ZOrder.ACTIONS)
             axis.add_collection(lines)
 
         lines.set_segments(segments=segments)
         lines.set_color(colour)
         return lines
 
-
-def plot_car(
-        axis,
+def plot_vehicle(
+        ax: Axes,
+        player_name: PlayerName,
         state: VehicleState,
         vg: VehicleGeometry,
         alpha: float,
-        box,
-        plot_wheels: bool = False
-):
-    # L = vg.l
-    # W = vg.w
-    # todo [LEON]: fix these
-    L = vg.lf + vg.lr
-    W = vg.w_half * 2
-    car_color = vg.color.replace("_car", "")
-    car: Sequence[Tuple[float, float], ...] = ((-L, -W), (-L, +W), (+L, +W), (+L, -W), (-L, -W))
-    xy_theta = (state.x, state.y, state.theta)
-    q = SE2_from_xytheta(xy_theta)
-    car = transform_xy(q, car)
-    alpha = 0.1
-    if box is None:
-        (vehicle_box,) = axis.fill([], [], color=car_color, edgecolor="saddlebrown", alpha=alpha, zorder=ZOrder.car_box)
-        box = [
+        vehicle_poly: Optional[List[Polygon]] = None,
+        lights_patches: Optional[List[Circle]] = None,
+        plot_wheels: bool = True,
+        plot_ligths: bool = True,
+) -> Tuple[List[Polygon], List[Circle]]:
+    """"""
+    vehicle_outline: Sequence[Tuple[float, float], ...] = vg.outline
+    vehicle_color: Color = vg.color.replace("_car", "")
+    q = SE2_from_xytheta((state.x, state.y, state.theta))
+    if vehicle_poly is None:
+        vehicle_box = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=ZOrder.MODEL)[0]
+        vehicle_poly = [
             vehicle_box,
         ]
         x4, y4 = transform_xy(q, ((0, 0),))[0]
-
-        # axis.text(x4 + 1, y4,
-        #           player_name,
-        #           fontsize=8,
-        #           zorder=ZOrder.player_name,
-        #           horizontalalignment="left",
-        #           verticalalignment="center")
+        ax.text(
+            x4, y4, player_name, zorder=ZOrder.PLAYER_NAME, horizontalalignment="center", verticalalignment="center"
+        )
         if plot_wheels:
-            wheels_boxes = [axis.fill([], [], color="k", alpha=alpha, zorder=ZOrder.car_box)[0] for _ in range(4)]
-            box.extend(wheels_boxes)
-    box[0].set_xy(np.array(car))
+            wheels_boxes = [
+                ax.fill([], [], color="k", alpha=alpha, zorder=ZOrder.MODEL)[0] for _ in range(vg.n_wheels)
+            ]
+            vehicle_poly.extend(wheels_boxes)
+        if plot_ligths:
+            lights_patches = _plot_lights(ax=ax, q=q, vg=vg)
+
+    outline = transform_xy(q, vehicle_outline)
+    vehicle_poly[0].set_xy(outline)
+
     if plot_wheels:
         wheels_outlines = vg.get_rotated_wheels_outlines(state.delta)
         wheels_outlines = [q @ w_outline for w_outline in wheels_outlines]
-        for w_idx, wheel in enumerate(box[1:]):
+        for w_idx, wheel in enumerate(vehicle_poly[1:]):
             xy_poly = wheels_outlines[w_idx][:2, :].T
             wheel.set_xy(xy_poly)
-    return box
+
+    if plot_ligths:
+        for i, name in enumerate(vg.lights_position):
+            position = vg.lights_position[name]
+            x2, y2 = transform_xy(q, (position,))[0]
+            lights_patches[i].center = x2, y2
+
+    return vehicle_poly, lights_patches
+
+def _plot_lights(ax: Axes, q: SE2value, vg: VehicleGeometry) -> List[Circle]:
+    radius_light = 0.04 * vg.width
+    patches = []
+    for name in vg.lights_position:
+        position = vg.lights_position[name]
+        x2, y2 = transform_xy(q, (position,))[0]
+        patch = Circle((x2, y2), radius=radius_light, zorder=ZOrder.LIGHTS)
+        patches.append(patch)
+        ax.add_patch(patch)
+    return patches
+
 
 
 class ZOrder:
-    scatter = 60
-    lanes = 15
-    goal = 20
-    actions = 20
-    car_box = 75
-    player_name = 100
+    SCATTER = 60
+    LANES = 15
+    GOAL = 20
+    ACTIONS = 20
+    CAR_BOX = 75 # todo: still needed?
+    PLAYER_NAME = 100
+    LIGHTS = 35
+    MODEL = 30
 
 
 def lighten_color(color: Color, amount: float = 0.5):

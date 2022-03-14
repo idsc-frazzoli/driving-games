@@ -12,7 +12,7 @@ goal:
 
 #plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
 #plot_limits: [[-17, 18], [-7, 28]]
-plot_limits: "auto"
+plot_limits: null
 
 #players:    List of players in the game
 #  P1:        Player Name

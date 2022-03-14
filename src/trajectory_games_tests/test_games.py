@@ -11,6 +11,7 @@ from trajectory_games import (
     get_leader_follower_game,
     get_trajectory_game,
     get_simple_traj_game_leon,
+    get_decentralized_traj_game,
     iterative_best_response,
     PosetalPreference,
     preprocess_full_game,
@@ -213,9 +214,40 @@ def test_simple_trajectory_game_leon():
     assert True
 
 
+def test_decentralized_trajectory_game_leon():
+    folder = "dec_game_test/"
+
+    config_str = "leon_level_0"
+    dec_game = get_decentralized_traj_game(config_str)
+
+    return dec_game
+
+def loop_dec_game():
+    config_str = "leon_level_0"
+    dt = 1.
+    n_timesteps = 5
+    dec_game = get_decentralized_traj_game(config_str)
+    next_states = {}
+    for n in range(n_timesteps):
+        for player in dec_game.games.keys():
+            current_state = next(iter(dec_game.nash_eqs[player]['admissible'])).actions[player].at_interp(dt)
+            next_states[player] = current_state
+
+        dec_game = get_decentralized_traj_game(config_str, next_states)
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     # d = "trajectory_games_tests/" + d
     # test_trajectory_game_brute_force()
     # test_trajectory_game_best_response()
     # test_trajectory_game_levels()
     test_simple_trajectory_game_leon()
+    # test_decentralized_trajectory_game_leon()
+    # loop_dec_game()
+
