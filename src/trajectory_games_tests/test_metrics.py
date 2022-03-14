@@ -6,7 +6,6 @@ from typing import Mapping, Optional
 import matplotlib
 import numpy as np
 from geometry.poses import translation_angle_from_SE2
-from nose.tools import assert_equal, assert_greater, assert_almost_equal
 
 from crash import logger
 from dg_commons import PlayerName
@@ -183,9 +182,9 @@ def test_times():
     logger.info(f"Test 1 executed with results: \n")
     logger.info(f"Episode Times: {episode_times}")
     logger.info(f"Test 1 finished.")
-    assert_equal(episode_times[P1].value, 10.0)
-    assert_equal(episode_times[P2].value, 10.0)
-    assert_equal(episode_times[P3].value, 10.0)
+    assert episode_times[P1].value == 10.0
+    assert episode_times[P2].value == 10.0
+    assert episode_times[P3].value == 10.0
 
 
 def test_lateral_deviation():
@@ -244,48 +243,48 @@ def test_lateral_deviation():
 
     # scenario 1 vs scenario 0
     # All lateral deviations should be greater in 1 since in 0 there is no offset
-    assert_greater(deviations_lat_1[P1].value, deviations_lat_0[P1].value)
-    assert_greater(deviations_lat_1[P2].value, deviations_lat_0[P2].value)
-    assert_greater(deviations_lat_1[P3].value, deviations_lat_0[P3].value)
+    assert deviations_lat_1[P1].value > deviations_lat_0[P1].value
+    assert deviations_lat_1[P2].value > deviations_lat_0[P2].value
+    assert deviations_lat_1[P3].value > deviations_lat_0[P3].value
 
     # scenario 2 vs scenario 0
     # All lateral deviations should be greater in 2 since in 0 there is no offset
-    assert_greater(deviations_lat_2[P1].value, deviations_lat_0[P1].value)
-    assert_greater(deviations_lat_2[P2].value, deviations_lat_0[P2].value)
-    assert_greater(deviations_lat_2[P3].value, deviations_lat_0[P3].value)
+    assert deviations_lat_2[P1].value > deviations_lat_0[P1].value
+    assert deviations_lat_2[P2].value > deviations_lat_0[P2].value
+    assert deviations_lat_2[P3].value > deviations_lat_0[P3].value
 
     # scenario 3 vs scenario 0
     # Lateral deviations for P1&P3 should be greater in 1 since in 0 there is no offset
     # Lateral deviation for P2 should be equal
-    assert_greater(deviations_lat_3[P1].value, deviations_lat_0[P1].value)
-    assert_equal(deviations_lat_3[P2].value, deviations_lat_0[P2].value)
-    assert_greater(deviations_lat_3[P3].value, deviations_lat_0[P3].value)
+    assert deviations_lat_3[P1].value > deviations_lat_0[P1].value
+    assert deviations_lat_3[P2].value == deviations_lat_0[P2].value
+    assert deviations_lat_3[P3].value > deviations_lat_0[P3].value
 
     # scenario 1 vs scenario 2
     # P1 has vertical trajectory (x approx constant) -> offset in x should increase metric more
     # P2 has horizontal trajectory (y approx constant) -> offset in y should increase metric more
     # P3 had 90-degree angle curve -> offset (-1,-1) and (1,1) should be similar
-    assert_greater(deviations_lat_1[P1].value, deviations_lat_2[P1].value)
-    assert_greater(deviations_lat_2[P2].value, deviations_lat_1[P2].value)
-    assert_almost_equal(deviations_lat_1[P3].value, deviations_lat_2[P3].value, delta=1.0)
+    assert deviations_lat_1[P1].value > deviations_lat_2[P1].value
+    assert deviations_lat_2[P2].value > deviations_lat_1[P2].value
+    assert abs(deviations_lat_1[P3].value - deviations_lat_2[P3].value) < 1.0
 
     # scenario 1 vs scenario 3
     # P1 has vertical trajectory (x approx constant) -> offset in y should not change the metric too much
     #   high tolerance since moving the curves of P1 horizontally makes them different at bending point
     # P2: Offset only in scenario 1
     # P3 : higher deviations both in x and y should lead to higher metric
-    assert_almost_equal(deviations_lat_1[P1].value, deviations_lat_3[P1].value, delta=2.0)
-    assert_greater(deviations_lat_1[P2].value, deviations_lat_3[P2].value)
-    assert_greater(deviations_lat_3[P3].value, deviations_lat_1[P3].value)
+    assert abs(deviations_lat_1[P1].value - deviations_lat_3[P1].value) < 2.0
+    assert deviations_lat_1[P2].value > deviations_lat_3[P2].value
+    assert deviations_lat_3[P3].value > deviations_lat_1[P3].value
 
     # scenario 2 vs scenario 3
     # P1 has vertical trajectory (x approx constant) -> offset in x should increase metric more (testing negative
     #   offset)
     # P2: Offset only in scenario 2
-    # P3: higher deviations both in x and y should lead to higher metric (testing negative offs
-    assert_greater(deviations_lat_3[P1].value, deviations_lat_2[P1].value)
-    assert_greater(deviations_lat_2[P2].value, deviations_lat_3[P2].value)
-    assert_greater(deviations_lat_3[P3].value, deviations_lat_2[P3].value)
+    # P3: higher deviations both in x and y should lead to higher metric (testing negative offsets)
+    assert deviations_lat_3[P1].value > deviations_lat_2[P1].value
+    assert deviations_lat_2[P2].value > deviations_lat_3[P2].value
+    assert deviations_lat_3[P3].value > deviations_lat_2[P3].value
 
 
 def test_heading_deviation():
@@ -352,41 +351,41 @@ def test_heading_deviation():
 
     # scenario 0
     # All heading deviations should be close to zero
-    assert_almost_equal(deviations_head_0[P1].value, 0.0, delta=0.6)
-    assert_almost_equal(deviations_head_0[P2].value, 0.0, delta=0.6)
-    assert_almost_equal(deviations_head_0[P3].value, 0.0, delta=0.6)
+    assert abs(deviations_head_0[P1].value - 0.0) < 0.6
+    assert abs(deviations_head_0[P2].value - 0.0) < 0.6
+    assert abs(deviations_head_0[P3].value - 0.0) < 0.6
 
     # scenario 1 vs scenario 0
     # All lateral deviations should be greater in 1 since in 0 there is no offset
-    assert_greater(deviations_head_1[P1].value, deviations_head_0[P1].value)
-    assert_greater(deviations_head_1[P2].value, deviations_head_0[P2].value)
-    assert_greater(deviations_head_1[P3].value, deviations_head_0[P3].value)
+    assert deviations_head_1[P1].value > deviations_head_0[P1].value
+    assert deviations_head_1[P2].value > deviations_head_0[P2].value
+    assert deviations_head_1[P3].value > deviations_head_0[P3].value
 
     # scenario 2 vs scenario 0
     # All heading deviations should be greater in 2 since in 0 there is no offset
-    assert_greater(deviations_head_2[P1].value, deviations_head_0[P1].value)
-    assert_greater(deviations_head_2[P2].value, deviations_head_0[P2].value)
-    assert_greater(deviations_head_2[P3].value, deviations_head_0[P3].value)
+    assert deviations_head_2[P1].value > deviations_head_0[P1].value
+    assert deviations_head_2[P2].value > deviations_head_0[P2].value
+    assert deviations_head_2[P3].value > deviations_head_0[P3].value
 
     # scenario 3 vs scenario 0
     # All heading deviations should be greater in 2 since in 0 there is no offset
-    assert_greater(deviations_head_3[P1].value, deviations_head_0[P1].value)
-    assert_greater(deviations_head_3[P2].value, deviations_head_0[P2].value)
-    assert_greater(deviations_head_3[P3].value, deviations_head_0[P3].value)
+    assert deviations_head_3[P1].value > deviations_head_0[P1].value
+    assert deviations_head_3[P2].value > deviations_head_0[P2].value
+    assert deviations_head_3[P3].value > deviations_head_0[P3].value
 
     # scenario 1 vs scenario 2
     # P1: inverting sign of theta should yield a similar heading deviation
     # P2: translating trajectory but not changing heading should yield similar heading deviation
     # P3: translating trajectory but not changing heading should yield similar heading deviation
-    assert_almost_equal(deviations_head_1[P1].value, deviations_head_2[P1].value, delta=0.6)
-    assert_almost_equal(deviations_head_1[P2].value, deviations_head_2[P2].value, delta=0.6)
-    assert_almost_equal(deviations_head_1[P3].value, deviations_head_2[P3].value, delta=0.6)
+    assert abs(deviations_head_1[P1].value - deviations_head_2[P1].value) < 0.6
+    assert abs(deviations_head_1[P2].value - deviations_head_2[P2].value) < 0.6
+    assert abs(deviations_head_1[P3].value - deviations_head_2[P3].value) < 0.6
 
     # scenario 1 vs scenario 3
     # greater heading angles should lead to greater heading deviation metric
-    assert_greater(deviations_head_3[P1].value, deviations_head_1[P1].value)
-    assert_greater(deviations_head_3[P2].value, deviations_head_1[P2].value)
-    assert_greater(deviations_head_3[P3].value, deviations_head_1[P3].value)
+    assert deviations_head_3[P1].value > deviations_head_1[P1].value
+    assert deviations_head_3[P2].value > deviations_head_1[P2].value
+    assert deviations_head_3[P3].value > deviations_head_1[P3].value
 
     logger.info(f"Test Heading Deviations finished.")
 
@@ -418,17 +417,17 @@ def test_drivable_area_violation():
 
     # scenario 0
     # All heading deviations should be close to zero
-    assert_almost_equal(area_violation_0[P1].value, 0.0, delta=0.1)
-    assert_almost_equal(area_violation_0[P2].value, 0.0, delta=0.1)
-    assert_almost_equal(area_violation_0[P3].value, 0.0, delta=0.1)
+    assert abs(area_violation_0[P1].value - 0.0) < 0.1
+    assert abs(area_violation_0[P2].value - 0.0) < 0.1
+    assert abs(area_violation_0[P3].value - 0.0) < 0.1
 
     # scenario 1 vs scenario 0
     # P1: offset in y should not lead to area violation
     # P2: offset in x should not lead to area violation
     # P3: area violation in scenario 1 should be greater than in scenario 0
-    assert_almost_equal(area_violation_0[P1].value, 0.0)
-    assert_almost_equal(area_violation_0[P2].value, 0.0)
-    assert_greater(area_violation_1[P3].value, area_violation_0[P3].value)
+    assert area_violation_0[P1].value == 0.0
+    assert area_violation_0[P2].value == 0.0
+    assert area_violation_1[P3].value > area_violation_0[P3].value
 
     joint_player_offsets_2 = {
         P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=3.0, y_default_value=0.0, theta_default_value=0.0),
@@ -446,9 +445,9 @@ def test_drivable_area_violation():
 
     # Scenario 2 vs scenario 0
     # All: area violation in scenario 2 should be greater than in scenario 0
-    assert_greater(area_violation_2[P1].value, area_violation_0[P1].value)
-    assert_greater(area_violation_2[P2].value, area_violation_0[P2].value)
-    assert_greater(area_violation_2[P3].value, area_violation_0[P3].value)
+    assert area_violation_2[P1].value > area_violation_0[P1].value
+    assert area_violation_2[P2].value > area_violation_0[P2].value
+    assert area_violation_2[P3].value > area_violation_0[P3].value
 
     joint_player_offsets_3 = {
         P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0,
@@ -469,9 +468,9 @@ def test_drivable_area_violation():
     # P1: offset in theta should not impact drivable area violation
     # P2 & P3: offset in negative direction but greater magnitude should lead to greater area violation than
     # with smaller magnitude of offset (scenario 2)
-    assert_almost_equal(area_violation_3[P1].value, area_violation_0[P1].value)
-    assert_greater(area_violation_3[P2].value, area_violation_2[P2].value)
-    assert_greater(area_violation_3[P3].value, area_violation_2[P3].value)
+    assert area_violation_3[P1].value == area_violation_0[P1].value
+    assert area_violation_3[P2].value > area_violation_2[P2].value
+    assert area_violation_3[P3].value > area_violation_2[P3].value
 
     logger.info(f"Test Drivable Area Violation finished.")
 
@@ -503,17 +502,17 @@ def test_progress_along_reference():
 
     # scenario 0
     # P3: check all progresses are smaller than 0
-    assert_greater(0.0, progress_0[P1].value)
-    assert_greater(0.0, progress_0[P2].value)
-    assert_greater(0.0, progress_0[P3].value)
+    assert 0.0 > progress_0[P1].value
+    assert 0.0 > progress_0[P2].value
+    assert 0.0 > progress_0[P3].value
 
     # scenario 1 vs scenario 0
     # P1: offset in positive y should improve (i.e. decrease) progress
     # P2: offset in positive x should improve (i.e. decrease) progress
     # P3: offset in positive x and positive y should worsen (i.e. increase) progress
-    assert_greater(progress_0[P1].value, progress_1[P1].value)
-    assert_greater(progress_0[P2].value, progress_1[P2].value)
-    assert_greater(progress_1[P3].value, progress_0[P3].value)
+    assert progress_0[P1].value > progress_1[P1].value
+    assert progress_0[P2].value > progress_1[P2].value
+    assert progress_1[P3].value > progress_0[P3].value
 
     joint_player_offsets_2 = {
         P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
@@ -533,18 +532,18 @@ def test_progress_along_reference():
     # P1: offset in x should have small impact on progress
     # P2: offset in y should have small impact on progress
     # P3: offset in negative x and negative y should improve (i.e. decrease) progress
-    assert_almost_equal(progress_2[P1].value, progress_0[P1].value, delta=1.0)
-    assert_almost_equal(progress_2[P2].value, progress_0[P2].value, delta=1.0)
-    assert_greater(progress_0[P3].value, progress_2[P3].value)
+    assert abs(progress_2[P1].value - progress_0[P1].value) < 1.0
+    assert abs(progress_2[P2].value - progress_0[P2].value) < 1.0
+    assert progress_0[P3].value > progress_2[P3].value
 
     # scenario 2 vs scenario 0 and scenario 2 vs scenario 1
     # P1: offset in positive y should improve (i.e. decrease) progress
     # P2: offset in positive x should improve (i.e. decrease) progress
     # P3: offset in negative x and negative y should improve (i.e. decrease) progress
-    assert_greater(progress_2[P1].value, progress_1[P1].value)
-    assert_greater(progress_2[P2].value, progress_1[P2].value)
-    assert_greater(progress_0[P3].value, progress_2[P3].value)
-    assert_greater(progress_1[P3].value, progress_2[P3].value)
+    assert progress_2[P1].value > progress_1[P1].value
+    assert progress_2[P2].value > progress_1[P2].value
+    assert progress_0[P3].value > progress_2[P3].value
+    assert progress_1[P3].value > progress_2[P3].value
 
     joint_player_offsets_3 = {
         P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0,
@@ -567,9 +566,9 @@ def test_progress_along_reference():
     # P2: offset in velocity should not change progress
     # scenario 3 vs scenario 1
     # P3: larger offset in positive x and positive y should worsen progress (i.e. increase)
-    assert_almost_equal(progress_3[P1].value, progress_0[P1].value, delta=0.01)
-    assert_almost_equal(progress_3[P2].value, progress_0[P2].value, delta=0.01)
-    assert_greater(progress_3[P3].value, progress_1[P3].value)
+    assert abs(progress_3[P1].value - progress_0[P1].value) < 0.01
+    assert abs(progress_3[P2].value - progress_0[P2].value) < 0.01
+    assert progress_3[P3].value > progress_1[P3].value
 
     logger.info(f"Test Progress Along Reference finished.")
 
@@ -606,17 +605,17 @@ def test_longitudinal_acceleration():
     # P1: longitudinal acceleration should be zero
     # P2: longitudinal acceleration should be zero
     # P3: longitudinal acceleration should be zero
-    assert_equal(long_acc_0[P1].value, 0.0)
-    assert_equal(long_acc_0[P2].value, 0.0)
-    assert_equal(long_acc_0[P3].value, 0.0)
+    assert long_acc_0[P1].value == 0.0
+    assert long_acc_0[P2].value == 0.0
+    assert long_acc_0[P3].value == 0.0
 
     # scenario 1 vs scenario 0
     # P1: longitudinal acceleration should be greater than 0
     # P2: longitudinal acceleration should smaller than 0
     # P3: longitudinal acceleration should greater than 0
-    assert_greater(long_acc_1[P1].value, long_acc_0[P1].value)
-    assert_greater(long_acc_0[P2].value, long_acc_1[P2].value)
-    assert_greater(long_acc_1[P3].value, long_acc_0[P3].value)
+    assert long_acc_1[P1].value > long_acc_0[P1].value
+    assert long_acc_0[P2].value > long_acc_1[P2].value
+    assert long_acc_1[P3].value > long_acc_0[P3].value
 
     joint_player_offsets_2 = {
         P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0,
@@ -639,9 +638,9 @@ def test_longitudinal_acceleration():
     # P1: longitudinal acceleration should be greater in scenario 2
     # P2: longitudinal acceleration should smaller in scenario 2
     # P3: longitudinal acceleration should greater in scenario 2
-    assert_greater(long_acc_2[P1].value, long_acc_1[P1].value)
-    assert_greater(long_acc_1[P2].value, long_acc_2[P2].value)
-    assert_greater(long_acc_2[P3].value, long_acc_1[P3].value)
+    assert long_acc_2[P1].value > long_acc_1[P1].value
+    assert long_acc_1[P2].value > long_acc_2[P2].value
+    assert long_acc_2[P3].value > long_acc_1[P3].value
 
     logger.info(f"Test Longitudinal Acceleration finished.")
 
@@ -687,22 +686,22 @@ def test_lateral_comfort():
 
     # scenario 0
     # since velociy is 0 for all players, lateral comfort metric should also be zero
-    assert_almost_equal(lat_comf_0[P1].value, 0.0)
-    assert_almost_equal(lat_comf_0[P2].value, 0.0)
-    assert_almost_equal(lat_comf_0[P3].value, 0.0)
+    assert lat_comf_0[P1].value == 0.0
+    assert lat_comf_0[P2].value == 0.0
+    assert lat_comf_0[P3].value == 0.0
 
     # scenario 1 vs scenario 0
     # all lateral comforts metrics should increase. P3>P2>P1
-    assert_greater(lat_comf_1[P1].value, 0.0)
-    assert_greater(lat_comf_1[P2].value, lat_comf_1[P1].value)
-    assert_greater(lat_comf_1[P3].value, lat_comf_1[P2].value)
+    assert lat_comf_1[P1].value > 0.0
+    assert lat_comf_1[P2].value > lat_comf_1[P1].value
+    assert lat_comf_1[P3].value > lat_comf_1[P2].value
 
     # scenario 2 vs scenario 1
     # increasing either longitudinal velocity or steering angle should increase metric
     # changing sign of steering angle should not change value
-    assert_greater(lat_comf_2[P1].value, lat_comf_1[P1].value)
-    assert_greater(lat_comf_2[P2].value, lat_comf_1[P2].value)
-    assert_almost_equal(lat_comf_2[P3].value, lat_comf_1[P3].value)
+    assert lat_comf_2[P1].value > lat_comf_1[P1].value
+    assert lat_comf_2[P2].value > lat_comf_1[P2].value
+    assert lat_comf_2[P3].value == lat_comf_1[P3].value
 
     logger.info(f"Test Lateral Comfort finished.")
 
@@ -733,15 +732,15 @@ def test_steering_angle():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 0
-    assert_almost_equal(steering_angle_0[P1].value, 0)
-    assert_almost_equal(steering_angle_0[P2].value, 0)
-    assert_almost_equal(steering_angle_0[P3].value, 0)
+    assert steering_angle_0[P1].value == 0
+    assert steering_angle_0[P2].value == 0
+    assert steering_angle_0[P3].value == 0
 
     # scenario 1
     # all values should be greater than 0. Value should increase if abs(angle) increases
-    assert_greater(steering_angle_1[P1].value, steering_angle_0[P1].value)
-    assert_greater(steering_angle_1[P2].value, steering_angle_1[P1].value)
-    assert_greater(steering_angle_1[P3].value, steering_angle_1[P2].value)
+    assert steering_angle_1[P1].value > steering_angle_0[P1].value
+    assert steering_angle_1[P2].value > steering_angle_1[P1].value
+    assert steering_angle_1[P3].value > steering_angle_1[P2].value
 
     logger.info(f"Test Steering Angle finished.")
 
@@ -772,15 +771,15 @@ def test_steering_rate():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 0
-    assert_almost_equal(steering_rate_0[P1].value, 0)
-    assert_almost_equal(steering_rate_0[P2].value, 0)
-    assert_almost_equal(steering_rate_0[P3].value, 0)
+    assert steering_rate_0[P1].value == 0
+    assert steering_rate_0[P2].value == 0
+    assert steering_rate_0[P3].value == 0
 
     # scenario 1
     # all values should be greater than 0. Value should increase if abs(angle) increases
-    assert_greater(steering_rate_1[P1].value, steering_rate_0[P1].value)
-    assert_greater(steering_rate_1[P2].value, steering_rate_1[P1].value)
-    assert_greater(steering_rate_1[P3].value, steering_rate_1[P2].value)
+    assert steering_rate_1[P1].value > steering_rate_0[P1].value
+    assert steering_rate_1[P2].value > steering_rate_1[P1].value
+    assert steering_rate_1[P3].value > steering_rate_1[P2].value
 
     logger.info(f"Test Steering Angle finished.")
 
@@ -797,9 +796,9 @@ def test_clearance():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 0
-    assert_greater(clearance_0[P1].value, 0)
-    assert_greater(clearance_0[P2].value, 0)
-    assert_greater(clearance_0[P3].value, 0)
+    assert clearance_0[P1].value > 0
+    assert clearance_0[P2].value > 0
+    assert clearance_0[P3].value > 0
 
     logger.info(f"Test clearance finished.")
 
@@ -816,9 +815,9 @@ def test_collision_energy():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 0: velocity is zero so collision energy should be zero
-    assert_almost_equal(coll_energy_0[P1].value, 0)
-    assert_almost_equal(coll_energy_0[P2].value, 0)
-    assert_almost_equal(coll_energy_0[P3].value, 0)
+    assert coll_energy_0[P1].value == 0
+    assert coll_energy_0[P2].value == 0
+    assert coll_energy_0[P3].value == 0
 
     joint_player_offsets_1 = {
         P1: PlayerOffsets(size=size_p1_trajectory, v_default_value=2.0),
@@ -838,11 +837,11 @@ def test_collision_energy():
     # in scenario 1, velocity is greater and therefore collision energy should be greater than zero,
     # since in this scenario there is a collision taking place.
     # P3 should not have any collision
-    assert_greater(coll_energy_1[P1].value, coll_energy_0[P1].value)
-    assert_greater(coll_energy_1[P2].value, coll_energy_0[P2].value)
-    assert_almost_equal(coll_energy_0[P3].value, 0)
+    assert coll_energy_1[P1].value > coll_energy_0[P1].value
+    assert coll_energy_1[P2].value > coll_energy_0[P2].value
+    assert coll_energy_0[P3].value == 0
     # check that cost is symmetric
-    assert_almost_equal(coll_energy_1[P1].value, coll_energy_1[P2].value)
+    assert coll_energy_1[P1].value == coll_energy_1[P2].value
 
     joint_player_offsets_2 = {
         P1: PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0, v_default_value=2.0),
@@ -860,9 +859,9 @@ def test_collision_energy():
 
     # scenario 2
     # by shifting the trajectory of P1 in y direction, there should be no more collision.
-    assert_almost_equal(coll_energy_0[P1].value, 0)
-    assert_almost_equal(coll_energy_0[P2].value, 0)
-    assert_almost_equal(coll_energy_0[P3].value, 0)
+    assert coll_energy_0[P1].value == 0
+    assert coll_energy_0[P2].value == 0
+    assert coll_energy_0[P3].value == 0
 
     logger.info(f"Test collision finished.")
 
@@ -879,9 +878,9 @@ def test_minimum_clearance():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 0: clearance is always greater than 0
-    assert_greater(min_clearance_0[P1].value, 0)
-    assert_greater(min_clearance_0[P2].value, 0)
-    assert_greater(min_clearance_0[P3].value, 0)
+    assert min_clearance_0[P1].value > 0
+    assert min_clearance_0[P2].value > 0
+    assert min_clearance_0[P3].value > 0
 
     min_clearance_new = MinimumClearance()
     min_clearance_new.min_clearance = 3.0
@@ -892,9 +891,9 @@ def test_minimum_clearance():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 1 vs scenario 0: decreasing clearance threshold from 10.0 (default) to 5.0 should decrease metric
-    assert_greater(min_clearance_0[P1].value, min_clearance_1[P1].value)
-    assert_greater(min_clearance_0[P2].value, min_clearance_1[P2].value)
-    assert_greater(min_clearance_0[P3].value, min_clearance_1[P3].value)
+    assert min_clearance_0[P1].value > min_clearance_1[P1].value
+    assert min_clearance_0[P2].value > min_clearance_1[P2].value
+    assert min_clearance_0[P3].value > min_clearance_1[P3].value
 
     joint_player_offsets_1 = {
         P1: PlayerOffsets(size=size_p1_trajectory),
@@ -911,8 +910,8 @@ def test_minimum_clearance():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 2 vs scenario 1: shifting trajectory of P3 in positive x direction should increase clearance violation
-    assert_greater(min_clearance_2[P3].value, min_clearance_1[P3].value)
-    assert_greater(min_clearance_2[P1].value, min_clearance_1[P1].value)
+    assert min_clearance_2[P3].value > min_clearance_1[P3].value
+    assert min_clearance_2[P1].value > min_clearance_1[P1].value
 
 
 def test_clearance_time_violation():
@@ -927,9 +926,9 @@ def test_clearance_time_violation():
     logger.info(f"--------------------------------------------\n")
 
     # scenario 0: check that all metrics are greater than 0
-    assert_greater(viol_time_0[P1].value, 0)
-    assert_greater(viol_time_0[P2].value, 0)
-    assert_greater(viol_time_0[P3].value, 0)
+    assert viol_time_0[P1].value > 0
+    assert viol_time_0[P2].value > 0
+    assert viol_time_0[P3].value > 0
 
     joint_player_offsets_1 = {
         P1: PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0),
@@ -947,9 +946,9 @@ def test_clearance_time_violation():
 
     # scenario 1 vs scenario 0: moving red trajectory out of the way
     # should decrease violation times for the other trajectories
-    assert_almost_equal(viol_time_1[P1].value, 0)
-    assert_greater(viol_time_0[P2].value, viol_time_1[P2].value)
-    assert_greater(viol_time_0[P3].value, viol_time_1[P3].value)
+    assert viol_time_1[P1].value == 0
+    assert viol_time_0[P2].value > viol_time_1[P2].value
+    assert viol_time_0[P3].value > viol_time_1[P3].value
 
 
 if __name__ == "__main__":
@@ -964,6 +963,6 @@ if __name__ == "__main__":
     test_steering_angle()
     test_steering_rate()
     test_clearance()
-    # test_collision_energy()
+    test_collision_energy()
     test_minimum_clearance()
     test_clearance_time_violation()
