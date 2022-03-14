@@ -210,7 +210,7 @@ def test_simple_trajectory_game_leon():
         game.game_vis.init_plot_dict(values=nash_eq["weak"])
     report_single(game=game, nash_eq=nash_eq, folder=folder)
 
-    return 0
+    assert True
 
 
 if __name__ == "__main__":
