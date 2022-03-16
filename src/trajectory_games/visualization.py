@@ -1,23 +1,22 @@
 from functools import lru_cache
-from typing import Sequence, Tuple, Mapping, FrozenSet, Optional, Dict, Union
+from typing import Dict, FrozenSet, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 from decorator import contextmanager
-from geometry import SE2_from_xytheta
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.collections import LineCollection
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 from shapely.geometry import Polygon
 
-from dg_commons import Color
-from dg_commons import PlayerName
+from dg_commons import Color, PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim.simulator_visualisation import transform_xy
+from geometry import SE2_from_xytheta
 from .game_def import GameVisualization
 from .paths import Trajectory
-from .preference import PosetalPreference, WeightedPreference
+from .preference import PosetalPreference, WeightedMetricPreference
 from .structures import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
 
@@ -96,14 +95,14 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         pref: PosetalPreference,
         pname: PlayerName,
         origin: Tuple[float, float],
-        labels: Mapping[WeightedPreference, str] = None,
+        labels: Mapping[WeightedMetricPreference, str] = None,
         add_title: bool = True,
     ):
 
         X, Y = origin
         G: DiGraph = pref.graph
 
-        def pos_node(n: WeightedPreference):
+        def pos_node(n: WeightedMetricPreference):
             x = G.nodes[n]["x"]
             y = G.nodes[n]["y"]
             return x + X, y + Y

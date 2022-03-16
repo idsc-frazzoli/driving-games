@@ -9,7 +9,7 @@ from _tmp.toy_games import ToyGameMat, get_toy_game_spec
 from _tmp.toy_games.bayesian_toy_game import get_bayesian_toy_game_spec
 
 from driving_games import UncertaintyParams
-from games import PlayerName, preprocess_game, solve1
+from games import PlayerName, preprocess_game, solve_main
 from driving_games.solvers import SolverSpec
 from _tmp.nash import BiMatGame
 from _tmp.toy_games.bayesian_toy_rewards import BayesianBirdJointReward
@@ -31,7 +31,7 @@ def _run_toy_game(
     game_spec = get_toy_game_spec(toy_game_mat, uncertainty_params)
     game = game_spec.game
     game_preprocessed = preprocess_game(game, solver_params)
-    solutions = solve1(game_preprocessed)
+    solutions = solve_main(game_preprocessed)
     # for state, solution in solutions.game_solution.states_to_solution.items():
     #     # filter out only the first level subgame
     #     if all([p.stage == 1 for p in state.values()]):

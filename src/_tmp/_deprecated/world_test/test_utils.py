@@ -39,7 +39,7 @@ def test_transformations():
 
     assert all(map(isclose, q_SE2_disc, q_SE2_disc_ref)), f"SE2_disc {q_SE2_disc} is not equal ref {q_SE2_disc_ref}"
 
-    statement = isclose(q_SE2Transform.theta, q_SE2Transform_ref.theta) and all(
+    statement = isclose(q_SE2Transform.psi, q_SE2Transform_ref.psi) and all(
         map(isclose, q_SE2Transform.p, q_SE2Transform_ref.p)
     )
     assert statement, f"SE2transform {q_SE2Transform} is not equal ref {q_SE2Transform_ref}"

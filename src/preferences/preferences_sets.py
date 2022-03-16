@@ -1,7 +1,8 @@
+from abc import abstractmethod
 from functools import lru_cache
 from typing import FrozenSet, Type
 
-from possibilities import Poss
+from possibilities.sets import SetPoss
 from zuper_typing import debug_print
 from .preferences_base import (
     ComparisonOutcome,
@@ -13,45 +14,38 @@ from .preferences_base import (
     SECOND_PREFERRED,
 )
 
-__all__ = ["SetPreference1", "compare_sets"]
+__all__ = ["SetDominancePreference", "SetWorstCasePreference", "compare_dominance_sets"]
 
 
-class SetPreference1(Preference[Poss[P]]):
-    # fixme this should inherit from Preference[SetPoss[P]]?
+class SetPreference(Preference[SetPoss[P]]):
     p0: Preference[P]
 
     def __init__(self, p0: Preference[P]):
         self.p0 = p0
 
-    def get_type(self) -> Type[Poss[P]]:
-        return Poss  # [self.p0.get_type()]
+    def get_type(self) -> Type[SetPoss[P]]:
+        return type(self)  # [self.p0.get_type()]
 
     def __repr__(self) -> str:
         d = {"T": self.get_type(), "p0": self.p0}
-        return "SetPreference1: " + debug_print(d)
+        return "SetPreference: " + debug_print(d)
 
-    # @lru_cache(None)
-    def compare(self, A: Poss[P], B: Poss[P]) -> ComparisonOutcome:
-        # check_poss(A)
-        # check_poss(B)
-        # if len(A) == 1 and len(B) == 1:
-        #     a1 = list(A)[0]
-        #     b1 = list(B)[0]
-        #     res = self.p0.compare(a1, b1)
-        #     assert res in COMP_OUTCOMES, (res, self.p0)
-        #     return res
+    @abstractmethod
+    def compare(self, A: SetPoss[P], B: SetPoss[P]) -> ComparisonOutcome:
+        pass
+
+
+class SetDominancePreference(SetPreference):
+    def compare(self, A: SetPoss[P], B: SetPoss[P]) -> ComparisonOutcome:
         a_s = A.support()
         b_s = B.support()
-        r = compare_sets(a_s, b_s, self.p0)
+        r = compare_dominance_sets(a_s, b_s, self.p0)
         # logger.info('SetPreference1', a_s=a_s, b_s=b_s, r=r)
         return r
 
 
-# todo subclass like for preference over distributions
-
-
 @lru_cache(None)
-def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+def compare_dominance_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
     if A is B or (A == B):
         return INDIFFERENT
 
@@ -79,3 +73,34 @@ def compare_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> Compa
     if all_res == {INDIFFERENT, SECOND_PREFERRED} or all_res == {SECOND_PREFERRED}:
         return SECOND_PREFERRED
     assert False, all_res
+
+
+class SetWorstCasePreference(SetPreference):
+    def compare(self, A: SetPoss[P], B: SetPoss[P]) -> ComparisonOutcome:
+        a_s = A.support()
+        b_s = B.support()
+        r = compare_worst_case_sets(a_s, b_s, self.p0)
+        # logger.info('SetPreference1', a_s=a_s, b_s=b_s, r=r)
+        return r
+
+
+def _find_worst_case_set(A: FrozenSet[P], pref: Preference[P]) -> P:
+    worst_a: P = None
+    for a in A:
+        if worst_a is None:
+            worst_a = a
+        else:
+            r = pref.compare(worst_a, a)
+            if r == FIRST_PREFERRED:
+                worst_a = a
+    return worst_a
+
+
+@lru_cache(None)
+def compare_worst_case_sets(A: FrozenSet[P], B: FrozenSet[P], pref: Preference[P]) -> ComparisonOutcome:
+    if A is B or (A == B):
+        return INDIFFERENT
+    worst_a = _find_worst_case_set(A, pref)
+    worst_b = _find_worst_case_set(B, pref)
+    r = pref.compare(worst_a, worst_b)
+    return r

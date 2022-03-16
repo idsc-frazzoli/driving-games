@@ -6,4 +6,5 @@ src/*.egg-info
 !docker
 !docker/dependencies-apt.txt
 !requirements*
+!scenarios
 !.compmake.rc

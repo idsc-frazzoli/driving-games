@@ -3,7 +3,8 @@ from typing import Mapping as M
 
 from frozendict import frozendict
 
-from .game_def import Game, PlayerName, RJ, RP, SR, U, X, Y
+from dg_commons import PlayerName, RJ, RP, U, X, Y
+from games.game_def import Game, SR
 
 __all__ = ["get_individual_games"]
 

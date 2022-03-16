@@ -1,65 +1,64 @@
-
 #state:
 #  s0:     Progress along lane (m)
 #  v0:     Velocity (m/s)
 #  st0:    Steering angle (rad)
 #  t0:     Initial time (s) - string for decimal
 
-state_0:    &state
-  x0:     0.0
-  y0:     0.0
-  th0:    0.0
-  v0:     5.0
-  st0:    0.0
-  t0:     "0.0"
+state_0: &state
+  x0: 0.0
+  y0: 0.0
+  th0: 0.0
+  v0: 5.0
+  st0: 0.0
+  t0: "0.0"
 
 state_1_lanker:
-  x0:     -7.0
-  y0:     -0.0
-  v0:     6.0
+  x0: -7.0
+  y0: -0.0
+  v0: 6.0
 
 state_2_lanker:
   <<: *state
-  x0:     18.0
-  y0:     10.0
-  v0:     5.0
+  x0: 18.0
+  y0: 10.0
+  v0: 5.0
 
 state_1_peach:
   <<: *state
-  x0:     4.0
-  y0:     0.0
-  v0:     6.5
+  x0: 4.0
+  y0: 0.0
+  v0: 6.5
 
 state_2_peach:
   <<: *state
-  x0:     -1.0
-  y0:     25.0
-  v0:     6.5
+  x0: -1.0
+  y0: 25.0
+  v0: 6.5
 
 state_3_peach:
   <<: *state
-  x0:     13.0
-  y0:     14.0
-  v0:     6.5
+  x0: 13.0
+  y0: 14.0
+  v0: 6.5
 
 state_4_peach:
   <<: *state
-  x0:     -2.0
-  y0:     30.0
-  v0:     5.0
+  x0: -2.0
+  y0: 30.0
+  v0: 5.0
 
 state_3:
   <<: *state
-  v0:     3.0
+  v0: 3.0
 
 state_4:
   <<: *state
-  v0:     3.0
+  v0: 3.0
 
 state_5:
   <<: *state
-  v0:     5.0
+  v0: 5.0
 
 state_6:
   <<: *state
-  v0:     6.0
+  v0: 6.0

@@ -2,27 +2,28 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from time import perf_counter
-from typing import Dict, Set, FrozenSet, Mapping, Optional
+from typing import Dict, FrozenSet, Mapping, Optional, Set
 
-from dg_commons import PlayerName
-from dg_commons import iterate_dict_combinations
-from dg_commons.seq.sequence import Timestamp, DgSampledSequence
 from frozendict import frozendict
 
-from games import PURE_STRATEGIES, BAIL_MNE
+from dg_commons import iterate_dict_combinations, PlayerName
+from dg_commons.seq.sequence import DgSampledSequence, Timestamp
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from driving_games.metrics_structures import PlayerEvaluatedMetrics
+from games import BAIL_MNE, PURE_STRATEGIES
 from possibilities import Poss
 from preferences import Preference
 from .game_def import (
+    AntichainComparison,
+    EXP_ACCOMP,
     Game,
     GamePlayer,
-    SolvingContext,
     SolvedGameNode,
+    SolvingContext,
     StaticSolverParams,
-    EXP_ACCOMP,
-    AntichainComparison,
 )
 from .paths import Trajectory
-from .structures import VehicleState, VehicleGeometry
+from .structures import VehicleState
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
@@ -43,12 +44,14 @@ __all__ = [
 
 
 @dataclass
-class TrajectoryGamePlayer(GamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
+class TrajectoryGamePlayer(
+    GamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerEvaluatedMetrics, VehicleGeometry]
+):
     pass
 
 
 @dataclass
-class TrajectoryGame(Game[VehicleState, Trajectory, TrajectoryWorld, PlayerOutcome, VehicleGeometry]):
+class TrajectoryGame(Game[VehicleState, Trajectory, TrajectoryWorld, PlayerEvaluatedMetrics, VehicleGeometry]):
     pass
 
 
@@ -87,7 +90,7 @@ class LeaderFollowerGame(TrajectoryGame):
 
 
 @dataclass(frozen=True, unsafe_hash=True)
-class SolvedTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerOutcome]):
+class SolvedTrajectoryGameNode(SolvedGameNode[Trajectory, PlayerEvaluatedMetrics]):
     pass
 
 
@@ -97,7 +100,7 @@ SolvedTrajectoryGame = Set[SolvedTrajectoryGameNode]
 @dataclass(unsafe_hash=True)
 class LeaderFollowerGameNode:
     nodes: SolvedTrajectoryGame
-    agg_lead_outcome: PlayerOutcome
+    agg_lead_outcome: PlayerEvaluatedMetrics
 
 
 @dataclass(unsafe_hash=True)
@@ -204,7 +207,7 @@ def preprocess_full_game(sgame: Game, only_traj: bool = False) -> SolvingContext
 
 def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
     # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
-    pref: Mapping[PlayerName, Preference[PlayerOutcome]] = {
+    pref: Mapping[PlayerName, Preference[PlayerEvaluatedMetrics]] = {
         name: player.preference for name, player in sgame.game_players.items()
     }
     if isinstance(sgame, LeaderFollowerGame):
