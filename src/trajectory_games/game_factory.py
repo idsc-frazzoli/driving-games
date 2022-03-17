@@ -43,7 +43,6 @@ players_file = os.path.join(config_dir_ral, "players.yaml")
 # leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
 with open(players_file) as load_file:
     config = safe_load(load_file)
-    a=1
 
 
 # with open(leader_follower_file) as load_file:
@@ -161,10 +160,10 @@ def get_simple_traj_game_leon(config_str: str, initial_states=None) -> Trajector
             monadic_preference_builder=mpref_build,
             vg=geometries[pname],
         )
-    b = config["plot_limits"]
+
     world = TrajectoryWorld(map_name=config["map_name"], scenario=scenario, geo=geometries, goals=goals)
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
-    c = config["plot_limits"]
+
     game = TrajectoryGame(
         world=world,
         game_players=players,
@@ -180,13 +179,13 @@ def get_simple_traj_game_leon(config_str: str, initial_states=None) -> Trajector
 
 
 def get_decentralized_traj_game(config_str: str, initial_states=None) -> DecentralizedTrajectoryGame:
+    tic = perf_counter()
     games = {}
     nash_eqs = {}
     solving_contexts = {}
     for pname, pconfig in config[config_str]["players"].items():
         if pname == "Ambulance":  # todo [LEON] does not work. WHY?
             continue
-
         current_game = get_simple_traj_game_leon(config_str, initial_states)
         games[pname] = current_game
         current_context: SolvingContext = preprocess_full_game(sgame=current_game, only_traj=False)
@@ -194,6 +193,8 @@ def get_decentralized_traj_game(config_str: str, initial_states=None) -> Decentr
         sol = Solution()
         current_nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=current_context)
         nash_eqs[pname] = current_nash_eq
+    toc = perf_counter() - tic
+    print(f"Decentralized trajectory game creation and solution time = {toc:.2f} s")
 
     return DecentralizedTrajectoryGame(games=games, solving_contexts=solving_contexts, nash_eqs=nash_eqs)
 

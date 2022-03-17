@@ -7,7 +7,7 @@ from reprep import Report
 from trajectory_games import (
     get_trajectory_game,
     preprocess_full_game,
-    report_game_visualization,
+    report_scenario_visualization,
     report_preferences,
     Solution,
     SolvedTrajectoryGame,
@@ -26,7 +26,7 @@ def bruteforce_report(game: TrajectoryGame, nash_eq=Mapping[str, SolvedTrajector
     game.game_vis.init_plot_dict(values=nash_eq["weak"])
     r_game = Report()
     if gif:  # first level we plot everything
-        r_game.add_child(report_game_visualization(game=game))
+        r_game.add_child(report_scenario_visualization(game=game))
     create_reports(game=game, nash_eq=nash_eq, r_game=r_game, gif=gif)
     prefs = {p.name: p.preference for p in game.game_players.values()}
     r_game.add_child(report_preferences(viz=game.game_vis, players=prefs))

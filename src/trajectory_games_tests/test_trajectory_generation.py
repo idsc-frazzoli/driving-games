@@ -22,8 +22,8 @@ def test_trajectory_generation():
     matplotlib.use("TkAgg")
     lanelet_network = scenario.lanelet_network
 
-    points_from_first = 4
-    points_from_last = 4
+    points_from_first = 8
+    points_from_last = 8
 
     lane_11 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49564))
     lane_12 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49586))
@@ -41,14 +41,16 @@ def test_trajectory_generation():
         translation_angle_from_SE2(dglanelet.center_point(beta)) for beta in range(len(dglanelet.control_points))
     ]
 
-    ref_lane_goals = [RefLaneGoal(ref_lane=dglanelet, goal_progress=0.9)]
+    # if goal progress is set here, it overwrites value found in params
+    ref_lane_goals = [RefLaneGoal(ref_lane=dglanelet, goal_progress=24)]
     init_point = x_1_translation_angles[1]
     initial_state = VehicleState(x=init_point[0][0], y=init_point[0][1], vx=0, theta=init_point[1], delta=0)
-    u_acc = frozenset([-1.0, 0.0, 1.0, 2.0, 3.0])
+    # issues for u_acc <= 0.0
+    u_acc = frozenset([0.0, 1.0, 2.0])
     u_dst = frozenset([_ * 0.2 for _ in u_acc])
     params = TrajectoryGenParams(
         solve=False,
-        s_final=-1.0,
+        s_final=-1,
         max_gen=10,
         dt=D("2"),
         u_acc=u_acc,
@@ -68,7 +70,7 @@ def test_trajectory_generation():
     viz = TrajectoryGenerationVisualization(scenario=scenario, trajectories=trajectories)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
-    filename = os.path.join(dir_path, "out/trajectory_generation_test.png")
+    filename = os.path.join(dir_path, "out/trajectory_generation_test_0.8.png")
     viz.plot(show_plot=True, draw_labels=True, action_color="red", filename=filename)
     return 0
 

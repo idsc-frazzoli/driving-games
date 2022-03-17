@@ -35,6 +35,16 @@ class TrajectoryWorld:
             self.geo.keys() == self.goals.keys()
         ), f"Keys do not match: goals = {self.goals.keys()}, geo = {self.geo.keys()}"
 
+    def __eq__(self, other):
+        if isinstance(other, TrajectoryWorld):
+            name_eq = self.map_name == other.map_name
+            scenario_eq = self.scenario == other.scenario
+            geo_eq = self.geo == other.geo
+            #todo [LEON]: goals don't need to be true!?
+            return name_eq and scenario_eq and geo_eq
+        else:
+            return False
+
     def get_players(self) -> List[PlayerName]:
         return list(self.geo.keys())
 
@@ -46,3 +56,4 @@ class TrajectoryWorld:
 
     def get_geometry(self, player: PlayerName) -> VehicleGeometry:
         return self.geo[player]
+

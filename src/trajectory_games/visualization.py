@@ -5,7 +5,6 @@ from dataclasses import asdict
 from geometry import SE2_from_xytheta, SE2value
 from matplotlib import colors as mcolors
 from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
-# from shapely.geometry import Polygon
 from matplotlib.patches import Polygon, Circle
 from commonroad.scenario.scenario import Scenario
 
@@ -219,12 +218,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         self.commonroad_renderer.render()
         yield
 
-    def plot_player(self, axis, player_name: PlayerName, state: VehicleState, alpha: float = 0.95, box=None):
-        """Draw the player and his action set at a certain state."""
-
-
-        box = plot_car(axis=axis, state=state, vg=vg, alpha=alpha, box=box)
-        return box
+    # def plot_player(self, axis, player_name: PlayerName, state: VehicleState, alpha: float = 0.95, box=None):
+    #     """Draw the player and his action set at a certain state."""
+    #
+    #
+    #     box = plot_car(axis=axis, state=state, vg=vg, alpha=alpha, box=box)
+    #     return box
 
     def plot_player(
             self,
@@ -236,6 +235,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             alpha: float = 0.6,
             plot_wheels: bool = False,
             plot_lights: bool = False,
+            plot_text: bool = False,
     ) -> Tuple[List[Polygon], List[Circle]]:
         """Draw the player the state."""
         # todo make it nicer with a map of plotting functions based on the state type
@@ -252,6 +252,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                 lights_patches=lights_patches,
                 plot_wheels=plot_wheels,
                 plot_ligths=plot_lights,
+                plot_text=plot_text,
             )
         else:
             raise RuntimeError
@@ -360,6 +361,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         lines.set_color(colour)
         return lines
 
+
 def plot_vehicle(
         ax: Axes,
         player_name: PlayerName,
@@ -370,6 +372,7 @@ def plot_vehicle(
         lights_patches: Optional[List[Circle]] = None,
         plot_wheels: bool = True,
         plot_ligths: bool = True,
+        plot_text: bool = False
 ) -> Tuple[List[Polygon], List[Circle]]:
     """"""
     vehicle_outline: Sequence[Tuple[float, float], ...] = vg.outline
@@ -380,10 +383,18 @@ def plot_vehicle(
         vehicle_poly = [
             vehicle_box,
         ]
-        x4, y4 = transform_xy(q, ((0, 0),))[0]
-        ax.text(
-            x4, y4, player_name, zorder=ZOrder.PLAYER_NAME, horizontalalignment="center", verticalalignment="center"
-        )
+        if plot_text:
+            x4, y4 = transform_xy(q, ((0, 0),))[0]
+            y4 = y4 + 10.  # offset text #todo generalize this
+            ax.text(
+                x4,
+                y4,
+                player_name,
+                zorder=ZOrder.PLAYER_NAME,
+                horizontalalignment="center",
+                verticalalignment="center",
+                fontsize=6
+            )
         if plot_wheels:
             wheels_boxes = [
                 ax.fill([], [], color="k", alpha=alpha, zorder=ZOrder.MODEL)[0] for _ in range(vg.n_wheels)
@@ -410,6 +421,7 @@ def plot_vehicle(
 
     return vehicle_poly, lights_patches
 
+
 def _plot_lights(ax: Axes, q: SE2value, vg: VehicleGeometry) -> List[Circle]:
     radius_light = 0.04 * vg.width
     patches = []
@@ -422,13 +434,12 @@ def _plot_lights(ax: Axes, q: SE2value, vg: VehicleGeometry) -> List[Circle]:
     return patches
 
 
-
 class ZOrder:
     SCATTER = 60
     LANES = 15
     GOAL = 20
     ACTIONS = 20
-    CAR_BOX = 75 # todo: still needed?
+    CAR_BOX = 75  # todo: still needed?
     PLAYER_NAME = 100
     LIGHTS = 35
     MODEL = 30

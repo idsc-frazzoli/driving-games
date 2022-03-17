@@ -34,34 +34,136 @@ STACK_JPG = False
 MIME = MIME_PDF if EXPORT_PDF else MIME_JPG if STACK_JPG else MIME_PNG
 
 
-def report_game_visualization(game: Game) -> Report:
+def report_scenario_visualization(game: Game) -> Report:
     viz = game.game_vis
-    r = Report("Trajectories")
+    r = Report("Scenario")
     tic = perf_counter()
-    with r.plot("actions") as pylab:
+    with r.plot("map") as pylab:
         ax = pylab.gca()
         with viz.plot_arena(axis=ax):
             states: List[VehicleState] = []
             for player_name, player in game.game_players.items():
                 for state in player.state.support():
                     states.append(state)
-                    viz.plot_player(axis=ax, player_name=player_name, state=state)
-                    #todo [LEON]: are actions computed again?
+                    viz.plot_player(axis=ax, player_name=player_name, state=state, plot_text=True)
+                    # todo [LEON]: are actions computed again?
+                    # actions = player.actions_generator.get_actions(state=state)
+                    # viz.plot_actions(axis=ax,
+                    #                  actions=actions,
+                    #                  colour=tone_down_color(player.vg.color.replace("_car", "")),
+                    #                  width=0.5)
+                    size = np.linalg.norm(ax.bbox.size) / 100000.0
+                    # for path in actions:
+                    #     vals = [(x.x, x.y, x.vx) for _, x in path]
+                    #     x, y, vel = zip(*vals)
+                    #     ax.scatter(x, y, s=size, marker=".", c="k", alpha=0.8, zorder=ZOrder.SCATTER)
+            ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+            pylab.axis("off")
+            # uncomment if you want to plot only area around players instead of entire scene
+            adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
+            # adjust_axes_limits(ax=ax, plot_limits=None, players_states=states)
+
+    # plot zoomed version around players
+    with r.plot("map zoom") as pylab:
+        ax = pylab.gca()
+        with viz.plot_arena(axis=ax):
+            states: List[VehicleState] = []
+            for player_name, player in game.game_players.items():
+                for state in player.state.support():
+                    states.append(state)
+                    viz.plot_player(axis=ax, player_name=player_name, state=state, plot_text=True)
+                    # todo [LEON]: are actions computed again?
                     actions = player.actions_generator.get_actions(state=state)
                     viz.plot_actions(axis=ax,
                                      actions=actions,
                                      colour=tone_down_color(player.vg.color.replace("_car", "")),
                                      width=0.5)
-                    size = np.linalg.norm(ax.bbox.size) / 10000.0
+                    size = np.linalg.norm(ax.bbox.size) / 100000.0
                     for path in actions:
                         vals = [(x.x, x.y, x.vx) for _, x in path]
                         x, y, vel = zip(*vals)
-                        ax.SCATTER(x, y, s=size, marker="o", c="k", alpha=0.8, zorder=ZOrder.SCATTER)
+                        ax.scatter(x, y, s=size, marker=".", c="k", alpha=0.8, zorder=ZOrder.SCATTER)
             ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
             pylab.axis("off")
             # uncomment if you want to plot only area around players instead of entire scene
-            #adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
-            adjust_axes_limits(ax=ax, plot_limits=None, players_states=states)
+            adjust_axes_limits(ax=ax, plot_limits="auto", players_states=states)
+            # adjust_axes_limits(ax=ax, plot_limits=None, players_states=states)
+
+    toc = perf_counter() - tic
+    print(f"Report game viz time = {toc:.2f} s")
+    return r
+
+
+def report_players_and_actions(game: Game) -> Report:
+    viz = game.game_vis
+    r = Report("Actions")
+    tic = perf_counter()
+    for player_name, player in game.game_players.items():
+        n_actions = 0
+        with r.plot(player_name) as pylab:
+            ax = pylab.gca()
+            with viz.plot_arena(axis=ax):
+                states: List[VehicleState] = []
+                #for player_name, player in game.game_players.items():
+                for state in player.state.support():
+                    states.append(state)
+                    viz.plot_player(axis=ax, player_name=player_name, state=state, plot_text=False)
+                    # todo [LEON]: are actions computed again?
+                    actions = player.actions_generator.get_actions(state=state)
+                    n_actions += len(actions)
+                    viz.plot_actions(axis=ax,
+                                     actions=actions,
+                                     colour=tone_down_color(player.vg.color.replace("_car", "")),
+                                     width=0.5)
+                    size = np.linalg.norm(ax.bbox.size) / 100000.0
+                    for path in actions:
+                        vals = [(x.x, x.y, x.vx) for _, x in path]
+                        x, y, vel = zip(*vals)
+                        ax.scatter(x, y, s=size, marker=".", c="k", alpha=0.8, zorder=ZOrder.SCATTER)
+                ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+                pylab.axis("off")
+                # uncomment if you want to plot only area around players instead of entire scene
+                adjust_axes_limits(ax=ax, plot_limits="auto", players_states=states)
+                # adjust_axes_limits(ax=ax, plot_limits=None, players_states=states)
+        r.text("Number of available actions for " + player_name + ": ", str(n_actions))
+
+    toc = perf_counter() - tic
+    print(f"Report game viz time = {toc:.2f} s")
+    return r
+
+# special function for receding horizon games
+def report_players_and_actions_RH(game: Game) -> Report:
+    viz = game.game_vis
+    r = Report("Actions")
+    tic = perf_counter()
+    for player_name, player in game.game_players.items():
+        n_actions = 0
+        with r.plot(player_name) as pylab:
+            ax = pylab.gca()
+            with viz.plot_arena(axis=ax):
+                states: List[VehicleState] = []
+                #for player_name, player in game.game_players.items():
+                for state in player.state.support():
+                    states.append(state)
+                    viz.plot_player(axis=ax, player_name=player_name, state=state, plot_text=False)
+                    # todo [LEON]: are actions computed again?
+                    actions = player.actions_generator.get_actions(state=state)
+                    n_actions += len(actions)
+                    viz.plot_actions(axis=ax,
+                                     actions=actions,
+                                     colour=tone_down_color(player.vg.color.replace("_car", "")),
+                                     width=0.5)
+                    size = np.linalg.norm(ax.bbox.size) / 100000.0
+                    for path in actions:
+                        vals = [(x.x, x.y, x.vx) for _, x in path]
+                        x, y, vel = zip(*vals)
+                        ax.scatter(x, y, s=size, marker=".", c="k", alpha=0.8, zorder=ZOrder.SCATTER)
+                ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
+                pylab.axis("off")
+                # uncomment if you want to plot only area around players instead of entire scene
+                adjust_axes_limits(ax=ax, plot_limits="auto", players_states=states)
+                # adjust_axes_limits(ax=ax, plot_limits=None, players_states=states)
+        r.text("Number of available actions for " + player_name + ": ", str(n_actions))
 
     toc = perf_counter() - tic
     print(f"Report game viz time = {toc:.2f} s")
@@ -69,14 +171,14 @@ def report_game_visualization(game: Game) -> Report:
 
 
 def report_states(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
-    r_st = Report("states")
+    r_st = Report("Found Equilibria")
     print_all = len(nash_eq["weak"]) <= 10
     for k, node_set in nash_eq.items():
         texts = []
         if not bool(node_set):
-            texts.append("\t No equilibria")
+            texts.append("\t No equilibria found.")
         elif not print_all or k.startswith("weak"):
-            texts.append(f"\t {len(node_set)} equilibria")
+            texts.append(f"\t {len(node_set)} equilibria found.")
         else:
             for node in node_set:
                 for player, action in node.actions.items():
@@ -85,12 +187,13 @@ def report_states(nash_eq: Mapping[str, SolvedTrajectoryGame]) -> Report:
                     )
                 texts.append("\n")
         text = "\n".join(texts)
-        r_st.text(f"{k} -", remove_escapes(text))
+        r_st.text(f"{k.capitalize()} :", remove_escapes(text))
     return r_st
 
 
 def plot_outcomes_pref(
-    viz: GameVisualization, axis, outcomes: PlayerOutcome, pref: Preference, pname: PlayerName, add_title: bool = True
+        viz: GameVisualization, axis, outcomes: PlayerOutcome, pref: Preference, pname: PlayerName,
+        add_title: bool = True
 ):
     assert isinstance(pref, PosetalPreference)
     metrics: Dict[str, str] = {}
@@ -121,14 +224,14 @@ def save_stack_figure(fn, fig, axs, all_idx: Set):
 
 
 def stack_nodes(
-    report: Report,
-    viz: GameVisualization,
-    title: str,
-    players: Mapping[PlayerName, GamePlayer],
-    nodes: Set[SolvedTrajectoryGameNode],
-    nodes_strong: Set[SolvedTrajectoryGameNode] = None,
-    plot_lead_outcomes: bool = False,
-    leader: Tuple[PlayerName, Preference] = None,
+        report: Report,
+        viz: GameVisualization,
+        title: str,
+        players: Mapping[PlayerName, GamePlayer],
+        nodes: Set[SolvedTrajectoryGameNode],
+        nodes_strong: Set[SolvedTrajectoryGameNode] = None,
+        plot_lead_outcomes: bool = False,
+        leader: Tuple[PlayerName, Preference] = None,
 ):
     if plot_lead_outcomes:
         assert leader is not None
@@ -144,7 +247,7 @@ def stack_nodes(
                 viz.plot_equilibria(
                     axis=axis,
                     actions=frozenset([action]),
-                    colour=players[pname].vg.color.replace("_car",""),
+                    colour=players[pname].vg.color.replace("_car", ""),
                     width=width,
                     alpha=min(1.0, width),
                     ticks=False,
@@ -175,12 +278,12 @@ def stack_nodes(
 
 
 def gif_eq(
-    report: Report,
-    node_eq: SolvedTrajectoryGameNode,
-    game: Game,
-    prefs: Mapping[PlayerName, Preference] = None,
-    nash_eq: Mapping[str, SolvedTrajectoryGame] = None,
-    make_gif=True,
+        report: Report,
+        node_eq: SolvedTrajectoryGameNode,
+        game: Game,
+        prefs: Mapping[PlayerName, Preference] = None,
+        nash_eq: Mapping[str, SolvedTrajectoryGame] = None,
+        make_gif=True,
 ):
     if prefs is None:
         prefs = {pname: peq.preference for pname, peq in game.game_players.items()}
@@ -222,14 +325,15 @@ def gif_eq(
 def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot_gif: bool, max_n_gif=10) -> Report:
     tic = perf_counter()
     viz = game.game_vis
-    r_all = Report("equilibria")
-    req = Report("plots")
+    r_all = Report("Nash Equilibria")
+    req = Report("Plots")
 
     for player in game.game_players.values():
         assert isinstance(player.preference, PosetalPreference), (
             f"Preference is of type {player.preference.get_type()} " f"and not {PosetalPreference.get_type()}"
         )
 
+    # add text information about the found equilibria
     r_all.add_child(report_states(nash_eq=nash_eq))
 
     node_set = nash_eq["weak"]
@@ -258,24 +362,30 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
 
     def plot_pref(rep: Report):
         with rep.data_file("Pref", MIME) as fn:
-            player = list(game.game_players.values())[0]
+            current_player = list(game.game_players.values())[0]
             fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8, 8))
-            viz.plot_pref(axis=ax, pref=player.preference, pname=player.name, origin=(0.0, 0.0), add_title=False)
+            viz.plot_pref(
+                axis=ax,
+                pref=current_player.preference,
+                pname=current_player.name,
+                origin=(0.0, 0.0),
+                add_title=False
+            )
             ax.set_xlim(-125.0, 125.0)
             fig.savefig(fn, **RepRepDefaults.savefig_params)
             plt.close(fig=fig)
 
     def image_eq(
-        report: Report,
-        nodes_light: SolvedTrajectoryGame,
-        nodes_dark: SolvedTrajectoryGame,
-        plot_actions: bool,
-        plot_lanes: bool,
+            report: Report,
+            nodes_light: SolvedTrajectoryGame,
+            nodes_dark: SolvedTrajectoryGame,
+            plot_actions: bool,
+            plot_lanes: bool,
     ):
         eq_viz = report.figure("Overlay", cols=2)
         actions_dark = save_actions(nodes_dark)
         actions_light = save_actions(nodes_light)
-        with eq_viz.plot("all_equilibria") as pylab:
+        with eq_viz.plot("All Equilibria") as pylab:
             ax = pylab.gca()
             with viz.plot_arena(axis=ax):
                 states: List[VehicleState] = []
@@ -306,8 +416,8 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
                 plot_eq_all(axis=ax, actions_all=actions_light, w=1.0, color="gold")
                 plot_eq_all(axis=ax, actions_all=actions_dark, w=1.0, color="red")
                 ax.tick_params(top=False, bottom=False, left=False, right=False, labelleft=False, labelbottom=False)
-                adjust_axes_limits(ax=ax, plot_limits=game.game_vis.plot_limits, players_states=states)
-        plot_pref(rep=eq_viz)
+                adjust_axes_limits(ax=ax, plot_limits="auto", players_states=states)
+        #plot_pref(rep=eq_viz)
 
     if plot_gif:
         i = 1
@@ -317,20 +427,21 @@ def report_nash_eq(game: Game, nash_eq: Mapping[str, SolvedTrajectoryGame], plot
             gif_eq(report=rplot, node_eq=node, game=game, nash_eq=nash_eq, make_gif=make_gif)
             req.add_child(rplot)
             i += 1
-    rplot = Report(f"Equilibria:Strong-Weak")
+    rplot = Report(f"Equilibria:Strong-Weak") # todo: why strong-weak? and not only strong
     image_eq(report=rplot, nodes_dark=nash_eq["strong"], nodes_light=node_set, plot_actions=True, plot_lanes=False)
 
-    if len(node_set) < 200:
-        eq_viz = rplot.figure("Stacked", cols=2)
-        stack_nodes(
-            report=eq_viz,
-            viz=viz,
-            title="all_equilibria",
-            players=game.game_players,
-            nodes=node_set,
-            nodes_strong=nash_eq["strong"],
-        )
-        plot_pref(rep=eq_viz)
+    # todo what was this plotting?
+    # if len(node_set) < 200:
+    #     eq_viz = rplot.figure("Stacked", cols=2)
+    #     stack_nodes(
+    #         report=eq_viz,
+    #         viz=viz,
+    #         title="All Equilibria",
+    #         players=game.game_players,
+    #         nodes=node_set,
+    #         nodes_strong=nash_eq["strong"],
+    #     )
+    #     plot_pref(rep=eq_viz)
     req.add_child(rplot)
 
     rplot = Report(f"Equilibria:Admissible-Weak")
@@ -410,7 +521,7 @@ def create_animation(fn: str, game: Game, node: SolvedGameNode):
 
 
 def report_leader_follower_solution(
-    game: Game, solution: SolvedLeaderFollowerGame, plot_gif: bool, stage: int = 0
+        game: Game, solution: SolvedLeaderFollowerGame, plot_gif: bool, stage: int = 0
 ) -> Report:
     PLOT_ALL_OUT = False
 
@@ -571,7 +682,7 @@ def report_leader_follower_solution(
 
 
 def report_leader_follower_recursive(
-    game: LeaderFollowerGame, result: SolvedRecursiveLeaderFollowerGame, plot_gif: bool
+        game: LeaderFollowerGame, result: SolvedRecursiveLeaderFollowerGame, plot_gif: bool
 ) -> Report:
     rep = Report("Leader-Follower")
     gif_viz = rep.figure(cols=1)
@@ -656,7 +767,8 @@ def create_animation_recursive(fn: str, game: Game, result: SolvedRecursiveLeade
 
     def get_list() -> List:
         return (
-            list(itertools.chain.from_iterable(states.values())) + list(actions.values()) + list(opt_actions.values())
+                list(itertools.chain.from_iterable(states.values())) + list(actions.values()) + list(
+            opt_actions.values())
         )
 
     def init_plot():
