@@ -283,8 +283,8 @@ class Clearance(Metric):
         joint_values: PairwiseValues = {}
 
         for pair in combinations(context.get_players(), r=2):
-            t_start = context.trajectories[pair[0]].get_start()
-            t_end = context.trajectories[pair[0]].get_end()
+            t_start = float(context.trajectories[pair[0]].get_start())
+            t_end = float(context.trajectories[pair[0]].get_end())
             assert t_start == context.trajectories[pair[1]].get_start() and \
                    t_end == context.trajectories[pair[1]].get_end(), \
                 "The start and end time of different trajectories needs to be the same"

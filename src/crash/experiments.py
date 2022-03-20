@@ -44,11 +44,12 @@ def run_simulation(sim_context: SimContext) -> SimContext:
     return sim_context
 
 
-def run_scenario_without_compmake(sim_context: SimContext, output_dir: str = "out"):
+def run_scenario_without_compmake(sim_context: SimContext, output_dir: str = "out", write_report: bool = True):
     sim_context = run_simulation(sim_context)
     # generate collisions and damages report
-    report = generate_report(sim_context)
-    # save report
-    now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
-    report_file = os.path.join(output_dir, f"optimal_crash_{now_str}.html")
-    report.to_html(report_file)
+    if write_report:
+        report = generate_report(sim_context)
+        # save report
+        now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
+        report_file = os.path.join(output_dir, f"optimal_crash_{now_str}.html")
+        report.to_html(report_file)

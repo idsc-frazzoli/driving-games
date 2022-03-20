@@ -287,6 +287,6 @@ if __name__ == "__main__":
     # test_trajectory_game_brute_force()
     # test_trajectory_game_best_response()
     # test_trajectory_game_levels()
-    # test_simple_trajectory_game_leon()
+    test_simple_trajectory_game_leon()
     # test_decentralized_trajectory_game_leon()
-    run_dec_game_receding_horizon()
+    # run_dec_game_receding_horizon()

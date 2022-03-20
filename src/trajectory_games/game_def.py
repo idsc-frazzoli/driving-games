@@ -2,11 +2,13 @@ import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Callable, Dict, FrozenSet, Generic, Mapping, NewType, Optional, Sequence, Set, Tuple, TypeVar, Union
+from typing import Callable, Dict, FrozenSet, Generic, Mapping, NewType, Optional, Sequence, Set, Tuple, TypeVar, Union, \
+    List
 
 from matplotlib.collections import LineCollection
 
 from dg_commons import Color, PlayerName, U, X
+from dg_commons.planning import Trajectory
 from games import (
     AdmissibleStrategies,
     JointPureActions,
@@ -76,7 +78,7 @@ class PlotStackDictionary(Generic[Key]):
         """
         n_nodes = len(values)
         assert n_nodes > 0
-        self.cols = math.ceil(n_nodes**0.5) if not row else min(n_nodes, 6)
+        self.cols = math.ceil(n_nodes ** 0.5) if not row else min(n_nodes, 6)
         self.rows = math.ceil(n_nodes / self.cols)
         self.next_idx = 0
         self.indices: Dict[Key, Tuple[int, int]] = {}
@@ -129,13 +131,13 @@ class GameVisualization(Generic[X, U, W], ABC):
 
     @abstractmethod
     def plot_pref(
-        self,
-        axis,
-        pref: Preference[P],
-        pname: PlayerName,
-        origin: Tuple[float, float],
-        labels: Mapping[str, str] = None,
-        **kwargs,
+            self,
+            axis,
+            pref: Preference[P],
+            pname: PlayerName,
+            origin: Tuple[float, float],
+            labels: Mapping[str, str] = None,
+            **kwargs,
     ):
         pass
 
@@ -158,6 +160,9 @@ class GameVisualization(Generic[X, U, W], ABC):
         return self.pref_dict[player]
 
 
+FrozenTrajectories = FrozenSet[Trajectory]
+
+
 @dataclass
 class GamePlayer(Generic[X, U, W, P, G]):
     """Information about one player."""
@@ -166,7 +171,7 @@ class GamePlayer(Generic[X, U, W, P, G]):
     """The player's name"""
     state: Poss[X]
     """The player state in the world"""
-    actions_generator: ActionSetGenerator
+    actions_generator: Union[ActionSetGenerator, FrozenTrajectories]
     """ Player dynamics """
     preference: Preference[JointOutcome]
     """ Its preferences about the outcomes. """

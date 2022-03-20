@@ -44,6 +44,11 @@ __all__ = [
     "preprocess_player",
 ]
 
+"""@dataclass
+class SingleActionPlayer(
+    GamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerEvaluatedMetrics, VehicleGeometry]
+):
+    pass"""
 
 @dataclass
 class TrajectoryGamePlayer(
