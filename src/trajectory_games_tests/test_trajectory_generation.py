@@ -46,13 +46,13 @@ def test_trajectory_generation():
         dst_max=1.0,
         dt_samp=D("0.2"),
         dst_scale=False,
-        n_factor=0.8,
+        n_factor=0.6,
         vg=VehicleGeometry.default_car(),
     )
     generator = TrajectoryGenerator(params=params, ref_lane_goals=ref_lane_goals)
 
-    trajs_and_commands = generator.get_actions(state=initial_state, return_commands=True)
-    trajectories = frozenset((el[0] for el in trajs_and_commands))
+    trajectories = generator.get_actions(state=initial_state, return_graphs=False)
+    # trajectories = frozenset((el[0] for el in trajs_and_commands))
     viz = TrajectoryGenerationVisualization(scenario=scenario, trajectories=trajectories)
 
     dir_path = os.path.dirname(os.path.realpath(__file__))

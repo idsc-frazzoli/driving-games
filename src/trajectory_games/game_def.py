@@ -1,9 +1,7 @@
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from decimal import Decimal
-from typing import Callable, Dict, FrozenSet, Generic, Mapping, NewType, Optional, Sequence, Set, Tuple, TypeVar, Union, \
-    List
+from typing import Callable, Dict, FrozenSet, Generic, Mapping, NewType, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from matplotlib.collections import LineCollection
 
@@ -56,7 +54,7 @@ class ActionSetGenerator(Generic[X, U], ABC):
     """A generic generator for the possible actions"""
 
     @abstractmethod
-    def get_actions(self, state: X) -> FrozenSet[U]:
+    def get_actions(self, state: X, **kwargs) -> FrozenSet[U]:
         pass
 
 
@@ -171,7 +169,7 @@ class GamePlayer(Generic[X, U, W, P, G]):
     """The player's name"""
     state: Poss[X]
     """The player state in the world"""
-    actions_generator: Union[ActionSetGenerator, FrozenTrajectories]
+    actions_generator: ActionSetGenerator
     """ Player dynamics """
     preference: Preference[JointOutcome]
     """ Its preferences about the outcomes. """

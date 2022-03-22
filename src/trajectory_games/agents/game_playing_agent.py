@@ -1,30 +1,26 @@
+import random
+import time
 from functools import partial
+from itertools import product
 from typing import Optional, Mapping, Dict, List, FrozenSet, Set
-from decimal import Decimal as D
 
-from frozendict import frozendict
-
-from dg_commons import U, PlayerName, logger, iterate_dict_combinations
+from dg_commons import U, PlayerName, logger, iterate_dict_combinations, DgSampledSequence
 from dg_commons.planning import RefLaneGoal
-from dg_commons.planning.trajectory import Trajectory
+from dg_commons.planning.trajectory import Trajectory, TrajectoryGraph
 from dg_commons.sim import DrawableTrajectoryType
 from dg_commons.sim.agents import Agent
-from dg_commons.sim.models.vehicle import VehicleState
+from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
-from dg_commons.sim.scenarios import DgScenario, load_commonroad_scenario
+from dg_commons.sim.scenarios import DgScenario
 from dg_commons.sim.simulator_structures import SimObservations
 from dg_commons.time import time_function
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
 from games import MonadicPreferenceBuilder, PURE_STRATEGIES, BAIL_MNE
 from possibilities import PossibilitySet
 from preferences import SetPreference, Preference
-from trajectory_games.agents.stop_or_go_agent import *
-from trajectory_games import TrajectoryGame, SolvingContext, get_simple_traj_game_leon, preprocess_full_game, Solution, \
-    SolvedTrajectoryGame, TrajectoryGamePlayer, PosetalPreference, TrajectoryGenParams, TrajectoryGenerator, \
-    TrajectoryWorld, MetricEvaluation, TrajGameVisualization, StaticSolverParams
-from trajectory_games.game_def import FrozenTrajectories
-from trajectory_games.trajectory_generator import TrajectoryGeneratorCommands
-from trajectory_games_tests.test_games import report_single
+from trajectory_games import TrajectoryGame, SolvingContext, Solution, \
+    SolvedTrajectoryGame, TrajectoryGamePlayer, PosetalPreference, TrajectoryGenParams, \
+    TrajectoryWorld, MetricEvaluation, TrajGameVisualization, StaticSolverParams, SolvedGameNode, TrajectoryGenerator
 
 __all__ = ["GamePlayingAgent"]
 
@@ -35,64 +31,65 @@ class GamePlayingAgent(Agent):
     def __init__(
             self,
             map_name: str,
+            dg_scenario: DgScenario,
             initial_states: Mapping[PlayerName, VehicleState],
             ref_lanes: Mapping[PlayerName, RefLaneGoal],
             pref_structures: Mapping[PlayerName, str],
-            transition_gen_map: Mapping[PlayerName, str],
-            trajectory_file_path: str ="trajectory_stop_go.pickle",
-            stop_or_go_behavior: str = "stop",
+            traj_gen_params: Mapping[PlayerName, TrajectoryGenParams],
+    ):
 
+        self.map_name = map_name
+        self.scenario = dg_scenario
+        self.initial_states = initial_states
+        self.ref_lanes = ref_lanes
+        self.pref_structures = pref_structures
+        self.params = traj_gen_params
 
+        self.my_name: Optional[PlayerName] = None
+        self.nash_eq: Mapping[str, SolvedTrajectoryGame] = {}
+        self.all_trajectories: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
+        self.selected_eq: Optional[SolvedGameNode] = None
+        self.commands: Optional[DgSampledSequence[VehicleCommands]] = None
+        self.trajectory: Optional[Trajectory] = None
 
-            reporting: bool = False):
-
-        # self.traj_gen, self.commands_gen = self.get_stop_or_go_traj(trajectory_file_path=trajectory_file_path,
-        #                                                             behavior=stop_or_go_behavior)
-        self.game: TrajectoryGame = self.get_traj_game(
-            map_name=map_name,
-            initial_states=initial_states,
-            ref_lanes=ref_lanes,
-            pref_structures=pref_structures,
-            trajectory_file_path=trajectory_file_path,
-            stop_or_go_behavior=stop_or_go_behavior,
-            transition_gen_map=transition_gen_map
-        )
-
-        self.solving_context = self.preprocess_game(self.game)
-        self.sol = Solution()
-        self.nash_eq: Mapping[str, SolvedTrajectoryGame] = self.sol.solve_game(context=self.solving_context)
-        self.debug = True
-        # todo: now we have a flow that computes NASH EQ for ego -> still need to return vehicle commands
-        # self.my_name = None
-        # self.trajectory = None
-
-        # OLD
-        self.reporting = reporting
-
+    # returns trajectories that are stored in the trajectory graph
     @staticmethod
-    def get_stop_or_go_traj(trajectory_file_path: str, behavior: str):
-        traj_gen = read_traj(trajectory_file_path, behavior)["trajectory"]
-        return traj_gen
+    def all_trajs_from_graph(player_name: PlayerName,
+                             traj_graphs: Mapping[PlayerName, FrozenSet[TrajectoryGraph]]) -> FrozenSet[Trajectory]:
+
+        all_trajectories: Set[Trajectory] = set()
+        for graph in traj_graphs[player_name]:
+            all_trajectories |= graph.get_all_trajectories_new()
+        return frozenset(all_trajectories)
+
+    # return the vehicle commands needed to follow a certain trajectory
+    def commands_from_trajectory(self,
+                                 traj_graph: Mapping[PlayerName, FrozenSet[TrajectoryGraph]],
+                                 trajectory: Trajectory) -> DgSampledSequence:
+        # works only for one trajectory graph for each player
+        graph = list(traj_graph[self.my_name])[0]
+
+        values = trajectory.values
+        timestamps = trajectory.timestamps
+
+        source = (timestamps[0], values[0])
+        target = (timestamps[-1], values[-1])
+        commands = graph.get_commands_through_nodes(source, target)
+        return commands
 
     @time_function
-    def get_traj_game(self, map_name: str,
+    def get_traj_game(self,
+                      map_name: str,
+                      dg_scenario: DgScenario,
                       initial_states: Mapping[PlayerName, VehicleState],
                       ref_lanes: Mapping[PlayerName, RefLaneGoal],
                       pref_structures: Mapping[PlayerName, str],
-                      trajectory_file_path: str,
-                      stop_or_go_behavior: str,
-                      transition_gen_map: Mapping[PlayerName, str],
-                      stop_or_go_behavior_me_DEV: str = "go", #todo [LEON]: DEV, remove and use trajectory generator
+                      traj_gen_params: Mapping[PlayerName, TrajectoryGenParams]
                       ) -> TrajectoryGame:
 
         geometries: Dict[PlayerName, VehicleGeometry] = {}
         players: Dict[PlayerName, TrajectoryGamePlayer] = {}
         goals: Dict[PlayerName, List[RefLaneGoal]] = {}
-        scenario: DgScenario
-        logger.info(f"Loading Scenario: {map_name}")
-        scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
-        scenario, _ = load_commonroad_scenario(map_name, scenarios_dir=scenarios_dir)
-        logger.info("Done.")
 
         logger.info(f"Start game generation for GamePlayingAgent")
 
@@ -100,55 +97,13 @@ class GamePlayingAgent(Agent):
         mpref_build: MonadicPreferenceBuilder = SetPreference
 
         for pname in initial_states.keys():
-
             initial_state = initial_states[pname]
-
             pref = PosetalPreference(pref_str=pref_structures[pname], use_cache=False)
-
-            ref_lane_player = ref_lanes[pname]
-            ref_lane_goals = [ref_lane_player]
-
-            # transition generator
-            if transition_gen_map[pname] == "generate":
-                trans_param = TrajectoryGenParams.default()
-                traj_gen = TrajectoryGeneratorCommands(params=trans_param, ref_lane_goals=ref_lane_goals)
-            # load precomputed set of trajectories
-            elif transition_gen_map[pname] == "stop-or-go":
-                if pname == "P1":
-                    traj_gen = self.get_stop_or_go_traj(
-                        trajectory_file_path=trajectory_file_path,
-                        behavior=stop_or_go_behavior
-                    )
-                elif pname == "Ego":
-                    # issues when u_acc <= 0.0
-                    u_acc = frozenset([1.0, 2.0])
-                    u_dst = frozenset([0.0])
-                    # u_dst = frozenset([_ * 0.2 for _ in u_acc])
-
-                    params = TrajectoryGenParams(
-                        solve=False,
-                        s_final=-1,
-                        max_gen=100,
-                        dt=D("1.0"),
-                        # keep at max 1 sec, increase k_maxgen in trajectrory_generator for having more generations
-                        u_acc=u_acc,
-                        u_dst=u_dst,
-                        v_max=15.0,
-                        v_min=0.0,
-                        st_max=0.5,
-                        dst_max=1.0,
-                        dt_samp=D("0.2"),
-                        dst_scale=False,
-                        n_factor=0.8,
-                        vg=VehicleGeometry.default_car(),
-                    )
-                    traj_gen = TrajectoryGenerator(params=params, ref_lane_goals=ref_lane_goals)
-            else:
-                raise ValueError("This type of transition generator is not yet defined.")
-
+            ref_lane_goals = [ref_lanes[pname]]
             goals[pname] = ref_lane_goals
-
             geometries[pname] = VehicleGeometry.default_car()
+
+            traj_gen = TrajectoryGenerator(params=traj_gen_params[pname], ref_lane_goals=ref_lane_goals)
 
             players[pname] = TrajectoryGamePlayer(
                 name=pname,
@@ -159,7 +114,7 @@ class GamePlayingAgent(Agent):
                 vg=geometries[pname],
             )
 
-        world = TrajectoryWorld(map_name=map_name, scenario=scenario, geo=geometries, goals=goals)
+        world = TrajectoryWorld(map_name=map_name, scenario=dg_scenario, geo=geometries, goals=goals)
         get_outcomes = partial(MetricEvaluation.evaluate, world=world)
 
         game = TrajectoryGame(
@@ -169,28 +124,36 @@ class GamePlayingAgent(Agent):
             get_outcomes=get_outcomes,
             game_vis=TrajGameVisualization(world=world, plot_limits="auto"),
         )
+
+        logger.info(f"Game generated.")
         return game
 
     @staticmethod
-    def preprocess_game(game: TrajectoryGame) -> SolvingContext:
-        def compute_actions_and_commands(game: TrajectoryGame) -> Mapping[PlayerName, FrozenSet[Trajectory]]:
-            """Generate the trajectories (or load from pre-computed) for each player (i.e. get the available actions)"""
-            print("\nGenerating Trajectories:")
-            trajs_and_commands: Dict[PlayerName, FrozenSet[Trajectory]] = {}
-            for player_name, game_player in game.game_players.items():
-                if isinstance(game_player.actions_generator, Trajectory):
-                    trajs_and_commands[player_name] = [game_player.actions_generator] #todo: Workaround because there is only one trajectory -> when there are multiple it will fail
-                elif isinstance(game_player.actions_generator, TrajectoryGenerator):
-                    states = game_player.state.support()
-                    assert len(states) == 1, states
-                    trajs_and_commands[player_name] = game_player.actions_generator.get_actions(state=next(iter(states)), return_commands=True)
+    def generate_trajectory_graphs(game: TrajectoryGame, return_graphs: bool) \
+            -> Mapping[PlayerName, FrozenSet[TrajectoryGraph]]:
 
-            return trajs_and_commands
+        """Generate graph of trajectories and commands for each player (i.e. get the available actions)"""
+        logger.info(f"Generating Trajectories")
+        traj_graphs: Mapping[PlayerName, FrozenSet[TrajectoryGraph]] = {}
+        for player_name, game_player in game.game_players.items():
+            if isinstance(game_player.actions_generator, TrajectoryGenerator):
+                states = game_player.state.support()
+                assert len(states) == 1, states
+                traj_graphs[player_name] \
+                    = game_player.actions_generator.get_actions(state=list(states)[0], return_graphs=return_graphs)
+            else:
+                raise RuntimeError("No trajectory generator found for " + str(player_name))
+        return traj_graphs
 
-        def get_context(game: TrajectoryGame, actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
-            # Similar to get_outcome_preferences_for_players, use SetPreference1 for Poss
+    def preprocess_game(self,
+                        game: TrajectoryGame,
+                        traj_graphs: Mapping[PlayerName, FrozenSet[TrajectoryGraph]]) -> SolvingContext:
+
+        def get_context(sgame: TrajectoryGame,
+                        actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
+
             pref: Mapping[PlayerName, Preference[PlayerEvaluatedMetrics]] = {
-                name: player.preference for name, player in game.game_players.items()
+                name: player.preference for name, player in sgame.game_players.items()
             }
 
             # todo[LEON]: currently not used, remove
@@ -204,63 +167,91 @@ class GamePlayingAgent(Agent):
                 extra=False,
                 max_depth=3
             )
-
             kwargs = {
                 "player_actions": actions,
-                "game_outcomes": game.get_outcomes,
+                "game_outcomes": sgame.get_outcomes,
                 "outcome_pref": pref,
                 "solver_params": solver_params,
             }
 
             return SolvingContext(**kwargs)
 
-        trajs_and_commands = compute_actions_and_commands(game=game)
+        all_trajectories: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
 
-        def iterate_combinations(trajs_and_commands):
-            # there is only one trajectory for 'P1'
-            combinations = []
-            current_mapping: Mapping[PlayerName, Trajectory] = {}
-            P1 = PlayerName('P1')
-            EGO = PlayerName('Ego')
-            for traj, cmds in trajs_and_commands['Ego']:
-                p1 = trajs_and_commands['P1'][0]
-                ego = traj
-                current_mapping: Mapping[PlayerName, Trajectory] #= {P1: p1, EGO: ego}
-                current_mapping[P1]=p1
-                current_mapping[EGO]=ego
-                combinations.append(current_mapping)
-            return combinations
+        for player_name, game_player in game.game_players.items():
+            all_trajectories[player_name] = self.all_trajs_from_graph(player_name=player_name, traj_graphs=traj_graphs)
 
-        actions_list = iterate_combinations(trajs_and_commands)
-        for joint_traj in actions_list:
-        # for joint_traj in set(iterate_dict_combinations(trajs_and_commands)):
+        for joint_traj in set(iterate_dict_combinations(all_trajectories)):
             game.get_outcomes(joint_traj)
 
-        # for player, actions in available_trajectories.items():
-        #     for traj in actions:
-        #         game.get_outcomes(frozendict({player: traj}))
+        self.all_trajectories = all_trajectories
 
-        return get_context(game=game, actions=available_trajectories)
+        return get_context(sgame=game, actions=all_trajectories)
+
+    def select_admissible_eq_random(self):
+        admissible_eq = list(self.nash_eq['admissible'])
+        if len(admissible_eq) > 1:
+            logger.info(
+                f"Randomly selecting one admissible equilibria out of "
+                f"{len(admissible_eq)}" f"available equilibria."
+            )
+        return random.choice(admissible_eq)
 
     @time_function
     def on_episode_init(self, my_name: PlayerName):
-        pass
-        # self.my_name = my_name
-        # self.game: TrajectoryGame = get_simple_traj_game_leon(self.config_str)
-        # self.solving_context = preprocess_full_game(sgame=self.game, only_traj=False)
-        # self.solution: Solution = Solution()
-        # self.nash_eq: Mapping[str, SolvedTrajectoryGame] = self.solution.solve_game(context=self.solving_context)
-        # folder = "example_game_playing_agent_leon/"
-        # self.trajectory = self.nash_eq[my_name]['admissible'].actions[my_name]
-        # if self.reporting:
-        #     self.game.game_vis.init_plot_dict(values=self.nash_eq["weak"])
-        #     report_single(game=self.game, nash_eq=self.nash_eq, folder=folder)
+        self.my_name = my_name
+        game = self.get_traj_game(
+            map_name=self.map_name,
+            dg_scenario=self.scenario,
+            initial_states=self.initial_states,
+            ref_lanes=self.ref_lanes,
+            pref_structures=self.pref_structures,
+            traj_gen_params=self.params
+        )
+        traj_graphs: Mapping[PlayerName, FrozenSet[TrajectoryGraph]] = \
+            self.generate_trajectory_graphs(game, return_graphs=True)
+        solving_context: SolvingContext = self.preprocess_game(game, traj_graphs=traj_graphs)
+        sol: Solution = Solution()
+        self.nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=solving_context)
+        self.selected_eq = self.select_admissible_eq_random()  # randomly select one of the admissible equilibria
+        self.trajectory = self.selected_eq.actions[self.my_name]
+        self.commands = self.commands_from_trajectory(traj_graph=traj_graphs, trajectory=self.trajectory)
+
 
     def get_commands(self, sim_obs: SimObservations) -> U:
-        # current_time = sim_obs.time
-        # current_state = self.trajectory.at_interp(current_time)
-        # return VehicleCommands(acc=current_state, ddelta: float)
-        pass
+        current_time = sim_obs.time
+        if current_time < self.commands.get_start():
+            logger.info('Warning, no commands defined so early. Returning first command input.')
+            return self.commands.values[0]
+        elif current_time > self.commands.get_end():
+            logger.info('Warning, no commands defined so late. Returning last command input.')
+            return self.commands.values[-1]
+        else:
+            return self.commands.at_or_previous(current_time) #todo: strange: at_interp is better at following a trajectory (only in one case)
 
     def on_get_extra(self) -> Optional[DrawableTrajectoryType]:
-        pass
+        trajectories = self.all_trajectories[self.my_name]
+        trajectories_blue = self.all_trajectories[PlayerName('P1')]
+        selected_traj = self.trajectory
+        candidates = tuple(
+            product(
+                trajectories,
+                [
+                    "lightcoral",
+                ],
+            )
+        )
+        new_tuple = (selected_traj, 'red')
+        candidates += (new_tuple,)
+
+        candidates_blue = tuple(
+            product(
+                trajectories_blue,
+                [
+                    "blue",
+                ],
+            )
+        )
+        candidates += candidates_blue
+
+        return candidates

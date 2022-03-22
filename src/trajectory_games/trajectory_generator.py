@@ -1,6 +1,6 @@
 import math
 from time import perf_counter
-from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Sequence
+from typing import Dict, FrozenSet, List, Mapping, Optional, Set, Tuple, Sequence, Union
 
 import geometry as geo
 import numpy as np
@@ -60,22 +60,31 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         # self._cache[(player, state)] = all_graphs
         return all_graphs
 
-    def get_actions(self, state: VehicleState, return_commands=False) -> FrozenSet[Trajectory]:
+    def get_actions(self, state: VehicleState, return_graphs=False) -> FrozenSet[Union[Trajectory, TrajectoryGraph]]:
         """
         Computes set of feasible trajectories for given state along reference lanes
         """
         tic = perf_counter()
         lane_graphs = self.get_lanes_actions(state=state)
-        all_trajs: Set[Trajectory] = set()
-        if return_commands:
+        if return_graphs:
+            graphs: List[TrajectoryGraph] = []
             for graph in lane_graphs:
-                all_trajs |= graph.get_all_trajs_and_commands()
+                graphs.append(graph)
+            ret = graphs
+            toc = perf_counter() - tic
+            print(
+                f"Lanes = {len(lane_graphs)}" f"\n\tGraphs generated = {len(ret)}\n\ttime = {toc:.2f} s"
+            )
         else:
+            all_trajs: Set[Trajectory] = set()
             for graph in lane_graphs:
                 all_trajs |= graph.get_all_trajectories()
-        toc = perf_counter() - tic
-        print(f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(all_trajs)}\n\ttime = {toc:.2f} s")
-        return frozenset(all_trajs)
+            ret = all_trajs
+            toc = perf_counter() - tic
+            print(
+                f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(ret)}\n\ttime = {toc:.2f} s"
+            )
+        return frozenset(ret)
 
     def _get_trajectory_graph(self, state: VehicleState, ref_lane_goal: RefLaneGoal) -> TrajectoryGraph:
         """Construct graph of states"""
@@ -112,13 +121,18 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 trans_values = [val[1] for val in samp]
                 trans_timestamps = [val[0] for val in samp]
                 transition = Trajectory(values=trans_values, timestamps=trans_timestamps)
-                cmds = [u for _ in range(len(trans_timestamps))]
-                commands = Trajectory(values=cmds, timestamps=trans_timestamps)
+                # this to add commands that have same size as transition
+                # cmds = [u for _ in range(len(trans_timestamps))]
+                # commands = Trajectory(values=cmds, timestamps=trans_timestamps)
+
+
                 timestamps = [s1[0], s2[0]]
                 values = [s1[1], s2[1]]
                 states = Trajectory(values=values, timestamps=timestamps)
+                # this to add a single command (it is constant anyways)
+                # commands = (Trajectory(values=[u], timestamps=[s1[0]]))
 
-                graph.add_edge(states=states, transition=transition, commands=commands)
+                graph.add_edge(states=states, transition=transition, commands=u)
 
         return graph
 
@@ -341,18 +355,18 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 successors[u_f] = (state_f, states_t)
         return successors
 
-class TrajectoryGeneratorCommands(TrajectoryGenerator):
-    """ Compute feasible trajectories for each player and also return computed control inputs"""
-
-    def get_actions(self, state: VehicleState) -> FrozenSet[Trajectory]:
-        """
-        Computes set of feasible trajectories for given state along reference lanes
-        """
-        tic = perf_counter()
-        lane_graphs = self.get_lanes_actions(state=state)
-        all_trajs_commands: Set[Trajectory] = set()
-        for graph in lane_graphs:
-            all_trajs_commands |= graph.get_all_trajs_and_commands()
-        toc = perf_counter() - tic
-        print(f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(all_trajs_commands)}\n\ttime = {toc:.2f} s")
-        return frozenset(all_trajs_commands)
+# class TrajectoryGeneratorCommands(TrajectoryGenerator):
+#     """ Compute feasible trajectories for each player and also return computed control inputs"""
+#
+#     def get_actions(self, state: VehicleState) -> FrozenSet[Trajectory]:
+#         """
+#         Computes set of feasible trajectories for given state along reference lanes
+#         """
+#         tic = perf_counter()
+#         lane_graphs = self.get_lanes_actions(state=state)
+#         all_trajs_commands: Set[Trajectory] = set()
+#         for graph in lane_graphs:
+#             all_trajs_commands |= graph.get_all_trajs_and_commands()
+#         toc = perf_counter() - tic
+#         print(f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(all_trajs_commands)}\n\ttime = {toc:.2f} s")
+#         return frozenset(all_trajs_commands)

@@ -52,7 +52,7 @@ class StopOrGoAgent(LFAgent):
     def __init__(self,
                  ref_lane: DgLanelet,
                  max_sim_time: SimTime = None,
-                 stopping_time: D = None,
+                 stopping_time: D = 0.0,
                  file_path: str = None,
                  behavior: str = None,
                  generative: bool = False,

@@ -79,6 +79,7 @@ class Metric(ABC):
 
     def get_integrated_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
         tot_value = seq_integrate(seq).values[-1]
+
         ret = EvaluatedMetric(
             name=type(self).__name__,
             value=tot_value,
