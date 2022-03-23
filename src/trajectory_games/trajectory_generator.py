@@ -89,7 +89,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     def _get_trajectory_graph(self, state: VehicleState, ref_lane_goal: RefLaneGoal) -> TrajectoryGraph:
         """Construct graph of states"""
         graph: TrajectoryGraph = TrajectoryGraph()
-        k_maxgen = 6
+        k_maxgen = 5 #todo: should this not be removed? investigate what it does
         t_init: Timestamp = 0.0
         init_state = (t_init, state)
         stack: List[TimedVehicleState] = list([init_state])  # use timed state. Initial time is 0.
@@ -144,16 +144,6 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         return any(progress >= ref_lane_goal.goal_progress for progress in ref_lane_progress)
 
-    # @staticmethod
-    # def get_goal_reached_index(states: List[TimedVehicleState], goal: Polygon) -> Optional[int]:
-    #     # todo to adjust
-    #     in_goal = [goal.contains(Point(x.x, x.y)) for x in states[1]]
-    #     try:
-    #         last = in_goal.index(True)
-    #         return last
-    #     except:
-    #         return None
-
     @staticmethod
     def get_curv(state: VehicleState, lane: DgLanelet) -> Tuple[float, float, float]:
         """Calculate curvilinear coordinates for state"""
@@ -190,8 +180,9 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     def get_acc_dst(self, state: VehicleState, gen: int) -> Tuple[Set[float], Set[float]]:
         u0 = VehicleCommands(acc=0.0, ddelta=0.0)
         cond_gen = gen < self.params.max_gen
-        dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0}
+        dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0} #todo: don't change steering id cond_Gen is met
         acc_vals = self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0)
+        #todo: was: if not_cond_gen: remove all acc<0 and set them to acc=0.0 -> only move forward
         if not cond_gen:
             for acc in list(acc_vals):  # todo [LEON]: issue when acceleration values is =0!
                 if acc <= 0.0:  # todo [LEON]: added <= instead of < -> fix this
@@ -209,7 +200,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         dt = float(self.params.dt)
         # l = self.params.vg.l
-        l = self.params.vg.lf + self.params.vg.lr  # / 2  # todo lf or lr, /2?
+        l = self.params.vg.length # todo lf or lr, /2?
 
         # Calculate initial pose
         start_arr = np.array([timed_state[1].x, timed_state[1].y])
@@ -230,8 +221,8 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_corrected_distance(acc: float) -> float:
             """Progress along reference iteratively corrected using curvature"""
             curv = 0.0
-            if acc == 0.0:  # todo [LEON]: wokaround for now. Issue when acc==0.0 (division by zero happens in line 218)
-                acc = 0.1
+            # if acc == 0.0:  # todo [LEON]: workaround for now. Issue when acc==0.0 (division by zero happens in line 218)
+            #     acc = 0.1
             dist = get_progress(acc=acc, K=curv)
             assert dist != 0, "Progress can't be zero.  Choose another acceleration."
             for i in range(5):
@@ -355,18 +346,3 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 successors[u_f] = (state_f, states_t)
         return successors
 
-# class TrajectoryGeneratorCommands(TrajectoryGenerator):
-#     """ Compute feasible trajectories for each player and also return computed control inputs"""
-#
-#     def get_actions(self, state: VehicleState) -> FrozenSet[Trajectory]:
-#         """
-#         Computes set of feasible trajectories for given state along reference lanes
-#         """
-#         tic = perf_counter()
-#         lane_graphs = self.get_lanes_actions(state=state)
-#         all_trajs_commands: Set[Trajectory] = set()
-#         for graph in lane_graphs:
-#             all_trajs_commands |= graph.get_all_trajs_and_commands()
-#         toc = perf_counter() - tic
-#         print(f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(all_trajs_commands)}\n\ttime = {toc:.2f} s")
-#         return frozenset(all_trajs_commands)
