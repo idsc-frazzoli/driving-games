@@ -200,11 +200,15 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         dt = float(self.params.dt)
         # l = self.params.vg.l
-        l = self.params.vg.length # todo lf or lr, /2?
+        # l = self.params.vg.length # todo lf or lr, /2?
+        l = self.params.vg.lr
 
         # Calculate initial pose
         start_arr = np.array([timed_state[1].x, timed_state[1].y])
         th_start = timed_state[1].theta
+        # n_i is distance from lane
+        # mui is relative angle between closest pose on lane and state
+        # along_i is progress along lane of closest point to state
         along_i, n_i, mui = self.get_curv(state=timed_state[1], lane=lane)
 
         # Calculate real axle translation and rotation
@@ -311,7 +315,8 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 d_ang -= 2 * np.pi
             while d_ang < -np.pi:
                 d_ang += 2 * np.pi
-            dst_i = (math.atan(d_ang * 2 * self.params.vg.l / state.v * dt) - state.st) / dt
+            # dst_i = (math.atan(d_ang * 2 * self.params.vg.l / state.v * dt) - state.st) / dt
+            dst_i = (math.atan(d_ang * 2 * self.params.vg.lr / state.v * dt) - state.st) / dt
             dst_i = min(max(dst_i, lb), ub)
             return dst_i
 
