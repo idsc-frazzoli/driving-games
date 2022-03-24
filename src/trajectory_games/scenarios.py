@@ -187,7 +187,8 @@ def get_scenario_4_way_crossing_stochastic() -> SimContext:
         initial_states=initial_states,
         ref_lanes=ref_lanes,
         pref_structures=pref_structures,
-        traj_gen_params=traj_gen_params
+        traj_gen_params=traj_gen_params,
+        max_n_traj=5
     )
 
     for agent in models:

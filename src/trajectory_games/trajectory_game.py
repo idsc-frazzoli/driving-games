@@ -1,6 +1,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
+import random
 from time import perf_counter
 from typing import Dict, FrozenSet, Mapping, Optional, Set, Tuple
 
@@ -24,8 +25,6 @@ from .game_def import (
     StaticSolverParams,
 )
 from .paths import Trajectory, TrajectoryGraph
-
-# from .structures import VehicleState
 from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_world import TrajectoryWorld
 
@@ -197,10 +196,39 @@ def preprocess_player(sgame: Game, only_traj: bool = False) -> SolvingContext:
     return get_context(sgame=sgame, actions=available_traj)
 
 
-def get_context_and_graphs(
-        game: TrajectoryGame
-        ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
+def sample_trajectories(all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]], n_trajs_max: Optional[int] = None):
+    """
+    Subsample trajectories uniformly at random for each player.
+    :param all_trajs: Set of all trajectories for all players.
+    :param n_trajs_max: Maximum number of trajectories to sample for each player.
+    :return: Mapping from players to sampled subset of trajectories.
+    """
+    if n_trajs_max is None:
+        return all_trajs
+    else:
+        subset_trajs: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
+        random.seed(0)  # todo: fix this and take seed from SimContext
 
+        for pname, player_trajs in all_trajs.items():
+            if len(list(player_trajs)) <= n_trajs_max:
+                p_trajs = player_trajs
+            else:
+                p_trajs = random.choices(list(player_trajs), k=n_trajs_max)
+            subset_trajs[pname] = frozenset(p_trajs)
+
+        return subset_trajs
+
+
+def get_context_and_graphs(
+        game: TrajectoryGame,
+        max_n_traj: Optional[int] = None
+) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
+    """
+    Construct solving context and return trajectory graphs for all players.
+    :param game: Trajectory Game
+    :param max_n_traj: Maximum number of trajectories to return
+    :return: Solving Context and Trajectory graph
+    """
     def generate_trajectory_graphs(game: TrajectoryGame) -> Mapping[PlayerName, FrozenSet[TrajectoryGraph]]:
 
         """Generate graph of trajectories and commands for each player (i.e. get the available actions)"""
@@ -244,10 +272,13 @@ def get_context_and_graphs(
             all_trajectories_p |= graph.get_all_trajectories()
             all_trajectories[player_name] = frozenset(all_trajectories_p)
 
-    for joint_traj in set(iterate_dict_combinations(all_trajectories)):
+    # subsample trajectories at random to limit action number
+    subset_trajs = sample_trajectories(all_trajs=all_trajectories, n_trajs_max=max_n_traj)
+
+    for joint_traj in set(iterate_dict_combinations(subset_trajs)):
         game.get_outcomes(joint_traj)
 
-    return get_context(sgame=game, actions=all_trajectories), traj_graphs
+    return get_context(sgame=game, actions=subset_trajs), traj_graphs
 
 
 def preprocess_full_game(sgame: Game, only_traj: bool = False) -> SolvingContext:

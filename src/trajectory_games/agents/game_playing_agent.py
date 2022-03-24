@@ -51,7 +51,7 @@ class GamePlayingAgent(Agent):
 
         game = get_traj_game_posets_from_params(self.game_params)
         # create solving context and generate candidate trajectories for each agent
-        solving_context, traj_graphs = get_context_and_graphs(game=game)
+        solving_context, traj_graphs = get_context_and_graphs(game=game, max_n_traj=self.game_params.max_n_traj)
         self.all_trajectories = solving_context.player_actions
         sol: Solution = Solution()
         # compute NE
