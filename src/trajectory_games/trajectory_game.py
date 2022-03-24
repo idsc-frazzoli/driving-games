@@ -2,17 +2,18 @@ from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from time import perf_counter
-from typing import Dict, FrozenSet, Mapping, Optional, Set
+from typing import Dict, FrozenSet, Mapping, Optional, Set, Tuple
 
 from frozendict import frozendict
 
-from dg_commons import iterate_dict_combinations, PlayerName
+from dg_commons import iterate_dict_combinations, PlayerName, logger
 from dg_commons.seq.sequence import DgSampledSequence, Timestamp
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
 from games import BAIL_MNE, PURE_STRATEGIES
 from possibilities import Poss
 from preferences import Preference
+from . import TrajectoryGenerator
 from .game_def import (
     AntichainComparison,
     EXP_ACCOMP,
@@ -22,7 +23,7 @@ from .game_def import (
     SolvingContext,
     StaticSolverParams,
 )
-from .paths import Trajectory
+from .paths import Trajectory, TrajectoryGraph
 
 # from .structures import VehicleState
 from dg_commons.sim.models.vehicle import VehicleState
@@ -42,6 +43,7 @@ __all__ = [
     "SolvedRecursiveLeaderFollowerGame",
     "preprocess_full_game",
     "preprocess_player",
+    "get_context_and_graphs"
 ]
 
 """@dataclass
@@ -49,6 +51,7 @@ class SingleActionPlayer(
     GamePlayer[VehicleState, Trajectory, TrajectoryWorld, PlayerEvaluatedMetrics, VehicleGeometry]
 ):
     pass"""
+
 
 @dataclass
 class TrajectoryGamePlayer(
@@ -194,6 +197,59 @@ def preprocess_player(sgame: Game, only_traj: bool = False) -> SolvingContext:
     return get_context(sgame=sgame, actions=available_traj)
 
 
+def get_context_and_graphs(
+        game: TrajectoryGame
+        ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
+
+    def generate_trajectory_graphs(game: TrajectoryGame) -> Mapping[PlayerName, FrozenSet[TrajectoryGraph]]:
+
+        """Generate graph of trajectories and commands for each player (i.e. get the available actions)"""
+        logger.info(f"Generating Trajectories")
+        traj_graphs: Mapping[PlayerName, FrozenSet[TrajectoryGraph]] = {}
+        for player_name, game_player in game.game_players.items():
+            if isinstance(game_player.actions_generator, TrajectoryGenerator):
+                states = game_player.state.support()
+                assert len(states) == 1, states
+                traj_graphs[player_name] \
+                    = game_player.actions_generator.get_actions(state=list(states)[0], return_graphs=True)
+            else:
+                raise RuntimeError("No trajectory generator found for " + str(player_name))
+
+        logger.info(f"Trajectory generation finished.")
+        return traj_graphs
+
+    def get_context(sgame: TrajectoryGame,
+                    actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
+
+        pref: Mapping[PlayerName, Preference[PlayerEvaluatedMetrics]] = {
+            name: player.preference for name, player in sgame.game_players.items()
+        }
+
+        kwargs = {
+            "player_actions": actions,
+            "game_outcomes": sgame.get_outcomes,
+            "outcome_pref": pref,
+            "solver_params": None,
+        }
+
+        return SolvingContext(**kwargs)
+
+    traj_graphs: Mapping[PlayerName, FrozenSet[TrajectoryGraph]] = generate_trajectory_graphs(game=game)
+    all_trajectories: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
+
+    # retrieve all possible trajectories stored in trajectory graphs for each player
+    for player_name, game_player in game.game_players.items():
+        all_trajectories_p: Set[Trajectory] = set()
+        for graph in traj_graphs[player_name]:
+            all_trajectories_p |= graph.get_all_trajectories()
+            all_trajectories[player_name] = frozenset(all_trajectories_p)
+
+    for joint_traj in set(iterate_dict_combinations(all_trajectories)):
+        game.get_outcomes(joint_traj)
+
+    return get_context(sgame=game, actions=all_trajectories), traj_graphs
+
+
 def preprocess_full_game(sgame: Game, only_traj: bool = False) -> SolvingContext:
     """
     Preprocess the game -> Compute all possible actions and outcomes for each combination
@@ -226,15 +282,14 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
         admissible_strategies=PURE_STRATEGIES,
         strategy_multiple_nash=BAIL_MNE,
         dt=1.,
-        factorization_algorithm="TEST",
+        factorization_algorithm="TEST",  # todo: remove
         use_factorization=False,
         n_simulations=5,
         extra=False,
         max_depth=3
 
-
-        #antichain_comparison=ac_comp,
-        #use_best_response=True,
+        # antichain_comparison=ac_comp,
+        # use_best_response=True,
     )
 
     kwargs = {

@@ -1,11 +1,15 @@
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, FrozenSet
+from typing import Dict, FrozenSet, Mapping
 
 from yaml import safe_load
 
+from dg_commons import PlayerName
+from dg_commons.planning import RefLaneGoal
+from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.scenarios import DgScenario
 from .config import CONFIG_DIR
 
 __all__ = [
@@ -78,22 +82,44 @@ class TrajectoryGenParams:
     _config: Dict = None
     """ Cached config, loaded from file """
 
+    # @classmethod
+    # def default(cls) -> "TrajectoryGenParams":
+    #     u_acc = frozenset([-1.0, 0.0, 1.0, 2.0])
+    #     u_dst = frozenset([_ * 0.2 for _ in u_acc])
+    #     params = TrajectoryGenParams(
+    #         solve=False,
+    #         s_final=-1.0,
+    #         max_gen=1,
+    #         dt=D("1"),
+    #         u_acc=u_acc,
+    #         u_dst=u_dst,
+    #         v_max=15.0,
+    #         v_min=0.0,
+    #         st_max=0.5,
+    #         dst_max=1.0,
+    #         dt_samp=D("0.1"),
+    #         dst_scale=False,
+    #         n_factor=0.8,
+    #         vg=VehicleGeometry.default_car(),
+    #     )
+    #     return params
     @classmethod
-    def default(cls) -> "TrajectoryGenParams":
-        u_acc = frozenset([-1.0, 0.0, 1.0, 2.0])
-        u_dst = frozenset([_ * 0.2 for _ in u_acc])
+    def default(cls):
+        u_acc = frozenset([1.0, 2.0])
+        u_dst = frozenset([0.0])
         params = TrajectoryGenParams(
             solve=False,
-            s_final=-1.0,
-            max_gen=1,
-            dt=D("1"),
+            s_final=-1,
+            max_gen=100,
+            dt=D("1.0"),
+            # keep at max 1 sec, increase k_maxgen in trajectrory_generator for having more generations
             u_acc=u_acc,
             u_dst=u_dst,
             v_max=15.0,
             v_min=0.0,
             st_max=0.5,
             dst_max=1.0,
-            dt_samp=D("0.1"),
+            dt_samp=D("0.2"),
             dst_scale=False,
             n_factor=0.8,
             vg=VehicleGeometry.default_car(),
@@ -101,7 +127,7 @@ class TrajectoryGenParams:
         return params
 
     @classmethod
-    def from_config(cls, name: str, vg_name: str) -> "TrajectoryGenParams":
+    def from_config(cls, name: str) -> "TrajectoryGenParams":
         if cls._config is None:
             filename = os.path.join(CONFIG_DIR, "trajectories.yaml")
             with open(filename) as load_file:
@@ -136,9 +162,19 @@ class TrajectoryGenParams:
                 dt_samp=D(config["dt_samp"]),
                 dst_scale=config["dst_scale"],
                 n_factor=config["n_factor"],
-                vg=VehicleGeometry.default_car(vg_name),
+                vg=VehicleGeometry.default_car(),
             )
         else:
             print(f"Failed to intialise {cls.__name__} from {name}, using default")
             params = cls.default()
         return params
+
+
+@dataclass
+class TrajectoryGamePosetsParam:
+    map_name: str
+    # dg_scenario: DgScenario
+    initial_states: Mapping[PlayerName, VehicleState]
+    ref_lanes: Mapping[PlayerName, RefLaneGoal]
+    pref_structures: Mapping[PlayerName, str]
+    traj_gen_params: Mapping[PlayerName, TrajectoryGenParams]

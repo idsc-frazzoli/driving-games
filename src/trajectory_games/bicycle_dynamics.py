@@ -187,7 +187,7 @@ class BicycleDynamics:
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
         """Get rate of change of states for given control inputs"""
         dx = x0.vx
-        dr = dx * math.tan(x0.delta) / ((self.vg.lf + self.vg.lr))  # todo which lr or lf
+        dr = dx * math.tan(x0.delta) / (self.vg.lf + self.vg.lr)  # todo which lr or lf
         dy = dr * (self.vg.lf + self.vg.lr) / 2  # todo which lr og lf
         # dr = dx * math.tan(x0.st) / (2.0 * (self.vg.lf+self.vg.lr))
         # dy = dr * (self.vg.lf+self.vg.lr)

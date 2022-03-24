@@ -15,6 +15,13 @@ def test_scenario_4_way_crossing_stochastic():
     run_scenario_without_compmake(sim_context)
 
 
+def test_scenario_multiple_type_beliefs():
+    # sim_context = ...
+    # run_scenario_without_compmake(sim_context)
+    pass
+
+
 if __name__ == "__main__":
     # generate_pickle_for_stop_go_agent()
     test_scenario_4_way_crossing_stochastic()
+    # test_scenario_multiple_type_beliefs()

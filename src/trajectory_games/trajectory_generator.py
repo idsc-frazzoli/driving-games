@@ -78,7 +78,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         else:
             all_trajs: Set[Trajectory] = set()
             for graph in lane_graphs:
-                all_trajs |= graph.get_all_trajectories()
+                all_trajs |= graph.get_all_transitions()
             ret = all_trajs
             toc = perf_counter() - tic
             print(

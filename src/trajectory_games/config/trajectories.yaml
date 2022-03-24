@@ -32,6 +32,23 @@ traj_1: &traj_1
   n_factor: 0.8
   dt_samp: "0.2"
 
+traj_dev:
+  solve: False
+  s_final: -1
+  max_gen: 100
+  dt: "1.0"
+  step_acc: 2.0
+  n_acc: 4
+  step_dst: 0.2
+  n_dst: 2
+  v_max: 15.0
+  v_min: 0.0
+  st_max: 0.5
+  dst_max: 1.0
+  dst_scale: False
+  n_factor: 0.8
+  dt_samp: "0.2"
+
 traj_1_3: &traj_1_3
   <<: *traj_1
   dt: "1.5"

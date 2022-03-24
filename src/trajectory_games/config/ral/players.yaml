@@ -68,6 +68,23 @@ leon_level_0:
       pref: "common_person"
       vg: "blue_car"
 
+test_dev:
+  players:
+    Ego:
+      <<: *P2
+      state: "state_dev_1"
+      goals: [[115.0, 1.0]]
+      traj: "traj_dev"
+      pref: "pref_granny"
+      vg: "green_car"
+    P1:
+      <<: *P3
+      state: "state_dev_2"
+      goals: [[69.0, 45.0]]
+      traj: "traj_dev"
+      pref: "common_person"
+      vg: "blue_car"
+
 # make sure the preferences here are a refinement of the ones above
 ral_01_level_1:
   players:

@@ -29,14 +29,14 @@ def test_trajectory_generation():
     initial_state = VehicleState(x=p[0], y=p[1], vx=0, theta=-0.02, delta=0)
 
     # issues when u_acc <= 0.0
-    u_acc = frozenset([1.0, 4.0]) #todo: negative accelerations should also be possible
-    u_dst = frozenset([-0.2, 0.2]) #todo: not only "concave starts", also convex should be possible
+    u_acc = frozenset([1.0, 3.0])  # todo: negative accelerations should also be possible
+    u_dst = frozenset([-0.2, 0.2])  # todo: not only "concave starts", also convex should be possible
     # u_dst = frozenset([_ * 0.2 for _ in u_acc])
 
-    #todo: generate less curves but "longer"?
+    # todo: generate less curves but "longer"?
     params = TrajectoryGenParams(
         solve=False,
-        s_final=-1, # todo: add this to generator
+        s_final=-1,  # todo: add this to generator
         max_gen=100,
         dt=D("1.0"),  # keep at max 1 sec, increase k_maxgen in trajectrory_generator for having more generations
         u_acc=u_acc,
@@ -47,7 +47,7 @@ def test_trajectory_generation():
         dst_max=1.0,
         dt_samp=D("0.2"),
         dst_scale=False,
-        n_factor=1.2, #todo: investigate what this does
+        n_factor=1.2,  # todo: investigate what this does
         vg=VehicleGeometry.default_car(),
     )
     generator = TrajectoryGenerator(params=params, ref_lane_goals=ref_lane_goals)

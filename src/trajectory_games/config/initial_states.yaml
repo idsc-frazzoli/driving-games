@@ -83,3 +83,17 @@ state_5:
 state_6:
   <<: *state
   v0: 6.0
+
+state_dev_1:
+  x0: 42.0
+  y0: 0.0
+  theta: 0.0
+  v0: 8.333
+  delta: 0.0
+
+state_dev_2:
+  x0: 70.0
+  y0: -17.5
+  theta: 1.5708
+  v0: 8.333
+  delta: 0.0

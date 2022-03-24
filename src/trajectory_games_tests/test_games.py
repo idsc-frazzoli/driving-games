@@ -12,7 +12,8 @@ from trajectory_games import (
     CONFIG_DIR,
     get_leader_follower_game,
     get_trajectory_game,
-    get_simple_traj_game_leon,
+    get_traj_game_posets_from_params,
+    get_traj_game_posets_from_config,
     get_decentralized_traj_game,
     iterative_best_response,
     PosetalPreference,
@@ -220,7 +221,7 @@ def test_simple_trajectory_game_leon():
     folder = "example_game_leon_4/"
 
     config_str = "leon_level_0"
-    game: TrajectoryGame = get_simple_traj_game_leon(config_str=config_str)
+    game: TrajectoryGame = get_traj_game_posets_from_config(config_str=config_str)
 
     context: SolvingContext = preprocess_full_game(sgame=game, only_traj=only_traj)
 
