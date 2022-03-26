@@ -2,7 +2,7 @@ import os
 import random
 from decimal import Decimal as D
 from math import pi
-from typing import List, Mapping
+from typing import List, Mapping, Optional
 
 import matplotlib
 import numpy as np
@@ -28,7 +28,6 @@ from trajectory_games.agents.stop_or_go_agent import StopOrGoAgent
 
 __all__ = [
     "get_scenario_4_way_crossing_stochastic",
-    # "four_way_crossing_stop_go_scenario",
 ]
 
 from trajectory_games.structures import TrajectoryGamePosetsParam
@@ -41,50 +40,8 @@ P1, EGO = (
 SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 
-# todo[LEON]: marked for removal
-# def four_way_crossing_stop_go_scenario(behavior: str) -> SimContext:
-#     scenario_name = "DEU_Ffb-1_7_T-1"
-#     scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
-#
-#     assert behavior in ["stop", "go"], "Behavior can only be stop or go"
-#
-#     x0_p1 = VehicleStateDyn(x=70, y=-17.5, theta=pi / 2, vx=kmh2ms(30), delta=0)
-#     p1_model = VehicleModelDyn.default_car(x0=x0_p1)
-#
-#     models = {P1: p1_model}
-#
-#     net = scenario.lanelet_network
-#
-#     agents: List[Agent] = []
-#
-#     sim_params = SimParameters(dt=D("0.01"), dt_commands=D("0.1"), sim_time_after_collision=D(4), max_sim_time=D(10))
-#     stopping_time = D(6)  # at what time to get to a complete halt, depends on scenario, d(5) for: "DEU_Ffb-1_7_T-1"
-#
-#     p = np.array([x0_p1.x, x0_p1.y])
-#     dglane = dglane_from_position(p, net, succ_lane_selection=2)
-#
-#     agents.append(StopOrGoAgent(
-#         ref_lane=dglane,
-#         my_name=P1,
-#         max_sim_time=sim_params.max_sim_time,
-#         stopping_time=stopping_time,
-#         generative=True,
-#         behavior=behavior
-#     ))
-#
-#     players = {
-#         P1: agents[0],
-#     }
-#
-#     return SimContext(
-#         dg_scenario=DgScenario(scenario),
-#         models=models,
-#         players=players,
-#         param=sim_params,
-#     )
-
-
-def get_scenario_4_way_crossing_stochastic() -> SimContext:
+def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[PlayerName, str]] = None,
+                                           sim_params: Optional[SimParameters] = None) -> SimContext:
     scenario_name = "DEU_Ffb-1_7_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
 
@@ -133,8 +90,8 @@ def get_scenario_4_way_crossing_stochastic() -> SimContext:
         plt.show()
 
     agents: List[Agent] = []
-
-    sim_params = SimParameters(dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2), max_sim_time=D(6))
+    if sim_params is None:
+        sim_params = SimParameters(dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2), max_sim_time=D(6))
 
     # todo: look into seed
     random.seed(a=seed)
@@ -144,13 +101,12 @@ def get_scenario_4_way_crossing_stochastic() -> SimContext:
     else:
         behavior = "go"
 
-    behavior = "go"
-
     ref_lanes: Mapping[PlayerName, RefLaneGoal] = {}
-    pref_structures = {
-        P1: "pref_granny",
-        EGO: "pref_granny",
-    }
+    if pref_structures is None:
+        pref_structures = {
+            P1: "pref_granny",
+            EGO: "pref_granny",
+        }
 
     # transition generator
     u_acc = frozenset([1.0, 2.0])
@@ -202,7 +158,6 @@ def get_scenario_4_way_crossing_stochastic() -> SimContext:
                 behavior=behavior,
             ))
         if agent == EGO:
-
             agents.append(GamePlayingAgent(
                 game_params=game_params_ego
             ))

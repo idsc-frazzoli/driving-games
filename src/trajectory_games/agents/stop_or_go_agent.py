@@ -23,7 +23,7 @@ class StopOrGoAgent(LFAgent):
 
     def __init__(self,
                  ref_lane: DgLanelet,
-                 stopping_time: D = 0.0,
+                 stopping_time: D = D(0),
                  behavior: str = None,
                  seed: int = 0,
                  prob_go: float = 0.5):
@@ -39,7 +39,7 @@ class StopOrGoAgent(LFAgent):
             assert behavior in ["stop", "go"], "Behavior can only be stop or go."
             self.behavior = behavior
 
-        self.stopping_time = stopping_time
+        self.stopping_time = D(stopping_time)
 
     def on_episode_init(self, my_name: PlayerName):
         super().on_episode_init(my_name=my_name)
@@ -57,17 +57,18 @@ class StopOrGoAgent(LFAgent):
     def get_commands(self, sim_obs: SimObservations) -> U:
 
         if self.behavior == "stop":
+            if float(self.stopping_time) == 0:
+                self.speed_behavior.params.nominal_speed = 0.0
+        else:
             self.speed_behavior.params.nominal_speed \
                 = self.speed_behavior.params.nominal_speed \
-                * float((self.stopping_time - D(sim_obs.time)) / self.stopping_time)
-            if self.speed_behavior.params.nominal_speed < 0.0:
-                self.speed_behavior.params.nominal_speed = 0.0
+                  * float((self.stopping_time - sim_obs.time)) / float(self.stopping_time)
+
+        if self.speed_behavior.params.nominal_speed < 0.0:
+            self.speed_behavior.params.nominal_speed = 0.0
 
         elif self.behavior == "go":
             pass
-
-        else:
-            raise ValueError('Behavior can only be stop or go.')
 
         commands = super().get_commands(sim_obs)
 

@@ -61,7 +61,7 @@ class GamePlayingAgent(Agent):
 
         # get trajectory and commands relating to selected equilibria
         self.trajectory = self.selected_eq.actions[self.my_name]
-        # caution needed:  only works when a single graph is passe
+        # caution needed: for now only works when a single graph is passed
         my_graph: TrajectoryGraph = list(traj_graphs[self.my_name])[0]
         self.commands = my_graph.commands_on_trajectory(self.trajectory)
 
