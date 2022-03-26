@@ -196,32 +196,67 @@ def preprocess_player(sgame: Game, only_traj: bool = False) -> SolvingContext:
     return get_context(sgame=sgame, actions=available_traj)
 
 
-def sample_trajectories(all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]], n_trajs_max: Optional[int] = None):
+#todo: TEST this
+def sample_trajectories(
+        all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]],
+        n_trajs_max: Optional[int] = None,
+        method: str = "unif"
+):
     """
     Subsample trajectories uniformly at random for each player.
-    :param all_trajs: Set of all trajectories for all players.
+    :param all_trajs:   Set of all trajectories for all players.
     :param n_trajs_max: Maximum number of trajectories to sample for each player.
-    :return: Mapping from players to sampled subset of trajectories.
+    :param method:      how to sample. It can be uniform ("unif" or "uniform") or try to maximize the variability of the
+                        generated trajectories ("variance" or "var).
+    :return:            Mapping from players to sampled subset of trajectories.
     """
     if n_trajs_max is None:
         return all_trajs
-    else:
-        subset_trajs: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
-        random.seed(0)  # todo: fix this and take seed from SimContext
 
+    subset_trajs: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
+    random.seed(0)  # todo: fix this and take seed from SimContext
+    if method.lower() == "unif" or method.lower() == "uniform":
         for pname, player_trajs in all_trajs.items():
             if len(list(player_trajs)) <= n_trajs_max:
                 p_trajs = player_trajs
             else:
                 p_trajs = random.choices(list(player_trajs), k=n_trajs_max)
             subset_trajs[pname] = frozenset(p_trajs)
+    elif method.lower() == "variance" or method.lower() == "var":
+        for pname, player_trajs in all_trajs.items():
+            if len(list(player_trajs)) <= n_trajs_max:
+                p_trajs = player_trajs
+            else:
+                # add half the number of required subsampled trajectories
+                p_trajs = set(random.choices(list(player_trajs), k=int(n_trajs_max/2)))
+                new_candidate_trajs = set(list(player_trajs)) - p_trajs
+                # select one trajectory at random from subsampled trajectories up to now
+                while len(p_trajs) < n_trajs_max:
+                    p_compare_new = random.choice(list(p_trajs))
+                    candidate_trajs = list(new_candidate_trajs)
+                    mse = [p_compare_new.squared_error(new_traj) for new_traj in candidate_trajs]
+                    index = mse.index((max(mse)))
+                    p_trajs.add(candidate_trajs[index])
+                    new_candidate_trajs.remove(candidate_trajs[index])
 
-        return subset_trajs
+                    # for not yet added trajectories, compute MSE with p_compare_new
+
+                    # add the trajectory with the highest MSE -> favour diversity
+
+                    # repeat until we have the required number of elements
+
+            subset_trajs[pname] = frozenset(p_trajs)
+
+    else:
+        raise NotImplementedError
+
+    return subset_trajs
 
 
 def get_context_and_graphs(
         game: TrajectoryGame,
-        max_n_traj: Optional[int] = None
+        sampling_method: str,
+        max_n_traj: Optional[int] = None,
 ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
     """
     Construct solving context and return trajectory graphs for all players.
@@ -273,7 +308,7 @@ def get_context_and_graphs(
             all_trajectories[player_name] = frozenset(all_trajectories_p)
 
     # subsample trajectories at random to limit action number
-    subset_trajs = sample_trajectories(all_trajs=all_trajectories, n_trajs_max=max_n_traj)
+    subset_trajs = sample_trajectories(all_trajs=all_trajectories, n_trajs_max=max_n_traj, method=sampling_method)
 
     for joint_traj in set(iterate_dict_combinations(subset_trajs)):
         game.get_outcomes(joint_traj)

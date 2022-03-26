@@ -5,7 +5,7 @@ from typing import Dict, FrozenSet, Mapping, Optional
 
 from yaml import safe_load
 
-from dg_commons import PlayerName
+from dg_commons import PlayerName, Timestamp
 from dg_commons.planning import RefLaneGoal
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
@@ -150,9 +150,33 @@ class TrajectoryGenParams:
 
 @dataclass
 class TrajectoryGamePosetsParam:
+    """
+    This is a dataclass to store all relevant parameters when generating a Trajectory Game with players that have
+    posetal preferences.
+
+    Attributes:
+        map_name:           Name of the commonroad map to use
+        initial_states:     Initial vehicle states for each player
+        ref_lanes:          Reference lanes for each player
+        pref_structures:    Name of preference structure used by each player (loaded from .yaml library file)
+        traj_gen_params:    Parameters for the trajectory generator
+        refresh_time:       Time for solving the game in a receding horizon fashion. In simulation, one refresh_time
+                            has passed, the game will be prepreocessed and solved again with new observations.
+                            Set to None if the game should be played only one, without Receding Horizon.
+        n_traj_max:         Maximum number of trajectories for each player. These are sampled from the ones generated
+                            by the trajectory generator.
+        sampling_method:    How to subsample trajectories. Can be "unif" or "uniform" for random uniform sampling, or
+                            "variance" or "var" for looking for diverse and representative trajectories.
+        store_metrics:      Wether to store the metric violations compute for each player during the trajectory game.
+                            Default is false.
+
+    """
     map_name: str
     initial_states: Mapping[PlayerName, VehicleState]
     ref_lanes: Mapping[PlayerName, RefLaneGoal]
     pref_structures: Mapping[PlayerName, str]
     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams]
-    max_n_traj: Optional[int] = None
+    refresh_time: Optional[Timestamp] = None
+    n_traj_max: Optional[int] = None
+    sampling_method: str = "uniform"
+    store_metrics: bool = False

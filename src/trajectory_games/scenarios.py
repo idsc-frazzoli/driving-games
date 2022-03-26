@@ -9,7 +9,7 @@ import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 from matplotlib import pyplot as plt
 
-from dg_commons import PlayerName
+from dg_commons import PlayerName, Timestamp
 from dg_commons.planning import RefLaneGoal
 from dg_commons.sim.agents import Agent
 from dg_commons.sim.models import kmh2ms
@@ -41,7 +41,9 @@ SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 
 def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[PlayerName, str]] = None,
-                                           sim_params: Optional[SimParameters] = None) -> SimContext:
+                                           sim_params: Optional[SimParameters] = None,
+                                           receding_horizon_time: Optional[Timestamp] = None,
+                                           store_metrics: bool = False) -> SimContext:
     scenario_name = "DEU_Ffb-1_7_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
 
@@ -144,7 +146,10 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
         ref_lanes=ref_lanes,
         pref_structures=pref_structures,
         traj_gen_params=traj_gen_params,
-        max_n_traj=5
+        n_traj_max=10,
+        refresh_time=None,
+        store_metrics=False,
+        sampling_method="variance"
     )
 
     for agent in models:

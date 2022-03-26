@@ -8,7 +8,7 @@ from crash.reports import generate_report
 from dg_commons.sim.simulator import SimContext, Simulator
 from quickapp import QuickApp, QuickAppContext
 
-__all__ = ["CrashingExperiments", "run_crashing_experiments", "run_scenario_from_campaign"]
+__all__ = ["CrashingExperiments", "run_crashing_experiments", "run_scenario_and_return_context"]
 
 
 class CrashingExperiments(QuickApp):
@@ -55,8 +55,8 @@ def run_scenario_without_compmake(sim_context: SimContext, output_dir: str = "ou
         report.to_html(report_file)
 
 
-def run_scenario_from_campaign(sim_context: SimContext, output_dir: str = "out", write_report: bool = False):
-        # -> GameMetrics:
+def run_scenario_and_return_context(sim_context: SimContext, output_dir: str = "out", write_report: bool = False)\
+        -> SimContext:
     sim_context = run_simulation(sim_context)
     # generate collisions and damages report
     if write_report:
@@ -65,4 +65,5 @@ def run_scenario_from_campaign(sim_context: SimContext, output_dir: str = "out",
         now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
         report_file = os.path.join(output_dir, f"optimal_crash_{now_str}.html")
         report.to_html(report_file)
+    # returns sim_context for evaluation
     return sim_context
