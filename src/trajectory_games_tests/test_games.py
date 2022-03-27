@@ -31,7 +31,8 @@ from trajectory_games import (
     SolvedTrajectoryGame,
     SolvingContext,
     TrajectoryGame,
-    VehicleState, Game,
+    VehicleState,
+    Game,
 )
 from trajectory_games.decentralized_game import DecentralizedTrajectoryGame, RecedingHorizonGame_draft
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
@@ -44,7 +45,7 @@ filename = "r_game_all.html"
 
 # todo: remove function and just call method in report_single, after making sure it's not used anywhere else
 def create_reports(
-        game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], r_game: Report, gif: bool = plot_gif
+    game: TrajectoryGame, nash_eq: Mapping[str, SolvedTrajectoryGame], r_game: Report, gif: bool = plot_gif
 ):
     if not only_traj:
         print(", ".join(f"{k.capitalize()} = {len(v)}" for k, v in nash_eq.items()))
@@ -252,20 +253,23 @@ def run_dec_game_receding_horizon():
     dec_games = [dec_game]
     next_states = {}
     # todo[LEON]: use params from RH Game
-    dt = 1.
+    dt = 1.0
     N = 3
     for n in range(N):
         t = n * dt
         history = {}
         for player in dec_game.games.keys():
-            #assert len(dec_game.nash_eqs[player]['admissible']) == 1, "More than one admissible NE was given" # todo[LEON]: handle this case
-            seq = next(iter(dec_game.nash_eqs[player]['admissible'])).actions[player].get_partial(t_start=0, t_end=dt) #todo [LEON]: here only one is returned. Look into this
-            new_history = \
-                Trajectory(values=seq.values, timestamps=seq.timestamps) #todo [LEON]: fix this conversion in Trajectory or DgSampledSequence directly
-            #next_states[player] = new_history.at_interp(dt)
+            # assert len(dec_game.nash_eqs[player]['admissible']) == 1, "More than one admissible NE was given" # todo[LEON]: handle this case
+            seq = (
+                next(iter(dec_game.nash_eqs[player]["admissible"])).actions[player].get_subsequence(from_ts=0, to_ts=dt)
+            )  # todo [LEON]: here only one is returned. Look into this
+            new_history = Trajectory(
+                values=seq.values, timestamps=seq.timestamps
+            )  # todo [LEON]: fix this conversion in Trajectory or DgSampledSequence directly
+            # next_states[player] = new_history.at_interp(dt)
             next_states[player] = new_history.at(dt)
-            new_history = new_history.shift_sequence(t)
-            #todo[LEON]: fix this workaround
+            new_history = new_history.shift_timestamps(t)
+            # todo[LEON]: fix this workaround
             new_history = Trajectory(values=new_history.values, timestamps=new_history.timestamps)
             # todo [LEON]: workaround: fix
             if n == 0:
