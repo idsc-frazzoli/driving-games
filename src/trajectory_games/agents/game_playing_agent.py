@@ -72,7 +72,8 @@ class GamePlayingAgent(Agent):
 
         # todo: add these costs for each metric in the pref structure on the report
         # compute metric violations for statistics
-        self.metric_violation.append(solving_context.game_outcomes(self.selected_eq.actions))
+        # self.metric_violation.append(solving_context.game_outcomes(self.selected_eq.actions))
+        self.metric_violation.append(self.selected_eq.outcomes) #todo: fix type?
 
         # shift trajectory when receding horizon control is used
         self.trajectory = self.trajectory.shift_timestamps(self.pseudo_start_time)
@@ -109,8 +110,8 @@ class GamePlayingAgent(Agent):
             logger.info('Warning, no commands defined so late. Returning last command input.')
             return self.commands.values[-1]
         else:
-            return self.commands.at_interp(
-                current_time)  # todo: strange: at_interp is better at following a trajectory (only in one case)
+            # todo: strange: at_interp is better at following a trajectory (only in one case)
+            return self.commands.at_interp(current_time)
 
     def on_get_extra(self) -> Optional[Any]: #Optional[DrawableTrajectoryType]:
         # store metrics in extra of player logger

@@ -149,7 +149,7 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
         n_traj_max=10,
         refresh_time=None,
         store_metrics=False,
-        sampling_method="variance"
+        sampling_method="uniform"
     )
 
     for agent in models:
