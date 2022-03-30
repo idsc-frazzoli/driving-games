@@ -31,6 +31,33 @@ pref_ambulance_level_2:
   DeviationHeading: [ "DrivableAreaViolation" ]
   weights_comf: [ "DeviationHeading" ]
 
+pref_leon_dev:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation: [ "CollisionEnergy" ]
+  LateralComfort: [ "DrivableAreaViolation" ]
+
+pref_leon_dev_1:
+  CollisionEnergy: [ ]
+  LateralComfort: [ "CollisionEnergy" ]
+  DrivableAreaViolation: [ "LateralComfort" ]
+
+
+pref_leon_dev_2:
+  CollisionEnergy: [ ]
+  LongitudinalAcceleration: [ "CollisionEnergy" ]
+  SteeringRate: [ "CollisionEnergy" ]
+
+pref_leon_dev_3:
+  CollisionEnergy: [ ]
+  DeviationLateral: [ "CollisionEnergy" ]
+  DeviationHeading: [ "CollisionEnergy" ]
+
+pref_leon_dev_4:
+  ProgressAlongReference: [ ]
+  DrivableAreaViolation: [ "ProgressAlongReference" ]
+  CollisionEnergy: [ "DrivableAreaViolation" ]
+  LateralComfort: [ "DrivableAreaViolation" ]
+
 pref_granny:
   CollisionEnergy: [ ]
   MinimumClearance: [ "CollisionEnergy" ]
