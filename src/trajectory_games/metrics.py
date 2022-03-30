@@ -324,6 +324,7 @@ class Clearance(Metric):
 
 
 class MinimumClearance(Clearance):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric returns a cost (inverse to clearance)" \
                   " when minimum clearance is not respected between agents."
     sampling_time: Timestamp = 1.0
@@ -337,6 +338,7 @@ class MinimumClearance(Clearance):
         timestamps = list(clearances.values())[0].timestamps
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
             clearance_seq = np.array([0 for _ in range(len(timestamps))])
             for player_pair in clearances.keys():
                 if player in player_pair:
@@ -347,12 +349,14 @@ class MinimumClearance(Clearance):
                     clearance_seq = np.add(clearance_seq, clear)
             seq = DgSampledSequence[float](values=clearance_seq, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
+            self.cache[traj] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 class ClearanceViolationTime(Clearance):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the time a minimum clearance is violated between agents."
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
@@ -365,6 +369,7 @@ class ClearanceViolationTime(Clearance):
         timestamps = list(clearances.values())[0].timestamps
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
             clearance_seq = np.array([0 for _ in range(len(timestamps))])
             for player_pair in clearances.keys():
                 if player in player_pair:
@@ -375,6 +380,7 @@ class ClearanceViolationTime(Clearance):
                     clearance_seq = np.add(clearance_seq, clear)
             seq = DgSampledSequence[float](values=clearance_seq, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
+            self.cache[traj] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
@@ -394,6 +400,7 @@ Crashes = Mapping[Tuple[PlayerName, PlayerName], Timestamp]
 
 # todo make better test since metric has changed
 class CollisionEnergy(Clearance):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the energy of collision between agents."
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
@@ -459,6 +466,7 @@ class CollisionEnergy(Clearance):
         crashes = self.crashes_taking_place(context=context)
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
             coll_energies_seq = np.array([0 for _ in range(len(timestamps))])
             for player_pair, crash_idx in crashes.items():
                 if player in player_pair:
@@ -471,6 +479,7 @@ class CollisionEnergy(Clearance):
 
             seq = DgSampledSequence[float](values=coll_energies_seq, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
+            self.cache[traj] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
@@ -478,6 +487,7 @@ class CollisionEnergy(Clearance):
 
 # todo: refine metric if needed and test
 class AngularViolation(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the deviation (in radians) from a circular sector"
 
     def __init__(self, min_angle: float, max_angle: float):

@@ -71,6 +71,8 @@ class Metric(ABC):
         # Allow creation of only one instance of each subclass (singleton)
         if cls._instances.get(cls, None) is None:
             cls._instances[cls] = super(Metric, cls).__new__(cls, *args, **kwargs)
+        else:
+            RuntimeError("You can only create one instance of each metric")
         return Metric._instances[cls]
 
     @abstractmethod
