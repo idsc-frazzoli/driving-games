@@ -305,6 +305,7 @@ def get_context_and_graphs(
         all_trajectories_p: Set[Trajectory] = set()
         for graph in traj_graphs[player_name]:
             all_trajectories_p |= graph.get_all_trajectories()
+            # all_trajectories_p |= graph.get_all_transitions()
             all_trajectories[player_name] = frozenset(all_trajectories_p)
 
     # subsample trajectories at random to limit action number

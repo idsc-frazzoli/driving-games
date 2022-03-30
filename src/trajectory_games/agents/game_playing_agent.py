@@ -1,16 +1,13 @@
 import random
-from decimal import Decimal as D
 from itertools import product
-from typing import Optional, Mapping, FrozenSet, List, Any
+from typing import Optional, Mapping, FrozenSet, Any
 
 from dg_commons import U, PlayerName, logger, DgSampledSequence, Timestamp
 from dg_commons.planning.trajectory import Trajectory, TrajectoryGraph
-from dg_commons.sim import DrawableTrajectoryType
 from dg_commons.sim.agents import Agent
 from dg_commons.sim.models.vehicle import VehicleCommands, VehicleState
-from dg_commons.sim.simulator_structures import SimObservations
+from dg_commons.sim.simulator_structures import SimObservations, InitSimObservations
 from dg_commons.time import time_function
-from driving_games.metrics_structures import Metric
 from trajectory_games import Solution, SolvedTrajectoryGame, SolvedGameNode
 from trajectory_games.game_factory import get_traj_game_posets_from_params
 from trajectory_games.structures import TrajectoryGamePosetsParam
@@ -46,9 +43,6 @@ class GamePlayingAgent(Agent):
         self.commands: Optional[DgSampledSequence[VehicleCommands]] = None
         self.trajectory: Optional[Trajectory] = None
         self.pseudo_start_time: Timestamp = 0.0
-        random.seed(0)  # todo: get this from Simulation Context when ready
-        # for statistics
-        self.metric_violation: List[Mapping[PlayerName, Metric]] = []
 
     def full_game_function(self):
         game = get_traj_game_posets_from_params(self.game_params)
@@ -73,17 +67,17 @@ class GamePlayingAgent(Agent):
         # todo: add these costs for each metric in the pref structure on the report
         # compute metric violations for statistics
         # self.metric_violation.append(solving_context.game_outcomes(self.selected_eq.actions))
-        self.metric_violation.append(self.selected_eq.outcomes) #todo: fix type?
+        # self.metric_violation.append(self.selected_eq.outcomes)  # todo: fix type?
 
         # shift trajectory when receding horizon control is used
         self.trajectory = self.trajectory.shift_timestamps(self.pseudo_start_time)
         self.commands = self.commands.shift_timestamps(self.pseudo_start_time)
 
     @time_function
-    def on_episode_init(self, my_name: PlayerName):
-        self.my_name = my_name
+    def on_episode_init(self, init_sim_obs: InitSimObservations):
+        self.my_name = init_sim_obs.my_name
+        random.seed(init_sim_obs.seed)
         self.full_game_function()
-
 
         # preferences = solving_context.outcome_pref
 
@@ -111,38 +105,36 @@ class GamePlayingAgent(Agent):
             return self.commands.values[-1]
         else:
             # todo: strange: at_interp is better at following a trajectory (only in one case)
-            return self.commands.at_interp(current_time)
+            return self.commands.at_or_previous(current_time)
 
-    def on_get_extra(self) -> Optional[Any]: #Optional[DrawableTrajectoryType]:
+    def on_get_extra(self) -> Optional[Any]:  # Optional[DrawableTrajectoryType]:
         # store metrics in extra of player logger
-        if self.game_params.store_metrics:
-            return self.metric_violation
+        # if self.game_params.store_metrics:
+        #     return self.metric_violation
 
         # store trajectories in extra of player logger (or plotting)
-        else:
-            trajectories = self.all_trajectories[self.my_name]
-            trajectories_blue = self.all_trajectories[PlayerName('P1')]
-            selected_traj = self.trajectory
-            candidates = tuple(
-                product(
-                    trajectories,
-                    [
-                        "lightcoral",
-                    ],
-                )
+        trajectories = self.all_trajectories[self.my_name]
+        trajectories_blue = self.all_trajectories[PlayerName('P1')]
+        selected_traj = self.trajectory
+        candidates = tuple(
+            product(
+                trajectories,
+                [
+                    "lightcoral",
+                ],
             )
-            new_tuple = (selected_traj, 'red')
-            candidates += (new_tuple,)
+        )
+        new_tuple = (selected_traj, 'red')
+        candidates += (new_tuple,)
 
-            candidates_blue = tuple(
-                product(
-                    trajectories_blue,
-                    [
-                        "blue",
-                    ],
-                )
+        candidates_blue = tuple(
+            product(
+                trajectories_blue,
+                [
+                    "blue",
+                ],
             )
-            candidates += candidates_blue
+        )
+        candidates += candidates_blue
 
-            return candidates
-
+        return candidates
