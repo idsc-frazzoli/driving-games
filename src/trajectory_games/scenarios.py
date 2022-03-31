@@ -1,6 +1,6 @@
 import os
-import random
 from decimal import Decimal as D
+from itertools import product
 from math import pi
 from typing import List, Mapping, Optional
 
@@ -25,6 +25,7 @@ from dg_commons_dev.utils import get_project_root_dir
 from trajectory_games import TrajectoryGenParams
 from trajectory_games.agents.game_playing_agent import GamePlayingAgent
 from trajectory_games.agents.stop_or_go_agent import StopOrGoAgent
+from trajectory_games.simulation_campaign import *
 
 __all__ = [
     "get_scenario_4_way_crossing_stochastic",
@@ -119,7 +120,7 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
         solve=False,
         s_final=-1,
         max_gen=100,
-        dt=D("1.0"),
+        dt=D("0.8"),
         # keep at max 1 sec, increase k_maxgen in trajectory_generator for having more generations
         u_acc=u_acc,
         u_dst=u_dst,
@@ -186,9 +187,8 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
         ref_lanes=ref_lanes,
         pref_structures=pref_structures,
         traj_gen_params=traj_gen_params,
-        n_traj_max=15,
+        n_traj_max=5,
         refresh_time=receding_horizon_time,
-        # store_metrics=store_metrics,
         sampling_method="uniform"
     )
 
@@ -219,19 +219,34 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
     )
 
 
-from trajectory_games.simulation_campaign import *
+def get_simulation_campaign_from_params(params: SimulationCampaignParams) -> List[SimContext]:
+    sim_contexts = []
+    player_types = params.player_types.values()
+    player_names = list(params.player_types.keys())
+    for combination in product(*player_types):
+        type_combination: Mapping[PlayerName, str] = {player_names[i]: combination[i] for i in range(len(player_names))}
+        sim_contexts.append(
+            get_scenario_4_way_crossing_stochastic(
+                pref_structures=type_combination,
+                sim_params=params.sim_params,
+                receding_horizon_time=params.receding_horizon_time
+            )
+        )
+
+    return sim_contexts
 
 
 def get_scenario_4_way_crossing_stochastic_multiple_type_beliefs():
     EGO = PlayerName("Ego")
     P1 = PlayerName("P1")
-    types_of_others: Mapping[PlayerName, List[str]] = {
+    player_types: Mapping[PlayerName, List[str]] = {
         EGO: ["pref_leon_dev_4"],
-        P1: ["pref_leon_dev", "pref_leon_dev_1", "pref_leon_dev_2", "pref_leon_dev_3", "pref_leon_dev_4"]#, 'pref_granny_level_2']  # 'common_person', 'common_person_2']
+        P1: ["pref_leon_dev", "pref_leon_dev_1", "pref_leon_dev_2", "pref_leon_dev_3", "pref_leon_dev_4"]
     }
+
     campaign_params: SimulationCampaignParams = SimulationCampaignParams(
-        n_experiments=10,
-        types_of_others=types_of_others
+        n_experiments=10, # for now not used -> use for statistics
+        player_types=player_types
 
     )
     sim_context_set = get_simulation_campaign_from_params(campaign_params)

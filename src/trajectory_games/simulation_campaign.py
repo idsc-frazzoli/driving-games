@@ -1,11 +1,9 @@
 import os
-import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
-from itertools import product
-from typing import List, Mapping, Set, Optional, Any
 from decimal import Decimal as D
+from typing import List, Mapping, Set, Optional, Any
 
 import matplotlib
 from matplotlib import pyplot as plt
@@ -18,13 +16,10 @@ from dg_commons.sim.simulator import SimContext
 from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import EvaluatedMetric
 from trajectory_games import PosetalPreference, WeightedMetricPreference
-from trajectory_games.scenarios import get_scenario_4_way_crossing_stochastic
 from trajectory_games.metrics import get_metrics_set
 
 __all__ = [
     "SimulationCampaignParams",
-    "get_simulation_campaign_from_params"
-
 ]
 
 SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
@@ -58,22 +53,6 @@ class SimulationCampaignStatistics:
     metrics: Mapping[int, Mapping[PlayerName, Any]]
 
 
-def get_simulation_campaign_from_params(params: SimulationCampaignParams) -> List[SimContext]:
-    sim_contexts = []
-    player_types = params.player_types.values()
-    player_names = list(params.player_types.keys())
-    for combination in product(*player_types):
-        type_combination: Mapping[PlayerName, str] = {player_names[i]: combination[i] for i in range(len(player_names))}
-        sim_contexts.append(
-            get_scenario_4_way_crossing_stochastic(
-                pref_structures=type_combination,
-                sim_params=params.sim_params,
-                receding_horizon_time=params.receding_horizon_time
-            )
-        )
-
-    return sim_contexts
-
 
 # TODO: this needs to be tested. Separate the function summing frozen dictionaries
 # TODO: fix comment
@@ -98,7 +77,7 @@ def get_game_statistics(sim_results: List[SimContext]):
             pref = PosetalPreference(pref_str, use_cache=False)
             trajectory = result.players[EGO].selected_eq.actions[pname]
             filename = "Test_" + str(idx) + "_" + str(pname) + datetime.now().strftime("%y-%m-%d-%H%M%S")
-            plot(pref_graph=pref.graph, traj=trajectory, player_name=pname, show_plot=True, experiment_id=idx, filename=filename)
+            plot(pref_graph=pref.graph, traj=trajectory, player_name=pname, show_plot=False, experiment_id=idx, filename=filename)
             player_evaluated_metrics = set()
             for metric in all_metrics:
                 player_evaluated_metrics.add(metric.cache[trajectory])
