@@ -1,4 +1,5 @@
 import os
+import pickle
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
@@ -26,18 +27,20 @@ __all__ = [
 
 ]
 
-P1, EGO = (
-    PlayerName("P1"),
-    PlayerName("Ego"),
-)
-
 SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 
 @dataclass
 class SimulationCampaignParams:
+    """
+    Parameters for running a campaign of simulations with varying parameters.
+    :param n_experiments: number of time an experiment is repeated
+    :param player_types: possible types for each player. All combinations (euclidean product) will be tested
+    :param sim_params: parameters for the single simulation, such as time, refresh rate of commands, etc.
+    :param receding_horizon_time: time interval for solving game again (receding horizon control)
+    """
     n_experiments: int  # todo: use this when seed will have been implemented for all randomized steps of simulation
-    types_of_others: Mapping[PlayerName, List[str]]
+    player_types: Mapping[PlayerName, List[str]]
     sim_params: SimParameters = SimParameters(
         dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2), max_sim_time=D(5)
     )
@@ -46,14 +49,19 @@ class SimulationCampaignParams:
 
 @dataclass
 class SimulationCampaignStatistics:
-    n_experiments: int
+    """
+    Statistics to store results of a simulation campaign
+    :param n_experiments: number of time each experiment was repeated
+    :param metrics: evaluated metrics for each experiment
+    """
+    n_experiments: int # todo: assign correctly when seed will be used for multiple experiments
     metrics: Mapping[int, Mapping[PlayerName, Any]]
 
 
 def get_simulation_campaign_from_params(params: SimulationCampaignParams) -> List[SimContext]:
     sim_contexts = []
-    player_types = params.types_of_others.values()
-    player_names = list(params.types_of_others.keys())
+    player_types = params.player_types.values()
+    player_names = list(params.player_types.keys())
     for combination in product(*player_types):
         type_combination: Mapping[PlayerName, str] = {player_names[i]: combination[i] for i in range(len(player_names))}
         sim_contexts.append(
@@ -89,9 +97,6 @@ def get_game_statistics(sim_results: List[SimContext]):
         for pname, pref_str in pref_str_dict.items():
             pref = PosetalPreference(pref_str, use_cache=False)
             trajectory = result.players[EGO].selected_eq.actions[pname]
-            if pname == EGO:
-                print(trajectory)
-
             filename = "Test_" + str(idx) + "_" + str(pname) + datetime.now().strftime("%y-%m-%d-%H%M%S")
             plot(pref_graph=pref.graph, traj=trajectory, player_name=pname, show_plot=True, experiment_id=idx, filename=filename)
             player_evaluated_metrics = set()
@@ -101,9 +106,7 @@ def get_game_statistics(sim_results: List[SimContext]):
                 trajs.append(trajectory)
                 campaign_metrics[idx][pname] = deepcopy(player_evaluated_metrics)
 
-    n_experiments = len(sim_results)
-
-    return SimulationCampaignStatistics(n_experiments=n_experiments, metrics=campaign_metrics)
+    return SimulationCampaignStatistics(n_experiments=99999, metrics=campaign_metrics)
 
 
 def plot(
@@ -126,7 +129,7 @@ def plot(
 
     if filename:
         plt.savefig(filename)
-    elif show_plot:
+    if show_plot:
         plt.show()
 
 
@@ -161,4 +164,5 @@ def plot_pref(
     draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=8, font_color="b")
 
     axis.text(x=X, y=Y + 10.0, s=player_name + ".  Experiment id: " + str(experiment_id), ha="center", va="center")
-    axis.set_ylim(top=Y + 15.0)
+    axis.set_ylim(top=Y + 15.0, bottom=Y-40.0)
+    axis.set_xlim(left= X-70.0, right= X+70.0)
