@@ -43,7 +43,7 @@ class StopOrGoAgent(LFAgent):
         super().on_episode_init(init_sim_obs=init_sim_obs)
         if self.behavior == "undefined":
             # sample if the player should go or should stop
-            random.seed(init_sim_obs.seed)
+            # random.seed(init_sim_obs.seed)
             unif = random.uniform(0, 1)
             if unif > self.prob_go:
                 self.behavior = "stop"
@@ -57,10 +57,10 @@ class StopOrGoAgent(LFAgent):
         if self.behavior == "stop":
             if float(self.stopping_time) == 0:
                 self.speed_behavior.params.nominal_speed = 0.0
-        else:
-            self.speed_behavior.params.nominal_speed \
-                = self.speed_behavior.params.nominal_speed \
-                  * float((self.stopping_time - sim_obs.time)) / float(self.stopping_time)
+            else:
+                self.speed_behavior.params.nominal_speed \
+                    = self.speed_behavior.params.nominal_speed \
+                      * float((self.stopping_time - sim_obs.time)) / float(self.stopping_time)
 
         if self.speed_behavior.params.nominal_speed < 0.0:
             self.speed_behavior.params.nominal_speed = 0.0
