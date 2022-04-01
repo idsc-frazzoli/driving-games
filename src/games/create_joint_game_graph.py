@@ -113,7 +113,8 @@ def get_timestep_info(G: DiGraph, dt: D) -> AccessibilityInfo[X]:
         for n2 in G.successors(n1):
             # for each time t1 at which we can be at n1
             for t1 in state2times[n1]:
-                # we can be at n2 at time t2
+                # we can be at n2 at time t2# from games.factorization_algo import FactAlgo, FactAlgoNoFact
+
                 t2 = t1 + dt
                 state2times[n2].add(t2)
                 time2states[t2].add(n2)
