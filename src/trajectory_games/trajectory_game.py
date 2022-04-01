@@ -220,7 +220,7 @@ def sample_trajectories(
             if len(list(player_trajs)) <= n_trajs_max:
                 p_trajs = player_trajs
             else:
-                p_trajs = random.choices(list(player_trajs), k=n_trajs_max)
+                p_trajs = random.sample(list(player_trajs), k=n_trajs_max)
             subset_trajs[pname] = frozenset(p_trajs)
     elif method.lower() == "variance" or method.lower() == "var":
         for pname, player_trajs in all_trajs.items():
@@ -228,11 +228,11 @@ def sample_trajectories(
                 p_trajs = player_trajs
             else:
                 # add half the number of required subsampled trajectories
-                p_trajs = set(random.choices(list(player_trajs), k=int(n_trajs_max/2)))
+                p_trajs = set(random.sample(list(player_trajs), k=int(n_trajs_max/2)))
                 new_candidate_trajs = set(list(player_trajs)) - p_trajs
                 # select one trajectory at random from subsampled trajectories up to now
                 while len(p_trajs) < n_trajs_max:
-                    p_compare_new = random.choice(list(p_trajs))
+                    p_compare_new = random.sample(list(p_trajs), k=1)
                     candidate_trajs = list(new_candidate_trajs)
                     mse = [p_compare_new.squared_error(new_traj) for new_traj in candidate_trajs]
                     index = mse.index((max(mse)))
@@ -305,6 +305,7 @@ def get_context_and_graphs(
         all_trajectories_p: Set[Trajectory] = set()
         for graph in traj_graphs[player_name]:
             all_trajectories_p |= graph.get_all_trajectories()
+            # all_trajectories_p |= graph.get_all_transitions()
             all_trajectories[player_name] = frozenset(all_trajectories_p)
 
     # subsample trajectories at random to limit action number

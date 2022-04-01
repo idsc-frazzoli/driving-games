@@ -21,13 +21,6 @@ __all__ = ["TrajectoryGenerator"]
 Successors = Mapping[VehicleCommands, Tuple[TimedVehicleState, List[TimedVehicleState]]]
 Solve_Tolerance = 1e-3
 
-# class StaticTrajectoryLoader(ActionSetGenerator[VehicleState, Trajectory]):
-#     @staticmethod
-#     def get_actions(filename: str) -> FrozenSet[Trajectory]:
-#
-#
-#         return frozenset(all_trajs)
-
 
 class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     """Generate feasible trajectories for each player"""
@@ -44,7 +37,6 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         self.ref_lane_goals: Sequence[RefLaneGoal] = ref_lane_goals
         self._bicycle_dyn = BicycleDynamics(params=params)
 
-    #   self._cache = {}
 
     def get_lanes_actions(self, state: VehicleState) -> Set[TrajectoryGraph]:
         """

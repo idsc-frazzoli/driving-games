@@ -164,12 +164,9 @@ class TrajectoryGamePosetsParam:
                             has passed, the game will be prepreocessed and solved again with new observations.
                             Set to None if the game should be played only one, without Receding Horizon.
         n_traj_max:         Maximum number of trajectories for each player. These are sampled from the ones generated
-                            by the trajectory generator.
+                            by the trajectory generator. Set to None to keep all trajectories.
         sampling_method:    How to subsample trajectories. Can be "unif" or "uniform" for random uniform sampling, or
                             "variance" or "var" for looking for diverse and representative trajectories.
-        store_metrics:      Wether to store the metric violations compute for each player during the trajectory game.
-                            Default is false.
-
     """
     map_name: str
     initial_states: Mapping[PlayerName, VehicleState]
@@ -179,4 +176,3 @@ class TrajectoryGamePosetsParam:
     refresh_time: Optional[Timestamp] = None
     n_traj_max: Optional[int] = None
     sampling_method: str = "uniform"
-    store_metrics: bool = False
