@@ -1,14 +1,14 @@
 import itertools
 from copy import deepcopy
-from typing import Set, Dict, Tuple
+from dataclasses import replace
 from decimal import Decimal as D
+from typing import Set, Dict, Tuple
 
 from networkx import DiGraph, topological_sort, has_path
 
-from trajectory_games.preference import PosetalPreference, WeightedMetricPreference
-from driving_games.metrics_structures import Metric, EvaluatedMetric
 from dg_commons.seq.sequence import DgSampledSequence
-
+from driving_games.metrics_structures import Metric, EvaluatedMetric, MetricNodeName
+from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
 from trajectory_games.metrics import (
     get_metrics_set,
     EpisodeTime,
@@ -19,12 +19,10 @@ from trajectory_games.metrics import (
     LongitudinalAcceleration,
     LateralComfort,
     SteeringAngle,
-    SteeringRate,
     CollisionEnergy,
     MinimumClearance,
 )
-
-from preferences import INDIFFERENT, INCOMPARABLE, FIRST_PREFERRED, SECOND_PREFERRED, ComparisonOutcome
+from trajectory_games.preference import PosetalPreference, MetricNodePreference
 
 
 def test_poset():
@@ -36,7 +34,7 @@ def test_poset():
 
     default: EvaluatedMetric = EvaluatedMetric(
         value=0.0,
-        name="TestMetric",
+        name=MetricNodeName("TestMetric"),
         pointwise=DgSampledSequence([], []),
     )
 
@@ -53,7 +51,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p2[LongitudinalAcceleration()].value = D("1")
+    p2[LongitudinalAcceleration()] = replace(p2[LongitudinalAcceleration()], value=1)
     # LongAcc: p1>p2
     assert pref1.compare(p1, p2) == INDIFFERENT
     assert pref2.compare(p1, p2) == FIRST_PREFERRED
@@ -63,7 +61,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[LateralComfort()].value = D("1")
+    p1[LateralComfort()] = replace(p1[LateralComfort()], value=1)
     # LongAcc: p1>p2, LatComf: p1<p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -73,7 +71,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p2[MinimumClearance()].value = D("1")
+    p2[MinimumClearance()] = replace(p2[MinimumClearance()], value=1)
     # LongAcc: p1>p2, LatComf: p1<p2, MinClear: p1>p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == INCOMPARABLE
@@ -83,9 +81,9 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[LateralComfort()].value = D("0")
-    p2[LongitudinalAcceleration()].value = D("0")
-    p1[ProgressAlongReference()].value = D("1")
+    p1[LateralComfort()] = replace(p1[LateralComfort()], value=0)
+    p2[LongitudinalAcceleration()] = replace(p2[LongitudinalAcceleration()], value=0)
+    p1[ProgressAlongReference()] = replace(p1[ProgressAlongReference()], value=1)
     # MinClear: p1>p2, Prog: p1<p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -95,7 +93,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[ProgressAlongReference()].value = D("0")
+    p1[ProgressAlongReference()] = replace(p1[ProgressAlongReference()], value=0)
     # MinClear: p1>p2
     assert pref1.compare(p1, p2) == INDIFFERENT
     assert pref2.compare(p1, p2) == FIRST_PREFERRED
@@ -105,7 +103,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[DrivableAreaViolation()].value = D("1")
+    p1[DrivableAreaViolation()] = replace(p1[DrivableAreaViolation()], value=1)
     # MinClear: p1>p2, Area: p1<p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -115,7 +113,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p2[DeviationHeading()].value = D("1")
+    p2[DeviationHeading()] = replace(p2[DeviationHeading()], value=1)
     # MinClear: p1>p2, Area: p1<p2, DevHead: p1>p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == INCOMPARABLE
@@ -125,7 +123,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[DeviationLateral()].value = D("1")
+    p1[DeviationLateral()] = replace(p1[DeviationLateral()], value=1)
     # MinClear: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -135,7 +133,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p2[CollisionEnergy()].value = D("1")
+    p2[CollisionEnergy()] = replace(p2[CollisionEnergy()], value=1)
     # MinClear: p1>p2, Area: p1<p2, DevHead: p1>p2, DevLat: p1<p2, Coll: p1>p2
     assert pref1.compare(p1, p2) == FIRST_PREFERRED
     assert pref2.compare(p1, p2) == FIRST_PREFERRED
@@ -145,10 +143,10 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p2[MinimumClearance()].value = D("0")
-    p1[DrivableAreaViolation()].value = D("0")
-    p2[DeviationHeading()].value = D("0")
-    p2[CollisionEnergy()].value = D("0")
+    p2[MinimumClearance()] = replace(p2[MinimumClearance()], value=0)
+    p1[DrivableAreaViolation()] = replace(p1[DrivableAreaViolation()], value=0)
+    p2[DeviationHeading()] = replace(p2[DeviationHeading()], value=0)
+    p2[CollisionEnergy()] = replace(p2[CollisionEnergy()], value=0)
     # DevLat: p1<p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -158,7 +156,7 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p2[SteeringAngle()].value = D("1")
+    p2[SteeringAngle()] = replace(p2[SteeringAngle()], value=1)
     # DevLat: p1<p2, StAng: p1>p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -168,8 +166,8 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[EpisodeTime()].value = D("1")
-    p2[LongitudinalAcceleration()].value = D("1")
+    p1[EpisodeTime()] = replace(p1[EpisodeTime()], value=1)
+    p2[LongitudinalAcceleration()] = replace(p2[LongitudinalAcceleration()], value=1)
     # DevLat: p1<p2, StAng: p1>p2, Time: p1<p2, LongAcc: p1>p2
     assert pref1.compare(p1, p2) == SECOND_PREFERRED
     assert pref2.compare(p1, p2) == SECOND_PREFERRED
@@ -179,8 +177,8 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[DeviationLateral()].value = D("0")
-    p2[SteeringAngle()].value = D("0")
+    p1[DeviationLateral()] = replace(p1[DeviationLateral()], value=0)
+    p2[SteeringAngle()] = replace(p2[SteeringAngle()], value=0)
     # Time: p1<p2, LongAcc: p1>p2
     assert pref1.compare(p1, p2) == INDIFFERENT
     assert pref2.compare(p1, p2) == FIRST_PREFERRED
@@ -190,8 +188,8 @@ def test_poset():
     # assert pref2.compare_old(p1, p2), pref2.compare(p1, p2))
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
-    p1[EpisodeTime()].value = D("0")
-    p2[LongitudinalAcceleration()].value = D("0")
+    p1[EpisodeTime()] = replace(p1[EpisodeTime()], value=0)
+    p2[LongitudinalAcceleration()] = replace(p2[LongitudinalAcceleration()], value=0)
     # p1==p2
     assert pref1.compare(p1, p2) == INDIFFERENT
     assert pref2.compare(p1, p2) == INDIFFERENT
@@ -202,6 +200,7 @@ def test_poset():
     # assert pref3.compare_old(p1, p2), pref3.compare(p1, p2))
 
     return
+
 
 CompareDict: Dict[Tuple[bool, bool], ComparisonOutcome] = {
     (False, False): INCOMPARABLE,
@@ -219,7 +218,7 @@ def compare_posets(A: PosetalPreference, B: PosetalPreference) -> ComparisonOutc
 
 def check_subset(A: PosetalPreference, B: PosetalPreference) -> bool:
     # Check if node is a weighted node or not
-    def check_weighted(wnode: WeightedMetricPreference) -> bool:
+    def check_weighted(wnode: MetricNodePreference) -> bool:
         total: int = sum([w > D("0") for _, w in wnode.weights.items()])
         return total != 1
 
@@ -331,7 +330,3 @@ def test_compare_posets():
     for (A, B), result in results.items():
         ab = compare_posets(prefs[A], prefs[B])
         assert ab == result, f"A,B = {A, B}\t res,actual = {ab, result}"
-
-
-if __name__ == "__main__":
-    test_poset()

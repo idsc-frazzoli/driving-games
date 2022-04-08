@@ -4,7 +4,7 @@ from typing import Mapping
 from yaml import safe_load
 
 from driving_games.metrics_structures import Metric
-from trajectory_games import WeightedMetricPreference
+from trajectory_games import MetricNodePreference
 from trajectory_games.config import CONFIG_DIR
 from zuper_commons.types import ZValueError
 
@@ -14,7 +14,7 @@ class MetricNodesServer:
     weights: Mapping[Metric, float]
     """ Weights of the different nodes. Each node can either be a metric or a weighted preference """
 
-    _available: Mapping[str, WeightedMetricPreference]
+    _available: Mapping[str, MetricNodePreference]
 
     def __init__(self):
         # todo in the future option to load a specific config file

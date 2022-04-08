@@ -143,7 +143,7 @@ class TrajectoryGenParams:
                 vg=VehicleGeometry.default_car(),
             )
         else:
-            print(f"Failed to intialise {cls.__name__} from {name}, using default")
+            print(f"Failed to initialise {cls.__name__} from {name}, using default")
             params = cls.default()
         return params
 
@@ -168,6 +168,7 @@ class TrajectoryGamePosetsParam:
         sampling_method:    How to subsample trajectories. Can be "unif" or "uniform" for random uniform sampling, or
                             "variance" or "var" for looking for diverse and representative trajectories.
     """
+
     map_name: str
     initial_states: Mapping[PlayerName, VehicleState]
     ref_lanes: Mapping[PlayerName, RefLaneGoal]

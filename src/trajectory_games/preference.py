@@ -1,16 +1,14 @@
-import heapq
 import os
 from decimal import Decimal as D
-from queue import PriorityQueue
 from heapq import *
-from typing import Type, Dict, Mapping, Set, Tuple, Union
-from dg_commons.time import time_function
+from typing import Type, Dict, Mapping, Set, Tuple
 
-from frozendict import frozendict
 from networkx import DiGraph, is_directed_acyclic_graph, all_simple_paths, has_path
 from yaml import safe_load
 
-from driving_games.metrics_structures import Metric, PlayerEvaluatedMetrics
+from dg_commons import fd
+from dg_commons.time import time_function
+from driving_games.metrics_structures import Metric, PlayerEvaluatedMetrics, MetricNodeName
 from preferences import (
     Preference,
     ComparisonOutcome,
@@ -25,78 +23,77 @@ from .config.ral import config_dir_ral
 from .metrics import *
 
 __all__ = [
-    "WeightedMetricPreference",
+    "MetricNodePreference",
     "PosetalPreference",
 ]
 
-AllMetrics = Union[Metric, "WeightedPreference"]
+# todo move the generation of WeightedMetirc to a separate "factory"?
 
 
-class WeightedMetricPreference(Preference[PlayerEvaluatedMetrics]):
-    """Compare the total weighted values between evaluated metrics"""
+class MetricNodePreference(Preference[PlayerEvaluatedMetrics], Metric):
+    """A MetricNodePreference is a Metric node of the posetal preference.
+    As a metric, it is an aggregation (weighted sum) of basic metrics.
+    Itself contains also the preference on the node itself (scalar smaller preferred for rules-like)."""
 
-    name: str
-    weights: Mapping[Metric, D]
+    name: MetricNodeName
+    weights: Mapping[Metric, float]
     """ Weights of the different nodes. Each node can either be a metric or a weighted preference """
 
     """ Internal parameters """
-    _pref: SmallerPreferredTol = SmallerPreferredTol(D("5e-3"))
+    _pref: SmallerPreferredTol = SmallerPreferredTol(D(0))  # SmallerPreferredTol(D("5e-3"))
     _config: Mapping = None
-    _metric_dict: Dict[str, AllMetrics] = None
+    _metric_dict: Dict[MetricNodeName, Metric] = None
 
-    def __init__(
-            self,
-            weights_str: str,
-    ):
-        if WeightedMetricPreference._config is None:
+    def __init__(self, weights_str: MetricNodeName):
+        if MetricNodePreference._config is None:
             filename = os.path.join(CONFIG_DIR, "pref_nodes.yaml")
             with open(filename) as load_file:
-                WeightedMetricPreference._config = safe_load(load_file)
-            WeightedMetricPreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
+                MetricNodePreference._config = safe_load(load_file)
+            MetricNodePreference._metric_dict = {type(m).__name__: m for m in get_metrics_set()}
 
         self.name = weights_str
-        weights: Dict[AllMetrics, D] = {}
-        for k, v in WeightedMetricPreference._config[weights_str].items():
-            if k not in WeightedMetricPreference._metric_dict:
+        weights: Dict[Metric, float] = {}
+        for k, v in MetricNodePreference._config[weights_str].items():
+            if k not in MetricNodePreference._metric_dict:
                 try:
-                    w_metric = WeightedMetricPreference(
-                        weights_str=k)
+                    w_metric = MetricNodePreference(weights_str=k)
                 except:
                     raise ValueError(f"Key {k} not found in metrics or weighted metrics!")
-                WeightedMetricPreference._metric_dict[k] = w_metric
-            weights[WeightedMetricPreference._metric_dict[k]] = D(v)
-        self.weights = weights
+                MetricNodePreference._metric_dict[k] = w_metric
+            weights[MetricNodePreference._metric_dict[k]] = float(v)
+        self.weights = fd(weights)
 
     def get_type(
-            self,
+        self,
     ) -> Type[PlayerEvaluatedMetrics]:
+        # fixme
         return PlayerEvaluatedMetrics
 
     def compare(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
         return self._pref.compare(self.evaluate(a), self.evaluate(b))
 
-    def evaluate(self, outcome: PlayerEvaluatedMetrics) -> D:
-        w = D("0")
+    def evaluate(self, outcome: PlayerEvaluatedMetrics) -> float:
+        val = 0
         for metric, weight in self.weights.items():
-            value = (
-                metric.evaluate(outcome=outcome)
-                if isinstance(metric, WeightedMetricPreference)
-                else D(outcome[metric].value)
-            )
-            w += value * weight
-        return w
+            m_value = outcome[metric].value
+            val += m_value * weight
+        return val
 
     def __repr__(self):
         ret: str = ""
         for metric, weight in self.weights.items():
             if len(ret) > 0:
                 ret += "\n"
-            met_str = metric.name if isinstance(metric, WeightedMetricPreference) else type(metric).__name__
+            met_str = metric.name if isinstance(metric, MetricNodePreference) else type(metric).__name__
             ret += f"{round(float(weight), 2)}*{met_str}"
         return ret
 
-    def __lt__(self, other: "WeightedMetricPreference") -> bool:
+    def __lt__(self, other: "MetricNodePreference") -> bool:
+        # todo remove? not formally well defined
         return len(self.weights) < len(other.weights)
+
+    def get_name(self) -> MetricNodeName:
+        return self.name
 
 
 class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
@@ -105,7 +102,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
 
     graph: DiGraph
     """ Preference graph """
-    level_nodes: Mapping[int, Set[WeightedMetricPreference]]
+    nodes_level: Mapping[int, Set[MetricNodePreference]]
     """ All nodes used, and sorted by level """
     pref_str: str
     """ Name of preference """
@@ -114,14 +111,16 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
 
     # Internal parameters
     _config: Mapping = None
-    _complement = {
-        FIRST_PREFERRED: SECOND_PREFERRED,
-        SECOND_PREFERRED: FIRST_PREFERRED,
-        INDIFFERENT: INDIFFERENT,
-        INCOMPARABLE: INCOMPARABLE,
-    }
+    _complement = fd(
+        {
+            FIRST_PREFERRED: SECOND_PREFERRED,
+            SECOND_PREFERRED: FIRST_PREFERRED,
+            INDIFFERENT: INDIFFERENT,
+            INCOMPARABLE: INCOMPARABLE,
+        }
+    )
     _cache: Dict[Tuple[PlayerEvaluatedMetrics, PlayerEvaluatedMetrics], ComparisonOutcome]
-    _node_dict: Dict[str, WeightedMetricPreference] = {}
+    _node_dict: Dict[str, MetricNodePreference] = {}
 
     def __init__(self, pref_str: str, use_cache: bool = False):
         if PosetalPreference._config is None:
@@ -145,9 +144,9 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
     def __hash__(self):
         return hash(self.pref_str)
 
-    def add_node(self, name: str) -> WeightedMetricPreference:
+    def add_node(self, name: str) -> MetricNodePreference:
         if name not in PosetalPreference._node_dict:
-            node = WeightedMetricPreference(weights_str=name)
+            node = MetricNodePreference(weights_str=MetricNodeName(name))
             PosetalPreference._node_dict[name] = node
         else:
             node = PosetalPreference._node_dict[name]
@@ -169,7 +168,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
         assert is_directed_acyclic_graph(self.graph)
 
     def calculate_levels(self):
-        level_nodes: Dict[int, Set[WeightedMetricPreference]] = {}
+        level_nodes: Dict[int, Set[MetricNodePreference]] = {}
 
         # Roots don't have input edges, degree = 0
         roots = [n for n, d in self.graph.in_degree() if d == 0]
@@ -201,10 +200,10 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
                 self.graph.nodes[node]["x"] = (start + i) * scale * 2.0
                 self.graph.nodes[node]["y"] = -deg * scale * 0.4
                 i = i + 1
-        self.level_nodes = level_nodes
+        self.nodes_level = level_nodes
 
     def get_type(
-            self,
+        self,
     ) -> Type[PlayerEvaluatedMetrics]:
         return PlayerEvaluatedMetrics
 
@@ -221,7 +220,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
 
         #  initialize queue with top level nodes of preference graph
         queue = []
-        for root in self.level_nodes[0]:
+        for root in self.nodes_level[0]:
             heappush(queue, (0, root))
 
         # list containing results of node comparisons
@@ -267,8 +266,9 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
             return SECOND_PREFERRED
 
         # sanity check
-        assert FIRST_PREFERRED not in outcomes and SECOND_PREFERRED not in outcomes,\
-            "Something went wrong in condition checking"
+        assert (
+            FIRST_PREFERRED not in outcomes and SECOND_PREFERRED not in outcomes
+        ), "Something went wrong in condition checking"
 
         return INDIFFERENT
 

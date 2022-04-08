@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Mapping, MutableMapping, Optional, Sequence
+from typing import List, Mapping, MutableMapping, Optional, NewType
 
 from dg_commons import fd, PlayerName, SE2Transform, seq_integrate, valmap
 from dg_commons.maps import DgLanePose
 from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
 from dg_commons.seq.sequence import DgSampledSequence
-from dg_commons.sim.scenarios import DgScenario
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.scenarios import DgScenario
 
 __all__ = [
     "MetricEvaluationContext",
@@ -16,12 +16,16 @@ __all__ = [
     "Metric",
     "PlayerEvaluatedMetrics",
     "JointPlayerEvaluatedMetrics",
+    "MetricNodeName",
 ]
 
+MetricNodeName = NewType("MetricNodeName", str)
+"""The metric node name. This corresponds to a unique identifier for the posetal preference graph."""
 
-@dataclass(unsafe_hash=True)#, frozen=True)  # todo[Leon]: frozen is an issue in poset test. is unsafe_hash safe?
+
+@dataclass(frozen=True)
 class EvaluatedMetric:
-    name: str
+    name: MetricNodeName
     value: float
     """ Total value of the metric cost.
     It is usually the min/max/avg/integral/cumsum of the pointwise evaluation of the metric"""
@@ -55,7 +59,7 @@ class MetricEvaluationContext:
         # precompute curvilinear coordinates for all the ones that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
         for p, ref_lane in self.goals.items():
-            if isinstance(ref_lane[0], RefLaneGoal): #todo solve this workaround
+            if isinstance(ref_lane[0], RefLaneGoal):  # todo solve this workaround
                 curv[p] = [ref_lane[0].ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
         self.points_curv = fd(curv) if curv else None
 
@@ -83,7 +87,7 @@ class Metric(ABC):
         tot_value = seq_integrate(seq).values[-1]
 
         ret = EvaluatedMetric(
-            name=type(self).__name__,
+            name=self.get_name(),
             value=tot_value,
             pointwise=seq,
         )
@@ -92,11 +96,14 @@ class Metric(ABC):
     def get_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
         tot_value = seq.values[-1]
         ret = EvaluatedMetric(
-            name=type(self).__name__,
+            name=self.get_name(),
             value=tot_value,
             pointwise=seq,
         )
         return ret
+
+    def get_name(self) -> MetricNodeName:
+        return MetricNodeName(type(self).__name__)
 
 
 PlayerEvaluatedMetrics = Mapping[Metric, EvaluatedMetric]  # PlayerOutcome

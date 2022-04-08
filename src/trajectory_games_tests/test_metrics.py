@@ -29,7 +29,7 @@ size_p3_trajectory: int = 0
 
 
 @dataclass
-class PlayerOffsets:
+class _PlayerOffsets:
     # size of offset vectors
     size: int = 0
 
@@ -62,7 +62,7 @@ class PlayerOffsets:
             self.delta_offset = [self.delta_default_value + i * self.delta_rate_default_value for i in range(self.size)]
 
 
-JointPlayerOffsets = Mapping[PlayerName, PlayerOffsets]
+JointPlayerOffsets = Mapping[PlayerName, _PlayerOffsets]
 
 
 def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
@@ -88,33 +88,44 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
     lane_32 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49586))
     lane_33 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49568))
 
-    dglane1_ctrl_points = lane_11.control_points[-points_from_last:-1] \
-                          + lane_12.control_points \
-                          + lane_13.control_points[1:points_from_first]
+    dglane1_ctrl_points = (
+        lane_11.control_points[-points_from_last:-1]
+        + lane_12.control_points
+        + lane_13.control_points[1:points_from_first]
+    )
 
-    dglane2_ctrl_points = lane_21.control_points[-points_from_last:-1] \
-                          + lane_22.control_points \
-                          + lane_23.control_points[1:points_from_first]
+    dglane2_ctrl_points = (
+        lane_21.control_points[-points_from_last:-1]
+        + lane_22.control_points
+        + lane_23.control_points[1:points_from_first]
+    )
 
-    dglane3_ctrl_points = lane_31.control_points[-points_from_last:-1] \
-                          + lane_32.control_points \
-                          + lane_33.control_points[1:points_from_first]
+    dglane3_ctrl_points = (
+        lane_31.control_points[-points_from_last:-1]
+        + lane_32.control_points
+        + lane_33.control_points[1:points_from_first]
+    )
 
     dglanelet_1 = DgLanelet(dglane1_ctrl_points)
     dglanelet_2 = DgLanelet(dglane2_ctrl_points)
     dglanelet_3 = DgLanelet(dglane3_ctrl_points)
 
-    goals = {P1: RefLaneGoal(ref_lane=dglanelet_1, goal_progress=0.8),
-             P2: RefLaneGoal(ref_lane=dglanelet_2, goal_progress=0.8),
-             P3: RefLaneGoal(ref_lane=dglanelet_3, goal_progress=0.8)}
+    goals = {
+        P1: RefLaneGoal(ref_lane=dglanelet_1, goal_progress=0.8),
+        P2: RefLaneGoal(ref_lane=dglanelet_2, goal_progress=0.8),
+        P3: RefLaneGoal(ref_lane=dglanelet_3, goal_progress=0.8),
+    }
 
     # Define trajectories for players
-    x_1_translation_angles = [translation_angle_from_SE2(dglanelet_1.center_point(beta)) for
-                              beta in range(len(dglanelet_1.control_points))]
-    x_2_translation_angles = [translation_angle_from_SE2(dglanelet_2.center_point(beta)) for
-                              beta in range(len(dglanelet_2.control_points))]
-    x_3_translation_angles = [translation_angle_from_SE2(dglanelet_3.center_point(beta)) for
-                              beta in range(len(dglanelet_3.control_points))]
+    x_1_translation_angles = [
+        translation_angle_from_SE2(dglanelet_1.center_point(beta)) for beta in range(len(dglanelet_1.control_points))
+    ]
+    x_2_translation_angles = [
+        translation_angle_from_SE2(dglanelet_2.center_point(beta)) for beta in range(len(dglanelet_2.control_points))
+    ]
+    x_3_translation_angles = [
+        translation_angle_from_SE2(dglanelet_3.center_point(beta)) for beta in range(len(dglanelet_3.control_points))
+    ]
 
     global size_p1_trajectory, size_p2_trajectory, size_p3_trajectory
 
@@ -124,37 +135,49 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
 
     if player_offsets is None:
         player_offsets = {
-            P1: PlayerOffsets(size=size_p1_trajectory),
-            P2: PlayerOffsets(size=size_p2_trajectory),
-            P3: PlayerOffsets(size=size_p3_trajectory)
+            P1: _PlayerOffsets(size=size_p1_trajectory),
+            P2: _PlayerOffsets(size=size_p2_trajectory),
+            P3: _PlayerOffsets(size=size_p3_trajectory),
         }
 
-    x_1 = [VehicleState(x=translation[0] + player_offsets[P1].x_offset[i],
-                        y=translation[1] + player_offsets[P1].y_offset[i],
-                        theta=angle + player_offsets[P1].theta_offset[i],
-                        vx=0.0 + player_offsets[P1].v_offset[i],
-                        delta=0.0 + player_offsets[P1].delta_offset[i])
-           for i, (translation, angle) in enumerate(x_1_translation_angles)]
+    x_1 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P1].x_offset[i],
+            y=translation[1] + player_offsets[P1].y_offset[i],
+            theta=angle + player_offsets[P1].theta_offset[i],
+            vx=0.0 + player_offsets[P1].v_offset[i],
+            delta=0.0 + player_offsets[P1].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_1_translation_angles)
+    ]
 
-    x_2 = [VehicleState(x=translation[0] + player_offsets[P2].x_offset[i],
-                        y=translation[1] + player_offsets[P2].y_offset[i],
-                        theta=angle + player_offsets[P2].theta_offset[i],
-                        vx=0.0 + player_offsets[P2].v_offset[i],
-                        delta=0.0 + player_offsets[P2].delta_offset[i])
-           for i, (translation, angle) in enumerate(x_2_translation_angles)]
+    x_2 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P2].x_offset[i],
+            y=translation[1] + player_offsets[P2].y_offset[i],
+            theta=angle + player_offsets[P2].theta_offset[i],
+            vx=0.0 + player_offsets[P2].v_offset[i],
+            delta=0.0 + player_offsets[P2].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_2_translation_angles)
+    ]
 
-    x_3 = [VehicleState(x=translation[0] + player_offsets[P3].x_offset[i],
-                        y=translation[1] + player_offsets[P3].y_offset[i],
-                        theta=angle + player_offsets[P3].theta_offset[i],
-                        vx=0.0 + player_offsets[P3].v_offset[i],
-                        delta=0.0 + player_offsets[P3].delta_offset[i])
-           for i, (translation, angle) in enumerate(x_3_translation_angles)]
+    x_3 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P3].x_offset[i],
+            y=translation[1] + player_offsets[P3].y_offset[i],
+            theta=angle + player_offsets[P3].theta_offset[i],
+            vx=0.0 + player_offsets[P3].v_offset[i],
+            delta=0.0 + player_offsets[P3].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_3_translation_angles)
+    ]
 
     t_max = 10.0
     joint_trajectories: JointTrajectories = {
         P1: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_1))), values=x_1),
         P2: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_2))), values=x_2),
-        P3: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_3))), values=x_3)
+        P3: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_3))), values=x_3),
     }
 
     geos = {
@@ -167,7 +190,7 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
 
 
 def visualize_evaluation_context(context: MetricEvaluationContext, show_plot: bool = True):
-    colors = {P1: 'red', P2: 'blue', P3: 'pink'}
+    colors = {P1: "red", P2: "blue", P3: "pink"}
     viz = EvaluationContextVisualization(evaluation_context=context)
     viz.plot(show_plot=show_plot, draw_labels=False, action_colors=colors)
     return
@@ -199,9 +222,9 @@ def test_lateral_deviation():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=1.0, y_default_value=0, theta_default_value=0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=1.0, y_default_value=0, theta_default_value=0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=1.0, y_default_value=1.0, theta_default_value=0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=1.0, y_default_value=0, theta_default_value=0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=1.0, y_default_value=0, theta_default_value=0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=1.0, y_default_value=1.0, theta_default_value=0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -213,9 +236,9 @@ def test_lateral_deviation():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0, y_default_value=1.0, theta_default_value=0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0, y_default_value=1.0, theta_default_value=0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=-1.0, y_default_value=-1.0, theta_default_value=0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=0, y_default_value=1.0, theta_default_value=0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=0, y_default_value=1.0, theta_default_value=0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=-1.0, y_default_value=-1.0, theta_default_value=0),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -227,9 +250,9 @@ def test_lateral_deviation():
     logger.info(f"--------------------------------------------")
 
     joint_player_offsets_3 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=-1.0, y_default_value=0.0, theta_default_value=0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0, theta_default_value=0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=-1.0, y_default_value=0.0, theta_default_value=0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0, theta_default_value=0),
     }
 
     evaluation_context_3 = get_default_evaluation_context(joint_player_offsets_3)
@@ -299,12 +322,15 @@ def test_heading_deviation():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=pi / 6),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=-pi / 6),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=pi / 8),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=pi / 6
+        ),
+        P2: _PlayerOffsets(
+            size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=-pi / 6
+        ),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=pi / 8
+        ),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -316,12 +342,15 @@ def test_heading_deviation():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=-pi / 6),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=2.0,
-                          theta_default_value=-pi / 6),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0,
-                          theta_default_value=pi / 8),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=-pi / 6
+        ),
+        P2: _PlayerOffsets(
+            size=size_p2_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=-pi / 6
+        ),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0, theta_default_value=pi / 8
+        ),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -333,12 +362,15 @@ def test_heading_deviation():
     logger.info(f"--------------------------------------------")
 
     joint_player_offsets_3 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=-1.0, y_default_value=0.0,
-                          theta_default_value=pi / 3),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=-pi / 3),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0,
-                          theta_default_value=pi / 4),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory, x_default_value=-1.0, y_default_value=0.0, theta_default_value=pi / 3
+        ),
+        P2: _PlayerOffsets(
+            size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=-pi / 3
+        ),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0, theta_default_value=pi / 4
+        ),
     }
 
     evaluation_context_3 = get_default_evaluation_context(joint_player_offsets_3)
@@ -402,9 +434,11 @@ def test_drivable_area_violation():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=0.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=-3.0, y_default_value=-3.0, theta_default_value=0.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=0.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory, x_default_value=-3.0, y_default_value=-3.0, theta_default_value=0.0
+        ),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -430,9 +464,9 @@ def test_drivable_area_violation():
     assert area_violation_1[P3].value > area_violation_0[P3].value
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=3.0, y_default_value=0.0, theta_default_value=0.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=3.0, theta_default_value=0.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0, theta_default_value=0.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=3.0, y_default_value=0.0, theta_default_value=0.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=3.0, theta_default_value=0.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=2.0, y_default_value=2.0, theta_default_value=0.0),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -450,10 +484,13 @@ def test_drivable_area_violation():
     assert area_violation_2[P3].value > area_violation_0[P3].value
 
     joint_player_offsets_3 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=pi / 3),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=-6.0, theta_default_value=0.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=-6.0, y_default_value=-6.0, theta_default_value=0.0),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=pi / 3
+        ),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=-6.0, theta_default_value=0.0),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory, x_default_value=-6.0, y_default_value=-6.0, theta_default_value=0.0
+        ),
     }
 
     evaluation_context_3 = get_default_evaluation_context(joint_player_offsets_3)
@@ -487,9 +524,9 @@ def test_progress_along_reference():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=0.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=3.0, y_default_value=3.0, theta_default_value=0.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=0.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=3.0, y_default_value=3.0, theta_default_value=0.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -515,9 +552,11 @@ def test_progress_along_reference():
     assert progress_1[P3].value > progress_0[P3].value
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=0.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=-3.0, y_default_value=-3.0, theta_default_value=0.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_default_value=2.0, y_default_value=0.0, theta_default_value=0.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=2.0, theta_default_value=0.0),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory, x_default_value=-3.0, y_default_value=-3.0, theta_default_value=0.0
+        ),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -546,11 +585,17 @@ def test_progress_along_reference():
     assert progress_1[P3].value > progress_2[P3].value
 
     joint_player_offsets_3 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0,
-                          theta_default_value=pi / 3),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=0.0,
-                          v_default_value=10),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=5.0, y_default_value=5.0, theta_default_value=0.0),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory, x_default_value=0.0, y_default_value=0.0, theta_default_value=pi / 3
+        ),
+        P2: _PlayerOffsets(
+            size=size_p2_trajectory,
+            x_default_value=0.0,
+            y_default_value=0.0,
+            theta_default_value=0.0,
+            v_default_value=10,
+        ),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=5.0, y_default_value=5.0, theta_default_value=0.0),
     }
 
     evaluation_context_3 = get_default_evaluation_context(joint_player_offsets_3)
@@ -585,12 +630,27 @@ def test_longitudinal_acceleration():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0,
-                          y_default_value=2.0, theta_default_value=0.0, acc_default_value=1.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0,
-                          y_default_value=0.0, theta_default_value=0.0, acc_default_value=-1.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=0.0,
-                          y_default_value=3.0, theta_default_value=0.0, acc_default_value=1.0),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory,
+            x_default_value=0.0,
+            y_default_value=2.0,
+            theta_default_value=0.0,
+            acc_default_value=1.0,
+        ),
+        P2: _PlayerOffsets(
+            size=size_p2_trajectory,
+            x_default_value=0.0,
+            y_default_value=0.0,
+            theta_default_value=0.0,
+            acc_default_value=-1.0,
+        ),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory,
+            x_default_value=0.0,
+            y_default_value=3.0,
+            theta_default_value=0.0,
+            acc_default_value=1.0,
+        ),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -618,12 +678,27 @@ def test_longitudinal_acceleration():
     assert long_acc_1[P3].value > long_acc_0[P3].value
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, x_default_value=0.0,
-                          y_default_value=2.0, theta_default_value=0.0, acc_default_value=2.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, x_default_value=0.0,
-                          y_default_value=0.0, theta_default_value=0.0, acc_default_value=-2.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=0.0,
-                          y_default_value=3.0, theta_default_value=0.0, acc_default_value=2.0),
+        P1: _PlayerOffsets(
+            size=size_p1_trajectory,
+            x_default_value=0.0,
+            y_default_value=2.0,
+            theta_default_value=0.0,
+            acc_default_value=2.0,
+        ),
+        P2: _PlayerOffsets(
+            size=size_p2_trajectory,
+            x_default_value=0.0,
+            y_default_value=0.0,
+            theta_default_value=0.0,
+            acc_default_value=-2.0,
+        ),
+        P3: _PlayerOffsets(
+            size=size_p3_trajectory,
+            x_default_value=0.0,
+            y_default_value=3.0,
+            theta_default_value=0.0,
+            acc_default_value=2.0,
+        ),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -657,9 +732,9 @@ def test_lateral_comfort():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, v_default_value=2.0, delta_default_value=-pi / 6),
-        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0, delta_default_value=pi / 3),
-        P3: PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0, delta_default_value=pi / 2),
+        P1: _PlayerOffsets(size=size_p1_trajectory, v_default_value=2.0, delta_default_value=-pi / 6),
+        P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0, delta_default_value=pi / 3),
+        P3: _PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0, delta_default_value=pi / 2),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -671,9 +746,9 @@ def test_lateral_comfort():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, v_default_value=4.0, delta_default_value=-pi / 6),
-        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0, delta_default_value=pi / 2),
-        P3: PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0, delta_default_value=-pi / 2),
+        P1: _PlayerOffsets(size=size_p1_trajectory, v_default_value=4.0, delta_default_value=-pi / 6),
+        P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0, delta_default_value=pi / 2),
+        P3: _PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0, delta_default_value=-pi / 2),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -718,9 +793,9 @@ def test_steering_angle():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, delta_default_value=-pi / 6),
-        P2: PlayerOffsets(size=size_p2_trajectory, delta_default_value=pi / 3),
-        P3: PlayerOffsets(size=size_p3_trajectory, delta_default_value=-pi / 2),
+        P1: _PlayerOffsets(size=size_p1_trajectory, delta_default_value=-pi / 6),
+        P2: _PlayerOffsets(size=size_p2_trajectory, delta_default_value=pi / 3),
+        P3: _PlayerOffsets(size=size_p3_trajectory, delta_default_value=-pi / 2),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -757,9 +832,9 @@ def test_steering_rate():
     logger.info(f"--------------------------------------------\n")
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, delta_rate_default_value=1.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, delta_rate_default_value=2.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, delta_rate_default_value=3.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, delta_rate_default_value=1.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, delta_rate_default_value=2.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, delta_rate_default_value=3.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -820,9 +895,9 @@ def test_collision_energy():
     assert coll_energy_0[P3].value == 0
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, v_default_value=2.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, v_default_value=2.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -844,9 +919,9 @@ def test_collision_energy():
     assert coll_energy_1[P1].value == coll_energy_1[P2].value
 
     joint_player_offsets_2 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0, v_default_value=2.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0, v_default_value=2.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=2.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, v_default_value=2.0),
     }
 
     evaluation_context_2 = get_default_evaluation_context(joint_player_offsets_2)
@@ -896,9 +971,9 @@ def test_minimum_clearance():
     assert min_clearance_0[P3].value > min_clearance_1[P3].value
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory),
-        P2: PlayerOffsets(size=size_p2_trajectory),
-        P3: PlayerOffsets(size=size_p3_trajectory, x_default_value=5.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory),
+        P2: _PlayerOffsets(size=size_p2_trajectory),
+        P3: _PlayerOffsets(size=size_p3_trajectory, x_default_value=5.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -931,9 +1006,9 @@ def test_clearance_time_violation():
     assert viol_time_0[P3].value > 0
 
     joint_player_offsets_1 = {
-        P1: PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0),
-        P2: PlayerOffsets(size=size_p2_trajectory, v_default_value=5.0),
-        P3: PlayerOffsets(size=size_p3_trajectory, y_default_value=5.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0),
+        P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=5.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, y_default_value=5.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
@@ -952,7 +1027,7 @@ def test_clearance_time_violation():
 
 
 if __name__ == "__main__":
-    matplotlib.use('TkAgg')
+    matplotlib.use("TkAgg")
     test_times()
     test_lateral_deviation()
     test_heading_deviation()
