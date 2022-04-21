@@ -30,7 +30,7 @@ __all__ = [
 # todo move the generation of WeightedMetirc to a separate "factory"?
 
 
-class MetricNodePreference(Preference[PlayerEvaluatedMetrics], Metric):
+class MetricNodePreference(Preference[PlayerEvaluatedMetrics]):
     """A MetricNodePreference is a Metric node of the posetal preference.
     As a metric, it is an aggregation (weighted sum) of basic metrics.
     Itself contains also the preference on the node itself (scalar smaller preferred for rules-like)."""

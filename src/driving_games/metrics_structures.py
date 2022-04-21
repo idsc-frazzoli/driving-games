@@ -42,7 +42,8 @@ JointEvaluatedMetric = Mapping[PlayerName, EvaluatedMetric]
 class MetricEvaluationContext:
     dgscenario: DgScenario
     trajectories: JointTrajectories
-    goals: Mapping[PlayerName, PlanningGoal]
+    goals: Mapping[PlayerName, List[PlanningGoal]]
+    """ First PlanningGoal is players' preferred one. If there are other goals, they are equivalent or worse."""
     geos: Mapping[PlayerName, VehicleGeometry]
 
     """ Cached data for each player use for all rules. """
@@ -56,10 +57,10 @@ class MetricEvaluationContext:
     def __post_init__(self):
         # cartesian path
         self.points_cart = valmap(lambda x: x.as_path(), self.trajectories)
-        # precompute curvilinear coordinates for all the ones that have a ref lane
+        # precompute curvilinear coordinates of preferred goal for all players the ones that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
         for p, ref_lane in self.goals.items():
-            if isinstance(ref_lane[0], RefLaneGoal):  # todo solve this workaround
+            if isinstance(ref_lane[0], RefLaneGoal):
                 curv[p] = [ref_lane[0].ref_lane.lane_pose_from_SE2Transform(q) for q in self.points_cart[p]]
         self.points_curv = fd(curv) if curv else None
 
