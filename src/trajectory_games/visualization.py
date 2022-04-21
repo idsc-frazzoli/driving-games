@@ -9,7 +9,7 @@ from matplotlib.patches import Polygon, Circle
 from commonroad.scenario.scenario import Scenario
 
 from dg_commons.maps import DgLanelet
-from dg_commons.planning import RefLaneGoal
+from dg_commons.planning import RefLaneGoal, PlanningGoal
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import MetricEvaluationContext
@@ -120,6 +120,7 @@ class EvaluationContextVisualization:
         self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
         if draw_labels:
             self.commonroad_renderer.draw_params["lanelet"]["show_label"] = True
+            self.commonroad_renderer.draw_params["traffic_sign"]["draw_traffic_signs"] = True
 
         self.evaluation_context.dgscenario.scenario.draw(self.commonroad_renderer)
         self.commonroad_renderer.render()
@@ -130,7 +131,7 @@ class EvaluationContextVisualization:
         axis: Axes,
         actions: Mapping[PlayerName, Trajectory],
         action_colors: Optional[Mapping[PlayerName, Color]] = None,
-        goals: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
+        goals: Optional[Mapping[PlayerName, List[PlanningGoal]]] = None,
         width: float = 0.7,
         alpha: float = 1.0,
     ) -> Tuple[LineCollection, LineCollection]:
@@ -146,20 +147,27 @@ class EvaluationContextVisualization:
 
         goal_lines = None
         goal_segments = None
+        goal_colors = []
         if goals is not None:
-            if isinstance(list(goals.values())[0], RefLaneGoal):
-                goal_segments = [
-                    np.array([point.q.p for point in lane.ref_lane.get_control_points]) for _, lane in goals.items()
-                ]
+            if isinstance(list(goals.values())[0][0], RefLaneGoal):
+                goals_list = [lane for _, lane in goals.items()]
+                if action_colors is not None:
+                    goals_colors = [action_colors[pname] for pname in goals.keys()]
+                goal_segments = []
+                goal_colors = []
+                for i, p_goals in enumerate(goals_list):
+                    for lane in p_goals:
+                        goal_segments.append(np.array([point.q.p for point in lane.ref_lane.get_control_points]))
+                        if action_colors is not None:
+                            goal_colors.append(lighten_color(goals_colors[i], amount=0.7))
 
             goal_lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.GOAL)
             axis.add_collection(goal_lines)
             goal_lines.set_segments(segments=goal_segments)
             goal_lines.set_linestyle("--")
-            if action_colors is not None:
-                goal_colors = [lighten_color(action_colors[player], amount=0.7) for player in action_colors]
-            else:
+            if goal_colors is None:
                 goal_colors = ["black"]
+
             goal_lines.set_color(goal_colors)
 
         return lines, goal_lines
