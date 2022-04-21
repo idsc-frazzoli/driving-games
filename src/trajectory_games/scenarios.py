@@ -6,6 +6,8 @@ from typing import List, Mapping, Optional
 
 import matplotlib
 import numpy as np
+from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.traffic_sign import TrafficLightCycleElement, TrafficLightState, TrafficLight
 from commonroad.visualization.mp_renderer import MPRenderer
 from matplotlib import pyplot as plt
 
@@ -42,12 +44,27 @@ P1, EGO = (
 SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
 
 
+# todo: integrate this in a clean way
+def add_traffic_light_custom(scenario: Scenario) -> Scenario:
+    green: TrafficLightCycleElement = TrafficLightCycleElement(state=TrafficLightState.GREEN, duration=1)
+    yellow: TrafficLightCycleElement = TrafficLightCycleElement(state=TrafficLightState.YELLOW, duration=1)
+    red: TrafficLightCycleElement = TrafficLightCycleElement(state=TrafficLightState.RED, duration=1)
+    cycle = [red, green, yellow]
+    position = np.array([73.0, -8.0])
+    traffic_light: TrafficLight = TrafficLight(traffic_light_id=0, cycle=cycle, position=position)
+    # for i in range(10):
+    #     print(traffic_light.get_state_at_time_step(i))
+    scenario.add_objects(traffic_light, lanelet_ids={49570})
+    return scenario
+
+
 def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[PlayerName, str]] = None,
                                            sim_params: Optional[SimParameters] = None,
                                            receding_horizon_time: Optional[Timestamp] = None,
                                            ) -> SimContext:
     scenario_name = "DEU_Ffb-1_7_T-1"
     scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
+    scenario = add_traffic_light_custom(scenario)
 
     # seed for random number generation
     # seed = 0
@@ -95,7 +112,8 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
 
     agents: List[Agent] = []
     if sim_params is None:
-        sim_params = SimParameters(dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2), max_sim_time=D(4))
+        sim_params = SimParameters(dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2),
+                                   max_sim_time=D(4.5))
 
     # todo: look into seed
     # random.seed(a=seed)
@@ -114,7 +132,7 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
 
     # transition generator
     # u_acc = frozenset([1.0, 2.0])
-    u_acc = frozenset([1.0, 2.0])
+    u_acc = frozenset([2.0])
     u_dst = frozenset([-0.5, 0.5])
     params = TrajectoryGenParams(
         solve=False,
@@ -187,7 +205,7 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
         ref_lanes=ref_lanes,
         pref_structures=pref_structures,
         traj_gen_params=traj_gen_params,
-        n_traj_max=5,
+        n_traj_max=10,
         refresh_time=receding_horizon_time,
         sampling_method="uniform"
     )
@@ -199,7 +217,7 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
             agents.append(StopOrGoAgent(
                 ref_lane=dglane_from_position(p, net, succ_lane_selection=2),
                 prob_go=prob_go,
-                # behavior=behavior,
+                behavior="stop",
             ))
         if agent == EGO:
             agents.append(GamePlayingAgent(
@@ -245,7 +263,7 @@ def get_scenario_4_way_crossing_stochastic_multiple_type_beliefs():
     }
 
     campaign_params: SimulationCampaignParams = SimulationCampaignParams(
-        n_experiments=10, # for now not used -> use for statistics
+        n_experiments=10,  # for now not used -> use for statistics
         player_types=player_types
 
     )
