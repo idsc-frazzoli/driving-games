@@ -44,6 +44,8 @@ class GamePlayingAgent(Agent):
         self.trajectory: Optional[Trajectory] = None
         self.pseudo_start_time: Timestamp = 0.0
 
+    #todo: we don't need to recompute trajectories and evaluate metrics between different experiments (?)
+    #todo: we need to compute new trajectories and evaluate metrics when we play in receding horizon though
     def full_game_function(self):
         game = get_traj_game_posets_from_params(self.game_params)
         # create solving context and generate candidate trajectories for each agent
@@ -76,7 +78,7 @@ class GamePlayingAgent(Agent):
     @time_function
     def on_episode_init(self, init_sim_obs: InitSimObservations):
         self.my_name = init_sim_obs.my_name
-        random.seed(init_sim_obs.seed)
+        # random.seed(init_sim_obs.seed)
         self.full_game_function()
 
         # preferences = solving_context.outcome_pref
@@ -113,28 +115,33 @@ class GamePlayingAgent(Agent):
         #     return self.metric_violation
 
         # store trajectories in extra of player logger (or plotting)
+        P1 = PlayerName('P1')
         trajectories = self.all_trajectories[self.my_name]
-        trajectories_blue = self.all_trajectories[PlayerName('P1')]
+        trajectories_blue = self.all_trajectories[P1]
+        selected_trajectory_blue = self.selected_eq.actions[P1]
         selected_traj = self.trajectory
         candidates = tuple(
             product(
                 trajectories,
                 [
-                    "lightcoral",
+                    "indianred",
                 ],
             )
         )
-        new_tuple = (selected_traj, 'red')
-        candidates += (new_tuple,)
+        new_tuple_red = (selected_traj, 'darkred')
+        candidates += (new_tuple_red,)
 
         candidates_blue = tuple(
             product(
                 trajectories_blue,
                 [
-                    "blue",
+                    "cornflowerblue",
                 ],
             )
         )
         candidates += candidates_blue
+
+        new_tuple_blue = (selected_trajectory_blue, 'mediumblue')
+        # candidates += (new_tuple_blue,)
 
         return candidates
