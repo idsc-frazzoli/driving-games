@@ -5,6 +5,8 @@ from typing import Mapping, Optional
 
 import matplotlib
 import numpy as np
+from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.traffic_sign import TrafficLight, TrafficLightCycleElement, TrafficLightState
 from geometry.poses import translation_angle_from_SE2
 
 from crash import logger
@@ -65,6 +67,16 @@ class _PlayerOffsets:
 JointPlayerOffsets = Mapping[PlayerName, _PlayerOffsets]
 
 
+def add_traffic_light_custom(scenario: Scenario) -> Scenario:
+    green: TrafficLightCycleElement = TrafficLightCycleElement(state=TrafficLightState.RED, duration=10)
+    yellow: TrafficLightCycleElement = TrafficLightCycleElement(state=TrafficLightState.YELLOW, duration=5)
+    red: TrafficLightCycleElement = TrafficLightCycleElement(state=TrafficLightState.GREEN, duration=10)
+    cycle = [green, yellow, red]
+    position = np.array([73.0, -8.0])
+    traffic_light: TrafficLight = TrafficLight(traffic_light_id=0, cycle=cycle, position=position)
+    scenario.add_objects(traffic_light, lanelet_ids={49570})
+    return scenario
+
 def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
     SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
@@ -89,21 +101,21 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
     lane_33 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49568))
 
     dglane1_ctrl_points = (
-        lane_11.control_points[-points_from_last:-1]
-        + lane_12.control_points
-        + lane_13.control_points[1:points_from_first]
+            lane_11.control_points[-points_from_last:-1]
+            + lane_12.control_points
+            + lane_13.control_points[1:points_from_first]
     )
 
     dglane2_ctrl_points = (
-        lane_21.control_points[-points_from_last:-1]
-        + lane_22.control_points
-        + lane_23.control_points[1:points_from_first]
+            lane_21.control_points[-points_from_last:-1]
+            + lane_22.control_points
+            + lane_23.control_points[1:points_from_first]
     )
 
     dglane3_ctrl_points = (
-        lane_31.control_points[-points_from_last:-1]
-        + lane_32.control_points
-        + lane_33.control_points[1:points_from_first]
+            lane_31.control_points[-points_from_last:-1]
+            + lane_32.control_points
+            + lane_33.control_points[1:points_from_first]
     )
 
     dglanelet_1 = DgLanelet(dglane1_ctrl_points)
@@ -111,9 +123,9 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
     dglanelet_3 = DgLanelet(dglane3_ctrl_points)
 
     goals = {
-        P1: RefLaneGoal(ref_lane=dglanelet_1, goal_progress=0.8),
-        P2: RefLaneGoal(ref_lane=dglanelet_2, goal_progress=0.8),
-        P3: RefLaneGoal(ref_lane=dglanelet_3, goal_progress=0.8),
+        P1: [RefLaneGoal(ref_lane=dglanelet_1, goal_progress=0.8)],
+        P2: [RefLaneGoal(ref_lane=dglanelet_2, goal_progress=0.8)],
+        P3: [RefLaneGoal(ref_lane=dglanelet_3, goal_progress=0.8)],
     }
 
     # Define trajectories for players
@@ -192,12 +204,12 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
 def visualize_evaluation_context(context: MetricEvaluationContext, show_plot: bool = True):
     colors = {P1: "red", P2: "blue", P3: "pink"}
     viz = EvaluationContextVisualization(evaluation_context=context)
-    viz.plot(show_plot=show_plot, draw_labels=False, action_colors=colors)
+    viz.plot(show_plot=show_plot, draw_labels=True, action_colors=colors)
     return
 
 
 def test_times():
-    show_plots = False
+    show_plots = True
     evaluation_context = get_default_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
     episode_time = EpisodeTime()
@@ -1026,18 +1038,411 @@ def test_clearance_time_violation():
     assert viol_time_0[P3].value > viol_time_1[P3].value
 
 
+def get_goal_violation_evaluation_context(
+        player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
+    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+    scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
+    dgscenario = DgScenario(scenario)
+
+    # defines reference lanelets for players
+    lanelet_network = scenario.lanelet_network
+
+    points_from_first = 4
+    points_from_last = 4
+
+    lane1_north = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49570))
+    lane2_north = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49598))
+    lane3_north = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49576))
+
+    lane1_west = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49570))
+    lane2_west = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49588))
+    lane3_west = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49566))
+
+    lane1_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49570))
+    lane2_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49580))
+    lane3_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49572))
+
+    north_ctrl_points = (
+            lane1_north.control_points[-points_from_last:-1]
+            + lane2_north.control_points
+            + lane3_north.control_points[1:points_from_first]
+    )
+
+    west_ctrl_points = (
+            lane1_west.control_points[-points_from_last:-1]
+            + lane2_west.control_points
+            + lane3_west.control_points[1:points_from_first]
+    )
+
+    east_ctrl_points = (
+            lane1_east.control_points[-points_from_last:-1]
+            + lane2_east.control_points
+            + lane3_east.control_points[1:points_from_first]
+    )
+
+    dglanelet_north = DgLanelet(north_ctrl_points)
+    dglanelet_west = DgLanelet(west_ctrl_points)
+    dglanelet_east = DgLanelet(east_ctrl_points)
+
+    # we test P1's goal against other available goals
+    # second and third alternative are equivalent
+    goals = {
+        P1: [RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8),  # P1's real goal
+             RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # first alternative
+             RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8)],  # second alternative
+        P2: [RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # P2's real goal
+             RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),  # first alternative
+             RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8)],  # second alternative
+        P3: [RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),  # P3's real goal
+             RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # first alternative
+             RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8)],  # second alternative
+    }
+
+    # Define trajectories for players
+    x_1_translation_angles = [
+        translation_angle_from_SE2(dglanelet_north.center_point(beta)) for beta in
+        range(len(dglanelet_north.control_points))
+    ]
+    x_2_translation_angles = [
+        translation_angle_from_SE2(dglanelet_west.center_point(beta)) for beta in
+        range(len(dglanelet_west.control_points))
+    ]
+    x_3_translation_angles = [
+        translation_angle_from_SE2(dglanelet_east.center_point(beta)) for beta in
+        range(len(dglanelet_east.control_points))
+    ]
+
+    global size_p1_trajectory, size_p2_trajectory, size_p3_trajectory
+
+    size_p1_trajectory = len(x_1_translation_angles)
+    size_p2_trajectory = len(x_2_translation_angles)
+    size_p3_trajectory = len(x_3_translation_angles)
+
+    if player_offsets is None:
+        player_offsets = {
+            P1: _PlayerOffsets(size=size_p1_trajectory),
+            P2: _PlayerOffsets(size=size_p2_trajectory),
+            P3: _PlayerOffsets(size=size_p3_trajectory),
+        }
+
+    x_1 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P1].x_offset[i],
+            y=translation[1] + player_offsets[P1].y_offset[i],
+            theta=angle + player_offsets[P1].theta_offset[i],
+            vx=0.0 + player_offsets[P1].v_offset[i],
+            delta=0.0 + player_offsets[P1].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_1_translation_angles)
+    ]
+
+    x_2 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P2].x_offset[i],
+            y=translation[1] + player_offsets[P2].y_offset[i],
+            theta=angle + player_offsets[P2].theta_offset[i],
+            vx=0.0 + player_offsets[P2].v_offset[i],
+            delta=0.0 + player_offsets[P2].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_2_translation_angles)
+    ]
+
+    x_3 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P3].x_offset[i],
+            y=translation[1] + player_offsets[P3].y_offset[i],
+            theta=angle + player_offsets[P3].theta_offset[i],
+            vx=0.0 + player_offsets[P3].v_offset[i],
+            delta=0.0 + player_offsets[P3].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_3_translation_angles)
+    ]
+
+    t_max = 10.0
+    joint_trajectories: JointTrajectories = {
+        P1: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_1))), values=x_1),
+        P2: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_2))), values=x_2),
+        P3: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_3))), values=x_3),
+    }
+
+    geos = {
+        P1: VehicleGeometry.default_car(),
+        P2: VehicleGeometry.default_car(),
+        P3: VehicleGeometry.default_car(),
+    }
+
+    return MetricEvaluationContext(dgscenario=dgscenario, trajectories=joint_trajectories, goals=goals, geos=geos)
+
+
+def test_goal_violation():
+    show_plots = False
+    goal_violation = GoalViolation()
+    evaluation_context = get_goal_violation_evaluation_context()
+    visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+
+    goal_viol_0 = goal_violation.evaluate(context=evaluation_context)
+    logger.info(f"Test goal violation results:")
+    logger.info(f"No Offset.")
+    logger.info(f"Goal Violation: {goal_viol_0}")
+    logger.info(f"--------------------------------------------\n")
+
+    # all trajectories are equal to the reference lanes -> metric should evaluate to 0
+    assert goal_viol_0[P1].value == 0.0
+    assert goal_viol_0[P2].value == 0.0
+    assert goal_viol_0[P3].value == 0.0
+
+    x_offset_p1_1 = list(np.linspace(-10.0, 10.0, size_p1_trajectory))
+    joint_player_offsets_1 = {
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_offset=x_offset_p1_1),
+        P2: _PlayerOffsets(size=size_p2_trajectory),
+        P3: _PlayerOffsets(size=size_p3_trajectory),
+    }
+
+
+    evaluation_context_1 = get_goal_violation_evaluation_context(joint_player_offsets_1)
+    visualize_evaluation_context(context=evaluation_context_1, show_plot=show_plots)
+
+
+
+    goal_viol_1 = goal_violation.evaluate(context=evaluation_context_1)
+    logger.info(f"Test goal violation results:")
+    logger.info(joint_player_offsets_1)
+    logger.info(f"Goal Violation: {goal_viol_1}")
+    logger.info(f"--------------------------------------------\n")
+
+    # P1's trajectory is rotated but still most similar to P1's reference. Metric should evaluate to 0
+    assert goal_viol_1[P1].value == 0.0
+    assert goal_viol_1[P2].value == 0.0
+    assert goal_viol_1[P3].value == 0.0
+
+
+
+    x_offset_p1_2 = list(np.linspace(0.0, 100.0, int(size_p1_trajectory / 2)))
+    x_offset_p1_2 = [0 for i in range(int(size_p1_trajectory / 2))] + x_offset_p1_2
+    y_offset_p1_2 = list(np.linspace(0.0, -100.0, int(size_p1_trajectory / 2)))
+    y_offset_p1_2 = [0 for i in range(int(size_p1_trajectory / 2))] + y_offset_p1_2
+
+    joint_player_offsets_2 = {
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_offset=x_offset_p1_2, y_offset=y_offset_p1_2),
+        P2: _PlayerOffsets(size=size_p2_trajectory),
+        P3: _PlayerOffsets(size=size_p3_trajectory),
+    }
+
+
+    evaluation_context_2 = get_goal_violation_evaluation_context(joint_player_offsets_2)
+    visualize_evaluation_context(context=evaluation_context_2, show_plot=show_plots)
+
+    goal_viol_2 = goal_violation.evaluate(context=evaluation_context_2)
+    logger.info(f"Test goal violation results:")
+    logger.info(joint_player_offsets_2)
+    logger.info(f"Goal Violation: {goal_viol_2}")
+    logger.info(f"--------------------------------------------\n")
+
+    # P1's trajectory is now closet to P3's reference. Metric for P1 should be greater than 0
+    assert goal_viol_2[P1].value > 0.0
+    assert goal_viol_2[P2].value == 0.0
+    assert goal_viol_2[P3].value == 0.0
+
+    x_offset_p1_3 = list(np.linspace(0.0, -100.0, int(size_p1_trajectory / 2)))
+    x_offset_p1_3 = [0 for i in range(int(size_p1_trajectory / 2))] + x_offset_p1_3
+    y_offset_p1_3 = list(np.linspace(0.0, -100.0, int(size_p1_trajectory / 2)))
+    y_offset_p1_3 = [0 for i in range(int(size_p1_trajectory / 2))] + y_offset_p1_3
+
+    joint_player_offsets_3 = {
+        P1: _PlayerOffsets(size=size_p1_trajectory, x_offset=x_offset_p1_3, y_offset=y_offset_p1_3),
+        P2: _PlayerOffsets(size=size_p2_trajectory),
+        P3: _PlayerOffsets(size=size_p3_trajectory),
+    }
+
+    evaluation_context_3 = get_goal_violation_evaluation_context(joint_player_offsets_3)
+    visualize_evaluation_context(context=evaluation_context_3, show_plot=show_plots)
+
+    goal_viol_3 = goal_violation.evaluate(context=evaluation_context_3)
+    logger.info(f"Test goal violation results:")
+    logger.info(joint_player_offsets_3)
+    logger.info(f"Goal Violation: {goal_viol_3}")
+    logger.info(f"--------------------------------------------\n")
+
+    # P1's trajectory is now closet to P2's reference. Metric for P1 should be greater than 0
+    assert goal_viol_3[P1].value > 0.0
+    assert goal_viol_3[P2].value == 0.0
+    assert goal_viol_3[P3].value == 0.0
+
+    x_offset_p2_1 = list(np.linspace(0, 125.0, int(size_p2_trajectory / 2)))
+    x_offset_p2_1 = [0 for i in range(int(1 + size_p2_trajectory / 2))] + x_offset_p2_1
+    y_offset_p2_1 = list(np.linspace(0.0, 0.0, int(size_p2_trajectory / 2)))
+    y_offset_p2_1 = [0 for i in range(int(1 + size_p2_trajectory / 2))] + y_offset_p2_1
+
+    joint_player_offsets_4 = {
+        P1: _PlayerOffsets(size=size_p1_trajectory),
+        P2: _PlayerOffsets(size=size_p2_trajectory, x_offset=x_offset_p2_1, y_offset=y_offset_p2_1),
+        P3: _PlayerOffsets(size=size_p3_trajectory),
+    }
+
+    evaluation_context_4 = get_goal_violation_evaluation_context(joint_player_offsets_4)
+    visualize_evaluation_context(context=evaluation_context_4, show_plot=show_plots)
+
+    goal_viol_4 = goal_violation.evaluate(context=evaluation_context_4)
+    logger.info(f"Test goal violation results:")
+    logger.info(joint_player_offsets_4)
+    logger.info(f"Goal Violation: {goal_viol_4}")
+    logger.info(f"--------------------------------------------\n")
+
+    # P2's trajectory is now closet to P3's reference. Metric for P2 should be greater than 0
+    assert goal_viol_4[P1].value == 0.0
+    assert goal_viol_4[P2].value > 0.0
+    assert goal_viol_4[P3].value == 0.0
+
+
+def get_traffic_rules_evaluation_context(
+        player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
+    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+    scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
+    scenario = add_traffic_light_custom(scenario=scenario)
+
+    dgscenario = DgScenario(scenario)
+
+    # defines reference lanelets for players
+    lanelet_network = scenario.lanelet_network
+
+    points_from_first = 4
+    points_from_last = 4
+
+    lane1_north = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49570))
+    lane2_north = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49598))
+    lane3_north = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49576))
+
+    lane1_west = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49570))
+    lane2_west = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49588))
+    lane3_west = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49566))
+
+    lane1_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49570))
+    lane2_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49580))
+    lane3_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49572))
+
+    north_ctrl_points = (
+            lane1_north.control_points[-points_from_last:-1]
+            + lane2_north.control_points
+            + lane3_north.control_points[1:points_from_first]
+    )
+
+    west_ctrl_points = (
+            lane1_west.control_points[-points_from_last:-1]
+            + lane2_west.control_points
+            + lane3_west.control_points[1:points_from_first]
+    )
+
+    east_ctrl_points = (
+            lane1_east.control_points[-points_from_last:-1]
+            + lane2_east.control_points
+            + lane3_east.control_points[1:points_from_first]
+    )
+
+    dglanelet_north = DgLanelet(north_ctrl_points)
+    dglanelet_west = DgLanelet(west_ctrl_points)
+    dglanelet_east = DgLanelet(east_ctrl_points)
+
+
+    goals = {
+        P1: [RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8)],
+        P2: [RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8)],
+        P3: [RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8)],
+    }
+
+    # Define trajectories for players
+    x_1_translation_angles = [
+        translation_angle_from_SE2(dglanelet_north.center_point(beta)) for beta in
+        range(len(dglanelet_north.control_points))
+    ]
+    x_2_translation_angles = [
+        translation_angle_from_SE2(dglanelet_west.center_point(beta)) for beta in
+        range(len(dglanelet_west.control_points))
+    ]
+    x_3_translation_angles = [
+        translation_angle_from_SE2(dglanelet_east.center_point(beta)) for beta in
+        range(len(dglanelet_east.control_points))
+    ]
+
+    global size_p1_trajectory, size_p2_trajectory, size_p3_trajectory
+
+    size_p1_trajectory = len(x_1_translation_angles)
+    size_p2_trajectory = len(x_2_translation_angles)
+    size_p3_trajectory = len(x_3_translation_angles)
+
+    if player_offsets is None:
+        player_offsets = {
+            P1: _PlayerOffsets(size=size_p1_trajectory),
+            P2: _PlayerOffsets(size=size_p2_trajectory),
+            P3: _PlayerOffsets(size=size_p3_trajectory),
+        }
+
+    x_1 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P1].x_offset[i],
+            y=translation[1] + player_offsets[P1].y_offset[i],
+            theta=angle + player_offsets[P1].theta_offset[i],
+            vx=0.0 + player_offsets[P1].v_offset[i],
+            delta=0.0 + player_offsets[P1].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_1_translation_angles)
+    ]
+
+    x_2 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P2].x_offset[i],
+            y=translation[1] + player_offsets[P2].y_offset[i],
+            theta=angle + player_offsets[P2].theta_offset[i],
+            vx=0.0 + player_offsets[P2].v_offset[i],
+            delta=0.0 + player_offsets[P2].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_2_translation_angles)
+    ]
+
+    x_3 = [
+        VehicleState(
+            x=translation[0] + player_offsets[P3].x_offset[i],
+            y=translation[1] + player_offsets[P3].y_offset[i],
+            theta=angle + player_offsets[P3].theta_offset[i],
+            vx=0.0 + player_offsets[P3].v_offset[i],
+            delta=0.0 + player_offsets[P3].delta_offset[i],
+        )
+        for i, (translation, angle) in enumerate(x_3_translation_angles)
+    ]
+
+    t_max = 10.0
+    joint_trajectories: JointTrajectories = {
+        P1: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_1))), values=x_1),
+        P2: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_2))), values=x_2),
+        P3: Trajectory(timestamps=list(np.linspace(0, t_max, num=len(x_3))), values=x_3),
+    }
+
+    geos = {
+        P1: VehicleGeometry.default_car(),
+        P2: VehicleGeometry.default_car(),
+        P3: VehicleGeometry.default_car(),
+    }
+
+    return MetricEvaluationContext(dgscenario=dgscenario, trajectories=joint_trajectories, goals=goals, geos=geos)
+
+def test_traffic_lights_violation():
+    show_plots = True
+    evaluation_context = get_traffic_rules_evaluation_context()
+    visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+
 if __name__ == "__main__":
     matplotlib.use("TkAgg")
-    test_times()
-    test_lateral_deviation()
-    test_heading_deviation()
-    test_drivable_area_violation()
-    test_progress_along_reference()
-    test_longitudinal_acceleration()
-    test_lateral_comfort()
-    test_steering_angle()
-    test_steering_rate()
-    test_clearance()
-    test_collision_energy()
-    test_minimum_clearance()
-    test_clearance_time_violation()
+    # test_times()
+    # test_lateral_deviation()
+    # test_heading_deviation()
+    # test_drivable_area_violation()
+    # test_progress_along_reference()
+    # test_longitudinal_acceleration()
+    # test_lateral_comfort()
+    # test_steering_angle()
+    # test_steering_rate()
+    # test_clearance()
+    # test_collision_energy()
+    # test_minimum_clearance()
+    # test_clearance_time_violation()
+    # test_goal_violation()
+    test_traffic_lights_violation()

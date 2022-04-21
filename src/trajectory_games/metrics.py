@@ -3,11 +3,12 @@ from typing import Tuple, List, Dict, Callable, Set, Mapping
 
 import geometry as geo
 import numpy as np
+from commonroad.scenario.traffic_sign import TrafficLight, TrafficLightState
 from frozendict import frozendict
 
 from dg_commons import PlayerName, SE2Transform, seq_differentiate, apply_SE2_to_shapely_geo, Timestamp
-from dg_commons.maps import DgLanePose
-from dg_commons.planning import Trajectory, JointTrajectories
+from dg_commons.maps import DgLanePose, DgLanelet
+from dg_commons.planning import Trajectory, JointTrajectories, RefLaneGoal
 from dg_commons.seq.sequence import DgSampledSequence
 from dg_commons.time import time_function
 from driving_games.metrics_structures import (
@@ -37,6 +38,7 @@ __all__ = [
     "ClearanceViolationTime",
     "MinimumClearance",
     "MetricEvaluation",
+    "GoalViolation"
 ]
 
 
@@ -249,6 +251,105 @@ class SteeringRate(Metric):
             ret = self.get_integrated_metric(dst)
             self.cache[traj] = ret
             return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class GoalViolation(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metrics computes how much the observed trajectory violates the preferred reference" \
+                  " lane in favour of another lane."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+            # check there is more than one reference lane
+            goals = context.goals[player]
+            points_cart = context.points_cart[player]
+            integrated_abs_n: Mapping[RefLaneGoal, EvaluatedMetric] = {}
+            if len(context.goals[player]) > 1:
+                for goal in goals:
+                    # this metric only works for RefLaneGoals for now
+                    assert isinstance(goal, RefLaneGoal), "Only RefLaneGoal(s) can be used for this metric"
+                    points_curv: List[DgLanePose] = [goal.ref_lane.lane_pose_from_SE2Transform(q) for q in points_cart]
+                    abs_n = [_.distance_from_center for _ in points_curv]
+                    integrated_abs_n[goal] = self.get_integrated_metric(seq=DgSampledSequence[float](
+                        values=abs_n, timestamps=traj.get_sampling_points()))
+
+                # find smallest cumulative distance
+                min_value = min([val.value for val in integrated_abs_n.values()])
+                if integrated_abs_n[goals[0]].value == min_value:
+                    return EvaluatedMetric(name=self.get_name(), value=0)
+                else:
+                    return EvaluatedMetric(name=self.get_name(), value=min_value)
+            else:
+                return EvaluatedMetric(name=self.get_name(), value=0)
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+def crossing_line_from_pos(pos: np.ndarray, lanelet: DgLanelet) -> Tuple[float, float]:
+    """Takes a point in a lanelet, computes the closest points on each side and then a line connecting those point
+        Returns coefficients (a,b) of y=ax+b"""
+
+
+class TrafficLightViolation(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric evaluates if a red traffic light has been passed. Penalty is proportional to speed." \
+                  "A check for existence of traffic lights is executed on the lanelet corresponding to the initial" \
+                  "position of the trajectory."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            def _is_light_red(time_step: int, light: TrafficLight) -> bool:
+                state = light.get_state_at_time_step(time_step=time_step)
+                return state == TrafficLightState.RED
+
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+
+            network = context.dgscenario.lanelet_network
+            initial_pos = np.array([traj.values[0].x, traj.values[0].y])
+
+            initial_lanelet_id = network.find_lanelet_by_position(initial_pos)
+            # todo[LEON]: figure out what happens (error?) if it does not intersect, continue until one is intersecting
+            initial_lanelet = network.find_lanelet_by_id(initial_lanelet_id)
+
+            traffic_lights = initial_lanelet.traffic_lights
+            zero_violation = EvaluatedMetric(name=self.get_name(), value=0)
+            # if there are no traffic lights, there is no violation:
+            if traffic_lights == set():
+                self.cache[traj] = zero_violation
+                return zero_violation
+            # if there are lights, evaluate if there is a violation
+            else:
+                traffic_lights = list(traffic_lights)
+                dg_lanelet = DgLanelet.from_commonroad_lanelet(initial_lanelet)
+                traffic_lights_se2 = [SE2Transform(p=traffic_light.position, theta=0.0) for traffic_light in
+                                      traffic_lights]
+                lights_progress = [dg_lanelet.lane_pose_from_SE2Transform(se2) for se2 in traffic_lights_se2]
+
+                # now check if trajectory is surpassing any traffic lights
+                points_curv = context.points_curv[player]
+                for i, (point1, point2) in enumerate(zip(points_curv[:-1], points_curv[1:])):
+                    for j, light_pose in enumerate(lights_progress):
+                        if point1.along_lane < light_pose.along_lane < point2.along_lane:
+                            violation = _is_light_red(time_step=i, light=traffic_lights[j])
+                            if violation:
+                                values = list(traj.values)
+                                avg_speed = abs(values[i + 1].vx - values[i].vx) / 2
+                                ret = EvaluatedMetric(name=self.get_name(), value=avg_speed)
+                                self.cache[traj] = ret
+                                return ret
+
+            # if nothing was returned above, no violation detected
+            self.cache[traj] = zero_violation
+            return zero_violation
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
