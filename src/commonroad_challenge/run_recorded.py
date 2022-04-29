@@ -14,6 +14,7 @@ from vehiclemodels import parameters_vehicle3
 import numpy as np
 
 
+
 def plot_scenario_dynamic(scenario: Scenario,
                           planning_problem_set: PlanningProblemSet,
                           ego_vehicle: DynamicObstacle,
