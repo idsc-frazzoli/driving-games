@@ -1,0 +1,110 @@
+import os
+import sys
+
+from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
+from commonroad.common.solution import VehicleType, VehicleModel, CostFunction
+from commonroad.scenario.scenario import Tag
+from simulation.simulations import simulate_without_ego, simulate_with_planner
+from simulation.utility import save_solution
+
+from planning import motion_planner_from_trajectory
+from utils import find_all_scenarios
+
+sys.path.append(os.path.join(os.getcwd(), "../"))
+
+
+def run_all_scenarios(with_ego: bool, without_ego: bool, scenarios_dir: str, output_dir: str):
+    all_paths = find_all_scenarios(scenarios_dir)
+
+    for scenario_path in all_paths:
+        run_scenario(with_ego, without_ego, scenario_path, output_dir)
+
+    return
+
+
+def run_scenario(with_ego: bool, without_ego: bool, scenario_path: str, output_dir: str):
+    if with_ego:
+        simulate_with_ego(scenario_path=scenario_path, output_dir=output_dir, create_video=True, store_solution=True)
+    if without_ego:
+        simulate_no_ego(scenario_path=scenario_path, output_dir=output_dir, create_video=True)
+    return
+
+
+def simulate_no_ego(scenario_path: str, output_dir: str, create_video: bool = False):
+    video_path = os.path.join(output_dir, "videos")
+    if not os.path.exists(video_path):
+        os.makedirs(video_path)
+
+    scenario_without_ego, pps = simulate_without_ego(interactive_scenario_path=scenario_path,
+                                                     output_folder_path=video_path,
+                                                     create_video=create_video)
+    # write simulated scenario to CommonRoad xml file
+    simulated_scenarios_path = os.path.join(output_dir, "simulated_scenarios")
+    if not os.path.exists(simulated_scenarios_path):
+        os.makedirs(simulated_scenarios_path)
+    fw = CommonRoadFileWriter(scenario_without_ego, pps, author, affiliation, source, tags)
+    fw.write_to_file(
+        os.path.join(simulated_scenarios_path, os.path.basename(os.path.normpath(scenario_path)) + "_no_ego.xml"),
+        OverwriteExistingFile.ALWAYS)
+
+
+def simulate_with_ego(scenario_path: str, output_dir: str, create_video: bool = False, store_solution: bool = False):
+    video_path = os.path.join(output_dir, "videos")
+    if not os.path.exists(video_path):
+        os.makedirs(video_path)
+
+    scenario_with_planner, pps, ego_vehicles_planner = simulate_with_planner(interactive_scenario_path=scenario_path,
+                                                                             motion_planner=motion_planner_from_trajectory,
+                                                                             output_folder_path=video_path,
+                                                                             create_video=create_video)
+    # matplotlib.use("TkAgg")
+
+    # visualize_scenario_with_trajectory(scenario_with_planner, pps, ego_vehicles_planner)
+
+    if scenario_with_planner:
+        # write simulated scenario to CommonRoad xml file
+        simulated_scenarios_path = os.path.join(output_dir, "simulated_scenarios")
+        if not os.path.exists(simulated_scenarios_path):
+            os.makedirs(simulated_scenarios_path)
+        fw = CommonRoadFileWriter(scenario_with_planner, pps, author, affiliation, source, tags)
+        fw.write_to_file(
+            os.path.join(simulated_scenarios_path, os.path.basename(os.path.normpath(scenario_path)) + "_planner.xml"),
+            OverwriteExistingFile.ALWAYS)
+
+        if store_solution:
+            # save the planned trajectory to solution file
+            solution_path = os.path.join(output_dir, "solution")
+            if not os.path.exists(solution_path):
+                os.makedirs(solution_path)
+            save_solution(scenario_with_planner, pps, ego_vehicles_planner, vehicle_type, vehicle_model, cost_function,
+                          solution_path, overwrite=True)
+
+
+if __name__ == "__main__":
+    # directory where scenarios are stored
+    scenarios_dir = "/media/leon/Extreme SSD1/MT/scenarios_phase_1"
+    # directory to store outputs
+    output_dir = "/media/leon/Extreme SSD1/MT/outputs_TEST"
+    # # directory where solutions are saved
+    # solutions_dir = "/media/leon/Extreme SSD1/MT/outputs_dev/solutions"
+    # # directory to save output video
+    # videos_dir = "/media/leon/Extreme SSD1/MT/outputs_dev/videos"
+    # # directory to save simulated scenarios
+    # simulated_scenarios_dir= "/media/leon/Extreme SSD1/MT/outputs_dev/simulated_scenarios"
+
+    # attributes for saving the simulated scenarios
+    author = 'Leon Zueger'
+    affiliation = 'ETH Zurich, Switzerland'
+    source = ''
+    tags = {Tag.URBAN}
+
+    vehicle_type = VehicleType.FORD_ESCORT
+    vehicle_model = VehicleModel.KS
+    cost_function = CostFunction.TR1
+
+    # run_all_scenarios(with_ego=True, without_ego=True, scenarios_dir=scenarios_dir, output_dir=output_dir)
+    deu_aachen_1_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-3_1_I-1"
+    deu_aachen_29_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_3_I-1"
+    deu_dresden_3_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_17_I-1"
+    deu_cologne_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-10_12_I-1"
+    run_scenario(with_ego=True, without_ego=True, scenario_path=deu_aachen_29_path, output_dir=output_dir)
