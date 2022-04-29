@@ -14,7 +14,7 @@ from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import MetricEvaluationContext
 from functools import lru_cache
-from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet, List
+from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet, List, Dict, Set
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
 import matplotlib
@@ -115,6 +115,7 @@ class EvaluationContextVisualization:
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
         self.joint_trajectories: Optional[Mapping[PlayerName, Trajectory]] = evaluation_context.trajectories
 
+
     def plot_arena(self, draw_labels: bool):
         self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = False
         self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
@@ -193,7 +194,7 @@ class EvaluationContextVisualization:
 class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, TrajectoryWorld]):
     """Visualization for the trajectory games"""
 
-    world: TrajectoryWorld
+    # world: TrajectoryWorld
     commonroad_renderer: MPRenderer
 
     def __init__(
@@ -205,21 +206,96 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         **kwargs,
     ):
         self.world = world
-        self.commonroad_renderer: MPRenderer = MPRenderer(
-            ax=ax, plot_limits=plot_limits, *args, figsize=(16, 16), **kwargs
-        )
+        # self.fig, (self.ax1, self.ax2) = plt.subplots(2, 1)
+        # self.commonroad_renderer: MPRenderer = MPRenderer(
+        #     ax=ax, plot_limits=plot_limits, *args, figsize=(16, 16), **kwargs
+        # )
+        self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
         self.plot_limits = plot_limits
 
-    @contextmanager
-    def plot_arena(self, axis: Axes):
+    # @contextmanager
+    # def plot_arena(self):#, axis: Axes):
+    #
+    #     # self.commonroad_renderer.ax = axis
+    #     # self.commonroad_renderer.f = axis.figure
+    #     # self.world.scenario.lanelet_network.draw(
+    #     #     self.commonroad_renderer, draw_params={"traffic_light": {"draw_traffic_lights": False}}
+    #     # )
+    #     self.world.scenario.lanelet_network.draw(self.commonroad_renderer)
+    #     self.commonroad_renderer.render()
+    #     return
 
-        self.commonroad_renderer.ax = axis
-        self.commonroad_renderer.f = axis.figure
-        self.world.scenario.lanelet_network.draw(
-            self.commonroad_renderer, draw_params={"traffic_light": {"draw_traffic_lights": False}}
-        )
+    def plot_arena(self, draw_labels: bool, plot_limits=None):
+        self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = True
+        self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = True
+
+        if draw_labels:
+            self.commonroad_renderer.draw_params["lanelet"]["show_label"] = True
+            self.commonroad_renderer.draw_params["traffic_sign"]["draw_traffic_signs"] = True
+            self.commonroad_renderer.draw_params["dynamic_obstacle"]["show_label"] = True
+
+        if plot_limits is not None:
+            self.commonroad_renderer.plot_limits = plot_limits
+        self.world.scenario.scenario.draw(self.commonroad_renderer)
         self.commonroad_renderer.render()
-        yield
+        return
+
+    def plot(
+        self,
+        player_states: Optional[Mapping[PlayerName, VehicleState]] = None,
+        player_actions: Optional[Mapping[PlayerName, FrozenSet[Trajectory]]] = None,
+        player_refs: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
+        player_eqs: Optional[Mapping[PlayerName, Trajectory]] = None,
+        player_outcomes: Optional[Mapping[PlayerName, Dict]] = None,
+        show_plot: bool = True,
+        filename: str = None,
+        # draw_labels: bool = False,
+        # action_colors: Optional[Mapping[PlayerName, Color]] = None,
+        ):
+        matplotlib.use("TkAgg")
+        # just plot area surrounding Ego vehicle
+        ego_position = np.array([player_states[PlayerName("Ego")].x, player_states[PlayerName("Ego")].y])
+        deltax_plot = 50
+        deltay_plot = 50
+        plot_limits = [[ego_position[0]-deltax_plot, ego_position[0]+deltax_plot],
+                       [ego_position[1]-deltay_plot, ego_position[1]+deltay_plot]]
+
+        self.plot_arena(draw_labels=False, plot_limits=plot_limits)#draw_labels=draw_labels)
+        # self.plot_actions(
+        #     axis=self.commonroad_renderer.ax,
+        #     actions=self.evaluation_context.trajectories,
+        #     action_colors=action_colors,
+        #     goals=self.evaluation_context.goals,
+        # )
+        axis = self.commonroad_renderer.ax
+        if player_states is not None:
+            assert player_states.keys() == self.world.geo.keys(), "Mismatch in players for plotting."
+            for pname, pstate in player_states.items():
+                self.plot_player(axis=axis, player_name=pname, state=pstate, plot_text=True)
+
+        if player_actions and player_refs is not None:
+            assert player_actions.keys() == self.world.geo.keys(), "Mismatch in players for plotting."
+            for pname, pactions in player_actions.items():
+                if pname == PlayerName("Ego"):
+                    lanes_colour = "green"
+                else:
+                    lanes_colour = "red"
+                self.plot_actions(axis=axis, actions=pactions, lanes=player_refs, colour=lanes_colour) #todo: add reference lanes
+
+        if player_eqs is not None:
+            for pname, peqs in player_eqs.items():
+                if pname == PlayerName("Ego"):
+                    eq_colour = "darkgreen"
+                else:
+                    eq_colour = "darkred"
+                self.plot_equilibria(axis=axis, actions=peqs, colour=eq_colour)
+
+        # self.plot_pref(axis=self.ax2, )
+        if filename is not None:
+            plt.savefig(filename, format='pdf')#, dpi=400)
+        if show_plot:
+            plt.show()
+        plt.close()
 
     # def plot_player(self, axis, player_name: PlayerName, state: VehicleState, alpha: float = 0.95, box=None):
     #     """Draw the player and his action set at a certain state."""
@@ -263,7 +339,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     def plot_equilibria(
         self,
         axis,
-        actions: FrozenSet[Trajectory],
+        actions: Trajectory,
         colour: Color,
         width: float = 0.9,
         alpha: float = 1.0,
@@ -272,6 +348,8 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         plot_lanes=True,
     ):
 
+        if isinstance(actions, Trajectory):
+            actions = {actions}
         self.plot_actions(
             axis=axis, actions=actions, colour=colour, width=width, alpha=alpha, ticks=ticks, plot_lanes=plot_lanes
         )
@@ -324,11 +402,16 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             axis.set_ylim(top=Y + 15.0)
             # I suspect here we have the problems
 
+    def plot_all_prefs(self):
+        pass
+
+
     def plot_actions(
         self,
         axis: Axes,
-        actions: FrozenSet[Trajectory],
-        lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
+        actions: Union[FrozenSet[Trajectory], Set[Trajectory]],
+        # lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
+        lanes: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
         colour: Color = None,
         width: float = 0.7,
         alpha: float = 1.0,
@@ -343,13 +426,21 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         #         lanes[lane] = goal
         segments = [np.array([np.array([x.x, x.y]) for _, x in traj]) for traj in actions]
 
-        # if plot_lanes and colour is not None:
-        #     for lane, goal in lanes.items():
-        #         points = lane.lane_profile()
-        #         xp, yp = zip(*points)
-        #         x = np.array(xp)
-        #         y = np.array(yp)
-        #         axis.fill(x, y, color=colour, alpha=0.2, zorder=ZOrder.lanes)
+        if lanes is not None:
+            if plot_lanes and colour is not None:
+                for pname, lane in lanes.items():
+                    ctrl_points = lane[0].ref_lane.get_control_points#.get_control_points()
+                    # a = ctrl_points.get_control_points#.control_points()#.get_control_points()
+                    points = [point.q.p for point in ctrl_points]
+                    xp, yp = zip(*points)
+                    x = np.array(xp)
+                    y = np.array(yp)
+                    # axis.fill(x, y, color=colour, alpha=0.2, zorder=ZOrder.LANES)
+                    if pname == PlayerName("Ego"):
+                        ref_colour = "green"
+                    else:
+                        ref_colour = "red"
+                    axis.plot(x, y, color=ref_colour, alpha=0.3, zorder=ZOrder.LANES, linestyle="dashed")
         #  Toggle to plot goal region
         # if goal is not None:
         #     axis.plot(*goal.exterior.xy, color=colour, linewidth=0.5, zorder=ZOrder.goal)
@@ -380,6 +471,10 @@ def plot_vehicle(
     """"""
     vehicle_outline: Sequence[Tuple[float, float], ...] = vg.outline
     vehicle_color: Color = vg.color.replace("_car", "")
+    if player_name == PlayerName("Ego"):
+        vehicle_color = "green"
+    else:
+        vehicle_color = "red"
     q = SE2_from_xytheta((state.x, state.y, state.theta))
     if vehicle_poly is None:
         vehicle_box = ax.fill([], [], color=vehicle_color, alpha=alpha, zorder=ZOrder.MODEL)[0]
@@ -388,7 +483,7 @@ def plot_vehicle(
         ]
         if plot_text:
             x4, y4 = transform_xy(q, ((0, 0),))[0]
-            y4 = y4 + 10.0  # offset text #todo generalize this
+            y4 = y4 + 2.0  # offset text #todo generalize this
             ax.text(
                 x4,
                 y4,
