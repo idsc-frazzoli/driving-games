@@ -155,7 +155,7 @@ class TrajectoryGamePosetsParam:
     posetal preferences.
 
     Attributes:
-        map_name:           Name of the commonroad map to use
+        scenario:           DgScenario to use (builds on top of Commondroad scenario)
         initial_states:     Initial vehicle states for each player
         ref_lanes:          Reference lanes for each player
         pref_structures:    Name of preference structure used by each player (loaded from .yaml library file)
@@ -169,7 +169,7 @@ class TrajectoryGamePosetsParam:
                             "variance" or "var" for looking for diverse and representative trajectories.
     """
 
-    map_name: str
+    scenario: DgScenario
     initial_states: Mapping[PlayerName, VehicleState]
     ref_lanes: Mapping[PlayerName, RefLaneGoal]
     pref_structures: Mapping[PlayerName, str]

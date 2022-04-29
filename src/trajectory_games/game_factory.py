@@ -124,11 +124,11 @@ def get_traj_game_posets_from_params(
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     goals: Dict[PlayerName, List[RefLaneGoal]] = {}
 
-    logger.info(f"Loading Scenario: {config['map_name']}", end=" ...")
-    scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
-    scenario, _ = load_commonroad_scenario(config["map_name"], scenarios_dir=scenarios_dir)
-    scenario = DgScenario(scenario)
-    logger.info("Done.")
+    # logger.info(f"Loading Scenario: {map_name}", end=" ...")
+    # scenarios_dir = scenarios_dir
+    # scenario, _ = load_commonroad_scenario(map_name, scenarios_dir=scenarios_dir)
+    # logger.info("Done.")
+
 
     logger.info(f"Start trajectory game generation.")
 
@@ -153,7 +153,8 @@ def get_traj_game_posets_from_params(
             vg=geometries[pname],
         )
 
-    world = TrajectoryWorld(map_name=game_params.map_name, scenario=scenario, geo=geometries, goals=goals)
+    map_name = game_params.scenario.scenario.scenario_id.map_name
+    world = TrajectoryWorld(map_name=map_name, scenario=game_params.scenario, geo=geometries, goals=goals)
 
     get_outcomes = partial(MetricEvaluation.evaluate, world=world)
 
@@ -207,7 +208,7 @@ def get_traj_game_params_from_config(config_str: str, default_required_progress=
         traj_gen_params[pname] = TrajectoryGenParams.from_config(name=pconfig["traj"])
 
     params = TrajectoryGamePosetsParam(
-        map_name=config['map_name'],
+        scenario=DgScenario(scenario),
         initial_states=initial_states,
         ref_lanes=ref_lanes,
         pref_structures=pref_structures,
