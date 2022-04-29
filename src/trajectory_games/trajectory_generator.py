@@ -81,7 +81,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     def _get_trajectory_graph(self, state: VehicleState, ref_lane_goal: RefLaneGoal) -> TrajectoryGraph:
         """Construct graph of states"""
         graph: TrajectoryGraph = TrajectoryGraph()
-        k_maxgen = 5 #todo: should this not be removed? investigate what it does
+        k_maxgen = 5
         t_init: Timestamp = 0.0
         init_state = (t_init, state)
         stack: List[TimedVehicleState] = list([init_state])  # use timed state. Initial time is 0.
@@ -108,6 +108,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 else:
                     # use finite time condition (time = generations)
                     cond = current_gen + 1 < self.params.max_gen
+
                 if cond:
                     stack.append(s2)
                 trans_values = [val[1] for val in samp]
@@ -117,14 +118,14 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 # cmds = [u for _ in range(len(trans_timestamps))]
                 # commands = Trajectory(values=cmds, timestamps=trans_timestamps)
 
-
                 timestamps = [s1[0], s2[0]]
                 values = [s1[1], s2[1]]
                 states = Trajectory(values=values, timestamps=timestamps)
+
                 # this to add a single command (it is constant anyways)
                 # commands = (Trajectory(values=[u], timestamps=[s1[0]]))
-
-                graph.add_edge(states=states, transition=transition, commands=u)
+                if cond:
+                    graph.add_edge(states=states, transition=transition, commands=u)
 
         return graph
 
