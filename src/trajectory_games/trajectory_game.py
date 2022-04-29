@@ -5,6 +5,7 @@ import random
 from time import perf_counter
 from typing import Dict, FrozenSet, Mapping, Optional, Set, Tuple
 
+import matplotlib
 from frozendict import frozendict
 
 from dg_commons import iterate_dict_combinations, PlayerName, logger
@@ -256,13 +257,17 @@ def sample_trajectories(
 def get_context_and_graphs(
         game: TrajectoryGame,
         sampling_method: str,
+        pad_trajectories: float = False,
         max_n_traj: Optional[int] = None,
 ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
     """
     Construct solving context and return trajectory graphs for all players.
-    :param game: Trajectory Game
-    :param max_n_traj: Maximum number of trajectories to return
-    :return: Solving Context and Trajectory graph
+    :param game:                Trajectory Game
+    :param sampling_method:     Which method to use to subsample trajectories from all those available.
+    :param pad_trajectories:    Extend all trajectories that are shorter than the longest one, keeping the
+                                vehicle state constant.
+    :param max_n_traj:          Maximum number of trajectories to return
+    :return:                    Solving Context and Trajectory graph
     """
     def generate_trajectory_graphs(game: TrajectoryGame) -> Mapping[PlayerName, FrozenSet[TrajectoryGraph]]:
 
@@ -310,6 +315,21 @@ def get_context_and_graphs(
 
     # subsample trajectories at random to limit action number
     subset_trajs = sample_trajectories(all_trajs=all_trajectories, n_trajs_max=max_n_traj, method=sampling_method)
+    max_time: Timestamp = -999.0
+    if pad_trajectories:
+        for pname, trajectories_set in subset_trajs.items():
+            for traj in trajectories_set:
+                max_time = max(traj.timestamps[-1], max_time)
+
+        if max_time > 0.0:
+            for pname, trajectories_set in subset_trajs.items():
+                new_set = set()
+                for traj in trajectories_set:
+                    if max_time > traj.timestamps[-1]:
+                        new_set.add(traj.pad_to_time(t_final=max_time, dt=1))
+                    else:
+                        new_set.add(traj)
+                subset_trajs[pname] = frozenset(new_set)
 
     for joint_traj in set(iterate_dict_combinations(subset_trajs)):
         game.get_outcomes(joint_traj)
