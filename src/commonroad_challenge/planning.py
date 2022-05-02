@@ -40,7 +40,11 @@ def get_game_params(ego_vehicle: EgoVehicle,
                                                                       interacting_agents)
     pref_structures: Mapping[PlayerName, str] = get_default_pref_structures(interacting_agents)
     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams] = get_traj_gen_params(interacting_agents)
-    n_traj_max: int = 5
+    # n_traj_max: int = 5
+    n_traj_max: Mapping[PlayerName, int] = {}
+    n_traj_max[PlayerName("Ego")] = 10
+    for dyn_obs in interacting_agents:
+        n_traj_max[PlayerName(str(dyn_obs.obstacle_id))] = 3
     refresh_time: Timestamp = 0.5
     return TrajectoryGamePosetsParam(
         scenario=DgScenario(scenario),
