@@ -34,6 +34,14 @@ CollisionEnergy:
   CollisionEnergy: 1.0
 MinimumClearance:
   MinimumClearance: 1.0
+DistanceToObstacle_CR:
+  DistanceToObstacle_CR: 1.0
+SteeringRateSquared:
+  SteeringRateSquared: 1.0
+DeviationLateralSquared:
+  DeviationLateralSquared: 1.0
+LongitudinalAccelerationSquared:
+  LongitudinalAccelerationSquared: 1.0
 
 ## Combination metric nodes
 # pref_1
@@ -201,3 +209,11 @@ weighted_ref_deviation:
 weights_ral_1:
   weights_speed: 1.0
   MinimumClearance: 1.0
+
+# For Commonroad Challenge
+TR1:
+  DistanceToObstacle_CR: 8.0
+  SteeringRateSquared: 22.0
+  DeviationLateralSquared: 5.0
+  LongitudinalAccelerationSquared: 0.01
+

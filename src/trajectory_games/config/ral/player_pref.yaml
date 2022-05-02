@@ -58,11 +58,17 @@ pref_leon_dev_4:
   CollisionEnergy: [ "DrivableAreaViolation" ]
   LateralComfort: [ "DrivableAreaViolation" ]
 
-default_commonroad_ego:
+dev_commonroad_ego:
   DrivableAreaViolation: []
   CollisionEnergy: ["DrivableAreaViolation"]
   MinimumClearance: ["CollisionEnergy"]
   ProgressAlongReference: ["MinimumClearance"]
+
+default_commonroad_ego:
+  RoadCompliance_CR: []
+  CollisionBool: []
+  TR1: ["RoadCompliance_CR", "CollisionBool",]
+  ProgressTowardsGoal: ["RoadCompliance_CR", "CollisionBool", ]
 
 only_driving_area_violation:
   DrivableAreaViolation: []
@@ -70,11 +76,14 @@ only_driving_area_violation:
 only_collision:
   CollisionEnergy: []
 
-default_commonroad:
+dev_default_commonroad:
   CollisionEnergy: []
   MinimumClearance: ["CollisionEnergy"]
   DrivableAreaViolation: ["CollisionEnergy"]
   ProgressAlongReference: ["DrivableAreaViolation", "MinimumClearance"]
+
+default_commonroad:
+  TR1: []
 
 pref_granny:
   CollisionEnergy: [ ]
