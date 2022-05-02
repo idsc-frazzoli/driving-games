@@ -1,9 +1,15 @@
+import math
 from itertools import combinations
 from typing import Tuple, List, Dict, Callable, Set, Mapping
+from dataclasses import dataclass
 
 import geometry as geo
 import numpy as np
 from commonroad.scenario.traffic_sign import TrafficLight, TrafficLightState
+from commonroad.scenario.trajectory import State
+from commonroad_dc import pycrcc
+from commonroad_dc.boundary import boundary
+from commonroad_dc.collision.trajectory_queries import trajectory_queries
 from frozendict import frozendict
 
 from dg_commons import PlayerName, SE2Transform, seq_differentiate, apply_SE2_to_shapely_geo, Timestamp
@@ -22,6 +28,10 @@ from driving_games.metrics_structures import (
 from dg_commons.sim.models.vehicle import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
 
+from commonroad_dc.boundary import boundary
+from commonroad_dc.collision.trajectory_queries import trajectory_queries
+import commonroad_dc.pycrcc as pycrcc
+
 __all__ = [
     "get_metrics_set",
     "EpisodeTime",
@@ -38,7 +48,12 @@ __all__ = [
     "ClearanceViolationTime",
     "MinimumClearance",
     "MetricEvaluation",
-    "GoalViolation"
+    "GoalViolation",
+    "DistanceToObstacle_CR",
+    "SteeringRateSquared",
+    "DeviationLateralSquared",
+    "LongitudinalAccelerationSquared",
+    "RoadCompliance_CR"
 ]
 
 
@@ -80,6 +95,27 @@ class DeviationLateral(Metric):
 
             traj_sn = context.points_curv[player]
             abs_n = [_.distance_from_center for _ in traj_sn]
+            ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                values=abs_n, timestamps=traj.get_sampling_points()))
+            self.cache[traj] = ret
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class DeviationLateralSquared(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric describes the squared lateral deviation from reference path."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+
+            traj_sn = context.points_curv[player]
+            abs_n = [_.distance_from_center ** 2 for _ in traj_sn]
             ret = self.get_integrated_metric(seq=DgSampledSequence[float](
                 values=abs_n, timestamps=traj.get_sampling_points()))
             self.cache[traj] = ret
@@ -192,6 +228,26 @@ class LongitudinalAcceleration(Metric):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
+class LongitudinalAccelerationSquared(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the squared longitudinal acceleration of the robot."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+
+            traj_vel = traj.transform_values(lambda x: x.vx * x.vx, float)
+            acc_seq = seq_differentiate(traj_vel)
+            ret = self.get_integrated_metric(acc_seq)
+            self.cache[traj] = ret
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
 def _get_lat_comf(x: VehicleState) -> float:
     return abs(x.vx * x.delta)
 
@@ -247,6 +303,26 @@ class SteeringRate(Metric):
                 return self.cache[traj]
 
             st_traj = traj.transform_values(lambda x: x.delta, float)
+            dst = seq_differentiate(st_traj)
+            ret = self.get_integrated_metric(dst)
+            self.cache[traj] = ret
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class SteeringRateSquared(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the squared rate of change of the steering angle of the robot."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+
+            st_traj = traj.transform_values(lambda x: x.delta * x.delta, float)
             dst = seq_differentiate(st_traj)
             ret = self.get_integrated_metric(dst)
             self.cache[traj] = ret
@@ -358,7 +434,9 @@ PairwiseValues = Dict[Tuple[PlayerName, PlayerName], DgSampledSequence]
 
 
 class Clearance(Metric):
-    description = "This metric computes the clearance between players (pairwise)."
+    description = "This metric computes the clearance between players (pairwise). If two trajectories have" \
+                  " different lengths, the clearance is only computed until the end timeof the shortest trajectory."
+
     sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
 
@@ -384,10 +462,16 @@ class Clearance(Metric):
 
         for pair in combinations(context.get_players(), r=2):
             t_start = float(context.trajectories[pair[0]].get_start())
-            t_end = float(context.trajectories[pair[0]].get_end())
-            assert t_start == context.trajectories[pair[1]].get_start() and \
-                   t_end == context.trajectories[pair[1]].get_end(), \
-                "The start and end time of different trajectories needs to be the same"
+            assert t_start == context.trajectories[pair[1]].get_start(), "Trajectories need to start at the same time."
+            #
+            # assert t_start == context.trajectories[pair[1]].get_start() and \
+            #        t_end == context.trajectories[pair[1]].get_end(), \
+            #     "The start and end time of different trajectories needs to be the same"
+
+            t_end_0 = float(context.trajectories[pair[0]].get_end())
+            t_end_1 = float(context.trajectories[pair[1]].get_end())
+
+            t_end = min([t_end_0, t_end_1])
 
             clearance = []
             n_points = int((t_end - t_start) / self.sampling_time)
@@ -419,6 +503,44 @@ class Clearance(Metric):
                     clearance = np.add(clearance, clear)
             seq = DgSampledSequence[float](values=clearance, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+def cr_dist(clearance: float, w_dist: float = 0.2):
+    return np.exp(clearance * w_dist)
+
+
+class DistanceToObstacle_CR(Clearance):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the distance to other obstacles as specified in J_D, CommonRoad costs"
+    sampling_time: Timestamp = 0.1
+    clearance_tolerance: float = 10.0  # if distance between CoM of two vehicles is greater, approximate clearance
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+
+        clearances = self.calculate_all_clearances(context=context)
+        timestamps = list(clearances.values())[0].timestamps
+
+        # values = list(clearances.values())[0].values
+
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            # traj: Trajectory = context.trajectories[player]
+            clearance_seq = []
+
+            for t in timestamps:
+                min_clear = 10000.0
+                for player_pair in clearances.keys():
+                    if player in player_pair and clearances[player_pair].at(t) < min_clear:
+                        min_clear = clearances[player_pair].at(t)
+                assert min_clear < 10000.0, "At least one clearance must be smaller than this."
+                clearance_seq.append(cr_dist(min_clear))
+
+            seq = DgSampledSequence[float](values=clearance_seq, timestamps=timestamps)
+            ret = self.get_integrated_metric(seq=seq)
+            # self.cache[traj] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
@@ -503,7 +625,7 @@ Crashes = Mapping[Tuple[PlayerName, PlayerName], Timestamp]
 class CollisionEnergy(Clearance):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the energy of collision between agents."
-    sampling_time: Timestamp = 1.0
+    sampling_time: Timestamp = 0.2
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
 
@@ -586,6 +708,31 @@ class CollisionEnergy(Clearance):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
+class CollisionBool(CollisionEnergy):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes if a collision occurs or not."
+    sampling_time: Timestamp = 0.2
+    clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
+    min_clearance: float = 10.0
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+
+        # clearances = self.calculate_all_clearances(context=context)  # todo calculated twice, make more efficient
+        crashes = self.crashes_taking_place(context=context)
+
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            # coll_energies_seq = np.array([0 for _ in range(len(timestamps))])
+            collision = 0.0
+            for player_pair, crash_idx in crashes.items():
+                if player in player_pair:
+                    collision = 1.0
+
+            return EvaluatedMetric(name=self.get_name(), value=collision)
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
 # todo: refine metric if needed and test
 class AngularViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
@@ -610,6 +757,185 @@ class AngularViolation(Metric):
             ret = self.get_integrated_metric(seq=DgSampledSequence[float](
                 values=headings, timestamps=traj.get_sampling_points()))
             return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+        # CollisionBoolean(),
+        # DrivableAreaViolation(),
+        # GoalReachability(),
+        # TR1()
+
+
+from commonroad_dc.costs.evaluation import CostFunctionEvaluator
+
+
+# class TR1_CR(Metric):
+
+# class TR1_CR(Metric):
+#     cache: Dict[Trajectory, EvaluatedMetric] = {}
+#     description = "This metric describes the deviation (in radians) from a circular sector"
+#
+#     def __init__(self, min_angle: float, max_angle: float):
+#         self.min_angle = min_angle
+#         self.max_angle = max_angle
+#
+#     @time_function
+#     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+#         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+#             traj: Trajectory = context.trajectories[player]
+#             headings = [heading.theta for heading in traj.values]
+#             for idx, head in enumerate(headings):
+#                 if self.min_angle < head < self.max_angle:
+#                     headings[idx] = 0
+#                 elif head > self.max_angle:
+#                     headings[idx] = head - self.max_angle
+#                 elif head < self.min_angle:
+#                     headings[idx] = - self.max_angle - head
+#             ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+#                 values=headings, timestamps=traj.get_sampling_points()))
+#             return ret
+#
+#         return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+@dataclass
+class RSS1_Parameters:
+    """
+    All accelerations and braking values are positive.
+    :param r_response_time: Response time of the rear vehicle
+    :param max_acc_r: Maximum acceleration during the response time
+    :param min_breaking_r: Minimum braking deceleration until full stop, after reaction time
+    :param max_braking_f: max braking of vehicle in front
+    """
+    r_response_time: Timestamp
+    max_acc_r: float
+    min_breaking_r: float
+    max_braking_f: float
+
+
+class RSS1_CR(Metric):
+    # cache: Dict[Trajectory, EvaluatedMetric] = {} # don't use cache, as same trajectory might have different
+    # surrounding dynamic obstacles
+    description = "This metric computes RSS1 (Safe distance) metric for commonroad scenarios."
+
+    def __init__(self, params: RSS1_Parameters):
+        self.params = params
+
+    def RSS1(self, vr: float, vf: float, params: RSS1_Parameters) -> float:
+        """
+        First RSS Metric (Safe Distance). r: rear vehicle (ego), f: front vehicle (dynamic obstacle of Commonroad).
+        All accelerations and braking values are positive.
+        :param vr: Velocity of rear vehicle
+        :param vf: Velocity of front vehicle
+        :param params: parameters for computing RSS1
+        :return: minimum safe distance
+        """
+
+        return vr * params.r_response_time \
+               + 0.5 * params.max_acc_r * params.r_response_time ** 2 \
+               + ((vr + params.r_response_time * params.max_acc_r) ** 2) / (2 * params.min_breaking_r) \
+               - 1.0 * vf * vf / (2.0 * params.max_braking_f)
+
+    def compute_RSS1_trajectory_dynobs(self, traj: Trajectory, dyn_obs_state: State, params: RSS1_Parameters):
+        """
+        Compute RSS1 between a trajectory for the trailing vehicle and a commonroad dynamic obstacle (leading vehicle).
+        Constant velocity and orientation assumption is made for leading vehicle.
+
+        :param traj: trajectory of trailing vehicle
+        :param dyn_obs_state: state of dynamic obstacle
+        :param params: parameters of RSS1 (reaction time, accelerations and braking)
+        :return: 1 if distance between final step of trajectory is smaller than RSS1, 0 otherwise
+        """
+        last_traj_state = traj.values[-1]
+        last_traj_position = np.array([last_traj_state.x, last_traj_state.y])
+        dt = traj.timestamps[-1] - traj.timestamps[0]
+        dyn_obs_init_pos = dyn_obs_state.position
+        dyn_obs_final_pos_x = dyn_obs_init_pos[0] + math.cos(dyn_obs_state.orientation) * dyn_obs_state.velocity * dt
+        dyn_obs_final_pos_y = dyn_obs_init_pos[1] + math.sin(dyn_obs_state.orientation) * dyn_obs_state.velocity * dt
+        dyn_obs_final_pos = np.array([dyn_obs_final_pos_x, dyn_obs_final_pos_y])
+
+        final_distance = np.linalg.norm(dyn_obs_final_pos - last_traj_position)
+
+        rss_distance = self.RSS1(vr=last_traj_state.vx, vf=dyn_obs_state.velocity, params=params)
+        return int(final_distance < rss_distance)
+
+    from commonroad.scenario.scenario import Scenario
+    from commonroad.scenario.obstacle import DynamicObstacle
+    def get_leading_obs(self, scenario: Scenario, state: VehicleState) -> DynamicObstacle:
+        pass
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            # if traj in self.cache:
+            #     return self.cache[traj]
+            scenario = context.dgscenario.scenario
+            player_state = traj.values[0]
+            leading_dyn_obs = self.get_leading_obs(scenario, player_state)  # returns obstacle in front
+
+            viol = self.compute_RSS1_trajectory_dynobs(traj, leading_dyn_obs.initial_state, self.params)
+
+            ret = EvaluatedMetric(
+                name=self.get_name(),
+                value=viol,
+            )
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class RoadCompliance_CR(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metrics computes if a trajectory is compliant with the road, i.e. if the vehicle geometry" \
+                  "is entirely withing the road. Using CR tools."
+
+
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+
+            car_half_width = context.geos[player].width / 2.0
+            car_half_length = (context.geos[player].lr + context.geos[player].lf) / 2.0
+
+            vehicle_states = traj.values
+            # cr_states =\
+            #     [convert_to_cr_state(vehicle_state, time_step=i) for i, vehicle_state in enumerate(vehicle_states)]
+            states = [[state.x, state.y, state.theta] for state in vehicle_states]
+
+            # From CR: create time-varying obstacle for "player" car
+            def create_tvobstacle(traj_list, car_half_length, car_half_width):
+                tvo = pycrcc.TimeVariantCollisionObject(0)
+                for traj in traj_list:
+                    tvo.append_obstacle(pycrcc.RectOBB(car_half_length, car_half_width, traj[2], traj[0], traj[1]))
+                return tvo
+
+            road_boundary_obstacle, road_boundary_sg_rectangles = boundary.create_road_boundary_obstacle(
+                context.dgscenario.scenario)
+            co = create_tvobstacle(states, car_half_length, car_half_width)
+
+            # From CR: preprocess using OBB sum hull
+            preprocessed_trajectory, err = trajectory_queries.trajectory_preprocess_obb_sum(co)
+            if (err):
+                raise Exception("trajectory preprocessing error")
+
+            # From CR: compute time step of collision with road boundary
+            ret = trajectory_queries.trajectories_collision_static_obstacles([preprocessed_trajectory],
+                                                                             road_boundary_sg_rectangles,
+                                                                             method='grid',
+                                                                             num_cells=32,
+                                                                             auto_orientation=True)
+
+            # if ret[0] == -1, no collision with the road boundary has occurred
+            if ret[0] == -1:
+                ret = 0.0
+            # if ret[0] >= 0, collision with the road boundary has occurred at time_step = ret[0]
+            else:
+                ret = 1.0
+
+            return EvaluatedMetric(name=self.get_name(), value=ret)
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
@@ -639,9 +965,36 @@ def get_joint_metrics() -> Set[Metric]:
     return metrics
 
 
+# All Metrics
+# def get_metrics_set() -> Set[Metric]:
+#     metrics: Set[Metric] = get_personal_metrics()
+#     metrics |= get_joint_metrics()
+#     return metrics
+
+
+# Only necessary metrics -> speed up computations for Commonroad challenge
 def get_metrics_set() -> Set[Metric]:
-    metrics: Set[Metric] = get_personal_metrics()
-    metrics |= get_joint_metrics()
+    metrics: Set[Metric] = {
+        SteeringRateSquared(),
+        LongitudinalAccelerationSquared(),
+        DeviationLateralSquared(),
+        RoadCompliance_CR(),
+        DistanceToObstacle_CR(),
+        CollisionBool(),
+        ProgressAlongReference()
+    }
+    return metrics
+
+
+def get_metrics_commonroad() -> Set[Metric]:
+    metrics: Set[Metric] = {
+        CollisionEnergy(),
+        DrivableAreaViolation(),
+        MinimumClearance(),
+        ProgressAlongReference(),
+        TR1_CR(),
+
+    }
     return metrics
 
 
