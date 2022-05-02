@@ -4,6 +4,7 @@ from itertools import product
 from typing import FrozenSet, List, Mapping, Set, Tuple
 
 import numpy as np
+from commonroad.common.solution import VehicleType, vehicle_parameters
 from scipy.integrate import solve_ivp
 
 from dg_commons import Timestamp
@@ -12,6 +13,10 @@ from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands, Vehicle
 
 __all__ = ["BicycleDynamics"]
 
+from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks
+class paramz:
+    a = 0.88392
+    b = 1.50876
 
 class BicycleDynamics:
     v_max: float
@@ -125,7 +130,7 @@ class BicycleDynamics:
         return ret, [x0, ret]
 
     def successor_ivp(
-        self, x0: Tuple[Timestamp, VehicleState], u: VehicleCommands, dt: D, dt_samp: D
+            self, x0: Tuple[Timestamp, VehicleState], u: VehicleCommands, dt: D, dt_samp: D
     ) -> Tuple[Tuple[Timestamp, VehicleState], List[Tuple[Timestamp, VehicleState]]]:
         """
         Perform initial value problem integration
@@ -143,8 +148,8 @@ class BicycleDynamics:
             return dig
 
         # Steady state dynamics - Change velocity and steering at start
-        x0[1].vx += u.acc * dt_f
-        x0[1].delta += u.ddelta * dt_f
+        # x0[1].vx += u.acc * dt_f
+        # x0[1].delta += u.ddelta * dt_f
         u0 = VehicleCommands(0.0, 0.0)
         idx = {"x": 0, "y": 1, "th": 2, "v": 3, "st": 4, "ax": 5, "dst": 6}  # "t": 5
         digits = get_digits(dt_samp)
@@ -169,7 +174,8 @@ class BicycleDynamics:
             rates = self.dynamics(x0=state0, u=action, mean=False)
             return array_from_state(x_s=rates)
 
-        state_i = array_from_state(x_s=x0[1])
+
+        state_i = array_from_state(x_s=x0[1], u_s=u)
         points = int(round(dt / dt_samp, 0)) + 1
         t_eval = np.linspace(0.0, float(dt), points)
         result = solve_ivp(fun=dynamics, t_span=(0.0, float(dt)), y0=state_i, t_eval=t_eval)
@@ -181,21 +187,66 @@ class BicycleDynamics:
         for time, y_np in zip(result.t, result.y.T):
             state_f, _ = states_from_array(y_np)
             ret.append((time + x0[0], state_f))
-        x0[1].vx, x0[1].delta = v0, st0
+        # x0[1].vx, x0[1].delta = v0, st0
+        # x0[1].vx += u.acc * dt_f
+        # x0[1].delta += u.ddelta * dt_f
         return ret[-1], ret
 
-    def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
-        """Get rate of change of states for given control inputs"""
-        dx = x0.vx
-        dr = dx * math.tan(x0.delta) / (self.vg.lf + self.vg.lr)  # todo which lr or lf
-        dy = dr * (self.vg.lf + self.vg.lr) / 2  # todo which lr og lf
-        # dr = dx * math.tan(x0.st) / (2.0 * (self.vg.lf+self.vg.lr))
-        # dy = dr * (self.vg.lf+self.vg.lr)
-        th_eq = x0.theta + dr / 2.0 if mean else x0.theta
-        costh = math.cos(th_eq)
-        sinth = math.sin(th_eq)
+    # def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool = True) -> VehicleState:
+    #     """Get rate of change of states for given control inputs"""
+    #     dx = x0.vx
+    #     dr = dx * math.tan(x0.delta) / (self.vg.lf + self.vg.lr)  # todo which lr or lf
+    #     dy = dr * (self.vg.lf + self.vg.lr) / 2  # todo which lr og lf
+    #     # dr = dx * math.tan(x0.delta) / (2.0 * (self.vg.lf+self.vg.lr))
+    #     # dy = dr * (self.vg.lf+self.vg.lr)
+    #     th_eq = x0.theta + dr / 2.0 if mean else x0.theta
+    #     costh = math.cos(th_eq)
+    #     sinth = math.sin(th_eq)
+    #
+    #     xdot = dx * costh - dy * sinth
+    #     ydot = dx * sinth + dy * costh
+    #     ret = VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)  # , t=D("1"))
+    #     return ret
 
-        xdot = dx * costh - dy * sinth
-        ydot = dx * sinth + dy * costh
-        ret = VehicleState(x=xdot, y=ydot, theta=dr, vx=u.acc, delta=u.ddelta)  # , t=D("1"))
-        return ret
+    # def dynamics(self, x0: VehicleState, u: VehicleCommands, mean:bool) -> VehicleState:
+    #     """Get rate of change of states for given control inputs"""
+    #
+    #     dx = x0.vx
+    #     dtheta = dx * math.tan(x0.delta) / self.vg.length
+    #     dy = dtheta * self.vg.lr
+    #     costh = math.cos(x0.theta)
+    #     sinth = math.sin(x0.theta)
+    #     xdot = dx * costh #- dy * sinth
+    #     ydot = dx * sinth #+ dy * costh
+    #     x_rate = VehicleState(x=xdot, y=ydot, theta=dtheta, vx=u.acc, delta=u.ddelta)
+    #     return x_rate
+
+    # def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool) -> VehicleState:
+    #     """Get rate of change of states for given control inputs - new model"""
+    #
+    #     beta = math.atan2(self.vg.lr * math.tan(x0.delta), self.vg.length)
+    #     v = x0.vx / math.cos(beta)
+    #     xdot = v * math.cos(x0.theta + beta)
+    #     ydot = v * math.sin(x0.theta + beta)
+    #     deltadot = u.ddelta
+    #     vdot = u.acc
+    #     thetadot = math.tan(x0.delta) * math.cos(beta) * v / self.vg.length
+    #
+    #     x_rate = VehicleState(x=xdot, y=ydot, theta=thetadot, vx=vdot, delta=deltadot)
+    #     return x_rate
+
+
+
+    def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool) -> VehicleState:
+        """Get rate of change of states for given control inputs - new model
+        Commonroad model"""
+
+        vehicle_type = VehicleType.FORD_ESCORT
+
+        p = vehicle_parameters[vehicle_type]
+        u_init = np.array([u.ddelta, u.acc])
+        rate = vehicle_dynamics_ks(np.array([x0.x, x0.y, x0.delta, x0.vx, x0.theta]), u_init, p)
+
+        x_rate = VehicleState(x=rate[0], y=rate[1], theta=rate[4], vx=rate[3], delta=rate[2])
+        return x_rate
+
