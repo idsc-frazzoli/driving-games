@@ -173,14 +173,15 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     def get_acc_dst(self, state: VehicleState, gen: int) -> Tuple[Set[float], Set[float]]:
         u0 = VehicleCommands(acc=0.0, ddelta=0.0)
         cond_gen = gen < self.params.max_gen
-        dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0} #todo: don't change steering id cond_Gen is met
+        dst_vals = self._bicycle_dyn.u_dst if cond_gen else {0.0}
         acc_vals = self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0)
-        #todo: was: if not_cond_gen: remove all acc<0 and set them to acc=0.0 -> only move forward
-        if not cond_gen:
-            for acc in list(acc_vals):  # todo [LEON]: issue when acceleration values is =0!
-                if acc <= 0.0:  # todo [LEON]: added <= instead of < -> fix this
-                    acc_vals.remove(acc)
-                    # acc_vals.add(0.0) # todo [LEON]: removed temporarily.
+        #todo: was: if not_cond_gen: remove all acc<0 and set them to acc=0.0 -> only move forward.
+        # issue: this cond_gen is never reached. We should use the condition that the goal is reached, if any.
+        # if not cond_gen:
+        #     for acc in list(acc_vals):  # todo [LEON]: issue when acceleration values is =0!
+        #         if acc <= 0.0:  # todo [LEON]: added <= instead of < -> fix this
+        #             acc_vals.remove(acc)
+        #             # acc_vals.add(0.0) # todo [LEON]: removed temporarily.
         return acc_vals, dst_vals
 
     def get_successors_approx(self, timed_state: TimedVehicleState, lane: DgLanelet, gen: int) -> Successors:
@@ -213,27 +214,35 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_progress(acc: float, K: float) -> float:
             """Progress along reference using curvature"""
             vf = timed_state[1].vx + acc * dt
+
+            # we don't allow velocities smaller than 0 (no trajectories moving backwards)
+            if vf < 0.0:
+                vf = 0.0
+
             return (vf * dt) / (1 - n_i * K)
 
         def get_corrected_distance(acc: float) -> float:
             """Progress along reference iteratively corrected using curvature"""
             curv = 0.0
-            if acc == 0.0:  # todo [LEON]: workaround for now. Issue when acc==0.0 (division by zero happens in line 218)
-                acc = 0.01
+            # if acc == 0.0:  # todo [LEON]: workaround for now. Issue when acc==0.0 (division by zero happens in line 218)
+            #     acc = 0.01
             dist = get_progress(acc=acc, K=curv)
-            assert dist != 0, "Progress can't be zero.  Choose another acceleration."
-            for i in range(5):
-                p_f, th_f = self._get_target(lane=lane, progress=along_i + dist, offset_target=offset_0)
-                dlb = p_f - p_i
-                Lb = np.linalg.norm(dlb)
+            # assert dist != 0, "Progress can't be zero.  Choose another acceleration."
+            # if dist is 0.0, no progress is done with this acceleration and initial velocity.
+            tol = 1e-3
+            if dist > tol:
+                for i in range(5):
+                    p_f, th_f = self._get_target(lane=lane, progress=along_i + dist, offset_target=offset_0)
+                    dlb = p_f - p_i
+                    Lb = np.linalg.norm(dlb)
 
-                # Two points with heading average curvature computation
-                curv = 2 * math.sin(th_f - th_i) / Lb
-                dist_new = get_progress(acc=acc, K=curv)
-                if abs(dist - dist_new) < 0.1:
+                    # Two points with heading average curvature computation
+                    curv = 2 * math.sin(th_f - th_i) / Lb
+                    dist_new = get_progress(acc=acc, K=curv)
+                    if abs(dist - dist_new) < 0.1:
+                        dist = dist_new
+                        break
                     dist = dist_new
-                    break
-                dist = dist_new
 
             return dist
 
@@ -248,19 +257,26 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
             # Sample deviation as a function of dst
             for dst in dst_vals:
-                # Calculate target pose of rear axle
-                nf = self.params.n_factor * n_i + dst * n_scale
-                offset_t = np.array([-l, nf])
-                p_t, th_t = self._get_target(lane=lane, progress=along_i + distance, offset_target=offset_t)
+                if distance > 0.0:
+                    # Calculate target pose of rear axle
+                    nf = self.params.n_factor * n_i + dst * n_scale
+                    offset_t = np.array([-l, nf])
+                    p_t, th_t = self._get_target(lane=lane, progress=along_i + distance, offset_target=offset_t)
 
-                # Steer from initial to final position using kinematic model
-                #  No slip at rear axle assumption --> Rear axle moves along a circle
-                dlb_t = p_t - p_start
-                Lb_t = np.linalg.norm(dlb_t)
-                alpb = math.atan2(dlb_t[1], dlb_t[0]) - th_start
-                tan_st = 4 * math.sin(alpb) * l / Lb_t
-                st_f = min(max(math.atan(tan_st), -st_max), st_max)
-                dst_f = min(max((st_f - timed_state[1].delta) / dt, -dst_max), dst_max)
+                    # Steer from initial to final position using kinematic model
+                    #  No slip at rear axle assumption --> Rear axle moves along a circle
+                    dlb_t = p_t - p_start
+                    Lb_t = np.linalg.norm(dlb_t)
+                    alpb = math.atan2(dlb_t[1], dlb_t[0]) - th_start
+                    tan_st = 4 * math.sin(alpb) * l / Lb_t
+                    st_f = min(max(math.atan(tan_st), -st_max), st_max)
+                    dst_f = min(max((st_f - timed_state[1].delta) / dt, -dst_max), dst_max)
+                elif distance == 0.0:
+                    # meaning that there is no change from the previous state
+                    accel = 0
+                    dst_f = 0.0
+                else:
+                    assert False, "Something went wrong here."
 
                 # Propagate inputs to obtain exact final state
                 u = VehicleCommands(acc=accel, ddelta=dst_f)
