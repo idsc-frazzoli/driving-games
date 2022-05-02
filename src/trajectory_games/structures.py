@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, FrozenSet, Mapping, Optional
+from typing import Dict, FrozenSet, Mapping, Optional, Union
 
 from yaml import safe_load
 
@@ -59,7 +59,7 @@ class TrajectoryGenParams:
     """ Sampling time [s] """
 
     u_acc: FrozenSet[float]
-    u_dst: FrozenSet[float]
+    u_dst: FrozenSet[float] #TODO: THIS IS LATERAL DEVIATION FROM REFERENCE AND NOT STEERING RATE?!?!
     """ Possible accelerations and steering rates to be sampled [m/s2] """
 
     v_max: float
@@ -164,7 +164,9 @@ class TrajectoryGamePosetsParam:
                             has passed, the game will be prepreocessed and solved again with new observations.
                             Set to None if the game should be played only one, without Receding Horizon.
         n_traj_max:         Maximum number of trajectories for each player. These are sampled from the ones generated
-                            by the trajectory generator. Set to None to keep all trajectories.
+                            by the trajectory generator. Can be an integer (if all players should have same number of
+                            actions), or a mapping between PlayerName and an integer.
+                            Set to None to keep all trajectories.
         sampling_method:    How to subsample trajectories. Can be "unif" or "uniform" for random uniform sampling, or
                             "variance" or "var" for looking for diverse and representative trajectories.
     """
@@ -175,5 +177,5 @@ class TrajectoryGamePosetsParam:
     pref_structures: Mapping[PlayerName, str]
     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams]
     refresh_time: Optional[Timestamp] = None
-    n_traj_max: Optional[int] = None
+    n_traj_max: Optional[Union[int, Mapping[PlayerName, int]]] = None
     sampling_method: str = "uniform"

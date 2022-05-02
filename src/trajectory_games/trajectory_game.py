@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from functools import partial
 import random
 from time import perf_counter
-from typing import Dict, FrozenSet, Mapping, Optional, Set, Tuple
+from typing import Dict, FrozenSet, Mapping, Optional, Set, Tuple, Union
 
 import matplotlib
 from frozendict import frozendict
@@ -200,7 +200,7 @@ def preprocess_player(sgame: Game, only_traj: bool = False) -> SolvingContext:
 #todo: TEST this
 def sample_trajectories(
         all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]],
-        n_trajs_max: Optional[int] = None,
+        n_trajs_max: Optional[Union[int, Mapping[PlayerName, int]]] = None,
         method: str = "unif"
 ):
     """
@@ -218,21 +218,32 @@ def sample_trajectories(
     random.seed(0)  # todo: fix this and take seed from SimContext
     if method.lower() == "unif" or method.lower() == "uniform":
         for pname, player_trajs in all_trajs.items():
-            if len(list(player_trajs)) <= n_trajs_max:
+            if type(n_trajs_max) == int:
+                n = n_trajs_max
+            else:
+                n = n_trajs_max[pname]
+
+            if len(list(player_trajs)) <= n:
                 p_trajs = player_trajs
             else:
-                p_trajs = random.sample(list(player_trajs), k=n_trajs_max)
+                p_trajs = random.sample(list(player_trajs), k=n)
+
             subset_trajs[pname] = frozenset(p_trajs)
     elif method.lower() == "variance" or method.lower() == "var":
         for pname, player_trajs in all_trajs.items():
-            if len(list(player_trajs)) <= n_trajs_max:
+            if type(n_trajs_max) == int:
+                n = n_trajs_max
+            else:
+                n = n_trajs_max[pname]
+
+            if len(list(player_trajs)) <= n:
                 p_trajs = player_trajs
             else:
                 # add half the number of required subsampled trajectories
-                p_trajs = set(random.sample(list(player_trajs), k=int(n_trajs_max/2)))
+                p_trajs = set(random.sample(list(player_trajs), k=int(n/2)))
                 new_candidate_trajs = set(list(player_trajs)) - p_trajs
                 # select one trajectory at random from subsampled trajectories up to now
-                while len(p_trajs) < n_trajs_max:
+                while len(p_trajs) < n:
                     p_compare_new = random.sample(list(p_trajs), k=1)
                     candidate_trajs = list(new_candidate_trajs)
                     mse = [p_compare_new.squared_error(new_traj) for new_traj in candidate_trajs]
@@ -258,7 +269,7 @@ def get_context_and_graphs(
         game: TrajectoryGame,
         sampling_method: str,
         pad_trajectories: float = False,
-        max_n_traj: Optional[int] = None,
+        max_n_traj: Optional[Union[int, Mapping[PlayerName, int]]] = None,
 ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
     """
     Construct solving context and return trajectory graphs for all players.
