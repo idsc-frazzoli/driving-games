@@ -34,6 +34,7 @@ def find_all_scenarios(scenarios_folder: str):
     interactive_scenarios = [os.path.split(path)[1] for path in subfolders[1:]]
     return interactive_scenarios
 
+
 def rectangle_around_ego(ego_state: State, look_forward_dist: float,
                          look_backward_dist: float, look_lateral_dist: float) -> Polygon:
     """
@@ -60,6 +61,7 @@ def rectangle_around_ego(ego_state: State, look_forward_dist: float,
     area_of_interest = line.buffer(distance=look_lateral_dist)
     return area_of_interest
 
+
 # def leading_area_of_interest(ego_state: State, look_forward_dist: float = 40.0,
 #                             lateral_search_distance: float = 1.0) -> Polygon:
 #     """
@@ -80,8 +82,6 @@ def rectangle_around_ego(ego_state: State, look_forward_dist: float,
 #     return area_of_interest
 
 
-
-
 def filter_obstacles(scenario: Scenario, area_of_interest: Polygon) -> List[DynamicObstacle]:
     """
     Returns all dynamic obstacles intersecting the area of interest
@@ -99,6 +99,7 @@ def filter_obstacles(scenario: Scenario, area_of_interest: Polygon) -> List[Dyna
             inter_obs.append(obs)
 
     return inter_obs
+
 
 def interacting_agents(scenario: Scenario,
                        ego_state: State,
@@ -125,13 +126,11 @@ def interacting_agents(scenario: Scenario,
 
     leading_obs = filter_obstacles(scenario, leading_area_of_interest)
 
-
-
     # find dyn. obstacles interacting with ego by being close to it
     around_area_of_interest = rectangle_around_ego(ego_state=ego_state,
-                                                    look_forward_dist=around_dist_f,
-                                                    look_backward_dist=around_dist_r,
-                                                    look_lateral_dist=around_dist_lat)
+                                                   look_forward_dist=around_dist_f,
+                                                   look_backward_dist=around_dist_r,
+                                                   look_lateral_dist=around_dist_lat)
 
     around_obs = filter_obstacles(scenario, around_area_of_interest)
 
@@ -140,7 +139,7 @@ def interacting_agents(scenario: Scenario,
         dist = 99999.
         closest_obs = None
         for obs in leading_obs:
-            obs_dist = np.norm(obs.initial_state.position - ego_state.position) #todo: check this is correct
+            obs_dist = np.linalg.norm(obs.initial_state.position - ego_state.position)  # todo: check this is correct
             if obs_dist < dist:
                 closest_obs = obs
                 dist = obs_dist
@@ -149,9 +148,9 @@ def interacting_agents(scenario: Scenario,
         if closest_obs in around_obs:
             around_obs.remove(closest_obs)
 
-
     obs_dict: Mapping[str, List[DynamicObstacle]] = {"leading": leading_obs, "around": around_obs}
     return obs_dict
+
 
 # # todo 1: probably wrong to use initial position of dynamic obstacles (?) Maybe correct. Sumo updates them (?)
 # # todo: implement part with longitudinal threshold
@@ -188,16 +187,17 @@ def convert_from_cr_state(state: State) -> VehicleState:
         theta=state.orientation,
         vx=state.velocity,
         # delta=state.steering_angle  # just setting delta to 0, the cr State does not have 0 as data
-        delta=0 #todo: fix this issue
+        delta=0  # todo: fix this issue
     )
 
 
-def convert_to_cr_state(vehicle_state: VehicleState) -> State:
+def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> State:
     return State(
         position=np.array([vehicle_state.x, vehicle_state.y]),
         orientation=vehicle_state.theta,
         velocity=vehicle_state.vx,
         steering_angle=vehicle_state.delta,
+        time_step=time_step,
     )
 
 
@@ -272,31 +272,38 @@ def get_default_pref_structures(interacting_agents: List[DynamicObstacle]):
     pref_structures: Mapping[PlayerName, str] = {}
     default_str = "default_commonroad"
     # pref_structures[PlayerName("Ego")] = "default_commonroad_ego"
-    pref_structures[PlayerName("Ego")] = "only_driving_area_violation"
+    pref_structures[PlayerName("Ego")] = "default_commonroad"
     for dyn_obs in interacting_agents:
         pref_structures[PlayerName(str(dyn_obs.obstacle_id))] = default_str
     return pref_structures
 
 
-def traj_gen_params_from_cr(cr_vehicle_params) -> TrajectoryGenParams:
+def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenParams:
     vp = VehicleParameters(
-        vx_limits=(cr_vehicle_params.longitudinal.v_min, cr_vehicle_params.longitudinal.v_max),
+        vx_limits=(0.0, cr_vehicle_params.longitudinal.v_max), # don't allow backwards driving
         acc_limits=(-cr_vehicle_params.longitudinal.a_max, cr_vehicle_params.longitudinal.a_max),
         # todo 5: Correct? No max braking is given
         delta_max=cr_vehicle_params.steering.max,
         ddelta_max=cr_vehicle_params.steering.v_max
     )
 
-    u_acc = frozenset([0.5])
-    u_dst = frozenset([-0.3, 0.3])
+    if is_ego:
+        u_acc = frozenset([0.5, 1.0])
+        u_dst = frozenset([-0.3, 0.3])
+
+    else:
+        u_acc = frozenset([0.0, 0.5, 1.0, 1.5])
+        u_dst = frozenset([0.0])
 
     vg = VehicleGeometry(
         vehicle_type=CAR,
         m=1500.0,
         Iz=1300,
         w_half=cr_vehicle_params.w / 2.0,
-        lf=cr_vehicle_params.l / 2.0,
-        lr=cr_vehicle_params.l / 2.0,
+        # lf=cr_vehicle_params.l / 2.0,
+        lf=cr_vehicle_params.a,
+        lr=cr_vehicle_params.b,
+        # lr=cr_vehicle_params.l / 2.0,
         c_drag=0.3756,
         a_drag=2,
         e=0.5,
@@ -308,7 +315,7 @@ def traj_gen_params_from_cr(cr_vehicle_params) -> TrajectoryGenParams:
         s_final=goal_frac,  # todo: adapt metrics to use this
         # s_final=-1,
         max_gen=100,
-        dt=D("0.2"),
+        dt=D("0.5"),
         # keep at max 1 sec, increase k_maxgen in trajectory_generator for having more generations
         u_acc=u_acc,
         u_dst=u_dst,
@@ -318,7 +325,7 @@ def traj_gen_params_from_cr(cr_vehicle_params) -> TrajectoryGenParams:
         dst_max=vp.ddelta_max,
         dt_samp=D("0.2"),
         dst_scale=False,
-        n_factor=0.8,
+        n_factor=1.0,
         vg=vg,
     )
 
@@ -332,10 +339,10 @@ def get_traj_gen_params(interacting_agents: List[DynamicObstacle]):
     ego_params = vehicle_parameters[vehicle_type]
     # create trajectory generator parameters for all players involved
     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams] = {}
-    traj_gen_params[PlayerName("Ego")] = traj_gen_params_from_cr(ego_params)
+    traj_gen_params[PlayerName("Ego")] = traj_gen_params_from_cr(ego_params, is_ego=True)
     for dyn_obs in interacting_agents:
         # todo 8: assuming all vehicles are Ford Escort.
-        traj_gen_params[PlayerName(str(dyn_obs.obstacle_id))] = traj_gen_params_from_cr(ego_params)
+        traj_gen_params[PlayerName(str(dyn_obs.obstacle_id))] = traj_gen_params_from_cr(ego_params, is_ego=False)
     return traj_gen_params
 
 ########################IMPLEMENT LATER##############################
