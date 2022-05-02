@@ -19,7 +19,7 @@ from .structures import TrajectoryGenParams
 __all__ = ["TrajectoryGenerator"]
 
 Successors = Mapping[VehicleCommands, Tuple[TimedVehicleState, List[TimedVehicleState]]]
-Solve_Tolerance = 1e-3
+Solve_Tolerance = 10.0 #1e-3
 
 
 class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
@@ -166,7 +166,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
     def tree_func(self, timed_state: TimedVehicleState, lane: DgLanelet, gen: int) -> Successors:
         if self.params.solve:
-            return self.get_successors_solve(state=timed_state[1], lane=lane, gen=gen)
+            return self.get_successors_solve(timed_state=timed_state, lane=lane, gen=gen)
         else:
             return self.get_successors_approx(timed_state=timed_state, lane=lane, gen=gen)
 
@@ -218,8 +218,8 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_corrected_distance(acc: float) -> float:
             """Progress along reference iteratively corrected using curvature"""
             curv = 0.0
-            # if acc == 0.0:  # todo [LEON]: workaround for now. Issue when acc==0.0 (division by zero happens in line 218)
-            #     acc = 0.1
+            if acc == 0.0:  # todo [LEON]: workaround for now. Issue when acc==0.0 (division by zero happens in line 218)
+                acc = 0.01
             dist = get_progress(acc=acc, K=curv)
             assert dist != 0, "Progress can't be zero.  Choose another acceleration."
             for i in range(5):
@@ -270,29 +270,29 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         return successors
 
     # todo still need to change fro states to timed states here
-    def get_successors_solve(self, state: VehicleState, lane: DgLanelet, gen: int) -> Successors:
+    def get_successors_solve(self, timed_state: TimedVehicleState, lane: DgLanelet, gen: int) -> Successors:
         """
         Accurate method to grow trajectory tree (slow)
         Samples discrete grid of velocity (from acceleration) and deviation
         Solves a two point boundary value problem to calculate steering angle
         Propagates states using calculated steering and kinematic model
         """
-
+        state = timed_state[1]
         dt = float(self.params.dt)
         s_init, n_init, mui = self.get_curv(state=state, lane=lane)
         successors: Dict[VehicleCommands, Tuple[VehicleState, List[VehicleState]]] = {}
 
         # Steering rate bounds
         dst_max = self.params.dst_max
-        lb = max(-dst_max, (-self.params.st_max - state.st) / dt)
-        ub = min(+dst_max, (+self.params.st_max - state.st) / dt)
+        lb = max(-dst_max, (-self.params.st_max - state.delta) / dt)
+        ub = min(+dst_max, (+self.params.st_max - state.delta) / dt)
         acc_vals, dst_vals = self.get_acc_dst(state=state, gen=gen)
 
         def equation_forward(vars_in, acc: float) -> Tuple[float, float]:
             """Euler forward integration (cartesian) to obtain curvilinear state"""
-            u = VehicleCommands(acc=acc, dst=vars_in[0])
-            state_end, _ = self.get_successor(state=state, u=u, samp=False)
-            _, n, mu = self.get_curv(state=state_end, lane=lane)
+            u = VehicleCommands(acc=acc, ddelta=vars_in[0])
+            state_end, _ = self.get_successor(state=timed_state, u=u, samp=False)
+            _, n, mu = self.get_curv(state=state_end[1], lane=lane)
             return n, mu
 
         def equation_min(vars_in, acc: float, nfinal: float) -> float:
@@ -303,19 +303,19 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_dst_guess() -> float:
             """Initial guess for optimisation, obtained from target yaw rate"""
             p_t, th_t = self._get_target(lane=lane, progress=s_init + distance, offset_target=np.array([0, 0]))
-            d_ang = th_t - state.th
+            d_ang = th_t - state.theta
             while d_ang > +np.pi:
                 d_ang -= 2 * np.pi
             while d_ang < -np.pi:
                 d_ang += 2 * np.pi
             # dst_i = (math.atan(d_ang * 2 * self.params.vg.l / state.v * dt) - state.st) / dt
-            dst_i = (math.atan(d_ang * 2 * self.params.vg.lr / state.v * dt) - state.st) / dt
+            dst_i = (math.atan(d_ang * 2 * self.params.vg.lr / state.vx * dt) - state.delta) / dt
             dst_i = min(max(dst_i, lb), ub)
             return dst_i
 
         # Sample velocities
         for accel in acc_vals:
-            vf = state.v + accel * dt
+            vf = state.vx + accel * dt
             distance = vf * dt
             n_scale = distance if self.params.dst_scale else 1.0
 
@@ -335,12 +335,12 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                         break
 
                 if residual >= Solve_Tolerance:
-                    # print(f"Opt failed: {state}, acc={accel}, nf={nf}")
+                    print(f"Opt failed: {state}, acc={accel}, nf={nf}")
                     continue
 
                 # Propagate inputs to obtain final state
-                u_f = VehicleCommands(acc=accel, dst=dst_f)
-                state_f, states_t = self.get_successor(state=state, u=u_f)
+                u_f = VehicleCommands(acc=accel, ddelta=dst_f)
+                state_f, states_t = self.get_successor(state=timed_state, u=u_f)
                 successors[u_f] = (state_f, states_t)
         return successors
 
