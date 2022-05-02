@@ -35,12 +35,3 @@ run-posets-exp: build
 		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
 		-v $(PWD)/$(out-docker):/out $(tag) \
 		posets-exp -o /out/posets --reset -c "rparmake"
-
-
-
-run-crashing_experiments: build
-	mkdir -p $(out-docker)
-	docker run -it --user $$(id -u) \
-		-v $(PWD)/scenarios:/driving_games/scenarios:ro \
-		-v $(PWD)/$(out-docker):/out $(tag) \
-		crash-exp -o /out/crash --reset -c "rparmake"
