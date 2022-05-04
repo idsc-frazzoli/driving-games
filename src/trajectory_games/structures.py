@@ -54,17 +54,23 @@ class TrajectoryGenParams:
     s_final: float
     """ Fraction of reference to generate trajectories - negative for finite time """
     max_gen: int
-    """ Number of stages for trajectory generation """
+    """ Number of stages for trajectory generation. """
     dt: D
     """ Sampling time [s] """
 
     u_acc: FrozenSet[float]
-    u_dst: FrozenSet[float] #TODO: THIS IS LATERAL DEVIATION FROM REFERENCE AND NOT STEERING RATE?!?!
-    """ Possible accelerations and steering rates to be sampled [m/s2] """
+    u_dst: FrozenSet[float]
+    """ Possible accelerations and steering rates [m/s2] """
 
     v_max: float
     v_min: float
     """ Velocity hard limits [m/s] """
+
+    v_switch: float
+    """Switching velocity of motor [m/s]"""
+
+    acc_max: float
+    """ Acceleration hard limits [m/s²]"""
 
     st_max: float
     dst_max: float
@@ -95,6 +101,8 @@ class TrajectoryGenParams:
             u_dst=u_dst,
             v_max=15.0,
             v_min=0.0,
+            v_switch=5.0,
+            acc_max=10.0,
             st_max=0.5,
             dst_max=1.0,
             dt_samp=D("0.1"),

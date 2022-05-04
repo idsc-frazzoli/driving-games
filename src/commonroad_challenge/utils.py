@@ -16,16 +16,17 @@ from commonroad_route_planner.utility.visualization import visualize_route
 from shapely.geometry import Point, LineString, Polygon
 from sumocr.interface.ego_vehicle import EgoVehicle
 from dg_commons.sim.models.model_structures import CAR
-from dg_commons import PlayerName
+from dg_commons import PlayerName, Timestamp
 from dg_commons.maps import DgLanelet
-from dg_commons.planning import RefLaneGoal
-from dg_commons.sim.models.vehicle import VehicleState
+from dg_commons.planning import RefLaneGoal, Trajectory
+from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
+from trajectory_games import TrajectoryGenerator, BicycleDynamics
 from trajectory_games.structures import TrajectoryGenParams
 
-goal_frac = 0.99
+goal_frac = 0.8
 
 
 # find all interactive scenarios inside a scenario folder
@@ -277,22 +278,88 @@ def get_default_pref_structures(interacting_agents: List[DynamicObstacle]):
         pref_structures[PlayerName(str(dyn_obs.obstacle_id))] = default_str
     return pref_structures
 
+#todo: why does this yield infeasible trajectories when delta of initial state is different from 0?
+# -> because the friction circle is violated!
+def emergency_braking_trajectory(state: VehicleState,
+                                 max_long_acc: float,
+                                 params: TrajectoryGenParams,
+                                 t_final: Timestamp) -> Trajectory:
+
+    bicycle_dyn = BicycleDynamics(params=params)
+    dt = float(params.dt)
+
+    tol = 1e-5 #floating point errors
+
+    timestamps = np.arange(start=0.0, stop=t_final+dt, step=dt)
+    values = [state]
+    next_state = state
+    for _ in range(len(timestamps)-1):
+        dec_to_0 = (0.0 - next_state.vx) / dt
+        dec_max = min(max_long_acc, abs(dec_to_0))
+
+        if dec_max<tol:
+            dec_max=0.0
+        # apply max available braking and continue in same direction, keeping steering constant
+        u_emergency = VehicleCommands(acc=-dec_max, ddelta=0.0)
+        state_1 = bicycle_dyn.successor_ivp(x0=(0, next_state), u=u_emergency, dt=D(dt), dt_samp=params.dt_samp)
+        next_state = state_1[0][1]
+        # if next_state.vx == -0.0:
+        #     next_state.vx = 0.0
+        # print(state_1[0][1])
+        # print(state_0)
+        values.append(next_state)
+
+    return Trajectory(timestamps=timestamps, values=values)
+
+# todo: why is the value of theta exploding?
+def braking_trajectory(state: VehicleState,
+                       long_dec: float,
+                       max_long_acc: float,
+                       params: TrajectoryGenParams,
+                       t_final: Timestamp) -> Trajectory:
+
+    bicycle_dyn = BicycleDynamics(params=params)
+    dt = float(params.dt)
+
+    timestamps = np.arange(start=0.0, stop=t_final+dt, step=dt)
+    values = [state]
+    next_state = state
+    for _ in range(len(timestamps)-1):
+
+        dec_max = min(max_long_acc, abs(long_dec))
+
+        # apply max available braking and continue in same direction, keeping steering constant
+        u_emergency = VehicleCommands(acc=1.0, ddelta=0.0)
+        state_1 = bicycle_dyn.successor_ivp(x0=(0, next_state), u=u_emergency, dt=D(dt), dt_samp=params.dt_samp)
+        next_state = state_1[0][1]
+        # if next_state.vx == -0.0:
+        #     next_state.vx = 0.0
+        # print(state_1[0][1])
+        # print(state_0)
+        values.append(next_state)
+
+    return Trajectory(timestamps=timestamps, values=values)
+
+
+
 
 def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenParams:
     vp = VehicleParameters(
-        vx_limits=(0.0, cr_vehicle_params.longitudinal.v_max), # don't allow backwards driving
+        vx_limits=(0.0, cr_vehicle_params.longitudinal.v_max),  # don't allow backwards driving
         acc_limits=(-cr_vehicle_params.longitudinal.a_max, cr_vehicle_params.longitudinal.a_max),
         # todo 5: Correct? No max braking is given
         delta_max=cr_vehicle_params.steering.max,
         ddelta_max=cr_vehicle_params.steering.v_max
     )
 
+    v_switch = cr_vehicle_params.longitudinal.v_switch
+
     if is_ego:
-        u_acc = frozenset([0.5, 1.0])
-        u_dst = frozenset([-0.3, 0.3])
+        u_acc = frozenset([0.2, 0.5, 1.0])
+        u_dst = frozenset([0.0])
 
     else:
-        u_acc = frozenset([0.0, 0.5, 1.0, 1.5])
+        u_acc = frozenset([0.0, 0.5])
         u_dst = frozenset([0.0])
 
     vg = VehicleGeometry(
@@ -327,6 +394,8 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
         dst_scale=False,
         n_factor=1.0,
         vg=vg,
+        acc_max=vp.acc_limits[1],
+        v_switch=v_switch
     )
 
     return params

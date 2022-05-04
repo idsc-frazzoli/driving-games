@@ -11,20 +11,24 @@ from dg_commons import Timestamp
 from .structures import TrajectoryGenParams
 from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands, VehicleGeometry
 
+from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks
+
 __all__ = ["BicycleDynamics"]
 
-from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks
-class paramz:
-    a = 0.88392
-    b = 1.50876
 
 class BicycleDynamics:
     v_max: float
     v_min: float
     """ Maximum and Minimum velocities [m/s] """
 
+    v_switch: float
+    """ Switching velocity [m/s]"""
+
     st_max: float
     """ Maximum steering angle [rad] """
+
+    acc_max: float
+    """ Maximum absolute value of acceleration [m/s²]"""
 
     vg: VehicleGeometry
     """ The vehicle's geometry parameters"""
@@ -38,10 +42,13 @@ class BicycleDynamics:
     def __init__(self, params: TrajectoryGenParams):
         self.v_max = params.v_max
         self.v_min = params.v_min
+        self.v_switch = params.v_switch
         self.st_max = params.st_max
+        self.acc_max = params.acc_max
         self.vg = params.vg
         self.u_acc = params.u_acc
         self.u_dst = params.u_dst
+
         if not self.u_acc:
             raise ValueError("No feasible acceleration")
         if not self.u_dst:
@@ -62,12 +69,56 @@ class BicycleDynamics:
             return lo
         return hi
 
+    def max_acc_friction_circle(self, x: VehicleState, u: VehicleCommands) -> VehicleCommands:
+        """
+        Return clipped vehicle commands that respect friction circle (Kamm's Circle).
+        a_long² <=  a_max² - (v*theta_dot)²
+
+        :param x: current vehicle state
+        :param u: inputs to apply
+        :return: inputs with clipped (if necessary) acceleration
+
+        """
+
+        theta_dot = x.vx * math.tan(x.delta) / self.vg.length
+        upper_bound_sq = self.acc_max ** 2 - (theta_dot * x.vx) ** 2
+
+        if upper_bound_sq < 0.0:
+            print("Velocity steering are too high for the bicycle model!")
+            return None
+        else:
+            ub = math.sqrt(upper_bound_sq)
+            if abs(u.acc) > ub:
+                sign = np.sign(u.acc)
+                u.acc = ub * sign
+
+        return u
+
     def get_feasible_acc(self, x: VehicleState, dt: D, u0: VehicleCommands) -> Set[float]:
         """Get feasible accelerations for current state with mean u0"""
         dt_f = float(dt)
+        # maximal acceleration given by constraint of staying inside friction circle
+        # max_a_friction_squared = self.acc_max ** 2 - (x.vx * x.vx * math.tan(x.delta) / self.vg.length) ** 2
+
+        # no feasible acceleration from this state if:
+        # if max_a_friction_squared < 0:
+        #     return set()
+
+        # max_a_friction = math.sqrt(max_a_friction_squared)
+
+        # maximal acceleration given by limits on motor speed
+        if x.vx > self.v_switch:
+            max_acc_motor = self.acc_max * self.v_switch / x.vx
+        else:
+            max_acc_motor = self.acc_max
+
         u_acc = set(
             [
-                self.get_clipped(val=_ + u0.acc, lo=(self.v_min - x.vx) / dt_f, hi=(self.v_max - x.vx) / dt_f)
+                self.get_clipped(
+                    val=_ + u0.acc,
+                    lo=(self.v_min - x.vx) / dt_f,#, -max_a_friction),
+                    hi=min((self.v_max - x.vx) / dt_f, self.acc_max, max_acc_motor),# max_a_friction,),
+                )
                 for _ in self.u_acc
             ]
         )
@@ -83,6 +134,20 @@ class BicycleDynamics:
             ]
         )
         return u_dst
+
+    def get_feasible_acc_dst_friction(self, u_acc: Set[float], u_dst: Set[float], x: VehicleState, dt: D)\
+            -> Set[Tuple[float, float]]:
+        """Get feasible accelerations and steering rates respecting friction circle"""
+        dt = float(dt)
+
+        feasible_pairs = set()
+
+        for acc, dst in product(u_acc, u_dst):
+            delta_next = x.delta + dt*dst
+            inside_friction_circle = acc**2 <= self.acc_max**2 - (x.vx*x.vx * math.tan(delta_next)/self.vg.length)**2
+            if inside_friction_circle:
+                feasible_pairs.add((acc, dst))
+        return feasible_pairs
 
     def successors(self, x: VehicleState, dt: D, u0: VehicleCommands = None) -> Mapping[VehicleCommands, VehicleState]:
         """For each state, returns a dictionary U -> Possible Xs"""
@@ -136,23 +201,24 @@ class BicycleDynamics:
         Perform initial value problem integration
         to propagate state using actions for time dt
         """
-        dt_f = float(dt)
-        v0, st0 = x0[1].vx, x0[1].delta
+        # dt_f = float(dt)
+        # v0, st0 = x0[1].vx, x0[1].delta
 
-        def get_digits(val: D) -> int:
-            dig = 0
-            val %= 1
-            while val > 0:
-                val = (val * 10) % 1
-                dig += 1
-            return dig
+        # def get_digits(val: D) -> int:
+        #     dig = 0
+        #     val %= 1
+        #     while val > 0:
+        #         val = (val * 10) % 1
+        #         dig += 1
+        #     return dig
 
         # Steady state dynamics - Change velocity and steering at start
         # x0[1].vx += u.acc * dt_f
         # x0[1].delta += u.ddelta * dt_f
         u0 = VehicleCommands(0.0, 0.0)
         idx = {"x": 0, "y": 1, "th": 2, "v": 3, "st": 4, "ax": 5, "dst": 6}  # "t": 5
-        digits = get_digits(dt_samp)
+
+        # digits = get_digits(dt_samp)
 
         def array_from_state(x_s: VehicleState, u_s: VehicleCommands = u0) -> np.array:
             return np.array([x_s.x, x_s.y, x_s.theta, x_s.vx, x_s.delta, u_s.acc, u_s.ddelta])  # float(x_s.t)
@@ -171,11 +237,14 @@ class BicycleDynamics:
 
         def dynamics(t, y):
             state0, action = states_from_array(y=y)
+            # action_clipped = self.max_acc_friction_circle(x=state0, u=action)
             rates = self.dynamics(x0=state0, u=action, mean=False)
             return array_from_state(x_s=rates)
 
-
-        state_i = array_from_state(x_s=x0[1], u_s=u)
+        u_clipped = self.max_acc_friction_circle(x=x0[1], u=u)
+        if u_clipped is None:
+            return None, None
+        state_i = array_from_state(x_s=x0[1], u_s=u_clipped)
         points = int(round(dt / dt_samp, 0)) + 1
         t_eval = np.linspace(0.0, float(dt), points)
         result = solve_ivp(fun=dynamics, t_span=(0.0, float(dt)), y0=state_i, t_eval=t_eval)
@@ -235,8 +304,6 @@ class BicycleDynamics:
     #     x_rate = VehicleState(x=xdot, y=ydot, theta=thetadot, vx=vdot, delta=deltadot)
     #     return x_rate
 
-
-
     def dynamics(self, x0: VehicleState, u: VehicleCommands, mean: bool) -> VehicleState:
         """Get rate of change of states for given control inputs - new model
         Commonroad model"""
@@ -249,4 +316,3 @@ class BicycleDynamics:
 
         x_rate = VehicleState(x=rate[0], y=rate[1], theta=rate[4], vx=rate[3], delta=rate[2])
         return x_rate
-
