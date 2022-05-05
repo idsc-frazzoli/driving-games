@@ -4,7 +4,7 @@ from typing import Dict
 from zuper_commons.types import ZValueError
 
 from dg_commons import PlayerName, valmap
-from possibilities.prob import A, enumerate_prob_assignments, expected_value, PossibilityDist, ProbDist
+from possibilities.prob import A, enumerate_prob_assignments, expected_value, PossibilityDist, ProbDist, variable_change
 from . import logger
 from .test_sets import check_possibilities
 
@@ -46,7 +46,7 @@ def test_build_multiple1():
     a = {P1: dist}
 
     def f(x):
-        return frozenset(valmap(lambda x: x**2, x).values())
+        return frozenset(valmap(lambda x: x ** 2, x).values())
 
     ps = PossibilityDist()
     dist = ps.build_multiple(a, f)
@@ -63,7 +63,7 @@ def test_build_multiple2():
     a = {PlayerName("1"): dist1, PlayerName("2"): dist2}
 
     def f(x):
-        return frozenset(valmap(lambda x: x**2, x).values())
+        return frozenset(valmap(lambda x: x ** 2, x).values())
 
     b = PossibilityDist()
     dist = b.build_multiple(a, f)
@@ -74,3 +74,33 @@ def test_expected_value():
     dist = ProbDist({1: Fraction(1, 3), 2: Fraction(2, 3)})
     dist_expectation = expected_value(dist)
     assert dist_expectation == Fraction(5, 3)
+
+
+def test_variable_change():
+    dist_test = ProbDist({
+        1: Fraction(1, 2),
+        4: Fraction(1, 4),
+        7: Fraction(1, 4)
+    })
+
+    def map_func_1(a: int) -> int:
+        return 1
+
+    def map_func_2(a: int) -> int:
+        return a % 2
+
+    new_dist_1 = variable_change(dist=dist_test, func=map_func_1)
+    new_dist_2 = variable_change(dist=dist_test, func=map_func_2)
+
+    new_dist_1_true = ProbDist({
+        1: Fraction(1, 1)
+    })
+
+    new_dist_2_true = ProbDist({
+        0: Fraction(1, 4),
+        1: Fraction(3, 4)
+    })
+    assert new_dist_1 == new_dist_1_true
+    assert new_dist_2 == new_dist_2_true
+
+

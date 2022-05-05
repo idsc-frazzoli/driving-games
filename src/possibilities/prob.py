@@ -84,6 +84,25 @@ def expected_value(dist: ProbDist[A]) -> A:
         raise ZTypeError(msg=msg)
 
 
+def variable_change(dist: ProbDist[A], func: Callable[[A], B]) -> ProbDist[B]:
+    """
+    Computes a change of variable Y = func(X)
+    :param dist: Distribution of RV X
+    :param func: Mapping from RV X to RV Y
+    :return: Distribution of RV Y
+    """
+
+    new_dist: Mapping[A, Fraction] = {}
+    for el in dist.support():
+        new_el = func(el)
+        if new_el not in new_dist.keys():
+            new_dist[new_el] = dist.get(el)
+        else:
+            new_dist[new_el] += dist.get(el)
+
+    return ProbDist(new_dist)
+
+
 class PossibilityDist(PossibilityMonad):
     """Extension of the [distribution monad](
     https://ncatlab.org/nlab/show/distribution+monad#finite_distributions)."""
