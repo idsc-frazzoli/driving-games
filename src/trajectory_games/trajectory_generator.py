@@ -97,7 +97,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
             expanded.add(s1)
             successors = self.tree_func(timed_state=s1, lane=ref_lane_goal.ref_lane, gen=current_gen)
             for u, (s2, samp) in successors.items():
-                if ref_lane_goal.goal_progress is not None:
+                if ref_lane_goal.goal_progress is not None and self.params.s_final > 0.0:
                     # use finite distance condition
                     # cond = self.get_goal_reached_index(states=samp, goal=goal) is None and current_gen + 1 < k_maxgen
                     cond = current_gen + 1 < k_maxgen and not self.goal_reached(
@@ -176,20 +176,14 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         # account for maximal switching speed of motor
         acc_vals = self._bicycle_dyn.get_feasible_acc(x=state, dt=self.params.dt, u0=u0)
 
-
         acc_dst_vals = self._bicycle_dyn.get_feasible_acc_dst_friction(x=state,
-                                                                             dt=self.params.dt,
-                                                                             u_acc=acc_vals,
-                                                                             u_dst=dst_vals
-                                                                             )
+                                                                       dt=self.params.dt,
+                                                                       u_acc=acc_vals,
+                                                                       u_dst=dst_vals
+                                                                       )
 
-        # print("Feasible accelerations and steering rate tuples: " + str(acc_dst_vals))
+        print("Feasible accelerations and steering rate tuples: " + str(acc_dst_vals))
         return acc_dst_vals
-
-
-
-
-
 
         # # todo: was: if not_cond_gen: remove all acc<0 and set them to acc=0.0 -> only move forward.
         # # issue: this cond_gen is never reached. We should use the condition that the goal is reached, if any.
@@ -227,8 +221,9 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         def get_progress(acc: float, K: float) -> float:
             """Progress along reference using curvature"""
-            vf = timed_state[1].vx + acc * dt
-
+            # use average velocity to account for cases where vf = 0
+            # vf = (timed_state[1].vx + acc * dt + timed_state[1].vx)/2.0
+            vf = timed_state[1].vx + acc * dt*0.5
             # we don't allow velocities smaller than 0 (no trajectories moving backwards)
             if vf < 0.0:
                 vf = 0.0
@@ -265,7 +260,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         # Sample progress using acceleration
         for accel, dst in acc_dst_vals:
-        # for accel in acc_vals:
+            # for accel in acc_vals:
             distance = get_corrected_distance(acc=accel)
             n_scale = distance if self.params.dst_scale else 1.0
 
