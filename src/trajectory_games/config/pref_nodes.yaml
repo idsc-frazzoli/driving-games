@@ -42,6 +42,12 @@ DeviationLateralSquared:
   DeviationLateralSquared: 1.0
 LongitudinalAccelerationSquared:
   LongitudinalAccelerationSquared: 1.0
+RoadCompliance_CR:
+  RoadCompliance_CR: 1.0
+CollisionBool:
+  CollisionBool: 1.0
+ProgressTowardsGoal:
+  ProgressTowardsGoal: 1.0
 
 ## Combination metric nodes
 # pref_1

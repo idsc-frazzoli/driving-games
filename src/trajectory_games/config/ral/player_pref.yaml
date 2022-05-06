@@ -68,7 +68,7 @@ default_commonroad_ego:
   RoadCompliance_CR: []
   CollisionBool: []
   TR1: ["RoadCompliance_CR", "CollisionBool",]
-  ProgressTowardsGoal: ["RoadCompliance_CR", "CollisionBool", ]
+#  ProgressTowardsGoal: ["RoadCompliance_CR", "CollisionBool", ]
 
 only_driving_area_violation:
   DrivableAreaViolation: []
