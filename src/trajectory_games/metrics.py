@@ -53,7 +53,7 @@ __all__ = [
     "SteeringRateSquared",
     "DeviationLateralSquared",
     "LongitudinalAccelerationSquared",
-    "RoadCompliance_CR"
+    "RoadCompliance_CR",
 ]
 
 

@@ -17,6 +17,8 @@ __all__ = [
     "PlayerEvaluatedMetrics",
     "JointPlayerEvaluatedMetrics",
     "MetricNodeName",
+    "JointPlayerOutcome",
+    "PlayerOutcome",
 ]
 
 MetricNodeName = NewType("MetricNodeName", str)
@@ -112,4 +114,5 @@ JointPlayerEvaluatedMetrics = Mapping[PlayerName, PlayerEvaluatedMetrics]  # Tra
 
 # MetricEvaluationResult = Mapping[PlayerName, EvaluatedMetric]
 PlayerOutcome = Mapping[Metric, EvaluatedMetric]
+JointPlayerOutcome = Mapping[PlayerName, PlayerEvaluatedMetrics]
 # TrajGameOutcome = Mapping[PlayerName, PlayerOutcome]
