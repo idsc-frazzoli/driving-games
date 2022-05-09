@@ -5,12 +5,17 @@ from dataclasses import dataclass
 
 import geometry as geo
 import numpy as np
+from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_sign import TrafficLight, TrafficLightState
 from commonroad.scenario.trajectory import State
 from commonroad_dc import pycrcc
 from commonroad_dc.boundary import boundary
 from commonroad_dc.collision.trajectory_queries import trajectory_queries
+# todo: fix packages s.t. this import is possible
+# from commonroad_challenge.utils import interacting_agents, convert_to_cr_state
 from frozendict import frozendict
+from shapely.geometry import Point, LineString, Polygon
 
 from dg_commons import PlayerName, SE2Transform, seq_differentiate, apply_SE2_to_shapely_geo, Timestamp
 from dg_commons.maps import DgLanePose, DgLanelet
@@ -54,7 +59,121 @@ __all__ = [
     "DeviationLateralSquared",
     "LongitudinalAccelerationSquared",
     "RoadCompliance_CR",
+    "SafeDistance_CR",
+    "MaximumVelocity_CR"
 ]
+
+
+# todo: remove when import above is fixed
+def rectangle_around_ego(ego_state: State, look_forward_dist: float,
+                         look_backward_dist: float, look_lateral_dist: float) -> Polygon:
+    """
+    Compute an approximate rectangle around Ego with the given sizes.
+    :param ego_state: state of Ego agent
+    :param look_forward_dist: Maximum longitudinal distance to look for agents (forward)
+    :param look_backward_dist: Maximum longitudinal distance to look for agents (backward)
+    :param look_lateral_dist: Maximum lateral distance to look for agents
+    :return: Shapely Polygon
+    """
+
+    ego_pos = Point(ego_state.position)
+
+    look_forward_pos_x = ego_pos.x + math.cos(ego_state.orientation) * look_forward_dist
+    look_forward_pos_y = ego_pos.y + math.sin(ego_state.orientation) * look_forward_dist
+
+    look_backward_pos_x = ego_pos.x - math.cos(ego_state.orientation) * look_backward_dist
+    look_backward_pos_y = ego_pos.y - math.sin(ego_state.orientation) * look_backward_dist
+
+    look_forward_point = Point(np.array([look_forward_pos_x, look_forward_pos_y]))
+    look_backward_point = Point(np.array([look_backward_pos_x, look_backward_pos_y]))
+
+    line = LineString([look_backward_point, look_forward_point])
+    area_of_interest = line.buffer(distance=look_lateral_dist)
+    return area_of_interest
+
+
+# todo: remove when import above is fixed
+def filter_obstacles(scenario: Scenario, area_of_interest: Polygon) -> List[DynamicObstacle]:
+    """
+    Returns all dynamic obstacles intersecting the area of interest
+    :param scenario: Commonroad Scenario
+    :param area_of_interest: Shapely Polygon
+    :return: Intersecting dynamic obstacles
+    """
+
+    dyn_obs = scenario.dynamic_obstacles
+    inter_obs = []
+    for obs in dyn_obs:
+        # obs_geom = obs.obstacle_shape.shapely_object
+        obs_geom = obs.occupancy_at_time(time_step=0).shape.shapely_object
+        if obs_geom.intersects(area_of_interest):
+            inter_obs.append(obs)
+
+    return inter_obs
+
+
+# todo: remove when import above is fixed
+def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> State:
+    return State(
+        position=np.array([vehicle_state.x, vehicle_state.y]),
+        orientation=vehicle_state.theta,
+        velocity=vehicle_state.vx,
+        steering_angle=vehicle_state.delta,
+        time_step=time_step,
+    )
+
+
+# todo: remove when import above is fixed
+def interacting_agents(
+        scenario: Scenario,
+        ego_state: State,
+        look_ahead_dist: float,
+        around_dist_r: float,
+        around_dist_f: float,
+        around_dist_lat: float) -> Mapping[str, List[DynamicObstacle]]:
+    """
+    :param scenario: Commonroad Scenario
+    :param ego_state: Commonroad State of Ego Vehicle
+    :param look_ahead_dist: Distance to look ahead for leading vehicles
+    :param around_dist_r: Distance to look behind for surrounding vehicles
+    :param around_dist_f: Distance to look forward for surrounding vehicles
+    :param around_dist_lat: Distance to look laterally for surrounding vehicles
+    :return: Dictionary with the closest leading vehicle and all surrounding vehicles
+    """
+
+    # find dyn. obstacles interacting with ego by being in front of it
+    leading_area_of_interest = rectangle_around_ego(ego_state=ego_state,
+                                                    look_forward_dist=look_ahead_dist,
+                                                    look_backward_dist=0.0,
+                                                    look_lateral_dist=1.5)
+
+    leading_obs = filter_obstacles(scenario, leading_area_of_interest)
+
+    # find dyn. obstacles interacting with ego by being close to it
+    around_area_of_interest = rectangle_around_ego(ego_state=ego_state,
+                                                   look_forward_dist=around_dist_f,
+                                                   look_backward_dist=around_dist_r,
+                                                   look_lateral_dist=around_dist_lat)
+
+    around_obs = filter_obstacles(scenario, around_area_of_interest)
+
+    if len(leading_obs) > 1:
+        # only keep closest leading obstacle
+        dist = 99999.
+        closest_obs = None
+        for obs in leading_obs:
+            obs_dist = np.linalg.norm(obs.initial_state.position - ego_state.position)  # todo: check this is correct
+            if obs_dist < dist:
+                closest_obs = obs
+                dist = obs_dist
+        leading_obs = [closest_obs]
+
+        # make sure to count closest obstacle only once
+        if leading_obs[0] in around_obs:
+            around_obs.remove(leading_obs[0])
+
+    obs_dict: Mapping[str, List[DynamicObstacle]] = {"leading": leading_obs, "around": around_obs}
+    return obs_dict
 
 
 def get_evaluated_metric(players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]) -> JointEvaluatedMetric:
@@ -522,7 +641,9 @@ class DistanceToObstacle_CR(Clearance):
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
 
         clearances = self.calculate_all_clearances(context=context)
-        timestamps = list(clearances.values())[0].timestamps
+        if not clearances == {}:
+            timestamps = list(clearances.values())[0].timestamps
+
 
         # values = list(clearances.values())[0].values
 
@@ -530,11 +651,13 @@ class DistanceToObstacle_CR(Clearance):
             # traj: Trajectory = context.trajectories[player]
             clearance_seq = []
 
+            if clearances == {}:
+                return EvaluatedMetric(name=self.get_name(), value=0)
             for t in timestamps:
                 min_clear = 10000.0
                 for player_pair in clearances.keys():
-                    if player in player_pair and clearances[player_pair].at(t) < min_clear:
-                        min_clear = clearances[player_pair].at(t)
+                    if player in player_pair and clearances[player_pair].at_interp(t) < min_clear:
+                        min_clear = clearances[player_pair].at_interp(t)
                 assert min_clear < 10000.0, "At least one clearance must be smaller than this."
                 clearance_seq.append(cr_dist(min_clear))
 
@@ -890,8 +1013,6 @@ class RoadCompliance_CR(Metric):
     description = "This metrics computes if a trajectory is compliant with the road, i.e. if the vehicle geometry" \
                   "is entirely withing the road. Using CR tools."
 
-
-
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
@@ -940,6 +1061,114 @@ class RoadCompliance_CR(Metric):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
+class MaximumVelocity_CR(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metrics computes the violation of the maximum allowed speed, given as attribute of a " \
+                  "commonroad lanenet."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+
+            vehicle_states = traj.values
+            # states = [[state.x, state.y, state.vx] for state in vehicle_states]
+            network = context.dgscenario.lanelet_network
+            states_pos = [np.array([state.x, state.y]) for state in vehicle_states]
+            # todo: investigate behavior of next line
+            lanelet_ids = network.find_lanelet_by_position(states_pos)
+
+            from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
+            country = context.dgscenario.scenario.scenario_id.country_id
+
+            speed_limits = \
+                [
+                    TrafficSigInterpreter(country=country, lanelet_network=network).speed_limit(frozenset(lanelet_id))
+                    for lanelet_id in lanelet_ids
+                ]
+
+            speed_viol = []
+            for i, state in enumerate(vehicle_states):
+                # in CR challenge speed is given, this is for development
+                max_speed = speed_limits[i]
+                if max_speed is None:
+                    max_speed = 30.0
+                if state.vx > max_speed:
+                    speed_viol.append(1.0)
+                else:
+                    speed_viol.append(0.0)
+
+            ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                values=speed_viol, timestamps=traj.get_sampling_points()))
+
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class SafeDistance_CR(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This Metric determines if a safe distance between an agent and the leading agent is respected"
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+
+            # todo: WHAT IS t_d?
+            def safe_distance(v_l: float, v_e: float, a_e_min: float = -11.25, a_l_min: float = -11.25, t_d=2.0):
+                # l: leading vehicle
+                # e: ego vehicle
+                term_1 = -v_l ** 2 / abs(a_l_min) / 2.0
+                term_2 = v_e ** 2 / 2.0 / abs(a_e_min)
+                term_3 = t_d * v_e
+                return term_1 + term_2 + term_3
+
+            def filter_float(beta: float) -> float:
+                if beta < 0.0:
+                    return 0.0
+                else:
+                    return beta
+
+            # convert VehicleState to commonroad State
+
+            ego_state = convert_to_cr_state(traj.values[0], 0)
+            # determine what is the leading vehicle (if there is one)
+            inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
+                                              ego_state=ego_state,
+                                              look_ahead_dist=50.0,
+                                              around_dist_r=0.0,
+                                              around_dist_f=0.0,
+                                              around_dist_lat=0.0)
+
+            leading_obs = inter_agents["leading"]
+            if len(leading_obs) > 0:
+                l_name = PlayerName(str(leading_obs[0].obstacle_id))
+                l_traj: Trajectory = context.trajectories[l_name]
+
+                dist_viol = [
+                    filter_float(safe_distance(v_l=state_l.vx, v_e=state_e.vx)
+                    - np.linalg.norm(np.array([state_l.x, state_l.y]) - np.array([state_e.x, state_e.y])))
+                    for state_l, state_e in zip(l_traj.values, traj.values)
+                ]
+
+                # actual_dist = [
+                #     np.norm(np.array([state_l.x, state_l.y]), np.array([state_e.x, state_e.y])) for state_l, state_e in
+                #     zip(l_traj.values, traj.values)
+                # ]
+                #
+                # dist_viol = [actual_d < safe_d for actual_d, safe_d in zip(actual_dist, safe_dist)]
+
+                ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                    values=dist_viol, timestamps=traj.get_sampling_points()))
+            else:
+                ret = EvaluatedMetric(name=self.get_name(), value=0.0)
+
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
 # fixme probably all these metrics is better to have them as Type[Metric]?
 def get_personal_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {
@@ -981,7 +1210,9 @@ def get_metrics_set() -> Set[Metric]:
         RoadCompliance_CR(),
         DistanceToObstacle_CR(),
         CollisionBool(),
-        ProgressAlongReference()
+        ProgressAlongReference(),
+        MaximumVelocity_CR(),
+        SafeDistance_CR()
     }
     return metrics
 
