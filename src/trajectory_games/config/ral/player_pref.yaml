@@ -66,8 +66,9 @@ dev_commonroad_ego:
 
 default_commonroad_ego:
   RoadCompliance_CR: []
-  CollisionBool: []
-  TR1: ["RoadCompliance_CR", "CollisionBool",]
+  SafeDistance_CR: []
+  ProgressAlongReference: ["SafeDistance_CR", "RoadCompliance_CR"]
+  TR1: ["ProgressAlongReference"]
 #  ProgressTowardsGoal: ["RoadCompliance_CR", "CollisionBool", ]
 
 only_driving_area_violation:

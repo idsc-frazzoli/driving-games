@@ -48,7 +48,10 @@ CollisionBool:
   CollisionBool: 1.0
 ProgressTowardsGoal:
   ProgressTowardsGoal: 1.0
-
+SafeDistance_CR:
+  SafeDistance_CR: 1.0
+MaximumVelocity_CR:
+  MaximumVelocity_CR: 10
 ## Combination metric nodes
 # pref_1
 weights_1:
