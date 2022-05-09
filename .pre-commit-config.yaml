@@ -7,6 +7,13 @@ repos:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-yaml
+-   repo: https://github.com/mwouts/jupytext
+    rev: v1.13.7
+    hooks:
+    - id: jupytext
+      args: [--sync, --pipe, black]
+      additional_dependencies:
+        - black==22.3.0 # Matches hook version
 -   repo: https://github.com/psf/black
     rev: 22.3.0
     hooks:
