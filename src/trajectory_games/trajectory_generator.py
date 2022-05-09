@@ -268,6 +268,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
             # for dst in dst_vals:
             if distance > 0.0:
                 # Calculate target pose of rear axle
+                #todo: this makes no sense. Explanation?
                 nf = self.params.n_factor * n_i + dst * n_scale
                 offset_t = np.array([-l, nf])
                 p_t, th_t = self._get_target(lane=lane, progress=along_i + distance, offset_target=offset_t)

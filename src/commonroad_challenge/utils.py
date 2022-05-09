@@ -15,15 +15,15 @@ from commonroad_route_planner.route_planner import RoutePlanner
 from commonroad_route_planner.utility.visualization import visualize_route
 from shapely.geometry import Point, LineString, Polygon
 from sumocr.interface.ego_vehicle import EgoVehicle
+
+from dg_commons import PlayerName, SE2Transform
+from dg_commons.maps import DgLanelet, LaneCtrPoint
+from dg_commons.planning import RefLaneGoal
 from dg_commons.sim.models.model_structures import CAR
-from dg_commons import PlayerName, Timestamp
-from dg_commons.maps import DgLanelet
-from dg_commons.planning import RefLaneGoal, Trajectory
-from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
+from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
-from trajectory_games import TrajectoryGenerator, BicycleDynamics
 from trajectory_games.structures import TrajectoryGenParams
 
 goal_frac = 0.8
@@ -63,26 +63,6 @@ def rectangle_around_ego(ego_state: State, look_forward_dist: float,
     return area_of_interest
 
 
-# def leading_area_of_interest(ego_state: State, look_forward_dist: float = 40.0,
-#                             lateral_search_distance: float = 1.0) -> Polygon:
-#     """
-#     Find area of interest to check for existence of leasing vehicles.
-#     :param ego_state: state of Ego agent
-#     :param look_forward_dist: Maximum longitudinal distance to look for agents
-#     :param lateral_search_distance: Maximum lateral distance to look for agents
-#     :return: List of agents as dynamic obstacles
-#     """
-#     # compute area to look for leading dynamic obstacles
-#     ego_pos = Point(ego_state.position)
-#     look_forward_pos_x = ego_pos.x + math.cos(ego_state.orientation)*look_forward_dist
-#     look_forward_pos_y = ego_pos.y + math.sin(ego_state.orientation)*look_forward_dist
-#     look_forward_point = Point(np.array([look_forward_pos_x, look_forward_pos_y]))
-#
-#     line = LineString([ego_pos, look_forward_point])
-#     area_of_interest = line.buffer(distance=lateral_search_distance)
-#     return area_of_interest
-
-
 def filter_obstacles(scenario: Scenario, area_of_interest: Polygon) -> List[DynamicObstacle]:
     """
     Returns all dynamic obstacles intersecting the area of interest
@@ -102,14 +82,14 @@ def filter_obstacles(scenario: Scenario, area_of_interest: Polygon) -> List[Dyna
     return inter_obs
 
 
-def interacting_agents(scenario: Scenario,
-                       ego_state: State,
-                       look_ahead_dist: float,
-                       around_dist_r: float,
-                       around_dist_f: float,
-                       around_dist_lat: float) -> Mapping[str, List[DynamicObstacle]]:
+def interacting_agents(
+        scenario: Scenario,
+        ego_state: State,
+        look_ahead_dist: float,
+        around_dist_r: float,
+        around_dist_f: float,
+        around_dist_lat: float) -> Mapping[str, List[DynamicObstacle]]:
     """
-
     :param scenario: Commonroad Scenario
     :param ego_state: Commonroad State of Ego Vehicle
     :param look_ahead_dist: Distance to look ahead for leading vehicles
@@ -145,42 +125,16 @@ def interacting_agents(scenario: Scenario,
                 closest_obs = obs
                 dist = obs_dist
         leading_obs = [closest_obs]
-        # remove closest leading obstacles from surrounding obstacles
-        if closest_obs in around_obs:
-            around_obs.remove(closest_obs)
+
+        # make sure to count closest obstacle only once
+        if leading_obs[0] in around_obs:
+            around_obs.remove(leading_obs[0])
 
     obs_dict: Mapping[str, List[DynamicObstacle]] = {"leading": leading_obs, "around": around_obs}
     return obs_dict
 
 
-# # todo 1: probably wrong to use initial position of dynamic obstacles (?) Maybe correct. Sumo updates them (?)
-# # todo: implement part with longitudinal threshold
-# def interacting_lateral(ego_state: State, threshold_lateral: float = 10.0, threshold_lateral: float = 10) -> Polygon:
-#     """
-#     Finds agents (dynamic obstacles) that are close enough to interact with Ego,
-#      by searching in a neighborhood (rectangle) of the ego agent.
-#     :param scenario: Commonroad scenario
-#     :param ego_state: State of ego
-#     :param threshold_lateral: lateral distance to look for agents
-#     :param threshold_longitudinal: longitudinal distance to look for agents
-#     :return: List of interacting agents, as dynamic obstacles
-#     """
-#     interacting_dynamic_obstacles = []
-#     # look for dynamic obstacles in radial direction
-#     for dyn_obs in scenario.dynamic_obstacles:
-#         dpos = ego_state.position - dyn_obs.initial_state.position
-#         if np.linalg.norm(dpos) < threshold_radial:
-#             interacting_dynamic_obstacles.append(dyn_obs.obstacle_id)
-#     # increasing search radius until at least one interacting agent is found
-#     # todo: replace this by game where Ego just choses its optimal solution ? (not joint?)
-#     if not interacting_dynamic_obstacles:
-#         interacting_dynamic_obstacles = interacting_lateral(scenario, ego_state, threshold_radial * 1.2)
-#
-#     # look for dynamic obstacles in longitudinal direction
-#
-#     return interacting_dynamic_obstacles
-
-
+# caution needed: since in simulation no delta is stored for vehicles, it is set to 0
 def convert_from_cr_state(state: State) -> VehicleState:
     return VehicleState(
         x=state.position[0],
@@ -188,7 +142,7 @@ def convert_from_cr_state(state: State) -> VehicleState:
         theta=state.orientation,
         vx=state.velocity,
         # delta=state.steering_angle  # just setting delta to 0, the cr State does not have 0 as data
-        delta=0  # todo: fix this issue
+        delta=0
     )
 
 
@@ -202,25 +156,26 @@ def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> Stat
     )
 
 
-# todo 3: does this really get the correct state? i.e. the "initial one" according to current timestep? related to todo 1
-def get_initial_states(ego_vehicle: EgoVehicle, scenario: Scenario, dyn_obs_list: List[DynamicObstacle]) \
-        -> Mapping[PlayerName, VehicleState]:
-    initial_states: Mapping[PlayerName, VehicleState] = {}
-    dyn_obstacles = scenario.dynamic_obstacles
-    initial_states[PlayerName("Ego")] = convert_from_cr_state(ego_vehicle.current_state)
+def get_initial_states(
+        ego_vehicle: EgoVehicle,
+        dyn_obs_list: List[DynamicObstacle]) -> Mapping[PlayerName, VehicleState]:
+    initial_states: Mapping[PlayerName, VehicleState] = {
+        PlayerName("Ego"): convert_from_cr_state(ego_vehicle.current_state)
+    }
+
     for dyn_obs in dyn_obs_list:
         initial_states[PlayerName(str(dyn_obs.obstacle_id))] = convert_from_cr_state(dyn_obs.initial_state)
+
     return initial_states
 
 
-# basic version of reference generation. Not robust.
-def generate_short_ref(state: State, network: LaneletNetwork):
+def generate_refs_by_merging_successors(state: State, network: LaneletNetwork):
     p = np.array((state.position[0], state.position[1]))
     return dglane_from_position(p=p, network=network)
 
 
 def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, plot_route: bool = False):
-    route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.NETWORKX_REVERSED)
+    route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.PRIORITY_QUEUE)
     # plan routes, save multiple routes as list in candidate holder
     candidate_holder = route_planner.plan_routes()
 
@@ -232,115 +187,80 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
     # option 3: retrieve the best route by orientation metric
     # route = candidate_holder.retrieve_best_route_by_orientation()
 
-    # retrieve reference path from route
-    ref_path = route.reference_path
     matplotlib.use("TkAgg")
     if plot_route:
         visualize_route(route, draw_route_lanelets=True, draw_reference_path=True, size_x=6)
-    # return ref_path
-    route_ids = route.list_ids_lanelets
-    assert len(route_ids) > 0, "list of reference lanes for Ego is empty!"
-    ref_lanelet = scenario.lanelet_network.find_lanelet_by_id(route_ids[0])
-    if len(route_ids) > 1:
-        for lanelet_id in route_ids[1:]:
-            new_lanelet = scenario.lanelet_network.find_lanelet_by_id(lanelet_id)
-            ref_lanelet = Lanelet.merge_lanelets(ref_lanelet, new_lanelet)
 
-    return DgLanelet.from_commonroad_lanelet(ref_lanelet)
+    def get_radius_from_lanelet(pos: np.ndarray) -> float:
+        lanelet_id = scenario.lanelet_network.find_lanelet_by_position([pos])
+        lanelet = scenario.lanelet_network.find_lanelet_by_id(lanelet_id[0][0])
+        center_vertices = lanelet.center_vertices
+        dist = 1000.0
+        dist_idx = -100
+        for i, vert in enumerate(center_vertices):
+            ndist = np.linalg.norm(vert - pos)
+            if ndist < dist:
+                dist_idx = i
+        r = np.linalg.norm(lanelet.left_vertices[dist_idx] - lanelet.right_vertices[dist_idx]) / 2.0
+        return r
 
 
-def generate_basic_refs(ego_vehicle: EgoVehicle, scenario: Scenario, planning_problem: PlanningProblem,
-                        interacting_agents: List[DynamicObstacle]) \
-        -> Mapping[PlayerName, RefLaneGoal]:
+    n_ctrl_points = 50
+    # remove first point and last 3 points in order to avoid going out of scenario boundaries
+    idx = np.round(np.linspace(1, len(route.reference_path) - 3, n_ctrl_points)).astype(int)
+
+    ps = route.reference_path[idx]
+    theta = route.path_orientation[idx]
+    rs = [get_radius_from_lanelet(p) for p in ps]
+
+    qs = [SE2Transform(p=p, theta=theta) for p, theta in zip(ps, theta)]
+
+    ctr_points = [LaneCtrPoint(q=q, r=r) for q, r in zip(qs, rs)]
+
+    return DgLanelet(control_points=ctr_points)
+
+
+    # has a bug for certain routes, where routeplanner returns adjacent lanes (and not only successors)
+    # # retrieve reference path from route
+    # route_ids = route.list_ids_lanelets
+    # assert len(route_ids) > 0, "list of reference lanes for Ego is empty!"
+    # ref_lanelet = scenario.lanelet_network.find_lanelet_by_id(route_ids[0])
+    # if len(route_ids) > 1:
+    #     for lanelet_id in route_ids[1:]:
+    #         new_lanelet = scenario.lanelet_network.find_lanelet_by_id(lanelet_id)
+    #         ref_lanelet = Lanelet.merge_lanelets(ref_lanelet, new_lanelet)
+    #
+    # return DgLanelet.from_commonroad_lanelet(ref_lanelet)
+
+
+def generate_ref_lanes(
+        scenario: Scenario,
+        planning_problem: PlanningProblem,
+        inter_agents: List[DynamicObstacle]) -> Mapping[PlayerName, RefLaneGoal]:
     ref_lanes: Mapping[PlayerName, RefLaneGoal] = {}
-    ego_init_state = ego_vehicle.current_state  # todo 4: when is current state different from init state? (related to 1&3)
+
     network = scenario.lanelet_network
-    # ref_lanes[PlayerName("Ego")] = RefLaneGoal(generate_short_ref(ego_init_state, network), 1000.0)
+
     ego_ref_dglanelet = generate_route_ego(scenario, planning_problem)
-    # todo: need to adapt metrics to use this
-    ref_lanes[PlayerName("Ego")] = RefLaneGoal(ego_ref_dglanelet, 1000.0)
+
+    # todo: need to adapt metrics to use this correctly
     ref_lanes[PlayerName("Ego")] = RefLaneGoal(ego_ref_dglanelet, ego_ref_dglanelet.get_lane_length() * goal_frac)
 
-    for dyn_obs in interacting_agents:
-        ref_lane = generate_short_ref(dyn_obs.initial_state, network)
-        # todo: need to adapt metrics to use this
-        # ref_lanes[PlayerName(str(agent_id))] = RefLaneGoal(ref_lane, 1000.0)
-        ref_lanes[PlayerName(str(dyn_obs.obstacle_id))] = RefLaneGoal(ref_lane, ref_lane.get_lane_length() * goal_frac)
+    for dyn_obs in inter_agents:
+        ref_lane = generate_refs_by_merging_successors(dyn_obs.initial_state, network)
+        ref_lanes[PlayerName(str(dyn_obs.obstacle_id))] = RefLaneGoal(ref_lane, ref_lane.get_lane_length())
     return ref_lanes
 
 
-def get_default_pref_structures(interacting_agents: List[DynamicObstacle]):
+def get_default_pref_structures(inter_agents: List[DynamicObstacle]):
     pref_structures: Mapping[PlayerName, str] = {}
     default_str = "default_commonroad"
-    # pref_structures[PlayerName("Ego")] = "default_commonroad_ego"
-    pref_structures[PlayerName("Ego")] = "default_commonroad"
-    for dyn_obs in interacting_agents:
+
+    pref_structures[PlayerName("Ego")] = "default_commonroad_ego"
+
+    for dyn_obs in inter_agents:
         pref_structures[PlayerName(str(dyn_obs.obstacle_id))] = default_str
     return pref_structures
-
-#todo: why does this yield infeasible trajectories when delta of initial state is different from 0?
-# -> because the friction circle is violated!
-def emergency_braking_trajectory(state: VehicleState,
-                                 max_long_acc: float,
-                                 params: TrajectoryGenParams,
-                                 t_final: Timestamp) -> Trajectory:
-
-    bicycle_dyn = BicycleDynamics(params=params)
-    dt = float(params.dt)
-
-    tol = 1e-5 #floating point errors
-
-    timestamps = np.arange(start=0.0, stop=t_final+dt, step=dt)
-    values = [state]
-    next_state = state
-    for _ in range(len(timestamps)-1):
-        dec_to_0 = (0.0 - next_state.vx) / dt
-        dec_max = min(max_long_acc, abs(dec_to_0))
-
-        if dec_max<tol:
-            dec_max=0.0
-        # apply max available braking and continue in same direction, keeping steering constant
-        u_emergency = VehicleCommands(acc=-dec_max, ddelta=0.0)
-        state_1 = bicycle_dyn.successor_ivp(x0=(0, next_state), u=u_emergency, dt=D(dt), dt_samp=params.dt_samp)
-        next_state = state_1[0][1]
-        # if next_state.vx == -0.0:
-        #     next_state.vx = 0.0
-        # print(state_1[0][1])
-        # print(state_0)
-        values.append(next_state)
-
-    return Trajectory(timestamps=timestamps, values=values)
-
-# todo: why is the value of theta exploding?
-def braking_trajectory(state: VehicleState,
-                       long_dec: float,
-                       max_long_acc: float,
-                       params: TrajectoryGenParams,
-                       t_final: Timestamp) -> Trajectory:
-
-    bicycle_dyn = BicycleDynamics(params=params)
-    dt = float(params.dt)
-
-    timestamps = np.arange(start=0.0, stop=t_final+dt, step=dt)
-    values = [state]
-    next_state = state
-    for _ in range(len(timestamps)-1):
-
-        dec_max = min(max_long_acc, abs(long_dec))
-
-        # apply max available braking and continue in same direction, keeping steering constant
-        u_emergency = VehicleCommands(acc=1.0, ddelta=0.0)
-        state_1 = bicycle_dyn.successor_ivp(x0=(0, next_state), u=u_emergency, dt=D(dt), dt_samp=params.dt_samp)
-        next_state = state_1[0][1]
-        # if next_state.vx == -0.0:
-        #     next_state.vx = 0.0
-        # print(state_1[0][1])
-        # print(state_0)
-        values.append(next_state)
-
-    return Trajectory(timestamps=timestamps, values=values)
-
-
 
 
 def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenParams:
@@ -355,11 +275,11 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
     v_switch = cr_vehicle_params.longitudinal.v_switch
 
     if is_ego:
-        u_acc = frozenset([0.2, 0.5, 1.0])
+        u_acc = frozenset([-3.0])
         u_dst = frozenset([0.0])
 
     else:
-        u_acc = frozenset([0.0, 0.5])
+        u_acc = frozenset([-1.0])
         u_dst = frozenset([0.0])
 
     vg = VehicleGeometry(
@@ -367,10 +287,8 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
         m=1500.0,
         Iz=1300,
         w_half=cr_vehicle_params.w / 2.0,
-        # lf=cr_vehicle_params.l / 2.0,
         lf=cr_vehicle_params.a,
         lr=cr_vehicle_params.b,
-        # lr=cr_vehicle_params.l / 2.0,
         c_drag=0.3756,
         a_drag=2,
         e=0.5,
@@ -379,18 +297,16 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
 
     params = TrajectoryGenParams(
         solve=False,
-        s_final=goal_frac,  # todo: adapt metrics to use this
-        # s_final=-1,
-        max_gen=100,
-        dt=D("0.5"),
-        # keep at max 1 sec, increase k_maxgen in trajectory_generator for having more generations
+        s_final=-1,  # todo: adapt metrics to use this
+        max_gen=5,
+        dt=D("1.0"),
         u_acc=u_acc,
         u_dst=u_dst,
         v_max=vp.vx_limits[1],
         v_min=vp.vx_limits[0],
         st_max=vp.delta_max,
         dst_max=vp.ddelta_max,
-        dt_samp=D("0.2"),
+        dt_samp=D("0.1"),
         dst_scale=False,
         n_factor=1.0,
         vg=vg,
@@ -413,29 +329,3 @@ def get_traj_gen_params(interacting_agents: List[DynamicObstacle]):
         # todo 8: assuming all vehicles are Ford Escort.
         traj_gen_params[PlayerName(str(dyn_obs.obstacle_id))] = traj_gen_params_from_cr(ego_params, is_ego=False)
     return traj_gen_params
-
-########################IMPLEMENT LATER##############################
-# def successor_lanelets(scenario: Scenario, position: np.ndarray):
-#     lanelet_network = scenario.lanelet_network
-#     current_lanelet_id = lanelet_network.find_lanelet_by_position([position])
-#     current_lanelet = lanelet_network.find_lanelet_by_id(current_lanelet_id)
-#     lanelets_succ, _ = current_lanelet.all_lanelets_by_merging_successors_from_lanelet(current_lanelet, lanelet_network)
-#     return list(lanelets_succ)[0] # todo: check format
-#
-# def generate_refs(scenario: Scenario, interacting_lateral: List[int]) -> Mapping[PlayerName, RefLaneGoal]:
-#     other_ref_lanes: Mapping[PlayerName, RefLaneGoal] = {}
-#     dyn_obstacles = scenario.dynamic_obstacles
-#     for agent_id in interacting_lateral:
-#         for dyn_obs in dyn_obstacles:
-#             if dyn_obs.obstacle_id == agent_id:
-#                 ref_lane = successor_lanelets(scenario, dyn_obs.initial_state.position)
-#                 ref_dg_lane = DgLanelet(ref_lane)
-#                 other_ref_lanes[agent_id] = RefLaneGoal(ref_dg_lane, 1.0)
-#     return other_ref_lanes
-#
-# def get_ref_lanes(scenario: Scenario, interacting_lateral: List[int]) -> Mapping[PlayerName, RefLaneGoal]:
-#     ref_lanes: Mapping[PlayerName, RefLaneGoal] = {}
-#     other_ref_lanes = generate_route_ego(scenario, interacting_lateral)
-#     other_ref_lanes = generate_refs(scenario, interacting_lateral)
-#     return ref_lanes
-########################IMPLEMENT LATER##############################

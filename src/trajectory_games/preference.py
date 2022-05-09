@@ -197,8 +197,8 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
             start = -(n_nodes - 1) / 2
             i = 0
             for node in nodes:
-                self.graph.nodes[node]["x"] = (start + i) * scale * 2.0
-                self.graph.nodes[node]["y"] = -deg * scale * 0.4
+                self.graph.nodes[node]["x"] = (start + i) * scale * 1.0
+                self.graph.nodes[node]["y"] = -deg * scale * 1.0
                 i = i + 1
         self.nodes_level = level_nodes
 

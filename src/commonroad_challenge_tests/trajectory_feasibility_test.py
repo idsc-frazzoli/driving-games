@@ -18,15 +18,12 @@ from dg_commons_dev.utils import get_project_root_dir
 from trajectory_games import TrajectoryGenerator, TrajectoryGenerationVisualization, TrajectoryGenParams
 from commonroad.common.solution import CommonRoadSolutionReader
 from decimal import Decimal as D
-from commonroad_challenge.utils import emergency_braking_trajectory, braking_trajectory
 
 
 def check_feasibility(traj: Trajectory) -> bool:
     dt = traj.timestamps[1] - traj.timestamps[0]
     vehicle_type = VehicleType.FORD_ESCORT
     vehicle_dynamics = VehicleDynamics.KS(vehicle_type)
-
-    vehicle_params = vehicle_parameters[vehicle_type]
 
     # convert trajectory to commonroad trajectory
     cr_traj_states = []
@@ -35,7 +32,6 @@ def check_feasibility(traj: Trajectory) -> bool:
         current_state = convert_to_cr_state(state)
         # current_state.position[0] = current_state.position[0] - math.cos(current_state.orientation)*vehicle_params.l/2.0
         # current_state.position[1] = current_state.position[1] - math.sin(current_state.orientation)*vehicle_params.l/2.0
-        beta = math.atan2((vehicle_params.l / 2) * math.tan(current_state.steering_angle), vehicle_params.l)
         # current_state.velocity = current_state.velocity / math.cos(beta)**2
         current_state.time_step = i
         cr_traj_states.append(current_state)
@@ -49,7 +45,9 @@ def check_feasibility(traj: Trajectory) -> bool:
 
 def get_traj_from_solution(filename: str):
     solution = CommonRoadSolutionReader.open(filename)
-    a = 10
+    sol = solution.planning_problem_solutions[0]
+    traj = sol.trajectory
+    return traj
 
 
 def generate_trajectories(show_plot=False):
@@ -108,10 +106,16 @@ def generate_trajectories(show_plot=False):
 
 
 if __name__ == "__main__":
-    # filename = "/media/leon/Extreme SSD1/MT/outputs_TEST/solution/solution_DEU_Aachen-3_1_I-1.xml"
-    # get_traj_from_solution(filename)
-    #
-    # exit()
+    filename = "/media/leon/Extreme SSD1/MT/outputs_TEST/solution/solution_DEU_Aachen-3_1_I-1.xml"
+    traj = get_traj_from_solution(filename)
+    vehicle_type = VehicleType.FORD_ESCORT
+    vehicle_dynamics = VehicleDynamics.KS(vehicle_type)
+
+    vehicle_params = vehicle_parameters[vehicle_type]
+    dt = 0.1
+    feasible, reconstructed_inputs = feasibility_checker.trajectory_feasibility(traj, vehicle_dynamics, dt)
+    print(feasible)
+    exit()
     trajectories = generate_trajectories()
     count = 0
     count_false = 0
