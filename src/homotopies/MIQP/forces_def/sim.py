@@ -1,8 +1,8 @@
 import numpy as np
-from homotopies.MILP.forces_def.sim_utils import *
-from homotopies.MILP.forces_def.inequalities import get_ineq
-from homotopies.MILP.forces_def.parameters import params
-from homotopies.MILP.forces_def.forces_utils import ForcesException
+from homotopies.MIQP.forces_def.sim_utils import *
+from homotopies.MIQP.forces_def.inequalities import get_ineq
+from homotopies.MIQP.forces_def.parameters import params
+from homotopies.MIQP.forces_def.forces_utils import ForcesException
 import importlib
 
 

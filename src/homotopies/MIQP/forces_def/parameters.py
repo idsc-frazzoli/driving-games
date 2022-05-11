@@ -28,6 +28,7 @@ class CarParams:
                               [dt, 0, 1]])
     s_reward = 1  # reward to the progress along ref-path
     penalty_input = 1  # quadratic penalty on input
+    penalty_velocity = 1  # quadratic penalty on input
     M: int = 1000  # M in big-M formulation
 
 

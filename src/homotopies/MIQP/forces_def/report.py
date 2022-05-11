@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from reprep import Report, MIME_GIF
 from zuper_commons.text import remove_escapes
+from statistics import NormalDist
 
 from dg_commons import PlayerName, DgSampledSequence
-from homotopies.MILP.utils.visualization import visualize_box_2d, visualize_car, visualize_traj
-from homotopies.MILP.forces_def.visualization import *
+from homotopies.MIQP.utils.visualization import visualize_box_2d, visualize_car, visualize_traj
+from homotopies.MIQP.forces_def.visualization import *
 from homotopies import logger
 
 from .parameters import params, x_idx, ub_idx, uc_idx, player_idx
@@ -55,6 +56,14 @@ def generate_report_ds(X_plan, n_controlled):
 def generate_report_solvetime(solvetime):
     """generate report of solvetime"""
     r_time = Report('solvetime')
+    norm = NormalDist.from_samples(solvetime)
+    texts = []
+    texts.append(
+        f"\tmean={norm.mean},\n"
+        f"\tstd={norm.stdev}\n"
+    )
+    text = "\n".join(texts)
+    r_time.text("Performance", remove_escapes(text))
     f = r_time.figure()
     with f.plot("solvetime") as pylab:
         ax = pylab.gca()
@@ -98,17 +107,18 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
     for t_idx in range(sim_step):
         curr_t = t_idx*params.dt
         logger.info(f"plotting t = {curr_t:.2f}")
+        scenario = None
         fig = visualize_map(scenario)
         ax = plt.gca()
         for player in trajs.keys():
             # plot reference path and vehicle pose
             visualize_traj(trajs[player], player, ax, color=colors[player], plot_occupancy=False, is_ref=True)
-            visualize_car(pose=trajs[player].at_or_previous(t_idx*params.dt), ax=ax, color=colors[player], is_ref=True)
+            # visualize_car(pose=trajs[player].at_or_previous(t_idx*params.dt), ax=ax, color=colors[player], is_ref=True)
 
             # plot actual pose and predicted poses in the next N stages
             s_idx = params.n_states*player_idx[player] + x_idx.S - params.n_cinputs
             traj_plan = s2traj(X_plans[s_idx, :, t_idx], trajs[player])
-            visualize_traj(traj_plan, player, ax, color='r', plot_occupancy=False)
+            # visualize_traj(traj_plan, player, ax, color='r', plot_occupancy=False)
             visualize_car(pose=traj_plan.at(traj_plan.get_start()), ax=ax, color=colors[player], is_ref=False)
 
         ax.text(0.14,
@@ -134,11 +144,11 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
                  loop=0)
 
     # clean up
-    for filePath in glob.glob(tmp_folder + "/*.png"):
-        try:
-            os.remove(filePath)
-        except OSError:
-            print("Error while deleting file")
+    # for filePath in glob.glob(tmp_folder + "/*.png"):
+    #     try:
+    #         os.remove(filePath)
+    #     except OSError:
+    #         print("Error while deleting file")
     return r
 
 

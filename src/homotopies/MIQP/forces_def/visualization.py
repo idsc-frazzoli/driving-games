@@ -2,7 +2,7 @@ from commonroad.visualization.mp_renderer import MPRenderer
 import matplotlib.pyplot as plt
 from .parameters import params, x_idx, ub_idx, uc_idx, player_idx
 from dg_commons import PlayerName, DgSampledSequence
-from homotopies.MILP.utils.intersects import pose_from_s
+from homotopies.MIQP.utils.intersects import pose_from_s
 from geometry import SE2value
 
 

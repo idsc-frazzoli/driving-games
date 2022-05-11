@@ -1,6 +1,6 @@
 import numpy as np
 from itertools import combinations
-from homotopies.MILP.utils.intersects import get_box
+from homotopies.MIQP.utils.intersects import get_box
 from .parameters import params, player_idx, x_idx, ub_idx, uc_idx
 
 __all__ = ["get_init_bin",

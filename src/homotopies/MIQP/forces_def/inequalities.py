@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Optional
 from itertools import combinations
 from geometry import SE2value
 from dg_commons import PlayerName, DgSampledSequence
-from homotopies.MILP.utils.intersects import get_box
+from homotopies.MIQP.utils.intersects import get_box
 from .parameters import params, x_idx, ub_idx, player_idx
 from ..homotopy.homotopy import Homotopy
 
