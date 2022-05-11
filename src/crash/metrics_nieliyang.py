@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import Tuple, Mapping, Dict
+from typing import Dict, Mapping, Tuple
 
 import numpy as np
 
 from dg_commons import PlayerName
 from dg_commons.sim import CollisionReport
-from dg_commons.sim.models import ms2kmh, ModelType, PEDESTRIAN, BICYCLE
+from dg_commons.sim.models import BICYCLE, ModelType, ms2kmh, PEDESTRIAN
 
 
 @dataclass(frozen=True, unsafe_hash=True)
@@ -24,7 +24,8 @@ class NieLiYangRiskModel:
     """
     Risk model associated to car-to-pedestrian/cyclist collision
     Source:
-    https://www.researchgate.net/publication/260397511_A_Study_of_Fatality_Risk_and_Head_Dynamic_Response_of_Cyclist_and_Pedestrian_Based_on_Passenger_Car_Accident_Data_Analysis_and_Simulations
+    https://www.researchgate.net/publication
+    /260397511_A_Study_of_Fatality_Risk_and_Head_Dynamic_Response_of_Cyclist_and_Pedestrian_Based_on_Passenger_Car_Accident_Data_Analysis_and_Simulations
     Sets the coefficients for the simplest Pedestrian model ("Zero"):
     - Only takes into account delta_v [kilometers per hour]
     """

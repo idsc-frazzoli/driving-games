@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Tuple, Mapping, Sequence, Union, Optional
+from math import inf
+from typing import Mapping, Optional, Sequence, Tuple, Union
 
 from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
@@ -8,25 +9,25 @@ from shapely.geometry import Polygon
 from dg_commons import PlayerName
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import CollisionReportPlayer
-from driving_games import VehicleTrackDynamicsParams
-from driving_games.structures import VehicleTrackState, VehicleActions, VehicleCosts
-from driving_games.vehicle_observation import VehicleObs
-from games import GamePlayer, Game
+from games import Game, GamePlayer, StageIdx
+from .structures import VehicleActions, VehicleTimeCost, VehicleTrackState
+from .vehicle_dynamics import VehicleTrackDynamicsParams
+from .vehicle_observation import VehicleObs
 
 
-class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleCosts, CollisionReportPlayer, Polygon]):
+class DrivingGame(Game[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]):
     pass
 
 
 class DrivingGamePlayer(
-    GamePlayer[VehicleTrackState, VehicleActions, VehicleObs, VehicleCosts, CollisionReportPlayer, Polygon]
+    GamePlayer[VehicleTrackState, VehicleActions, VehicleObs, VehicleTimeCost, CollisionReportPlayer, Polygon]
 ):
     pass
 
 
 @dataclass
-class DGSimpleParams:
-    scenario: Scenario  # fixme maybe a string to be loaded
+class DgSimpleParams:
+    scenario: Scenario
     """A commonroad scenario"""
     ref_lanes: Mapping[PlayerName, DgLanelet]
     """Reference lanes"""
@@ -36,7 +37,10 @@ class DGSimpleParams:
     """Dynamics the players"""
     col_check_dt: D
     """Discretization step for collision checking. A smart choice related to the solver's one is advisable"""
+    min_safety_distance: float
+    """Minimum safety distance for the joint cost of the players"""
     shared_resources_ds: D
+    """Shared resources discretization resolution"""
     plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None
 
     def __post__init__(self):

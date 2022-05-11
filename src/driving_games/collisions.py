@@ -1,51 +1,174 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from fractions import Fraction
+from typing import Optional
 
-from dg_commons.sim import ImpactLocation
+from zuper_commons.types import ZValueError
 
-__all__ = ["SimpleCollision"]
+from dg_commons import Timestamp
+
+__all__ = [
+    "SimpleCollision",
+    "BooleanCollision",
+    "VehicleSafetyDistCost",
+    "VehicleJointCost",
+    "VehicleJointCostBCollision",
+]
 
 
 @dataclass(frozen=True)
 class SimpleCollision:
-    location: ImpactLocation
+    at: Timestamp
+    """When the collision happened."""
     at_fault: bool
-    energy_transfer: float
+    """Whether the the player was at fault."""
+    rel_impact_direction: float
+    """Relative impact direction in polar coordinates (0 is the front, pi is the back)"""
+    impact_rel_speed: float
+    """Relative speed at impact"""
+
+    # ZZZ: this monoidal structure cna be controversial
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "SimpleCollision":
+        # weighting costs, e.g. according to a probability
+
+        return replace(self, impact_rel_speed=self.impact_rel_speed * weight)
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "SimpleCollision") -> "SimpleCollision":
+        if other is None:
+            return self
+        elif isinstance(other, SimpleCollision):
+            # this monoid is a bit delicate
+            # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant.
+            # Monoid?")
+            return replace(  # monoid?
+                self,
+                at_fault=self.at_fault or other.at_fault,
+                impact_rel_speed=self.impact_rel_speed + other.impact_rel_speed,
+            )
+        else:
+            raise ZValueError("Cannot add a SimpleCollision to a non-SimpleCollision", other=type(other))
+
+    __radd__ = __add__
 
 
-# @dataclass(frozen=True)
-# class Collision:
-#     __slots__ = ["location", "active", "energy_received", "energy_transmitted"]
-#
-#     location: ImpactLocation
-#     """Where the impact was for this vehicle"""
-#     active: bool
-#     """ Whether the car was active in the collision. Defined as: the collision
-#         would have occurred even if all the other cars were stopped. """
-#     energy_received: D
-#     """How much energy was received"""
-#     energy_transmitted: D
-#     """How much energy was transmitted"""
-#
-#     # Monoid sum of Collision
-#     def __add__(self, other: "Collision") -> "Collision":
-#         if other is None:
-#             return self
-#         elif isinstance(other, Collision):
-#             # fixme how to propagate "active" and "location" ?
-#             return replace(
-#                 self,
-#                 energy_received=self.energy_received + other.energy_received,
-#                 energy_transmitted=self.energy_transmitted + other.energy_transmitted,
-#             )
-#         else:
-#             raise NotImplementedError
-#
-#     __radd__ = __add__
-#
-#     # support weight multiplication for expected value
-#     def __mul__(self, weight: Fraction) -> "Collision":
-#         # weighting costs, e.g. according to a probability
-#         w = D(float(weight))
-#         return replace(self, energy_received=self.energy_received * w, energy_transmitted=self.energy_transmitted * w)
-#
-#     __rmul__ = __mul__
+@dataclass(frozen=True)
+class BooleanCollision:
+    at: Timestamp
+    """When the collision happened."""
+    collided: bool
+    """Whether there was a collision or not."""
+
+    # ZZZ: this monoidal structure cna be controversial
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "BooleanCollision":
+        # weighting costs, e.g. according to a probability
+
+        return replace(self, collided=bool(weight) and self.collided)
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "BooleanCollision") -> "BooleanCollision":
+        if other is None:
+            return self
+        elif isinstance(other, BooleanCollision):
+            if self.at < other.at:
+                return self
+            elif self.at > other.at:
+                return other
+            else:
+                # logger.warning(f"Performing sum between SimpleCollision occurred at the same instant.
+                # Monoid?")
+                return replace(  # monoid?
+                    self,
+                    collided=self.collided or other.collided,
+                )
+        else:
+            raise ZValueError("Cannot add a BooleanCollision to a non-BooleanCollision", other=type(other))
+
+    __radd__ = __add__
+
+
+@dataclass(unsafe_hash=True, frozen=True)
+class VehicleSafetyDistCost:
+    """Minimum safety distance costs of the vehicle"""
+
+    violation: float
+    """ Violation of the minimum safety distance """
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "VehicleSafetyDistCost":
+        # weighting costs, e.g. according to a probability
+        return replace(self, violation=self.violation * float(weight))
+
+    __rmul__ = __mul__
+
+    # Cost monoid to support sum
+    def __add__(self, other: "VehicleSafetyDistCost") -> "VehicleSafetyDistCost":
+        if isinstance(other, VehicleSafetyDistCost):
+            return replace(self, violation=self.violation + other.violation)
+        elif other is None:
+            return self
+        else:
+            raise NotImplementedError
+
+    __radd__ = __add__
+
+
+@dataclass(unsafe_hash=True, frozen=True)
+class VehicleJointCost:
+    safety_dist_violation: VehicleSafetyDistCost
+    collision: Optional[SimpleCollision] = None
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "VehicleJointCost":
+        # weighting costs, e.g. according to a probability
+        return replace(
+            self, safety_dist_violation=self.safety_dist_violation * weight, collision=self.collision * weight
+        )
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "VehicleJointCost") -> "VehicleJointCost":
+        if isinstance(other, VehicleJointCost):
+            return replace(
+                self,
+                safety_dist_violation=self.safety_dist_violation + other.safety_dist_violation,
+                collision=self.collision if other.collision is None else self.collision + other.collision,
+            )
+        else:
+            raise ZValueError("Cannot add a VehicleJointCost to a non-VehicleJointCost", other=type(other))
+
+    __radd__ = __add__
+
+
+@dataclass(unsafe_hash=True, frozen=True)
+class VehicleJointCostBCollision:
+    safety_dist_violation: VehicleSafetyDistCost
+    collision: Optional[BooleanCollision] = None
+
+    # support weight multiplication for expected value
+    def __mul__(self, weight: Fraction) -> "VehicleJointCostBCollision":
+        # weighting costs, e.g. according to a probability
+        return replace(
+            self, safety_dist_violation=self.safety_dist_violation * weight, collision=self.collision * weight
+        )
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum
+    def __add__(self, other: "VehicleJointCostBCollision") -> "VehicleJointCostBCollision":
+        if isinstance(other, VehicleJointCostBCollision):
+            return replace(
+                self,
+                safety_dist_violation=self.safety_dist_violation + other.safety_dist_violation,
+                collision=self.collision if other.collision is None else self.collision + other.collision,
+            )
+        else:
+            raise ZValueError("Cannot add a VehicleJointCostBCollision to a non-VehicleJointCost", other=type(other))
+
+    __radd__ = __add__

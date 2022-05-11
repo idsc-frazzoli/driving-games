@@ -274,7 +274,7 @@ def solve_sequential_rationality(
                         if (t1, t2) in key or (t2, t1) in key:
                             game_value[key] = x[key]
 
-        for player_final, final_value in gn.is_final.items():
+        for player_final, final_value in gn.personal_final_reward.items():
             for tc, fv in final_value.items():
                 game_value[player_final, tc] = ps.unit(Combined(fv, None))
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
@@ -345,7 +345,7 @@ def solve_sequential_rationality(
                         for key in x.keys():
                             game_value1[key] = x[key]
 
-            for player_final, final_value in gn.is_final.items():
+            for player_final, final_value in gn.personal_final_reward.items():
                 for tc, fv in final_value.items():
                     game_value1[player_final, tc] = ps.unit(Combined(fv, None))
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))

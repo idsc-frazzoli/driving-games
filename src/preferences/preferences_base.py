@@ -14,6 +14,7 @@ __all__ = [
     "SECOND_PREFERRED",
     "Preference",
     "INDIFFERENT",
+    "P",
 ]
 
 P = TypeVar("P")

@@ -1,11 +1,10 @@
 from abc import abstractmethod
-from typing import Type
 from decimal import Decimal as D
-from zuper_typing import debug_print
+from typing import Type
 
-from possibilities.prob import ProbDist, expected_value
-from preferences import Preference, ComparisonOutcome
-from preferences.preferences_base import P
+from possibilities.prob import expected_value, ProbDist
+from zuper_typing import debug_print
+from .preferences_base import ComparisonOutcome, P, Preference
 
 
 class ProbPreference(Preference[ProbDist[P]]):
@@ -51,7 +50,7 @@ class ProbPrefWorstCase(ProbPreference):
         raise NotImplementedError
         worst_A = ...
         worst_B = ...
-        return self.p0.compare(worst_A, worst_B)
+        return self.param_2p.compare(worst_A, worst_B)
 
 
 class ProbPrefStochasticDominance(ProbPreference):

@@ -3,9 +3,6 @@ from typing import Type
 
 from zuper_typing import debug_print
 
-from dg_commons.sim import CollisionReportPlayer
-from driving_games.preferences_collision import CollisionPreference
-from driving_games.structures import VehicleCosts
 from games import Combined
 from preferences import (
     COMP_OUTCOMES,
@@ -14,40 +11,60 @@ from preferences import (
     Preference,
     SmallerPreferredTol,
 )
+from .collisions import VehicleJointCost, VehicleJointCostBCollision
+from .preferences_collision import CollisionPreference, BooleanCollisionPreference
+from .structures import VehicleTimeCost
 
 __all__ = ["VehiclePreferencesCollTime"]
 
 
-class VehiclePreferencesCollTime(Preference[Combined[CollisionReportPlayer, VehicleCosts]]):
-    def __init__(self, ignore_second=False):
-        self.ignore_second = ignore_second
+class VehiclePreferencesCollTime(Preference[Combined[VehicleJointCost, VehicleTimeCost]]):
+    def __init__(self):
         self.collision = CollisionPreference()
-        self.time = SmallerPreferredTol(D(0))
-        self.lexi = LexicographicPreference((self.collision, self.time))
+        self.scalar_pref = SmallerPreferredTol(D(0))
+        self.lexi = LexicographicPreference((self.collision, self.scalar_pref, self.scalar_pref))
 
-    def get_type(self) -> Type[Combined[CollisionReportPlayer, D]]:
-        return Combined[CollisionReportPlayer, VehicleCosts]
+    def get_type(self) -> Type[Combined[VehicleJointCost, D]]:
+        return Combined[VehicleJointCost, VehicleTimeCost]
 
     def __repr__(self) -> str:
         d = {"P": self.get_type(), "lexi": self.lexi}
-        return "VehiclePreferencesCollTime: " + debug_print(d)
+        return self.__name__ + ": " + debug_print(d)
 
     def compare(
-        self, a: Combined[CollisionReportPlayer, VehicleCosts], b: Combined[CollisionReportPlayer, VehicleCosts]
+        self, a: Combined[VehicleJointCost, VehicleTimeCost], b: Combined[VehicleJointCost, VehicleTimeCost]
     ) -> ComparisonOutcome:
-        # check_isinstance(a, Combined)
-        # check_isinstance(b, Combined)
-        if self.ignore_second:
-            if a.joint is None and b.joint is None:
-                return self.time.compare(a.personal.duration, b.personal.duration)
-            else:
-                return self.collision.compare(a.joint, b.joint)
-        else:
-            ct_a = (a.joint, a.personal.duration)
-            ct_b = (b.joint, b.personal.duration)
+        ct_a = (a.joint.collision, a.joint.safety_dist_violation.violation, a.personal.duration)
+        ct_b = (b.joint.collision, b.joint.safety_dist_violation.violation, b.personal.duration)
 
-            res = self.lexi.compare(ct_a, ct_b)
-            assert res in COMP_OUTCOMES, (res, self.lexi)
+        res = self.lexi.compare(ct_a, ct_b)
+        assert res in COMP_OUTCOMES, (res, self.lexi)
+        # logger.info(ct_a=ct_a, ct_b=ct_b, res=res)
+        return res
 
-            # logger.info(ct_a=ct_a, ct_b=ct_b, res=res)
-            return res
+
+class VehiclePreferencesBCollTime(Preference[Combined[VehicleJointCostBCollision, VehicleTimeCost]]):
+    def __init__(self):
+        self.collision = BooleanCollisionPreference()
+        self.scalar_pref = SmallerPreferredTol(D(0))
+        self.lexi = LexicographicPreference((self.collision, self.scalar_pref, self.scalar_pref))
+
+    def get_type(self) -> Type[Combined[VehicleJointCostBCollision, D]]:
+        return Combined[VehicleJointCostBCollision, VehicleTimeCost]
+
+    def __repr__(self) -> str:
+        d = {"P": self.get_type(), "lexi": self.lexi}
+        return self.__name__ + ": " + debug_print(d)
+
+    def compare(
+        self,
+        a: Combined[VehicleJointCostBCollision, VehicleTimeCost],
+        b: Combined[VehicleJointCostBCollision, VehicleTimeCost],
+    ) -> ComparisonOutcome:
+        ct_a = (a.joint.collision, a.joint.safety_dist_violation.violation, a.personal.duration)
+        ct_b = (b.joint.collision, b.joint.safety_dist_violation.violation, b.personal.duration)
+
+        res = self.lexi.compare(ct_a, ct_b)
+        assert res in COMP_OUTCOMES, (res, self.lexi)
+        # logger.info(ct_a=ct_a, ct_b=ct_b, res=res)
+        return res

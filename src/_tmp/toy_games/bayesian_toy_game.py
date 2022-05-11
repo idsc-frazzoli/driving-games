@@ -4,7 +4,7 @@ from frozendict import frozendict
 
 from _tmp.bayesian_driving_games.structures import BayesianGamePlayer, NEUTRAL, CAUTIOUS, AGGRESSIVE, BayesianGame
 from driving_games import UncertaintyParams
-from games import GameSpec, PlayerName, get_accessible_states
+from games import GameSpec, PlayerName, get_reachable_states
 from _tmp.nash import BiMatGame
 from _tmp.toy_games.bayesian_toy_rewards import (
     BayesianBirdJointReward,
@@ -54,9 +54,9 @@ def get_bayesian_toy_game_spec(
     p2_personal_reward_structure = BayesianBirdPersonalReward(max_stages=max_stages, p_types=p2_types)
 
     # observations
-    g1 = get_accessible_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
+    g1 = get_reachable_states(p1_initial, p1_personal_reward_structure, p1_dynamics, dt)
     p1_possible_states = cast(ASet[BirdState], frozenset(g1.nodes))
-    g2 = get_accessible_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
+    g2 = get_reachable_states(p2_initial, p2_personal_reward_structure, p2_dynamics, dt)
     p2_possible_states = cast(ASet[BirdState], frozenset(g2.nodes))
     p1_observations = BirdDirectObservations(p1_possible_states, {P2: p2_possible_states})
     p2_observations = BirdDirectObservations(p2_possible_states, {P1: p1_possible_states})

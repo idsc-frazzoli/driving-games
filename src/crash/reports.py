@@ -1,7 +1,5 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-from reprep import Report, MIME_PNG, MIME_GIF
-from zuper_commons.text import pretty_msg
 
 from crash import logger
 from crash.collisions_investigation import investigate_collision_report
@@ -10,10 +8,12 @@ from crash.metrics_nieliyang import compute_NieLiYang_risk
 from crash.metrics_structures import CollMetricsReport
 from dg_commons.sim import CollisionReport
 from dg_commons.sim.collision_visualisation import plot_collision
-from dg_commons.sim.models import PEDESTRIAN, CAR, BICYCLE
+from dg_commons.sim.models import BICYCLE, CAR, PEDESTRIAN
 from dg_commons.sim.models.model_structures import FourWheelsTypes, TRUCK
 from dg_commons.sim.simulator import SimContext
 from dg_commons.sim.simulator_animation import create_animation
+from reprep import MIME_GIF, MIME_PNG, Report
+from zuper_commons.text import pretty_msg
 
 
 def compute_damage_metrics(coll_report: CollisionReport, sim_context: SimContext) -> CollMetricsReport:

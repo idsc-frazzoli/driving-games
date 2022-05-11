@@ -1,30 +1,30 @@
 import os
 from copy import deepcopy
 from os.path import join
-from typing import Mapping, Dict, Optional
+from typing import Dict, Mapping, Optional
 
-from reprep import Report
 from yaml import safe_load
 
+from reprep import Report
 from trajectory_games import (
-    TrajectoryGame,
+    CONFIG_DIR,
+    get_leader_follower_game,
+    get_trajectory_game,
+    iterative_best_response,
+    PosetalPreference,
     preprocess_full_game,
     preprocess_player,
-    Solution,
-    iterative_best_response,
-    SolvingContext,
     report_game_visualization,
-    SolvedTrajectoryGame,
+    report_leader_follower_recursive,
+    report_leader_follower_solution,
     report_nash_eq,
     report_preferences,
-    get_trajectory_game,
-    get_leader_follower_game,
-    PosetalPreference,
+    Solution,
     solve_leader_follower,
-    report_leader_follower_solution,
     solve_recursive_game,
-    report_leader_follower_recursive,
-    CONFIG_DIR,
+    SolvedTrajectoryGame,
+    SolvingContext,
+    TrajectoryGame,
     VehicleState,
 )
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext

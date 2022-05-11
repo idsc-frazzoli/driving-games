@@ -1,14 +1,12 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Mapping, Optional, MutableMapping
+from typing import List, Mapping, MutableMapping, Optional
 
-from commonroad.scenario.scenario import Scenario
-
-from dg_commons import PlayerName, SE2Transform, seq_integrate
-from dg_commons import valmap, fd
+from dg_commons import fd, PlayerName, SE2Transform, seq_integrate, valmap
 from dg_commons.maps import DgLanePose
 from dg_commons.planning import JointTrajectories, PlanningGoal, RefLaneGoal
 from dg_commons.seq.sequence import DgSampledSequence
+from dg_commons.sim.scenarios import DgScenario
 
 __all__ = [
     "MetricEvaluationContext",
@@ -24,7 +22,7 @@ __all__ = [
 class EvaluatedMetric:
     name: str
     value: float
-    """Total value of the metric cost.
+    """ Total value of the metric cost.
     It is usually the min/max/avg/integral/cumsum of the pointwise evaluation of the metric"""
     pointwise: Optional[DgSampledSequence] = None
 
@@ -37,7 +35,7 @@ JointEvaluatedMetric = Mapping[PlayerName, EvaluatedMetric]
 
 @dataclass
 class MetricEvaluationContext:
-    scenario: Scenario
+    dgscenario: DgScenario
     trajectories: JointTrajectories
     goals: Mapping[PlayerName, PlanningGoal]
 
@@ -78,6 +76,8 @@ class Metric(ABC):
         """Evaluates the metric for all players given a context."""
 
     def get_evaluated_metric(self, seq: DgSampledSequence[float]) -> EvaluatedMetric:
+        # todo some metrics might not need to integrate,
+        # can save some computations if the sampled sequence is already integrated
         tot_value = seq_integrate(seq).values[-1]
         ret = EvaluatedMetric(
             name=type(self).__name__,

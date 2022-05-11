@@ -1,11 +1,10 @@
 from typing import Optional
 
-from geometry import translation_from_SE2
-
 from dg_commons.planning.trajectory import Trajectory
+from dg_commons.sim import DrawableTrajectoryType
 from dg_commons.sim.agents.lane_follower import LFAgent
 from dg_commons.sim.models.vehicle import VehicleState
-from dg_commons.sim import DrawableTrajectoryType
+from geometry import translation_from_SE2
 
 __all__ = ["B1Agent"]
 

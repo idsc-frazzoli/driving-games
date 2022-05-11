@@ -23,7 +23,7 @@ from _tmp.bayesian_driving_games.structures_solution import (
     BayesianGameGraph,
 )
 from _tmp.bayesian_driving_games.create_joint_game_tree import create_bayesian_game_graph
-from games.solve.solution import fr, get_outcome_preferences_for_players
+from games.solve.solution import fd_r, get_outcome_preferences_for_players
 from possibilities import Poss
 from possibilities.sets import SetPoss
 from zuper_commons.types import ZValueError
@@ -122,7 +122,7 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
         jss=initials,
     )
     controllers0 = {}
-    for player_name, pp in gp.players_pre.items():
+    for player_name, pp in gp.players_pre.items():  # todo remove as it belongs to bayesian games
         for typ in gp.game.players[player_name].types_of_myself:
             policy = game_solution.policies[player_name + "," + typ]
             controllers0[player_name, typ] = AgentFromPolicy(gp.game.ps, policy)
@@ -132,7 +132,7 @@ def solve_bayesian_game(gp: BayesianGamePreprocessed) -> Solutions[X, U, Y, RP, 
         game_value=game_solution.states_to_solution[initial_state].va.game_value,
         # policy=solution_ghost.policies,
     )
-    res = {}
+
     for seed in range(5):
         sim_joint = simulate1(
             gp.game,
@@ -260,7 +260,7 @@ def solve_game_bayesian2(
                         iset = ps.unit(other_states)
                         policy_for_this_state[iset] = s0.va.mixed_actions[key]
 
-        policies2 = frozendict({k: fr(v) for k, v in policies.items()})
+        policies2 = frozendict({k: fd_r(v) for k, v in policies.items()})
 
         solution_new = GameSolution(
             initials=frozenset(jss),
@@ -349,7 +349,7 @@ def _solve_bayesian_game(
     _ = next(iter(sc.game.players))
     type_combinations = list(itertools.product(sc.game.players[_].types_of_myself, sc.game.players[_].types_of_other))
 
-    for pure_actions in gn.outcomes:
+    for pure_actions in gn.transitions:
         # Incremental costs incurred if choosing this action
 
         inc: Dict[PlayerName, RP]
@@ -363,7 +363,7 @@ def _solve_bayesian_game(
             }
         # if we choose these actions, then these are the game nodes
         # we could go in. Note that each player can go in a different joint state.
-        next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.outcomes[pure_actions]
+        next_nodes: Poss[Mapping[PlayerName, JointState]] = gn.transitions[pure_actions]
 
         # These are the solved nodes; for each, we find the solutions (recursive step here)
         # def u(a: M[PlayerName, JointState]) -> M[PlayerName, SolvedGameNode[X, U, U, RP, RJ, SR]]:
@@ -410,7 +410,7 @@ def _solve_bayesian_game(
     if gn.joint_final_rewards:  # final costs:
         # fixme: when n > 2, it might be that only part of the crew ends
         va = solve_final_joint_bayesian(sc, gn)
-    elif set(gn.states) == set(gn.is_final):
+    elif set(gn.states) == set(gn.personal_final_reward):
         # All the actives finish independently
         va = solve_final_personal_both_bayesian(sc, gn)
     else:
@@ -522,7 +522,7 @@ def solve_final_personal_both_bayesian(
     # todo check if this can be done better, I suspect it should go as follows:
     # game_value: M[PlayerName, M[M[PlayerName, PlayerType], UncertainCombined]]
     # for every player I have an outcome for every typecombination of the others
-    for player_name, p in gn.is_final.items():
+    for player_name, p in gn.personal_final_reward.items():
         for tc, personal in p.items():
             game_value[player_name, tc] = sc.game.ps.unit(Combined(personal=personal, joint=None))
     game_value_ = frozendict(game_value)

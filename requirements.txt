@@ -1,25 +1,26 @@
-# libraries
-frozendict>=2.0.6
-#pytz==2021.1
-numpy>=1.21.2
-scipy>=1.7.1
-matplotlib>=3.4.3
-# typing_extensions>=3.7.4.1
-cytoolz>=0.11.0
-shapely>=1.7.0
-PyYAML~=5.4.1
-imageio~=2.9.0
-setuptools>=57.4.0
-cachetools~=4.2.1
-networkx>=2.6.3
-
+# zuper stuff
 PyGeometry-z6>=2.0
 zuper-commons-z6>=6.1.5
 compmake-z6>=6.0.8,<7
 quickapp-z6>=6.0.5,<7
 reprep-z6>=6.0.3,<7
-zuper-typing-z6>=6.1.0
+zuper-typing-z6>=6.1.0,<7
+
+# libraries
+frozendict>=2.3.0
+cytoolz>=0.11.2
+#pytz==2021.1
+numpy>=1.21.2
+scipy>=1.7.1
+matplotlib>=3.4.3
+shapely>=1.8.0
+PyYAML>=5.4.1
+# imageio~=2.9.0 # candidate for removal?
+setuptools>=57.4.0
+cachetools>=5.0.0
+networkx>=2.6.3
 do-mpc>=4.2.0
+
 dg-commons>=0.0.6
 
 commonroad-io==2021.3
@@ -52,3 +53,7 @@ toolz~=0.11.1
 casadi~=3.5.5
 decorator~=5.1.0
 cycler~=0.11.0
+
+commonroad-io==2021.4
+# dg-commons>=0.0.21 fixme temporary to use developing branch
+
