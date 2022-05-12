@@ -1,15 +1,16 @@
 import math
+from dataclasses import dataclass
 from itertools import combinations
 from typing import Tuple, List, Dict, Callable, Set, Mapping
-from dataclasses import dataclass
 
+import commonroad_dc.pycrcc as pycrcc
 import geometry as geo
 import numpy as np
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.traffic_sign import TrafficLight, TrafficLightState
+from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
 from commonroad.scenario.trajectory import State
-from commonroad_dc import pycrcc
 from commonroad_dc.boundary import boundary
 from commonroad_dc.collision.trajectory_queries import trajectory_queries
 # todo: fix packages s.t. this import is possible
@@ -21,6 +22,7 @@ from dg_commons import PlayerName, SE2Transform, seq_differentiate, apply_SE2_to
 from dg_commons.maps import DgLanePose, DgLanelet
 from dg_commons.planning import Trajectory, JointTrajectories, RefLaneGoal
 from dg_commons.seq.sequence import DgSampledSequence
+from dg_commons.sim.models.vehicle import VehicleGeometry, VehicleState
 from dg_commons.time import time_function
 from driving_games.metrics_structures import (
     EvaluatedMetric,
@@ -30,12 +32,7 @@ from driving_games.metrics_structures import (
     PlayerEvaluatedMetrics,
     JointPlayerEvaluatedMetrics,
 )
-from dg_commons.sim.models.vehicle import VehicleGeometry, VehicleState
 from .trajectory_world import TrajectoryWorld
-
-from commonroad_dc.boundary import boundary
-from commonroad_dc.collision.trajectory_queries import trajectory_queries
-import commonroad_dc.pycrcc as pycrcc
 
 __all__ = [
     "get_metrics_set",
@@ -162,7 +159,7 @@ def interacting_agents(
         dist = 99999.
         closest_obs = None
         for obs in leading_obs:
-            obs_dist = np.linalg.norm(obs.initial_state.position - ego_state.position)  # todo: check this is correct
+            obs_dist = np.linalg.norm(obs.initial_state.position - ego_state.position)
             if obs_dist < dist:
                 closest_obs = obs
                 dist = obs_dist
@@ -318,7 +315,7 @@ class ProgressAlongReference(Metric):
             # negative for smaller preferred
             final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
             ret = EvaluatedMetric(
-                name=type(self).__name__,
+                name=self.get_name(),
                 value=final_progress[0]
             )
             self.cache[traj] = ret
@@ -644,11 +641,7 @@ class DistanceToObstacle_CR(Clearance):
         if not clearances == {}:
             timestamps = list(clearances.values())[0].timestamps
 
-
-        # values = list(clearances.values())[0].values
-
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            # traj: Trajectory = context.trajectories[player]
             clearance_seq = []
 
             if clearances == {}:
@@ -663,7 +656,7 @@ class DistanceToObstacle_CR(Clearance):
 
             seq = DgSampledSequence[float](values=clearance_seq, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
-            # self.cache[traj] = ret
+
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
@@ -845,7 +838,6 @@ class CollisionBool(CollisionEnergy):
         crashes = self.crashes_taking_place(context=context)
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            # coll_energies_seq = np.array([0 for _ in range(len(timestamps))])
             collision = 0.0
             for player_pair, crash_idx in crashes.items():
                 if player in player_pair:
@@ -856,7 +848,7 @@ class CollisionBool(CollisionEnergy):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-# todo: refine metric if needed and test
+# todo: write test
 class AngularViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the deviation (in radians) from a circular sector"
@@ -882,43 +874,6 @@ class AngularViolation(Metric):
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
-
-        # CollisionBoolean(),
-        # DrivableAreaViolation(),
-        # GoalReachability(),
-        # TR1()
-
-
-from commonroad_dc.costs.evaluation import CostFunctionEvaluator
-
-
-# class TR1_CR(Metric):
-
-# class TR1_CR(Metric):
-#     cache: Dict[Trajectory, EvaluatedMetric] = {}
-#     description = "This metric describes the deviation (in radians) from a circular sector"
-#
-#     def __init__(self, min_angle: float, max_angle: float):
-#         self.min_angle = min_angle
-#         self.max_angle = max_angle
-#
-#     @time_function
-#     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
-#         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-#             traj: Trajectory = context.trajectories[player]
-#             headings = [heading.theta for heading in traj.values]
-#             for idx, head in enumerate(headings):
-#                 if self.min_angle < head < self.max_angle:
-#                     headings[idx] = 0
-#                 elif head > self.max_angle:
-#                     headings[idx] = head - self.max_angle
-#                 elif head < self.min_angle:
-#                     headings[idx] = - self.max_angle - head
-#             ret = self.get_integrated_metric(seq=DgSampledSequence[float](
-#                 values=headings, timestamps=traj.get_sampling_points()))
-#             return ret
-#
-#         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
 @dataclass
@@ -982,8 +937,6 @@ class RSS1_CR(Metric):
         rss_distance = self.RSS1(vr=last_traj_state.vx, vf=dyn_obs_state.velocity, params=params)
         return int(final_distance < rss_distance)
 
-    from commonroad.scenario.scenario import Scenario
-    from commonroad.scenario.obstacle import DynamicObstacle
     def get_leading_obs(self, scenario: Scenario, state: VehicleState) -> DynamicObstacle:
         pass
 
@@ -991,8 +944,6 @@ class RSS1_CR(Metric):
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             traj: Trajectory = context.trajectories[player]
-            # if traj in self.cache:
-            #     return self.cache[traj]
             scenario = context.dgscenario.scenario
             player_state = traj.values[0]
             leading_dyn_obs = self.get_leading_obs(scenario, player_state)  # returns obstacle in front
@@ -1012,9 +963,20 @@ class RoadCompliance_CR(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metrics computes if a trajectory is compliant with the road, i.e. if the vehicle geometry" \
                   "is entirely withing the road. Using CR tools."
+    road_boundary = None
+    scenario_id = None
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        # reset road boundary when scenario changes
+        if context.dgscenario.scenario.scenario_id != self.scenario_id:
+            self.road_boundary = None
+            self.scenario_id = context.dgscenario.scenario.scenario_id
+
+        if self.road_boundary is None:
+            road_boundary_obstacle, self.road_boundary = boundary.create_road_boundary_obstacle(
+                context.dgscenario.scenario)
+
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             traj: Trajectory = context.trajectories[player]
 
@@ -1022,8 +984,6 @@ class RoadCompliance_CR(Metric):
             car_half_length = (context.geos[player].lr + context.geos[player].lf) / 2.0
 
             vehicle_states = traj.values
-            # cr_states =\
-            #     [convert_to_cr_state(vehicle_state, time_step=i) for i, vehicle_state in enumerate(vehicle_states)]
             states = [[state.x, state.y, state.theta] for state in vehicle_states]
 
             # From CR: create time-varying obstacle for "player" car
@@ -1033,8 +993,6 @@ class RoadCompliance_CR(Metric):
                     tvo.append_obstacle(pycrcc.RectOBB(car_half_length, car_half_width, traj[2], traj[0], traj[1]))
                 return tvo
 
-            road_boundary_obstacle, road_boundary_sg_rectangles = boundary.create_road_boundary_obstacle(
-                context.dgscenario.scenario)
             co = create_tvobstacle(states, car_half_length, car_half_width)
 
             # From CR: preprocess using OBB sum hull
@@ -1044,7 +1002,7 @@ class RoadCompliance_CR(Metric):
 
             # From CR: compute time step of collision with road boundary
             ret = trajectory_queries.trajectories_collision_static_obstacles([preprocessed_trajectory],
-                                                                             road_boundary_sg_rectangles,
+                                                                             self.road_boundary,
                                                                              method='grid',
                                                                              num_cells=32,
                                                                              auto_orientation=True)
@@ -1064,39 +1022,45 @@ class RoadCompliance_CR(Metric):
 class MaximumVelocity_CR(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metrics computes the violation of the maximum allowed speed, given as attribute of a " \
-                  "commonroad lanenet."
+                  "commonroad lanelet."
+    maximum_velocities = None
+    scenario_id = None
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        # recompute velocities when scenario changes
+        if context.dgscenario.scenario.scenario_id != self.scenario_id:
+            self.maximum_velocities = None
+            self.scenario_id = context.dgscenario.scenario.scenario_id
+
+        if self.maximum_velocities is None:
+            self.maximum_velocities = {}
+            network = context.dgscenario.scenario.lanelet_network
+            country = context.dgscenario.scenario.scenario_id.country_id
+            for lanelet in network.lanelets:
+                self.maximum_velocities[lanelet.lanelet_id] = \
+                    TrafficSigInterpreter(country=country, lanelet_network=network).speed_limit(
+                        frozenset([lanelet.lanelet_id]))
+
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             traj: Trajectory = context.trajectories[player]
-
             vehicle_states = traj.values
-            # states = [[state.x, state.y, state.vx] for state in vehicle_states]
             network = context.dgscenario.lanelet_network
             states_pos = [np.array([state.x, state.y]) for state in vehicle_states]
-            # todo: investigate behavior of next line
+
             lanelet_ids = network.find_lanelet_by_position(states_pos)
-
-            from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
-            country = context.dgscenario.scenario.scenario_id.country_id
-
-            speed_limits = \
-                [
-                    TrafficSigInterpreter(country=country, lanelet_network=network).speed_limit(frozenset(lanelet_id))
-                    for lanelet_id in lanelet_ids
-                ]
+            speed_limits = [self.maximum_velocities[lanelet_id[0]] for lanelet_id in lanelet_ids]
 
             speed_viol = []
             for i, state in enumerate(vehicle_states):
-                # in CR challenge speed is given, this is for development
                 max_speed = speed_limits[i]
                 if max_speed is None:
-                    max_speed = 30.0
-                if state.vx > max_speed:
-                    speed_viol.append(1.0)
-                else:
                     speed_viol.append(0.0)
+                else:
+                    if state.vx > max_speed:
+                        speed_viol.append(1.0)
+                    else:
+                        speed_viol.append(0.0)
 
             ret = self.get_integrated_metric(seq=DgSampledSequence[float](
                 values=speed_viol, timestamps=traj.get_sampling_points()))
@@ -1148,16 +1112,9 @@ class SafeDistance_CR(Metric):
 
                 dist_viol = [
                     filter_float(safe_distance(v_l=state_l.vx, v_e=state_e.vx)
-                    - np.linalg.norm(np.array([state_l.x, state_l.y]) - np.array([state_e.x, state_e.y])))
+                                 - np.linalg.norm(np.array([state_l.x, state_l.y]) - np.array([state_e.x, state_e.y])))
                     for state_l, state_e in zip(l_traj.values, traj.values)
                 ]
-
-                # actual_dist = [
-                #     np.norm(np.array([state_l.x, state_l.y]), np.array([state_e.x, state_e.y])) for state_l, state_e in
-                #     zip(l_traj.values, traj.values)
-                # ]
-                #
-                # dist_viol = [actual_d < safe_d for actual_d, safe_d in zip(actual_dist, safe_dist)]
 
                 ret = self.get_integrated_metric(seq=DgSampledSequence[float](
                     values=dist_viol, timestamps=traj.get_sampling_points()))
@@ -1212,19 +1169,8 @@ def get_metrics_set() -> Set[Metric]:
         CollisionBool(),
         ProgressAlongReference(),
         MaximumVelocity_CR(),
-        SafeDistance_CR()
-    }
-    return metrics
-
-
-def get_metrics_commonroad() -> Set[Metric]:
-    metrics: Set[Metric] = {
-        CollisionEnergy(),
-        DrivableAreaViolation(),
-        MinimumClearance(),
-        ProgressAlongReference(),
-        TR1_CR(),
-
+        SafeDistance_CR(),
+        DrivableAreaViolation()
     }
     return metrics
 
@@ -1272,7 +1218,7 @@ class MetricEvaluation:
         traj_all: Dict[PlayerName, List[Trajectory]] = {}
         maxl: int = 0
         for player, traj in trajectories.items():
-            traj_all[player] = [traj]  # .get_trajectories()
+            traj_all[player] = [traj]
             maxl = max(maxl, len(traj_all[player]))
 
         for i in range(maxl):
