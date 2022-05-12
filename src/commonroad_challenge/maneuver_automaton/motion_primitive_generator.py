@@ -420,38 +420,38 @@ class MotionPrimitiveGenerator:
                     idx_successor = random.randrange(num_successors_primitive)
                     idx_primitive = list_successors_primitive_predecessor[idx_successor]
 
-            # plt.figure(figsize=(7, 7))
-            # # plot first trajectory
-            # list_states_final = copy.deepcopy(list_primitive[0].state_list)
-            # list_x = [state.position[0] for state in list_states_final]
-            # list_y = [state.position[1] for state in list_states_final]
-            # plt.scatter(list_x, list_y)
+            plt.figure(figsize=(7, 7))
+            # plot first trajectory
+            list_states_final = copy.deepcopy(list_primitive[0].state_list)
+            list_x = [state.position[0] for state in list_states_final]
+            list_y = [state.position[1] for state in list_states_final]
+            plt.scatter(list_x, list_y)
 
-            # # plot remaining trajectories
-            # for i in range(1, len(list_primitive)):
-            #     traj_pre = list_primitive[i - 1]
-            #     traj_cur = list_primitive[i]
-            #
-            #     # retrieve states
-            #     state_final_traj_pre = traj_pre.state_list[-1]
-            #
-            #     # rotate + translate with regard to the last state of previous trajectory
-            #     traj_cur.translate_rotate(np.zeros(2), state_final_traj_pre.orientation)
-            #     traj_cur.translate_rotate(state_final_traj_pre.position, 0)
-            #
-            #     list_x = [state.position[0] for state in traj_cur.state_list]
-            #     list_y = [state.position[1] for state in traj_cur.state_list]
-            #     plt.scatter(list_x, list_y)
-            #
-            #     # discard the first state of second trajectory onward to prevent duplication
-            #     traj_cur.state_list.pop(0)
-            #     list_states_final += traj_cur.state_list
+            # plot remaining trajectories
+            for i in range(1, len(list_primitive)):
+                traj_pre = list_primitive[i - 1]
+                traj_cur = list_primitive[i]
 
-            # list_x = [state.position[0] for state in list_states_final]
-            # list_y = [state.position[1] for state in list_states_final]
-            # plt.xlim([min(list_x) - 2, max(list_x) + 2])
-            # plt.ylim([min(list_y) - 2, max(list_y) + 2])
-            # plt.axis('equal')
+                # retrieve states
+                state_final_traj_pre = traj_pre.state_list[-1]
+
+                # rotate + translate with regard to the last state of previous trajectory
+                traj_cur.translate_rotate(np.zeros(2), state_final_traj_pre.orientation)
+                traj_cur.translate_rotate(state_final_traj_pre.position, 0)
+
+                list_x = [state.position[0] for state in traj_cur.state_list]
+                list_y = [state.position[1] for state in traj_cur.state_list]
+                plt.scatter(list_x, list_y)
+
+                # discard the first state of second trajectory onward to prevent duplication
+                traj_cur.state_list.pop(0)
+                list_states_final += traj_cur.state_list
+
+            list_x = [state.position[0] for state in list_states_final]
+            list_y = [state.position[1] for state in list_states_final]
+            plt.xlim([min(list_x) - 2, max(list_x) + 2])
+            plt.ylim([min(list_y) - 2, max(list_y) + 2])
+            plt.axis('equal')
             # plt.show()
 
             trajectory_simulated = Trajectory(initial_time_step=0, state_list=list_states_final)
