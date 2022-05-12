@@ -1,4 +1,4 @@
-from typing import FrozenSet
+from typing import FrozenSet, List, Optional
 
 from decimal import Decimal as D
 
@@ -41,8 +41,9 @@ class SituationalTrajectoryGenerator:
     Each player has its own SituationalTrajectoryGenerator
     """
 
-    def __init__(self, ref_lane_goal: RefLaneGoal):
+    def __init__(self, ref_lane_goal: RefLaneGoal, path_curvature: Optional[List[float]] = None):
         self.ref_lane_goal: RefLaneGoal = ref_lane_goal
+        self.path_curvature: Optional[List[float]] = path_curvature
         self.vehicle_type = VehicleType.FORD_ESCORT
 
     def get_traj_gen_params(self, state: VehicleState, time_to_goal: Timestamp, is_ego: bool) -> TrajectoryGenParams:
@@ -65,14 +66,26 @@ class SituationalTrajectoryGenerator:
             acc_mean = 2.0 * (avg_dist_to_goal - state.vx * time_to_goal) / time_to_goal ** 2
             acc_max = abs(acc_mean)
 
-            # always allow more braking than accelerating
-            u_acc = frozenset(np.linspace(-abs(acc_mean)*4.0 + acc_mean, acc_mean + abs(acc_mean), num=3, endpoint=True))
-            u_dst = frozenset(np.array([-0.15, 0, 0.15])) # be careful when removing u_dst=0.0 -> issue with friction circle!
+
+
+            if self.avg_curvature() < 1e-2:
+                # always allow more braking than accelerating
+                u_acc = frozenset(
+                    np.linspace(-abs(acc_mean) * 5.0 + acc_mean, acc_mean + abs(acc_mean), num=5, endpoint=True))
+                u_dst = frozenset([0.0])
+            else:
+                # always allow more braking than accelerating
+                u_acc = frozenset(
+                    np.linspace(-abs(acc_mean) * 5.0 + acc_mean, acc_mean + abs(acc_mean), num=3, endpoint=True))
+                u_dst = frozenset(np.array([-0.3, 0, 0.3]))
+
             # todo: if vehicle is oriented along straight street, leave out dst!!
 
         else:
             u_acc = frozenset(np.array([0.0]))
             u_dst = frozenset(np.array([0.0]))
+
+        # u_dst = frozenset(np.array([-0.5, -0.3])) # Testing
 
         vg = VehicleGeometry(
             vehicle_type=CAR,
@@ -127,12 +140,27 @@ class SituationalTrajectoryGenerator:
 
         return frozenset(subset_trajs)
 
+    def avg_curvature(self, frac_ahead: float = 0.2):
+        """
+        Compute average curvature of reference lane
+        :param frac_ahead: Fraction of reference lane to look ahead for average curvature
+        :return:
+        """
+        pass
+
+        n_points = int(len(self.path_curvature) * frac_ahead)
+        average_curv = sum(self.path_curvature[:n_points])/n_points
+
+        return average_curv
+
+
     def add_actions(self):
         """
         Here add emergency braking
         :return:
         """
         pass
+
 
     def generate_actions(self, state: VehicleState, time_to_goal: Timestamp) -> FrozenSet[Dg_Trajectory]:
         # todo: for now generate actions in original trajectory generator

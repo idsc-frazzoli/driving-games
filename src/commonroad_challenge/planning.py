@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from typing import List, Mapping
 
 import matplotlib
@@ -12,16 +11,15 @@ from sumocr.interface.ego_vehicle import EgoVehicle
 
 from commonroad_challenge.situational_traj_generator import SituationalTrajectoryGenerator
 from commonroad_challenge.utils import get_initial_states, get_default_pref_structures, generate_ref_lanes, \
-    get_traj_gen_params, convert_from_cr_state, interacting_agents
+    convert_from_cr_state, interacting_agents
 from dg_commons import PlayerName, Timestamp
-from dg_commons.planning import RefLaneGoal
+from dg_commons.planning import Trajectory as Dg_Trajectory
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.scenarios import DgScenario
 from trajectory_games import get_traj_game_posets_from_params, get_context_and_graphs, Solution, SolvedTrajectoryGame, \
     PosetalPreference
 from trajectory_games.agents.game_playing_agent import select_admissible_eq_randomly
 from trajectory_games.structures import TrajectoryGamePosetsParam, TrajectoryGenParams
-from dg_commons.planning import Trajectory as Dg_Trajectory
 
 
 def motion_planner_from_trajectory(trajectory: Dg_Trajectory, timestep: float) -> State:
@@ -46,14 +44,14 @@ def get_game_params(
 
     initial_states: Mapping[PlayerName, VehicleState] = get_initial_states(ego_vehicle, inter_agents)
 
-    ref_lanes: Mapping[PlayerName, RefLaneGoal] = generate_ref_lanes(
+    ref_lanes, route_curvature_ego = generate_ref_lanes(
         scenario,
         planning_problem,
         inter_agents
     )
 
     sit_traj_gens: Mapping[PlayerName, SituationalTrajectoryGenerator] = {
-        PlayerName("Ego"): SituationalTrajectoryGenerator(ref_lane_goal=ref_lanes[PlayerName("Ego")])
+        PlayerName("Ego"): SituationalTrajectoryGenerator(ref_lane_goal=ref_lanes[PlayerName("Ego")], path_curvature=route_curvature_ego)
     }
     for obs in inter_agents:
        sit_traj_gens[PlayerName(str(obs.obstacle_id))] = \
