@@ -106,12 +106,12 @@ def generate_trajectories(show_plot=False):
 
 
 if __name__ == "__main__":
-    filename = "/media/leon/Extreme SSD1/MT/outputs_TEST/solution/solution_DEU_Aachen-3_1_I-1.xml"
+    filename = "/media/leon/Extreme SSD1/MT/experiments/09-05-22-180842/DEU_Dresden-3_19_I-1/with_ego/solution/solution_DEU_Dresden-3_19_I-1.xml"
     traj = get_traj_from_solution(filename)
     vehicle_type = VehicleType.FORD_ESCORT
     vehicle_dynamics = VehicleDynamics.KS(vehicle_type)
 
-    vehicle_params = vehicle_parameters[vehicle_type]
+    # vehicle_params = vehicle_parameters[vehicle_type]
     dt = 0.1
     feasible, reconstructed_inputs = feasibility_checker.trajectory_feasibility(traj, vehicle_dynamics, dt)
     print(feasible)

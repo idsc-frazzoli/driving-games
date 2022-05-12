@@ -17,7 +17,7 @@ sys.path.append(os.path.join(os.getcwd(), "../"))
 
 def run_all_scenarios(with_ego: bool, without_ego: bool, scenarios_dir: str, output_dir: str):
     all_paths = find_all_scenarios(scenarios_dir)
-    random.seed(0)
+    random.seed(60)
     random.shuffle(all_paths)
 
     for scenario_path in all_paths:
@@ -116,11 +116,15 @@ if __name__ == "__main__":
     deu_aachen_29_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_3_I-1"
     deu_aachen_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_2_I-1"
     deu_dresden_3_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_17_I-1"
+    deu_dresden_18_7_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-18_7_I-1"
     deu_cologne_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-10_12_I-1"
+    deu_cologne_13_10_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_10_I-1"
+    deu_aachen_33_4_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-33_4_I-1"
     debug = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_11_I-1"
     debug2 = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_6_I-1"
+    debug3 = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_19_I-1"
     # run_scenario(with_ego=True, without_ego=True, scenario_path=debug2, output_dir=output_dir)
     # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_aachen_29_path, output_dir=output_dir)
     # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_dresden_3_path, output_dir=output_dir)
     # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_cologne_2_path, output_dir=output_dir)
-    # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_aachen_2_path, output_dir=output_dir)
+    run_scenario(with_ego=True, without_ego=True, scenario_path=debug3, output_dir=output_dir)

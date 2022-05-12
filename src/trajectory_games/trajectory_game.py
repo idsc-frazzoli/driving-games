@@ -315,10 +315,10 @@ def filter_actions(trajectories: FrozenSet[Trajectory], n_actions: int = 10) -> 
         remaining_trajs.remove(cand_traj)
         feasible = feasibility_check(cand_traj, vehicle_dynamics, dt)
         if feasible:
-            print("found one feasible trajectory")
+            # print("found one feasible trajectory")
             subset_trajs.add(cand_traj)
 
-    print("Total number of trajectories: " + str(len(subset_trajs)))
+    # print("Total number of trajectories: " + str(len(subset_trajs)))
     return frozenset(subset_trajs)
 
 

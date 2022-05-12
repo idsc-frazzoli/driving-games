@@ -182,7 +182,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                                                                        u_dst=dst_vals
                                                                        )
 
-        print("Feasible accelerations and steering rate tuples: " + str(acc_dst_vals))
+        # print("Feasible accelerations and steering rate tuples: " + str(acc_dst_vals))
         return acc_dst_vals
 
         # # todo: was: if not_cond_gen: remove all acc<0 and set them to acc=0.0 -> only move forward.
