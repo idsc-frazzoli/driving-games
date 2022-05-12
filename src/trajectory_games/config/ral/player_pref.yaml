@@ -74,6 +74,9 @@ default_commonroad_ego:
 only_driving_area_violation:
   DrivableAreaViolation: []
 
+only_squared_acc:
+  LongitudinalAccelerationSquared: [ ]
+
 only_collision:
   CollisionEnergy: []
 
