@@ -1,7 +1,7 @@
 import math
 import os
 from decimal import Decimal as D
-from typing import List, Mapping
+from typing import List, Mapping, Tuple
 
 import matplotlib
 import numpy as np
@@ -175,7 +175,8 @@ def generate_refs_by_merging_successors(state: State, network: LaneletNetwork):
 
 
 def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, plot_route: bool = False):
-    route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.PRIORITY_QUEUE)
+    # careful: allow_diagonal is not tested according to Commonroad Library
+    route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.PRIORITY_QUEUE, allow_diagonal=True)
     # plan routes, save multiple routes as list in candidate holder
     candidate_holder = route_planner.plan_routes()
 
@@ -188,6 +189,7 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
     # route = candidate_holder.retrieve_best_route_by_orientation()
 
     matplotlib.use("TkAgg")
+    # plot_route = True
     if plot_route:
         visualize_route(route, draw_route_lanelets=True, draw_reference_path=True, size_x=6)
 
@@ -217,7 +219,7 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
 
     ctr_points = [LaneCtrPoint(q=q, r=r) for q, r in zip(qs, rs)]
 
-    return DgLanelet(control_points=ctr_points)
+    return DgLanelet(control_points=ctr_points), route.path_curvature
 
 
     # has a bug for certain routes, where routeplanner returns adjacent lanes (and not only successors)
@@ -236,12 +238,12 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
 def generate_ref_lanes(
         scenario: Scenario,
         planning_problem: PlanningProblem,
-        inter_agents: List[DynamicObstacle]) -> Mapping[PlayerName, RefLaneGoal]:
+        inter_agents: List[DynamicObstacle]) -> Tuple[Mapping[PlayerName, RefLaneGoal], List[float]]:
     ref_lanes: Mapping[PlayerName, RefLaneGoal] = {}
 
     network = scenario.lanelet_network
 
-    ego_ref_dglanelet = generate_route_ego(scenario, planning_problem)
+    ego_ref_dglanelet, route_curvature_ego = generate_route_ego(scenario, planning_problem)
 
     # todo: need to adapt metrics to use this correctly
     ref_lanes[PlayerName("Ego")] = RefLaneGoal(ego_ref_dglanelet, ego_ref_dglanelet.get_lane_length() * goal_frac)
@@ -249,7 +251,7 @@ def generate_ref_lanes(
     for dyn_obs in inter_agents:
         ref_lane = generate_refs_by_merging_successors(dyn_obs.initial_state, network)
         ref_lanes[PlayerName(str(dyn_obs.obstacle_id))] = RefLaneGoal(ref_lane, ref_lane.get_lane_length())
-    return ref_lanes
+    return ref_lanes, route_curvature_ego
 
 
 def get_default_pref_structures(inter_agents: List[DynamicObstacle]):
