@@ -105,8 +105,8 @@ def get_scenario_and_all():
 
 def get_default_cr_preferences(n_other_agents: int) -> Mapping[PlayerName, PosetalPreference]:
     pref_structures: Mapping[PlayerName, PosetalPreference] = {}
-    default_str = "default_commonroad"
-    pref_structures[PlayerName("Ego")] = PosetalPreference(pref_str="default_commonroad_ego", use_cache=False)
+    default_str = "only_squared_acc"
+    pref_structures[PlayerName("Ego")] = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
     for n in range(n_other_agents):
         pname = PlayerName("P" + str(n + 1))
         pref_structures[pname] = PosetalPreference(pref_str=default_str, use_cache=False)
@@ -134,7 +134,7 @@ def get_traj_gen_params():
         solve=False,
         s_final=-1,  # todo: adapt metrics to use this
         # s_final=-1,
-        max_gen=5,
+        max_gen=2,
         dt=D("1.0"),
         # keep at max 1 sec, increase k_maxgen in trajectory_generator for having more generations
         u_acc=u_acc,
@@ -182,8 +182,13 @@ if __name__ == "__main__":
     dgscenario, geos, goals, initial_states = get_scenario_and_all()
 
     traj_gen_params = get_traj_gen_params()
+    preferences = get_default_cr_preferences(2)
     actions = generate_actions(initial_states=initial_states, ref_lane_goals=goals, traj_gen_params=traj_gen_params)
     world: TrajectoryWorld = TrajectoryWorld(map_name=dgscenario.scenario.scenario_id.map_name, scenario=dgscenario,
                                              geo=geos, goals=goals)
-    estimator = UncertainActionEstimator(world=world, actions=actions)
-    estimator.compute_player_probabilities(player_name=P1)
+    estimator = UncertainActionEstimator(world=world, actions=actions, preferences=preferences)
+    P1_dist = estimator.compute_player_probabilities(player_name=P1)
+    P2_dist = estimator.compute_player_probabilities(player_name=P2)
+
+    # todo: from these distributions, compute outcome distributions
+    # todo: from outcome distibutions, compute best action
