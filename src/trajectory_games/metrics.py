@@ -127,7 +127,8 @@ def interacting_agents(
         look_ahead_dist: float,
         around_dist_r: float,
         around_dist_f: float,
-        around_dist_lat: float) -> Mapping[str, List[DynamicObstacle]]:
+        around_dist_lat: float,
+        only_leading=False) -> Mapping[str, List[DynamicObstacle]]:
     """
     :param scenario: Commonroad Scenario
     :param ego_state: Commonroad State of Ego Vehicle
@@ -145,14 +146,7 @@ def interacting_agents(
                                                     look_lateral_dist=1.5)
 
     leading_obs = filter_obstacles(scenario, leading_area_of_interest)
-
-    # find dyn. obstacles interacting with ego by being close to it
-    around_area_of_interest = rectangle_around_ego(ego_state=ego_state,
-                                                   look_forward_dist=around_dist_f,
-                                                   look_backward_dist=around_dist_r,
-                                                   look_lateral_dist=around_dist_lat)
-
-    around_obs = filter_obstacles(scenario, around_area_of_interest)
+    around_obs = []
 
     if len(leading_obs) > 1:
         # only keep closest leading obstacle
@@ -165,9 +159,18 @@ def interacting_agents(
                 dist = obs_dist
         leading_obs = [closest_obs]
 
-        # make sure to count closest obstacle only once
-        if leading_obs[0] in around_obs:
-            around_obs.remove(leading_obs[0])
+        if not only_leading:
+            # find dyn. obstacles interacting with ego by being close to it
+            around_area_of_interest = rectangle_around_ego(ego_state=ego_state,
+                                                           look_forward_dist=around_dist_f,
+                                                           look_backward_dist=around_dist_r,
+                                                           look_lateral_dist=around_dist_lat)
+
+            around_obs = filter_obstacles(scenario, around_area_of_interest)
+
+            # make sure to count closest obstacle only once
+            if leading_obs[0] in around_obs:
+                around_obs.remove(leading_obs[0])
 
     obs_dict: Mapping[str, List[DynamicObstacle]] = {"leading": leading_obs, "around": around_obs}
     return obs_dict
@@ -1048,7 +1051,10 @@ class MaximumVelocity_CR(Metric):
             network = context.dgscenario.lanelet_network
             states_pos = [np.array([state.x, state.y]) for state in vehicle_states]
 
-            lanelet_ids = network.find_lanelet_by_position(states_pos)
+            # next step is slow, so approximate by considering entire trajectory inside same lanelet
+            # lanelet_ids = network.find_lanelet_by_position(states_pos)
+            lanelet_id = network.find_lanelet_by_position([states_pos[0]])
+            lanelet_ids = [lanelet_id[0] for i in range(len(states_pos))]
             speed_limits = [self.maximum_velocities[lanelet_id[0]] for lanelet_id in lanelet_ids]
 
             speed_viol = []
@@ -1073,6 +1079,8 @@ class MaximumVelocity_CR(Metric):
 class SafeDistance_CR(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This Metric determines if a safe distance between an agent and the leading agent is respected"
+    interacting_agents = None
+    joint_trajectories = None
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
@@ -1095,7 +1103,6 @@ class SafeDistance_CR(Metric):
                     return beta
 
             # convert VehicleState to commonroad State
-
             ego_state = convert_to_cr_state(traj.values[0], 0)
             # determine what is the leading vehicle (if there is one)
             inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
@@ -1103,7 +1110,8 @@ class SafeDistance_CR(Metric):
                                               look_ahead_dist=50.0,
                                               around_dist_r=0.0,
                                               around_dist_f=0.0,
-                                              around_dist_lat=0.0)
+                                              around_dist_lat=0.0,
+                                              only_leading=True)
 
             leading_obs = inter_agents["leading"]
             if len(leading_obs) > 0:
@@ -1166,7 +1174,6 @@ def get_metrics_set() -> Set[Metric]:
         DeviationLateralSquared(),
         RoadCompliance_CR(),
         DistanceToObstacle_CR(),
-        CollisionBool(),
         ProgressAlongReference(),
         MaximumVelocity_CR(),
         SafeDistance_CR(),
