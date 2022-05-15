@@ -10,19 +10,21 @@ player1 = PlayerName('p1')
 player2 = PlayerName('p2')
 player3 = PlayerName('p3')
 n_player = 3
+
+# choose from simple scenario or commonroad scenario. see MIQP/scenario.py
 # trajs, intersects, x0, scenario = get_simple_scenario(n_player)
 trajs, intersects, x0, scenario = get_commonroad_scenario()
+
 """generate solver"""
 n_controlled = n_player
 n_inter = int(n_player * (n_player - 1) / 2)
-use_bin_init = True
+use_bin_init = True # fix the binary variable values at the first stage
 
-# solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init)
-solver_name = 'test'
+solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init)
 module_name = solver_name + '_py'
 
 """start simulation"""
-h = [0, 1, 1]#{player1: {player2: 1, player3: 0}, player2: {player3: 0}}
+h = [0, 1, 1]  # {player1: {player2: 1, player3: 0}, player2: {player3: 0}}
 homotopy = Homotopy(intersects=intersects, players=trajs.keys(), vx_ref=None, h=h)
 X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, homotopy, use_bin_init)
 

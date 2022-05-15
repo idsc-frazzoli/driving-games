@@ -9,7 +9,7 @@ from homotopies.MIQP.utils.intersects import find_intersects
 from homotopies.MIQP.utils.visualization import *
 from homotopies.MIQP.utils.report import generate_report_all, generate_report_3d_boxes
 
-
+'''generate testcases'''
 # state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=5, delta=0.03)
 state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=4.5, delta=0)
 state2 = VehicleState(x=-5, y=20, theta=np.pi/3, vx=3.5, delta=0)
@@ -25,11 +25,13 @@ if player3 is None:
 else:
     obs = {player1: state1, player2: state2, player3: state3}
 
+'''apply utility functions to predict vehicle trajectory from observation 
+and find intersection points between the trajectories'''
 trajs = predict(obs)
 lane = traj2lane(trajs[player1])
 intersects = find_intersects(trajs)
 
-# # visualization
+'''visualization'''
 colors = {player1: 'blue', player2: 'green', player3: 'black'}
 if player3 is not None:
     plotnum = 3

@@ -7,8 +7,8 @@ from homotopies.MIQP.forces_def.parameters import player_idx
 class Homotopy:
     def __init__(self, intersects, players, vx_ref=None, h=None):
         """
-        vx_ref: vector of length = #player
-        h: vector of length = #intersection, e.g. h=[0,0,0]
+        vx_ref: vector of length #player, reference velocity of the players
+        h: vector of length #intersection, e.g. h=[0,0,0]
         """
         self.intersects = intersects
         self.players = players
@@ -98,4 +98,3 @@ def evaluate_homotopy(intersects, players, vx_ref):
         homotopies += [homotopy]
     homotopies_sorted = sorted(homotopies)
     return homotopies_sorted
-

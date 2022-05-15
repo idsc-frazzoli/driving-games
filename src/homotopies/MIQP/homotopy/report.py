@@ -3,6 +3,7 @@ from zuper_commons.text import remove_escapes
 
 
 def generate_homotopy_report(homotopies_sorted):
+    '''generate report for evaluating all homotopy classes and solving the optimal plan within each homotopy class'''
     r_eva = Report('Homotopy_evaluation')
     texts = []
     for homotopy in homotopies_sorted:

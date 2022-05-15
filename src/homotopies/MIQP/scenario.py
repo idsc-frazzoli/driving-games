@@ -44,7 +44,7 @@ def get_commonroad_scenario():
     obs = {player1: state1, player2: state2}
 
     scenario_name = "USA_Lanker-2_10_T-1"
-    scenario_dir = "/home/ysli/Desktop/SP/driving-games/scenarios/"
+    scenario_dir = "/home/ysli/Desktop/SP/driving-games/scenarios/"  # path to the commonroad scenario folder
     scenario, _ = load_commonroad_scenario(scenario_name, scenario_dir)
     traj_p3 = traj_from_commonroad(scenario_name, scenario_dir, 2653, offset=(0, 0))
     vx_p3 = 3

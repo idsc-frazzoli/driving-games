@@ -12,7 +12,7 @@ from homotopies.MIQP.utils.prediction import predict
 from homotopies.MIQP.utils.intersects import find_intersects
 from homotopies.MIQP.homotopy.homotopy import *
 
-# scenario settings
+'''scenario settings'''
 player1 = PlayerName('p1')
 player2 = PlayerName('p2')
 player3 = PlayerName('p3')
@@ -23,15 +23,15 @@ vx_ref = np.zeros(n_player)
 for p_idx in range(n_player):
     vx_ref[p_idx] = x0[p_idx*params.n_states+x_idx.dS-params.n_cinputs]
 
-# generate solver
+'''generate solver(under one homotopy class)'''
 n_controlled = n_player
 n_inter = int(n_player * (n_player - 1) / 2)
 use_bin_init = True
 use_homo = True
 solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init, use_homo)
-# solver_name = 'test'
 module_name = solver_name + '_py'
 
+'''evaluate and rank all homotopy classes, apply the solver to all homotopy classes'''
 homotopies_sorted = evaluate_homotopy(intersects, trajs.keys(), vx_ref)
 r = Report('homotopy_test')
 r.add_child(generate_homotopy_report(homotopies_sorted))

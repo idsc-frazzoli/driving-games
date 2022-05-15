@@ -7,7 +7,7 @@ from homotopies.MIQP.forces_def.report import generate_report_solver
 from homotopies.MIQP.forces_def.sim import sim
 from homotopies.MIQP.scenario import get_simple_scenario, get_commonroad_scenario
 
-# scenario settings
+'''scenario settings'''
 player1 = PlayerName('p1')
 player2 = PlayerName('p2')
 player3 = PlayerName('p3')
@@ -18,15 +18,15 @@ vx_ref = np.zeros(n_player)
 for p_idx in range(n_player):
     vx_ref[p_idx] = x0[p_idx*params.n_states+x_idx.dS-params.n_cinputs]
 
-# generate solver
+'''generate solver(solver the MIQP for collision avoidance problem directly, doesn't consider any homotopy class)'''
 n_controlled = n_player
 n_inter = int(n_player * (n_player - 1) / 2)
 use_bin_init = True
 use_homo = False
 solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init, use_homo)
-# solver_name = 'test'
 module_name = solver_name + '_py'
 
+'''generate report for solving the global optimal solution'''
 r = Report('no_homotopy_test')
 h = None
 X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init, use_homo)
