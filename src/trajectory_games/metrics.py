@@ -1054,22 +1054,32 @@ class MaximumVelocity_CR(Metric):
             # next step is slow, so approximate by considering entire trajectory inside same lanelet
             # lanelet_ids = network.find_lanelet_by_position(states_pos)
             lanelet_id = network.find_lanelet_by_position([states_pos[0]])
-            lanelet_ids = [lanelet_id[0] for i in range(len(states_pos))]
-            speed_limits = [self.maximum_velocities[lanelet_id[0]] for lanelet_id in lanelet_ids]
+            if not lanelet_id[0]:
+                # todo: quick workaround. Problem is there because state is outside of network -> fix traj gen
+                # try another state
+                lanelet_id = network.find_lanelet_by_position([states_pos[-1]])
 
-            speed_viol = []
-            for i, state in enumerate(vehicle_states):
-                max_speed = speed_limits[i]
-                if max_speed is None:
-                    speed_viol.append(0.0)
-                else:
-                    if state.vx > max_speed:
-                        speed_viol.append(1.0)
-                    else:
+            if not lanelet_id[0]:
+                # if lanelet id can be found, return 0 speed violation
+                ret = EvaluatedMetric(name=self.get_name(), value=0)
+
+            else:
+                lanelet_ids = [lanelet_id[0] for i in range(len(states_pos))]
+                speed_limits = [self.maximum_velocities[lanelet_id[0]] for lanelet_id in lanelet_ids]
+
+                speed_viol = []
+                for i, state in enumerate(vehicle_states):
+                    max_speed = speed_limits[i]
+                    if max_speed is None:
                         speed_viol.append(0.0)
+                    else:
+                        if state.vx > max_speed:
+                            speed_viol.append(1.0)
+                        else:
+                            speed_viol.append(0.0)
 
-            ret = self.get_integrated_metric(seq=DgSampledSequence[float](
-                values=speed_viol, timestamps=traj.get_sampling_points()))
+                ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                    values=speed_viol, timestamps=traj.get_sampling_points()))
 
             return ret
 
@@ -1105,13 +1115,23 @@ class SafeDistance_CR(Metric):
             # convert VehicleState to commonroad State
             ego_state = convert_to_cr_state(traj.values[0], 0)
             # determine what is the leading vehicle (if there is one)
+            # inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
+            #                                   ego_state=ego_state,
+            #                                   look_ahead_dist=50.0,
+            #                                   around_dist_r=0.0,
+            #                                   around_dist_f=0.0,
+            #                                   around_dist_lat=0.0,
+            #                                   only_leading=True)
+
             inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
                                               ego_state=ego_state,
-                                              look_ahead_dist=50.0,
+                                              look_ahead_dist=0.0,
                                               around_dist_r=0.0,
                                               around_dist_f=0.0,
                                               around_dist_lat=0.0,
                                               only_leading=True)
+
+
 
             leading_obs = inter_agents["leading"]
             if len(leading_obs) > 0:
@@ -1169,15 +1189,15 @@ def get_joint_metrics() -> Set[Metric]:
 # Only necessary metrics -> speed up computations for Commonroad challenge
 def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = {
-        SteeringRateSquared(),
+        # SteeringRateSquared(),
         LongitudinalAccelerationSquared(),
-        DeviationLateralSquared(),
-        RoadCompliance_CR(),
-        DistanceToObstacle_CR(),
-        ProgressAlongReference(),
-        MaximumVelocity_CR(),
-        SafeDistance_CR(),
-        DrivableAreaViolation()
+        # DeviationLateralSquared(),
+        # RoadCompliance_CR(),
+        # DistanceToObstacle_CR(),
+        # ProgressAlongReference(),
+        # MaximumVelocity_CR(),
+        # SafeDistance_CR(),
+        # DrivableAreaViolation()
     }
     return metrics
 
