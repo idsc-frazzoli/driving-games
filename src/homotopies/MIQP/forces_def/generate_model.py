@@ -22,53 +22,53 @@ def generate_forces_model(n_players, n_controlled, n_inter, use_bin_init=False, 
     bounds = get_bounds(n_controlled, n_inter)
     for i in range(params.N):
         # dimensions
-        stages.dims[i]['n'] = n_var  # length of stage variable zi
+        stages.dims[i]["n"] = n_var  # length of stage variable zi
 
         # cost
-        stages.cost[i]['f'] = f[i, :]
-        stages.cost[i]['H'] = H[i, :, :]
+        stages.cost[i]["f"] = f[i, :]
+        stages.cost[i]["H"] = H[i, :, :]
 
         # bounds
-        stages.dims[i]['l'] = n_var  # number of lower bounds
-        stages.dims[i]['u'] = n_var  # number of upper bounds
-        stages.ineq[i]['b']['lbidx'] = list(range(1, n_var + 1))  # index vector for lower bounds, 1-indexed
-        stages.ineq[i]['b']['lb'] = bounds[:, 0]  # lower bounds
-        stages.ineq[i]['b']['ubidx'] = list(range(1, n_var + 1))  # index vector for upper bounds, 1-indexed
-        stages.ineq[i]['b']['ub'] = bounds[:, 1]  # upper bounds
+        stages.dims[i]["l"] = n_var  # number of lower bounds
+        stages.dims[i]["u"] = n_var  # number of upper bounds
+        stages.ineq[i]["b"]["lbidx"] = list(range(1, n_var + 1))  # index vector for lower bounds, 1-indexed
+        stages.ineq[i]["b"]["lb"] = bounds[:, 0]  # lower bounds
+        stages.ineq[i]["b"]["ubidx"] = list(range(1, n_var + 1))  # index vector for upper bounds, 1-indexed
+        stages.ineq[i]["b"]["ub"] = bounds[:, 1]  # upper bounds
 
         # equality constraints
         if i > 0:
-            stages.dims[i]['r'] = neq  # number of equality constraints
+            stages.dims[i]["r"] = neq  # number of equality constraints
         else:  # at initial stage
             if use_bin_init:
-                stages.dims[i]['r'] = neq
+                stages.dims[i]["r"] = neq
             else:
-                stages.dims[i]['r'] = params.n_states * n_controlled  # only provide initial value of states
+                stages.dims[i]["r"] = params.n_states * n_controlled  # only provide initial value of states
 
         if i < params.N - 1:
-            stages.eq[i]['C'] = C[i, :, :]
+            stages.eq[i]["C"] = C[i, :, :]
         if i > 0:
-            stages.eq[i]['c'] = c[i, :, :]
-            stages.eq[i]['D'] = D[i, :, :]
+            stages.eq[i]["c"] = c[i, :, :]
+            stages.eq[i]["D"] = D[i, :, :]
         if i == 0:
             if use_bin_init:
-                stages.eq[i]['D'] = D[i, :, :]
+                stages.eq[i]["D"] = D[i, :, :]
             else:
                 eq_start_idx = params.n_binputs * n_inter
                 eq_idx = list(range(eq_start_idx, eq_start_idx + params.n_states * n_controlled))
-                stages.eq[i]['D'] = D[i, eq_idx, :]
+                stages.eq[i]["D"] = D[i, eq_idx, :]
 
         # inequality constraints
         if use_homo:
-            stages.dims[i]['p'] = params.n_ineq * n_inter  # number of polytopic constraints
+            stages.dims[i]["p"] = params.n_ineq * n_inter  # number of polytopic constraints
         else:
-            stages.dims[i]['p'] = (params.n_ineq - 1) * n_inter
-        stages.newParam('ineq_A{:02d}'.format(i + 1), [i + 1], 'ineq.p.A')  # set as runtime parameters
-        stages.newParam('ineq_b{:02d}'.format(i + 1), [i + 1], 'ineq.p.b')
+            stages.dims[i]["p"] = (params.n_ineq - 1) * n_inter
+        stages.newParam("ineq_A{:02d}".format(i + 1), [i + 1], "ineq.p.A")  # set as runtime parameters
+        stages.newParam("ineq_b{:02d}".format(i + 1), [i + 1], "ineq.p.b")
 
         # declare binary variables
         stages.bidx[i] = get_bin_idx(n_inter)  # which indices are binary? 1-indexed
 
-    stages.newParam('minus_x0', [1], 'eq.c')  # RHS of first eq. constr. is a parameter: -x0
+    stages.newParam("minus_x0", [1], "eq.c")  # RHS of first eq. constr. is a parameter: -x0
 
     return stages

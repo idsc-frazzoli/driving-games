@@ -8,9 +8,9 @@ from homotopies.MIQP.utils.intersects import find_intersects
 
 # scenario settings
 def get_simple_scenario(n_player):
-    player1 = PlayerName('p1')
-    player2 = PlayerName('p2')
-    player3 = PlayerName('p3')
+    player1 = PlayerName("p1")
+    player2 = PlayerName("p2")
+    player3 = PlayerName("p3")
 
     state1 = VehicleState(x=15, y=0, theta=np.pi / 2, vx=4.5, delta=0)
     state2 = VehicleState(x=-5, y=20, theta=np.pi / 3, vx=3.5, delta=0)
@@ -34,9 +34,9 @@ def get_simple_scenario(n_player):
 
 
 def get_commonroad_scenario():
-    player1 = PlayerName('p1')
-    player2 = PlayerName('p2')
-    player3 = PlayerName('p3')
+    player1 = PlayerName("p1")
+    player2 = PlayerName("p2")
+    player3 = PlayerName("p3")
 
     state1 = VehicleState(x=-14, y=-70, theta=np.deg2rad(64), vx=3.5, delta=0)
     state2 = VehicleState(x=15, y=-52, theta=np.deg2rad(153), vx=4, delta=0)

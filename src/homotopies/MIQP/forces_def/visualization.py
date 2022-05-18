@@ -6,19 +6,14 @@ from homotopies.MIQP.utils.intersects import pose_from_s
 from geometry import SE2value
 
 
-__all__ = ["visualize_s_traj",
-           "visualize_inputs",
-           "visualize_ds",
-           "visualize_solvetime",
-           "visualize_map",
-           "s2traj"]
+__all__ = ["visualize_s_traj", "visualize_inputs", "visualize_ds", "visualize_solvetime", "visualize_map", "s2traj"]
 
 
 def visualize_s_traj(X_plans, player1, player2, ax):
     """plot trajectory in s frame"""
     p1s_idx = player_idx[player1] * params.n_states + x_idx.S - params.n_cinputs
     p2s_idx = player_idx[player2] * params.n_states + x_idx.S - params.n_cinputs
-    ax.plot(X_plans[p1s_idx, 0, :], X_plans[p2s_idx, 0, :], 'bo-', markersize=3)  # actual states
+    ax.plot(X_plans[p1s_idx, 0, :], X_plans[p2s_idx, 0, :], "bo-", markersize=3)  # actual states
 
 
 def visualize_inputs(dds_plan, p_idx, ax):
@@ -27,8 +22,8 @@ def visualize_inputs(dds_plan, p_idx, ax):
     ax.axhline(y=params.vehicle_params.acc_limits[0], c="red", zorder=0)
     ax.axhline(y=params.vehicle_params.acc_limits[1], c="red", zorder=0)
     dds_idx = params.n_cinputs * p_idx + params.uc_idx.ddS
-    ax.step(range(0, sim_time), dds_plan[dds_idx, 0, :], where='post')
-    ax.set_title('input: ddS')
+    ax.step(range(0, sim_time), dds_plan[dds_idx, 0, :], where="post")
+    ax.set_title("input: ddS")
     ax.set_xlim(0, sim_time)
     ax.set_ylim(1.1 * params.vehicle_params.acc_limits[0], 1.1 * params.vehicle_params.acc_limits[1])
     ax.grid()
@@ -40,8 +35,8 @@ def visualize_ds(X_plan, p_idx, ax):
     ax.axhline(y=params.vehicle_params.vx_limits[0], c="red", zorder=0)
     ax.axhline(y=params.vehicle_params.vx_limits[1], c="red", zorder=0)
     ds_idx = params.n_states * p_idx + params.x_idx.dS - params.n_cinputs
-    ax.step(range(0, sim_time), X_plan[ds_idx, 0, 0:sim_time], where='post')
-    ax.set_title('state: dS')
+    ax.step(range(0, sim_time), X_plan[ds_idx, 0, 0:sim_time], where="post")
+    ax.set_title("state: dS")
     ax.set_xlim(0, sim_time)
     ax.set_ylim(1.1 * params.vehicle_params.vx_limits[0], 1.1 * params.vehicle_params.vx_limits[1])
     ax.grid()

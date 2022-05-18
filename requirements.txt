@@ -56,4 +56,3 @@ cycler~=0.11.0
 
 commonroad-io==2021.4
 # dg-commons>=0.0.21 fixme temporary to use developing branch
-

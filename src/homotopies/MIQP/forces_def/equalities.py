@@ -16,8 +16,8 @@ def get_eq(n_controlled, n_inter):
     c = np.zeros((params.N, n_eq, 1))
     for stage_idx in range(params.N):
         for p_idx in range(n_controlled):
-            eq_start_idx = params.n_binputs * n_inter + p_idx*params.n_states
-            eq_idx = list(range(eq_start_idx, eq_start_idx+params.n_states))
+            eq_start_idx = params.n_binputs * n_inter + p_idx * params.n_states
+            eq_idx = list(range(eq_start_idx, eq_start_idx + params.n_states))
             z_start_idx = (params.n_binputs + params.n_slacks) * n_inter + (params.n_cinputs + params.n_states) * p_idx
             z_idx = list(range(z_start_idx, z_start_idx + params.n_cinputs + params.n_states))
 

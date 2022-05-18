@@ -6,28 +6,33 @@ from itertools import combinations
 from homotopies.MIQP.utils.visualization import *
 
 
-def generate_report_all(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
-                        intersects: Dict[PlayerName, Dict[PlayerName, float]],
-                        color: Dict[PlayerName, str]) -> Report:
-    r = Report(nid='prediction')
+def generate_report_all(
+    trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
+    intersects: Dict[PlayerName, Dict[PlayerName, float]],
+    color: Dict[PlayerName, str],
+) -> Report:
+    r = Report(nid="prediction")
     r.add_child(generate_report_trajs(trajs, intersects, color))
     r.add_child(generate_report_boxes(trajs, intersects))
     return r
 
 
-def generate_report_trajs(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
-                          intersects: Dict[PlayerName, Dict[PlayerName, float]],
-                          color: Dict[PlayerName, str]) -> Report:
-    r_trajs = Report(nid='trajectories')
-    with r_trajs.plot(nid='world_frame') as pylab:
+def generate_report_trajs(
+    trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
+    intersects: Dict[PlayerName, Dict[PlayerName, float]],
+    color: Dict[PlayerName, str],
+) -> Report:
+    r_trajs = Report(nid="trajectories")
+    with r_trajs.plot(nid="world_frame") as pylab:
         ax_traj = pylab.gca()
         visualize_trajs_all(trajs, intersects, ax_traj, color)
     return r_trajs
 
 
-def generate_report_boxes(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
-                          intersects: Dict[PlayerName, Dict[PlayerName, float]]) -> Report:
-    r_boxes = Report(nid='boxes')
+def generate_report_boxes(
+    trajs: Dict[PlayerName, DgSampledSequence[SE2value]], intersects: Dict[PlayerName, Dict[PlayerName, float]]
+) -> Report:
+    r_boxes = Report(nid="boxes")
     n_player = len(trajs.keys())
     n_plot = int(n_player * (n_player - 1) / 2)
     f = r_boxes.figure(cols=n_plot)
@@ -40,15 +45,16 @@ def generate_report_boxes(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
     return r_boxes
 
 
-def generate_report_3d_boxes(trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
-                             intersects: Dict[PlayerName, Dict[PlayerName, float]],
-                             player1: PlayerName,
-                             player2: PlayerName,
-                             player3: PlayerName) -> Report:
+def generate_report_3d_boxes(
+    trajs: Dict[PlayerName, DgSampledSequence[SE2value]],
+    intersects: Dict[PlayerName, Dict[PlayerName, float]],
+    player1: PlayerName,
+    player2: PlayerName,
+    player3: PlayerName,
+) -> Report:
     # todo: don't know how to set projection=3d
-    r_3d = Report(nid='3d_boxes')
-    with r_3d.plot(nid='test') as pylab:
+    r_3d = Report(nid="3d_boxes")
+    with r_3d.plot(nid="test") as pylab:
         ax = pylab.gca()
         visualize_box_3d(trajs, intersects, player1, player2, player3, ax)
     return r_3d
-

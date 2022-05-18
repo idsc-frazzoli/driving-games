@@ -6,9 +6,9 @@ from homotopies.MIQP.scenario import get_simple_scenario, get_commonroad_scenari
 from homotopies.MIQP.homotopy.homotopy import Homotopy
 
 """scenario settings"""
-player1 = PlayerName('p1')
-player2 = PlayerName('p2')
-player3 = PlayerName('p3')
+player1 = PlayerName("p1")
+player2 = PlayerName("p2")
+player3 = PlayerName("p3")
 n_player = 3
 
 # choose from simple scenario or commonroad scenario. see MIQP/scenario.py
@@ -18,20 +18,24 @@ trajs, intersects, x0, scenario = get_commonroad_scenario()
 """generate solver"""
 n_controlled = n_player
 n_inter = int(n_player * (n_player - 1) / 2)
-use_bin_init = True # fix the binary variable values at the first stage
+use_bin_init = True  # fix the binary variable values at the first stage
 
 solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init)
-module_name = solver_name + '_py'
+module_name = solver_name + "_py"
 
 """start simulation"""
 h = [1, 0, 0]  # {player1: {player2: 1, player3: 0}, player2: {player3: 0}}
 homotopy = Homotopy(intersects=intersects, players=trajs.keys(), vx_ref=None, h=h)
-X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, homotopy, use_bin_init)
+X_plans, dds_plans, bin_plans, solvetime, performance = sim(
+    module_name, n_controlled, n_inter, trajs, intersects, x0, homotopy, use_bin_init
+)
 
 """ generate report"""
-colors = {player1: 'blue', player2: 'green', player3: 'black'}
+colors = {player1: "blue", player2: "green", player3: "black"}
 report_name = ""
 for b in homotopy.h:
     report_name += str(b)
-r = generate_report_solver(report_name, n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, colors, scenario)
+r = generate_report_solver(
+    report_name, n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, colors, scenario
+)
 r.to_html(report_name)

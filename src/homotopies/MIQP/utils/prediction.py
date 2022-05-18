@@ -49,9 +49,11 @@ def state2traj(state: VehicleState, horizon: float, dt: float) -> DgSampledSeque
         t, theta = translation_angle_from_SE2(traj[i])
         dtheta = v * np.tan(delta) / vehicle_geometry.length
         vy = dtheta * vehicle_geometry.lr
-        curr_xytheta = [t[0] + dt * (v * np.cos(theta) - vy * np.sin(theta)),
-                        t[1] + dt * (v * np.sin(theta) + vy * np.cos(theta)),
-                        theta + dt * dtheta]
+        curr_xytheta = [
+            t[0] + dt * (v * np.cos(theta) - vy * np.sin(theta)),
+            t[1] + dt * (v * np.sin(theta) + vy * np.cos(theta)),
+            theta + dt * dtheta,
+        ]
         curr_pose = SE2_from_xytheta(curr_xytheta)
         time += [time[i] + dt]
         traj += [curr_pose]
@@ -106,5 +108,5 @@ def traj_from_commonroad(scenario_name, scenario_dir, obstacle_id, offset: Optio
                 pos = state.position + offset
                 new_pose = pos.tolist() + [state.orientation]
                 poses += [SE2_from_xytheta(new_pose)]
-                timestamp += [scenario.dt * (state.time_step-1)]
+                timestamp += [scenario.dt * (state.time_step - 1)]
     return DgSampledSequence[SE2value](timestamp, values=poses)

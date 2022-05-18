@@ -4,6 +4,7 @@ from enum import IntEnum, unique
 @unique
 class IdxInputB(IntEnum):
     """binary variables"""
+
     Sigma1_n = 0
     """binary variable indicating whether vehicle1 has reached the intersection"""
     Sigma1_p = 1
@@ -17,6 +18,7 @@ class IdxInputB(IntEnum):
 @unique
 class IdxSlack(IntEnum):
     """slack variables for constructing interstage equality constraints of binary variables"""
+
     Slack1_n = 4
     """slack variable for sigma1_n"""
     Slack1_p = 5
@@ -30,6 +32,7 @@ class IdxSlack(IntEnum):
 @unique
 class IdxInputC(IntEnum):
     """continuous variable"""
+
     ddS = 0
     """longitudinal acc"""
 
@@ -37,6 +40,7 @@ class IdxInputC(IntEnum):
 @unique
 class IdxState(IntEnum):
     """states"""
+
     S = 1
     """longitudinal position"""
     dS = 2

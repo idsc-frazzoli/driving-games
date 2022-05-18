@@ -39,25 +39,25 @@ def sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_in
 
         #  provide initial values
         if use_bin_init:
-            problem['minus_x0'] = -np.append(bin_init, X[:, k])
+            problem["minus_x0"] = -np.append(bin_init, X[:, k])
         else:
-            problem['minus_x0'] = -X[:, k]
+            problem["minus_x0"] = -X[:, k]
 
         for j in range(0, params.N):
-            problem['ineq_A{:02d}'.format(j + 1)] = A
-            problem['ineq_b{:02d}'.format(j + 1)] = b
+            problem["ineq_A{:02d}".format(j + 1)] = A
+            problem["ineq_b{:02d}".format(j + 1)] = b
 
         [solverout, exitflag, info] = solver_module.test_solve(problem)
 
-        if (exitflag == 1):
+        if exitflag == 1:
             X_plan, dds_plan, bin_plan = extract_plans(solverout, n_controlled, n_inter)
             X_plans[:, 1:, k] = X_plan
             dds_plans[:, :, k] = dds_plan
             bin_plans[:, :, k] = bin_plan
             solvetime[k] = info.solvetime * 1000
-            print('Problem solved in %5.3f milliseconds (%d iterations).' % (1000.0 * info.solvetime, info.it))
+            print("Problem solved in %5.3f milliseconds (%d iterations)." % (1000.0 * info.solvetime, info.it))
         else:
-            print('exitflag=', exitflag)
+            print("exitflag=", exitflag)
             X_plans = X_plans[:, :, :k]
             dds_plans = dds_plans[:, :, :k]
             bin_plans = bin_plans[:, :, :k]

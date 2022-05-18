@@ -21,15 +21,19 @@ class ForcesException(Exception):
                 "the  requested  accuracy). "
             )
         elif exitflag == 2:
-            return(
-                    "(for branch - and -bound) A feasible point has been identified for which the objective value is "
-                    "no more than codeoptions.mip.mipgap * 100 per cent worse than the global optimum. "
-                    "(for convex solver) Solver timeout has been reached."
+            return (
+                "(for branch - and -bound) A feasible point has been identified for which the objective value is "
+                "no more than codeoptions.mip.mipgap * 100 per cent worse than the global optimum. "
+                "(for convex solver) Solver timeout has been reached."
             )
-        elif exitflag ==-1:
-            return "(only branch-and-bound) Infeasible problem (problems solving the root relaxation to desired accuracy)."
+        elif exitflag == -1:
+            return (
+                "(only branch-and-bound) Infeasible problem (problems solving the root relaxation to desired accuracy)."
+            )
         elif exitflag == -2:
-            return "(only branch-and-bound) Out of memory – cannot fit branch and bound nodes into pre-allocated memory."
+            return (
+                "(only branch-and-bound) Out of memory – cannot fit branch and bound nodes into pre-allocated memory."
+            )
         elif exitflag == -4:
             return "Wrong  number  of  inequalities  input  to  solver."
         elif exitflag == -5:
