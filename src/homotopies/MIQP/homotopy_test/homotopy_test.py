@@ -35,11 +35,14 @@ module_name = solver_name + '_py'
 homotopies_sorted = evaluate_homotopy(intersects, trajs.keys(), vx_ref)
 r = Report('homotopy_test')
 r.add_child(generate_homotopy_report(homotopies_sorted))
-for h in homotopies_sorted:
-    X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init)
+for homotopy in homotopies_sorted:
+    X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, homotopy, use_bin_init)
     # generate report
     colors = {player1: 'blue', player2: 'green', player3: 'black'}
-    r.add_child(generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, h, colors,
+    report_name = ""
+    for b in homotopy.h:
+        report_name += str(b)
+    r.add_child(generate_report_solver(report_name, n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, colors,
                                scenario))
     report_file = "homotopy_test"
     r.to_html(report_file)

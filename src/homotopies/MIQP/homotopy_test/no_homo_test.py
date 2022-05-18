@@ -32,7 +32,8 @@ h = None
 X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, h, use_bin_init, use_homo)
 # generate report
 colors = {player1: 'blue', player2: 'green', player3: 'black'}
-r.add_child(generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, h, colors,
+report_name = "no_homotopy_test"
+r.add_child(generate_report_solver(report_name, n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, colors,
                            scenario))
 report_file = "no_homotopy_test"
 r.to_html(report_file)

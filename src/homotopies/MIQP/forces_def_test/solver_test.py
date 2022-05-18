@@ -24,12 +24,14 @@ solver_name = generate_solver(n_player, n_controlled, n_inter, use_bin_init)
 module_name = solver_name + '_py'
 
 """start simulation"""
-h = [0, 1, 1]  # {player1: {player2: 1, player3: 0}, player2: {player3: 0}}
+h = [1, 0, 0]  # {player1: {player2: 1, player3: 0}, player2: {player3: 0}}
 homotopy = Homotopy(intersects=intersects, players=trajs.keys(), vx_ref=None, h=h)
 X_plans, dds_plans, bin_plans, solvetime, performance = sim(module_name, n_controlled, n_inter, trajs, intersects, x0, homotopy, use_bin_init)
 
 """ generate report"""
 colors = {player1: 'blue', player2: 'green', player3: 'black'}
-r = generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, homotopy, colors, scenario)
-report_file = "111_time"
-r.to_html(report_file)
+report_name = ""
+for b in homotopy.h:
+    report_name += str(b)
+r = generate_report_solver(report_name, n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, colors, scenario)
+r.to_html(report_name)

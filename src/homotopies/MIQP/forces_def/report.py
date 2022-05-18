@@ -134,7 +134,7 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
 
     img, *imgs = [Image.open(f) for f in sorted(glob.glob(tmp_folder + "/*.png"))]
     r = Report("OpenLoopAnimation")
-    with r.data_file(f"test", MIME_GIF) as f:
+    with r.data_file(f"Animation", MIME_GIF) as f:
         duration = int(params.dt * 1e3)
         img.save(f,
                  save_all=True,
@@ -144,22 +144,16 @@ def get_open_loop_animation(trajs: Dict[PlayerName, DgSampledSequence[SE2value]]
                  loop=0)
 
     # clean up
-    # for filePath in glob.glob(tmp_folder + "/*.png"):
-    #     try:
-    #         os.remove(filePath)
-    #     except OSError:
-    #         print("Error while deleting file")
+    for filePath in glob.glob(tmp_folder + "/*.png"):
+        try:
+            os.remove(filePath)
+        except OSError:
+            print("Error while deleting file")
     return r
 
 
-def generate_report_solver(n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, homotopy, colors, scenario):
+def generate_report_solver(report_name, n_controlled, trajs, intersects, X_plans, dds_plans, solvetime, performance, colors, scenario):
     """generate all reports for solving the path planning problem with a given homotopy class"""
-    if homotopy is not None:
-        report_name = ""
-        for b in homotopy.h:
-            report_name += str(b)
-    else:
-        report_name = "no_homo_test"
     r = Report(report_name)
     r.add_child(get_open_loop_animation(trajs, X_plans, colors, scenario))
     r.add_child(generate_report_s_traj(X_plans, trajs, intersects))
