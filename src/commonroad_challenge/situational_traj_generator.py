@@ -55,29 +55,43 @@ class SituationalTrajectoryGenerator:
 
         cr_vehicle_params = vehicle_parameters[self.vehicle_type]
 
-        # todo: remove is_ego, only for development
+        # todo: remove is_ego, only for developement
         if is_ego:
             pose = extract_pose_from_state(state)
             ref_lane = self.ref_lane_goal.ref_lane
             goal_progress = self.ref_lane_goal.goal_progress
-            avg_dist_to_goal = goal_progress - ref_lane.lane_pose_from_SE2_generic(pose).along_lane
+            current_progress = ref_lane.lane_pose_from_SE2_generic(pose).along_lane
+            avg_dist_to_goal = goal_progress - current_progress
+            self.sharp_turn_ahead(current_progress, look_ahead_progress=30.0)
 
-            # find a that reaches goal by approximating by linear motion with constant acceleration
-            acc_mean = 2.0 * (avg_dist_to_goal - state.vx * time_to_goal) / time_to_goal ** 2
-            acc_max = abs(acc_mean)
+            max_velocity_for_turn = 6.0
+
+            # slow down if incoming sharp turn
+            if state.vx > max_velocity_for_turn and self.sharp_turn_ahead(current_progress, look_ahead_progress=30.0):
+                velocity_delta = state.vx - max_velocity_for_turn
+                u_acc = frozenset(np.array([-velocity_delta, -velocity_delta/2.0]))
+            # if the goal is not reached yet
+            elif avg_dist_to_goal > 0.0:
+                # approximate with linear motion with constant velocity to find average acceleration
+                acc_mean = 2.0 * (avg_dist_to_goal - state.vx * time_to_goal) / time_to_goal ** 2
+                u_acc_lb = max(-abs(acc_mean) * 5.0 + acc_mean, -1 * cr_vehicle_params.longitudinal.a_max)
+                u_acc_ub = min(acc_mean + abs(acc_mean), cr_vehicle_params.longitudinal.a_max)
+                u_acc = frozenset(np.linspace(u_acc_lb, u_acc_ub, num=3, endpoint=True))
+            # if goal is already reached. Brake.
+            elif avg_dist_to_goal <= 0.0:
+                u_acc = frozenset(np.linspace(-6.0, -1.0, num=3, endpoint=True))
 
 
+            u_dst = frozenset(np.array([-0.4, 0, 0.4]))
 
-            if self.avg_curvature() < 1e-2:
-                # always allow more braking than accelerating
-                u_acc = frozenset(
-                    np.linspace(-abs(acc_mean) * 5.0 + acc_mean, acc_mean + abs(acc_mean), num=5, endpoint=True))
-                u_dst = frozenset([0.0])
-            else:
-                # always allow more braking than accelerating
-                u_acc = frozenset(
-                    np.linspace(-abs(acc_mean) * 5.0 + acc_mean, acc_mean + abs(acc_mean), num=3, endpoint=True))
-                u_dst = frozenset(np.array([-0.3, 0, 0.3]))
+
+            # if self.avg_curvature() < 1e-2:
+            #     # always allow more braking than accelerating
+            #     u_acc = frozenset(
+            #         np.linspace(-abs(acc_mean) * 5.0 + acc_mean, acc_mean + abs(acc_mean), num=5, endpoint=True))
+            #     u_dst = frozenset([0.0])
+            # else:
+            # always allow more braking than accelerating
 
             # todo: if vehicle is oriented along straight street, leave out dst!!
 
@@ -85,7 +99,10 @@ class SituationalTrajectoryGenerator:
             u_acc = frozenset(np.array([0.0]))
             u_dst = frozenset(np.array([0.0]))
 
-        # u_dst = frozenset(np.array([-0.5, -0.3])) # Testing
+
+
+
+
 
         vg = VehicleGeometry(
             vehicle_type=CAR,
@@ -118,6 +135,20 @@ class SituationalTrajectoryGenerator:
             n_factor=1.0,
             vg=vg
         )
+
+    def sharp_turn_ahead(self, current_progress, look_ahead_progress, threshold=0.07) -> bool:
+        total_length = self.ref_lane_goal.ref_lane.get_lane_length()
+        init_progress_fraction = current_progress/total_length
+        init_curvature_idx = int(np.size(self.path_curvature)*init_progress_fraction)
+        end_progress_fraction = (current_progress + look_ahead_progress) / total_length
+        end_curvature_idx = int(np.size(self.path_curvature)*end_progress_fraction)
+
+        curvature_subseq = self.path_curvature[init_curvature_idx:end_curvature_idx]
+        sharp_turn_ahead = any(curvature_subseq > 0.07)
+
+        return sharp_turn_ahead
+
+
 
     def filter_actions(self, trajectories: FrozenSet[Dg_Trajectory], n_actions: int = 10) \
             -> FrozenSet[Dg_Trajectory]:

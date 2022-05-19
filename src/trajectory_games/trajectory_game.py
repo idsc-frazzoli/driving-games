@@ -49,6 +49,7 @@ __all__ = [
     "SolvedRecursiveLeaderFollowerGame",
     "preprocess_full_game",
     "preprocess_player",
+    "get_only_context",
     "get_context_and_graphs"
 ]
 
@@ -313,10 +314,11 @@ def filter_actions(trajectories: FrozenSet[Trajectory], n_actions: int = 10) -> 
         cand_traj = random.sample(remaining_trajs, 1)[0]
         dt = cand_traj.timestamps[1] - cand_traj.timestamps[0]
         remaining_trajs.remove(cand_traj)
-        feasible = feasibility_check(cand_traj, vehicle_dynamics, dt)
-        if feasible:
-            # print("found one feasible trajectory")
-            subset_trajs.add(cand_traj)
+        # todo: account for feasibility
+        # feasible = feasibility_check(cand_traj, vehicle_dynamics, dt)
+        # if feasible:
+        # print("found one feasible trajectory")
+        subset_trajs.add(cand_traj)
 
     # print("Total number of trajectories: " + str(len(subset_trajs)))
     return frozenset(subset_trajs)
@@ -380,7 +382,14 @@ def get_context_and_graphs(
         for graph in traj_graphs[player_name]:
             # all_trajectories_p |= graph.get_all_trajectories()
             all_trajectories_p |= graph.get_all_transitions()
-            subset_trajs_p = filter_actions(trajectories=frozenset(all_trajectories_p), n_actions=max_n_traj[player_name])
+            if player_name == PlayerName("Ego"):
+                accept_only_feasible = False
+                # todo: account for feasibility!
+            else:
+                accept_only_feasible = False  # todo: workaround for DEU_Cologne-40_6
+
+            subset_trajs_p = filter_actions(trajectories=frozenset(all_trajectories_p),
+                                            n_actions=max_n_traj[player_name])
             all_trajectories[player_name] = frozenset(subset_trajs_p)
 
     # # subsample trajectories at random to limit action number
@@ -405,6 +414,38 @@ def get_context_and_graphs(
         game.get_outcomes(joint_traj)
 
     return get_context(sgame=game, actions=all_trajectories), traj_graphs
+
+
+def get_only_context(
+        sgame: TrajectoryGame,
+        actions: Mapping[PlayerName, FrozenSet[Trajectory]]
+) -> SolvingContext:
+    """
+    Construct solving context and return trajectory graphs for all players.
+    :param game:        Trajectory Game
+    :param actions:     Trajectories for each player
+    :return:            Solving Context
+    """
+
+    def get_context(sgame: TrajectoryGame,
+                    actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
+        pref: Mapping[PlayerName, Preference[PlayerEvaluatedMetrics]] = {
+            name: player.preference for name, player in sgame.game_players.items()
+        }
+
+        kwargs = {
+            "player_actions": actions,
+            "game_outcomes": sgame.get_outcomes,
+            "outcome_pref": pref,
+            "solver_params": None,
+        }
+
+        return SolvingContext(**kwargs)
+
+    for joint_traj in set(iterate_dict_combinations(actions)):
+        sgame.get_outcomes(joint_traj)
+
+    return get_context(sgame=sgame, actions=actions)
 
 
 def preprocess_full_game(sgame: Game, only_traj: bool = False) -> SolvingContext:

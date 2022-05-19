@@ -143,7 +143,7 @@ def interacting_agents(
     leading_area_of_interest = rectangle_around_ego(ego_state=ego_state,
                                                     look_forward_dist=look_ahead_dist,
                                                     look_backward_dist=0.0,
-                                                    look_lateral_dist=1.5)
+                                                    look_lateral_dist=1.0)
 
     leading_obs = filter_obstacles(scenario, leading_area_of_interest)
     around_obs = []
@@ -1115,23 +1115,13 @@ class SafeDistance_CR(Metric):
             # convert VehicleState to commonroad State
             ego_state = convert_to_cr_state(traj.values[0], 0)
             # determine what is the leading vehicle (if there is one)
-            # inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
-            #                                   ego_state=ego_state,
-            #                                   look_ahead_dist=50.0,
-            #                                   around_dist_r=0.0,
-            #                                   around_dist_f=0.0,
-            #                                   around_dist_lat=0.0,
-            #                                   only_leading=True)
-
             inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
                                               ego_state=ego_state,
-                                              look_ahead_dist=0.0,
+                                              look_ahead_dist=50.0,
                                               around_dist_r=0.0,
                                               around_dist_f=0.0,
                                               around_dist_lat=0.0,
                                               only_leading=True)
-
-
 
             leading_obs = inter_agents["leading"]
             if len(leading_obs) > 0:
@@ -1189,15 +1179,15 @@ def get_joint_metrics() -> Set[Metric]:
 # Only necessary metrics -> speed up computations for Commonroad challenge
 def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = {
-        # SteeringRateSquared(),
+        SteeringRateSquared(),
         LongitudinalAccelerationSquared(),
-        # DeviationLateralSquared(),
-        # RoadCompliance_CR(),
-        # DistanceToObstacle_CR(),
-        # ProgressAlongReference(),
-        # MaximumVelocity_CR(),
-        # SafeDistance_CR(),
-        # DrivableAreaViolation()
+        DeviationLateralSquared(),
+        RoadCompliance_CR(),
+        DistanceToObstacle_CR(),
+        ProgressAlongReference(),
+        MaximumVelocity_CR(),
+        SafeDistance_CR(),
+        DrivableAreaViolation()
     }
     return metrics
 

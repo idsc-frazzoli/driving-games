@@ -53,6 +53,10 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     def get_actions(self, state: VehicleState, return_graphs=False) -> FrozenSet[Union[Trajectory, TrajectoryGraph]]:
         """
         Computes set of feasible trajectories for given state along reference lanes
+        :param state: state of vehicle
+        :param return_graphs: wether to return directly the graphs or not
+        :param require_total_length: wether all returned trajectories should be of the same length, given by
+                number of generations specified in trajector generator parameters
         """
         tic = perf_counter()
         lane_graphs = self.get_lanes_actions(state=state)

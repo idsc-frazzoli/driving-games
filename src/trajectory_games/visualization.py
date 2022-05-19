@@ -45,6 +45,7 @@ class TrajectoryGenerationVisualization:
             scenario: Scenario,
             ax: Axes = None,
             trajectories: Optional[FrozenSet[Trajectory]] = None,
+            ref_lane_goal: Optional[RefLaneGoal] = None,
             plot_limits: Optional[str] = "auto",
             *args,
             **kwargs,
@@ -54,12 +55,15 @@ class TrajectoryGenerationVisualization:
         self.commonroad_renderer: MPRenderer = MPRenderer(ax=ax, *args, figsize=(16, 16), **kwargs)
         self.trajectories = trajectories
         self.axis = ax
+        if ref_lane_goal:
+            self.ref_lane_goal = ref_lane_goal
+
 
     def plot_arena(self, draw_labels: bool):
         self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = False
         self.commonroad_renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
         if draw_labels:
-            self.commonroad_renderer.draw_params["lanelet"]["show_label"] = True
+            self.commonroad_renderer.draw_params["lanelet"]["show_label"] = False
 
         self.scenario.draw(self.commonroad_renderer)
         self.commonroad_renderer.render()
@@ -80,6 +84,23 @@ class TrajectoryGenerationVisualization:
 
         return lines
 
+    @staticmethod
+    def plot_ref(axis: Axes, ref_lane_goal: RefLaneGoal, color: Color = None, width: float = 0.7, alpha: float = 1.0,):
+        ref_lane = ref_lane_goal.ref_lane
+        progress = ref_lane_goal.goal_progress
+
+        goal_segments = [np.array([point.q.p for point in ref_lane.get_control_points])]
+                # if action_colors is not None:
+                #     goal_colors.append(lighten_color(goals_colors[i], amount=0.7))
+
+        goal_lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.GOAL)
+        axis.add_collection(goal_lines)
+        goal_lines.set_segments(segments=goal_segments)
+        goal_lines.set_linestyle("--")
+        goal_lines.set_color("black")
+
+        return goal_lines
+
     def plot(
             self,
             show_plot: bool = False,
@@ -91,6 +112,8 @@ class TrajectoryGenerationVisualization:
         self.plot_arena(draw_labels=draw_labels)
         if self.trajectories:
             _ = self.plot_actions(axis=self.commonroad_renderer.ax, trajectories=self.trajectories, color=action_color)
+        if self.ref_lane_goal:
+            _ = self.plot_ref(axis=self.commonroad_renderer.ax, ref_lane_goal=self.ref_lane_goal)
         if filename:
             plt.savefig(filename)
         if show_plot:

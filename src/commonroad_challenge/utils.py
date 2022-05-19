@@ -16,7 +16,7 @@ from commonroad_route_planner.utility.visualization import visualize_route
 from shapely.geometry import Point, LineString, Polygon
 from sumocr.interface.ego_vehicle import EgoVehicle
 
-from dg_commons import PlayerName, SE2Transform
+from dg_commons import PlayerName, SE2Transform, logger
 from dg_commons.maps import DgLanelet, LaneCtrPoint
 from dg_commons.planning import RefLaneGoal
 from dg_commons.sim.models.model_structures import CAR
@@ -26,7 +26,9 @@ from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from trajectory_games.structures import TrajectoryGenParams
 
-goal_frac = 0.8
+# fraction of reference lanelet that is considered as "goal reached"
+goal_frac = 0.95
+
 
 
 # find all interactive scenarios inside a scenario folder
@@ -103,7 +105,7 @@ def interacting_agents(
     leading_area_of_interest = rectangle_around_ego(ego_state=ego_state,
                                                     look_forward_dist=look_ahead_dist,
                                                     look_backward_dist=0.0,
-                                                    look_lateral_dist=1.5)
+                                                    look_lateral_dist=1.0)
 
     leading_obs = filter_obstacles(scenario, leading_area_of_interest)
 
@@ -157,14 +159,16 @@ def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> Stat
 
 
 def get_initial_states(
-        ego_vehicle: EgoVehicle,
+        ego_vehicle_state: State,
         dyn_obs_list: List[DynamicObstacle]) -> Mapping[PlayerName, VehicleState]:
+
     initial_states: Mapping[PlayerName, VehicleState] = {
-        PlayerName("Ego"): convert_from_cr_state(ego_vehicle.current_state)
+        PlayerName("Ego"): convert_from_cr_state(ego_vehicle_state)
     }
 
     for dyn_obs in dyn_obs_list:
-        initial_states[PlayerName(str(dyn_obs.obstacle_id))] = convert_from_cr_state(dyn_obs.initial_state)
+        obs_name = PlayerName(str(dyn_obs.obstacle_id))
+        initial_states[obs_name] = convert_from_cr_state(dyn_obs.initial_state)
 
     return initial_states
 
@@ -175,10 +179,18 @@ def generate_refs_by_merging_successors(state: State, network: LaneletNetwork):
 
 
 def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, plot_route: bool = False):
+    # try with allow_diagonals=True (returns better reference lanes for lane changes)
     # careful: allow_diagonal is not tested according to Commonroad Library
-    route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.PRIORITY_QUEUE, allow_diagonal=True)
+    route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.PRIORITY_QUEUE,
+                                 allow_diagonal=False) #todo: put this back to true if needed
     # plan routes, save multiple routes as list in candidate holder
     candidate_holder = route_planner.plan_routes()
+    # if candidate_holder.num_route_candidates == 0:
+    #     # don't allow diagonals
+    #     route_planner = RoutePlanner(scenario, planning_problem, backend=RoutePlanner.Backend.PRIORITY_QUEUE,
+    #                                  allow_diagonal=False)
+    #     # plan routes, save multiple routes as list in candidate holder
+    #     candidate_holder = route_planner.plan_routes()
 
     # here we retrieve the first route
     # option 1: retrieve first route
@@ -189,7 +201,7 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
     # route = candidate_holder.retrieve_best_route_by_orientation()
 
     matplotlib.use("TkAgg")
-    # plot_route = True
+    plot_route = False
     if plot_route:
         visualize_route(route, draw_route_lanelets=True, draw_reference_path=True, size_x=6)
 
@@ -206,7 +218,6 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
         r = np.linalg.norm(lanelet.left_vertices[dist_idx] - lanelet.right_vertices[dist_idx]) / 2.0
         return r
 
-
     n_ctrl_points = 50
     # remove first point and last 3 points in order to avoid going out of scenario boundaries
     idx = np.round(np.linspace(1, len(route.reference_path) - 3, n_ctrl_points)).astype(int)
@@ -216,11 +227,20 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
     rs = [get_radius_from_lanelet(p) for p in ps]
 
     qs = [SE2Transform(p=p, theta=theta) for p, theta in zip(ps, theta)]
-
     ctr_points = [LaneCtrPoint(q=q, r=r) for q, r in zip(qs, rs)]
+    dg_lanelet = DgLanelet(control_points=ctr_points)
 
-    return DgLanelet(control_points=ctr_points), route.path_curvature
+    # computing desired progress by taking center of goal region (issue when we start already after that)
+    # try:
+    #     center_goal_region = planning_problem.goal.state_list[0].position.shapes[0].center
+    #     beta, _ = dg_lanelet.find_along_lane_closest_point(center_goal_region)
+    #     goal_progress = dg_lanelet.along_lane_from_beta(beta)
 
+    # except:
+    #     logger.info("There was a problem in goal progress computation. Applying 80% of final goal.")
+    goal_progress = dg_lanelet.get_lane_length()*goal_frac
+
+    return RefLaneGoal(ref_lane=dg_lanelet, goal_progress=goal_progress), route.path_curvature
 
     # has a bug for certain routes, where routeplanner returns adjacent lanes (and not only successors)
     # # retrieve reference path from route
@@ -243,13 +263,13 @@ def generate_ref_lanes(
 
     network = scenario.lanelet_network
 
-    ego_ref_dglanelet, route_curvature_ego = generate_route_ego(scenario, planning_problem)
+    ego_ref_lane_goal, route_curvature_ego = generate_route_ego(scenario=scenario, planning_problem=planning_problem)
 
     # todo: need to adapt metrics to use this correctly
-    ref_lanes[PlayerName("Ego")] = RefLaneGoal(ego_ref_dglanelet, ego_ref_dglanelet.get_lane_length() * goal_frac)
+    ref_lanes[PlayerName("Ego")] = ego_ref_lane_goal
 
     for dyn_obs in inter_agents:
-        ref_lane = generate_refs_by_merging_successors(dyn_obs.initial_state, network)
+        ref_lane = generate_refs_by_merging_successors(state=dyn_obs.initial_state, network=network)
         ref_lanes[PlayerName(str(dyn_obs.obstacle_id))] = RefLaneGoal(ref_lane, ref_lane.get_lane_length())
     return ref_lanes, route_curvature_ego
 
@@ -269,7 +289,6 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
     vp = VehicleParameters(
         vx_limits=(0.0, cr_vehicle_params.longitudinal.v_max),  # don't allow backwards driving
         acc_limits=(-cr_vehicle_params.longitudinal.a_max, cr_vehicle_params.longitudinal.a_max),
-        # todo 5: Correct? No max braking is given
         delta_max=cr_vehicle_params.steering.max,
         ddelta_max=cr_vehicle_params.steering.v_max
     )
@@ -277,12 +296,12 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
     v_switch = cr_vehicle_params.longitudinal.v_switch
 
     if is_ego:
-        u_acc = frozenset([-3.0])
-        u_dst = frozenset([0.0])
+        u_acc = frozenset([-1.0, -2.0, -3.0])
+        u_dst = frozenset([-0.3, 0.0, 0.3])
 
     else:
-        u_acc = frozenset([-1.0])
-        u_dst = frozenset([0.0])
+        u_acc = frozenset([-1.0, -2.0, -3.0])
+        u_dst = frozenset([-0.3, 0.0, 0.3])
 
     vg = VehicleGeometry(
         vehicle_type=CAR,
@@ -300,7 +319,7 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
     params = TrajectoryGenParams(
         solve=False,
         s_final=-1,  # todo: adapt metrics to use this
-        max_gen=5,
+        max_gen=7,
         dt=D("1.0"),
         u_acc=u_acc,
         u_dst=u_dst,

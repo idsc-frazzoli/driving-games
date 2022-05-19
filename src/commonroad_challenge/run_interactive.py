@@ -17,7 +17,7 @@ sys.path.append(os.path.join(os.getcwd(), "../"))
 
 def run_all_scenarios(with_ego: bool, without_ego: bool, scenarios_dir: str, output_dir: str):
     all_paths = find_all_scenarios(scenarios_dir)
-    random.seed(60)
+    random.seed(100)
     random.shuffle(all_paths)
 
     for scenario_path in all_paths:
@@ -91,6 +91,9 @@ def simulate_with_ego(scenario_path: str, output_dir: str, create_video: bool = 
 if __name__ == "__main__":
     # directory where scenarios are stored
     scenarios_dir = "/media/leon/Extreme SSD1/MT/scenarios_phase_1"
+    scenarios_debug = "/media/leon/Extreme SSD1/MT/scenarios_phase_1_debug"
+    experiment_1905 = "/media/leon/Extreme SSD1/MT/experiment_1905"
+    scenario_problematic = "/media/leon/Extreme SSD1/MT/problematic"
     # directory to store outputs
     output_dir = "/media/leon/Extreme SSD1/MT/experiments/"
     output_dir = os.path.join(output_dir, datetime.now().strftime("%d-%m-%y-%H%M%S"))
@@ -111,20 +114,32 @@ if __name__ == "__main__":
     vehicle_model = VehicleModel.KS
     cost_function = CostFunction.TR1
 
-    run_all_scenarios(with_ego=True, without_ego=True, scenarios_dir=scenarios_dir, output_dir=output_dir)
-    deu_aachen_1_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-3_1_I-1"
-    deu_aachen_29_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_3_I-1"
-    deu_aachen_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_2_I-1"
-    deu_dresden_3_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_17_I-1"
-    deu_dresden_18_7_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-18_7_I-1"
-    deu_cologne_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-10_12_I-1"
-    deu_cologne_13_10_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_10_I-1"
-    deu_aachen_33_4_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-33_4_I-1"
-    debug = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_11_I-1"
-    debug2 = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_6_I-1"
-    debug3 = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_19_I-1"
-    # run_scenario(with_ego=True, without_ego=True, scenario_path=debug2, output_dir=output_dir)
+    run_all_scenarios(with_ego=True, without_ego=True, scenarios_dir=scenarios_debug, output_dir=output_dir)
+    # deu_aachen_3_6_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-3_6_I-1"
+    deu_aachen_3_9_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-3_9_I-1"
+    deu_aachen_3_11_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-3_11_I-1"
+    # deu_aachen_29_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_3_I-1"
+    # deu_aachen_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_2_I-1"
+    # deu_dresden_3_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_17_I-1"
+    # deu_dresden_18_7_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-18_7_I-1"
+    # deu_cologne_2_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-10_12_I-1"
+    # deu_cologne_13_10_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_10_I-1"
+    # deu_aachen_33_4_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-33_4_I-1"
+    # debug = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_11_I-1"
+    # debug2 = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_6_I-1"
+    # debug3 = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_19_I-1"
+    # debug_route = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-10_24_I-1"
+    # # those two to debug
+    # debug_last = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-40_6_I-1"
+    # debug = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_3_I-1"
+    # debug_radius_lane = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-61_11_I-1"
+    deu_cologne_13_11_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_11_I-1"
+    deu_cologne_27_3_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-27_3_I-1"
+    deu_cologne_13_3_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-13_3_I-1"
+
+    # debug_this = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Cologne-21_11_I-1"
+    run_scenario(with_ego=True, without_ego=True, scenario_path=deu_aachen_3_11_path, output_dir=output_dir)
     # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_aachen_29_path, output_dir=output_dir)
     # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_dresden_3_path, output_dir=output_dir)
     # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_cologne_2_path, output_dir=output_dir)
-    run_scenario(with_ego=True, without_ego=True, scenario_path=debug3, output_dir=output_dir)
+    # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_cologne_13_3_path, output_dir=output_dir)
