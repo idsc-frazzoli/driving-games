@@ -306,6 +306,7 @@ class ProgressAlongReference(Metric):
     description = (
         "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
     )
+    min_progress = 10.0
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
@@ -316,10 +317,19 @@ class ProgressAlongReference(Metric):
 
             traj_sn = context.points_curv[player]
             # negative for smaller preferred
-            final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
+            # final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
+            final_progress = [traj_sn[-1].along_lane - traj_sn[0].along_lane]
+            if final_progress[0] < self.min_progress:
+                viol = 1.0
+            else:
+                viol = 0.0
+            # ret = EvaluatedMetric(
+            #     name=self.get_name(),
+            #     value=final_progress[0]
+            # )
             ret = EvaluatedMetric(
                 name=self.get_name(),
-                value=final_progress[0]
+                value=viol
             )
             self.cache[traj] = ret
             return ret
@@ -1156,6 +1166,7 @@ def get_personal_metrics() -> Set[Metric]:
         LateralComfort(),
         SteeringAngle(),
         SteeringRate(),
+        DrivableAreaViolation()
     }
     return metrics
 
@@ -1187,7 +1198,9 @@ def get_metrics_set() -> Set[Metric]:
         ProgressAlongReference(),
         MaximumVelocity_CR(),
         SafeDistance_CR(),
-        DrivableAreaViolation()
+        DrivableAreaViolation(),
+        DeviationHeading(),
+
     }
     return metrics
 
