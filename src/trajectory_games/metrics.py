@@ -315,12 +315,16 @@ class ProgressAlongReference(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
+
             traj_sn = context.points_curv[player]
             # negative for smaller preferred
             # final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
             final_progress = [traj_sn[-1].along_lane - traj_sn[0].along_lane]
             if final_progress[0] < self.min_progress:
                 viol = 1.0
+            # account for cases where final goal is reached
+            elif traj_sn[-1].along_lane > context.goals[player][0].goal_progress:
+                viol = 0.0
             else:
                 viol = 0.0
             # ret = EvaluatedMetric(
@@ -646,6 +650,7 @@ class DistanceToObstacle_CR(Clearance):
     description = "This metric computes the distance to other obstacles as specified in J_D, CommonRoad costs"
     sampling_time: Timestamp = 0.1
     clearance_tolerance: float = 10.0  # if distance between CoM of two vehicles is greater, approximate clearance
+    w_dist = 0.2
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
@@ -656,7 +661,6 @@ class DistanceToObstacle_CR(Clearance):
 
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             clearance_seq = []
-
             if clearances == {}:
                 return EvaluatedMetric(name=self.get_name(), value=0)
             for t in timestamps:
@@ -667,13 +671,78 @@ class DistanceToObstacle_CR(Clearance):
                 assert min_clear < 10000.0, "At least one clearance must be smaller than this."
                 clearance_seq.append(cr_dist(min_clear))
 
-            seq = DgSampledSequence[float](values=clearance_seq, timestamps=timestamps)
+            viol = [np.exp(-val*self.w_dist) for val in clearance_seq]
+            seq = DgSampledSequence[float](values=viol, timestamps=timestamps)
             ret = self.get_integrated_metric(seq=seq)
 
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
+
+class DistanceToObstacle_CR_new(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This Metric determines if a safe distance between an agent and the leading agent is respected"
+    w_dist = 0.2
+    interacting_agents = None
+    # use dynamic obstacles of scenario to evaluate if scenario has changed
+    dynamic_obstacles = None  # won't work probably
+    recompute_obstacles = False
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        # if self.dynamic_obstacles == None:
+        #     self.dynamic_obstacles = context.dgscenario.scenario.dynamic_obstacles
+        if self.dynamic_obstacles != context.dgscenario.scenario.dynamic_obstacles:
+            self.dynamic_obstacles = context.dgscenario.scenario.dynamic_obstacles
+            self.recompute_obstacles = True
+
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+
+            if self.recompute_obstacles:
+                # convert VehicleState to commonroad State
+                ego_state = convert_to_cr_state(traj.values[0], 0)
+                # determine what is the leading vehicle (if there is one)
+
+                self.inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
+                                                       ego_state=ego_state,
+                                                       look_ahead_dist=50.0,
+                                                       around_dist_r=10.0,
+                                                       around_dist_f=10.0,
+                                                       around_dist_lat=10.0,
+                                                       only_leading=False)
+
+                self.recompute_obstacles = False
+
+            dyn_obs = list(self.inter_agents.values())
+            dyn_obs_flat = [obs for obs_list in dyn_obs for obs in obs_list]
+
+            if len(dyn_obs_flat) > 0:
+                dist_viol = []
+                for t in traj.timestamps:
+                    dist_min = 10000.0
+                    for obs in dyn_obs_flat:
+                        l_name = PlayerName(str(obs.obstacle_id))
+                        l_traj: Trajectory = context.trajectories[l_name]
+                        pos_other = np.array([l_traj.at_interp(t).x, l_traj.at_interp(t).y])
+                        pos_self = np.array([traj.at_interp(t).x, traj.at_interp(t).y])
+                        dist = np.linalg.norm(pos_other-pos_self)
+                        if dist < dist_min:
+                            dist_min = dist
+
+                    dist_viol.append(dist_min)
+
+
+
+                viol = [np.exp(-val*self.w_dist) for val in dist_viol]
+                ret = self.get_integrated_metric(seq=DgSampledSequence[float](
+                    values=viol, timestamps=traj.get_sampling_points()))
+            else:
+                ret = EvaluatedMetric(name=self.get_name(), value=0.0)
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
 
 class MinimumClearance(Clearance):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
@@ -1100,10 +1169,18 @@ class SafeDistance_CR(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This Metric determines if a safe distance between an agent and the leading agent is respected"
     interacting_agents = None
-    joint_trajectories = None
+    # use dynamic obstacles of scenario to evaluate if scenario has changed
+    dynamic_obstacles = None  # won't work probably
+    recompute_obstacles = False
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        # if self.dynamic_obstacles == None:
+        #     self.dynamic_obstacles = context.dgscenario.scenario.dynamic_obstacles
+        if self.dynamic_obstacles != context.dgscenario.scenario.dynamic_obstacles:
+            self.dynamic_obstacles = context.dgscenario.scenario.dynamic_obstacles
+            self.recompute_obstacles = True
+
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
             traj: Trajectory = context.trajectories[player]
 
@@ -1122,18 +1199,25 @@ class SafeDistance_CR(Metric):
                 else:
                     return beta
 
-            # convert VehicleState to commonroad State
-            ego_state = convert_to_cr_state(traj.values[0], 0)
-            # determine what is the leading vehicle (if there is one)
-            inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
-                                              ego_state=ego_state,
-                                              look_ahead_dist=50.0,
-                                              around_dist_r=0.0,
-                                              around_dist_f=0.0,
-                                              around_dist_lat=0.0,
-                                              only_leading=True)
+            # self.recompute_obstacles = True
+            # print(self.recompute_obstacles)
+            if self.recompute_obstacles:
+                # convert VehicleState to commonroad State
+                ego_state = convert_to_cr_state(traj.values[0], 0)
+                # determine what is the leading vehicle (if there is one)
 
-            leading_obs = inter_agents["leading"]
+                self.inter_agents = interacting_agents(scenario=context.dgscenario.scenario,
+                                                       ego_state=ego_state,
+                                                       look_ahead_dist=50.0,
+                                                       around_dist_r=0.0,
+                                                       around_dist_f=0.0,
+                                                       around_dist_lat=0.0,
+                                                       only_leading=True)
+
+                self.recompute_obstacles = False
+
+            leading_obs = self.inter_agents["leading"]
+
             if len(leading_obs) > 0:
                 l_name = PlayerName(str(leading_obs[0].obstacle_id))
                 l_traj: Trajectory = context.trajectories[l_name]
@@ -1148,7 +1232,6 @@ class SafeDistance_CR(Metric):
                     values=dist_viol, timestamps=traj.get_sampling_points()))
             else:
                 ret = EvaluatedMetric(name=self.get_name(), value=0.0)
-
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
