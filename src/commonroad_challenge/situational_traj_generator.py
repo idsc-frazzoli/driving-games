@@ -69,20 +69,21 @@ class SituationalTrajectoryGenerator:
             # slow down if incoming sharp turn
             if state.vx > max_velocity_for_turn and self.sharp_turn_ahead(current_progress, look_ahead_progress=30.0):
                 velocity_delta = state.vx - max_velocity_for_turn
-                u_acc = frozenset(np.array([-velocity_delta, -velocity_delta/2.0]))
+                u_acc = frozenset(np.array([0, -velocity_delta, -velocity_delta/2.0]))
             # if the goal is not reached yet
             elif avg_dist_to_goal > 0.0:
                 # approximate with linear motion with constant velocity to find average acceleration
                 acc_mean = 2.0 * (avg_dist_to_goal - state.vx * time_to_goal) / time_to_goal ** 2
                 u_acc_lb = max(-abs(acc_mean) * 5.0 + acc_mean, -1 * cr_vehicle_params.longitudinal.a_max)
                 u_acc_ub = min(acc_mean + abs(acc_mean), cr_vehicle_params.longitudinal.a_max)
-                u_acc = frozenset(np.linspace(u_acc_lb, u_acc_ub, num=3, endpoint=True))
+                # us = np.linspace(u_acc_lb, u_acc_ub, num=3, endpoint=True)
+                u_acc = frozenset([acc_mean, acc_mean/2, -4.0])
             # if goal is already reached. Brake.
             elif avg_dist_to_goal <= 0.0:
                 u_acc = frozenset(np.linspace(-6.0, -1.0, num=3, endpoint=True))
 
 
-            u_dst = frozenset(np.array([-0.4, 0, 0.4]))
+            u_dst = frozenset(np.array([-0.8, -0.4, 0, 0.4, 0.8]))
 
 
             # if self.avg_curvature() < 1e-2:
