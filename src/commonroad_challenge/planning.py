@@ -200,19 +200,10 @@ def compute_ego_trajectory(
                                       around_dist_lat=5.0
                                       )
 
-    # inter_agents = interacting_agents(scenario=scenario,
-    #                                   ego_state=ego_vehicle.current_state,
-    #                                   look_ahead_dist=0.0,
-    #                                   around_dist_r=0.0,
-    #                                   around_dist_f=0.0,
-    #                                   around_dist_lat=0.0
-    #                                   )
 
     inter_agents = list(inter_agents.values())
     inter_agents_flat = [obs for obs_list in inter_agents for obs in obs_list]
 
-
-    ######## FROM HERE WILL BE REPLACED BY STOCHASTIC DECISION MAKING#############
 
     time_to_goal = total_time-current_time
     game_params = get_game_params(ego_vehicle_state, scenario, planning_problem, inter_agents_flat, time_to_goal)
@@ -231,7 +222,6 @@ def compute_ego_trajectory(
 
     solving_context = get_only_context(sgame=game, actions=all_trajs)
 
-    all_trajectories = solving_context.player_actions
 
     sol: Solution = Solution()
     # compute NE
@@ -240,9 +230,8 @@ def compute_ego_trajectory(
     # select one NE at random between all the available admissible NE
     selected_eq = select_admissible_eq_randomly(eqs=nash_eqs)
 
-    ######## UNTIL HERE WILL BE REPLACED BY STOCHASTIC DECISION MAKING#############
-
     ####### PLOTTING CURRENT DECISION MAKING STEP AND OUTCOMES #######
+    all_trajectories = solving_context.player_actions
     matplotlib.use("TkAgg")
     player_states: Mapping[PlayerName, VehicleState] = {}
     player_states[PlayerName("Ego")] = convert_from_cr_state(ego_vehicle_state)

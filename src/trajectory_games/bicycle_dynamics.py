@@ -193,16 +193,6 @@ class BicycleDynamics:
             ret.append((time + x0[0], state_f))
 
 
-        ###########TEST###################
-        from commonroad_challenge_tests.trajectory_feasibility_test import check_feasibility
-        from dg_commons.planning import Trajectory
-        timestamps = [x0[0], ret[-1][0]]
-        values = [x0[1], ret[-1][1]]
-        traj_tuple = Trajectory(timestamps=timestamps, values=values)
-        print("Times are: " + str(timestamps[0]) + ", " + str(timestamps[1]))
-        print(check_feasibility(traj_tuple))
-        ############END TEST##############
-
 
         return ret[-1], ret
 

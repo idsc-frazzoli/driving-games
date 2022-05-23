@@ -65,10 +65,15 @@ dev_commonroad_ego:
   ProgressAlongReference: ["MinimumClearance"]
 
 default_commonroad_ego:
+
   RoadCompliance_CR: []
   SafeDistance_CR: []
   ProgressAlongReference: ["SafeDistance_CR", "RoadCompliance_CR"]
-  TR1: ["SafeDistance_CR", "RoadCompliance_CR"]
+  DeviationHeading: ["ProgressAlongReference"]
+  DrivableAreaViolation: ["DeviationHeading"]
+  TR1: ["DrivableAreaViolation"]
+
+#  TR1: ["DrivableAreaViolation"]
 #  TR1: ["ProgressAlongReference"]
 #  ProgressTowardsGoal: ["RoadCompliance_CR", "CollisionBool", ]
 

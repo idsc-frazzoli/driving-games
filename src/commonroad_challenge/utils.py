@@ -218,7 +218,7 @@ def generate_route_ego(scenario: Scenario, planning_problem: PlanningProblem, pl
         r = np.linalg.norm(lanelet.left_vertices[dist_idx] - lanelet.right_vertices[dist_idx]) / 2.0
         return r
 
-    n_ctrl_points = 50
+    n_ctrl_points = 250
     # remove first point and last 3 points in order to avoid going out of scenario boundaries
     idx = np.round(np.linspace(1, len(route.reference_path) - 3, n_ctrl_points)).astype(int)
 

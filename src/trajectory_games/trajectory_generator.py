@@ -6,7 +6,7 @@ import geometry as geo
 import numpy as np
 from scipy.optimize import minimize
 
-from dg_commons import relative_pose, SE2_apply_T2, Timestamp, SE2Transform
+from dg_commons import relative_pose, SE2_apply_T2, Timestamp, SE2Transform, logger
 from dg_commons.maps import DgLanelet
 from dg_commons.planning import Trajectory, TrajectoryGraph, TimedVehicleState, RefLaneGoal
 from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands
@@ -66,7 +66,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 graphs.append(graph)
             ret = graphs
             toc = perf_counter() - tic
-            print(
+            logger.info(
                 f"Lanes = {len(lane_graphs)}" f"\n\tGraphs generated = {len(ret)}\n\ttime = {toc:.2f} s"
             )
         else:
@@ -75,7 +75,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 all_trajs |= graph.get_all_transitions()
             ret = all_trajs
             toc = perf_counter() - tic
-            print(
+            logger.info(
                 f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(ret)}\n\ttime = {toc:.2f} s"
             )
         return frozenset(ret)
