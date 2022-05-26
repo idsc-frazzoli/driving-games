@@ -81,7 +81,10 @@ only_driving_area_violation:
   DrivableAreaViolation: []
 
 only_squared_acc:
-  LongitudinalAccelerationSquared: [ ]
+  LongitudinalAccelerationSquared: []
+
+only_steering:
+  SteeringAngle: []
 
 only_collision:
   CollisionEnergy: []

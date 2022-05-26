@@ -1,23 +1,32 @@
+import copy
 import os
-from typing import Set, Mapping, FrozenSet, Sequence, List
+from decimal import Decimal as D
+from fractions import Fraction
+from functools import partial
+from random import random
+from time import perf_counter
+from typing import Mapping, FrozenSet, List
 
+from frozendict import frozendict
 from geometry import translation_angle_from_SE2
 
-from dg_commons import PlayerName
+import trajectory_games.metrics
+from dg_commons import PlayerName, iterate_dict_combinations
 from dg_commons.maps import DgLanelet
-from dg_commons.planning import TrajectoryGraph, RefLaneGoal, Trajectory
+from dg_commons.planning import RefLaneGoal, Trajectory, JointTrajectories
 from dg_commons.sim.models import CAR
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import load_commonroad_scenario, DgScenario
 from dg_commons_dev.utils import get_project_root_dir
-from trajectory_games import PosetalPreference, TrajectoryGenParams, TrajectoryGenerator, TrajectoryWorld
-from commonroad_challenge.stochastic_decision_making.utils import UncertainActionEstimator
-from decimal import Decimal as D
+from driving_games.metrics_structures import JointPlayerOutcome, EvaluatedMetric
 from possibilities import ProbDist
-from fractions import Fraction
+from trajectory_games.stochastic_decision_making.uncertain_preferences import UncertainPreferenceOutcomes
 
-P1 = PlayerName("p1")
+from trajectory_games import PosetalPreference, TrajectoryGenParams, TrajectoryGenerator, TrajectoryWorld, \
+    MetricEvaluation
+
+EGO = PlayerName("Ego")
 P2 = PlayerName("p2")
 P3 = PlayerName("p3")
 
@@ -68,13 +77,13 @@ def get_scenario_and_all():
     dglanelet_3 = DgLanelet(dglane3_ctrl_points)
 
     goals = {
-        P1: [RefLaneGoal(ref_lane=dglanelet_1, goal_progress=0.8)],
+        EGO: [RefLaneGoal(ref_lane=dglanelet_1, goal_progress=0.8)],
         P2: [RefLaneGoal(ref_lane=dglanelet_2, goal_progress=0.8)],
         P3: [RefLaneGoal(ref_lane=dglanelet_3, goal_progress=0.8)],
     }
 
     geos = {
-        P1: VehicleGeometry.default_car(),
+        EGO: VehicleGeometry.default_car(),
         P2: VehicleGeometry.default_car(),
         P3: VehicleGeometry.default_car(),
     }
@@ -95,7 +104,7 @@ def get_scenario_and_all():
     x3 = x_3_translation_angles[0]
 
     initial_states = {
-        P1: VehicleState(x=x1[0][0], y=x1[0][1], theta=x1[1], vx=5., delta=0),
+        EGO: VehicleState(x=x1[0][0], y=x1[0][1], theta=x1[1], vx=5., delta=0),
         P2: VehicleState(x=x2[0][0], y=x2[0][1], theta=x2[1], vx=5., delta=0),
         P3: VehicleState(x=x3[0][0], y=x3[0][1], theta=x3[1], vx=5., delta=0)
     }
@@ -103,19 +112,19 @@ def get_scenario_and_all():
     return dgscenario, geos, goals, initial_states
 
 
-def get_default_cr_preferences(n_other_agents: int) -> Mapping[PlayerName, PosetalPreference]:
+def get_preferences() -> Mapping[PlayerName, PosetalPreference]:
     pref_structures: Mapping[PlayerName, PosetalPreference] = {}
-    default_str = "only_squared_acc"
-    pref_structures[PlayerName("Ego")] = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
-    for n in range(n_other_agents):
-        pname = PlayerName("P" + str(n + 1))
-        pref_structures[pname] = PosetalPreference(pref_str=default_str, use_cache=False)
+
+    pref_structures[EGO] = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
+    pref_structures[P2] = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
+    pref_structures[P3] = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
+
     return pref_structures
 
 
 def get_traj_gen_params():
     u_acc = frozenset([-3.0, -2.0])
-    u_dst = frozenset([0.0])
+    u_dst = frozenset([-0.4])
 
     vg = VehicleGeometry(
         vehicle_type=CAR,
@@ -134,7 +143,7 @@ def get_traj_gen_params():
         solve=False,
         s_final=-1,  # todo: adapt metrics to use this
         # s_final=-1,
-        max_gen=2,
+        max_gen=4,
         dt=D("1.0"),
         # keep at max 1 sec, increase k_maxgen in trajectory_generator for having more generations
         u_acc=u_acc,
@@ -165,30 +174,81 @@ def generate_actions(initial_states: Mapping[PlayerName, VehicleState],
     return trajs
 
 
-if __name__ == "__main__":
-    # STEPS
-    # 1) generate actions for all players
-    # 2) Generate preferences for all players
-    # 3) Evaluate metrics on all joint trajectories (intelligently)
-    # 4) By knowing preference of others, keep "n" best ones and rank them
-    # 5) Compute probability of each action from previous ranking
-    # 6) Propagate uncertainty in outcome space
-    # 7) Ego picks his action with the uncertainty in the outcome space
-
-    # 2)
-    # prefs = get_default_cr_preferences(2)
-    # a =10
-
+def test_equivalent_outcomes():
+    # test that if all joint trajectories have same outcomes, all trajectories will be equivalent for Ego
     dgscenario, geos, goals, initial_states = get_scenario_and_all()
 
     traj_gen_params = get_traj_gen_params()
-    preferences = get_default_cr_preferences(2)
-    actions = generate_actions(initial_states=initial_states, ref_lane_goals=goals, traj_gen_params=traj_gen_params)
+    all_actions = generate_actions(initial_states=initial_states, ref_lane_goals=goals, traj_gen_params=traj_gen_params)
+
+    joint_a_o: Mapping[JointTrajectories, JointPlayerOutcome] = {}
+
+    from random import randint
+
+    metrics = trajectory_games.metrics.get_metrics_set()
+    random_numbers = {}
+    for metric in metrics:
+        random_numbers[metric] = randint(0, 1)
+
+    for joint_traj in set(iterate_dict_combinations(all_actions)):
+        players_outcome = {}
+        for player in joint_traj.keys():
+            dummy_outcome = {}
+            for metric in metrics:
+                dummy_outcome[metric] = EvaluatedMetric(name=metric.get_name(), value=random_numbers[metric])
+            players_outcome[player] = frozendict(dummy_outcome)
+        joint_a_o[joint_traj] = copy.deepcopy(frozendict(players_outcome))
+
+    only_acc_pref = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
+
+    pref_leon_dev_2 = PosetalPreference(pref_str="pref_leon_dev_2", use_cache=False)
+    pref_leon_dev_3 = PosetalPreference(pref_str="pref_leon_dev_3", use_cache=False)
+
+    uncertain_pref_distr = {
+        P2: ProbDist({pref_leon_dev_2: Fraction(1, 3), pref_leon_dev_3: Fraction(2, 3)}),
+        P3: ProbDist({pref_leon_dev_2: Fraction(3, 4), pref_leon_dev_3: Fraction(1, 4)})
+    }
+    upo = UncertainPreferenceOutcomes(my_name=EGO, pref_distr=uncertain_pref_distr,
+                                      joint_actions_outcomes_mapping=joint_a_o, ego_pref=only_acc_pref)
+
+    outcome_distr = upo.outcome_distr()
+    selected_actions = upo.action_selector(method="avg")
+
+    assert set(outcome_distr.keys()) == all_actions[PlayerName("Ego")]
+    assert selected_actions == all_actions[PlayerName("Ego")]
+
+
+def test_2():
+    dgscenario, geos, goals, initial_states = get_scenario_and_all()
+
+    traj_gen_params = get_traj_gen_params()
+    preferences = get_preferences()
+    all_actions = generate_actions(initial_states=initial_states, ref_lane_goals=goals, traj_gen_params=traj_gen_params)
     world: TrajectoryWorld = TrajectoryWorld(map_name=dgscenario.scenario.scenario_id.map_name, scenario=dgscenario,
                                              geo=geos, goals=goals)
-    estimator = UncertainActionEstimator(world=world, actions=actions, preferences=preferences)
-    P1_dist = estimator.compute_player_probabilities(player_name=P1)
-    P2_dist = estimator.compute_player_probabilities(player_name=P2)
+    get_outcomes = partial(MetricEvaluation.evaluate, world=world)
 
-    # todo: from these distributions, compute outcome distributions
-    # todo: from outcome distibutions, compute best action
+    joint_a_o: Mapping[JointTrajectories, JointPlayerOutcome] = {}
+
+    for joint_traj in set(iterate_dict_combinations(all_actions)):
+        joint_a_o[joint_traj] = get_outcomes(joint_traj)
+
+    only_acc_pref = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
+
+    pref_leon_dev_2 = PosetalPreference(pref_str="pref_leon_dev_2", use_cache=False)
+    pref_leon_dev_3 = PosetalPreference(pref_str="pref_leon_dev_3", use_cache=False)
+
+    uncertain_pref_distr = {
+        P2: ProbDist({pref_leon_dev_2: Fraction(1, 3), pref_leon_dev_3: Fraction(2, 3)}),
+        P3: ProbDist({pref_leon_dev_2: Fraction(3, 4), pref_leon_dev_3: Fraction(1, 4)})
+    }
+    upo = UncertainPreferenceOutcomes(my_name=EGO, pref_distr=uncertain_pref_distr,
+                                      joint_actions_outcomes_mapping=joint_a_o, ego_pref=only_acc_pref)
+
+    outcome_distr = upo.outcome_distr()
+    selected_actions = upo.action_selector(method="avg")
+
+
+if __name__ == "__main__":
+    test_equivalent_outcomes()
+    # test_2()
