@@ -2,7 +2,7 @@ from abc import abstractmethod
 from decimal import Decimal as D
 from typing import Type
 
-from possibilities.prob import expected_value, ProbDist
+from possibilities.prob import expected_value, ProbDist, expected_value_metrics_dict
 from zuper_typing import debug_print
 from .preferences_base import ComparisonOutcome, P, Preference
 
@@ -57,3 +57,17 @@ class ProbPrefStochasticDominance(ProbPreference):
     def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         # todo
         raise NotImplementedError
+
+class ProbPrefMostLikely(ProbPreference):
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
+        most_likely_A = max(A.p, key=A.p.get)
+        most_likely_B = max(B.p, key=B.p.get)
+        return self.p0.compare(most_likely_A, most_likely_B)
+
+class ProbPrefExpectedValueMetricsDict(ProbPreference):
+    def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
+        expected_A = expected_value_metrics_dict(A)
+        expected_B = expected_value_metrics_dict(B)
+        return self.p0.compare(expected_A, expected_B)
+
+

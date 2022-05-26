@@ -27,7 +27,12 @@ from zuper_commons.types import ZTypeError
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbDist", "PossibilityDist", "ProbSampler", "expected_value"]
+__all__ = ["ProbDist",
+           "PossibilityDist",
+           "ProbSampler",
+           "expected_value",
+           "expected_value_metrics_dict",
+           "variable_change"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -72,9 +77,40 @@ def expected_value(dist: ProbDist[A]) -> A:
     also it could be moved to be an independent method
     :return:
     """
+
     try:
         weighted = [a * w for a, w in dist.it()]
         return reduce(add, weighted)
+
+    except TypeError as e:
+        msg = (
+            "\nThe current distribution does not seem to support the expected value operation."
+            f"\nYou are trying to:\n{e.args}"
+            f"\nCurrent distribution {dist.p}"
+        )
+        raise ZTypeError(msg=msg)
+
+
+def expected_value_metrics_dict(dist: ProbDist[A]) -> A:
+    """
+    Expected value of a distribution of dictionaries of Evaluated Metrics
+    :return:
+    """
+    from driving_games.metrics_structures import EvaluatedMetric
+
+    try:
+        expected_dict = {}
+        first_dict = list(dist.support())[0]
+        for key in first_dict.keys():
+            expected_dict[key] = EvaluatedMetric(name=key.get_name(), value=0.0)
+
+        for a, w in dist.it():
+            for key, value in a.items():
+                new_value = expected_dict[key].value + value.value * w
+                expected_dict[key] = EvaluatedMetric(name=key.get_name(), value=new_value)
+
+        return frozendict(expected_dict)
+
     except TypeError as e:
         msg = (
             "\nThe current distribution does not seem to support the expected value operation."
