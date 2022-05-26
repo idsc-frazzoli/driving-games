@@ -13,8 +13,6 @@ from commonroad.scenario.traffic_sign_interpreter import TrafficSigInterpreter
 from commonroad.scenario.trajectory import State
 from commonroad_dc.boundary import boundary
 from commonroad_dc.collision.trajectory_queries import trajectory_queries
-# todo: fix packages s.t. this import is possible
-# from commonroad_challenge.utils import interacting_agents, convert_to_cr_state
 from frozendict import frozendict
 from shapely.geometry import Point, LineString, Polygon
 
@@ -372,9 +370,11 @@ class LongitudinalAccelerationSquared(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-            traj_vel = traj.transform_values(lambda x: x.vx * x.vx, float)
+            traj_vel = traj.transform_values(lambda x: x.vx, float)
             acc_seq = seq_differentiate(traj_vel)
-            ret = self.get_integrated_metric(acc_seq)
+            acc_vals_squared = [val*val for val in acc_seq.values]
+            acc_seq_squared = Trajectory(values=acc_vals_squared, timestamps=acc_seq.timestamps)
+            ret = self.get_integrated_metric(acc_seq_squared)
             self.cache[traj] = ret
             return ret
 
@@ -1167,7 +1167,9 @@ class MaximumVelocity_CR(Metric):
 
 class SafeDistance_CR(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This Metric determines if a safe distance between an agent and the leading agent is respected"
+    description = "This Metric determines if a safe distance between an agent and the leading agent is respected." \
+                  "Use only with commonroad scenarios. Careful: interacting agents are computed here. Need to make" \
+                  "sure that the interactive agents are in the MetricEvaluationContext"
     interacting_agents = None
     # use dynamic obstacles of scenario to evaluate if scenario has changed
     dynamic_obstacles = None  # won't work probably
@@ -1273,16 +1275,18 @@ def get_joint_metrics() -> Set[Metric]:
 # Only necessary metrics -> speed up computations for Commonroad challenge
 def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = {
+        SteeringRate(),
+        LongitudinalAcceleration(),
         SteeringRateSquared(),
         LongitudinalAccelerationSquared(),
+        SteeringAngle(),
         DeviationLateralSquared(),
-        RoadCompliance_CR(),
-        DistanceToObstacle_CR(),
         ProgressAlongReference(),
-        MaximumVelocity_CR(),
-        SafeDistance_CR(),
         DrivableAreaViolation(),
         DeviationHeading(),
+        CollisionEnergy(),
+        DeviationHeading(),
+        DeviationLateral(),
 
     }
     return metrics
@@ -1305,6 +1309,7 @@ class MetricEvaluation:
 
         context = MetricEvaluationContext(dgscenario=world.scenario, trajectories=traj,
                                           goals=world.goals, geos=world.geo)
+
         metric_results: Dict[Metric, JointEvaluatedMetric] = {}
         for metric in MetricEvaluation.metrics:
             metric_results[metric] = metric.evaluate(context)
@@ -1316,6 +1321,7 @@ class MetricEvaluation:
             for metric, result in metric_results.items():
                 player_outcome[metric] = result[player]
             game_outcome[player] = frozendict(player_outcome)
+
 
         ret = frozendict(game_outcome)
         MetricEvaluation._cache[traj] = ret
