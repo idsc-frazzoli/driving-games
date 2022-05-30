@@ -20,8 +20,6 @@ from networkx import MultiDiGraph
 
 from dg_commons import fkeyfilter, iterate_dict_combinations, PlayerName, RJ, RP, U, X, Y, Timestamp
 from games.checks import *
-
-# from games.factorization_algo import FactAlgo, FactAlgoNoFact
 from games.game_def import (
     Combined,
     Game,
@@ -377,15 +375,6 @@ class UsedResources(Generic[X, U, Y, RP, RJ, SR]):
     """
 
 
-#
-# def get_reachable_solutions(cache, solved_game) -> ReachablesStates:
-#     pass
-#
-# def get_reachable(cache, game) -> ReachablesStates:
-#     pass
-#
-# def get_resources(rs: ReachablesStates, lookup: Mapping[X, FSet[SR]]) -> UsedResources:
-#     pass
 @unique
 class ResourcesType(IntEnum):
     OPTIMAL = 0
