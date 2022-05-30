@@ -1,7 +1,6 @@
 from decimal import Decimal as D
-from typing import Type
+from typing import Type, Union
 
-from zuper_commons.types import check_isinstance
 from .preferences_base import (
     ComparisonOutcome,
     FIRST_PREFERRED,
@@ -12,20 +11,19 @@ from .preferences_base import (
 
 __all__ = ["SmallerPreferred", "SmallerPreferredTol"]
 
+Scalar = Union[D, float]
 
-class SmallerPreferred(Preference[D]):
+
+class SmallerPreferred(Preference[Scalar]):
     """
     The usual total order on the scalars.
-
     It is equivalent to `SmallerPreferredTol(0)`.
-
     """
 
-    def get_type(self) -> Type[D]:
-        return D
+    def get_type(self) -> Type[Scalar]:
+        return Scalar
 
-    def compare(self, a: D, b: D) -> ComparisonOutcome:
-        """ """
+    def compare(self, a: Scalar, b: Scalar) -> ComparisonOutcome:
         if a == b:
             return INDIFFERENT
         elif a < b:
@@ -39,21 +37,19 @@ class SmallerPreferred(Preference[D]):
         return "SmallerPreferred"
 
 
-class SmallerPreferredTol(Preference[D]):
-    """ The semi-order on the scalar given a tolerance. """
+class SmallerPreferredTol(Preference[Scalar]):
+    """The semi-order on the scalar given a tolerance."""
 
-    tol: D
+    tol: Scalar
 
-    def __init__(self, tol: D):
+    def __init__(self, tol: Scalar):
         self.tol = tol
 
-    def get_type(self) -> Type[D]:
-        return D
+    def get_type(self) -> Type[Scalar]:
+        return Scalar
 
-    def compare(self, a: D, b: D) -> ComparisonOutcome:
-        """ Returns :any:`INDIFFERENT` if `|a-b|<=tol`. """
-        check_isinstance(a, D)
-        check_isinstance(b, D)
+    def compare(self, a: Scalar, b: Scalar) -> ComparisonOutcome:
+        """Returns :any:`INDIFFERENT` if `|a-b|<=tol`."""
         if abs(a - b) <= self.tol:
             return INDIFFERENT
         if a < b:

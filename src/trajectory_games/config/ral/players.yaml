@@ -1,0 +1,1428 @@
+#map_name: Map to load (from scenarios)
+#map_name: "USA_Lanker-1_1_T-1"
+map_name: "USA_Peach-4_3_T-1"
+
+# Goal params
+#max_length: Max reference lane length in m
+goal:
+  max_length: 75.0
+  long_dist: 2.0
+  lat_dist: 10.0
+
+#plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
+plot_limits: [[-17, 18], [-7, 28]]
+
+#players:    List of players in the game
+#  P1:        Player Name
+#    state:    Initial state (from initial_states.yaml)
+#    goals:    List of Goal(s) polygon points [[[xi,yi],[xj,yj]]] or null
+#    traj:     Trajectory params (from trajectories.yaml)
+#    pref:     Player preference (from player_pref.yaml)
+#    vg:       Vehicle geometry (from vehicles.yaml)
+#  P2: ...
+
+ral_01_level_0:
+  players:
+    Ambulance: &P1
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    Granny: &P2
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "pref_granny"
+      vg: "green_car"
+    Average: &P3
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_01_level_1:
+  players:
+    Ambulance:
+      <<: *P1
+      pref: "pref_ambulance_level_1"
+    Granny:
+      <<: *P2
+      pref: "pref_granny"
+    Average:
+      <<: *P3
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_01_level_2:
+  players:
+    Ambulance:
+      <<: *P1
+      pref: "pref_ambulance_level_2"
+    Granny:
+      <<: *P2
+      pref: "pref_granny"
+    Average:
+      <<: *P3
+      pref: "common_person"
+
+####################################################################################
+
+ral_02_level_0:
+  players:
+    Ambulance: &P12
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    Granny: &P22
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious"
+      vg: "green_car"
+    Average: &P32
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_02_level_1:
+  players:
+    Ambulance:
+      <<: *P12
+      pref: "pref_ambulance_level_1"
+    Granny:
+      <<: *P22
+      pref: "cautious"
+    Average:
+      <<: *P32
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_02_level_2:
+  players:
+    Ambulance:
+      <<: *P12
+      pref: "pref_ambulance_level_2"
+    Granny:
+      <<: *P22
+      pref: "cautious"
+    Average:
+      <<: *P32
+      pref: "common_person"
+
+####################################################################################
+
+ral_03_level_0:
+  players:
+    Ambulance: &P23
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    Granny: &P13
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious"
+      vg: "green_car"
+    Average: &P33
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_03_level_1:
+  players:
+    Ambulance:
+      <<: *P23
+      pref: "pref_ambulance_level_1"
+    Granny:
+      <<: *P13
+      pref: "cautious"
+    Average:
+      <<: *P33
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_03_level_2:
+  players:
+    Ambulance:
+      <<: *P23
+      pref: "pref_ambulance_level_2"
+    Granny:
+      <<: *P13
+      pref: "cautious"
+    Average:
+      <<: *P33
+      pref: "common_person"
+
+####################################################################################
+
+ral_04_level_0:
+  players:
+    Ambulance: &P34
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    Granny: &P14
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious"
+      vg: "green_car"
+    Average: &P24
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_04_level_1:
+  players:
+    Ambulance:
+      <<: *P34
+      pref: "pref_ambulance_level_1"
+    Granny:
+      <<: *P14
+      pref: "cautious"
+    Average:
+      <<: *P24
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_04_level_2:
+  players:
+    Ambulance:
+      <<: *P34
+      pref: "pref_ambulance_level_2"
+    Granny:
+      <<: *P14
+      pref: "cautious"
+    Average:
+      <<: *P24
+      pref: "common_person"
+
+####################################################################################
+
+ral_05_level_0:
+  players:
+    Ambulance: &P35
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "red_car"
+    Granny: &P15
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P25
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_05_level_1:
+  players:
+    Ambulance:
+      <<: *P35
+      pref: "common_person"
+    Granny:
+      <<: *P15
+      pref: "cautious_2"
+    Average:
+      <<: *P25
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_05_level_2:
+  players:
+    Ambulance:
+      <<: *P35
+      pref: "common_person"
+    Granny:
+      <<: *P15
+      pref: "cautious_3"
+    Average:
+      <<: *P25
+      pref: "common_person"
+
+####################################################################################
+
+ral_06_level_0:
+  players:
+    Ambulance: &P36
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "suicidal"
+      vg: "red_car"
+    Granny: &P16
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P26
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_06_level_1:
+  players:
+    Ambulance:
+      <<: *P36
+      pref: "suicidal"
+    Granny:
+      <<: *P16
+      pref: "cautious_2"
+    Average:
+      <<: *P26
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_06_level_2:
+  players:
+    Ambulance:
+      <<: *P36
+      pref: "suicidal"
+    Granny:
+      <<: *P16
+      pref: "cautious_3"
+    Average:
+      <<: *P26
+      pref: "common_person"
+
+####################################################################################
+
+ral_07_level_0:
+  players:
+    Ambulance: &P37
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_1"
+      vg: "red_car"
+    Granny: &P17
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P27
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_07_level_1:
+  players:
+    Ambulance:
+      <<: *P37
+      pref: "citizen_2"
+    Granny:
+      <<: *P17
+      pref: "cautious_1"
+    Average:
+      <<: *P27
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_07_level_2:
+  players:
+    Ambulance:
+      <<: *P37
+      pref: "citizen_3"
+    Granny:
+      <<: *P17
+      pref: "cautious_1"
+    Average:
+      <<: *P27
+      pref: "common_person"
+
+####################################################################################
+
+ral_08_level_0:
+  players:
+    Ambulance: &P38
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_1"
+      vg: "red_car"
+    Granny: &P18
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P28
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_08_level_1:
+  players:
+    Ambulance:
+      <<: *P38
+      pref: "citizen_3"
+    Granny:
+      <<: *P18
+      pref: "cautious_1"
+    Average:
+      <<: *P28
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_08_level_2:
+  players:
+    Ambulance:
+      <<: *P38
+      pref: "citizen_4"
+    Granny:
+      <<: *P18
+      pref: "cautious_1"
+    Average:
+      <<: *P28
+      pref: "common_person"
+
+
+
+ral_10_level_0:
+  players:
+    Ambulance: &P310
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "red_car"
+    Granny: &P110
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P210
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_10_level_1:
+  players:
+    Ambulance:
+      <<: *P310
+      pref: "common_person"
+    Granny:
+      <<: *P110
+      pref: "cautious_2"
+    Average:
+      <<: *P210
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_10_level_2:
+  players:
+    Ambulance:
+      <<: *P310
+      pref: "common_person"
+    Granny:
+      <<: *P110
+      pref: "cautious_3"
+    Average:
+      <<: *P210
+      pref: "common_person"
+
+####
+ral_11_level_0:
+  players:
+    Ambulance: &P311
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_2"
+      vg: "red_car"
+    Granny: &P111
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_1"
+      vg: "green_car"
+    Average: &P211
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_11_level_1:
+  players:
+    Ambulance:
+      <<: *P311
+      pref: "citizen_3"
+    Granny:
+      <<: *P111
+      pref: "cautious_1"
+    Average:
+      <<: *P211
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_11_level_2:
+  players:
+    Ambulance:
+      <<: *P311
+      pref: "citizen_5"
+    Granny:
+      <<: *P111
+      pref: "cautious_1"
+    Average:
+      <<: *P211
+      pref: "common_person"
+
+####
+ral_12_level_0:
+  players:
+    Ambulance: &P312
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_2"
+      vg: "red_car"
+    Granny: &P112
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_2"
+      vg: "green_car"
+    Average: &P212
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_12_level_1:
+  players:
+    Ambulance:
+      <<: *P312
+      pref: "citizen_3"
+    Granny:
+      <<: *P112
+      pref: "cautious_2"
+    Average:
+      <<: *P212
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_12_level_2:
+  players:
+    Ambulance:
+      <<: *P312
+      pref: "citizen_5"
+    Granny:
+      <<: *P112
+      pref: "cautious_2"
+    Average:
+      <<: *P212
+      pref: "common_person"
+
+####
+ral_13_level_0:
+  players:
+    Ambulance: &P313
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_3"
+      vg: "red_car"
+    Granny: &P113
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "cautious_2"
+      vg: "green_car"
+    Average: &P213
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_13_level_1:
+  players:
+    Ambulance:
+      <<: *P313
+      pref: "citizen_4"
+    Granny:
+      <<: *P113
+      pref: "cautious_2"
+    Average:
+      <<: *P213
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_13_level_2:
+  players:
+    Ambulance:
+      <<: *P313
+      pref: "citizen_6"
+    Granny:
+      <<: *P113
+      pref: "cautious_2"
+    Average:
+      <<: *P213
+      pref: "common_person"
+
+####
+ral_14_level_0:
+  players:
+    Ambulance: &P314
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_3"
+      vg: "red_car"
+    Granny: &P114
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P214
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_14_level_1:
+  players:
+    Ambulance:
+      <<: *P314
+      pref: "citizen_4"
+    Granny:
+      <<: *P114
+      pref: "common_person"
+    Average:
+      <<: *P214
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_14_level_2:
+  players:
+    Ambulance:
+      <<: *P314
+      pref: "citizen_8"
+    Granny:
+      <<: *P114
+      pref: "common_person"
+    Average:
+      <<: *P214
+      pref: "common_person"
+
+####
+ral_15_level_0:
+  players:
+    Ambulance: &P315
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_8"
+      vg: "red_car"
+    Granny: &P115
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person_2"
+      vg: "green_car"
+    Average: &P215
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person_2"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_15_level_1:
+  players:
+    Ambulance:
+      <<: *P315
+      pref: "citizen_4"
+    Granny:
+      <<: *P115
+      pref: "common_person_2"
+    Average:
+      <<: *P215
+      pref: "common_person_2"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_15_level_2:
+  players:
+    Ambulance:
+      <<: *P315
+      pref: "citizen_9"
+    Granny:
+      <<: *P115
+      pref: "common_person_3"
+    Average:
+      <<: *P215
+      pref: "common_person_3"
+
+
+####
+ral_16_level_0:
+  players:
+    Ambulance: &P316
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_4"
+      vg: "red_car"
+    Granny: &P116
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person_3"
+      vg: "green_car"
+    Average: &P216
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person_3"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_16_level_1:
+  players:
+    Ambulance:
+      <<: *P316
+      pref: "citizen_11"
+    Granny:
+      <<: *P116
+      pref: "common_person_3"
+    Average:
+      <<: *P216
+      pref: "common_person_3"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_16_level_2:
+  players:
+    Ambulance:
+      <<: *P316
+      pref: "citizen_11"
+    Granny:
+      <<: *P116
+      pref: "common_person_4"
+    Average:
+      <<: *P216
+      pref: "common_person_4"
+
+
+####
+ral_17_level_0:
+  players:
+    Ambulance: &P317
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_4"
+      vg: "red_car"
+    Granny: &P117
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person_4"
+      vg: "green_car"
+    Average: &P217
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person_4"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_17_level_1:
+  players:
+    Ambulance:
+      <<: *P317
+      pref: "citizen_5_bis"
+    Granny:
+      <<: *P117
+      pref: "common_person_4"
+    Average:
+      <<: *P217
+      pref: "common_person_4"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_17_level_2:
+  players:
+    Ambulance:
+      <<: *P317
+      pref: "citizen_11"
+    Granny:
+      <<: *P117
+      pref: "common_person_4"
+    Average:
+      <<: *P217
+      pref: "common_person_4"
+
+
+####
+ral_18_level_0:
+  players:
+    Ambulance: &P318
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_8"
+      vg: "red_car"
+    Granny: &P118
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person_3"
+      vg: "green_car"
+    Average: &P218
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person_3"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_18_level_1:
+  players:
+    Ambulance:
+      <<: *P318
+      pref: "citizen_4"
+    Granny:
+      <<: *P118
+      pref: "common_person_3"
+    Average:
+      <<: *P218
+      pref: "common_person_3"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_18_level_2:
+  players:
+    Ambulance:
+      <<: *P318
+      pref: "citizen_11"
+    Granny:
+      <<: *P118
+      pref: "common_person_3"
+    Average:
+      <<: *P218
+      pref: "common_person_3"
+
+####
+ral_19_level_0:
+  players:
+    Ambulance: &P319
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_8"
+      vg: "red_car"
+    Granny: &P119
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P219
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_19_level_1:
+  players:
+    Ambulance:
+      <<: *P319
+      pref: "citizen_4"
+    Granny:
+      <<: *P119
+      pref: "common_person"
+    Average:
+      <<: *P219
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_19_level_2:
+  players:
+    Ambulance:
+      <<: *P319
+      pref: "citizen_11"
+    Granny:
+      <<: *P119
+      pref: "common_person_3"
+    Average:
+      <<: *P219
+      pref: "common_person_3"
+
+####
+ral_20_level_0:
+  players:
+    Ambulance: &P320
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "citizen_8"
+      vg: "red_car"
+    Granny: &P120
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance_level_2"
+      vg: "green_car"
+    Average: &P220
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_20_level_1:
+  players:
+    Ambulance:
+      <<: *P320
+      pref: "citizen_4"
+    Granny:
+      <<: *P120
+      pref: "pref_ambulance_level_2"
+    Average:
+      <<: *P220
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_20_level_2:
+  players:
+    Ambulance:
+      <<: *P320
+      pref: "citizen_11"
+    Granny:
+      <<: *P120
+      pref: "pref_ambulance_level_2"
+    Average:
+      <<: *P220
+      pref: "common_person_3"
+
+
+
+
+#######################################################
+ral_30_level_0:
+  players:
+    Ambulance: &P330
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "pref_ambulance_az"
+      vg: "red_car"
+    Granny: &P130
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P230
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_30_level_1:
+  players:
+    Ambulance:
+      <<: *P330
+      #pref: "citizen_4" 121
+      pref: "pref_ambulance_az1"
+    Granny:
+      <<: *P130
+      pref: "common_person_2"
+    Average:
+      <<: *P230
+      pref: "common_person_2"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_30_level_2:
+  players:
+    Ambulance:
+      <<: *P330
+      pref: "pref_ambulance_az2"
+    Granny:
+      <<: *P130
+      pref: "common_person_3"
+    Average:
+      <<: *P230
+      pref: "common_person_3"
+
+#######################################################
+ral_31_level_0:
+  players:
+    Ambulance: &P331
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "pref_ambulance_az"
+      vg: "red_car"
+    Granny: &P131
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person_2"
+      vg: "green_car"
+    Average: &P231
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person_2"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_31_level_1:
+  players:
+    Ambulance:
+      <<: *P331
+      #pref: "citizen_4" 121
+      pref: "pref_ambulance_az1"
+    Granny:
+      <<: *P131
+      pref: "common_person_2"
+    Average:
+      <<: *P231
+      pref: "common_person_2"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_31_level_2:
+  players:
+    Ambulance:
+      <<: *P331
+      pref: "pref_ambulance_az2"
+    Granny:
+      <<: *P131
+      pref: "common_person_3"
+    Average:
+      <<: *P231
+      pref: "common_person_3"
+
+#######################################################
+ral_32_level_0:
+  players:
+    Ambulance: &P332
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "pref_ambulance_az"
+      vg: "red_car"
+    Granny: &P132
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P232
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_32_level_1:
+  players:
+    Ambulance:
+      <<: *P332
+      #pref: "citizen_4" 121
+      pref: "pref_ambulance_az1"
+    Granny:
+      <<: *P132
+      pref: "common_person"
+    Average:
+      <<: *P232
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_32_level_2:
+  players:
+    Ambulance:
+      <<: *P332
+      pref: "pref_ambulance_az2"
+    Granny:
+      <<: *P132
+      pref: "common_person_3"
+    Average:
+      <<: *P232
+      pref: "common_person_3"
+
+
+############################
+ral_21_level_0:
+  players:
+    Ambulance: &P321
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "citizen_2_1"
+      vg: "red_car"
+    Granny: &P121
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P221
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_21_level_1:
+  players:
+    Ambulance:
+      <<: *P321
+      #pref: "citizen_4" 121
+      pref: "citizen_5"
+    Granny:
+      <<: *P121
+      pref: "common_person"
+    Average:
+      <<: *P221
+      pref: "common_person"
+
+# make sure the preferences here are a refinement of the ones above
+ral_21_level_2:
+  players:
+    Ambulance:
+      <<: *P321
+      pref: "citizen_11"
+    Granny:
+      <<: *P121
+      pref: "common_person_3"
+    Average:
+      <<: *P221
+      pref: "common_person_3"
+#######################
+ral_22_level_0:
+  players:
+    Ambulance: &P322
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "citizen_2_1"
+      vg: "red_car"
+    Granny: &P122
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P222
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_22_level_1:
+  players:
+    Ambulance:
+      <<: *P322
+      #pref: "citizen_4" 121
+      pref: "citizen_5"
+    Granny:
+      <<: *P122
+      pref: "common_person"
+    Average:
+      <<: *P222
+      pref: "common_person"
+
+# make sure the preferences here are a refinement of the ones above
+ral_22_level_2:
+  players:
+    Ambulance:
+      <<: *P322
+      pref: "citizen_12" #was 11 but not clear how refinement
+    Granny:
+      <<: *P122
+      pref: "common_person_7" #was 6!!!
+    Average:
+      <<: *P222
+      pref: "common_person_7"
+
+####
+ral_51_level_0:
+  players:
+    Ambulance: &P351
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_32"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "citizen_2_1"
+      vg: "red_car"
+    Granny: &P151
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_32"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P251
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_32"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_51_level_1:
+  players:
+    Ambulance:
+      <<: *P351
+      #pref: "citizen_4" 151
+      pref: "citizen_5"
+    Granny:
+      <<: *P151
+      pref: "common_person"
+    Average:
+      <<: *P251
+      pref: "common_person"
+
+# make sure the preferences here are a refinement of the ones above
+ral_51_level_2:
+  players:
+    Ambulance:
+      <<: *P351
+      pref: "citizen_11"
+    Granny:
+      <<: *P151
+      pref: "common_person_3"
+    Average:
+      <<: *P251
+      pref: "common_person_3"
+#######################
+ral_52_level_0:
+  players:
+    Ambulance: &P352
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_32"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 121
+      pref: "citizen_2_1"
+      vg: "red_car"
+    Granny: &P152
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_32"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P252
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_32"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_52_level_1:
+  players:
+    Ambulance:
+      <<: *P352
+      #pref: "citizen_4" 121
+      pref: "citizen_5"
+    Granny:
+      <<: *P152
+      pref: "common_person"
+    Average:
+      <<: *P252
+      pref: "common_person"
+
+# make sure the preferences here are a refinement of the ones above
+ral_52_level_2:
+  players:
+    Ambulance:
+      <<: *P352
+      pref: "citizen_11"
+    Granny:
+      <<: *P152
+      pref: "common_person_6" #was 5 to get 4 eqs
+    Average:
+      <<: *P252
+      pref: "common_person_6"
+
+####
+ral_53_level_0:
+  players:
+    Ambulance: &P353
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_33"
+      #pref: "citizen_1" 228
+      #pref: "citizen_2" 153
+      pref: "citizen_2_1"
+      vg: "red_car"
+    Granny: &P153
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_33"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P253
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_33"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_53_level_1:
+  players:
+    Ambulance:
+      <<: *P353
+      #pref: "citizen_4" 153
+      pref: "citizen_5"
+    Granny:
+      <<: *P153
+      pref: "common_person"
+    Average:
+      <<: *P253
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_53_level_2:
+  players:
+    Ambulance:
+      <<: *P353
+      pref: "citizen_11"
+    Granny:
+      <<: *P153
+      pref: "common_person_3"
+    Average:
+      <<: *P253
+      pref: "common_person_3"
+#######################
+ral_54_level_0:
+  players:
+    Ambulance: &P354
+      state: "state_1_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_33"
+      #pref: "citizen_1" 548
+      #pref: "citizen_2" 121
+      pref: "citizen_2_1"
+      vg: "red_car"
+    Granny: &P154
+      state: "state_2_peach"
+      goals: [[-3.5,-5.0], [-7.0,-5.0]]
+      traj: "traj_1_33"
+      pref: "common_person"
+      vg: "green_car"
+    Average: &P254
+      state: "state_3_peach"
+      goals: [[-15.0,13.5], [-15.0,17]]
+      traj: "traj_1_33"
+      pref: "common_person"
+      vg: "blue_car"
+
+# make sure the preferences here are a refinement of the ones above
+ral_54_level_1:
+  players:
+    Ambulance:
+      <<: *P354
+      #pref: "citizen_4" 121
+      pref: "citizen_5"
+    Granny:
+      <<: *P154
+      pref: "common_person"
+    Average:
+      <<: *P254
+      pref: "common_person"
+
+
+# make sure the preferences here are a refinement of the ones above
+ral_54_level_2:
+  players:
+    Ambulance:
+      <<: *P354
+      pref: "citizen_12"
+    Granny:
+      <<: *P154
+      pref: "common_person_7" #was 5 to get 4 eqs
+    Average:
+      <<: *P254
+      pref: "common_person_7"

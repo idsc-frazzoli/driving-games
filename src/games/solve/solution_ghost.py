@@ -1,24 +1,12 @@
 from dataclasses import dataclass, replace
 from typing import Dict, Mapping
 
+from dg_commons import fd, iterate_dict_combinations, PlayerName, RJ, RP, U, valmap, X, Y
+from games import logger
+from games.game_def import AgentBelief, Game, JointPureActions, JointState, SR
 from possibilities import Poss
 from zuper_commons.types import ZValueError
-from games import logger
-from games.game_def import (
-    AgentBelief,
-    Game,
-    JointPureActions,
-    JointState,
-    PlayerName,
-    RJ,
-    RP,
-    SR,
-    U,
-    X,
-    Y,
-)
 from .solution_structures import GameGraph, GameNode
-from games.utils import fd, iterate_dict_combinations, valmap
 
 
 def get_ghost_tree(
@@ -49,13 +37,14 @@ def get_ghost_tree(
 
 @dataclass
 class ROContext:
-    """ Replace others Context """
+    """Replace others Context"""
 
     game: Game[X, U, Y, RP, RJ, SR]
     controllers: Mapping[PlayerName, AgentBelief[X, U]]
     """ The controllers of the players playing ahead of the players playing last"""
     follower: PlayerName
-    """ The player tha plays subject to the others. Note that it is not a *follower* in the Stackelberg sense."""
+    """ The player tha plays subject to the others. Note that it is not a *follower* in the Stackelberg
+    sense."""
 
 
 def replace_others(
@@ -68,7 +57,7 @@ def replace_others(
     # evaluate the results
     action_fixed: Dict[PlayerName, Poss[U]] = {}
     for player_name in node.states:
-        if player_name in node.is_final:
+        if player_name in node.personal_final_reward:
             continue
         if player_name in node.joint_final_rewards:
             continue
@@ -113,14 +102,14 @@ def replace_others(
 
             # find out which actions are compatible
             def f(a: JointPureActions) -> Poss[JointState]:
-                if a not in node.outcomes:
+                if a not in node.transitions:
                     raise ZValueError(
                         a=a,
                         node=node,
                         active_pure_action=active_pure_action,
-                        av=set(node.outcomes),
+                        av=set(node.transitions),
                     )
-                nodes2: Poss[JointState] = node.outcomes[a]
+                nodes2: Poss[JointState] = node.transitions[a]
                 return nodes2
 
             m: Poss[JointState] = ps.join(ps.build_multiple(active_mixed, f))
@@ -132,8 +121,8 @@ def replace_others(
         ret = GameNode(
             states=node.states,
             moves=new_moves,
-            outcomes=fd(res),
-            is_final=node.is_final,
+            transitions=fd(res),
+            personal_final_reward=node.personal_final_reward,
             incremental=fd(new_incremental),
             joint_final_rewards=node.joint_final_rewards,
             resources=node.resources,

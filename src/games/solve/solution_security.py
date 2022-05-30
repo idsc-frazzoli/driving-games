@@ -4,23 +4,17 @@ from typing import Dict, FrozenSet, List, Mapping
 from frozendict import frozendict
 from toolz import keyfilter
 
+from dg_commons import PlayerName, RJ, RP, U, X, Y
+from games.game_def import (
+    JointMixedActions,
+    JointPureActions,
+    UncertainCombined,
+)
 from possibilities import check_poss, Poss, PossibilityMonad
 from preferences import Preference, remove_dominated, worst_cases
 from zuper_commons.types import ZValueError
 from .equilibria import EquilibriaAnalysis
-from games.game_def import (
-    check_joint_mixed_actions,
-    check_joint_pure_actions,
-    JointMixedActions,
-    JointPureActions,
-    PlayerName,
-    RJ,
-    RP,
-    U,
-    UncertainCombined,
-    X,
-    Y,
-)
+from ..checks import check_joint_mixed_actions, check_joint_pure_actions
 
 
 def get_security_policies(
@@ -145,9 +139,7 @@ def _what_if_player_chooses_get_mixed(
     return results
 
 
-def get_mixed_joint_actions(
-    ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]
-) -> Poss[JointPureActions]:
+def get_mixed_joint_actions(ps: PossibilityMonad, mixed: Mapping[PlayerName, Poss[U]]) -> Poss[JointPureActions]:
     """
     Compute the possible options when players mix over multiple actions
 

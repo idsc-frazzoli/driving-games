@@ -130,7 +130,7 @@ def get_skeleton_graph(po: DuckietownMap) -> SkeletonGraphResult:
         # name = 'alias%s' % (len(aliases))
         # name = '%s-%s' % (lin_name, lout_name)
         name = "L%d" % (len(created))
-        width = lin.width
+        width = lin.w_half
 
         control_points = lin.control_points + lout.control_points[1:]
         ls = LaneSegment(width=width, control_points=control_points)

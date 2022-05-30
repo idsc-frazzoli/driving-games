@@ -3,7 +3,7 @@ from decimal import Decimal as D
 from os.path import join
 from _tmp.bayesian_driving_games.game_generation import get_bayesian_driving_game
 from driving_games import (
-    TwoVehicleSimpleParams,
+    DGSimpleParams,
     NO_LIGHTS,
     UncertaintyParams,
     ProbPrefExpectedValue,
@@ -15,7 +15,7 @@ from games import (
     report_solutions,
     create_report_preprocessed,
 )
-from games_zoo.solvers import SolverSpec
+from driving_games.solvers import SolverSpec
 from _tmp.bayesian_driving_games.solution import solve_bayesian_game
 from _tmp.bayesian_driving_games.preprocess import preprocess_bayesian_game
 
@@ -25,7 +25,7 @@ def test2():
     # todo readjust
     road = D(5)
     side = D(4)
-    p0 = TwoVehicleSimpleParams(
+    p0 = DGSimpleParams(
         side=D(7),
         road=road,
         road_lane_offset=road / 2,  # center

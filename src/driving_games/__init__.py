@@ -7,15 +7,14 @@ from zuper_commons.logs import ZLogger
 
 logger = ZLogger(__name__)
 
-from .game_generation import *
 from .structures import *
-from .rectangle import *
 from .vehicle_dynamics import *
 from .vehicle_observation import *
-from .visualization import *
-from .preferences_collision import *
-from .preferences_coll_time import *
-from .personal_reward import *
-from .joint_reward import *
 from .collisions import *
-from .zoo import *
+from .collisions_check import *
+from .preferences_coll_time import *
+from .preferences_collision import *
+from .reward_personal import *
+from .reward_joint import *
+from .visualization import *
+from .demo import *

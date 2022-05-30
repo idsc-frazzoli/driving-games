@@ -1,3 +1,7 @@
+import distutils.text_file
+from pathlib import Path
+from typing import List
+
 from setuptools import setup
 
 
@@ -17,17 +21,13 @@ def get_version(filename):
     return version
 
 
-install_requires = [
-    'scipy',
-    'matplotlib',
-    'PyGeometry-z6',
-    'zuper-commons-z6>=6.0.19',
-    'quickapp-z6>=6,<7',
-    'compmake-z6>=6.0.8,<7',
-    'reprep-z6>=6.0.3,<7',
-    'networkx>=2.4',
-    'zuper-typing-z6>=6.1',
-]
+def _parse_requirements(filename: str) -> List[str]:
+    """Return requirements from requirements file."""
+    return distutils.text_file.TextFile(filename=str(Path(__file__).with_name(filename))).readlines()
+
+
+install_requires = _parse_requirements("requirements.txt")
+extras_require = {"all": _parse_requirements("requirements-extra.txt")}
 
 module = "driving_games"
 package = "driving-games"
@@ -41,7 +41,14 @@ setup(
     packages=[module],
     version=version,
     zip_safe=False,
-    entry_points={"console_scripts": ["dg-demo = games_zoo:dg_demo",
-                                      "crash-exp = crash:run_crashing_experiments"]},
+    entry_points={
+        "console_scripts": [
+            "dg-demo = driving_games:dg_demo",
+            "crash-exp = crash:run_crashing_experiments",
+            "posets-exp = trajectory_games_tests:run_ral_exp",
+        ]
+    },
+    python_requires=">=3.8",
     install_requires=install_requires,
+    extras_require=extras_require,
 )

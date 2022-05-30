@@ -46,9 +46,7 @@ class BirdPreferences(SmallerPreferred):
         d = {"P": self.get_type()}
         return "VehiclePreferencesCollTime: " + debug_print(d)
 
-    def compare(
-        self, a: Combined[BirdCosts, BirdCosts], b: Combined[BirdCosts, BirdCosts]
-    ) -> ComparisonOutcome:
+    def compare(self, a: Combined[BirdCosts, BirdCosts], b: Combined[BirdCosts, BirdCosts]) -> ComparisonOutcome:
         a_ = a.personal + a.joint
         b_ = b.personal + b.joint
         return super().compare(D(a_.cost), D(b_.cost))
@@ -73,7 +71,7 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
         self.max_stages = max_stages
         self.mat_payoffs = [np.stack([g.A, g.B], axis=-1) for g in subgames]
 
-    def is_joint_final_state(self, xs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
+    def is_joint_final_transition(self, txs: Mapping[PlayerName, BirdState]) -> FrozenSet[PlayerName]:
         res = set()
         if len(xs.items()) > 1:
             for player, x in xs.items():
@@ -81,20 +79,18 @@ class BirdJointReward(JointRewardStructure[BirdState, BirdActions, Any]):
                     res.add(player)
         return frozenset(res)
 
-    def joint_reward(self, xs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
+    def joint_final_reward(self, txs: Mapping[PlayerName, BirdState]) -> Mapping[PlayerName, BirdCosts]:
         """
         Each payoff matrix correspond to a specific subgame
 
-        :param xs:
+        :param txs:
         :return:
         """
         res = {}
-        x1, x2 = xs[self.row_player], xs[self.col_player]
+        x1, x2 = txs[self.row_player], txs[self.col_player]
         subgame, row, col = self.get_payoff_matrix_idx(self.max_stages, x1, x2)
         payoff1, payoff2 = self.mat_payoffs[subgame][row, col, :]
-        res.update(
-            {self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))}
-        )
+        res.update({self.row_player: BirdCosts(D(payoff1.item())), self.col_player: BirdCosts(D(payoff2.item()))})
         return frozendict(res)
 
     @staticmethod

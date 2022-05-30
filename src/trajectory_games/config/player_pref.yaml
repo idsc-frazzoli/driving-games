@@ -1,4 +1,3 @@
-
 # Pref structure for each player
 # Player_name:
 #   node1:   List[None]
@@ -10,408 +9,451 @@
 # Use "NoPreference" for any action
 
 ## Finite time preferences
+pref_ambulance:
+  CollisionEnergy: []
+  EpisodeTime: ["CollisionEnergy"]
+  ProgressAlongReference: ["CollisionEnergy"]
+  MinimumClearance: ["EpisodeTime", "ProgressAlongReference"]
+  DrivableAreaViolation: ["MinimumClearance"]
+  DeviationHeading: ["DrivableAreaViolation"]
+  DeviationLateral: ["DrivableAreaViolation"]
+  LateralComfort: ["DrivableAreaViolation"]
+
+
+pref_granny:
+  CollisionEnergy: []
+  MinimumClearance: ["CollisionEnergy"]
+  DrivableAreaViolation: ["CollisionEnergy"]
+  LateralComfort: ["DrivableAreaViolation", "MinimumClearance"]
+  DeviationHeading: ["LateralComfort"]
+  DeviationLateral: ["LateralComfort"]
+  ProgressAlongReference: ["DeviationHeading", "DeviationLateral"]
+  EpisodeTime: ["DeviationHeading", "DeviationLateral"]
+
+pref_granny_gen1:
+  CollisionEnergy: []
+  MinimumClearance: ["CollisionEnergy"]
+  DrivableAreaViolation: ["CollisionEnergy"]
+  ProgressAlongReference: ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+
+pref_granny_gen2:
+  CollisionEnergy: []
+  MinimumClearance: ["CollisionEnergy"]
+  DrivableAreaViolation: ["CollisionEnergy"]
+  ProgressAlongReference: ["DrivableAreaViolation", "MinimumClearance"]
+  EpisodeTime: ["DrivableAreaViolation", "MinimumClearance"]
+  LateralComfort: ["EpisodeTime", "ProgressAlongReference"]
+
+pref_granny_gen3:
+  CollisionEnergy: []
+  MinimumClearance: ["CollisionEnergy"]
+  DrivableAreaViolation: ["MinimumClearance"]
+  ProgressAlongReference: ["MinimumClearance"]
+  EpisodeTime: ["MinimumClearance"]
+  LateralComfort: ["EpisodeTime", "ProgressAlongReference"]
 # Toy game preferences
-pref_1:                       &pref_1
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  ProgressAlongReference:     ["DrivableAreaViolation"]
-  LateralComfort:             ["DrivableAreaViolation"]
+pref_1: &pref_1
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  ProgressAlongReference: ["DrivableAreaViolation"]
+  LateralComfort: ["DrivableAreaViolation"]
 
 # Trajectory game preference
-pref_2:                       &pref_2
+pref_2: &pref_2
   <<: *pref_1
-  LongitudinalAcceleration:   ["ProgressAlongReference"]
-  DeviationLateral:           ["LateralComfort", "LongitudinalAcceleration"]
-  DeviationHeading:           ["LateralComfort", "LongitudinalAcceleration"]
+  LongitudinalAcceleration: ["ProgressAlongReference"]
+  DeviationLateral: ["LateralComfort", "LongitudinalAcceleration"]
+  DeviationHeading: ["LateralComfort", "LongitudinalAcceleration"]
 
 # Comfort Preference
-pref_3:                       &pref_3
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  LateralComfort:             ["DrivableAreaViolation"]
-  LongitudinalAcceleration:   ["LateralComfort"]
-  DeviationLateral:           ["LongitudinalAcceleration"]
-  DeviationHeading:           ["LongitudinalAcceleration"]
-  ProgressAlongReference:     ["LongitudinalAcceleration"]
+pref_3: &pref_3
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  LateralComfort: ["DrivableAreaViolation"]
+  LongitudinalAcceleration: ["LateralComfort"]
+  DeviationLateral: ["LongitudinalAcceleration"]
+  DeviationHeading: ["LongitudinalAcceleration"]
+  ProgressAlongReference: ["LongitudinalAcceleration"]
 
 # Racing preference
-pref_4:                       &pref_4
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  ProgressAlongReference:     ["DrivableAreaViolation"]
-  DeviationLateral:           ["ProgressAlongReference"]
-  DeviationHeading:           ["ProgressAlongReference"]
+pref_4: &pref_4
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  ProgressAlongReference: ["DrivableAreaViolation"]
+  DeviationLateral: ["ProgressAlongReference"]
+  DeviationHeading: ["ProgressAlongReference"]
 
 # Weighted preference
-pref_5:                       &pref_5
-  weights_1:                  []
+pref_5: &pref_5
+  weights_1: []
 
 # Some Combination preference
-pref_6:                       &pref_6
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  weights_5:                  ["DrivableAreaViolation"]
-  LateralComfort:             ["weights_5"]
-  LongitudinalAcceleration:   ["weights_5"]
+pref_6: &pref_6
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  weights_5: ["DrivableAreaViolation"]
+  LateralComfort: ["weights_5"]
+  LongitudinalAcceleration: ["weights_5"]
 
 
 ## Finite distance preferences
 # Toy game preferences
-pref_d1:                      &pref_d1
-  CollisionEnergy:            []
-  weights_6:                  ["CollisionEnergy"]
-  LateralComfort:             ["weights_6"]
+pref_d1: &pref_d1
+  CollisionEnergy: []
+  weights_6: ["CollisionEnergy"]
+  LateralComfort: ["weights_6"]
 
 # Trajectory game preference
-pref_d2:                      &pref_d2
+pref_d2: &pref_d2
   <<: *pref_d1
-  LongitudinalAcceleration:   ["weights_6"]
-  MinimumClearance:           ["weights_6"]
-  DeviationLateral:           ["LateralComfort", "LongitudinalAcceleration", "MinimumClearance"]
-  DeviationHeading:           ["LateralComfort", "LongitudinalAcceleration", "MinimumClearance"]
+  LongitudinalAcceleration: ["weights_6"]
+  MinimumClearance: ["weights_6"]
+  DeviationLateral: ["LateralComfort", "LongitudinalAcceleration", "MinimumClearance"]
+  DeviationHeading: ["LateralComfort", "LongitudinalAcceleration", "MinimumClearance"]
 
 # Comfort Preference
-pref_d3:                      &pref_d3
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  LateralComfort:             ["DrivableAreaViolation"]
-  LongitudinalAcceleration:   ["LateralComfort"]
-  MinimumClearance:           ["LateralComfort"]
-  DeviationLateral:           ["LongitudinalAcceleration", "MinimumClearance"]
-  DeviationHeading:           ["LongitudinalAcceleration", "MinimumClearance"]
-  EpisodeTime:                ["LongitudinalAcceleration", "MinimumClearance"]
+pref_d3: &pref_d3
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  LateralComfort: ["DrivableAreaViolation"]
+  LongitudinalAcceleration: ["LateralComfort"]
+  MinimumClearance: ["LateralComfort"]
+  DeviationLateral: ["LongitudinalAcceleration", "MinimumClearance"]
+  DeviationHeading: ["LongitudinalAcceleration", "MinimumClearance"]
+  EpisodeTime: ["LongitudinalAcceleration", "MinimumClearance"]
 
 # Racing preference
-pref_d4:                      &pref_d4
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  weights_6:                  ["DrivableAreaViolation"]
-  DeviationLateral:           ["weights_6"]
-  MinimumClearance:           ["weights_6"]
-  DeviationHeading:           ["DeviationLateral"]
-  LongitudinalAcceleration:   ["DeviationHeading", "MinimumClearance"]
+pref_d4: &pref_d4
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  weights_6: ["DrivableAreaViolation"]
+  DeviationLateral: ["weights_6"]
+  MinimumClearance: ["weights_6"]
+  DeviationHeading: ["DeviationLateral"]
+  LongitudinalAcceleration: ["DeviationHeading", "MinimumClearance"]
 
-pref_d5:                      &pref_d5
+pref_d5: &pref_d5
   <<: *pref_5
 
-pref_d6:                      &pref_d6
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  EpisodeTime:                ["DrivableAreaViolation"]
-  MinimumClearance:           ["DrivableAreaViolation"]
-  weights_5:                  ["EpisodeTime", "MinimumClearance"]
-  LateralComfort:             ["weights_5"]
-  LongitudinalAcceleration:   ["weights_5"]
+pref_d6: &pref_d6
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  weights_speed: ["DrivableAreaViolation"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_5: ["weights_speed", "MinimumClearance"]
+  LateralComfort: ["weights_5"]
+  LongitudinalAcceleration: ["weights_5"]
 
 
-pref_d7_1:                    &pref_d7_1
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
+pref_d7_1: &pref_d7_1
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
 
-pref_d7_2:                    &pref_d7_2
+pref_d7_2: &pref_d7_2
   <<: *pref_d7_1
-  MinimumClearance:           ["DrivableAreaViolation"]
+  MinimumClearance: ["DrivableAreaViolation"]
 
-pref_d7_3:                    &pref_d7_3
+pref_d7_3: &pref_d7_3
   <<: *pref_d7_2
-  EpisodeTime:                ["MinimumClearance"]
-  LateralComfort:             ["MinimumClearance"]
-  LongitudinalAcceleration:   ["MinimumClearance"]
+  EpisodeTime: ["MinimumClearance"]
+  LateralComfort: ["MinimumClearance"]
+  LongitudinalAcceleration: ["MinimumClearance"]
 
-pref_d7_4:                    &pref_d7_4
+pref_d7_4: &pref_d7_4
   <<: *pref_d7_2
-  EpisodeTime:                ["MinimumClearance"]
-  LateralComfort:             ["EpisodeTime"]
-  LongitudinalAcceleration:   ["EpisodeTime"]
+  EpisodeTime: ["MinimumClearance"]
+  LateralComfort: ["EpisodeTime"]
+  LongitudinalAcceleration: ["EpisodeTime"]
 
-pref_d7_5:                    &pref_d7_5
+pref_d7_5: &pref_d7_5
   <<: *pref_d7_2
-  LateralComfort:             ["MinimumClearance"]
-  LongitudinalAcceleration:   ["LateralComfort"]
-  EpisodeTime:                ["LateralComfort"]
+  LateralComfort: ["MinimumClearance"]
+  LongitudinalAcceleration: ["LateralComfort"]
+  EpisodeTime: ["LateralComfort"]
 
-pref_d7_6:                    &pref_d7_6
+pref_d7_6: &pref_d7_6
   <<: *pref_d7_2
-  LongitudinalAcceleration:   ["MinimumClearance"]
-  LateralComfort:             ["LongitudinalAcceleration"]
-  EpisodeTime:                ["LongitudinalAcceleration"]
+  LongitudinalAcceleration: ["MinimumClearance"]
+  LateralComfort: ["LongitudinalAcceleration"]
+  EpisodeTime: ["LongitudinalAcceleration"]
 
-pref_d7_7:                    &pref_d7_7
+pref_d7_7: &pref_d7_7
   <<: *pref_d7_4
-  DeviationLateral:           ["LateralComfort", "LongitudinalAcceleration"]
-  DeviationHeading:           ["LateralComfort", "LongitudinalAcceleration"]
+  DeviationLateral: ["LateralComfort", "LongitudinalAcceleration"]
+  DeviationHeading: ["LateralComfort", "LongitudinalAcceleration"]
 
-pref_d7:                      &pref_d7
+pref_d7: &pref_d7
   <<: *pref_d7_7
 
-pref_d7_w1:                    &pref_d7_w1
+pref_d7_w1: &pref_d7_w1
   <<: *pref_d7_2
-  weights_conv222:             ["MinimumClearance"]
+  weights_conv222: ["MinimumClearance"]
 
-pref_d7_w2:                    &pref_d7_w2
+pref_d7_w2: &pref_d7_w2
   <<: *pref_d7_2
-  weights_conv422:             ["MinimumClearance"]
+  weights_conv422: ["MinimumClearance"]
 
-pref_d7_w3:                    &pref_d7_w3
+pref_d7_w3: &pref_d7_w3
   <<: *pref_d7_2
-  weights_conv421:             ["MinimumClearance"]
+  weights_conv421: ["MinimumClearance"]
 
-pref_d7_w4:                    &pref_d7_w4
+pref_d7_w4: &pref_d7_w4
   <<: *pref_d7_2
-  weights_conv412:             ["MinimumClearance"]
+  weights_conv412: ["MinimumClearance"]
 
-pref_d7_w5:                    &pref_d7_w5
+pref_d7_w5: &pref_d7_w5
   <<: *pref_d7_2
-  weights_conv242:             ["MinimumClearance"]
+  weights_conv242: ["MinimumClearance"]
 
-pref_d7_w6:                    &pref_d7_w6
+pref_d7_w6: &pref_d7_w6
   <<: *pref_d7_2
-  weights_conv142:             ["MinimumClearance"]
+  weights_conv142: ["MinimumClearance"]
 
-pref_d7_w7:                    &pref_d7_w7
+pref_d7_w7: &pref_d7_w7
   <<: *pref_d7_2
-  weights_conv241:             ["MinimumClearance"]
+  weights_conv241: ["MinimumClearance"]
 
-pref_d7_w8:                    &pref_d7_w8
+pref_d7_w8: &pref_d7_w8
   <<: *pref_d7_2
-  weights_conv224:             ["MinimumClearance"]
+  weights_conv224: ["MinimumClearance"]
 
-pref_d7_w9:                    &pref_d7_w9
+pref_d7_w9: &pref_d7_w9
   <<: *pref_d7_2
-  weights_conv214:             ["MinimumClearance"]
+  weights_conv214: ["MinimumClearance"]
 
-pref_d7_w10:                   &pref_d7_w10
+pref_d7_w10: &pref_d7_w10
   <<: *pref_d7_2
-  weights_conv124:             ["MinimumClearance"]
+  weights_conv124: ["MinimumClearance"]
 
 pref_8:
-  weights_7:                  []
+  weights_7: []
 
 pref_9:
-  DrivableAreaViolation:      []
-  ProgressAlongReference:     ["DrivableAreaViolation"]
+  DrivableAreaViolation: []
+  ProgressAlongReference: ["DrivableAreaViolation"]
 
 pref_10_i:
-  CollisionEnergy:            []
-  ProgressAlongReference:     ["CollisionEnergy"]
-  LongitudinalAcceleration:   ["CollisionEnergy"]
+  CollisionEnergy: []
+  ProgressAlongReference: ["CollisionEnergy"]
+  LongitudinalAcceleration: ["CollisionEnergy"]
 
 pref_10_1:
-  CollisionEnergy:            []
-  ProgressAlongReference:     ["CollisionEnergy"]
-  LongitudinalAcceleration:   ["ProgressAlongReference"]
+  CollisionEnergy: []
+  ProgressAlongReference: ["CollisionEnergy"]
+  LongitudinalAcceleration: ["ProgressAlongReference"]
 
 pref_10_2:
-  CollisionEnergy:            []
-  LongitudinalAcceleration:   ["CollisionEnergy"]
-  ProgressAlongReference:     ["LongitudinalAcceleration"]
+  CollisionEnergy: []
+  LongitudinalAcceleration: ["CollisionEnergy"]
+  ProgressAlongReference: ["LongitudinalAcceleration"]
 
 pref_vio:
-  DrivableAreaViolation:      []
+  DrivableAreaViolation: []
 
 ## Test preferences
-test_1:                       &test_1
-  CollisionEnergy:            []
-  ProgressAlongReference:     ["CollisionEnergy"]
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  LateralComfort:             ["CollisionEnergy"]
-  DeviationLateral:           ["ProgressAlongReference"]
+test_1: &test_1
+  CollisionEnergy: []
+  ProgressAlongReference: ["CollisionEnergy"]
+  DrivableAreaViolation: ["CollisionEnergy"]
+  LateralComfort: ["CollisionEnergy"]
+  DeviationLateral: ["ProgressAlongReference"]
 
-test_2:                       &test_2
+test_2: &test_2
   <<: *test_1
-  DeviationHeading:           ["DeviationLateral"]
-  MinimumClearance:           ["DrivableAreaViolation", "DeviationHeading"]
-  LongitudinalAcceleration:   ["LateralComfort", "MinimumClearance"]
+  DeviationHeading: ["DeviationLateral"]
+  MinimumClearance: ["DrivableAreaViolation", "DeviationHeading"]
+  LongitudinalAcceleration: ["LateralComfort", "MinimumClearance"]
 
-test_3:                       &test_3
+test_3: &test_3
   <<: *test_2
-  EpisodeTime:                ["LateralComfort"]
-  SteeringRate:               ["DrivableAreaViolation", "EpisodeTime"]
-  SteeringAngle:              ["ProgressAlongReference", "SteeringRate"]
+  EpisodeTime: ["LateralComfort"]
+  SteeringRate: ["DrivableAreaViolation", "EpisodeTime"]
+  SteeringAngle: ["ProgressAlongReference", "SteeringRate"]
 
-comp_1:                       &comp_1
-  CollisionEnergy:            []
+comp_1: &comp_1
+  CollisionEnergy: []
 
-comp_2:                       &comp_2
+comp_2: &comp_2
   <<: *comp_1
-  EpisodeTime:                []
+  EpisodeTime: []
 
-comp_3:                       &comp_3
+comp_3: &comp_3
   <<: *comp_1
-  EpisodeTime:                ["CollisionEnergy"]
+  EpisodeTime: ["CollisionEnergy"]
 
-comp_4:                       &comp_4
+comp_4: &comp_4
   <<: *comp_2
-  LateralComfort:             []
+  LateralComfort: []
 
-comp_5:                       &comp_5
+comp_5: &comp_5
   <<: *comp_2
-  LateralComfort:             ["CollisionEnergy"]
+  LateralComfort: ["CollisionEnergy"]
 
-comp_6:                       &comp_6
+comp_6: &comp_6
   <<: *comp_2
-  LateralComfort:             ["CollisionEnergy", "EpisodeTime"]
+  LateralComfort: ["CollisionEnergy", "EpisodeTime"]
 
-comp_7:                       &comp_7
+comp_7: &comp_7
   <<: *comp_3
-  LateralComfort:             ["CollisionEnergy"]
+  LateralComfort: ["CollisionEnergy"]
 
-comp_8:                       &comp_8
+comp_8: &comp_8
   <<: *comp_1
-  weight_sp_comf:             ["CollisionEnergy"]
+  weight_sp_comf: ["CollisionEnergy"]
 
-comp_9:                       &comp_9
+comp_9: &comp_9
   <<: *comp_3
-  LateralComfort:             ["EpisodeTime"]
-  DeviationLateral:           ["LateralComfort"]
+  LateralComfort: ["EpisodeTime"]
+  DeviationLateral: ["LateralComfort"]
 
-comp_10:                       &comp_10
+comp_10: &comp_10
   <<: *comp_3
-  DeviationLateral:           ["EpisodeTime"]
-  LateralComfort:             ["DeviationLateral"]
+  DeviationLateral: ["EpisodeTime"]
+  LateralComfort: ["DeviationLateral"]
 
-comp_11:                       &comp_11
+comp_11: &comp_11
   <<: *comp_7
-  DeviationLateral:           ["EpisodeTime"]
+  DeviationLateral: ["EpisodeTime"]
 
-comp_12:                       &comp_12
+comp_12: &comp_12
   <<: *comp_7
-  DeviationLateral:           ["EpisodeTime", "LateralComfort"]
+  DeviationLateral: ["EpisodeTime", "LateralComfort"]
 
-comp_13:                       &comp_13
+comp_13: &comp_13
   <<: *comp_8
-  DeviationLateral:           ["weight_sp_comf"]
+  DeviationLateral: ["weight_sp_comf"]
 
-comp_14:                       &comp_14
+comp_14: &comp_14
   <<: *comp_3
-  DeviationLateral:           ["EpisodeTime"]
-  LateralComfort:             ["EpisodeTime", "DeviationLateral"]
+  DeviationLateral: ["EpisodeTime"]
+  LateralComfort: ["EpisodeTime", "DeviationLateral"]
 
 # Leader - follower prefs
-pref_lf1:                     &pref_lf1
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  MinimumClearance:           ["DrivableAreaViolation"]
-  weights_speed:              ["MinimumClearance"]
-  weights_comf:               ["weights_speed"]
+pref_lf1: &pref_lf1
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_speed: ["MinimumClearance"]
+  weights_comf: ["weights_speed"]
 
-pref_lf2:                     &pref_lf2
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  weights_speed:              ["DrivableAreaViolation"]
-  weights_comf:               ["weights_speed"]
-  MinimumClearance:           ["weights_comf"]
+pref_lf2: &pref_lf2
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  weights_speed: ["DrivableAreaViolation"]
+  weights_comf: ["weights_speed"]
+  MinimumClearance: ["weights_comf"]
 
-pref_lf3:                     &pref_lf3
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  weights_comf:               ["DrivableAreaViolation"]
-  weights_speed:              ["weights_comf"]
-  MinimumClearance:           ["weights_speed"]
+pref_lf3: &pref_lf3
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  weights_comf: ["DrivableAreaViolation"]
+  weights_speed: ["weights_comf"]
+  MinimumClearance: ["weights_speed"]
 
-pref_lfi:                     &pref_lfi
-  CollisionEnergy:            []
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  MinimumClearance:           ["DrivableAreaViolation"]
-  weights_speed:              ["DrivableAreaViolation"]
-  weights_comf:               ["DrivableAreaViolation"]
+pref_lfi: &pref_lfi
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
+  weights_speed: ["DrivableAreaViolation"]
+  weights_comf: ["DrivableAreaViolation"]
 
-pref_lf4:                     &pref_lf4
-  CollisionEnergy:            []
-  MinimumClearance:           ["CollisionEnergy"]
-  DrivableAreaViolation:      ["MinimumClearance"]
-  weights_speed:              ["DrivableAreaViolation"]
-  weights_comf:               ["weights_speed"]
+pref_lf4: &pref_lf4
+  CollisionEnergy: []
+  MinimumClearance: ["CollisionEnergy"]
+  DrivableAreaViolation: ["MinimumClearance"]
+  weights_speed: ["DrivableAreaViolation"]
+  weights_comf: ["weights_speed"]
 
-pref_lf_c1:                   &pref_lf_c1
-  DrivableAreaViolation:      []
-  CollisionEnergy:            ["DrivableAreaViolation"]
-  weights_speed:              ["CollisionEnergy"]
-  weights_comf:               ["weights_speed"]
+pref_lf_c1: &pref_lf_c1
+  DrivableAreaViolation: []
+  CollisionEnergy: ["DrivableAreaViolation"]
+  weights_speed: ["CollisionEnergy"]
+  weights_comf: ["weights_speed"]
 
-pref_lf_c2:                   &pref_lf_c2
-  DrivableAreaViolation:      []
-  CollisionEnergy:            ["DrivableAreaViolation"]
-  weights_comf:               ["CollisionEnergy"]
-  weights_speed:              ["weights_comf"]
+pref_lf_c2: &pref_lf_c2
+  DrivableAreaViolation: []
+  CollisionEnergy: ["DrivableAreaViolation"]
+  weights_comf: ["CollisionEnergy"]
+  weights_speed: ["weights_comf"]
 
-pref_lf_c3:                   &pref_lf_c3
-  DrivableAreaViolation:      []
-  weights_speed:              ["DrivableAreaViolation"]
-  CollisionEnergy:            ["weights_speed"]
-  weights_comf:               ["CollisionEnergy"]
+pref_lf_c3: &pref_lf_c3
+  DrivableAreaViolation: []
+  weights_speed: ["DrivableAreaViolation"]
+  CollisionEnergy: ["weights_speed"]
+  weights_comf: ["CollisionEnergy"]
 
-pref_lf_c4:                   &pref_lf_c4
-  DrivableAreaViolation:      []
-  weights_speed:              ["DrivableAreaViolation"]
-  weights_comf:               ["weights_speed"]
-  CollisionEnergy:            ["weights_comf"]
+pref_lf_c4: &pref_lf_c4
+  DrivableAreaViolation: []
+  weights_speed: ["DrivableAreaViolation"]
+  weights_comf: ["weights_speed"]
+  CollisionEnergy: ["weights_comf"]
 
-pref_lf_c5:                   &pref_lf_c5
-  DrivableAreaViolation:      []
-  weights_comf:               ["DrivableAreaViolation"]
-  CollisionEnergy:            ["weights_comf"]
-  weights_speed:              ["CollisionEnergy"]
+pref_lf_c5: &pref_lf_c5
+  DrivableAreaViolation: []
+  weights_comf: ["DrivableAreaViolation"]
+  CollisionEnergy: ["weights_comf"]
+  weights_speed: ["CollisionEnergy"]
 
-pref_lf_c6:                   &pref_lf_c6
-  DrivableAreaViolation:      []
-  weights_comf:               ["DrivableAreaViolation"]
-  weights_speed:              ["weights_comf"]
-  CollisionEnergy:            ["weights_speed"]
+pref_lf_c6: &pref_lf_c6
+  DrivableAreaViolation: []
+  weights_comf: ["DrivableAreaViolation"]
+  weights_speed: ["weights_comf"]
+  CollisionEnergy: ["weights_speed"]
 
-pref_lf_cw1:                  &pref_lf_cw1
-  DrivableAreaViolation:      []
-  weights_lf1:                ["DrivableAreaViolation"]
+pref_lf_cw1: &pref_lf_cw1
+  DrivableAreaViolation: []
+  weights_lf1: ["DrivableAreaViolation"]
 
-pref_lf_cw2:                  &pref_lf_cw2
-  DrivableAreaViolation:      []
-  weights_lf2:                ["DrivableAreaViolation"]
+pref_lf_cw2: &pref_lf_cw2
+  DrivableAreaViolation: []
+  weights_lf2: ["DrivableAreaViolation"]
 
-pref_lf_cw3:                  &pref_lf_cw3
-  DrivableAreaViolation:      []
-  weights_lf3:                ["DrivableAreaViolation"]
+pref_lf_cw3: &pref_lf_cw3
+  DrivableAreaViolation: []
+  weights_lf3: ["DrivableAreaViolation"]
 
-pref_lf_cw4:                  &pref_lf_cw4
-  DrivableAreaViolation:      []
-  weights_lf4:                ["DrivableAreaViolation"]
+pref_lf_cw4: &pref_lf_cw4
+  DrivableAreaViolation: []
+  weights_lf4: ["DrivableAreaViolation"]
 
-pref_lf_cw5:                  &pref_lf_cw5
-  DrivableAreaViolation:      []
-  weights_lf5:                ["DrivableAreaViolation"]
+pref_lf_cw5: &pref_lf_cw5
+  DrivableAreaViolation: []
+  weights_lf5: ["DrivableAreaViolation"]
 
-pref_lf_cw6:                  &pref_lf_cw6
-  DrivableAreaViolation:      []
-  weights_lf6:                ["DrivableAreaViolation"]
+pref_lf_cw6: &pref_lf_cw6
+  DrivableAreaViolation: []
+  weights_lf6: ["DrivableAreaViolation"]
 
-pref_lf_ci:                   &pref_lf_ci
-  DrivableAreaViolation:      []
-  CollisionEnergy:            ["DrivableAreaViolation"]
-  weights_speed:              ["DrivableAreaViolation"]
-  weights_comf:               ["DrivableAreaViolation"]
+pref_lf_ci: &pref_lf_ci
+  DrivableAreaViolation: []
+  CollisionEnergy: ["DrivableAreaViolation"]
+  weights_speed: ["DrivableAreaViolation"]
+  weights_comf: ["DrivableAreaViolation"]
 
 # Pref for levels
-pref_level_1:                 &pref_level_1
-  CollisionEnergy:            [ ]
-  DrivableAreaViolation:      ["CollisionEnergy"]
-  MinimumClearance:           ["DrivableAreaViolation"]
+pref_level_1: &pref_level_1
+  CollisionEnergy: []
+  DrivableAreaViolation: ["CollisionEnergy"]
+  MinimumClearance: ["DrivableAreaViolation"]
 
-pref_level_2:                 &pref_level_2
+pref_level_2: &pref_level_2
   <<: *pref_level_1
-  EpisodeTime:                ["MinimumClearance"]
-  LateralComfort:             ["MinimumClearance"]
-  LongitudinalAcceleration:   ["MinimumClearance"]
+  EpisodeTime: ["MinimumClearance"]
+  LateralComfort: ["MinimumClearance"]
+  LongitudinalAcceleration: ["MinimumClearance"]
 
-pref_level_3:                 &pref_level_3
+pref_level_3: &pref_level_3
   <<: *pref_level_1
-  EpisodeTime:                ["MinimumClearance"]
-  LateralComfort:             ["EpisodeTime"]
-  LongitudinalAcceleration:   ["EpisodeTime"]
+  EpisodeTime: ["MinimumClearance"]
+  LateralComfort: ["EpisodeTime"]
+  LongitudinalAcceleration: ["EpisodeTime"]
 
-pref_level_4:                 &pref_level_4
+pref_level_4: &pref_level_4
   <<: *pref_level_1
-  EpisodeTime:                ["MinimumClearance"]
-  weights_comf:               ["EpisodeTime"]
+  EpisodeTime: ["MinimumClearance"]
+  weights_comf: ["EpisodeTime"]
 
-pref_level_5:                 &pref_level_5
+pref_level_5: &pref_level_5
   <<: *pref_level_4
-  weights_5:                  ["weights_comf"]
+  weights_5: ["weights_comf"]

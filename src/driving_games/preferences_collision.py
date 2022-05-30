@@ -1,29 +1,28 @@
-from decimal import Decimal as D
 from typing import Optional, Type
 
+from zuper_typing import debug_print
+
 from preferences import (
-    COMP_OUTCOMES,
     ComparisonOutcome,
     FIRST_PREFERRED,
     INDIFFERENT,
     Preference,
     SECOND_PREFERRED,
-    SmallerPreferredTol,
+    SmallerPreferred,
 )
-from zuper_typing import debug_print
-from .collisions import Collision
+from .collisions import SimpleCollision, BooleanCollision
 
-__all__ = ["CollisionPreference"]
+__all__ = ["CollisionPreference", "BooleanCollisionPreference"]
 
 
-class CollisionPreference(Preference[Optional[Collision]]):
+class CollisionPreference(Preference[SimpleCollision]):
     def __init__(self):
-        self.p = SmallerPreferredTol(D(0))
+        self.p = SmallerPreferred()
 
-    def get_type(self) -> Type[Optional[Collision]]:
-        return Optional[Collision]
+    def get_type(self) -> Type[SimpleCollision]:
+        return SimpleCollision
 
-    def compare(self, a: Optional[Collision], b: Optional[Collision]) -> ComparisonOutcome:
+    def compare(self, a: Optional[SimpleCollision], b: Optional[SimpleCollision]) -> ComparisonOutcome:
         if a is None and b is None:
             return INDIFFERENT
         if a is None and b is not None:
@@ -32,21 +31,46 @@ class CollisionPreference(Preference[Optional[Collision]]):
             return SECOND_PREFERRED
         assert a is not None
         assert b is not None
-        if a.active and not b.active:
+        if a.at_fault and not b.at_fault:
             return SECOND_PREFERRED
-        if b.active and not a.active:
+        if b.at_fault and not a.at_fault:
             return FIRST_PREFERRED
 
-        ea = a.energy_received + a.energy_transmitted
-        eb = b.energy_received + b.energy_transmitted
+        ea, eb = a.impact_rel_speed, b.impact_rel_speed
         res = self.p.compare(ea, eb)
-        assert res in COMP_OUTCOMES, (res, self.p)
-        # logger.info('collision_pref', a=a, b=b, res=res)
         return res
 
     def __repr__(self) -> str:
         d = {
             "T": self.get_type(),
             "p": self.p,
+        }
+        return "CollisionPreference:\n " + debug_print(d)
+
+
+class BooleanCollisionPreference(Preference[BooleanCollision]):
+    def get_type(self) -> Type[BooleanCollision]:
+        return BooleanCollision
+
+    def compare(self, a: Optional[BooleanCollision], b: Optional[BooleanCollision]) -> ComparisonOutcome:
+        if a is None and b is None:
+            return INDIFFERENT
+        if a is None and b is not None:
+            return FIRST_PREFERRED
+        if a is not None and b is None:
+            return SECOND_PREFERRED
+        assert a is not None
+        assert b is not None
+
+        if a.collided and not b.collided:
+            return SECOND_PREFERRED
+        if b.collided and not a.collided:
+            return FIRST_PREFERRED
+        assert a.collided and b.collided
+        return INDIFFERENT
+
+    def __repr__(self) -> str:
+        d = {
+            "T": self.get_type(),
         }
         return "CollisionPreference:\n " + debug_print(d)

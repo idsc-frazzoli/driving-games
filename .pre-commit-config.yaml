@@ -2,14 +2,21 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v4.0.1
     hooks:
-    -   id: trailing-whitespace
     -   id: end-of-file-fixer
+    -   id: trailing-whitespace
     -   id: check-yaml
+-   repo: https://github.com/mwouts/jupytext
+    rev: v1.13.7
+    hooks:
+    - id: jupytext
+      args: [--sync, --pipe, black]
+      additional_dependencies:
+        - black==22.3.0 # Matches hook version
 -   repo: https://github.com/psf/black
-    rev: 21.9b0
+    rev: 22.3.0
     hooks:
     - id: black
-      language_version: python3.8
+      language_version: python3.9
       args: ["-l", '120']

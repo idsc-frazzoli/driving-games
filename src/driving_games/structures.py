@@ -1,40 +1,37 @@
 from dataclasses import dataclass, replace
-from decimal import Decimal as D
+from decimal import Decimal as D, Decimal
 from fractions import Fraction
-from typing import Tuple
+from functools import lru_cache
 
-from dg_commons import Color
-from sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
+from dg_commons import SE2Transform
+from dg_commons.maps import DgLanelet
+from dg_commons.sim.models.vehicle_ligths import LightsCmd, NO_LIGHTS
 
 __all__ = [
-    "VehicleCosts",
-    "VehicleState",
+    "VehicleTimeCost",
+    "VehicleTrackState",
     "VehicleActions",
-    "VehicleGeometry",
-    "SE2_disc",
 ]
-
-SE2_disc = Tuple[D, D, D]  # in degrees
 
 
 @dataclass(frozen=True)
-class VehicleCosts:
+class VehicleTimeCost:
     """The personal costs of the vehicle"""
 
-    __slots__ = ["duration"]
-    duration: D
+    duration: Decimal
     """ Duration of the episode. """
 
     # support weight multiplication for expected value
-    def __mul__(self, weight: Fraction) -> "VehicleCosts":
+    def __mul__(self, weight: Fraction) -> "VehicleTimeCost":
+        # fixme better efficency?
         # weighting costs, e.g. according to a probability
-        return replace(self, duration=self.duration * D(float(weight)))
+        return replace(self, duration=self.duration * Decimal(float(weight)))
 
     __rmul__ = __mul__
 
     # Monoid to support sum
-    def __add__(self, other: "VehicleCosts") -> "VehicleCosts":
-        if isinstance(other, VehicleCosts):
+    def __add__(self, other: "VehicleTimeCost") -> "VehicleTimeCost":
+        if isinstance(other, VehicleTimeCost):
             return replace(self, duration=self.duration + other.duration)
         elif other is None:
             return self
@@ -44,39 +41,50 @@ class VehicleCosts:
     __radd__ = __add__
 
 
-@dataclass(frozen=True)
-class VehicleGeometry:
-    mass: D
-    """ Mass [kg] """
-    width: D
-    """ Car width [m] """
-    length: D
-    """ Car length [m] """
-    color: Color
-    """ Car color """
-
-
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
-class VehicleState:
-    ref: SE2_disc
-    """ Reference frame from where the vehicle started """
-
+class VehicleTrackState:
     x: D
-    """ Longitudinal position """
+    """ Longitudinal progress """
 
     v: D
     """ Longitudinal velocity """
 
     wait: D
-    """ How long we have been at speed = 0. We want to keep track so bound this. """
+    """ How long we have been at speed = 0. We want to keep track so to bound this."""
 
     light: LightsCmd
-    """ The current lights signal. """
+    """ The current lights signal."""
 
-    __print_order__ = ["x", "v"]  # only print these attributes
+    has_collided: bool
+    """ Whether the vehicle has collided with something/someone. """
+
+    __print_order__ = ["x", "v", "has_collided"]  # only print these attribute
+
+    @lru_cache(maxsize=None)
+    def to_global_pose(self, ref_lane: DgLanelet) -> SE2Transform:
+        beta = ref_lane.beta_from_along_lane(float(self.x))
+        return ref_lane.center_point_fast_SE2Transform(beta)
+
+    # support weight multiplication for interpolation
+    def __mul__(self, weight: float) -> "VehicleTrackState":
+        # weighting costs, e.g. according to a probability
+        return replace(self, x=self.x * D(weight), v=self.v * D(weight))
+
+    __rmul__ = __mul__
+
+    # Monoid to support sum for interpolation
+    def __add__(self, other: "VehicleTrackState") -> "VehicleTrackState":
+        if isinstance(other, VehicleTrackState):
+            return replace(self, x=self.x + other.x, v=self.v + other.v)
+        elif other is None:
+            return self
+        else:
+            raise NotImplementedError
+
+    __radd__ = __add__
 
 
 @dataclass(frozen=True, unsafe_hash=True, eq=True, order=True)
 class VehicleActions:
-    accel: D
+    acc: D
     light: LightsCmd = NO_LIGHTS

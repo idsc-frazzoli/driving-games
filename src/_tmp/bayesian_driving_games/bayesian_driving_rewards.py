@@ -5,20 +5,20 @@ from decimal import Decimal as D, localcontext
 from zuper_commons.types import check_isinstance
 
 from _tmp.bayesian_driving_games.structures import PlayerType, AGGRESSIVE, CAUTIOUS, NEUTRAL, BayesianGamePlayer
+from dg_commons import PlayerName
 from driving_games import (
-    VehicleState,
+    VehicleTrackState,
     VehicleActions,
-    Collision,
     VehicleGeometry,
-    VehicleCosts,
+    VehicleTimeCost,
 )
 from driving_games.collisions_check import (
-    collision_check,
+    joint_collision_cost_simple,
 )
-from games import JointRewardStructure, PlayerName, PersonalRewardStructure
+from games import JointRewardStructure, PersonalRewardStructure
 
 
-class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActions, Collision]):
+class BayesianVehicleJointReward(JointRewardStructure[VehicleTrackState, VehicleActions, Collision]):
     """
     Standard joint reward, but with a collision cost for each player in each type combination.
     """
@@ -34,20 +34,20 @@ class BayesianVehicleJointReward(JointRewardStructure[VehicleState, VehicleActio
         self.players = players
 
     # @lru_cache(None)
-    def is_joint_final_state(self, xs: M[PlayerName, VehicleState]) -> FrozenSet[PlayerName]:
-        res = collision_check(xs, self.geometries)
+    def is_joint_final_transition(self, txs: M[PlayerName, VehicleTrackState]) -> FrozenSet[PlayerName]:
+        res = joint_collision_cost_simple(xs, self.geometries)
         return frozenset(res)
 
-    def joint_reward(self, xs: M[PlayerName, VehicleState]) -> M[PlayerName, M[PlayerName, Collision]]:
+    def joint_final_reward(self, txs: M[PlayerName, VehicleTrackState]) -> M[PlayerName, M[PlayerName, Collision]]:
         # todo this is utterly wrong
         res: M[PlayerType] = {}
         for ptype in self.players:
-            res[ptype] = collision_check(xs, self.geometries)
+            res[ptype] = joint_collision_cost_simple(txs, self.geometries)
         return res
 
 
 class BayesianVehiclePersonalRewardStructureScalar(
-    PersonalRewardStructure[VehicleState, VehicleActions, VehicleCosts]
+    PersonalRewardStructure[VehicleTrackState, VehicleActions, VehicleTimeCost]
     # fixme PersonalRewardStructure[BayesianVehicleState, VehicleActions, VehicleCosts]
 ):
     """
@@ -63,8 +63,8 @@ class BayesianVehiclePersonalRewardStructureScalar(
         self.p_types = p_types
 
     def personal_reward_incremental(
-        self, x: VehicleState, u: VehicleActions, dt: D
-    ) -> M[Tuple[PlayerType, PlayerType], VehicleCosts]:
+        self, x: VehicleTrackState, u: VehicleActions, dt: D
+    ) -> M[Tuple[PlayerType, PlayerType], VehicleTimeCost]:
         """
         #fixme check return argument... shouldn't it be M[PlayerType, VehicleCosts]?
         :param x: The state of the player
@@ -72,35 +72,35 @@ class BayesianVehiclePersonalRewardStructureScalar(
         :param dt: Timestep
         :return: For each type combination a Cost (VehicleCosts is defined as "duration", but can be anything really.
         """
-        check_isinstance(x, VehicleState)
+        check_isinstance(x, VehicleTrackState)
         check_isinstance(u, VehicleActions)
         possible_types = [t for t in self.p_types if t in [AGGRESSIVE, CAUTIOUS, NEUTRAL]]
         res = dict.fromkeys(possible_types)
         for t in possible_types:
             if t == AGGRESSIVE:
-                res[t] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))
+                res[t] = VehicleTimeCost((dt + D(0.1)) * (dt + D(0.1)))
             elif t == CAUTIOUS:
-                res[t] = VehicleCosts(abs(u.accel))
+                res[t] = VehicleTimeCost(abs(u.acc))
             elif t == NEUTRAL:
-                res[t] = VehicleCosts((dt + D(0.1)) * (dt + D(0.1)))
+                res[t] = VehicleTimeCost((dt + D(0.1)) * (dt + D(0.1)))
             else:
                 msg = f'Type of player "{t}" is unrecognized'
                 raise NotImplementedError(msg)
         return res
 
-    def personal_reward_reduce(self, r1: VehicleCosts, r2: VehicleCosts) -> VehicleCosts:
+    def personal_reward_reduce(self, r1: VehicleTimeCost, r2: VehicleTimeCost) -> VehicleTimeCost:
         return r1 + r2
 
-    def personal_reward_identity(self) -> VehicleCosts:
-        return VehicleCosts(D(0))
+    def personal_reward_identity(self) -> VehicleTimeCost:
+        return VehicleTimeCost(D(0))
 
-    def personal_final_reward(self, x: VehicleState) -> M[Tuple[PlayerType, PlayerType], VehicleCosts]:
+    def personal_final_reward(self, x: VehicleTrackState) -> M[Tuple[PlayerType, PlayerType], VehicleTimeCost]:
         """
 
         :param x: The state of the agent
         :return: For each type combination a final reward in state x.
         """
-        check_isinstance(x, VehicleState)
+        check_isinstance(x, VehicleTrackState)
         # assert self.is_personal_final_state(x)
 
         with localcontext() as ctx:
@@ -109,12 +109,12 @@ class BayesianVehiclePersonalRewardStructureScalar(
             res = {}
             # todo fixme
             tc = list(itertools.product(self.p1_types, self.p2_types))
-            res[tc[0]] = VehicleCosts(remaining)
-            res[tc[1]] = VehicleCosts(remaining)
+            res[tc[0]] = VehicleTimeCost(remaining)
+            res[tc[1]] = VehicleTimeCost(remaining)
             return res
 
-    def is_personal_final_state(self, x: VehicleState) -> bool:
-        check_isinstance(x, VehicleState)
+    def is_personal_final_state(self, x: VehicleTrackState) -> bool:
+        check_isinstance(x, VehicleTrackState)
         # return x.x > self.max_path
 
         return x.x + x.v > self.max_path

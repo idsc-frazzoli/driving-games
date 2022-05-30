@@ -122,9 +122,7 @@ def analyze_sequential_rational(
     player_mixed_strategies_new = dict(zip(players_ordered, players_strategies))
 
     _ = next(iter(game.players))
-    type_combinations = list(
-        itertools.product(game.players[_].types_of_myself, game.players[_].types_of_others)
-    )
+    type_combinations = list(itertools.product(game.players[_].types_of_myself, game.players[_].types_of_others))
 
     results: Dict[JointMixedActions, Mapping[PlayerName, UncertainCombined]] = {}
     for choices in itertools.product(*tuple(players_strategies)):
@@ -222,9 +220,7 @@ def solve_sequential_rationality(
     preferences = {k: sc.outcome_preferences[k] for k in players_active}
 
     ea: EquilibriaAnalysis[X, U, Y, RP, RJ]
-    ea = analyze_sequential_rational(
-        ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, game=sc.game
-    )
+    ea = analyze_sequential_rational(ps=sc.game.ps, gn=gn, solved=solved, preferences=preferences, game=sc.game)
     try:
         players_with_types = list(list(ea.nondom_nash_equilibria.keys())[0].keys())
     except:
@@ -278,7 +274,7 @@ def solve_sequential_rationality(
                         if (t1, t2) in key or (t2, t1) in key:
                             game_value[key] = x[key]
 
-        for player_final, final_value in gn.is_final.items():
+        for player_final, final_value in gn.personal_final_reward.items():
             for tc, fv in final_value.items():
                 game_value[player_final, tc] = ps.unit(Combined(fv, None))
         return ValueAndActions(game_value=frozendict(game_value), mixed_actions=eq)
@@ -349,7 +345,7 @@ def solve_sequential_rationality(
                         for key in x.keys():
                             game_value1[key] = x[key]
 
-            for player_final, final_value in gn.is_final.items():
+            for player_final, final_value in gn.personal_final_reward.items():
                 for tc, fv in final_value.items():
                     game_value1[player_final, tc] = ps.unit(Combined(fv, None))
             return ValueAndActions(game_value=fd(game_value1), mixed_actions=frozendict(profile))

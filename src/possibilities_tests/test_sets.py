@@ -1,7 +1,4 @@
-from nose.tools import assert_equal
-
 from possibilities import PossibilityMonad, PossibilitySet
-
 from . import logger
 
 
@@ -35,4 +32,4 @@ def test_set_mix():
     ps = PossibilitySet()
     r = ps.mix(a)
     logger.info(r=r)
-    assert_equal(r, {ps.lift_many({0}), ps.lift_many({1}), ps.lift_many({0, 1})})
+    assert r == {ps.lift_many({0}), ps.lift_many({1}), ps.lift_many({0, 1})}

@@ -19,9 +19,7 @@ matching_pennies_2 = BiMatGame(
     p2_type=MAXIMIZER,
     A=np.array([[7, -1], [-1, 1]]),
     B=np.array([[-1, 1], [1, -1]]),
-    equilibria=(
-        Equilibrium(s1=np.array([0.5, 0.5]), s2=np.array([0.2, 0.8]), p1_payoff=7 * 0.2 - 0.8, p2_payoff=0),
-    ),
+    equilibria=(Equilibrium(s1=np.array([0.5, 0.5]), s2=np.array([0.2, 0.8]), p1_payoff=7 * 0.2 - 0.8, p2_payoff=0),),
 )
 
 degenerate_1 = BiMatGame(
@@ -46,21 +44,15 @@ y: [ 0 1 0 ]        J1: 3/2     z: [3/8 0   1/4 3/8 0 ]        J2: 0.
     equilibria=(
         Equilibrium(s1=np.array([1, 0, 0]), s2=np.array([0, 1, 0, 0, 0]), p1_payoff=0, p2_payoff=0),
         Equilibrium(s1=np.array([1, 0, 0]), s2=np.array([0, 0, 0, 0, 1]), p1_payoff=0, p2_payoff=0),
-        Equilibrium(
-            s1=np.array([2 / 3, 1 / 3, 0]), s2=np.array([0, 1, 0, 0, 0]), p1_payoff=0, p2_payoff=2 / 3
-        ),
+        Equilibrium(s1=np.array([2 / 3, 1 / 3, 0]), s2=np.array([0, 1, 0, 0, 0]), p1_payoff=0, p2_payoff=2 / 3),
         Equilibrium(
             s1=np.array([1 / 3, 1 / 2, 1 / 6]),
             s2=np.array([0, 4 / 9, 2 / 9, 1 / 3, 0]),
             p1_payoff=4 / 3,
             p2_payoff=1,
         ),
-        Equilibrium(
-            s1=np.array([0, 1 / 2, 1 / 2]), s2=np.array([0, 1 / 2, 1 / 2, 0, 0]), p1_payoff=3 / 2, p2_payoff=1
-        ),
-        Equilibrium(
-            s1=np.array([0, 1, 0]), s2=np.array([3 / 7, 0, 4 / 7, 0, 0]), p1_payoff=12 / 7, p2_payoff=0
-        ),
+        Equilibrium(s1=np.array([0, 1 / 2, 1 / 2]), s2=np.array([0, 1 / 2, 1 / 2, 0, 0]), p1_payoff=3 / 2, p2_payoff=1),
+        Equilibrium(s1=np.array([0, 1, 0]), s2=np.array([3 / 7, 0, 4 / 7, 0, 0]), p1_payoff=12 / 7, p2_payoff=0),
         Equilibrium(s1=np.array([0, 1, 0]), s2=np.array([1, 0, 0, 0, 0]), p1_payoff=0, p2_payoff=0),
         Equilibrium(s1=np.array([0, 1, 0]), s2=np.array([0, 1, 0, 0, 0]), p1_payoff=3 / 2, p2_payoff=0),
     ),

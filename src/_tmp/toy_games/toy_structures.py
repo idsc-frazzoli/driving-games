@@ -59,7 +59,7 @@ class FlyingDynamics(Dynamics[BirdState, BirdActions, SR]):
 
     @lru_cache(None)
     def successors(self, x: BirdState, dt: D) -> Mapping[BirdActions, Poss[BirdState]]:
-        """ For each state, returns the possible outcomes given certain actions """
+        """For each state, returns the possible outcomes given certain actions"""
         # todo expand to allow other possibility monads
         possible = {}
         for u in self.all_actions():
@@ -108,7 +108,7 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
 
     @lru_cache(None)
     def all_observations(self) -> FrozenSet[BirdObservation]:
-        """ Returns all possible observations. """
+        """Returns all possible observations."""
         assert len(self.possible_states) == 1
         all_of_them = set()
         for me in self.my_possible_states:
@@ -121,9 +121,7 @@ class BirdDirectObservations(Observations[BirdState, BirdObservation]):
         return frozenset(all_of_them)
 
     @lru_cache(None)
-    def get_observations(
-        self, me: BirdState, others: Mapping[PlayerName, BirdState]
-    ) -> FrozenSet[BirdObservation]:
+    def get_observations(self, me: BirdState, others: Mapping[PlayerName, BirdState]) -> FrozenSet[BirdObservation]:
         # ''' For each state, get all possible observations '''
         others = {}
         # fixme this is an empty foo
@@ -165,9 +163,7 @@ class BirdCosts:
     __radd__ = __add__
 
 
-class BirdsVisualization(
-    GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]
-):
+class BirdsVisualization(GameVisualization[BirdState, BirdActions, BirdDirectObservations, BirdCosts, BirdCosts]):
     def hint_graph_node_pos(self, state: X) -> Tuple[float, float]:
         pass
 

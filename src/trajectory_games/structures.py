@@ -1,88 +1,20 @@
+import math
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import FrozenSet, Tuple, Dict
+from typing import Dict, FrozenSet
 
-from duckietown_world import SE2Transform
 from yaml import safe_load
 
-from .config import config_dir
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from .config import CONFIG_DIR
 
 __all__ = [
-    "VehicleGeometry",
     "VehicleActions",
     "VehicleState",
     "TrajectoryParams",
+    "VehicleGeometry",
 ]
-
-
-# todo deprecated use things from dg_commons
-
-@dataclass
-class VehicleGeometry:
-    """ Geometry parameters of the vehicle"""
-
-    COLOUR = Tuple[float, float, float]
-    """ An alias to store the RGB values of a colour """
-
-    m: float
-    """ Car Mass [kg] """
-    w: float
-    """ Half width of car [m] """
-    l: float
-    """ Half length of car - dist from CoG to each axle [m] """
-    colour: COLOUR
-    """ Car colour """
-
-    _config: Dict = None
-    """ Cached config, loaded from file """
-
-    @classmethod
-    def _load_all_configs(cls):
-        if cls._config is None:
-            filename = os.path.join(config_dir, "vehicles.yaml")
-            with open(filename) as load_file:
-                cls._config = safe_load(load_file)
-
-    @classmethod
-    def default(cls) -> "VehicleGeometry":
-        return VehicleGeometry(m=1000.0, w=1.0, l=2.0, colour=(1, 1, 1))
-
-    @classmethod
-    def load_colour(cls, name: str) -> COLOUR:
-        """ Load the colour name from the possible colour configs"""
-
-        def default():
-            return 1, 1, 1
-
-        if len(name) == 0:
-            return default()
-        cls._load_all_configs()
-        if name in cls._config["colours"].keys():
-            colour = tuple(_ for _ in cls._config["colours"][name])
-        else:
-            print(f"Failed to intialise {cls.__name__} from {name}, using default")
-            colour = default()
-        return colour
-
-    @classmethod
-    def from_config(cls, name: str) -> "VehicleGeometry":
-        """ Load the vehicle geometry from the possible vehicle configs"""
-        if len(name) == 0:
-            return cls.default()
-        cls._load_all_configs()
-        if name in cls._config.keys():
-            config = cls._config[name]
-            vg = VehicleGeometry(
-                m=config["m"],
-                w=config["w"],
-                l=config["l"],
-                colour=cls.load_colour(config["colour"]),
-            )
-        else:
-            print(f"Failed to intialise {cls.__name__} from {name}, using default")
-            vg = cls.default()
-        return vg
 
 
 @dataclass(unsafe_hash=True, eq=True, order=True)
@@ -180,44 +112,45 @@ class VehicleState:
         def check(val: float) -> bool:
             return abs(val) < tol
 
-        if check(diff.x) and check(diff.y) and check(diff.th) and \
-                check(diff.v) and check(diff.th) and abs(diff.t) < 1e-3:
+        if (
+            check(diff.x)
+            and check(diff.y)
+            and check(diff.th)
+            and check(diff.v)
+            and check(diff.th)
+            and abs(diff.t) < 1e-3
+        ):
             return True
         return False
 
     @classmethod
-    def default(cls, lane) -> "VehicleState":
-        beta0 = lane.beta_from_along_lane(along_lane=0)
-        se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
-        state = VehicleState(x=se2.p[0], y=se2.p[1], th=se2.theta,
-                             v=10.0, st=0.0, t=D("0"))
+    def default(cls) -> "VehicleState":
+        state = VehicleState(x=0.0, y=0.0, th=math.pi / 2.0, v=10.0, st=0.0, t=D("0"))
         return state
 
     @classmethod
-    def from_config(cls, name: str, lane) -> "VehicleState":
+    def from_config(cls, name: str) -> "VehicleState":
 
         if len(name) == 0:
-            return cls.default(lane)
+            return cls.default()
 
         if cls._config is None:
-            filename = os.path.join(config_dir, "initial_states.yaml")
+            filename = os.path.join(CONFIG_DIR, "initial_states.yaml")
             with open(filename) as load_file:
                 cls._config = safe_load(load_file)
         if name in cls._config.keys():
             config = cls._config[name]
-            beta0 = lane.beta_from_along_lane(along_lane=config["s0"])
-            se2 = SE2Transform.from_SE2(lane.center_point(beta=beta0))
             state = VehicleState(
-                x=se2.p[0],
-                y=se2.p[1],
-                th=se2.theta + config["th0"],
+                x=config["x0"],
+                y=config["y0"],
+                th=config["th0"],
                 v=config["v0"],
                 st=config["st0"],
                 t=D(config["t0"]),
             )
         else:
             print(f"Failed to intialise {cls.__name__} from {name}, using default")
-            state = cls.default(lane)
+            state = cls.default()
         return state
 
 
@@ -248,6 +181,8 @@ class TrajectoryParams:
     """ Timestamp for upsampling trajectories [s] """
     dst_scale: bool
     """ Scale target lateral deviation with velocity or not """
+    n_factor: float
+    """ Factor to scale target lateral deviation between stages """
     vg: VehicleGeometry
     """ Vehicle geometry parameters """
 
@@ -271,6 +206,7 @@ class TrajectoryParams:
             dst_max=1.0,
             dt_samp=D("0.1"),
             dst_scale=False,
+            n_factor=0.8,
             vg=VehicleGeometry.from_config(""),
         )
         return params
@@ -278,7 +214,7 @@ class TrajectoryParams:
     @classmethod
     def from_config(cls, name: str, vg_name: str) -> "TrajectoryParams":
         if cls._config is None:
-            filename = os.path.join(config_dir, "trajectories.yaml")
+            filename = os.path.join(CONFIG_DIR, "trajectories.yaml")
             with open(filename) as load_file:
                 cls._config = safe_load(load_file)
 
@@ -309,6 +245,7 @@ class TrajectoryParams:
                 dst_max=config["dst_max"],
                 dt_samp=D(config["dt_samp"]),
                 dst_scale=config["dst_scale"],
+                n_factor=config["n_factor"],
                 vg=VehicleGeometry.from_config(vg_name),
             )
         else:

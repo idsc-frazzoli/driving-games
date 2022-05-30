@@ -25,7 +25,7 @@ class BayesianGameNode(GameNode):
 
 @dataclass
 class BayesianGamePreprocessed(GamePreprocessed):
-    """ A pre-processed Bayesian game. """
+    """A pre-processed Bayesian game."""
 
     game: BayesianGame
     """ The original game. """
@@ -36,14 +36,14 @@ class BayesianGamePreprocessed(GamePreprocessed):
 
 @dataclass
 class BayesianGameGraph(GameGraph):
-    """ The bayesian game graph."""
+    """The bayesian game graph."""
 
     state2node: Mapping[JointState, BayesianGameNode]
 
 
 @dataclass
 class BayesianSolvingContext(SolvingContext):
-    """ The bayesian solving context. """
+    """The bayesian solving context."""
 
     game: BayesianGame
     gg: BayesianGameGraph

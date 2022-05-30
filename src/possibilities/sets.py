@@ -10,7 +10,7 @@ from .base import PossibilityMonad, Sampler
 from .poss import Poss
 from .utils import non_empty_sets
 
-__all__ = ["PossibilitySet"]
+__all__ = ["PossibilitySet", "SetPoss"]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -30,7 +30,7 @@ class SetPoss(Poss[A]):
         return self._r
 
     def support(self) -> FrozenSet[A]:
-        """ Returns the support of the distribution """
+        """Returns the support of the distribution"""
         return self._p
 
 

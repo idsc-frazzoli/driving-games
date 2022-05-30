@@ -1,13 +1,12 @@
-from trajectory_games import VehicleGeometry
-from duckietown_world import SE2Transform
-from trajectory_games.metrics import Clearance
-from dg_commons import PlayerName
 from nose.tools import assert_almost_equal
+
+from dg_commons import PlayerName, SE2Transform
+from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from trajectory_games.metrics import Clearance
 
 
 def test_clearance():
-
-    geo1 = VehicleGeometry(m=100, w=1, l=2, colour=(1, 0, 0))
+    geo1 = VehicleGeometry.default_car(color=(1, 0, 0))
     p1 = PlayerName("P1")
     p2 = PlayerName("P2")
     pos0 = SE2Transform(p=[0.0, 0.0], theta=1.57)
@@ -29,6 +28,7 @@ def test_clearance():
     def calc(pos_p1: SE2Transform, pos_p2: SE2Transform) -> float:
         inp = {p1: (pos_p1, geo1), p2: (pos_p2, geo1)}
         return Clearance.get_clearance(inp)
+
     assert_almost_equal(calc(pos0, pos1), 0.0)
     assert_almost_equal(calc(pos0, pos2), 0.0)
     assert_almost_equal(calc(pos0, pos3), 0.1, places=2)
@@ -59,5 +59,5 @@ def test_clearance():
     assert_almost_equal(calc(pos14, pos13), 0.079, places=2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_clearance()

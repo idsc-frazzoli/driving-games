@@ -3,28 +3,25 @@ from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from functools import partial
 from time import perf_counter
-from typing import Tuple, List, Dict, Callable, Set, Mapping, Hashable
+from typing import Callable, Dict, List, Mapping, Set, Tuple
 
-import geometry as geo
 import numpy as np
-from duckietown_world import LanePose
-from duckietown_world import SE2Transform
 from frozendict import frozendict
 
-from dg_commons import PlayerName
-from dg_commons.seq.sequence import Timestamp
-from .metrics_def import (
+import geometry as geo
+from dg_commons import fd, PlayerName, SE2Transform, seq_differentiate
+from dg_commons.maps import DgLanePose
+from dg_commons.planning import JointTrajectories, Trajectory
+from dg_commons.seq.sequence import DgSampledSequence
+from driving_games.metrics_structures import (
+    EvaluatedMetric,
+    JointEvaluatedMetric,
+    JointPlayerEvaluatedMetrics,
     Metric,
     MetricEvaluationContext,
-    EvaluatedMetric,
-    MetricEvaluationResult,
-    TrajGameOutcome,
-    PlayerOutcome,
-    differentiate,
+    PlayerEvaluatedMetrics,
 )
-from .paths import Trajectory
 from .structures import VehicleGeometry, VehicleState
-from .trajectory_game import JointPureTraj
 from .trajectory_world import TrajectoryWorld
 
 __all__ = [
@@ -45,36 +42,25 @@ __all__ = [
 ]
 
 
-def get_evaluated_metric(
-        players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]
-) -> MetricEvaluationResult:
+def get_evaluated_metric(players: List[PlayerName], f: Callable[[PlayerName], EvaluatedMetric]) -> JointEvaluatedMetric:
     mer: Dict[PlayerName, EvaluatedMetric] = {}
     for player_name in players:
         mer[player_name] = f(player_name)
     return mer
 
 
-def get_values(traj: Trajectory, func: Callable[[VehicleState], float], scale: float) \
-        -> Tuple[List[Timestamp], List[float]]:
-    tval = [(t, func(x) * scale) for t, x in traj]
-    interval, val = zip(*tval)
-    return interval, val
-
-
 class EpisodeTime(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "Length of the episode (smaller preferred)"
-    scale: float = 2.0
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = context.get_interval(player)
-            val = [1.0 * self.scale for _ in interval]
-            ret = self.get_evaluated_metric(interval=interval, val=val)
+            # time becomes also the value
+            ret = self.get_evaluated_metric(seq=DgSampledSequence(traj.timestamps, traj.timestamps))
             self.cache[traj] = ret
             return ret
 
@@ -84,18 +70,17 @@ class EpisodeTime(Metric):
 class DeviationLateral(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the deviation from reference path. "
-    scale: float = 0.25
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = context.get_interval(player)
-            traj_sn = context.get_curvilinear_points(player)
-            abs_n = [_.distance_from_center * self.scale for _ in traj_sn]
-            ret = self.get_evaluated_metric(interval=interval, val=abs_n)
+            interval = traj.get_sampling_points()
+            traj_sn = context.points_curv[player]
+            abs_n = [_.distance_from_center for _ in traj_sn]
+            ret = self.get_evaluated_metric(timestamps=interval, values=abs_n)
             self.cache[traj] = ret
             return ret
 
@@ -105,18 +90,17 @@ class DeviationLateral(Metric):
 class DeviationHeading(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the heading deviation from reference path."
-    scale: float = 0.5
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = context.get_interval(player)
-            traj_sn = context.get_curvilinear_points(player)
-            head = [abs(_.relative_heading) * self.scale for _ in traj_sn]
-            ret = self.get_evaluated_metric(interval=interval, val=head)
+            interval = traj.get_sampling_points()
+            traj_sn = context.points_curv[player]
+            head = [abs(_.relative_heading) for _ in traj_sn]
+            ret = self.get_evaluated_metric(timestamps=interval, values=head)
             self.cache[traj] = ret
             return ret
 
@@ -126,19 +110,17 @@ class DeviationHeading(Metric):
 class DrivableAreaViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the drivable area violation by the robot."
-    scale: float = 2.0
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
-
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = context.get_interval(player)
-            traj_sn = context.get_curvilinear_points(player)
+            interval = traj.get_sampling_points()
+            traj_sn = context.points_curv[player]
 
-            def get_violation(curv: LanePose) -> float:
+            def get_violation(curv: DgLanePose) -> float:
                 diff = 0.0
                 if not curv.lateral_inside:
                     if curv.outside_left:
@@ -147,8 +129,9 @@ class DrivableAreaViolation(Metric):
                         diff = curv.distance_from_right
                 return diff
 
-            values = [get_violation(_) * self.scale for _ in traj_sn]
-            ret = self.get_evaluated_metric(interval=interval, val=values)
+            viol = [get_violation(x) for x in traj_sn]
+            viol_seq = DgSampledSequence[float](timestamps=interval, values=viol)
+            ret = self.get_evaluated_metric(viol_seq)
             self.cache[traj] = ret
             return ret
 
@@ -157,21 +140,23 @@ class DrivableAreaViolation(Metric):
 
 class ProgressAlongReference(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric computes how far the robot drove **along the reference path** (negative for smaller preferred)"
-    scale: float = 0.2
+    description = (
+        "This metric computes how far the robot drove **along the reference path** (negative for smaller " "preferred)"
+    )
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval = context.get_interval(player)
-            traj_sn = context.get_curvilinear_points(player)
+            interval = traj.get_sampling_points()
+            lane_poses = context.points_curv[player]
             # negative for smaller preferred
-            progress = [(traj_sn[0].along_lane - p.along_lane) * self.scale for p in traj_sn]
-            inc = differentiate(val=progress, t=interval)
-            ret = self.get_evaluated_metric(interval=interval, val=inc)
+            progress = [(lane_poses[0].along_lane - p.along_lane) for p in lane_poses]
+            progress_seq = DgSampledSequence[float](interval, progress)
+            progress_der_seq = seq_differentiate(progress_seq)
+            ret = self.get_evaluated_metric(seq=progress_der_seq)
             self.cache[traj] = ret
             return ret
 
@@ -181,24 +166,24 @@ class ProgressAlongReference(Metric):
 class LongitudinalAcceleration(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the longitudinal acceleration the robot."
-    scale: float = 0.5
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval, vel = get_values(traj=traj, func=get_vel, scale=self.scale)
-            acc = differentiate(vel, interval)
-            # Final acc, dacc is zero and not first
-            acc_val = [abs(_) for _ in acc[1:]] + [0.0]
-
-            ret = self.get_evaluated_metric(interval=interval, val=acc_val)
+            traj_vel = traj.transform_values(lambda x: x.v, float)
+            acc_seq = seq_differentiate(traj_vel)
+            ret = self.get_evaluated_metric(acc_seq)
             self.cache[traj] = ret
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+def _get_lat_comf(x: VehicleState) -> float:
+    return abs(x.v * x.st)
 
 
 class LateralComfort(Metric):
@@ -206,14 +191,14 @@ class LateralComfort(Metric):
     description = "This metric computes the lateral discomfort or lateral acceleration the robot."
     scale: float = 0.5
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval, ay = get_values(traj=traj, func=get_lat_comf, scale=self.scale)
-            ret = self.get_evaluated_metric(interval=interval, val=ay)
+            lat_comf_seq = traj.transform_values(_get_lat_comf, float)
+            ret = self.get_evaluated_metric(seq=lat_comf_seq)
             self.cache[traj] = ret
             return ret
 
@@ -223,17 +208,15 @@ class LateralComfort(Metric):
 class SteeringAngle(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the steering angle the robot."
-    scale: float = 1.0
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval, st = get_values(traj=traj, func=get_st, scale=self.scale)
-            st_abs = [abs(_) for _ in st]
-            ret = self.get_evaluated_metric(interval=interval, val=st_abs)
+            st_seq = traj.transform_values(lambda x: abs(x.st), float)
+            ret = self.get_evaluated_metric(seq=st_seq)
             self.cache[traj] = ret
             return ret
 
@@ -243,19 +226,16 @@ class SteeringAngle(Metric):
 class SteeringRate(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the rate of change of steering angle the robot."
-    scale: float = 2.0
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            traj: Trajectory = context.get_action(player)
+            traj: Trajectory = context.trajectories[player]
             if traj in self.cache:
                 return self.cache[traj]
 
-            interval, st = get_values(traj=traj, func=get_st, scale=self.scale)
-            dst = differentiate(st, interval)
-            # Final dst is zero and not first
-            dst_val = [abs(_) for _ in dst[1:]] + [0.0]
-            ret = self.get_evaluated_metric(interval=interval, val=dst_val)
+            st_traj = traj.transform_values(lambda x: x.st, float)
+            dst = seq_differentiate(st_traj)
+            ret = self.get_evaluated_metric(dst)
             self.cache[traj] = ret
             return ret
 
@@ -268,8 +248,8 @@ class Clearance(Metric, metaclass=ABCMeta):
     coeffs = [(+1, +1), (+1, -1), (-1, +1), (-1, -1)]
     THRESHOLD: float
     time: float
-    cache_vals: Dict[JointPureTraj, Dict[PlayerName, List[float]]]
-    cache_metrics: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]]
+    cache_vals: Dict[JointTrajectories, Dict[PlayerName, List[float]]]
+    cache_metrics: Dict[JointTrajectories, Dict[PlayerName, EvaluatedMetric]]
 
     @staticmethod
     def get_clearance(players: PlayersInstance) -> float:
@@ -312,19 +292,20 @@ class Clearance(Metric, metaclass=ABCMeta):
         return min_dist
 
     @abstractmethod
-    def get_cost(self, dist: float, states: Tuple[VehicleState, VehicleState],
-                 geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:
-        """"Calculate cost for given state"""
+    def get_cost(
+        self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
+    ) -> float:
+        """ "Calculate cost for given state"""
 
     @abstractmethod
-    def check_threshold(self, dist: float, states: Tuple[VehicleState, VehicleState],
-                        geos: Tuple[VehicleGeometry, VehicleGeometry]) -> bool:
-        """"Check if value is greater than threshold for given state"""
+    def check_threshold(
+        self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
+    ) -> bool:
+        """ "Check if value is greater than threshold for given state"""
 
-    def calculate_value(self, context: MetricEvaluationContext,
-                        players: List[PlayerName]) -> List[float]:
+    def calculate_value(self, context: MetricEvaluationContext, players: List[PlayerName]) -> List[float]:
         assert len(players) == 2
-        joint_traj: JointPureTraj = frozendict({p: context.get_action(p) for p in players})
+        joint_traj: JointTrajectories = frozendict({p: context.trajectories[p] for p in players})
         if joint_traj in self.cache_vals:
             return self.cache_vals[joint_traj][players[0]]
         if players[0] == players[1]:
@@ -335,7 +316,7 @@ class Clearance(Metric, metaclass=ABCMeta):
         L: float = 0.0
         for p in players:
             g = context.get_world().get_geometry(p)
-            L += (g.l ** 2 + g.w ** 2) ** 0.5
+            L += (g.l**2 + g.w**2) ** 0.5
         values: List[float] = []
         t1, t2 = list(iter(joint_traj[players[0]])), list(iter(joint_traj[players[1]]))
         len1, len2 = min(len(t1), len(t2)), max(len(t1), len(t2))
@@ -352,7 +333,7 @@ class Clearance(Metric, metaclass=ABCMeta):
             # Coarse check
             dx = state1.x - state2.x
             dy = state1.y - state2.y
-            dist = (dx ** 2 + dy ** 2) ** 0.5
+            dist = (dx**2 + dy**2) ** 0.5
             if self.check_threshold(dist=dist - L, states=states, geos=geos):
                 values.append(0.0)
                 continue
@@ -370,12 +351,9 @@ class Clearance(Metric, metaclass=ABCMeta):
         self.cache_vals[joint_traj] = {p1: values, p2: values_cp}
         return self.cache_vals[joint_traj][players[0]]
 
-    def calculate_metric(self, player1: PlayerName,
-                         context: MetricEvaluationContext) -> EvaluatedMetric:
+    def calculate_metric(self, player1: PlayerName, context: MetricEvaluationContext) -> EvaluatedMetric:
 
-        joint_traj_all: JointPureTraj = frozendict(
-            {p: context.get_action(p) for p in context.get_players()}
-        )
+        joint_traj_all: JointTrajectories = fd(context.trajectories)
         if joint_traj_all in self.cache_metrics and player1 in self.cache_metrics[joint_traj_all]:
             return self.cache_metrics[joint_traj_all][player1]
 
@@ -393,16 +371,15 @@ class Clearance(Metric, metaclass=ABCMeta):
             #     self.time_comb += perf_counter() - tic_comb
 
         # TODO[SIR]: Integration is slow, skipping since it's not used
-        ret = EvaluatedMetric(title=type(self).__name__, description=self.description,
-                              total=total_value, incremental=None, cumulative=None)
+        ret = EvaluatedMetric(name=type(self).__name__, pointwise=None, value=total_value)
         # interval = context.get_interval(player1)
-        # ret = self.get_evaluated_metric(interval=interval, val=all_values)
+        # ret = self.get_evaluated_metric(timestamps=interval, values=all_values)
         if joint_traj_all not in self.cache_metrics:
             self.cache_metrics[joint_traj_all] = {}
         self.cache_metrics[joint_traj_all][player1] = ret
         return ret
 
-    def evaluate(self, context: MetricEvaluationContext) -> MetricEvaluationResult:
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
         tic = perf_counter()
         metric_func = partial(self.calculate_metric, context=context)
         return_val = get_evaluated_metric(context.get_players(), metric_func)
@@ -414,23 +391,25 @@ class CollisionEnergy(Clearance):
     description = "This metric computes the energy of collision between agents."
     time = 0.0
     THRESHOLD = 0.1
-    cache_vals: Dict[JointPureTraj, Dict[PlayerName, List[float]]] = {}
-    cache_metrics: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
+    cache_vals: Dict[JointTrajectories, Dict[PlayerName, List[float]]] = {}
+    cache_metrics: Dict[JointTrajectories, Dict[PlayerName, EvaluatedMetric]] = {}
     scale: float = 0.01
 
-    def get_cost(self, dist: float, states: Tuple[VehicleState, VehicleState],
-                 geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:
+    def get_cost(
+        self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
+    ) -> float:
         if self.check_threshold(dist=dist, states=states, geos=geos):
             return 0.0
         # Calculate values based on relative velocity between both vehicles
         state1, state2 = states
         vel_proj = math.cos(state1.th - state2.th)
-        vel_relsq = state1.v ** 2 + state2.v ** 2 - 2 * state1.v * state2.v * vel_proj
+        vel_relsq = state1.v**2 + state2.v**2 - 2 * state1.v * state2.v * vel_proj
         energy_coll = vel_relsq * self.scale
         return energy_coll
 
-    def check_threshold(self, dist: float, states: Tuple[VehicleState, VehicleState],
-                        geos: Tuple[VehicleGeometry, VehicleGeometry]) -> bool:
+    def check_threshold(
+        self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
+    ) -> bool:
         return dist > self.THRESHOLD
 
 
@@ -438,21 +417,24 @@ class MinimumClearance(Clearance):
     description = "This metric computes the cost when minimum clearance not available between agents."
     time = 0.0
     THRESHOLD = 0.25  # Time between vehicles
-    cache_vals: Dict[JointPureTraj, Dict[PlayerName, List[float]]] = {}
-    cache_metrics: Dict[JointPureTraj, Dict[PlayerName, EvaluatedMetric]] = {}
+    cache_vals: Dict[JointTrajectories, Dict[PlayerName, List[float]]] = {}
+    cache_metrics: Dict[JointTrajectories, Dict[PlayerName, EvaluatedMetric]] = {}
     scale: float = 1.0
 
-    def get_cost(self, dist: float, states: Tuple[VehicleState, VehicleState],
-                 geos: Tuple[VehicleGeometry, VehicleGeometry]) -> float:
+    def get_cost(
+        self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
+    ) -> float:
         if self.check_threshold(dist=dist, states=states, geos=geos):
             return 0.0
         return (self.THRESHOLD * max(x.v for x in states) - dist) * self.scale
 
-    def check_threshold(self, dist: float, states: Tuple[VehicleState, VehicleState],
-                        geos: Tuple[VehicleGeometry, VehicleGeometry]) -> bool:
+    def check_threshold(
+        self, dist: float, states: Tuple[VehicleState, VehicleState], geos: Tuple[VehicleGeometry, VehicleGeometry]
+    ) -> bool:
         return dist > self.THRESHOLD * max(x.v for x in states)
 
 
+# fixme probably all these metrics is better to have them as Type[Metric]?
 def get_personal_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {
         EpisodeTime(),
@@ -468,23 +450,8 @@ def get_personal_metrics() -> Set[Metric]:
     return metrics
 
 
-def get_vel(x: VehicleState) -> float:
-    return x.v
-
-
-def get_lat_comf(x: VehicleState) -> float:
-    return abs(x.v * x.st)
-
-
-def get_st(x: VehicleState) -> float:
-    return x.st
-
-
 def get_joint_metrics() -> Set[Metric]:
-    metrics: Set[Metric] = {
-        CollisionEnergy(),
-        MinimumClearance()
-    }
+    metrics: Set[Metric] = {CollisionEnergy(), MinimumClearance()}
     return metrics
 
 
@@ -495,24 +462,26 @@ def get_metrics_set() -> Set[Metric]:
 
 
 class MetricEvaluation:
-    _cache: Dict[JointPureTraj, TrajGameOutcome] = {}
+    """Class container to evaluate all the metrics"""
+
     metrics = get_metrics_set()
+    _cache: Dict[JointTrajectories, JointPlayerEvaluatedMetrics] = {}
 
     def __init__(self):
         raise Exception(f"Don't create instances of {type(self).__name__}!")
 
     @staticmethod
-    def _evaluate_traj(traj: JointPureTraj, world: TrajectoryWorld) -> TrajGameOutcome:
+    def _evaluate_traj(traj: JointTrajectories, world: TrajectoryWorld) -> JointPlayerEvaluatedMetrics:
 
         if traj in MetricEvaluation._cache:
             return MetricEvaluation._cache[traj]
 
-        context = MetricEvaluationContext(world=world, transitions=traj)
-        metric_results: Dict[Metric, MetricEvaluationResult] = {}
+        context = MetricEvaluationContext(scenario=world.scenario, trajectories=traj, goals=world.goals)
+        metric_results: Dict[Metric, JointEvaluatedMetric] = {}
         for metric in MetricEvaluation.metrics:
             metric_results[metric] = metric.evaluate(context)
 
-        game_outcome: Dict[PlayerName, PlayerOutcome] = {}
+        game_outcome: Dict[PlayerName, PlayerEvaluatedMetrics] = {}
         player_outcome: Dict[Metric, EvaluatedMetric]
         for player in traj.keys():
             player_outcome = {}
@@ -525,10 +494,7 @@ class MetricEvaluation:
         return ret
 
     @staticmethod
-    def evaluate(trajectories: JointPureTraj, world: TrajectoryWorld) -> TrajGameOutcome:
-        if not isinstance(trajectories, Hashable):
-            trajectories = frozendict(trajectories)
-
+    def evaluate(trajectories: JointTrajectories, world: TrajectoryWorld) -> JointPlayerEvaluatedMetrics:
         if trajectories in MetricEvaluation._cache:
             return MetricEvaluation._cache[trajectories]
 
@@ -543,8 +509,10 @@ class MetricEvaluation:
         for i in range(maxl):
             traj_step = {}
             for player in trajectories.keys():
-                if i < len(traj_all[player]): traj_step[player] = traj_all[player][i]
-            if len(traj_step) == 0: break
+                if i < len(traj_all[player]):
+                    traj_step[player] = traj_all[player][i]
+            if len(traj_step) == 0:
+                break
             step_out = MetricEvaluation._evaluate_traj(traj=frozendict(traj_step), world=world)
             if i == 0:
                 for player, out in step_out.items():
@@ -554,7 +522,7 @@ class MetricEvaluation:
                     for metric, value in all_out.items():
                         outcomes[player][metric] += value
 
-        ret: Dict[PlayerName, PlayerOutcome] = {}
+        ret: Dict[PlayerName, PlayerEvaluatedMetrics] = {}
         for player in outcomes.keys():
             ret[player] = frozendict(outcomes[player])
 
