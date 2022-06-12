@@ -55,7 +55,9 @@ __all__ = [
     "LongitudinalAccelerationSquared",
     "RoadCompliance_CR",
     "SafeDistance_CR",
-    "MaximumVelocity_CR"
+    "MaximumVelocity_CR",
+    "AverageVelocitySquared",
+    "LongitudinalJerkSquared"
 ]
 
 
@@ -313,7 +315,6 @@ class ProgressAlongReference(Metric):
             if traj in self.cache:
                 return self.cache[traj]
 
-
             traj_sn = context.points_curv[player]
             # negative for smaller preferred
             # final_progress = [traj_sn[0].along_lane - traj_sn[-1].along_lane]
@@ -341,7 +342,7 @@ class ProgressAlongReference(Metric):
 
 class LongitudinalAcceleration(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric computes the longitudinal acceleration the robot."
+    description = "This metric computes the longitudinal acceleration of the car."
 
     @time_function
     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
@@ -353,6 +354,50 @@ class LongitudinalAcceleration(Metric):
             traj_vel = traj.transform_values(lambda x: x.vx, float)
             acc_seq = seq_differentiate(traj_vel)
             ret = self.get_integrated_metric(acc_seq)
+            self.cache[traj] = ret
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class LongitudinalJerkSquared(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the longitudinal squared jerk of the car."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+
+            traj_vel = traj.transform_values(lambda x: x.vx, float)
+            acc_seq = seq_differentiate(traj_vel)
+            jerk_seq = seq_differentiate(acc_seq)
+            jerk_vals_squared = [val * val for val in jerk_seq.values]
+            jerk_seq_squared = Trajectory(values=jerk_vals_squared, timestamps=jerk_seq.timestamps)
+
+            ret = self.get_integrated_metric(jerk_seq_squared)
+            self.cache[traj] = ret
+            return ret
+
+        return get_evaluated_metric(context.get_players(), calculate_metric)
+
+
+class AverageVelocitySquared(Metric):
+    cache: Dict[Trajectory, EvaluatedMetric] = {}
+    description = "This metric computes the average velocity of the car."
+
+    @time_function
+    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+            traj: Trajectory = context.trajectories[player]
+            if traj in self.cache:
+                return self.cache[traj]
+
+            traj_vel_sq = traj.transform_values(lambda x: x.vx * x.vx, float)
+            avg_vel = sum(traj_vel_sq.values) / len(traj_vel_sq.values)
+            ret = EvaluatedMetric(name=self.get_name(), value=avg_vel)
             self.cache[traj] = ret
             return ret
 
@@ -372,7 +417,7 @@ class LongitudinalAccelerationSquared(Metric):
 
             traj_vel = traj.transform_values(lambda x: x.vx, float)
             acc_seq = seq_differentiate(traj_vel)
-            acc_vals_squared = [val*val for val in acc_seq.values]
+            acc_vals_squared = [val * val for val in acc_seq.values]
             acc_seq_squared = Trajectory(values=acc_vals_squared, timestamps=acc_seq.timestamps)
             ret = self.get_integrated_metric(acc_seq_squared)
             self.cache[traj] = ret
@@ -493,7 +538,7 @@ class GoalViolation(Metric):
                 if integrated_abs_n[goals[0]].value == min_value:
                     return EvaluatedMetric(name=self.get_name(), value=0)
                 else:
-                    return EvaluatedMetric(name=self.get_name(), value=min_value)
+                    return EvaluatedMetric(name=self.get_name(), value=integrated_abs_n[goals[0]].value)
             else:
                 return EvaluatedMetric(name=self.get_name(), value=0)
 
@@ -645,48 +690,48 @@ def cr_dist(clearance: float, w_dist: float = 0.2):
     return np.exp(clearance * w_dist)
 
 
-class DistanceToObstacle_CR(Clearance):
-    cache: Dict[Trajectory, EvaluatedMetric] = {}
-    description = "This metric computes the distance to other obstacles as specified in J_D, CommonRoad costs"
-    sampling_time: Timestamp = 0.1
-    clearance_tolerance: float = 10.0  # if distance between CoM of two vehicles is greater, approximate clearance
-    w_dist = 0.2
+# class DistanceToObstacle_CR(Clearance):
+#     cache: Dict[Trajectory, EvaluatedMetric] = {}
+#     description = "This metric computes the distance to other obstacles as specified in J_D, CommonRoad costs"
+#     sampling_time: Timestamp = 0.1
+#     clearance_tolerance: float = 10.0  # if distance between CoM of two vehicles is greater, approximate clearance
+#     w_dist = 0.2
+#
+#     @time_function
+#     def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
+#
+#         clearances = self.calculate_all_clearances(context=context)
+#         if not clearances == {}:
+#             timestamps = list(clearances.values())[0].timestamps
+#
+#         def calculate_metric(player: PlayerName) -> EvaluatedMetric:
+#             clearance_seq = []
+#             if clearances == {}:
+#                 return EvaluatedMetric(name=self.get_name(), value=0)
+#             for t in timestamps:
+#                 min_clear = 10000.0
+#                 for player_pair in clearances.keys():
+#                     if player in player_pair and clearances[player_pair].at_interp(t) < min_clear:
+#                         min_clear = clearances[player_pair].at_interp(t)
+#                 assert min_clear < 10000.0, "At least one clearance must be smaller than this."
+#                 clearance_seq.append(cr_dist(min_clear))
+#
+#             viol = [np.exp(-val * self.w_dist) for val in clearance_seq]
+#             seq = DgSampledSequence[float](values=viol, timestamps=timestamps)
+#             ret = self.get_integrated_metric(seq=seq)
+#
+#             return ret
+#
+#         return get_evaluated_metric(context.get_players(), calculate_metric)
 
-    @time_function
-    def evaluate(self, context: MetricEvaluationContext) -> JointEvaluatedMetric:
 
-        clearances = self.calculate_all_clearances(context=context)
-        if not clearances == {}:
-            timestamps = list(clearances.values())[0].timestamps
-
-        def calculate_metric(player: PlayerName) -> EvaluatedMetric:
-            clearance_seq = []
-            if clearances == {}:
-                return EvaluatedMetric(name=self.get_name(), value=0)
-            for t in timestamps:
-                min_clear = 10000.0
-                for player_pair in clearances.keys():
-                    if player in player_pair and clearances[player_pair].at_interp(t) < min_clear:
-                        min_clear = clearances[player_pair].at_interp(t)
-                assert min_clear < 10000.0, "At least one clearance must be smaller than this."
-                clearance_seq.append(cr_dist(min_clear))
-
-            viol = [np.exp(-val*self.w_dist) for val in clearance_seq]
-            seq = DgSampledSequence[float](values=viol, timestamps=timestamps)
-            ret = self.get_integrated_metric(seq=seq)
-
-            return ret
-
-        return get_evaluated_metric(context.get_players(), calculate_metric)
-
-
-class DistanceToObstacle_CR_new(Metric):
+class DistanceToObstacle_CR(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This Metric determines if a safe distance between an agent and the leading agent is respected"
     w_dist = 0.2
     interacting_agents = None
     # use dynamic obstacles of scenario to evaluate if scenario has changed
-    dynamic_obstacles = None  # won't work probably
+    dynamic_obstacles = None
     recompute_obstacles = False
 
     @time_function
@@ -727,15 +772,13 @@ class DistanceToObstacle_CR_new(Metric):
                         l_traj: Trajectory = context.trajectories[l_name]
                         pos_other = np.array([l_traj.at_interp(t).x, l_traj.at_interp(t).y])
                         pos_self = np.array([traj.at_interp(t).x, traj.at_interp(t).y])
-                        dist = np.linalg.norm(pos_other-pos_self)
+                        dist = np.linalg.norm(pos_other - pos_self)
                         if dist < dist_min:
                             dist_min = dist
 
                     dist_viol.append(dist_min)
 
-
-
-                viol = [np.exp(-val*self.w_dist) for val in dist_viol]
+                viol = [np.exp(-val * self.w_dist) for val in dist_viol]
                 ret = self.get_integrated_metric(seq=DgSampledSequence[float](
                     values=viol, timestamps=traj.get_sampling_points()))
             else:
@@ -743,6 +786,7 @@ class DistanceToObstacle_CR_new(Metric):
             return ret
 
         return get_evaluated_metric(context.get_players(), calculate_metric)
+
 
 class MinimumClearance(Clearance):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
@@ -819,7 +863,6 @@ def get_2d_velocity(x: VehicleState) -> geo.T2value:
 Crashes = Mapping[Tuple[PlayerName, PlayerName], Timestamp]
 
 
-# todo make better test since metric has changed
 class CollisionEnergy(Clearance):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the energy of collision between agents."
@@ -930,7 +973,6 @@ class CollisionBool(CollisionEnergy):
         return get_evaluated_metric(context.get_players(), calculate_metric)
 
 
-# todo: write test
 class AngularViolation(Metric):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric describes the deviation (in radians) from a circular sector"
@@ -967,10 +1009,10 @@ class RSS1_Parameters:
     :param min_breaking_r: Minimum braking deceleration until full stop, after reaction time
     :param max_braking_f: max braking of vehicle in front
     """
-    r_response_time: Timestamp
-    max_acc_r: float
-    min_breaking_r: float
-    max_braking_f: float
+    r_response_time: Timestamp = 0.5
+    max_acc_r: float = 5.0
+    min_breaking_r: float = -5.0
+    max_braking_f: float = -10.0
 
 
 class RSS1_CR(Metric):
@@ -1244,14 +1286,18 @@ def get_personal_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {
         EpisodeTime(),
         DeviationLateral(),
+        DeviationLateralSquared(),
         DeviationHeading(),
         DrivableAreaViolation(),
         ProgressAlongReference(),
         LongitudinalAcceleration(),
+        LongitudinalJerkSquared(),
+        AverageVelocitySquared(),
+        LongitudinalAccelerationSquared(),
         LateralComfort(),
         SteeringAngle(),
         SteeringRate(),
-        DrivableAreaViolation()
+        SteeringRateSquared(),
     }
     return metrics
 
@@ -1260,7 +1306,30 @@ def get_joint_metrics() -> Set[Metric]:
     metrics: Set[Metric] = {
         CollisionEnergy(),
         MinimumClearance(),
-        ClearanceViolationTime()
+        ClearanceViolationTime(),
+        CollisionEnergy(),
+        CollisionBool(),
+
+    }
+    return metrics
+
+
+def get_cr_metrics() -> Set[Metric]:
+    # get all metrics related to Commonroad
+    metrics: Set[Metric] = {
+        DistanceToObstacle_CR(),
+        RSS1_CR(params=RSS1_Parameters()),  # needs parameters for both cars, here default values given
+        RoadCompliance_CR(),
+        MaximumVelocity_CR(),
+        SafeDistance_CR(),
+    }
+    return metrics
+
+
+def get_bonus_metrics() -> Set[Metric]:
+    metrics: Set[Metric] = {
+        GoalViolation(),
+        TrafficLightViolation()
     }
     return metrics
 
@@ -1272,21 +1341,17 @@ def get_joint_metrics() -> Set[Metric]:
 #     return metrics
 
 
-# Only necessary metrics -> speed up computations for Commonroad challenge
+# Here choose only necessary metrics to avoid unneccessary computations
 def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = {
         SteeringRate(),
         LongitudinalAcceleration(),
-        SteeringRateSquared(),
-        LongitudinalAccelerationSquared(),
         SteeringAngle(),
-        DeviationLateralSquared(),
         ProgressAlongReference(),
         DrivableAreaViolation(),
-        DeviationHeading(),
         CollisionEnergy(),
-        DeviationHeading(),
-        DeviationLateral(),
+        AverageVelocitySquared(),
+        LongitudinalJerkSquared()
 
     }
     return metrics
@@ -1321,7 +1386,6 @@ class MetricEvaluation:
             for metric, result in metric_results.items():
                 player_outcome[metric] = result[player]
             game_outcome[player] = frozendict(player_outcome)
-
 
         ret = frozendict(game_outcome)
         MetricEvaluation._cache[traj] = ret

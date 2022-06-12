@@ -59,7 +59,7 @@ class MetricEvaluationContext:
     def __post_init__(self):
         # cartesian path
         self.points_cart = valmap(lambda x: x.as_path(), self.trajectories)
-        # precompute curvilinear coordinates of preferred goal for all players the ones that have a ref lane
+        # precompute curvilinear coordinates of preferred goal for all players that have a ref lane
         curv: MutableMapping[PlayerName, List[DgLanePose]] = dict()
         for p, ref_lane in self.goals.items():
             if isinstance(ref_lane[0], RefLaneGoal):
