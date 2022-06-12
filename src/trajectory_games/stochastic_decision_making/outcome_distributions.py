@@ -207,7 +207,6 @@ class OutcomeDistributionGenerator:
         # compute joint action distribution (assuming independence)
         joint_distr = get_joint_distribution_independent(all_priors)
 
-        # todo: not normalized when all probs are 1 -> FIX
         # convert distribution over actions to distribution over outcomes
         joint_outcome_distr = variable_change(joint_distr, actions_to_outcomes)
 
@@ -215,7 +214,10 @@ class OutcomeDistributionGenerator:
         p_ego = {}
         for outcome in joint_outcome_distr.support():
             ego_outcome = outcome[self.my_name]
-            p_ego[ego_outcome] = joint_outcome_distr.get(outcome)
+            if ego_outcome in p_ego.keys():
+                p_ego[ego_outcome] += joint_outcome_distr.get(outcome)
+            else:
+                p_ego[ego_outcome] = joint_outcome_distr.get(outcome)
 
         return ProbDist(p_ego)
 
@@ -256,53 +258,3 @@ class OutcomeDistributionGenerator:
             raise NotImplementedError
 
         return not_second_pref_actions
-
-    # todo: this ranks actions. Above we oly keep those that are not second preferred to any action.
-
-    # # BLOCK 2
-    # def _player_action_prob(self, player: PlayerName) -> ProbDist[Trajectory]:
-    #     ranked_actions = []
-    #     player_pref = self.preferences[player]
-    #     other_action = None
-    #     # todo: use outcomes not actions
-    #     for action in self.actions[player]:
-    #         # insert first action
-    #         if not ranked_actions:
-    #             ranked_actions.append(action)
-    #             other_action = ranked_actions[-1]
-    #             continue
-    #
-    #         concluded = False
-    #         while not concluded:
-    #
-    #             if player_pref.compare(action, other_action) == SECOND_PREFERRED:
-    #                 ranked_actions.append(action)
-    #                 other_action = action
-    #                 concluded = True
-    #
-    #             elif player_pref.compare(action, other_action) == FIRST_PREFERRED:
-    #                 idx_other = ranked_actions.index(other_action)
-    #                 other_action = ranked_actions[idx_other - 1]
-    #                 concluded = False
-    #
-    #             elif player_pref.compare(action, other_action) == INDIFFERENT:
-    #                 # insert before or after with probability 0.5
-    #                 idx_other = ranked_actions.index(other_action)
-    #                 if random.random() < 0.5:
-    #                     ranked_actions.insert(idx_other, action)
-    #                 else:
-    #                     ranked_actions.insert(idx_other + 1, action)
-    #                 concluded = True
-    #
-    #
-    #             elif player_pref.compare(action, other_action) == INCOMPARABLE:
-    #                 # todo: for now just consider total orders, ignore incomparable cases
-    #                 continue
-    #
-    #     pass
-    #
-    # def action_probs(self) -> Mapping[PlayerName, ProbDist[Trajectory]]:
-    #     probs = {}
-    #     for player in self.preferences.keys():
-    #         probs[player] = self._player_action_prob(player)
-    #     return probs
