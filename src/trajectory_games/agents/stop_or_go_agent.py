@@ -2,7 +2,7 @@ import random
 from decimal import Decimal as D
 from typing import Optional
 
-from dg_commons import U, PlayerName, logger
+from dg_commons import U, logger
 from dg_commons.maps import DgLanelet
 from dg_commons.sim import DrawableTrajectoryType
 from dg_commons.sim.agents.lane_follower import LFAgent
@@ -25,9 +25,12 @@ class StopOrGoAgent(LFAgent):
                  ref_lane: DgLanelet,
                  stopping_time: D = D(0),
                  behavior: str = None,
-                 prob_go: float = 0.5):
+                 prob_go: float = 0.5,
+                 nominal_speed: Optional[float] = None):
 
         super().__init__()
+        if nominal_speed:
+            self.speed_behavior.params.nominal_speed = nominal_speed
         self.ref_lane = ref_lane
         assert 0 <= prob_go <= 1, "Probability of going must be in range [0,1]"
         self.prob_go = prob_go
