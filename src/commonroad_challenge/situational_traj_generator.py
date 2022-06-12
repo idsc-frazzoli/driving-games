@@ -55,7 +55,6 @@ class SituationalTrajectoryGenerator:
 
         cr_vehicle_params = vehicle_parameters[self.vehicle_type]
 
-        # todo: remove is_ego, only for developement
         if is_ego:
             pose = extract_pose_from_state(state)
             ref_lane = self.ref_lane_goal.ref_lane
@@ -94,7 +93,7 @@ class SituationalTrajectoryGenerator:
             # else:
             # always allow more braking than accelerating
 
-            # todo: if vehicle is oriented along straight street, leave out dst!!
+
 
         else:
             u_acc = frozenset(np.array([0.0]))
@@ -193,8 +192,3 @@ class SituationalTrajectoryGenerator:
         """
         pass
 
-
-    def generate_actions(self, state: VehicleState, time_to_goal: Timestamp) -> FrozenSet[Dg_Trajectory]:
-        # todo: for now generate actions in original trajectory generator
-
-        pass

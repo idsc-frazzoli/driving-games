@@ -64,7 +64,6 @@ def get_game_params(
 
     pref_structures: Mapping[PlayerName, str] = get_default_pref_structures(inter_agents)
 
-    # todo: integrate SituationalTrajectoryGenerator better
     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams] = {
         PlayerName("Ego"): sit_traj_gens[PlayerName("Ego")].get_traj_gen_params(
             state=convert_from_cr_state(ego_vehicle_state), time_to_goal=time_to_goal, is_ego=True
@@ -89,7 +88,7 @@ def get_game_params(
         traj_gen_params=traj_gen_params,
         n_traj_max=n_traj_max
     )
-# todo: integrate Situational Trajectory Generator better
+
 def filter_actions(trajectories: FrozenSet[Dg_Trajectory], n_actions: int = 10) -> FrozenSet[Dg_Trajectory]:
     """
     Filter actions through a set of criteria, e.g. feasibility
@@ -104,7 +103,7 @@ def filter_actions(trajectories: FrozenSet[Dg_Trajectory], n_actions: int = 10) 
         cand_traj = random.sample(remaining_trajs, 1)[0]
         dt = cand_traj.timestamps[1] - cand_traj.timestamps[0]
         remaining_trajs.remove(cand_traj)
-        # todo: account for feasibility
+
         # feasible = feasibility_check(cand_traj, vehicle_dynamics, dt)
         # if feasible:
         # print("found one feasible trajectory")
@@ -164,7 +163,7 @@ def generate_actions(
                                         n_actions=max_n_traj[player_name])
         subsampled_trajs[player_name] = frozenset(subset_trajs_p)
 
-    # todo: do this also if an the action of a player is shorter than the one of other players
+
     # create an action of constant velocity and steering if no other actions are available
 
     if non_empty_action_sets:

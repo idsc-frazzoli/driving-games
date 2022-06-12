@@ -34,7 +34,7 @@ from trajectory_games import (
     VehicleState,
     Game,
 )
-from trajectory_games.decentralized_game import DecentralizedTrajectoryGame, RecedingHorizonGame_draft
+# from trajectory_games.decentralized_game import DecentralizedTrajectoryGame, RecedingHorizonGame_draft
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 
 plot_gif = False  # gif vs image for viz

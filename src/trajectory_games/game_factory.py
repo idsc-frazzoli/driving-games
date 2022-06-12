@@ -1,5 +1,4 @@
 import os
-from dataclasses import dataclass
 from functools import partial
 from time import perf_counter
 from typing import Dict, Set, Tuple, Optional, List, Mapping
@@ -7,38 +6,34 @@ from typing import Dict, Set, Tuple, Optional, List, Mapping
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.scenario import Scenario
-from dg_commons.sim.scenarios import DgScenario
-from dg_commons.planning import RefLaneGoal
 from shapely.geometry import Polygon
 from yaml import safe_load
-from crash import logger
 
+from crash import logger
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.maps import DgLanelet
+from dg_commons.planning import RefLaneGoal
+from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
+from dg_commons.sim.scenarios import DgScenario
+from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.time import time_function
 from games import MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference
-from dg_commons.sim.scenarios import load_commonroad_scenario
-from . import Solution
+from .config import CONFIG_DIR
 from .config.ral import config_dir_ral
-from .decentralized_game import DecentralizedTrajectoryGame
-from .game_def import EXP_ACCOMP, JOIN_ACCOMP, SolvingContext
+from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
 from .structures import TrajectoryGenParams, TrajectoryGamePosetsParam
-from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
-from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams, \
-    preprocess_full_game, SolvedTrajectoryGame
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
 from .trajectory_generator import TrajectoryGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
-from .config import CONFIG_DIR
 
 __all__ = ["get_trajectory_game",
            "get_leader_follower_game",
            "get_traj_game_posets_from_config",
-           "get_decentralized_traj_game",
            "get_traj_game_posets_from_params",
            ]
 
@@ -222,27 +217,6 @@ def get_traj_game_posets_from_config(config_str: str) -> TrajectoryGame:
     params = get_traj_game_params_from_config(config_str=config_str)
     game = get_traj_game_posets_from_params(game_params=params)
     return game
-
-
-def get_decentralized_traj_game(config_str: str, initial_states=None) -> DecentralizedTrajectoryGame:
-    tic = perf_counter()
-    games = {}
-    nash_eqs = {}
-    solving_contexts = {}
-    for pname, pconfig in config[config_str]["players"].items():
-        if pname == "Ambulance":  # todo [LEON] does not work. WHY?
-            continue
-        current_game = get_simple_traj_game_leon(config_str, initial_states)
-        games[pname] = current_game
-        current_context: SolvingContext = preprocess_full_game(sgame=current_game, only_traj=False)
-        solving_contexts[pname] = current_context
-        sol = Solution()
-        current_nash_eq: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=current_context)
-        nash_eqs[pname] = current_nash_eq
-    toc = perf_counter() - tic
-    print(f"Decentralized trajectory game creation and solution time = {toc:.2f} s")
-
-    return DecentralizedTrajectoryGame(games=games, solving_contexts=solving_contexts, nash_eqs=nash_eqs)
 
 
 def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
