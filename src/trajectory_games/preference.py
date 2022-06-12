@@ -260,7 +260,9 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
                     heappush(queue, (self.graph.nodes[child]["level"], child))
 
         # final step: combine outcomes
-        if FIRST_PREFERRED in outcomes:
+        if INCOMPARABLE in outcomes or (FIRST_PREFERRED in outcomes and SECOND_PREFERRED in outcomes):
+            return INCOMPARABLE
+        elif FIRST_PREFERRED in outcomes:
             return FIRST_PREFERRED
         elif SECOND_PREFERRED in outcomes:
             return SECOND_PREFERRED
@@ -272,6 +274,7 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
 
         return INDIFFERENT
 
+    # old version
     # @time_function
     # def compare_old(self, a: PlayerEvaluatedMetrics, b: PlayerEvaluatedMetrics) -> ComparisonOutcome:
     #
@@ -287,11 +290,11 @@ class PosetalPreference(Preference[PlayerEvaluatedMetrics]):
     #         if (b, a) in self._cache:
     #             return self._complement[(self._cache[(b, a)])]
     #     OPEN = PriorityQueue(100)
-    #     DONE: Set[WeightedMetricPreference] = set()
-    #     CLOSED: Set[WeightedMetricPreference] = set()
+    #     DONE = set()
+    #     CLOSED = set()
     #     OUTCOMES: Set[ComparisonOutcome] = set()
     #
-    #     for root in self.level_nodes[0]:
+    #     for root in self.nodes_level[0]:
     #         OPEN.put((0, root))
     #
     #     while OPEN.qsize() > 0:
