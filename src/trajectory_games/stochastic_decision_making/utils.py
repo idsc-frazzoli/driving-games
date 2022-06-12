@@ -16,7 +16,6 @@ def get_joint_distribution_independent(distribution: Mapping[PlayerName, ProbDis
     def get_joint_values(distrib: Mapping[PlayerName, ProbDist]):
         keys, values = zip(*distrib.items())
         values_supp = (val.support() for val in values)
-        # todo: check this works
         permutations_dicts = [frozendict(zip(keys, v)) for v in itertools.product(*values_supp)]
         return frozenset(permutations_dicts)
 
@@ -43,14 +42,12 @@ def never_second_preferred_stochastic(stochastic_preference: ProbPreference,
 
     all_player_actions = set(outcome_distr.keys())
 
-    # todo: verify this works with N actions
     for traj_1, traj_2 in itertools.combinations(outcome_distr.keys(), 2):
         if traj_1 in all_player_actions and traj_2 in all_player_actions:
-            if traj_1 in all_player_actions and traj_2 in all_player_actions:
-                result = stochastic_preference.compare(outcome_distr[traj_1], outcome_distr[traj_2])
-                if result == FIRST_PREFERRED:
-                    all_player_actions.remove(traj_2)
-                elif result == SECOND_PREFERRED:
-                    all_player_actions.remove(traj_1)
+            result = stochastic_preference.compare(outcome_distr[traj_1], outcome_distr[traj_2])
+            if result == FIRST_PREFERRED:
+                all_player_actions.remove(traj_2)
+            elif result == SECOND_PREFERRED:
+                all_player_actions.remove(traj_1)
 
     return frozenset(all_player_actions)
