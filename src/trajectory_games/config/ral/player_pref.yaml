@@ -36,6 +36,22 @@ pref_leon_dev:
   DrivableAreaViolation: [ "CollisionEnergy" ]
   LateralComfort: [ "DrivableAreaViolation" ]
 
+pref_intersection:
+  CollisionEnergy: [ ]
+  ProgressAlongReference: [ "CollisionEnergy" ]
+  DrivableAreaViolation: [ "CollisionEnergy" ]
+
+pref_intersection_refined_1:
+  CollisionEnergy: [ ]
+  ProgressAlongReference: [ "CollisionEnergy" ]
+  DrivableAreaViolation: [ "ProgressAlongReference" ]
+
+pref_intersection_refined_2:
+  CollisionEnergy: [ ]
+  DrivableAreaViolation: [ "CollisionEnergy" ]
+  ProgressAlongReference: [ "DrivableAreaViolation" ]
+
+
 pref_leon_dev_1:
   CollisionEnergy: [ ]
   LateralComfort: [ "CollisionEnergy" ]
@@ -48,15 +64,22 @@ pref_leon_dev_2:
   SteeringRate: [ "CollisionEnergy" ]
 
 pref_leon_dev_3:
-  CollisionEnergy: [ ]
-  DeviationLateral: [ "CollisionEnergy" ]
-  DeviationHeading: [ "CollisionEnergy" ]
+  CollisionEnergy: []
+  ProgressAlongReference: ["CollisionEnergy"]
+#  DeviationLateral: [ "CollisionEnergy" ]
+#  DeviationHeading: [ "CollisionEnergy" ]
 
 pref_leon_dev_4:
   ProgressAlongReference: [ ]
   DrivableAreaViolation: [ "ProgressAlongReference" ]
   CollisionEnergy: [ "DrivableAreaViolation" ]
   LateralComfort: [ "DrivableAreaViolation" ]
+
+go_agent:
+  ProgressAlongReference: []
+
+stop_agent:
+  AverageVelocitySquared: []
 
 dev_commonroad_ego:
   DrivableAreaViolation: []
@@ -76,6 +99,7 @@ default_commonroad_ego:
 #  TR1: ["DrivableAreaViolation"]
 #  TR1: ["ProgressAlongReference"]
 #  ProgressTowardsGoal: ["RoadCompliance_CR", "CollisionBool", ]
+
 
 only_driving_area_violation:
   DrivableAreaViolation: []
