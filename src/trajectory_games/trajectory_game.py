@@ -12,11 +12,11 @@ from commonroad_dc.feasibility import feasibility_checker
 from commonroad_dc.feasibility.vehicle_dynamics import VehicleDynamics
 from frozendict import frozendict
 
-# from commonroad_challenge.situational_traj_generator import feasibility_check
 from dg_commons import iterate_dict_combinations, PlayerName, logger
 from dg_commons.seq.sequence import DgSampledSequence, Timestamp
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import PlayerEvaluatedMetrics
+from commonroad.scenario.trajectory import Trajectory as CR_Trajectory
 from games import BAIL_MNE, PURE_STRATEGIES
 from possibilities import Poss
 from preferences import Preference
@@ -30,7 +30,6 @@ from .game_def import (
     SolvingContext,
     StaticSolverParams,
 )
-# from .paths import Trajectory, TrajectoryGraph
 from dg_commons.planning import Trajectory, TrajectoryGraph
 from dg_commons.sim.models.vehicle import VehicleState
 from .trajectory_world import TrajectoryWorld
@@ -204,7 +203,6 @@ def preprocess_player(sgame: Game, only_traj: bool = False) -> SolvingContext:
     return get_context(sgame=sgame, actions=available_traj)
 
 
-# todo: TEST this
 def sample_trajectories(
         all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]],
         n_trajs_max: Optional[Union[int, Mapping[PlayerName, int]]] = None,
@@ -222,7 +220,6 @@ def sample_trajectories(
         return all_trajs
 
     subset_trajs: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
-    random.seed(0)  # todo: fix this and take seed from SimContext
     if method.lower() == "unif" or method.lower() == "uniform":
         for pname, player_trajs in all_trajs.items():
             if type(n_trajs_max) == int:
@@ -272,7 +269,6 @@ def sample_trajectories(
     return subset_trajs
 
 
-# todo: next three function to clean up when integrating Situational Trajectory Generator
 def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> State:
     return State(
         position=np.array([vehicle_state.x, vehicle_state.y]),
@@ -281,9 +277,6 @@ def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> Stat
         steering_angle=vehicle_state.delta,
         time_step=time_step,
     )
-
-
-from commonroad.scenario.trajectory import Trajectory as CR_Trajectory
 
 
 def feasibility_check(traj: Trajectory, vehicle_dynamics: VehicleDynamics, dt: Timestamp) -> bool:
@@ -299,7 +292,6 @@ def feasibility_check(traj: Trajectory, vehicle_dynamics: VehicleDynamics, dt: T
     return feasible
 
 
-# todo: integrate Situational Trajectory Generator better
 def filter_actions(trajectories: FrozenSet[Trajectory], n_actions: int = 10) -> FrozenSet[Trajectory]:
     """
     Filter actions through a set of criteria, e.g. feasibility
@@ -312,13 +304,15 @@ def filter_actions(trajectories: FrozenSet[Trajectory], n_actions: int = 10) -> 
 
     while len(subset_trajs) < n_actions and len(remaining_trajs) != 0:
         cand_traj = random.sample(remaining_trajs, 1)[0]
-        dt = cand_traj.timestamps[1] - cand_traj.timestamps[0]
+
         remaining_trajs.remove(cand_traj)
-        # todo: account for feasibility
+        # uncomment to add only feasible trajectories
+        # dt = cand_traj.timestamps[1] - cand_traj.timestamps[0]
         # feasible = feasibility_check(cand_traj, vehicle_dynamics, dt)
-        # if feasible:
-        # print("found one feasible trajectory")
-        subset_trajs.add(cand_traj)
+        feasible = True
+        if feasible:
+            print("found one feasible trajectory")
+            subset_trajs.add(cand_traj)
 
     # print("Total number of trajectories: " + str(len(subset_trajs)))
     return frozenset(subset_trajs)
@@ -326,16 +320,11 @@ def filter_actions(trajectories: FrozenSet[Trajectory], n_actions: int = 10) -> 
 
 def get_context_and_graphs(
         game: TrajectoryGame,
-        sampling_method: str,
-        pad_trajectories: float = False,
         max_n_traj: Optional[Union[int, Mapping[PlayerName, int]]] = None
 ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
     """
     Construct solving context and return trajectory graphs for all players.
     :param game:                Trajectory Game
-    :param sampling_method:     Which method to use to subsample trajectories from all those available.
-    :param pad_trajectories:    Extend all trajectories that are shorter than the longest one, keeping the
-                                vehicle state constant.
     :param max_n_traj:          Maximum number of trajectories to return
     :return:                    Solving Context and Trajectory graph
     """
@@ -382,14 +371,18 @@ def get_context_and_graphs(
         for graph in traj_graphs[player_name]:
             # all_trajectories_p |= graph.get_all_trajectories()
             all_trajectories_p |= graph.get_all_transitions()
-            if player_name == PlayerName("Ego"):
-                accept_only_feasible = False
-                # todo: account for feasibility!
-            else:
-                accept_only_feasible = False  # todo: workaround for DEU_Cologne-40_6
+            # if player_name == PlayerName("Ego"):
+            #     accept_only_feasible = False
+            #
+            # else:
+            #     accept_only_feasible = False
 
+            if isinstance(max_n_traj, int):
+                n_actions = max_n_traj
+            else:
+                n_actions = max_n_traj[player_name]
             subset_trajs_p = filter_actions(trajectories=frozenset(all_trajectories_p),
-                                            n_actions=max_n_traj[player_name])
+                                            n_actions=n_actions)
             all_trajectories[player_name] = frozenset(subset_trajs_p)
 
     # # subsample trajectories at random to limit action number
