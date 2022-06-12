@@ -1346,6 +1346,7 @@ def get_metrics_set() -> Set[Metric]:
     metrics: Set[Metric] = {
         SteeringRate(),
         LongitudinalAcceleration(),
+        LongitudinalAccelerationSquared(),
         SteeringAngle(),
         ProgressAlongReference(),
         DrivableAreaViolation(),

@@ -27,7 +27,8 @@ def select_admissible_eq_randomly(eqs: Mapping[str, SolvedTrajectoryGame]):
 
 
 class GamePlayingAgent(Agent):
-    """Agent solving a trajectory game"""
+    """Agent solving a trajectory game with posetal preferences, implemented in Receding Horizon.
+    The plotting is implemented for a two player game"""
 
     def __init__(
             self,
@@ -44,15 +45,12 @@ class GamePlayingAgent(Agent):
         self.trajectory: Optional[Trajectory] = None
         self.pseudo_start_time: Timestamp = 0.0
 
-    #todo: we don't need to recompute trajectories and evaluate metrics between different experiments (?)
-    #todo: we need to compute new trajectories and evaluate metrics when we play in receding horizon though
     def full_game_function(self):
         game = get_traj_game_posets_from_params(self.game_params)
         # create solving context and generate candidate trajectories for each agent
         solving_context, traj_graphs = get_context_and_graphs(
             game=game,
             max_n_traj=self.game_params.n_traj_max,
-            sampling_method=self.game_params.sampling_method
         )
         self.all_trajectories = solving_context.player_actions
         sol: Solution = Solution()
@@ -62,14 +60,9 @@ class GamePlayingAgent(Agent):
         self.selected_eq = select_admissible_eq_randomly(eqs=nash_eqs)
         # get trajectory and commands relating to selected equilibria
         self.trajectory = self.selected_eq.actions[self.my_name]
-        # caution needed: for now only works when a single graph is passed
+        # caution needed: only works when a single graph is passed
         my_graph: TrajectoryGraph = list(traj_graphs[self.my_name])[0]
         self.commands = my_graph.commands_on_trajectory(self.trajectory)
-
-        # todo: add these costs for each metric in the pref structure on the report
-        # compute metric violations for statistics
-        # self.metric_violation.append(solving_context.game_outcomes(self.selected_eq.actions))
-        # self.metric_violation.append(self.selected_eq.outcomes)  # todo: fix type?
 
         # shift trajectory when receding horizon control is used
         self.trajectory = self.trajectory.shift_timestamps(self.pseudo_start_time)
@@ -81,19 +74,19 @@ class GamePlayingAgent(Agent):
         # random.seed(init_sim_obs.seed)
         self.full_game_function()
 
-        # preferences = solving_context.outcome_pref
-
     def get_commands(self, sim_obs: SimObservations) -> U:
         current_time = sim_obs.time
         # solve game in receding horizon if a refresh_time is given
         if self.game_params.refresh_time and abs(current_time) > 0.0:
             new_initial_states: Mapping[PlayerName, VehicleState] = {}
-            # todo: make function for this condition, that also handles cases where the next line could fail
             if abs(float(current_time) % self.game_params.refresh_time) == 0.0:
                 self.pseudo_start_time = self.pseudo_start_time + self.game_params.refresh_time
                 # change initial states for new game
                 for pname, player_obs in sim_obs.players.items():
-                    new_initial_states[pname] = player_obs.state  # todo: check this is VehicleState
+                    # convert from VehicleStateDyn to VehicleState
+                    s_dyn = player_obs.state
+                    new_initial_states[pname] = VehicleState(x=s_dyn.x, y=s_dyn.x, vx=s_dyn.vx,
+                                                             theta=s_dyn.theta, delta=s_dyn.delta)
 
                 self.game_params.initial_states = new_initial_states
                 # generate new trajectories, process new game, solve game, compute trajectories and new commands
@@ -106,15 +99,10 @@ class GamePlayingAgent(Agent):
             logger.info('Warning, no commands defined so late. Returning last command input.')
             return self.commands.values[-1]
         else:
-            # todo: strange: at_interp is better at following a trajectory (only in one case)
             return self.commands.at_or_previous(current_time)
 
-    def on_get_extra(self) -> Optional[Any]:  # Optional[DrawableTrajectoryType]:
-        # store metrics in extra of player logger
-        # if self.game_params.store_metrics:
-        #     return self.metric_violation
-
-        # store trajectories in extra of player logger (or plotting)
+    def on_get_extra(self) -> Optional[Any]:
+        # store trajectories in extra of player logger (for plotting)
         P1 = PlayerName('P1')
         trajectories = self.all_trajectories[self.my_name]
         trajectories_blue = self.all_trajectories[P1]
@@ -142,6 +130,6 @@ class GamePlayingAgent(Agent):
         candidates += candidates_blue
 
         new_tuple_blue = (selected_trajectory_blue, 'mediumblue')
-        # candidates += (new_tuple_blue,)
+        candidates += (new_tuple_blue,)
 
         return candidates

@@ -138,7 +138,7 @@ def get_traj_game_posets_from_params(
     for pname in game_params.initial_states.keys():
         initial_state = game_params.initial_states[pname]
         pref = PosetalPreference(pref_str=game_params.pref_structures[pname], use_cache=False)
-        ref_lane_goals = [game_params.ref_lanes[pname]]
+        ref_lane_goals = game_params.ref_lanes[pname]
         goals[pname] = ref_lane_goals
         geometries[pname] = VehicleGeometry.default_car()
 

@@ -468,12 +468,11 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
         ac_comp = sgame.lf.antichain_comparison
     else:
         ac_comp = EXP_ACCOMP
-    # todo [LEON] are these correct? Not used right now
     solver_params = StaticSolverParams(
         admissible_strategies=PURE_STRATEGIES,
         strategy_multiple_nash=BAIL_MNE,
         dt=1.,
-        factorization_algorithm="TEST",  # todo: remove
+        factorization_algorithm="TEST",
         use_factorization=False,
         n_simulations=5,
         extra=False,

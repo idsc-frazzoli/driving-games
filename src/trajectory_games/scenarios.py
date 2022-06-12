@@ -30,21 +30,21 @@ from dg_commons_dev.utils import get_project_root_dir
 from possibilities import ProbDist
 from trajectory_games import TrajectoryGenParams, PosetalPreference, TrajectoryWorld, BicycleDynamics
 from trajectory_games.agents.game_playing_agent import GamePlayingAgent
-from trajectory_games.agents.stochastic_game_playing_agent import StochasticGamePlayingAgent
+from trajectory_games.agents.stop_or_go_agent import StopOrGoAgent
 from trajectory_games.agents.trajectory_following_agent import TrajectoryFollowingAgent
 from trajectory_games.agents.uncertain_outcome_agent import UncertainOutcomeAgent
-from trajectory_games.agents.stop_or_go_agent import StopOrGoAgent
-from trajectory_games.structures import TrajectoryGamePosetsParam
 from trajectory_games.simulation_campaign import *
+from trajectory_games.structures import TrajectoryGamePosetsParam
 
 """
 This file contains functions to generate specific 4 way crossing scenarios for various experiments. 
 """
 __all__ = [
-    "get_scenario_4_way_crossing_stochastic",
+    "get_scenario_4_way_crossing_game_playing_agent",
     "get_scenario_4_way_crossing_stochastic_multiple_type_beliefs",
     "get_scenario_4_way_crossing_uncertain_outcome_agent",
     "get_ego_belief_distr",
+    # "get_scenario_4_way_crossing_uncertain_outcome_agent_2"
 ]
 
 P1, EGO, OTHER = (
@@ -93,9 +93,6 @@ def get_curved_trajectory_horizontal(initial_state: VehicleState, params: Trajec
         # don't allow rear driving
         if current_state.vx < 0.0:
             u.acc = 0.0
-
-        # feasible_acc = bicycle_dyn.get_feasible_acc(x=current_state, dt=params.dt, u_acc=[u.acc])
-        # u.acc = feasible_acc.pop()
 
         next_state, samp_states = bicycle_dyn.successor_ivp(
             x0=(time, current_state), u=u, dt=params.dt, dt_samp=params.dt_samp
@@ -283,10 +280,10 @@ def add_traffic_light_custom(scenario: Scenario) -> Scenario:
     return scenario
 
 
-def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[PlayerName, str]] = None,
-                                           sim_params: Optional[SimParameters] = None,
-                                           receding_horizon_time: Optional[Timestamp] = None,
-                                           ) -> SimContext:
+def get_scenario_4_way_crossing_game_playing_agent(pref_structures: Optional[Mapping[PlayerName, str]] = None,
+                                                   sim_params: Optional[SimParameters] = None,
+                                                   receding_horizon_time: Optional[Timestamp] = None,
+                                                   ) -> SimContext:
     """
     Generate 4 way crossing scenario "DEU_Ffb-1_7_T-1" with a GamePlayingAgent and a StopOrGoAgent
     """
@@ -385,6 +382,7 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
         initial_states=initial_states,
         ref_lanes=ref_lanes,
         pref_structures=pref_structures,
+        refresh_time=1.5,
         traj_gen_params=traj_gen_params,
         n_traj_max=10,
         sampling_method="uniform"
@@ -417,164 +415,164 @@ def get_scenario_4_way_crossing_stochastic(pref_structures: Optional[Mapping[Pla
     )
 
 
+# def get_scenario_4_way_crossing_uncertain_outcome_agent(pref_structures: Optional[Mapping[PlayerName, str]] = None,
+#                                                         sim_params: Optional[SimParameters] = None,
+#                                                         receding_horizon_time: Optional[Timestamp] = None,
+#                                                         prob_go: float = 0.5,
+#                                                         selection_method: Optional[str] = None,
+#                                                         belief_distr: Optional[ProbDist] = None,
+#                                                         ) -> SimContext:
+#     """
+#     Generate 4 way crossing scenario "DEU_Ffb-1_7_T-1" with an UncertainOutcomeAgent and a StopOrGoAgent (old version).
+#     Trajectories are generated with trajectory generator
+#     """
+#     scenario_name = "DEU_Ffb-1_7_T-1"
+#     scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
+#
+#     plot = False
+#     draw_labels = True
+#
+#     # initial Dynamic Vehicle States
+#     x0_p1 = VehicleStateDyn(x=70, y=-17.5, theta=pi / 2.0, vx=kmh2ms(15), delta=0)
+#     x0_ego = VehicleStateDyn(x=45.0, y=0.0, theta=0.0, vx=kmh2ms(25), delta=0)
+#
+#     # vehicle dynamics and geometries
+#     p1_model = VehicleModelDyn.default_car(x0=x0_p1)
+#     vg_ego = VehicleGeometry.default_car(color="firebrick")
+#     vg_p1 = VehicleGeometry.default_car(color="firebrick")
+#     ego_model = VehicleModelDyn.default_car(x0_ego)
+#     ego_model.vg = vg_ego
+#
+#     geos = {
+#         EGO: vg_ego,
+#         P1: vg_p1
+#     }
+#
+#     models = {
+#         P1: p1_model,
+#         EGO: ego_model
+#     }
+#
+#     # initial Vehicle States
+#     init_p1 = VehicleState(x=x0_p1.x, y=x0_p1.y, vx=x0_p1.vx, theta=x0_p1.theta, delta=x0_p1.delta)
+#     init_ego = VehicleState(x=x0_ego.x, y=x0_ego.y, vx=x0_ego.vx, theta=x0_ego.theta, delta=x0_ego.delta)
+#
+#     initial_states = {
+#         P1: init_p1,
+#         EGO: init_ego
+#     }
+#
+#     # optional plotting
+#     if plot:
+#         matplotlib.use("TkAgg")
+#         renderer: MPRenderer = MPRenderer()
+#         renderer.draw_params["trajectory"]["draw_trajectory"] = False
+#         renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
+#         if draw_labels:
+#             renderer.draw_params["lanelet"]["show_label"] = True
+#
+#         scenario.draw(renderer)
+#         renderer.render()
+#         plt.show()
+#
+#     # set default simulation parameters
+#     if sim_params is None:
+#         sim_params = SimParameters(dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2),
+#                                    max_sim_time=D(4.5))
+#
+#     if belief_distr is None:
+#         belief_over_p1 = ProbDist({
+#             PosetalPreference("go_agent", use_cache=False): Fraction(0, 1),
+#             PosetalPreference("stop_agent", use_cache=False): Fraction(1, 1)
+#         })
+#
+#         pref_distr = {P1: belief_over_p1}
+#
+#     else:
+#         pref_distr = {P1: belief_distr}
+#
+#     if selection_method is None:
+#         selection_method = "avg"
+#
+#     ego_pref = PosetalPreference("pref_intersection", use_cache=False)
+#
+#     # trajectory generator
+#     params = TrajectoryGenParams(
+#         solve=False,
+#         s_final=-1,
+#         max_gen=7,
+#         dt=D("1.0"),
+#         u_acc=frozenset([-2.0, 2.0]),
+#         u_dst=frozenset([0.0]),
+#         v_max=ego_model.vp.vx_limits[1],
+#         v_min=0.0,
+#         st_max=ego_model.vp.delta_max,
+#         dst_max=ego_model.vp.ddelta_max,
+#         dt_samp=D("0.2"),
+#         dst_scale=False,
+#         n_factor=1.0,
+#         vg=VehicleGeometry.default_car(),
+#         v_switch=4.5,
+#         acc_max=11.5
+#     )
+#
+#     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams] = {
+#         P1: params,
+#         EGO: params,
+#     }
+#
+#     net = scenario.lanelet_network
+#     ref_lanes: Mapping[PlayerName, List[RefLaneGoal]] = {}
+#     # compute all reference lanes
+#     for agent in models:
+#         x0 = models[agent].get_state()
+#         p = np.array([x0.x, x0.y])
+#         ref_lanes[agent] = [RefLaneGoal(dglane_from_position(p, net, succ_lane_selection=2), goal_progress=1000)]
+#
+#     traj_world = TrajectoryWorld(map_name=scenario_name, scenario=DgScenario(scenario), geo=geos, goals=ref_lanes)
+#
+#     game_params_ego = TrajectoryGamePosetsParam(
+#         scenario=DgScenario(scenario),
+#         initial_states=initial_states,
+#         ref_lanes=ref_lanes,
+#         pref_structures=pref_structures,
+#         traj_gen_params=traj_gen_params,
+#         n_traj_max=10,
+#         sampling_method="uniform"
+#     )
+#
+#     players = {}
+#     stopping_time = D(2.5)
+#     for agent in models:
+#         x0 = models[agent].get_state()
+#         p = np.array([x0.x, x0.y])
+#         if agent == P1:
+#             players[P1] = StopOrGoAgent(
+#                 ref_lane=dglane_from_position(p, net, succ_lane_selection=2),
+#                 prob_go=prob_go,
+#                 behavior="go",  # force behavior to stop/go -> probability prob_go is ignored
+#                 stopping_time=stopping_time,
+#                 nominal_speed=init_p1.vx  # constant speed
+#             )
+#
+#         if agent == EGO:
+#             players[EGO] = UncertainOutcomeAgent(my_name=EGO,
+#                                                  pref_distr=pref_distr,
+#                                                  ego_pref=ego_pref,
+#                                                  game_params=game_params_ego,
+#                                                  world=traj_world,
+#                                                  other_stopping_time=stopping_time,
+#                                                  action_selection_method=selection_method)
+#
+#     return SimContext(
+#         dg_scenario=DgScenario(scenario),
+#         models=models,
+#         players=players,
+#         param=sim_params,
+#     )
+
+
 def get_scenario_4_way_crossing_uncertain_outcome_agent(pref_structures: Optional[Mapping[PlayerName, str]] = None,
-                                                        sim_params: Optional[SimParameters] = None,
-                                                        receding_horizon_time: Optional[Timestamp] = None,
-                                                        prob_go: float = 0.5,
-                                                        selection_method: Optional[str] = None,
-                                                        belief_distr: Optional[ProbDist] = None,
-                                                        ) -> SimContext:
-    """
-    Generate 4 way crossing scenario "DEU_Ffb-1_7_T-1" with an UncertainOutcomeAgent and a StopOrGoAgent (old version).
-    Trajectories are generated with trajectory generator
-    """
-    scenario_name = "DEU_Ffb-1_7_T-1"
-    scenario, planning_problem_set = load_commonroad_scenario(scenario_name, SCENARIOS_DIR)
-
-    plot = False
-    draw_labels = True
-
-    # initial Dynamic Vehicle States
-    x0_p1 = VehicleStateDyn(x=70, y=-17.5, theta=pi / 2.0, vx=kmh2ms(15), delta=0)
-    x0_ego = VehicleStateDyn(x=45.0, y=0.0, theta=0.0, vx=kmh2ms(25), delta=0)
-
-    # vehicle dynamics and geometris
-    p1_model = VehicleModelDyn.default_car(x0=x0_p1)
-    vg_ego = VehicleGeometry.default_car(color="firebrick")
-    vg_p1 = VehicleGeometry.default_car(color="firebrick")
-    ego_model = VehicleModelDyn.default_car(x0_ego)
-    ego_model.vg = vg_ego
-
-    geos = {
-        EGO: vg_ego,
-        P1: vg_p1
-    }
-
-    models = {
-        P1: p1_model,
-        EGO: ego_model
-    }
-
-    # initial Vehicle States
-    init_p1 = VehicleState(x=x0_p1.x, y=x0_p1.y, vx=x0_p1.vx, theta=x0_p1.theta, delta=x0_p1.delta)
-    init_ego = VehicleState(x=x0_ego.x, y=x0_ego.y, vx=x0_ego.vx, theta=x0_ego.theta, delta=x0_ego.delta)
-
-    initial_states = {
-        P1: init_p1,
-        EGO: init_ego
-    }
-
-    # optional plotting
-    if plot:
-        matplotlib.use("TkAgg")
-        renderer: MPRenderer = MPRenderer()
-        renderer.draw_params["trajectory"]["draw_trajectory"] = False
-        renderer.draw_params["dynamic_obstacle"]["draw_shape"] = False
-        if draw_labels:
-            renderer.draw_params["lanelet"]["show_label"] = True
-
-        scenario.draw(renderer)
-        renderer.render()
-        plt.show()
-
-    # set default simulation parameters
-    if sim_params is None:
-        sim_params = SimParameters(dt=D("0.1"), dt_commands=D("0.1"), sim_time_after_collision=D(2),
-                                   max_sim_time=D(4.5))
-
-    if belief_distr is None:
-        belief_over_p1 = ProbDist({
-            PosetalPreference("go_agent", use_cache=False): Fraction(0, 1),
-            PosetalPreference("stop_agent", use_cache=False): Fraction(1, 1)
-        })
-
-        pref_distr = {P1: belief_over_p1}
-
-    else:
-        pref_distr = {P1: belief_distr}
-
-    if selection_method is None:
-        selection_method = "avg"
-
-    ego_pref = PosetalPreference("pref_intersection", use_cache=False)
-
-    # trajectory generator
-    params = TrajectoryGenParams(
-        solve=False,
-        s_final=-1,
-        max_gen=7,
-        dt=D("1.0"),
-        u_acc=frozenset([-2.0, 2.0]),
-        u_dst=frozenset([0.0]),
-        v_max=ego_model.vp.vx_limits[1],
-        v_min=0.0,
-        st_max=ego_model.vp.delta_max,
-        dst_max=ego_model.vp.ddelta_max,
-        dt_samp=D("0.2"),
-        dst_scale=False,
-        n_factor=1.0,
-        vg=VehicleGeometry.default_car(),
-        v_switch=4.5,
-        acc_max=11.5
-    )
-
-    traj_gen_params: Mapping[PlayerName, TrajectoryGenParams] = {
-        P1: params,
-        EGO: params,
-    }
-
-    net = scenario.lanelet_network
-    ref_lanes: Mapping[PlayerName, List[RefLaneGoal]] = {}
-    # compute all reference lanes
-    for agent in models:
-        x0 = models[agent].get_state()
-        p = np.array([x0.x, x0.y])
-        ref_lanes[agent] = [RefLaneGoal(dglane_from_position(p, net, succ_lane_selection=2), goal_progress=1000)]
-
-    traj_world = TrajectoryWorld(map_name=scenario_name, scenario=DgScenario(scenario), geo=geos, goals=ref_lanes)
-
-    game_params_ego = TrajectoryGamePosetsParam(
-        scenario=DgScenario(scenario),
-        initial_states=initial_states,
-        ref_lanes=ref_lanes,
-        pref_structures=pref_structures,
-        traj_gen_params=traj_gen_params,
-        n_traj_max=10,
-        sampling_method="uniform"
-    )
-
-    players = {}
-    stopping_time = D(2.5)
-    for agent in models:
-        x0 = models[agent].get_state()
-        p = np.array([x0.x, x0.y])
-        if agent == P1:
-            players[P1] = StopOrGoAgent(
-                ref_lane=dglane_from_position(p, net, succ_lane_selection=2),
-                prob_go=prob_go,
-                behavior="go",  # force behavior to stop/go -> probability prob_go is ignored
-                stopping_time=stopping_time,
-                nominal_speed=init_p1.vx  # constant speed
-            )
-
-        if agent == EGO:
-            players[EGO] = UncertainOutcomeAgent(my_name=EGO,
-                                                 pref_distr=pref_distr,
-                                                 ego_pref=ego_pref,
-                                                 game_params=game_params_ego,
-                                                 world=traj_world,
-                                                 other_stopping_time=stopping_time,
-                                                 action_selection_method=selection_method)
-
-    return SimContext(
-        dg_scenario=DgScenario(scenario),
-        models=models,
-        players=players,
-        param=sim_params,
-    )
-
-
-def get_scenario_4_way_crossing_uncertain_outcome_agent_2(pref_structures: Optional[Mapping[PlayerName, str]] = None,
                                                           sim_params: Optional[SimParameters] = None,
                                                           prob_go: float = 0.5,
                                                           selection_method: Optional[str] = None,
@@ -904,7 +902,7 @@ def get_scenario_4_way_crossing_uncertain_outcome_agent_2(pref_structures: Optio
 
 def get_simulation_campaign_from_params(params: SimulationCampaignParams) -> List[SimContext]:
     """
-    Generate a set of simulation contexts from "get_scenario_4_way_crossing_stochastic()"
+    Generate a set of simulation contexts from "get_scenario_4_way_crossing_game_playing_agent()"
     """
     sim_contexts = []
     player_types = params.player_types.values()
@@ -912,7 +910,7 @@ def get_simulation_campaign_from_params(params: SimulationCampaignParams) -> Lis
     for combination in product(*player_types):
         type_combination: Mapping[PlayerName, str] = {player_names[i]: combination[i] for i in range(len(player_names))}
         sim_contexts.append(
-            get_scenario_4_way_crossing_stochastic(
+            get_scenario_4_way_crossing_game_playing_agent(
                 pref_structures=type_combination,
                 sim_params=params.sim_params,
                 receding_horizon_time=params.receding_horizon_time
@@ -924,7 +922,7 @@ def get_simulation_campaign_from_params(params: SimulationCampaignParams) -> Lis
 
 def get_scenario_4_way_crossing_stochastic_multiple_type_beliefs():
     """
-    Test multiple times "get_scenario_4_way_crossing_stochastic()" by varying the ego preference
+    Test multiple times "get_scenario_4_way_crossing_game_playing_agent()" by varying the ego preference
     """
     EGO = PlayerName("Ego")
     P1 = PlayerName("P1")

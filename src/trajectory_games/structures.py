@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 from decimal import Decimal as D
-from typing import Dict, FrozenSet, Mapping, Optional, Union
+from typing import Dict, FrozenSet, Mapping, Optional, Union, List
 
 from yaml import safe_load
 
@@ -181,7 +181,7 @@ class TrajectoryGamePosetsParam:
 
     scenario: DgScenario
     initial_states: Mapping[PlayerName, VehicleState]
-    ref_lanes: Mapping[PlayerName, RefLaneGoal]
+    ref_lanes: Mapping[PlayerName, List[RefLaneGoal]]
     pref_structures: Mapping[PlayerName, str]
     traj_gen_params: Mapping[PlayerName, TrajectoryGenParams]
     refresh_time: Optional[Timestamp] = None
