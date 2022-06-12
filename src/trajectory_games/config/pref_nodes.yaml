@@ -51,7 +51,9 @@ ProgressTowardsGoal:
 SafeDistance_CR:
   SafeDistance_CR: 1.0
 MaximumVelocity_CR:
-  MaximumVelocity_CR: 10
+  MaximumVelocity_CR: 1.0
+AverageVelocitySquared:
+  AverageVelocitySquared: 1.0
 ## Combination metric nodes
 # pref_1
 weights_1:
@@ -224,5 +226,5 @@ TR1:
   DistanceToObstacle_CR: 8.0
   SteeringRateSquared: 22.0
   DeviationLateralSquared: 5.0
-  LongitudinalAccelerationSquared: 0.01
+  LongitudinalJerkSquared: 0.01
 
