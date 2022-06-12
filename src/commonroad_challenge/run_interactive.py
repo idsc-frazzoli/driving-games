@@ -17,7 +17,6 @@ sys.path.append(os.path.join(os.getcwd(), "../"))
 
 def run_all_scenarios(with_ego: bool, without_ego: bool, scenarios_dir: str, output_dir: str):
     all_paths = find_all_scenarios(scenarios_dir)
-    random.seed(100)
     random.shuffle(all_paths)
 
     for scenario_path in all_paths:
@@ -41,8 +40,6 @@ def run_scenario(with_ego: bool, without_ego: bool, scenario_path: str, output_d
 
 
 def simulate_no_ego(scenario_path: str, output_dir: str, create_video: bool = False):
-
-
     scenario_without_ego, pps = simulate_without_ego(interactive_scenario_path=scenario_path,
                                                      output_folder_path=output_dir,
                                                      create_video=create_video)
@@ -65,8 +62,8 @@ def simulate_with_ego(scenario_path: str, output_dir: str, create_video: bool = 
                                                                              motion_planner=motion_planner_from_trajectory,
                                                                              output_folder_path=output_dir,
                                                                              create_video=create_video)
-    # matplotlib.use("TkAgg")
 
+    # matplotlib.use("TkAgg")
     # visualize_scenario_with_trajectory(scenario_with_planner, pps, ego_vehicles_planner)
 
     if scenario_with_planner:
@@ -91,13 +88,9 @@ def simulate_with_ego(scenario_path: str, output_dir: str, create_video: bool = 
 if __name__ == "__main__":
     # directory where scenarios are stored
     scenarios_dir = "/media/leon/Extreme SSD1/MT/scenarios_phase_1"
-    scenarios_debug = "/media/leon/Extreme SSD1/MT/scenarios_phase_1_debug"
-    experiment_1905 = "/media/leon/Extreme SSD1/MT/experiment_1905"
-    scenario_problematic = "/media/leon/Extreme SSD1/MT/problematic"
     # directory to store outputs
     output_dir = "/media/leon/Extreme SSD1/MT/experiments/"
     output_dir = os.path.join(output_dir, datetime.now().strftime("%d-%m-%y-%H%M%S"))
-
 
     # attributes for saving the simulated scenarios
     author = 'Leon Zueger'
@@ -108,11 +101,10 @@ if __name__ == "__main__":
     vehicle_type = VehicleType.FORD_ESCORT
     vehicle_model = VehicleModel.KS
     cost_function = CostFunction.TR1
+
     # run all scenario in scenarios_dir
-    run_all_scenarios(with_ego=True, without_ego=True, scenarios_dir=scenarios_debug, output_dir=output_dir)
+    run_all_scenarios(with_ego=True, without_ego=True, scenarios_dir=scenarios_dir, output_dir=output_dir)
 
     # run a single scenario at scenario_path
-    # deu_aachen_29_6_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Aachen-29_6_I-1"
-    #
-    # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_aachen_29_6_path, output_dir=output_dir)
-
+    # deu_dresden_3_12_path = "/media/leon/Extreme SSD1/MT/scenarios_phase_1/DEU_Dresden-3_12_I-1"
+    # run_scenario(with_ego=True, without_ego=True, scenario_path=deu_dresden_3_12_path, output_dir=output_dir)
