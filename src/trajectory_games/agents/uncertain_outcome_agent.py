@@ -1,149 +1,158 @@
 import random
+import sys
+from datetime import datetime
+from functools import partial
 from itertools import product
 from typing import Optional, Mapping, FrozenSet, Any
 
-from dg_commons import U, PlayerName, logger, DgSampledSequence, Timestamp
-from dg_commons.planning.trajectory import Trajectory, TrajectoryGraph, JointTrajectories
+from dg_commons import U, PlayerName, logger, DgSampledSequence, iterate_dict_combinations
+from dg_commons.planning.trajectory import Trajectory
 from dg_commons.sim.agents import Agent
-from dg_commons.sim.models.vehicle import VehicleCommands, VehicleState
+from dg_commons.sim.models.vehicle import VehicleCommands
 from dg_commons.sim.simulator_structures import SimObservations, InitSimObservations
 from dg_commons.time import time_function
-from driving_games.metrics_structures import JointPlayerOutcome
 from possibilities import ProbDist
 from preferences import Preference
-from trajectory_games import Solution, SolvedTrajectoryGame, SolvedGameNode
-from trajectory_games.game_factory import get_traj_game_posets_from_params
-from trajectory_games.structures import TrajectoryGamePosetsParam
-from trajectory_games.trajectory_game import get_context_and_graphs
-
+from trajectory_games import MetricEvaluation, \
+    TrajectoryWorld
 from trajectory_games.stochastic_decision_making.uncertain_preferences import UncertainPreferenceOutcomes
+from trajectory_games.structures import TrajectoryGamePosetsParam
 
 __all__ = ["UncertainOutcomeAgent"]
 
 
-# def select_admissible_eq_randomly(eqs: Mapping[str, SolvedTrajectoryGame]):
-#     admissible_eq = list(eqs['admissible'])
-#     if len(admissible_eq) > 1:
-#         logger.info(
-#             f"Randomly selecting one admissible equilibria out of "
-#             f"{len(admissible_eq)}" f" available equilibria."
-#         )
-#     return random.choice(admissible_eq)
+def save_action_outcome_mapping(obj, filename):
+    """
+    For result inspection. Generates .txt file with joint actions and joint outcomes
+    """
+    file_path = filename
+    sys.stdout = open(file_path, "w")
+    # print keys (joint actions)
+    print("ACTIONS" + "\n")
+    for idx, key in enumerate(obj.keys()):
+        print("Joint action # " + str(idx) + " :")
+        for pname, traj in key.items():
+            print(pname + ": " + str(traj) + "\n")
+            # print values (joint outcomes)
+        print("\n")
+
+    print("\n")
+    print("OUTCOMES" + "\n")
+    for idx, val in enumerate(obj.values()):
+        print("Joint outcome # " + str(idx) + " :")
+        for pname, metric_dict in val.items():
+            print(pname + ": ")
+            for metric, eval_metric in metric_dict.items():
+                print(str(metric.get_name()) + ": " + str(eval_metric.value))
+            print("\n")
+        print("\n")
 
 
 class UncertainOutcomeAgent(Agent):
-    """Agent selecting optimal action with stochastic outcomes"""
+    """Agent selecting optimal action with stochastic outcomes. Implemented for a setting with 2 players, where
+    the name of the other agent is "OTHER" """
 
     def __init__(
             self,
             my_name: PlayerName,
             pref_distr: Mapping[PlayerName, ProbDist[Preference]],
-            all_actions: Mapping[PlayerName, FrozenSet[Trajectory]],
-            #joint_actions_outcomes_mapping: Mapping[JointTrajectories, JointPlayerOutcome],
-            ego_pref: Preference
-
-            # game_params: TrajectoryGamePosetsParam
+            ego_pref: Preference,
+            game_params: TrajectoryGamePosetsParam,
+            world: TrajectoryWorld,
+            action_selection_method: str,
+            trajectories_and_commands: Mapping[PlayerName, Mapping[Trajectory, Trajectory]],
+            **kwargs
     ):
 
-
-
-        # self.game_params = game_params
+        self.game_params = game_params
         self.my_name: PlayerName = my_name
-        self.joint_actions_outcomes_mapping = compute_outcomes(all_actions)
+        assert self.my_name in trajectories_and_commands.keys()
+        for player_name in trajectories_and_commands.keys():
+            if player_name == self.my_name:
+                continue
+            self.other_name = player_name
 
+        self.pref_distr = pref_distr
+        self.ego_pref = ego_pref
+        self.world = world
+        self.trajectories_and_commands = trajectories_and_commands
+        self.action_selection_method = action_selection_method
 
-        # self.pseudo_start_time: Timestamp = 0.0
-
-        self.uncertain_preference_outcomes = UncertainPreferenceOutcomes(my_name,
-                                                                         pref_distr,
-                                                                         self.joint_actions_outcomes_mapping,
-                                                                         ego_pref)
+        self.joint_actions_outcomes_mapping = {}
 
         # for control
         self.commands: Optional[DgSampledSequence[VehicleCommands]] = None
         self.trajectory: Optional[Trajectory] = None
 
         # for plotting
+        self.all_selected_trajectories = None
         self.all_trajectories: Mapping[PlayerName, FrozenSet[Trajectory]] = {}
-        self.selected_eq: Optional[SolvedGameNode] = None
 
+    def generate_trajs_and_compute_outcomes(self):
+        # generate trajectories for Ego with trajectory generator
+        #     ego_traj_gen = TrajectoryGenerator(params=self.game_params.traj_gen_params[self.my_name],
+        #                                        ref_lane_goals=self.game_params.ref_lanes[self.my_name])
+        #
+        #     graph = ego_traj_gen.get_actions(state=self.game_params.initial_states[self.my_name], return_graphs=True)
+        #     self.ego_traj_graph, = graph
+        #     actions_ego_all = self.ego_traj_graph.get_all_transitions()
 
-    #todo: we don't need to recompute trajectories and evaluate metrics between different experiments (?)
-    #todo: we need to compute new trajectories and evaluate metrics when we play in receding horizon though
-    def full_game_function(self):
-        game = get_traj_game_posets_from_params(self.game_params)
-        # create solving context and generate candidate trajectories for each agent
-        solving_context, traj_graphs = get_context_and_graphs(
-            game=game,
-            max_n_traj=self.game_params.n_traj_max,
-            sampling_method=self.game_params.sampling_method
-        )
-        self.all_trajectories = solving_context.player_actions
-        sol: Solution = Solution()
-        # compute NE
-        nash_eqs: Mapping[str, SolvedTrajectoryGame] = sol.solve_game(context=solving_context)
-        # select one NE at random between all the available admissible NE
-        self.selected_eq = select_admissible_eq_randomly(eqs=nash_eqs)
-        # get trajectory and commands relating to selected equilibria
-        self.trajectory = self.selected_eq.actions[self.my_name]
-        # caution needed: for now only works when a single graph is passed
-        my_graph: TrajectoryGraph = list(traj_graphs[self.my_name])[0]
-        self.commands = my_graph.commands_on_trajectory(self.trajectory)
+        actions_ego_all = self.trajectories_and_commands[self.my_name]
+        other_agent_actions = set(self.trajectories_and_commands[self.other_name].keys())
 
-        # todo: add these costs for each metric in the pref structure on the report
-        # compute metric violations for statistics
-        # self.metric_violation.append(solving_context.game_outcomes(self.selected_eq.actions))
-        # self.metric_violation.append(self.selected_eq.outcomes)  # todo: fix type?
+        self.all_trajectories[self.my_name] = set(actions_ego_all.keys())
+        self.all_trajectories[self.other_name] = other_agent_actions
 
-        # shift trajectory when receding horizon control is used
-        self.trajectory = self.trajectory.shift_timestamps(self.pseudo_start_time)
-        self.commands = self.commands.shift_timestamps(self.pseudo_start_time)
+        get_outcomes = partial(MetricEvaluation.evaluate, world=self.world)
+
+        for joint_traj in set(iterate_dict_combinations(self.all_trajectories)):
+            self.joint_actions_outcomes_mapping[joint_traj] = get_outcomes(joint_traj)
+
+        return
+
+    def select_action_uncertain_outcomes_prefs(self, store_action_outcome_mapping=False):
+        """
+        compute optimal action with uncertain outcomes
+        :return:
+        """
+        # write to .txt file for inspection later
+        if store_action_outcome_mapping:
+            now_str = datetime.now().strftime("%y-%m-%d-%H%M%S") + str(".txt")
+            output_dir = "/home/leon/Documents/repos/driving-games/src/trajectory_games_tests/experiments/" + now_str
+            save_action_outcome_mapping(obj=self.joint_actions_outcomes_mapping, filename=output_dir)
+
+        uncertain_preference_outcomes = UncertainPreferenceOutcomes(
+            my_name=self.my_name,
+            pref_distr=self.pref_distr,
+            joint_actions_outcomes_mapping=self.joint_actions_outcomes_mapping,
+            ego_pref=self.ego_pref)
+
+        trajectories = uncertain_preference_outcomes.action_selector(
+            method=self.action_selection_method)
+        if len(trajectories) > 1:
+            logger.info(
+                "Sampled 1 optimal action out of " + str(len(trajectories)) + " available optimal trajectories.")
+        self.all_selected_trajectories = trajectories
+        self.trajectory = random.sample(trajectories, 1)[0]
+
+        self.commands = self.trajectories_and_commands[self.my_name][self.trajectory]
 
     @time_function
     def on_episode_init(self, init_sim_obs: InitSimObservations):
-        self.my_name = init_sim_obs.my_name
-        # random.seed(init_sim_obs.seed)
-        self.full_game_function()
-
-        # preferences = solving_context.outcome_pref
+        self.generate_trajs_and_compute_outcomes()
+        self.select_action_uncertain_outcomes_prefs()
 
     def get_commands(self, sim_obs: SimObservations) -> U:
         current_time = sim_obs.time
-        # solve game in receding horizon if a refresh_time is given
-        if self.game_params.refresh_time and abs(current_time) > 0.0:
-            new_initial_states: Mapping[PlayerName, VehicleState] = {}
-            # todo: make function for this condition, that also handles cases where the next line could fail
-            if abs(float(current_time) % self.game_params.refresh_time) == 0.0:
-                self.pseudo_start_time = self.pseudo_start_time + self.game_params.refresh_time
-                # change initial states for new game
-                for pname, player_obs in sim_obs.players.items():
-                    new_initial_states[pname] = player_obs.state  # todo: check this is VehicleState
+        commands = self.commands.at_interp(current_time)
+        # hard coded to avoid driving backwards
+        if sim_obs.players[self.my_name].state.vx < 0:
+            commands.acc = 0.5
+        return commands
 
-                self.game_params.initial_states = new_initial_states
-                # generate new trajectories, process new game, solve game, compute trajectories and new commands
-                self.full_game_function()
-
-        if current_time < self.commands.get_start():
-            logger.info('Warning, no commands defined so early. Returning first command input.')
-            return self.commands.values[0]
-        elif current_time > self.commands.get_end():
-            logger.info('Warning, no commands defined so late. Returning last command input.')
-            return self.commands.values[-1]
-        else:
-            # todo: strange: at_interp is better at following a trajectory (only in one case)
-            return self.commands.at_or_previous(current_time)
-
-    def on_get_extra(self) -> Optional[Any]:  # Optional[DrawableTrajectoryType]:
-        # store metrics in extra of player logger
-        # if self.game_params.store_metrics:
-        #     return self.metric_violation
-
-        # store trajectories in extra of player logger (or plotting)
-        P1 = PlayerName('P1')
+    def on_get_extra(self) -> Optional[Any]:
         trajectories = self.all_trajectories[self.my_name]
-        trajectories_blue = self.all_trajectories[P1]
-        selected_trajectory_blue = self.selected_eq.actions[P1]
-        selected_traj = self.trajectory
+
         candidates = tuple(
             product(
                 trajectories,
@@ -152,20 +161,15 @@ class UncertainOutcomeAgent(Agent):
                 ],
             )
         )
-        new_tuple_red = (selected_traj, 'darkred')
-        candidates += (new_tuple_red,)
-
-        candidates_blue = tuple(
+        selected_trajectories = tuple(
             product(
-                trajectories_blue,
+                self.all_selected_trajectories,
                 [
-                    "cornflowerblue",
+                    "darkred",
                 ],
             )
         )
-        candidates += candidates_blue
 
-        new_tuple_blue = (selected_trajectory_blue, 'mediumblue')
-        # candidates += (new_tuple_blue,)
+        candidates += selected_trajectories
 
         return candidates
