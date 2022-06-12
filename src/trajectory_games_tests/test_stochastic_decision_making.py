@@ -22,6 +22,7 @@ from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import JointPlayerOutcome, EvaluatedMetric
 from possibilities import ProbDist
 from trajectory_games.stochastic_decision_making.uncertain_preferences import UncertainPreferenceOutcomes
+from trajectory_games.stochastic_decision_making.posetal_game_with_uncertainty import StochasticNEComputation
 
 from trajectory_games import PosetalPreference, TrajectoryGenParams, TrajectoryGenerator, TrajectoryWorld, \
     MetricEvaluation
@@ -248,7 +249,52 @@ def test_2():
     outcome_distr = upo.outcome_distr()
     selected_actions = upo.action_selector(method="avg")
 
+def test_stochastic_NE():
+    # test that if all joint trajectories have same outcomes, all trajectories will be equivalent for Ego
+    dgscenario, geos, goals, initial_states = get_scenario_and_all()
+
+    traj_gen_params = get_traj_gen_params()
+    all_actions = generate_actions(initial_states=initial_states, ref_lane_goals=goals, traj_gen_params=traj_gen_params)
+
+    joint_a_o: Mapping[JointTrajectories, JointPlayerOutcome] = {}
+
+    from random import randint
+
+    metrics = trajectory_games.metrics.get_metrics_set()
+    # random_numbers = {}
+    # for metric in metrics:
+    #     random_numbers[metric] = randint(0, 1)
+
+    for joint_traj in set(iterate_dict_combinations(all_actions)):
+        players_outcome = {}
+        for player in joint_traj.keys():
+            dummy_outcome = {}
+            for metric in metrics:
+                dummy_outcome[metric] = EvaluatedMetric(name=metric.get_name(), value=randint(0, 1))
+            players_outcome[player] = frozendict(dummy_outcome)
+        joint_a_o[joint_traj] = copy.deepcopy(frozendict(players_outcome))
+
+    # only_acc_pref = PosetalPreference(pref_str="only_squared_acc", use_cache=False)
+
+    pref_leon_dev_2 = PosetalPreference(pref_str="pref_leon_dev_2", use_cache=False)
+    pref_leon_dev_3 = PosetalPreference(pref_str="pref_leon_dev_3", use_cache=False)
+
+    uncertain_pref_distr = {
+        EGO: ProbDist({pref_leon_dev_3: Fraction(1,1)}),
+        P2: ProbDist({pref_leon_dev_2: Fraction(1, 3), pref_leon_dev_3: Fraction(2, 3)}),
+        P3: ProbDist({pref_leon_dev_2: Fraction(3, 4), pref_leon_dev_3: Fraction(1, 4)})
+    }
+
+    stoch_NE_computation = StochasticNEComputation(
+        pref_distr=uncertain_pref_distr,
+        joint_actions_outcomes_mapping=joint_a_o
+    )
+
+    NE_eqs_distr = stoch_NE_computation.NE_distr()
+
+
 
 if __name__ == "__main__":
     test_equivalent_outcomes()
-    # test_2()
+    test_2()
+    test_stochastic_NE()
