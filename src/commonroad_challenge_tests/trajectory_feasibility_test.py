@@ -30,9 +30,6 @@ def check_feasibility(traj: Trajectory) -> bool:
     values = traj.values
     for i, state in enumerate(values):
         current_state = convert_to_cr_state(state)
-        # current_state.position[0] = current_state.position[0] - math.cos(current_state.orientation)*vehicle_params.l/2.0
-        # current_state.position[1] = current_state.position[1] - math.sin(current_state.orientation)*vehicle_params.l/2.0
-        # current_state.velocity = current_state.velocity / math.cos(beta)**2
         current_state.time_step = i
         cr_traj_states.append(current_state)
 

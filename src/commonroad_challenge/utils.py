@@ -265,7 +265,6 @@ def generate_ref_lanes(
 
     ego_ref_lane_goal, route_curvature_ego = generate_route_ego(scenario=scenario, planning_problem=planning_problem)
 
-    # todo: need to adapt metrics to use this correctly
     ref_lanes[PlayerName("Ego")] = ego_ref_lane_goal
 
     for dyn_obs in inter_agents:
