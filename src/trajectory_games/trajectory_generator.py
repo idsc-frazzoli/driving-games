@@ -210,9 +210,10 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         along_i, n_i, mui = self.get_curv(state=timed_state[1], lane=lane)
 
         # Calculate real axle translation and rotation
-        # if state is w.r.t CoM
+        # a) if state is w.r.t CoM
         # offset_0, offset_i = np.array([0, 0]), np.array([-l, 0])
-        # if state is w.r.t rear axle
+
+        # b) if state is w.r.t rear axle
         offset_0, offset_i = np.array([0, 0]), np.array([0, 0])
         p_i, th_i = self._get_target(lane=lane, progress=along_i, offset_target=offset_0)
         q_start = geo.SE2_from_translation_angle(t=start_arr, theta=th_start)
@@ -267,9 +268,9 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
             if distance > 0.0:
                 # Calculate target pose of rear axle
                 nf = self.params.n_factor * n_i + dst * n_scale
-                # if state is w.r.t CoM
+                # a) if state is w.r.t CoM
                 # offset_t = np.array([-l, nf])
-                # if state is w.r.t rear axle
+                # b) if state is w.r.t rear axle
                 offset_t = np.array([0, nf])
                 p_t, th_t = self._get_target(lane=lane, progress=along_i + distance, offset_target=offset_t)
 

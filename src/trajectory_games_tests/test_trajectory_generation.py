@@ -7,16 +7,69 @@ from decimal import Decimal as D
 from commonroad.common.solution import VehicleType, vehicle_parameters
 
 from dg_commons.planning import RefLaneGoal
+from dg_commons.sim.models import CAR
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
+from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.scenarios import load_commonroad_scenario
 from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
 from dg_commons_dev.utils import get_project_root_dir
+from trajectory_games import TrajectoryGenParams
 
 from trajectory_games.trajectory_generator import TrajectoryGenerator
-from trajectory_games.structures import TrajectoryGenParams
 from trajectory_games.visualization import TrajectoryGenerationVisualization
 
+def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenParams:
+    vp = VehicleParameters(
+        vx_limits=(0.0, cr_vehicle_params.longitudinal.v_max),  # don't allow backwards driving
+        acc_limits=(-cr_vehicle_params.longitudinal.a_max, cr_vehicle_params.longitudinal.a_max),
+        delta_max=cr_vehicle_params.steering.max,
+        ddelta_max=cr_vehicle_params.steering.v_max
+    )
+
+    v_switch = cr_vehicle_params.longitudinal.v_switch
+
+    if is_ego:
+        u_acc = frozenset([-1.0, -2.0, -3.0])
+        u_dst = frozenset([-0.3, 0.0, 0.3])
+
+    else:
+        u_acc = frozenset([-1.0, -2.0, -3.0])
+        u_dst = frozenset([-0.3, 0.0, 0.3])
+
+    vg = VehicleGeometry(
+        vehicle_type=CAR,
+        m=1500.0,
+        Iz=1300,
+        w_half=cr_vehicle_params.w / 2.0,
+        lf=cr_vehicle_params.a,
+        lr=cr_vehicle_params.b,
+        c_drag=0.3756,
+        a_drag=2,
+        e=0.5,
+        color="royalblue",
+    )
+
+    params = TrajectoryGenParams(
+        solve=False,
+        s_final=-1,
+        max_gen=7,
+        dt=D("1.0"),
+        u_acc=u_acc,
+        u_dst=u_dst,
+        v_max=vp.vx_limits[1],
+        v_min=vp.vx_limits[0],
+        st_max=vp.delta_max,
+        dst_max=vp.ddelta_max,
+        dt_samp=D("0.1"),
+        dst_scale=False,
+        n_factor=1.0,
+        vg=vg,
+        acc_max=vp.acc_limits[1],
+        v_switch=v_switch
+    )
+
+    return params
 
 def test_trajectory_generation():
     SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
@@ -40,7 +93,6 @@ def test_trajectory_generation():
     vehicle_type = VehicleType.FORD_ESCORT
     vehicle_params = vehicle_parameters[vehicle_type]
 
-    from commonroad_challenge_tests.trajectory_feasibility_test import traj_gen_params_from_cr
     params = traj_gen_params_from_cr(vehicle_params, is_ego=False)
     params.u_acc = u_acc
     params.u_dst = u_dst
@@ -49,30 +101,9 @@ def test_trajectory_generation():
     params.dst_scale = False
     params.n_factor = 1.0
 
-    # params = TrajectoryGenParams(
-    #     solve=False,
-    #     s_final=-1,  # todo: add this to generator
-    #     max_gen=5,
-    #     dt=D("1.0"),  # keep at max 1 sec, increase k_maxgen in trajectrory_generator for having more generations
-    #     u_acc=u_acc,
-    #     u_dst=u_dst,
-    #     v_max=15.0,
-    #     v_min=0.0,
-    #     st_max=0.5,
-    #     dst_max=1.0,
-    #     dt_samp=D("0.2"),
-    #     dst_scale=False,
-    #     n_factor=1.0,
-    #     v_switch=4.0,
-    #     acc_max=11.5,
-    #     vg=VehicleGeometry.default_car(),
-    # )
-
-
     generator = TrajectoryGenerator(params=params, ref_lane_goals=ref_lane_goals)
 
     trajectories = generator.get_actions(state=initial_state, return_graphs=False)
-    from commonroad_challenge_tests.trajectory_feasibility_test import check_feasibility
     # for traj in trajectories:
     #     print(check_feasibility(traj))
 
