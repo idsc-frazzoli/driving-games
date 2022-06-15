@@ -1,9 +1,0 @@
-# 4x4 roundabout
-
-tiles:
-  - [asphalt           , straight_single/S    , straight_single/N      , asphalt]
-  - [straight_single/W , roundabout_east/W    , roundabout_east/N     , straight_single/W ]
-  - [straight_single/E , roundabout_east/S    , roundabout_east/E     , straight_single/E ]
-  - [asphalt           , straight_single/S    , straight_single/N     , asphalt           ]
-
-tile_size: 7
