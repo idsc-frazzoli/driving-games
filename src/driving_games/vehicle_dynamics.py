@@ -156,5 +156,5 @@ class VehicleTrackDynamics(Dynamics[VehicleTrackState, VehicleActions, Polygon])
     def occupancy_length(self) -> D:
         with localcontext() as ctx:
             ctx.prec = 3
-            res = self.resources_occupancy.cell_resolution + D(self.vg.length + sum(self.vg.bumpers_length))
+            res = self.resources_occupancy.cell_resolution + D(self.vg.wheelbase + sum(self.vg.bumpers_length))
         return res
