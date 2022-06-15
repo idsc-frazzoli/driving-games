@@ -1001,7 +1001,7 @@ def test_minimum_clearance():
     logger.info(f"Minimum Clearance: {min_clearance_1}")
     logger.info(f"--------------------------------------------\n")
 
-    # scenario 1 vs scenario 0: decreasing clearance threshold from 10.0 (default) to 5.0 should decrease metric
+    # scenario 1 vs scenario 0: decreasing clearance threshold from 10.0 (default) to 3.0 should decrease metric
     assert min_clearance_0[P1].value > min_clearance_1[P1].value
     assert min_clearance_0[P2].value > min_clearance_1[P2].value
     assert min_clearance_0[P3].value > min_clearance_1[P3].value
@@ -1042,9 +1042,9 @@ def test_clearance_time_violation():
     assert viol_time_0[P3].value > 0
 
     joint_player_offsets_1 = {
-        P1: _PlayerOffsets(size=size_p1_trajectory, y_default_value=100.0),
+        P1: _PlayerOffsets(size=size_p1_trajectory, y_default_value=200.0), # get P1 out of the way
         P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=5.0),
-        P3: _PlayerOffsets(size=size_p3_trajectory, y_default_value=5.0),
+        P3: _PlayerOffsets(size=size_p3_trajectory, y_default_value=-5.0),
     }
 
     evaluation_context_1 = get_default_evaluation_context(joint_player_offsets_1)
