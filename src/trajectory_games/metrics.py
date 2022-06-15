@@ -615,7 +615,7 @@ class Clearance(Metric):
     description = "This metric computes the clearance between players (pairwise). If two trajectories have" \
                   " different lengths, the clearance is only computed until the end timeof the shortest trajectory."
 
-    sampling_time: Timestamp = 1.0
+    # sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
 
     @staticmethod
@@ -649,12 +649,16 @@ class Clearance(Metric):
             t_end_0 = float(context.trajectories[pair[0]].get_end())
             t_end_1 = float(context.trajectories[pair[1]].get_end())
 
+            t_sampling_1 = context.trajectories[pair[0]].timestamps[1] - context.trajectories[pair[0]].timestamps[0]
+            t_sampling_2 = context.trajectories[pair[0]].timestamps[1] - context.trajectories[pair[0]].timestamps[0]
+
+            assert t_sampling_1 == t_sampling_2
             t_end = min([t_end_0, t_end_1])
 
             clearance = []
-            n_points = int((t_end - t_start) / self.sampling_time)
+            n_points = int((t_end - t_start) / t_sampling_1)
             # up-sample going backwards and reverse
-            timestamps = [t_end - i * self.sampling_time for i in range(n_points + 1)]
+            timestamps = [t_end - i * t_sampling_1 for i in range(n_points + 1)]
             timestamps.reverse()
 
             geos = (context.geos[pair[0]], context.geos[pair[1]])
@@ -792,7 +796,7 @@ class MinimumClearance(Clearance):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric returns a cost (inverse to clearance)" \
                   " when minimum clearance is not respected between agents."
-    sampling_time: Timestamp = 1.0
+    # sampling_time: Timestamp = 1.0
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
 
@@ -866,7 +870,7 @@ Crashes = Mapping[Tuple[PlayerName, PlayerName], Timestamp]
 class CollisionEnergy(Clearance):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes the energy of collision between agents."
-    sampling_time: Timestamp = 0.2
+    # sampling_time: Timestamp = 0.2
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
 
@@ -879,6 +883,7 @@ class CollisionEnergy(Clearance):
         return energy
 
     def crashes_taking_place(self, context: MetricEvaluationContext, tol: float = 1e-3) -> Crashes:
+
         flag = 99999999
 
         # keep first time clearance is 0 (with tolerance) for each player pair
@@ -952,7 +957,7 @@ class CollisionEnergy(Clearance):
 class CollisionBool(CollisionEnergy):
     cache: Dict[Trajectory, EvaluatedMetric] = {}
     description = "This metric computes if a collision occurs or not."
-    sampling_time: Timestamp = 0.2
+    # sampling_time: Timestamp = 0.2
     clearance_tolerance: float = 20.0  # if distance between CoM of two vehicles is greater, approximate clearance
     min_clearance: float = 10.0
 

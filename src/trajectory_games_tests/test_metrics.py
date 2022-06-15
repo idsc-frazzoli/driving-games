@@ -77,6 +77,7 @@ def add_traffic_light_custom(scenario: Scenario) -> Scenario:
     scenario.add_objects(traffic_light, lanelet_ids={49570})
     return scenario
 
+
 def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
     SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
@@ -100,23 +101,45 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
     lane_32 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49586))
     lane_33 = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49568))
 
+    # take same number of control points for each lane
+    # dglane1_ctrl_points = (
+    #         lane_11.control_points[-points_from_last:-1]
+    #         + lane_12.control_points
+    #         + lane_13.control_points[1:points_from_first]
+    # )
+    #
+    # dglane2_ctrl_points = (
+    #         lane_21.control_points[-points_from_last:-1]
+    #         + lane_22.control_points
+    #         + lane_23.control_points[1:points_from_first]
+    # )
+    #
+    # dglane3_ctrl_points = (
+    #         lane_31.control_points[-points_from_last:-1]
+    #         + lane_32.control_points
+    #         + lane_33.control_points[1:points_from_first]
+    # )
+
     dglane1_ctrl_points = (
-            lane_11.control_points[-points_from_last:-1]
+            lane_11.control_points[-10:-1]
             + lane_12.control_points
-            + lane_13.control_points[1:points_from_first]
+            + lane_13.control_points[1:6]
     )
 
     dglane2_ctrl_points = (
-            lane_21.control_points[-points_from_last:-1]
+            lane_21.control_points[-6:-1]
             + lane_22.control_points
-            + lane_23.control_points[1:points_from_first]
+            + lane_23.control_points[1:5]
     )
 
     dglane3_ctrl_points = (
-            lane_31.control_points[-points_from_last:-1]
+            lane_31.control_points[-2:-1]
             + lane_32.control_points
-            + lane_33.control_points[1:points_from_first]
+            + lane_33.control_points[1:2]
     )
+
+    # take same number of control points for each lane
+    n_points = len(dglane1_ctrl_points)
 
     dglanelet_1 = DgLanelet(dglane1_ctrl_points)
     dglanelet_2 = DgLanelet(dglane2_ctrl_points)
@@ -551,14 +574,15 @@ def test_progress_along_reference():
 
     # scenario 0
     # P3: check all progresses are smaller than 0
-    assert 0.0 > progress_0[P1].value
-    assert 0.0 > progress_0[P2].value
-    assert 0.0 > progress_0[P3].value
+    assert 0.0 == progress_0[P1].value
+    assert 0.0 == progress_0[P2].value
+    assert 0.0 == progress_0[P3].value
 
     # scenario 1 vs scenario 0
     # P1: offset in positive y should improve (i.e. decrease) progress
     # P2: offset in positive x should improve (i.e. decrease) progress
     # P3: offset in positive x and positive y should worsen (i.e. increase) progress
+
     assert progress_0[P1].value > progress_1[P1].value
     assert progress_0[P2].value > progress_1[P2].value
     assert progress_1[P3].value > progress_0[P3].value
@@ -1198,11 +1222,8 @@ def test_goal_violation():
         P3: _PlayerOffsets(size=size_p3_trajectory),
     }
 
-
     evaluation_context_1 = get_goal_violation_evaluation_context(joint_player_offsets_1)
     visualize_evaluation_context(context=evaluation_context_1, show_plot=show_plots)
-
-
 
     goal_viol_1 = goal_violation.evaluate(context=evaluation_context_1)
     logger.info(f"Test goal violation results:")
@@ -1215,8 +1236,6 @@ def test_goal_violation():
     assert goal_viol_1[P2].value == 0.0
     assert goal_viol_1[P3].value == 0.0
 
-
-
     x_offset_p1_2 = list(np.linspace(0.0, 100.0, int(size_p1_trajectory / 2)))
     x_offset_p1_2 = [0 for i in range(int(size_p1_trajectory / 2))] + x_offset_p1_2
     y_offset_p1_2 = list(np.linspace(0.0, -100.0, int(size_p1_trajectory / 2)))
@@ -1227,7 +1246,6 @@ def test_goal_violation():
         P2: _PlayerOffsets(size=size_p2_trajectory),
         P3: _PlayerOffsets(size=size_p3_trajectory),
     }
-
 
     evaluation_context_2 = get_goal_violation_evaluation_context(joint_player_offsets_2)
     visualize_evaluation_context(context=evaluation_context_2, show_plot=show_plots)
@@ -1342,7 +1360,6 @@ def get_traffic_rules_evaluation_context(
     dglanelet_west = DgLanelet(west_ctrl_points)
     dglanelet_east = DgLanelet(east_ctrl_points)
 
-
     goals = {
         P1: [RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8)],
         P2: [RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8)],
@@ -1424,10 +1441,12 @@ def get_traffic_rules_evaluation_context(
 
     return MetricEvaluationContext(dgscenario=dgscenario, trajectories=joint_trajectories, goals=goals, geos=geos)
 
+
 def test_traffic_lights_violation():
     show_plots = False
     evaluation_context = get_traffic_rules_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
+
 
 if __name__ == "__main__":
     matplotlib.use("TkAgg")
@@ -1441,7 +1460,7 @@ if __name__ == "__main__":
     test_steering_angle()
     test_steering_rate()
     test_clearance()
-    # test_collision_energy()
+    test_collision_energy()
     test_minimum_clearance()
     test_clearance_time_violation()
     test_goal_violation()
