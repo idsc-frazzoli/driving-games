@@ -209,7 +209,7 @@ def visualize_evaluation_context(context: MetricEvaluationContext, show_plot: bo
 
 
 def test_times():
-    show_plots = True
+    show_plots = False
     evaluation_context = get_default_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
     episode_time = EpisodeTime()
@@ -1425,24 +1425,24 @@ def get_traffic_rules_evaluation_context(
     return MetricEvaluationContext(dgscenario=dgscenario, trajectories=joint_trajectories, goals=goals, geos=geos)
 
 def test_traffic_lights_violation():
-    show_plots = True
+    show_plots = False
     evaluation_context = get_traffic_rules_evaluation_context()
     visualize_evaluation_context(context=evaluation_context, show_plot=show_plots)
 
 if __name__ == "__main__":
     matplotlib.use("TkAgg")
-    # test_times()
-    # test_lateral_deviation()
-    # test_heading_deviation()
-    # test_drivable_area_violation()
+    test_times()
+    test_lateral_deviation()
+    test_heading_deviation()
+    test_drivable_area_violation()
     # test_progress_along_reference()
-    # test_longitudinal_acceleration()
-    # test_lateral_comfort()
-    # test_steering_angle()
-    # test_steering_rate()
-    # test_clearance()
+    test_longitudinal_acceleration()
+    test_lateral_comfort()
+    test_steering_angle()
+    test_steering_rate()
+    test_clearance()
     # test_collision_energy()
-    # test_minimum_clearance()
-    # test_clearance_time_violation()
-    # test_goal_violation()
+    test_minimum_clearance()
+    test_clearance_time_violation()
+    test_goal_violation()
     test_traffic_lights_violation()
