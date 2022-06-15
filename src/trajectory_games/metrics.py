@@ -1352,7 +1352,12 @@ def get_metrics_set() -> Set[Metric]:
         DrivableAreaViolation(),
         CollisionEnergy(),
         AverageVelocitySquared(),
-        LongitudinalJerkSquared()
+        LongitudinalJerkSquared(),
+        LateralComfort(),
+        DeviationLateral(),
+        DeviationHeading(),
+        MinimumClearance(),
+        EpisodeTime()
 
     }
     return metrics

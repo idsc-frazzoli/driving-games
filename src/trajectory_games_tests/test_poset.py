@@ -330,3 +330,7 @@ def test_compare_posets():
     for (A, B), result in results.items():
         ab = compare_posets(prefs[A], prefs[B])
         assert ab == result, f"A,B = {A, B}\t res,actual = {ab, result}"
+
+
+if __name__ == "__main__":
+    test_poset()
