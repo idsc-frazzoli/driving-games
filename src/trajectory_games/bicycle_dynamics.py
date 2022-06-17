@@ -64,18 +64,9 @@ class BicycleDynamics:
             res.add(VehicleCommands(acc=acc, dst=dst))
         return res
 
-    @staticmethod
-    def get_clipped(val: float, lo: float, hi: float) -> float:
-        """Get value clipped between limits"""
-        if lo <= val <= hi:
-            return val
-        if val < lo:
-            return lo
-        return hi
-
     def get_feasible_acc(self, x: VehicleState, dt: D, u_acc: Set[float]) -> Set[float]:
-        """Get feasible accelerations due to vehicle speed limits, maximum motor power and max.
-         absolute motor acceleration"""
+        """Get feasible accelerations due to vehicle speed limits,
+        maximum motor power and max. absolute motor acceleration"""
         dt_f = float(dt)
 
         # maximal acceleration given by limits on motor speed
@@ -86,10 +77,12 @@ class BicycleDynamics:
 
         u_acc_clipped = set(
             [
-                self.get_clipped(
-                    val=a,
-                    lo=max((self.v_min - x.vx) / dt_f, -self.acc_max),
-                    hi=min((self.v_max - x.vx) / dt_f, self.acc_max, max_acc_motor),
+                float(
+                    np.clip(
+                        a=a,
+                        a_min=max((self.v_min - x.vx) / dt_f, -self.acc_max),
+                        a_max=min((self.v_max - x.vx) / dt_f, self.acc_max, max_acc_motor),
+                    )
                 )
                 for a in u_acc
             ]
@@ -101,21 +94,17 @@ class BicycleDynamics:
         dt_f = float(dt)
         u_dst_c = set(
             [
-                self.get_clipped(val=dst, lo=(-self.st_max - x.delta) / dt_f, hi=(self.st_max - x.delta) / dt_f)
+                float(np.clip(a=dst, a_min=(-self.st_max - x.delta) / dt_f, a_max=(self.st_max - x.delta) / dt_f))
                 for dst in u_dst
             ]
         )
 
-        u_dst_clipped = set(
-            [
-                self.get_clipped(val=dst, lo=-self.dst_max, hi=self.dst_max)
-                for dst in u_dst_c
-            ]
-        )
+        u_dst_clipped = set([float(np.clip(val=dst, a_min=-self.dst_max, a_max=self.dst_max)) for dst in u_dst_c])
         return u_dst_clipped
 
-    def get_feasible_acc_dst_pairs(self, u_acc: Set[float], u_dst: Set[float], x: VehicleState, dt: D) \
-            -> Set[Tuple[float, float]]:
+    def get_feasible_acc_dst_pairs(
+        self, u_acc: Set[float], u_dst: Set[float], x: VehicleState, dt: D
+    ) -> Set[Tuple[float, float]]:
         """Get feasible accelerations and steering rates respecting friction circle, motor limits,
         vehicle max and min speed and max and min steering"""
 
@@ -138,8 +127,9 @@ class BicycleDynamics:
             # if abs(x.delta) > abs(delta_next):
             #     delta_next = x.delta
 
-            inside_friction_circle = (acc ** 2 <= self.acc_max ** 2 - (
-                    v_next * v_next * math.tan(delta_next) / self.vg.length) ** 2)
+            inside_friction_circle = (
+                acc**2 <= self.acc_max**2 - (v_next * v_next * math.tan(delta_next) / self.vg.length) ** 2
+            )
             if inside_friction_circle:
                 feasible_pairs.add((acc, dst))
 
@@ -151,7 +141,7 @@ class BicycleDynamics:
         return feasible_pairs
 
     def successor_ivp(
-            self, x0: Tuple[Timestamp, VehicleState], u: VehicleCommands, dt: D, dt_samp: D
+        self, x0: Tuple[Timestamp, VehicleState], u: VehicleCommands, dt: D, dt_samp: D
     ) -> Tuple[Tuple[Timestamp, VehicleState], List[Tuple[Timestamp, VehicleState]]]:
         """
         Perform initial value problem integration
@@ -191,8 +181,6 @@ class BicycleDynamics:
         for time, y_np in zip(result.t, result.y.T):
             state_f, _ = states_from_array(y_np)
             ret.append((time + x0[0], state_f))
-
-
 
         return ret[-1], ret
 

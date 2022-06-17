@@ -16,8 +16,9 @@ if __name__ == "__main__":
         # "complex_int_6p_sets"
     ]
     do_solvers_sets = [
-        "solver-2-pure-security_mNE-fact1-noextra",
-        "solver-2-pure-security_mNE-naive-noextra",
+        "solver-2-pure-security_mNE-fact2-extra-inf",
+        "solver-2-pure-security_mNE-fact1-extra-inf",
+        "solver-2-pure-security_mNE-naive-extra-inf",
         # "solver-1-pure-security_mNE-fact",
         # "solver-1-finite_mix-mix_mNE-fact",
         # "solver-1-finite_mix-security_mNE-naive",
