@@ -60,6 +60,7 @@ class ProbPrefStochasticDominance(ProbPreference):
 
 
 class ProbPrefMostLikely(ProbPreference):
+    # todo this is from Leon needs to be revised
     def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         most_likely_A = max(A.p, key=A.p.get)
         most_likely_B = max(B.p, key=B.p.get)
@@ -67,6 +68,7 @@ class ProbPrefMostLikely(ProbPreference):
 
 
 class ProbPrefExpectedValueMetricsDict(ProbPreference):
+    # todo this is from Leon needs to be revised
     def compare(self, A: ProbDist[P], B: ProbDist[P]) -> ComparisonOutcome:
         expected_A = expected_value_metrics_dict(A)
         expected_B = expected_value_metrics_dict(B)

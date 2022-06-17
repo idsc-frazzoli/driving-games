@@ -27,12 +27,14 @@ from zuper_commons.types import ZTypeError
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbDist",
-           "PossibilityDist",
-           "ProbSampler",
-           "expected_value",
-           "expected_value_metrics_dict",
-           "variable_change"]
+__all__ = [
+    "ProbDist",
+    "PossibilityDist",
+    "ProbSampler",
+    "expected_value",
+    "expected_value_metrics_dict",
+    "variable_change",
+]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -96,6 +98,7 @@ def expected_value_metrics_dict(dist: ProbDist[A]) -> A:
     Expected value of a distribution of dictionaries of Evaluated Metrics
     :return:
     """
+    # todo this is from Leon needs to be revised
     from driving_games.metrics_structures import EvaluatedMetric
 
     try:
@@ -127,7 +130,7 @@ def variable_change(dist: ProbDist[A], func: Callable[[A], B]) -> ProbDist[B]:
     :param func: Mapping from RV X to RV Y
     :return: Distribution of RV Y
     """
-
+    # todo this is from Leon needs to be revised
     new_dist: Mapping[A, Fraction] = {}
     for el in dist.support():
         new_el = func(el)

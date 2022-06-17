@@ -17,4 +17,4 @@ from .preferences_collision import *
 from .reward_personal import *
 from .reward_joint import *
 from .visualization import *
-#from .demo import *
+from .demo import *
