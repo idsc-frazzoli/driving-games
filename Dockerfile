@@ -7,7 +7,7 @@ RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-RUN pip install git+https://github.com/idsc-frazzoli/dg-commons.git@master
+RUN pip install git+https://github.com/idsc-frazzoli/dg-commons.git@feature-dynamic-npmodel
 
 #COPY requirements-extra.txt .
 #RUN pip install -r requirements-extra.txt

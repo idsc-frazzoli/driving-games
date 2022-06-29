@@ -3,8 +3,15 @@ from math import pi
 from typing import Mapping, Optional, Tuple
 
 from dg_commons import PlayerName
-from driving_games import CollisionPreference, logger, SimpleCollision, VehicleTimeCost
-from driving_games.zoo_games import get_complex_int_2p_sets
+from driving_games import (
+    CollisionPreference,
+    logger,
+    SimpleCollision,
+    VehicleTimeCost,
+    VehicleJointCost,
+    VehicleSafetyDistCost,
+)
+from driving_games.zoo_games import get_complex_int_2p_sets, P1, P2
 from games import Combined
 from games.solve.solution_utils import get_outcome_preferences_for_players
 from possibilities import PossibilityMonad, PossibilitySet
@@ -15,10 +22,6 @@ from preferences import (
     SECOND_PREFERRED,
     StrictProductPreferenceDict,
 )
-
-P1 = PlayerName("p1")
-P2 = PlayerName("p2")
-P3 = PlayerName("p3")
 
 
 def test1() -> None:
@@ -55,20 +58,19 @@ def test2() -> None:
     # > │     │ │ * 'Outcome(private={p1: Dec 13, p2: Dec 4}, joint={}) *'
     ps: PossibilityMonad = PossibilitySet()
 
-    c0 = SimpleCollision(
-        0.0,
-        True,
-        5,
-        3,
+    j0 = VehicleJointCost(
+        safety_dist_violation=VehicleSafetyDistCost(0),
+        collision=SimpleCollision(0.0, True, 5, 3),
     )
-
+    # Combined[VehicleJointCost, VehicleTimeCost]
     o_A = {
-        P1: ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
-        P2: ps.unit(Combined(VehicleTimeCost(D(3)), c0)),
+        P1: ps.unit(Combined(VehicleTimeCost(D(3)), j0)),
+        P2: ps.unit(Combined(VehicleTimeCost(D(3)), j0)),
     }
+    j1 = VehicleJointCost(safety_dist_violation=VehicleSafetyDistCost(0))
     o_B = {
-        P1: ps.unit(Combined(VehicleTimeCost(D(13)), None)),
-        P2: ps.unit(Combined(VehicleTimeCost(D(4)), None)),
+        P1: ps.unit(Combined(VehicleTimeCost(D(13)), j1)),
+        P2: ps.unit(Combined(VehicleTimeCost(D(4)), j1)),
     }
 
     preferences = get_outcome_preferences_for_players(get_complex_int_2p_sets().game)

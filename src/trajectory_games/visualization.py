@@ -41,14 +41,14 @@ class TrajectoryGenerationVisualization:
     commonroad_renderer: MPRenderer
 
     def __init__(
-            self,
-            scenario: Scenario,
-            ax: Axes = None,
-            trajectories: Optional[FrozenSet[Trajectory]] = None,
-            ref_lane_goal: Optional[RefLaneGoal] = None,
-            plot_limits: Optional[str] = "auto",
-            *args,
-            **kwargs,
+        self,
+        scenario: Scenario,
+        ax: Axes = None,
+        trajectories: Optional[FrozenSet[Trajectory]] = None,
+        ref_lane_goal: Optional[RefLaneGoal] = None,
+        plot_limits: Optional[str] = "auto",
+        *args,
+        **kwargs,
     ):
         self.scenario = scenario
         self.plot_limits = plot_limits
@@ -57,7 +57,6 @@ class TrajectoryGenerationVisualization:
         self.axis = ax
         if ref_lane_goal:
             self.ref_lane_goal = ref_lane_goal
-
 
     def plot_arena(self, draw_labels: bool):
         self.commonroad_renderer.draw_params["trajectory"]["draw_trajectory"] = False
@@ -85,13 +84,19 @@ class TrajectoryGenerationVisualization:
         return lines
 
     @staticmethod
-    def plot_ref(axis: Axes, ref_lane_goal: RefLaneGoal, color: Color = None, width: float = 0.7, alpha: float = 1.0,):
+    def plot_ref(
+        axis: Axes,
+        ref_lane_goal: RefLaneGoal,
+        color: Color = None,
+        width: float = 0.7,
+        alpha: float = 1.0,
+    ):
         ref_lane = ref_lane_goal.ref_lane
         progress = ref_lane_goal.goal_progress
 
         goal_segments = [np.array([point.q.p for point in ref_lane.get_control_points])]
-                # if action_colors is not None:
-                #     goal_colors.append(lighten_color(goals_colors[i], amount=0.7))
+        # if action_colors is not None:
+        #     goal_colors.append(lighten_color(goals_colors[i], amount=0.7))
 
         goal_lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.GOAL)
         axis.add_collection(goal_lines)
@@ -102,11 +107,11 @@ class TrajectoryGenerationVisualization:
         return goal_lines
 
     def plot(
-            self,
-            show_plot: bool = False,
-            draw_labels: bool = False,
-            action_color: Optional[Color] = None,
-            filename: Optional[str] = None,
+        self,
+        show_plot: bool = False,
+        draw_labels: bool = False,
+        action_color: Optional[Color] = None,
+        filename: Optional[str] = None,
     ):
         matplotlib.use("TkAgg")
         self.plot_arena(draw_labels=draw_labels)
@@ -126,12 +131,12 @@ class EvaluationContextVisualization:
     commonroad_renderer: MPRenderer
 
     def __init__(
-            self,
-            evaluation_context: MetricEvaluationContext,
-            ax: Axes = None,
-            plot_limits: Optional[str] = "auto",
-            *args,
-            **kwargs,
+        self,
+        evaluation_context: MetricEvaluationContext,
+        ax: Axes = None,
+        plot_limits: Optional[str] = "auto",
+        *args,
+        **kwargs,
     ):
         self.evaluation_context = evaluation_context
         self.plot_limits = plot_limits
@@ -151,12 +156,12 @@ class EvaluationContextVisualization:
 
     @staticmethod
     def plot_actions(
-            axis: Axes,
-            actions: Mapping[PlayerName, Trajectory],
-            action_colors: Optional[Mapping[PlayerName, Color]] = None,
-            goals: Optional[Mapping[PlayerName, List[PlanningGoal]]] = None,
-            width: float = 0.7,
-            alpha: float = 1.0,
+        axis: Axes,
+        actions: Mapping[PlayerName, Trajectory],
+        action_colors: Optional[Mapping[PlayerName, Color]] = None,
+        goals: Optional[Mapping[PlayerName, List[PlanningGoal]]] = None,
+        width: float = 0.7,
+        alpha: float = 1.0,
     ) -> Tuple[LineCollection, LineCollection]:
         segments = [np.array([np.array([state.x, state.y]) for state in traj.values]) for _, traj in actions.items()]
         lines = LineCollection(segments=[], colors=[], linewidths=width, alpha=alpha, zorder=ZOrder.ACTIONS)
@@ -196,10 +201,10 @@ class EvaluationContextVisualization:
         return lines, goal_lines
 
     def plot(
-            self,
-            show_plot: bool = False,
-            draw_labels: bool = False,
-            action_colors: Optional[Mapping[PlayerName, Color]] = None,
+        self,
+        show_plot: bool = False,
+        draw_labels: bool = False,
+        action_colors: Optional[Mapping[PlayerName, Color]] = None,
     ):
         matplotlib.use("TkAgg")
         self.plot_arena(draw_labels=draw_labels)
@@ -220,12 +225,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     commonroad_renderer: MPRenderer
 
     def __init__(
-            self,
-            world: TrajectoryWorld,
-            ax: Axes = None,
-            plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None,
-            *args,
-            **kwargs,
+        self,
+        world: TrajectoryWorld,
+        ax: Axes = None,
+        plot_limits: Optional[Union[str, Sequence[Sequence[float]]]] = None,
+        *args,
+        **kwargs,
     ):
         self.world = world
         # self.fig, (self.ax1, self.ax2) = plt.subplots(2, 1)
@@ -263,23 +268,25 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
         return
 
     def plot(
-            self,
-            player_states: Optional[Mapping[PlayerName, VehicleState]] = None,
-            player_actions: Optional[Mapping[PlayerName, FrozenSet[Trajectory]]] = None,
-            player_refs: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
-            player_eqs: Optional[Mapping[PlayerName, Trajectory]] = None,
-            show_plot: bool = True,
-            filename: str = None,
-            # draw_labels: bool = False,
-            # action_colors: Optional[Mapping[PlayerName, Color]] = None,
+        self,
+        player_states: Optional[Mapping[PlayerName, VehicleState]] = None,
+        player_actions: Optional[Mapping[PlayerName, FrozenSet[Trajectory]]] = None,
+        player_refs: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
+        player_eqs: Optional[Mapping[PlayerName, Trajectory]] = None,
+        show_plot: bool = True,
+        filename: str = None,
+        # draw_labels: bool = False,
+        # action_colors: Optional[Mapping[PlayerName, Color]] = None,
     ):
         matplotlib.use("TkAgg")
         # just plot area surrounding Ego vehicle
         ego_position = np.array([player_states[PlayerName("Ego")].x, player_states[PlayerName("Ego")].y])
         deltax_plot = 50
         deltay_plot = 50
-        plot_limits = [[ego_position[0] - deltax_plot, ego_position[0] + deltax_plot],
-                       [ego_position[1] - deltay_plot, ego_position[1] + deltay_plot]]
+        plot_limits = [
+            [ego_position[0] - deltax_plot, ego_position[0] + deltax_plot],
+            [ego_position[1] - deltay_plot, ego_position[1] + deltay_plot],
+        ]
 
         self.plot_arena(draw_labels=False, plot_limits=plot_limits)  # draw_labels=draw_labels)
         # self.plot_actions(
@@ -301,8 +308,9 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                     lanes_colour = "green"
                 else:
                     lanes_colour = "red"
-                self.plot_actions(axis=axis, actions=pactions, lanes=player_refs,
-                                  colour=lanes_colour)  # todo: add reference lanes
+                self.plot_actions(
+                    axis=axis, actions=pactions, lanes=player_refs, colour=lanes_colour
+                )  # todo: add reference lanes
 
         if player_eqs is not None:
             for pname, peqs in player_eqs.items():
@@ -313,7 +321,7 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                 self.plot_equilibria(axis=axis, actions=peqs, colour=eq_colour)
 
         if filename is not None:
-            plt.savefig(filename, format='pdf')  # , dpi=400)
+            plt.savefig(filename, format="pdf")  # , dpi=400)
         if show_plot:
             plt.show()
         plt.close()
@@ -326,16 +334,16 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
     #     return box
 
     def plot_player(
-            self,
-            axis: Axes,
-            player_name: PlayerName,
-            state: VehicleState,
-            model_poly: Optional[List[Polygon]] = None,
-            lights_patches: Optional[List[Circle]] = None,
-            alpha: float = 0.6,
-            plot_wheels: bool = False,
-            plot_lights: bool = False,
-            plot_text: bool = False,
+        self,
+        axis: Axes,
+        player_name: PlayerName,
+        state: VehicleState,
+        model_poly: Optional[List[Polygon]] = None,
+        lights_patches: Optional[List[Circle]] = None,
+        alpha: float = 0.6,
+        plot_wheels: bool = False,
+        plot_lights: bool = False,
+        plot_text: bool = False,
     ) -> Tuple[List[Polygon], List[Circle]]:
         """Draw the player the state."""
         # todo make it nicer with a map of plotting functions based on the state type
@@ -358,15 +366,15 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             raise RuntimeError
 
     def plot_equilibria(
-            self,
-            axis,
-            actions: Trajectory,
-            colour: Color,
-            width: float = 0.9,
-            alpha: float = 1.0,
-            ticks: bool = True,
-            scatter: bool = True,
-            plot_lanes=True,
+        self,
+        axis,
+        actions: Trajectory,
+        colour: Color,
+        width: float = 0.9,
+        alpha: float = 1.0,
+        ticks: bool = True,
+        scatter: bool = True,
+        plot_lanes=True,
     ):
 
         if isinstance(actions, Trajectory):
@@ -386,13 +394,13 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                 # plt.colorbar(scatter, ax=axis)
 
     def plot_pref(
-            self,
-            axis,
-            pref: PosetalPreference,
-            pname: PlayerName,
-            origin: Tuple[float, float],
-            labels: Mapping[MetricNodePreference, str] = None,
-            add_title: bool = True,
+        self,
+        axis,
+        pref: PosetalPreference,
+        pname: PlayerName,
+        origin: Tuple[float, float],
+        labels: Mapping[MetricNodePreference, str] = None,
+        add_title: bool = True,
     ):
 
         X, Y = origin
@@ -424,11 +432,12 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
             # I suspect here we have the problems
 
     def plot_outcomes(
-            self,
-            player_outcomes: Dict,
-            player_prefs: Mapping[PlayerName, PosetalPreference],
-            title_info: str,
-            filename: str):
+        self,
+        player_outcomes: Dict,
+        player_prefs: Mapping[PlayerName, PosetalPreference],
+        title_info: str,
+        filename: str,
+    ):
 
         assert player_outcomes.keys() == player_prefs.keys(), "Keys of outcome and preferences don't match"
 
@@ -443,33 +452,30 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
                 axis = ax[ax_n]
             else:
                 axis = ax
-            plot_pref(axis=axis,
-                      pref_graph=p_graph,
-                      player_outcomes=player_outcomes,
-                      player_name=pname,
-                      title_info=title_info
-                      )
+            plot_pref(
+                axis=axis, pref_graph=p_graph, player_outcomes=player_outcomes, player_name=pname, title_info=title_info
+            )
             ax_n = ax_n + 1
 
         if filename is not None:
-            plt.savefig(filename, format='pdf')  # , dpi=400)
+            plt.savefig(filename, format="pdf")  # , dpi=400)
 
         plt.close()
 
         return
 
     def plot_actions(
-            self,
-            axis: Axes,
-            actions: Union[FrozenSet[Trajectory], Set[Trajectory]],
-            # lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
-            lanes: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
-            colour: Color = None,
-            width: float = 0.7,
-            alpha: float = 1.0,
-            ticks: bool = True,
-            lines=None,
-            plot_lanes=True,
+        self,
+        axis: Axes,
+        actions: Union[FrozenSet[Trajectory], Set[Trajectory]],
+        # lanes: Optional[Mapping[DgLanelet, Optional[Polygon]]] = None,
+        lanes: Optional[Mapping[PlayerName, RefLaneGoal]] = None,
+        colour: Color = None,
+        width: float = 0.7,
+        alpha: float = 1.0,
+        ticks: bool = True,
+        lines=None,
+        plot_lanes=True,
     ) -> LineCollection:
         # if lanes is None:
         #     lanes: Dict[DgLanelet, Optional[Polygon]] = {}
@@ -509,16 +515,16 @@ class TrajGameVisualization(GameVisualization[VehicleState, Trajectory, Trajecto
 
 
 def plot_vehicle(
-        ax: Axes,
-        player_name: PlayerName,
-        state: VehicleState,
-        vg: VehicleGeometry,
-        alpha: float,
-        vehicle_poly: Optional[List[Polygon]] = None,
-        lights_patches: Optional[List[Circle]] = None,
-        plot_wheels: bool = True,
-        plot_ligths: bool = True,
-        plot_text: bool = False,
+    ax: Axes,
+    player_name: PlayerName,
+    state: VehicleState,
+    vg: VehicleGeometry,
+    alpha: float,
+    vehicle_poly: Optional[List[Polygon]] = None,
+    lights_patches: Optional[List[Circle]] = None,
+    plot_wheels: bool = True,
+    plot_ligths: bool = True,
+    plot_text: bool = False,
 ) -> Tuple[List[Polygon], List[Circle]]:
     """"""
     vehicle_outline: Sequence[Tuple[float, float], ...] = vg.outline
@@ -583,11 +589,11 @@ def _plot_lights(ax: Axes, q: SE2value, vg: VehicleGeometry) -> List[Circle]:
 
 
 def plot_pref(
-        axis,
-        pref_graph: DiGraph,
-        player_outcomes: Dict,
-        title_info: str,
-        player_name: PlayerName,
+    axis,
+    pref_graph: DiGraph,
+    player_outcomes: Dict,
+    title_info: str,
+    player_name: PlayerName,
 ):
     origin = (0, 0)
     X, Y = origin
@@ -626,14 +632,14 @@ def plot_pref(
         for ci in c:
             metric_values[node] += player_outcomes[player_name][ci].value * node.weights[ci]
 
-        labels[node] = node.name + ": " + '{0:.2f}'.format(metric_values[node])
+        labels[node] = node.name + ": " + "{0:.2f}".format(metric_values[node])
 
     draw_networkx_edges(G, pos=pos, edgelist=G.edges(), ax=axis, arrows=True, arrowstyle="-", node_size=700)
 
     draw_networkx_labels(G, pos=pos, labels=labels, ax=axis, font_size=4, font_color="b")
 
-    axis.text(x=X, y=Y + max_y + 10.0, s=player_name + ", "+ title_info, ha="center", va="center", fontsize=6)
-    axis.set_ylim(top=Y + max_y + 20.0, bottom= Y + min_y - 20.0)
+    axis.text(x=X, y=Y + max_y + 10.0, s=player_name + ", " + title_info, ha="center", va="center", fontsize=6)
+    axis.set_ylim(top=Y + max_y + 20.0, bottom=Y + min_y - 20.0)
     axis.set_xlim(left=X + min_x - 10.0, right=X + max_x + 10.0)
 
 
@@ -676,7 +682,6 @@ def make_segments(x, y):
     return segments
 
 
-@lru_cache
 def tone_down_color(colour):
     colour = colour.lower()
     if colour == "firebrick":
