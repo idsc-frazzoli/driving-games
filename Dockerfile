@@ -23,6 +23,4 @@ RUN python setup.py develop --no-deps
 
 RUN dg-demo --help
 
-RUN crash-exp --help
-
 CMD ["dg-demo"]

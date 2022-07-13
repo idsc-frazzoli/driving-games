@@ -36,7 +36,7 @@ P6 = PlayerName("P6")
 P7 = PlayerName("P7")
 P8 = PlayerName("P8")
 
-SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+SCENARIOS_DIR = os.path.join(get_project_root_dir(), "src/static_scenarios")
 
 simple_intersection, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
 s_lane1 = dglane_from_position(np.array([0, 0]), simple_intersection.lanelet_network, succ_lane_selection=1)
