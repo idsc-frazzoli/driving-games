@@ -12,19 +12,20 @@ from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.models.vehicle_utils import VehicleParameters
 from dg_commons.sim.scenarios import load_commonroad_scenario
-from dg_commons.sim.scenarios.agent_from_commonroad import dglane_from_position
-from dg_commons_dev.utils import get_project_root_dir
+from dg_commons.sim.scenarios.utils import dglane_from_position
+from driving_games.utils import get_project_root_dir
 from trajectory_games import TrajectoryGenParams
 
 from trajectory_games.trajectory_generator import TrajectoryGenerator
 from trajectory_games.visualization import TrajectoryGenerationVisualization
+
 
 def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenParams:
     vp = VehicleParameters(
         vx_limits=(0.0, cr_vehicle_params.longitudinal.v_max),  # don't allow backwards driving
         acc_limits=(-cr_vehicle_params.longitudinal.a_max, cr_vehicle_params.longitudinal.a_max),
         delta_max=cr_vehicle_params.steering.max,
-        ddelta_max=cr_vehicle_params.steering.v_max
+        ddelta_max=cr_vehicle_params.steering.v_max,
     )
 
     v_switch = cr_vehicle_params.longitudinal.v_switch
@@ -66,22 +67,23 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
         n_factor=1.0,
         vg=vg,
         acc_max=vp.acc_limits[1],
-        v_switch=v_switch
+        v_switch=v_switch,
     )
 
     return params
 
+
 def test_trajectory_generation():
-    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "../commonroad-scenarios/scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
-    matplotlib.use("TkAgg")
+    # matplotlib.use("TkAgg")
 
     p = np.array([42.0, 0.0])
     dglane = dglane_from_position(p, scenario.lanelet_network, succ_lane_selection=0)
 
     ref_lane_goals = [RefLaneGoal(ref_lane=dglane, goal_progress=1000)]
 
-    initial_state = VehicleState(x=p[0]+10, y=p[1], vx=7, theta=-0.02, delta=-0.02)
+    initial_state = VehicleState(x=p[0] + 10, y=p[1], vx=7, theta=-0.02, delta=-0.02)
 
     # issues when u_acc <= 0.0
     u_acc = frozenset([-1.0, -5.0])
@@ -107,7 +109,9 @@ def test_trajectory_generation():
     # for traj in trajectories:
     #     print(check_feasibility(traj))
 
-    viz = TrajectoryGenerationVisualization(scenario=scenario, trajectories=trajectories, ref_lane_goal=ref_lane_goals[0])
+    viz = TrajectoryGenerationVisualization(
+        scenario=scenario, trajectories=trajectories, ref_lane_goal=ref_lane_goals[0]
+    )
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(dir_path, "out/trajectory_generation_test_0.8.png")

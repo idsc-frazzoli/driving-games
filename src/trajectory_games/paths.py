@@ -25,7 +25,7 @@ __all__ = [
 #
 #     traj: List["Trajectory"]
 #     """ A trajectory can also be made up of multiple smaller trajectories.
-#         This is used for evaluation of trajectory metrics where the
+#         This is used for dg_risk of trajectory metrics where the
 #         outcomes are cached using the trajectory as the key """
 #
 #     states: DgSampledSequence[VehicleState]

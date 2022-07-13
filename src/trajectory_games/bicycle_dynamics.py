@@ -61,7 +61,7 @@ class BicycleDynamics:
     def all_actions(self) -> Set[VehicleCommands]:
         res = set()
         for acc, dst in product(self.u_acc, self.u_dst):
-            res.add(VehicleCommands(acc=acc, dst=dst))
+            res.add(VehicleCommands(acc=acc, ddelta=dst))
         return res
 
     def get_feasible_acc(self, x: VehicleState, dt: D, u_acc: Set[float]) -> Set[float]:
