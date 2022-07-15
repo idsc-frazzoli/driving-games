@@ -15,8 +15,8 @@ from dg_commons.maps import DgLanelet
 from dg_commons.planning import JointTrajectories, Trajectory, RefLaneGoal
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.scenarios import DgScenario, load_commonroad_scenario
-from dg_commons_dev.utils import get_project_root_dir
 from driving_games.metrics_structures import MetricEvaluationContext
+from driving_games.utils import get_project_root_dir
 from trajectory_games.metrics import *
 from trajectory_games.visualization import EvaluationContextVisualization
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
@@ -79,7 +79,7 @@ def add_traffic_light_custom(scenario: Scenario) -> Scenario:
 
 
 def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
-    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
+    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "src/static_scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
     dgscenario = DgScenario(scenario)
 
@@ -120,23 +120,11 @@ def get_default_evaluation_context(player_offsets: Optional[JointPlayerOffsets] 
     #         + lane_33.control_points[1:points_from_first]
     # )
 
-    dglane1_ctrl_points = (
-            lane_11.control_points[-10:-1]
-            + lane_12.control_points
-            + lane_13.control_points[1:6]
-    )
+    dglane1_ctrl_points = lane_11.control_points[-10:-1] + lane_12.control_points + lane_13.control_points[1:6]
 
-    dglane2_ctrl_points = (
-            lane_21.control_points[-6:-1]
-            + lane_22.control_points
-            + lane_23.control_points[1:5]
-    )
+    dglane2_ctrl_points = lane_21.control_points[-6:-1] + lane_22.control_points + lane_23.control_points[1:5]
 
-    dglane3_ctrl_points = (
-            lane_31.control_points[-2:-1]
-            + lane_32.control_points
-            + lane_33.control_points[1:2]
-    )
+    dglane3_ctrl_points = lane_31.control_points[-2:-1] + lane_32.control_points + lane_33.control_points[1:2]
 
     # take same number of control points for each lane
     n_points = len(dglane1_ctrl_points)
@@ -1042,7 +1030,7 @@ def test_clearance_time_violation():
     assert viol_time_0[P3].value > 0
 
     joint_player_offsets_1 = {
-        P1: _PlayerOffsets(size=size_p1_trajectory, y_default_value=200.0), # get P1 out of the way
+        P1: _PlayerOffsets(size=size_p1_trajectory, y_default_value=200.0),  # get P1 out of the way
         P2: _PlayerOffsets(size=size_p2_trajectory, v_default_value=5.0),
         P3: _PlayerOffsets(size=size_p3_trajectory, y_default_value=-5.0),
     }
@@ -1063,7 +1051,8 @@ def test_clearance_time_violation():
 
 
 def get_goal_violation_evaluation_context(
-        player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
+    player_offsets: Optional[JointPlayerOffsets] = None,
+) -> MetricEvaluationContext:
     SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
     dgscenario = DgScenario(scenario)
@@ -1087,21 +1076,21 @@ def get_goal_violation_evaluation_context(
     lane3_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49572))
 
     north_ctrl_points = (
-            lane1_north.control_points[-points_from_last:-1]
-            + lane2_north.control_points
-            + lane3_north.control_points[1:points_from_first]
+        lane1_north.control_points[-points_from_last:-1]
+        + lane2_north.control_points
+        + lane3_north.control_points[1:points_from_first]
     )
 
     west_ctrl_points = (
-            lane1_west.control_points[-points_from_last:-1]
-            + lane2_west.control_points
-            + lane3_west.control_points[1:points_from_first]
+        lane1_west.control_points[-points_from_last:-1]
+        + lane2_west.control_points
+        + lane3_west.control_points[1:points_from_first]
     )
 
     east_ctrl_points = (
-            lane1_east.control_points[-points_from_last:-1]
-            + lane2_east.control_points
-            + lane3_east.control_points[1:points_from_first]
+        lane1_east.control_points[-points_from_last:-1]
+        + lane2_east.control_points
+        + lane3_east.control_points[1:points_from_first]
     )
 
     dglanelet_north = DgLanelet(north_ctrl_points)
@@ -1111,29 +1100,35 @@ def get_goal_violation_evaluation_context(
     # we test P1's goal against other available goals
     # second and third alternative are equivalent
     goals = {
-        P1: [RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8),  # P1's real goal
-             RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # first alternative
-             RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8)],  # second alternative
-        P2: [RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # P2's real goal
-             RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),  # first alternative
-             RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8)],  # second alternative
-        P3: [RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),  # P3's real goal
-             RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # first alternative
-             RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8)],  # second alternative
+        P1: [
+            RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8),  # P1's real goal
+            RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # first alternative
+            RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),
+        ],  # second alternative
+        P2: [
+            RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # P2's real goal
+            RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),  # first alternative
+            RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8),
+        ],  # second alternative
+        P3: [
+            RefLaneGoal(ref_lane=dglanelet_east, goal_progress=0.8),  # P3's real goal
+            RefLaneGoal(ref_lane=dglanelet_west, goal_progress=0.8),  # first alternative
+            RefLaneGoal(ref_lane=dglanelet_north, goal_progress=0.8),
+        ],  # second alternative
     }
 
     # Define trajectories for players
     x_1_translation_angles = [
-        translation_angle_from_SE2(dglanelet_north.center_point(beta)) for beta in
-        range(len(dglanelet_north.control_points))
+        translation_angle_from_SE2(dglanelet_north.center_point(beta))
+        for beta in range(len(dglanelet_north.control_points))
     ]
     x_2_translation_angles = [
-        translation_angle_from_SE2(dglanelet_west.center_point(beta)) for beta in
-        range(len(dglanelet_west.control_points))
+        translation_angle_from_SE2(dglanelet_west.center_point(beta))
+        for beta in range(len(dglanelet_west.control_points))
     ]
     x_3_translation_angles = [
-        translation_angle_from_SE2(dglanelet_east.center_point(beta)) for beta in
-        range(len(dglanelet_east.control_points))
+        translation_angle_from_SE2(dglanelet_east.center_point(beta))
+        for beta in range(len(dglanelet_east.control_points))
     ]
 
     global size_p1_trajectory, size_p2_trajectory, size_p3_trajectory
@@ -1313,7 +1308,8 @@ def test_goal_violation():
 
 
 def get_traffic_rules_evaluation_context(
-        player_offsets: Optional[JointPlayerOffsets] = None) -> MetricEvaluationContext:
+    player_offsets: Optional[JointPlayerOffsets] = None,
+) -> MetricEvaluationContext:
     SCENARIOS_DIR = os.path.join(get_project_root_dir(), "scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
     scenario = add_traffic_light_custom(scenario=scenario)
@@ -1339,21 +1335,21 @@ def get_traffic_rules_evaluation_context(
     lane3_east = DgLanelet.from_commonroad_lanelet(lanelet_network.find_lanelet_by_id(49572))
 
     north_ctrl_points = (
-            lane1_north.control_points[-points_from_last:-1]
-            + lane2_north.control_points
-            + lane3_north.control_points[1:points_from_first]
+        lane1_north.control_points[-points_from_last:-1]
+        + lane2_north.control_points
+        + lane3_north.control_points[1:points_from_first]
     )
 
     west_ctrl_points = (
-            lane1_west.control_points[-points_from_last:-1]
-            + lane2_west.control_points
-            + lane3_west.control_points[1:points_from_first]
+        lane1_west.control_points[-points_from_last:-1]
+        + lane2_west.control_points
+        + lane3_west.control_points[1:points_from_first]
     )
 
     east_ctrl_points = (
-            lane1_east.control_points[-points_from_last:-1]
-            + lane2_east.control_points
-            + lane3_east.control_points[1:points_from_first]
+        lane1_east.control_points[-points_from_last:-1]
+        + lane2_east.control_points
+        + lane3_east.control_points[1:points_from_first]
     )
 
     dglanelet_north = DgLanelet(north_ctrl_points)
@@ -1368,16 +1364,16 @@ def get_traffic_rules_evaluation_context(
 
     # Define trajectories for players
     x_1_translation_angles = [
-        translation_angle_from_SE2(dglanelet_north.center_point(beta)) for beta in
-        range(len(dglanelet_north.control_points))
+        translation_angle_from_SE2(dglanelet_north.center_point(beta))
+        for beta in range(len(dglanelet_north.control_points))
     ]
     x_2_translation_angles = [
-        translation_angle_from_SE2(dglanelet_west.center_point(beta)) for beta in
-        range(len(dglanelet_west.control_points))
+        translation_angle_from_SE2(dglanelet_west.center_point(beta))
+        for beta in range(len(dglanelet_west.control_points))
     ]
     x_3_translation_angles = [
-        translation_angle_from_SE2(dglanelet_east.center_point(beta)) for beta in
-        range(len(dglanelet_east.control_points))
+        translation_angle_from_SE2(dglanelet_east.center_point(beta))
+        for beta in range(len(dglanelet_east.control_points))
     ]
 
     global size_p1_trajectory, size_p2_trajectory, size_p3_trajectory

@@ -8,12 +8,10 @@ from matplotlib.collections import LineCollection
 from dg_commons import Color, PlayerName, U, X
 from dg_commons.planning import Trajectory
 from games import (
-    AdmissibleStrategies,
     JointPureActions,
     MonadicPreferenceBuilder,
     P,
     SolverParams,
-    StrategyForMultipleNash,
 )
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
@@ -76,7 +74,7 @@ class PlotStackDictionary(Generic[Key]):
         """
         n_nodes = len(values)
         assert n_nodes > 0
-        self.cols = math.ceil(n_nodes ** 0.5) if not row else min(n_nodes, 6)
+        self.cols = math.ceil(n_nodes**0.5) if not row else min(n_nodes, 6)
         self.rows = math.ceil(n_nodes / self.cols)
         self.next_idx = 0
         self.indices: Dict[Key, Tuple[int, int]] = {}
@@ -129,13 +127,13 @@ class GameVisualization(Generic[X, U, W], ABC):
 
     @abstractmethod
     def plot_pref(
-            self,
-            axis,
-            pref: Preference[P],
-            pname: PlayerName,
-            origin: Tuple[float, float],
-            labels: Mapping[str, str] = None,
-            **kwargs,
+        self,
+        axis,
+        pref: Preference[P],
+        pname: PlayerName,
+        origin: Tuple[float, float],
+        labels: Mapping[str, str] = None,
+        **kwargs,
     ):
         pass
 

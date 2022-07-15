@@ -3,12 +3,11 @@ from copy import deepcopy
 from datetime import datetime
 from typing import List
 
-from crash.experiments import run_scenario_without_compmake, run_scenario_and_return_context
 from dg_commons.sim.simulator import SimContext
 from trajectory_games import get_metrics_set
 from trajectory_games.scenarios import *
+
 # from trajectory_games.scenarios import get_scenario_4_way_crossing_uncertain_NE
-from trajectory_games.simulation_campaign import get_game_statistics
 
 
 def evaluate_context(result: SimContext, ego_belief, method: str):
@@ -72,8 +71,9 @@ def test_4_way_crossing_uncertain_outcome_agent_campaign():
     for p_go_belief in prob_go_belief:
         belief_distr = get_ego_belief_distr(p_go_belief)
         for method in action_selection_method:
-            sim_context = get_scenario_4_way_crossing_uncertain_outcome_agent(selection_method=method,
-                                                                              belief_distr=belief_distr)
+            sim_context = get_scenario_4_way_crossing_uncertain_outcome_agent(
+                selection_method=method, belief_distr=belief_distr
+            )
             sim_context_result = run_scenario_and_return_context(sim_context, output_dir=output_dir, write_report=False)
             result_dicts.append(evaluate_context(sim_context_result, ego_belief=belief_distr, method=method))
 
@@ -95,8 +95,9 @@ def test_4_way_crossing_uncertain_outcome_agent_campaign_2():
     for p_go_belief in prob_go_belief:
         belief_distr = get_ego_belief_distr(p_go_belief)
         for method in action_selection_method:
-            sim_context = get_scenario_4_way_crossing_uncertain_outcome_agent(selection_method=method,
-                                                                                belief_distr=belief_distr)
+            sim_context = get_scenario_4_way_crossing_uncertain_outcome_agent(
+                selection_method=method, belief_distr=belief_distr
+            )
             sim_context_result = run_scenario_and_return_context(sim_context, output_dir=output_dir, write_report=True)
             result_dicts.append(evaluate_context(sim_context_result, ego_belief=belief_distr, method=method))
 

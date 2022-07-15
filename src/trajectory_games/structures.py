@@ -12,39 +12,7 @@ from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from dg_commons.sim.scenarios import DgScenario
 from .config import CONFIG_DIR
 
-__all__ = [
-    "VehicleCommands",
-    "TrajectoryGenParams",
-]
-
-
-@dataclass(unsafe_hash=True, eq=True, order=True)
-class VehicleCommands:
-    acc: float
-    """ Acceleration [m/s2] """
-    dst: float
-    """ Steering rate [rad/s] """
-
-    def __add__(self, other: "VehicleCommands") -> "VehicleCommands":
-        if type(other) == type(self):
-            return VehicleCommands(acc=self.acc + other.acc, dst=self.dst + other.dst)
-        elif other is None:
-            return self
-        else:
-            raise NotImplementedError
-
-    __radd__ = __add__
-
-    def __sub__(self, other: "VehicleCommands") -> "VehicleCommands":
-        return self + (other * -1.0)
-
-    def __mul__(self, factor: float) -> "VehicleCommands":
-        return VehicleCommands(acc=self.acc * factor, dst=self.dst * factor)
-
-    __rmul__ = __mul__
-
-    def __truediv__(self, factor: float) -> "VehicleCommands":
-        return self * (1 / factor)
+__all__ = ["TrajectoryGenParams"]
 
 
 @dataclass

@@ -14,7 +14,6 @@ from trajectory_games import (
     get_trajectory_game,
     get_traj_game_posets_from_params,
     get_traj_game_posets_from_config,
-    get_decentralized_traj_game,
     iterative_best_response,
     PosetalPreference,
     preprocess_full_game,
@@ -34,6 +33,7 @@ from trajectory_games import (
     VehicleState,
     Game,
 )
+
 # from trajectory_games.decentralized_game import DecentralizedTrajectoryGame, RecedingHorizonGame_draft
 from trajectory_games.trajectory_game import LeaderFollowerGame, LeaderFollowerGameSolvingContext
 

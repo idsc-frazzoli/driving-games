@@ -74,7 +74,7 @@ def traj_gen_params_from_cr(cr_vehicle_params, is_ego: bool) -> TrajectoryGenPar
 
 
 def test_trajectory_generation():
-    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "../commonroad-scenarios/scenarios")
+    SCENARIOS_DIR = os.path.join(get_project_root_dir(), "src/static_scenarios")
     scenario, _ = load_commonroad_scenario("DEU_Ffb-1_7_T-1", SCENARIOS_DIR)
     # matplotlib.use("TkAgg")
 

@@ -99,7 +99,7 @@ class BicycleDynamics:
             ]
         )
 
-        u_dst_clipped = set([float(np.clip(val=dst, a_min=-self.dst_max, a_max=self.dst_max)) for dst in u_dst_c])
+        u_dst_clipped = set([float(np.clip(a=dst, a_min=-self.dst_max, a_max=self.dst_max)) for dst in u_dst_c])
         return u_dst_clipped
 
     def get_feasible_acc_dst_pairs(

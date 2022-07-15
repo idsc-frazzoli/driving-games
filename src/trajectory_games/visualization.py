@@ -1,31 +1,24 @@
 import colorsys
-from contextlib import contextmanager
-from dataclasses import asdict
+from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet, List, Dict, Set
 
-from geometry import SE2_from_xytheta, SE2value
-from matplotlib import colors as mcolors
-from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
-from matplotlib.patches import Polygon, Circle
+import matplotlib
+import numpy as np
 from commonroad.scenario.scenario import Scenario
+from commonroad.visualization.mp_renderer import MPRenderer
+from geometry import SE2_from_xytheta, SE2value
+from matplotlib import colors as mcolors, pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.collections import LineCollection
+from matplotlib.patches import Polygon, Circle
+from networkx import DiGraph, draw_networkx_edges, draw_networkx_labels
 
-from dg_commons.maps import DgLanelet
-from dg_commons.planning import RefLaneGoal, PlanningGoal
+from dg_commons import Color, transform_xy, PlayerName
+from dg_commons.planning import RefLaneGoal, PlanningGoal, Trajectory
 from dg_commons.sim.models.vehicle import VehicleState
 from dg_commons.sim.models.vehicle_structures import VehicleGeometry
 from driving_games.metrics_structures import MetricEvaluationContext
-from functools import lru_cache
-from typing import Tuple, Mapping, Optional, Union, Sequence, FrozenSet, List, Dict, Set
-import numpy as np
-from commonroad.visualization.mp_renderer import MPRenderer
-import matplotlib
-from matplotlib import pyplot as plt
-from matplotlib.axes import Axes
-from matplotlib.collections import LineCollection
-from dg_commons import Color, transform_xy
-from dg_commons import PlayerName
-from dg_commons.planning import Trajectory
-from trajectory_games.game_def import GameVisualization
 from trajectory_games import TrajectoryWorld, PosetalPreference, MetricNodePreference
+from trajectory_games.game_def import GameVisualization
 
 VehicleObservation = None
 VehicleCosts = None
@@ -113,7 +106,7 @@ class TrajectoryGenerationVisualization:
         action_color: Optional[Color] = None,
         filename: Optional[str] = None,
     ):
-        matplotlib.use("TkAgg")
+        # matplotlib.use("TkAgg")
         self.plot_arena(draw_labels=draw_labels)
         if self.trajectories:
             _ = self.plot_actions(axis=self.commonroad_renderer.ax, trajectories=self.trajectories, color=action_color)
