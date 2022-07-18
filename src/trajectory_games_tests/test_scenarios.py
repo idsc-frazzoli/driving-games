@@ -3,11 +3,18 @@ from copy import deepcopy
 from datetime import datetime
 from typing import List
 
-from dg_commons.sim.simulator import SimContext
+from dg_commons.sim.simulator import SimContext, Simulator
 from trajectory_games import get_metrics_set
 from trajectory_games.scenarios import *
 
 # from trajectory_games.scenarios import get_scenario_4_way_crossing_uncertain_NE
+
+
+def run_simulation(sim_context: SimContext) -> SimContext:
+    sim = Simulator()
+    # run simulations
+    sim.run(sim_context)
+    return sim_context
 
 
 def evaluate_context(result: SimContext, ego_belief, method: str):
@@ -27,7 +34,7 @@ def test_scenario_4_way_crossing_game_playing_agent():
     4 way crossing with a stop or go agent a game playing agent
     """
     sim_context = get_scenario_4_way_crossing_game_playing_agent()
-    run_scenario_without_compmake(sim_context)
+    run_simulation(sim_context)
 
 
 # def test_scenario_4_way_crossing_stochastic_game_playing_agent():
@@ -36,7 +43,7 @@ def test_scenario_4_way_crossing_game_playing_agent():
 #     distributions depending on belief about type of other
 #     """
 #     sim_context = get_scenario_4_way_crossing_uncertain_NE()
-#     run_scenario_without_compmake(sim_context)
+#     run_simulation(sim_context)
 
 
 # def test_scenario_4_way_crossing_uncertain_outcome_agent():
@@ -46,7 +53,7 @@ def test_scenario_4_way_crossing_game_playing_agent():
 #     sim_context = get_scenario_4_way_crossing_uncertain_outcome_agent()
 #     now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
 #     output_dir = "experiments/" + now_str
-#     run_scenario_without_compmake(sim_context, output_dir=output_dir)
+#     run_simulation(sim_context, output_dir=output_dir)
 
 
 def test_scenario_4_way_crossing_uncertain_outcome_agent():
@@ -56,7 +63,7 @@ def test_scenario_4_way_crossing_uncertain_outcome_agent():
     sim_context = get_scenario_4_way_crossing_uncertain_outcome_agent()
     now_str = datetime.now().strftime("%y-%m-%d-%H%M%S")
     output_dir = "experiments/" + now_str
-    run_scenario_without_compmake(sim_context, output_dir=output_dir)
+    run_simulation(sim_context, output_dir=output_dir)
 
 
 def test_4_way_crossing_uncertain_outcome_agent_campaign():

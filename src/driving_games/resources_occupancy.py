@@ -4,7 +4,7 @@ from typing import FrozenSet as FSet, Tuple, Dict
 import numpy as np
 from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from cytoolz import sliding_window
-from shapely.geometry import Polygon, CAP_STYLE
+from shapely.geometry import Polygon
 from shapely.strtree import STRtree
 
 from dg_commons import SE2_apply_T2

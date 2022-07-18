@@ -151,7 +151,7 @@ class BicycleDynamics:
         idx = {"x": 0, "y": 1, "th": 2, "v": 3, "st": 4, "ax": 5, "dst": 6}
 
         def array_from_state(x_s: VehicleState, u_s: VehicleCommands) -> np.array:
-            return np.array([x_s.x, x_s.y, x_s.theta, x_s.vx, x_s.delta, u_s.acc, u_s.ddelta])
+            return np.array([x_s.x, x_s.y, x_s.psi, x_s.vx, x_s.delta, u_s.acc, u_s.ddelta])
 
         def states_from_array(y: np.array) -> Tuple[VehicleState, VehicleCommands]:
             state = VehicleState(
@@ -192,7 +192,7 @@ class BicycleDynamics:
         p = vehicle_parameters[vehicle_type]
         u_init = np.array([u.ddelta, u.acc])
 
-        rate = vehicle_dynamics_ks(np.array([x0.x, x0.y, x0.delta, x0.vx, x0.theta]), u_init, p)
+        rate = vehicle_dynamics_ks(np.array([x0.x, x0.y, x0.delta, x0.vx, x0.psi]), u_init, p)
 
         x_rate = VehicleState(x=rate[0], y=rate[1], theta=rate[4], vx=rate[3], delta=rate[2])
         return x_rate

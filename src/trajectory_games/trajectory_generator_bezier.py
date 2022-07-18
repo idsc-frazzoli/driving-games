@@ -19,9 +19,11 @@ from dg_commons.sim.models.vehicle_utils import VehicleParameters
 @dataclass
 class BezierCurveGeneratorParams:
     """Class for storing all relevant parameters for generating Bezier curves"""
+
     n_curves: int  # number of curves to generate
     goal_sampling_rectangle: Dict[
-        str, float]  # [length, width] is a rectangle centered around goal in which to sample new goals
+        str, float
+    ]  # [length, width] is a rectangle centered around goal in which to sample new goals
     n_points: int  # number of control points to add as deviations from straight line from start to goal
     max_deviations: float  # maximum deviation of the control points from central line
     deviations_distr: str  # which distribution to use to sample deviation distances: uniform, ...
@@ -37,8 +39,7 @@ class BezierCurveGeneratorParams:
             deviation_locations_distr="uniform",
             max_deviations=10.0,
             deviations_distr="uniform",
-            min_radius=0.5
-
+            min_radius=0.5,
         )
 
 
@@ -63,22 +64,21 @@ class TrajectoryGeneratorParams(BezierCurveGeneratorParams):
             max_vel=10.0,
             min_acc=-10.0,
             max_acc=10.0,
-            min_ddelta=-2.0, # todo these are probably too large?
+            min_ddelta=-2.0,  # todo these are probably too large?
             max_ddelta=2.0
         )
 
 
 class BezierCurve:
-
     def __init__(self, control_points: List[Point]):
         self.control_points = control_points
         self.points: List[Point] = []
 
     def compute_bezier(self, t: float, control_points: Optional[List[Point]] = None):
-        """ Recursive definition of Bézier curves of degree n
+        """Recursive definition of Bézier curves of degree n
         :param t: value in range [0,1] for which to compute coordinate on Bézier curves
         :param control_points: points that define Bézier curve. Defined in init method. Here
-        accepted as inputs only for internal recursive call. """
+        accepted as inputs only for internal recursive call."""
 
         if not control_points:
             control_points = self.control_points
@@ -92,8 +92,9 @@ class BezierCurve:
             # recursive formulation
             else:
                 idx = idx + 1
-                return (1 - t) * self.compute_bezier(t, control_points[:-idx]) \
-                       + t * self.compute_bezier(t, control_points[idx:])
+                return (1 - t) * self.compute_bezier(t, control_points[:-idx]) + t * self.compute_bezier(
+                    t, control_points[idx:]
+                )
         else:
             assert False, "t should be in range [0,1]"
 
@@ -159,10 +160,11 @@ class BezierCurve:
 
 # todo: we could resample curves around each curve by keeping start, goals, but resampling control points
 class CurveGenerator:
-    """ Class to generate a set of (Bezier) curves starting from the current state of an agent"""
+    """Class to generate a set of (Bezier) curves starting from the current state of an agent"""
 
-    def __init__(self, start: Point, goal: Point,
-                 params: Optional[BezierCurveGeneratorParams] = None):  # todo extend this to region if needed
+    def __init__(
+        self, start: Point, goal: Point, params: Optional[BezierCurveGeneratorParams] = None
+    ):  # todo extend this to region if needed
         self.start = start
         self.goal = goal
         if params:
@@ -172,10 +174,14 @@ class CurveGenerator:
         self.new_goals = self._sample_other_goals()
 
     def _sample_other_goals(self):
-        new_xs = [random.random() * self.params.goal_sampling_rectangle["x"] + self.goal.x for _ in
-                  range(self.params.n_curves)]
-        new_ys = [random.random() * self.params.goal_sampling_rectangle["y"] + self.goal.y for _ in
-                  range(self.params.n_curves)]
+        new_xs = [
+            random.random() * self.params.goal_sampling_rectangle["x"] + self.goal.x
+            for _ in range(self.params.n_curves)
+        ]
+        new_ys = [
+            random.random() * self.params.goal_sampling_rectangle["y"] + self.goal.y
+            for _ in range(self.params.n_curves)
+        ]
         new_goals: List[Point] = [Point(new_xs[i], new_ys[i]) for i in range(self.params.n_curves)]
         return new_goals
 
@@ -199,7 +205,7 @@ class CurveGenerator:
         tangent = (x_diff, y_diff)
         length = np.linalg.norm(tangent)
         tangent = tangent / length
-        normal = np.array((-1. * tangent[1], tangent[0]))  # todo check types are equal between normal and tangent
+        normal = np.array((-1.0 * tangent[1], tangent[0]))  # todo check types are equal between normal and tangent
         n_points = self.params.n_points
         if self.params.deviation_locations_distr == "uniform":
             deviation_locations = [random.random() * abs(length) for _ in range(n_points)]
@@ -213,8 +219,9 @@ class CurveGenerator:
             deviations = []
             assert NotImplementedError
 
-        control_points = [line[0].coords[:][0] + tangent * deviation_locations[i] + normal * deviations[i] for i in
-                          range(n_points)]
+        control_points = [
+            line[0].coords[:][0] + tangent * deviation_locations[i] + normal * deviations[i] for i in range(n_points)
+        ]
         control_points.insert(0, line[0])
         control_points.append(line[1])
         control_points = [Point(point) for point in control_points]
@@ -223,8 +230,14 @@ class CurveGenerator:
 
 class TrajectoryGenerator:
     # todo handle sampling time
-    def __init__(self, init_state: VehicleState, goal_state: VehicleState, geo: VehicleGeometry,
-                 sampling_time: Timestamp = 1.0, params: TrajectoryGeneratorParams = None):
+    def __init__(
+        self,
+        init_state: VehicleState,
+        goal_state: VehicleState,
+        geo: VehicleGeometry,
+        sampling_time: Timestamp = 1.0,
+        params: TrajectoryGeneratorParams = None,
+    ):
         self.init_state = init_state
         if params is None:
             self.params = TrajectoryGeneratorParams.default()
@@ -259,21 +272,23 @@ class TrajectoryGenerator:
     def compute_delta(self, theta_1: float, theta_2: float, vel: float, dt: Timestamp):
         delta = (theta_2 - theta_1) * (self.geo.lf + self.geo.lr) / vel / dt
         a = 2
-        return np.arctan2(delta, 1.)
+        return np.arctan2(delta, 1.0)
 
-    def states_from_points(self, sampling_method: str, curve: BezierCurve) -> List[
-        VehicleState]:  # todo define exact type
+    def states_from_points(
+        self, sampling_method: str, curve: BezierCurve
+    ) -> List[VehicleState]:  # todo define exact type
         points, tangents = self.sample_points_and_tangents(sampling_method=sampling_method, curve=curve)
         # todo tangent needed?
         # todo initial point should be filled -> here it should be already
         # todo for first it is different
-        vehicle_states = [VehicleState(x=point[0], y=point[1], theta=curve.theta(t=t),
-                                       vx=self.sample_velocity(), delta=99999.) for t, point in points.items()]
+        vehicle_states = [
+            VehicleState(x=point[0], y=point[1], theta=curve.theta(t=t), vx=self.sample_velocity(), delta=99999.0)
+            for t, point in points.items()
+        ]
         vehicle_states[0] = self.init_state  # todo check that this overwriting is correct
         for idx, (state_0, state_1) in enumerate(zip(vehicle_states[:-1], vehicle_states[1:])):
             # todo what velocity to use? velocity incoming?
-            delta = self.compute_delta(theta_1=state_0.theta, theta_2=state_1.theta,
-                                       vel=state_1.vx, dt=self.sampling_time)
+            delta = self.compute_delta(theta_1=state_0.psi, theta_2=state_1.psi, vel=state_1.vx, dt=self.sampling_time)
             vehicle_states[idx + 1].delta = delta  # todo is this setter?
 
         return vehicle_states
@@ -304,7 +319,7 @@ class TrajectoryGenerator:
             if self.check_feasibility(command):
                 commands.append(self.get_needed_commands(x_0=state_0, x_1=state_1, dt=self.sampling_time))
             else:
-                return None # command not feasible -> discard sequence. Resample points
+                return None  # command not feasible -> discard sequence. Resample points
 
         return states, commands
 
@@ -393,34 +408,36 @@ def test_sampling_points():
     sampled_points_x = [point[0] for point in sampled_points]
     sampled_points_y = [point[1] for point in sampled_points]
 
-    ax.SCATTER(sampled_points_x, sampled_points_y, marker='o', color='red')
+    ax.SCATTER(sampled_points_x, sampled_points_y, marker="o", color="red")
     plt.show()
 
     print(sampled_points)
+
 
 def plot_arrows(states: List[VehicleState]):
     dtheta_vectors = []
     ddelta_vectors = []
     for state in states:
-        dtheta_vec = np.array((state.vx*np.cos(state.theta), state.vx*np.sin(state.theta)))
+        dtheta_vec = np.array((state.vx * np.cos(state.psi), state.vx * np.sin(state.psi)))
         dtheta_norm = np.linalg.norm(dtheta_vec)
         if dtheta_norm == 0.0:
             print(dtheta_vec)
-        dtheta_vectors.append(dtheta_vec/dtheta_norm)
-        ddelta_vec = np.array(
-            (state.vx * np.cos(state.theta + state.delta), state.vx * np.sin(state.theta + state.delta)))
+        dtheta_vectors.append(dtheta_vec / dtheta_norm)
+        ddelta_vec = np.array((state.vx * np.cos(state.psi + state.delta), state.vx * np.sin(state.psi + state.delta)))
         ddelta_norm = np.linalg.norm(ddelta_vec)
-        ddelta_vectors.append(ddelta_vec/ddelta_norm)
+        ddelta_vectors.append(ddelta_vec / ddelta_norm)
     return dtheta_vectors, ddelta_vectors
 
 
 def test_trajectory_generation():
     sampling_time: Timestamp = 1.0
-    initial_state = VehicleState(x=0, y=0, theta=pi/4, vx=0, delta=pi/4)
+    initial_state = VehicleState(x=0, y=0, theta=pi / 4, vx=0, delta=pi / 4)
     goal_state = VehicleState(x=10, y=10, theta=0.25, vx=8, delta=0.20)
     vehicle_geometry = VehicleGeometry.default_car()
 
-    traj_gen = TrajectoryGenerator(init_state=initial_state, goal_state=goal_state, geo=vehicle_geometry, sampling_time=sampling_time)
+    traj_gen = TrajectoryGenerator(
+        init_state=initial_state, goal_state=goal_state, geo=vehicle_geometry, sampling_time=sampling_time
+    )
 
     start = Point(np.array([0, 0]))
     goal = Point(np.array([10, 10]))
@@ -445,8 +462,6 @@ def test_trajectory_generation():
 
     print(states)
     print(commands)
-
-
 
 
 if __name__ == "__main__":

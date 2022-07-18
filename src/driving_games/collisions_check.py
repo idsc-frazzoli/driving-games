@@ -197,7 +197,7 @@ def _get_impact_point_direction(pose: SE2Transform, impact_point: Point) -> floa
 def _approx_velocity(x: VehicleState) -> T2value:
     """This does not take into account lateral velocities"""
     v_l = np.array([x.vx, 0])
-    rot: SO2value = SO2_from_angle(x.theta)
+    rot: SO2value = SO2_from_angle(x.psi)
     v_g = rot @ v_l
     return v_g
 
@@ -212,7 +212,7 @@ def _approx_velocity_2(theta: float, vx: float) -> T2value:
 
 @lru_cache(maxsize=None)
 def _extract_SE2Transform_from_state(state: VehicleState) -> SE2Transform:
-    pose = SE2Transform(p=[state.x, state.y], theta=state.theta)
+    pose = SE2Transform(p=[state.x, state.y], theta=state.psi)
     return pose
 
 

@@ -49,7 +49,7 @@ __all__ = [
     "preprocess_full_game",
     "preprocess_player",
     "get_only_context",
-    "get_context_and_graphs"
+    "get_context_and_graphs",
 ]
 
 """@dataclass
@@ -204,9 +204,9 @@ def preprocess_player(sgame: Game, only_traj: bool = False) -> SolvingContext:
 
 
 def sample_trajectories(
-        all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]],
-        n_trajs_max: Optional[Union[int, Mapping[PlayerName, int]]] = None,
-        method: str = "unif"
+    all_trajs: Mapping[PlayerName, FrozenSet[Trajectory]],
+    n_trajs_max: Optional[Union[int, Mapping[PlayerName, int]]] = None,
+    method: str = "unif",
 ):
     """
     Subsample trajectories uniformly at random for each player.
@@ -272,7 +272,7 @@ def sample_trajectories(
 def convert_to_cr_state(vehicle_state: VehicleState, time_step: int = 0) -> State:
     return State(
         position=np.array([vehicle_state.x, vehicle_state.y]),
-        orientation=vehicle_state.theta,
+        orientation=vehicle_state.psi,
         velocity=vehicle_state.vx,
         steering_angle=vehicle_state.delta,
         time_step=time_step,
@@ -319,8 +319,7 @@ def filter_actions(trajectories: FrozenSet[Trajectory], n_actions: int = 10) -> 
 
 
 def get_context_and_graphs(
-        game: TrajectoryGame,
-        max_n_traj: Optional[Union[int, Mapping[PlayerName, int]]] = None
+    game: TrajectoryGame, max_n_traj: Optional[Union[int, Mapping[PlayerName, int]]] = None
 ) -> Tuple[SolvingContext, Mapping[PlayerName, FrozenSet[TrajectoryGraph]]]:
     """
     Construct solving context and return trajectory graphs for all players.
@@ -338,16 +337,16 @@ def get_context_and_graphs(
             if isinstance(game_player.actions_generator, TrajectoryGenerator):
                 states = game_player.state.support()
                 assert len(states) == 1, states
-                traj_graphs[player_name] \
-                    = game_player.actions_generator.get_actions(state=list(states)[0], return_graphs=True)
+                traj_graphs[player_name] = game_player.actions_generator.get_actions(
+                    state=list(states)[0], return_graphs=True
+                )
             else:
                 raise RuntimeError("No trajectory generator found for " + str(player_name))
 
         logger.info(f"Trajectory generation finished.")
         return traj_graphs
 
-    def get_context(sgame: TrajectoryGame,
-                    actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
+    def get_context(sgame: TrajectoryGame, actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
 
         pref: Mapping[PlayerName, Preference[PlayerEvaluatedMetrics]] = {
             name: player.preference for name, player in sgame.game_players.items()
@@ -381,8 +380,7 @@ def get_context_and_graphs(
                 n_actions = max_n_traj
             else:
                 n_actions = max_n_traj[player_name]
-            subset_trajs_p = filter_actions(trajectories=frozenset(all_trajectories_p),
-                                            n_actions=n_actions)
+            subset_trajs_p = filter_actions(trajectories=frozenset(all_trajectories_p), n_actions=n_actions)
             all_trajectories[player_name] = frozenset(subset_trajs_p)
 
     # # subsample trajectories at random to limit action number
@@ -409,10 +407,7 @@ def get_context_and_graphs(
     return get_context(sgame=game, actions=all_trajectories), traj_graphs
 
 
-def get_only_context(
-        sgame: TrajectoryGame,
-        actions: Mapping[PlayerName, FrozenSet[Trajectory]]
-) -> SolvingContext:
+def get_only_context(sgame: TrajectoryGame, actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
     """
     Construct solving context and return trajectory graphs for all players.
     :param game:        Trajectory Game
@@ -420,8 +415,7 @@ def get_only_context(
     :return:            Solving Context
     """
 
-    def get_context(sgame: TrajectoryGame,
-                    actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
+    def get_context(sgame: TrajectoryGame, actions: Mapping[PlayerName, FrozenSet[Trajectory]]) -> SolvingContext:
         pref: Mapping[PlayerName, Preference[PlayerEvaluatedMetrics]] = {
             name: player.preference for name, player in sgame.game_players.items()
         }
@@ -471,13 +465,12 @@ def get_context(sgame: Game, actions: Mapping[PlayerName, FrozenSet[Trajectory]]
     solver_params = StaticSolverParams(
         admissible_strategies=PURE_STRATEGIES,
         strategy_multiple_nash=BAIL_MNE,
-        dt=1.,
+        dt=1.0,
         factorization_algorithm="TEST",
         use_factorization=False,
         n_simulations=5,
         extra=False,
         max_depth=3
-
         # antichain_comparison=ac_comp,
         # use_best_response=True,
     )

@@ -66,18 +66,14 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
                 graphs.append(graph)
             ret = graphs
             toc = perf_counter() - tic
-            logger.info(
-                f"Lanes = {len(lane_graphs)}" f"\n\tGraphs generated = {len(ret)}\n\ttime = {toc:.2f} s"
-            )
+            logger.info(f"Lanes = {len(lane_graphs)}" f"\n\tGraphs generated = {len(ret)}\n\ttime = {toc:.2f} s")
         else:
             all_trajs: Set[Trajectory] = set()
             for graph in lane_graphs:
                 all_trajs |= graph.get_all_transitions()
             ret = all_trajs
             toc = perf_counter() - tic
-            logger.info(
-                f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(ret)}\n\ttime = {toc:.2f} s"
-            )
+            logger.info(f"Lanes = {len(lane_graphs)}" f"\n\tTrajectories generated = {len(ret)}\n\ttime = {toc:.2f} s")
         return frozenset(ret)
 
     def _get_trajectory_graph(self, state: VehicleState, ref_lane_goal: RefLaneGoal) -> TrajectoryGraph:
@@ -134,7 +130,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     @staticmethod
     def goal_reached(states: List[TimedVehicleState], ref_lane_goal: RefLaneGoal):
         ref_lane = ref_lane_goal.ref_lane
-        se2_transforms = [SE2Transform(p=np.array([x[1].x, x[1].y]), theta=x[1].theta) for x in states]
+        se2_transforms = [SE2Transform(p=np.array([x[1].x, x[1].y]), theta=x[1].psi) for x in states]
         ref_lane_progress = [ref_lane.lane_pose_from_SE2Transform(q).along_lane for q in se2_transforms]
 
         return any(progress >= ref_lane_goal.goal_progress for progress in ref_lane_progress)
@@ -143,7 +139,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
     def get_curv(state: VehicleState, lane: DgLanelet) -> Tuple[float, float, float]:
         """Calculate curvilinear coordinates for state"""
         p = np.array([state.x, state.y])
-        q = geo.SE2_from_translation_angle(t=p, theta=state.theta)
+        q = geo.SE2_from_translation_angle(t=p, theta=state.psi)
 
         beta, q0 = lane.find_along_lane_closest_point(p=p)
         along = lane.along_lane_from_beta(beta)
@@ -161,7 +157,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         return pos_f, ang_f
 
     def get_successor(
-            self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
+        self, state: TimedVehicleState, u: VehicleCommands, samp: bool = True
     ) -> Tuple[TimedVehicleState, List[TimedVehicleState]]:
         dt_samp = self.params.dt_samp if samp else self.params.dt
         # if state[0] == 2.0:
@@ -181,11 +177,9 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         acc_vals = self._bicycle_dyn.u_acc if cond_gen else {0.0}
 
         # only consider feasible acc and dst pairs
-        acc_dst_vals = self._bicycle_dyn.get_feasible_acc_dst_pairs(x=state,
-                                                                    dt=self.params.dt,
-                                                                    u_acc=acc_vals,
-                                                                    u_dst=dst_vals
-                                                                    )
+        acc_dst_vals = self._bicycle_dyn.get_feasible_acc_dst_pairs(
+            x=state, dt=self.params.dt, u_acc=acc_vals, u_dst=dst_vals
+        )
 
         # print("Feasible accelerations and steering rate tuples: " + str(acc_dst_vals))
         return acc_dst_vals
@@ -203,7 +197,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
 
         # Calculate initial pose
         start_arr = np.array([timed_state[1].x, timed_state[1].y])
-        th_start = timed_state[1].theta
+        th_start = timed_state[1].psi
         # n_i is distance from lane
         # mui is relative angle between closest pose on lane and state
         # along_i is progress along lane of closest point to state
@@ -338,7 +332,7 @@ class TrajectoryGenerator(ActionSetGenerator[VehicleState, Trajectory]):
         def get_dst_guess() -> float:
             """Initial guess for optimisation, obtained from target yaw rate"""
             p_t, th_t = self._get_target(lane=lane, progress=s_init + distance, offset_target=np.array([0, 0]))
-            d_ang = th_t - state.theta
+            d_ang = th_t - state.psi
             while d_ang > +np.pi:
                 d_ang -= 2 * np.pi
             while d_ang < -np.pi:

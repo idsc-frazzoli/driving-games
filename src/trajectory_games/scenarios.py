@@ -313,8 +313,8 @@ def get_scenario_4_way_crossing_game_playing_agent(
 
     net = scenario.lanelet_network
 
-    init_p1 = VehicleState(x=x0_p1.x, y=x0_p1.y, vx=x0_p1.vx, theta=x0_p1.theta, delta=x0_p1.delta)
-    init_ego = VehicleState(x=x0_ego.x, y=x0_ego.y, vx=x0_ego.vx, theta=x0_ego.theta, delta=x0_ego.delta)
+    init_p1 = VehicleState(x=x0_p1.x, y=x0_p1.y, vx=x0_p1.vx, theta=x0_p1.psi, delta=x0_p1.delta)
+    init_ego = VehicleState(x=x0_ego.x, y=x0_ego.y, vx=x0_ego.vx, theta=x0_ego.psi, delta=x0_ego.delta)
 
     initial_states = {
         P1: init_p1,
@@ -607,8 +607,8 @@ def get_scenario_4_way_crossing_uncertain_outcome_agent(
     models = {OTHER: p1_model, EGO: ego_model}
 
     # initial Vehicle States
-    init_p1 = VehicleState(x=x0_p1.x, y=x0_p1.y, vx=x0_p1.vx, theta=x0_p1.theta, delta=x0_p1.delta)
-    init_ego = VehicleState(x=x0_ego.x, y=x0_ego.y, vx=x0_ego.vx, theta=x0_ego.theta, delta=x0_ego.delta)
+    init_p1 = VehicleState(x=x0_p1.x, y=x0_p1.y, vx=x0_p1.vx, theta=x0_p1.psi, delta=x0_p1.delta)
+    init_ego = VehicleState(x=x0_ego.x, y=x0_ego.y, vx=x0_ego.vx, theta=x0_ego.psi, delta=x0_ego.delta)
 
     initial_states = {P1: init_p1, EGO: init_ego}
 
