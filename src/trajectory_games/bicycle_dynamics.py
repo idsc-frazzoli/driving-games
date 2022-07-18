@@ -1,17 +1,16 @@
 import math
 from decimal import Decimal as D
 from itertools import product
-from typing import FrozenSet, List, Mapping, Set, Tuple, Optional
+from typing import FrozenSet, List, Set, Tuple
 
 import numpy as np
 from commonroad.common.solution import VehicleType, vehicle_parameters
 from scipy.integrate import solve_ivp
+from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks
 
 from dg_commons import Timestamp
-from .structures import TrajectoryGenParams
 from dg_commons.sim.models.vehicle import VehicleState, VehicleCommands, VehicleGeometry
-
-from vehiclemodels.vehicle_dynamics_ks import vehicle_dynamics_ks
+from .structures import TrajectoryGenParams
 
 __all__ = ["BicycleDynamics"]
 
@@ -157,7 +156,7 @@ class BicycleDynamics:
             state = VehicleState(
                 x=y[idx["x"]],
                 y=y[idx["y"]],
-                theta=y[idx["th"]],
+                psi=y[idx["th"]],
                 vx=y[idx["v"]],
                 delta=y[idx["st"]],
             )
@@ -194,7 +193,7 @@ class BicycleDynamics:
 
         rate = vehicle_dynamics_ks(np.array([x0.x, x0.y, x0.delta, x0.vx, x0.psi]), u_init, p)
 
-        x_rate = VehicleState(x=rate[0], y=rate[1], theta=rate[4], vx=rate[3], delta=rate[2])
+        x_rate = VehicleState(x=rate[0], y=rate[1], psi=rate[4], vx=rate[3], delta=rate[2])
         return x_rate
 
     # def successors(self, x: VehicleState, dt: D, u0: VehicleCommands = None) -> Mapping[VehicleCommands, VehicleState]:

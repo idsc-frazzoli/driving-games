@@ -83,7 +83,7 @@ def test_trajectory_generation():
 
     ref_lane_goals = [RefLaneGoal(ref_lane=dglane, goal_progress=1000)]
 
-    initial_state = VehicleState(x=p[0] + 10, y=p[1], vx=7, theta=-0.02, delta=-0.02)
+    initial_state = VehicleState(x=p[0] + 10, y=p[1], vx=7, psi=-0.02, delta=-0.02)
 
     # issues when u_acc <= 0.0
     u_acc = frozenset([-1.0, -5.0])
@@ -110,12 +110,14 @@ def test_trajectory_generation():
     #     print(check_feasibility(traj))
 
     viz = TrajectoryGenerationVisualization(
-        scenario=scenario, trajectories=trajectories, ref_lane_goal=ref_lane_goals[0]
+        scenario=scenario,
+        trajectories=trajectories,
+        ref_lane_goal=ref_lane_goals[0],
     )
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     filename = os.path.join(dir_path, "out/trajectory_generation_test_0.8.png")
-    viz.plot(show_plot=True, draw_labels=True, action_color="red", filename=filename)
+    viz.plot(show_plot=False, draw_labels=True, action_color="red", filename=filename)
     return 0
 
 
