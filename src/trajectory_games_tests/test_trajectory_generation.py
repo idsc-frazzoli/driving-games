@@ -105,7 +105,7 @@ def test_trajectory_generation():
 
     generator = TrajectoryGenerator(params=params, ref_lane_goals=ref_lane_goals)
 
-    trajectories = generator.get_actions(state=initial_state, return_graphs=False)
+    trajectories = generator.get_actions(state=initial_state, return_graphs=True)
     # for traj in trajectories:
     #     print(check_feasibility(traj))
 
