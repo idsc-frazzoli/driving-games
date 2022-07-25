@@ -22,8 +22,9 @@ class GameConstants:
 
 
 from .game_def import *
-from .solve import *
-from .preprocess import *
+from games.solve.solution_structures import *
+from games.solve.equilibria import *
+from games.solve.solution import *
 from .reports_player import *
 from .reports import *
 from .simulate import *

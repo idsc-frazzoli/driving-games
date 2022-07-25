@@ -142,7 +142,7 @@ def equilibrium_check(
             joint_actions=joint_actions, context=context, player=player, done_p=done[player]
         )
         # If second option is preferred for any player, current point is not a nash eq.
-        if SECOND_PREFERRED in results_player:
+        if SECOND_PREFERRED in results_player: # todo understand this
             return NotEq
         results |= results_player
 
@@ -150,7 +150,7 @@ def equilibrium_check(
     strong = results == {FIRST_PREFERRED}
     indiff = INDIFFERENT in results
     incomp = INCOMPARABLE in results
-    weak = True  # All equilibria are atleast weak
+    weak = True  # All equilibria are at least weak
     return joint_actions, outcome, strong, incomp, indiff, weak
 
 

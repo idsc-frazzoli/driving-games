@@ -30,7 +30,7 @@ def generate_transition(x: VehicleTrackState, dyn: VehicleTrackDynamics, u: Vehi
 
 
 def test_1():
-    game = games_zoo["multilane_int_4p_sets"].game
+    game = games_zoo["multilane_int_4p_sets"]().game
 
     dt = D("2")
     x1: VehicleTrackState = VehicleTrackState(x=D(14.0), v=D(1.0), wait=D(0), light=NO_LIGHTS, has_collided=False)

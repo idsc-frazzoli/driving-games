@@ -1,12 +1,18 @@
 from functools import lru_cache
-from typing import Dict, FrozenSet, List, Optional, Tuple
+from typing import List, Dict, Tuple, Optional, FrozenSet, Iterator, Union
 
+import cachetools
+import numpy as np
+from cachetools import cached
 from networkx import DiGraph, has_path, shortest_path
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
+from dg_commons import SE2Transform
 from dg_commons.maps import DgLanelet
+from dg_commons.planning import Trajectory
+from dg_commons.seq import Timestamp, DgSampledSequence
 from .game_def import ActionGraph
-from .structures import VehicleState
+from dg_commons.sim.models.vehicle import VehicleState
 
 __all__ = [
     # "Trajectory",
@@ -19,7 +25,7 @@ __all__ = [
 #
 #     traj: List["Trajectory"]
 #     """ A trajectory can also be made up of multiple smaller trajectories.
-#         This is used for evaluation of trajectory metrics where the
+#         This is used for dg_risk of trajectory metrics where the
 #         outcomes are cached using the trajectory as the key """
 #
 #     states: DgSampledSequence[VehicleState]
@@ -79,7 +85,7 @@ __all__ = [
 #         """Trims trajectory till goal region (if longer) and returns if trimming was performed or not"""
 #         if goal is None:
 #             return False
-#         goal_idx = Trajectory.get_in_goal_index(states=states, goal=goal)
+#         goal_idx = Trajectory.get_goal_reached_index(states=states, goal=goal)
 #         if goal_idx is None:
 #             return False
 #         n_states = len(states)
@@ -88,7 +94,7 @@ __all__ = [
 #         return True
 #
 #     @staticmethod
-#     def get_in_goal_index(states: List[VehicleState], goal: Polygon) -> Optional[int]:
+#     def get_goal_reached_index(states: List[VehicleState], goal: Polygon) -> Optional[int]:
 #         in_goal = [goal.contains(Point(x.x, x.y)) for x in states]
 #         try:
 #             last = in_goal.index(True)

@@ -1,6 +1,7 @@
 #map_name: Map to load (from scenarios)
 #map_name: "USA_Lanker-1_1_T-1"
-map_name: "USA_Peach-4_3_T-1"
+#map_name: "USA_Peach-4_3_T-1"
+map_name: "DEU_Ffb-1_7_T-1"
 
 # Goal params
 #max_length: Max reference lane length in m
@@ -10,7 +11,8 @@ goal:
   lat_dist: 10.0
 
 #plot_limits: null, "auto" or [[xmin, xmax], [ymin,ymax]]
-plot_limits: [[-17, 18], [-7, 28]]
+#plot_limits: [[-17, 18], [-7, 28]]
+plot_limits: null
 
 #players:    List of players in the game
 #  P1:        Player Name
@@ -39,6 +41,47 @@ ral_01_level_0:
       state: "state_3_peach"
       goals: [[-15.0,13.5], [-15.0,17]]
       traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+leon_level_0:
+  players:
+    Ambulance:
+      <<: *P1
+      state: "state_1_deu"
+      goals: [[64.0,-24.0]]
+      traj: "traj_1_3"
+      pref: "pref_ambulance"
+      vg: "red_car"
+    Granny:
+      <<: *P2
+      state: "state_2_deu"
+      goals: [[29.0,4.0]]
+      traj: "traj_1_3"
+      pref: "pref_granny"
+      vg: "green_car"
+    Average:
+      <<: *P3
+      state: "state_3_deu"
+      goals: [[120.0,0.0]]
+      traj: "traj_1_3"
+      pref: "common_person"
+      vg: "blue_car"
+
+test_dev:
+  players:
+    Ego:
+      <<: *P2
+      state: "state_dev_1"
+      goals: [[115.0, 1.0]]
+      traj: "traj_dev"
+      pref: "pref_granny"
+      vg: "green_car"
+    P1:
+      <<: *P3
+      state: "state_dev_2"
+      goals: [[69.0, 45.0]]
+      traj: "traj_dev"
       pref: "common_person"
       vg: "blue_car"
 

@@ -81,7 +81,7 @@ class DrivingGameVisualization(
         q = self.params.ref_lanes[player_name].lane_pose(float(state.x), 0, 0).center_point
         xy, theta = translation_angle_from_SE2(q.as_SE2())
         velocity = float(state.v)
-        global_state = VehicleState(x=xy[0], y=xy[1], theta=theta, vx=velocity, delta=float(0))
+        global_state = VehicleState(x=xy[0], y=xy[1], psi=theta, vx=velocity, delta=float(0))
 
         vg = self.geometries[player_name]
         # todo adjust the resource plotting

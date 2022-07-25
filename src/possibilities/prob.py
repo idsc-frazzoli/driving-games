@@ -27,7 +27,14 @@ from zuper_commons.types import ZTypeError
 from .base import PossibilityMonad, Sampler
 from .poss import Poss
 
-__all__ = ["ProbDist", "PossibilityDist", "ProbSampler", "expected_value"]
+__all__ = [
+    "ProbDist",
+    "PossibilityDist",
+    "ProbSampler",
+    "expected_value",
+    "expected_value_metrics_dict",
+    "variable_change",
+]
 
 A = TypeVar("A")
 B = TypeVar("B")
@@ -72,9 +79,11 @@ def expected_value(dist: ProbDist[A]) -> A:
     also it could be moved to be an independent method
     :return:
     """
+
     try:
         weighted = [a * w for a, w in dist.it()]
         return reduce(add, weighted)
+
     except TypeError as e:
         msg = (
             "\nThe current distribution does not seem to support the expected value operation."
@@ -82,6 +91,55 @@ def expected_value(dist: ProbDist[A]) -> A:
             f"\nCurrent distribution {dist.p}"
         )
         raise ZTypeError(msg=msg)
+
+
+def expected_value_metrics_dict(dist: ProbDist[A]) -> A:
+    """
+    Expected value of a distribution of dictionaries of Evaluated Metrics
+    :return:
+    """
+    # todo this is from Leon needs to be revised
+    from driving_games.metrics_structures import EvaluatedMetric
+
+    try:
+        expected_dict = {}
+        first_dict = list(dist.support())[0]
+        for key in first_dict.keys():
+            expected_dict[key] = EvaluatedMetric(name=key.get_name(), value=0.0)
+
+        for a, w in dist.it():
+            for key, value in a.items():
+                new_value = expected_dict[key].value + value.value * w
+                expected_dict[key] = EvaluatedMetric(name=key.get_name(), value=new_value)
+
+        return frozendict(expected_dict)
+
+    except TypeError as e:
+        msg = (
+            "\nThe current distribution does not seem to support the expected value operation."
+            f"\nYou are trying to:\n{e.args}"
+            f"\nCurrent distribution {dist.p}"
+        )
+        raise ZTypeError(msg=msg)
+
+
+def variable_change(dist: ProbDist[A], func: Callable[[A], B]) -> ProbDist[B]:
+    """
+    Computes a change of variable Y = func(X)
+    :param dist: Distribution of RV X
+    :param func: Mapping from RV X to RV Y
+    :return: Distribution of RV Y
+    """
+    # todo this is from Leon needs to be revised
+    new_dist: Mapping[A, Fraction] = {}
+    for el in dist.support():
+        new_el = func(el)
+        if new_el not in new_dist.keys():
+            new_dist[new_el] = dist.get(el)
+        else:
+            new_dist[new_el] += dist.get(el)
+
+    return ProbDist(new_dist)
 
 
 class PossibilityDist(PossibilityMonad):

@@ -7,7 +7,7 @@ RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-RUN pip install git+https://github.com/idsc-frazzoli/dg-commons.git@master
+RUN pip install git+https://github.com/idsc-frazzoli/dg-commons.git@feature-dynamic-npmodel
 
 #COPY requirements-extra.txt .
 #RUN pip install -r requirements-extra.txt
@@ -22,7 +22,5 @@ ENV DISABLE_CONTRACTS=1
 RUN python setup.py develop --no-deps
 
 RUN dg-demo --help
-
-RUN crash-exp --help
 
 CMD ["dg-demo"]

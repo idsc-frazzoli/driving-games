@@ -1,34 +1,41 @@
 import os
 from functools import partial
 from time import perf_counter
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, Set, Tuple, Optional, List, Mapping
 
 import numpy as np
-from commonroad.scenario.lanelet import LaneletNetwork
+from commonroad.scenario.lanelet import LaneletNetwork, Lanelet
 from commonroad.scenario.scenario import Scenario
 from shapely.geometry import Polygon
 from yaml import safe_load
 
+from crash import logger
 from dg_commons import PlayerName, SE2Transform
 from dg_commons.maps import DgLanelet
+from dg_commons.planning import RefLaneGoal
+from dg_commons.sim.models.vehicle import VehicleState, VehicleGeometry
+from dg_commons.sim.scenarios import DgScenario
 from dg_commons.sim.scenarios import load_commonroad_scenario
+from dg_commons.time import time_function
 from games import MonadicPreferenceBuilder
 from possibilities import PossibilitySet
 from preferences import SetPreference
+from .config import CONFIG_DIR
 from .config.ral import config_dir_ral
 from .game_def import EXP_ACCOMP, JOIN_ACCOMP
 from .metrics import MetricEvaluation
 from .preference import PosetalPreference
-from .structures import TrajectoryParams, VehicleGeometry, VehicleState
-from .trajectory_game import LeaderFollowerGame, LeaderFollowerParams, TrajectoryGame, TrajectoryGamePlayer
-from .trajectory_generator import TransitionGenerator
+from .structures import TrajectoryGenParams, TrajectoryGamePosetsParam
+from .trajectory_game import TrajectoryGame, TrajectoryGamePlayer, LeaderFollowerGame, LeaderFollowerParams
+from .trajectory_generator import TrajectoryGenerator
 from .trajectory_world import TrajectoryWorld
 from .visualization import TrajGameVisualization
 
-__all__ = [
-    "get_trajectory_game",
-    "get_leader_follower_game",
-]
+__all__ = ["get_trajectory_game",
+           "get_leader_follower_game",
+           "get_traj_game_posets_from_config",
+           "get_traj_game_posets_from_params",
+           ]
 
 players_file = os.path.join(config_dir_ral, "players.yaml")
 # leader_follower_file = os.path.join(config_dir, "leader_follower.yaml")
@@ -36,8 +43,25 @@ with open(players_file) as load_file:
     config = safe_load(load_file)
 
 
+
 # with open(leader_follower_file) as load_file:
 #     config_lf = safe_load(load_file)["leader_follower"]
+
+# todo: move this somewhere appropriate
+def from_config(name: str) -> "VehicleState":
+    filename = os.path.join(CONFIG_DIR, "initial_states.yaml")
+    with open(filename) as load_file:
+        config = safe_load(load_file)
+
+    if name in config.keys():
+        pconfig = config[name]
+        state = VehicleState(
+            x=pconfig["x0"], y=pconfig["y0"], theta=pconfig["theta"], vx=pconfig["v0"], delta=pconfig["delta"]
+        )
+    else:
+        print(f"Failed to initialise VehicleState from {name}")
+        state = None
+    return state
 
 
 def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
@@ -47,9 +71,152 @@ def get_goal_polygon(lanelet: DgLanelet, goal: np.ndarray) -> Polygon:
 
     for dx, dy in [(-1, -1), (-1, 1), (1, 1), (1, -1)]:
         s_f, n_f = progress + dy * config["goal"]["long_dist"], dx * config["goal"]["lat_dist"]
-        xy_f, _ = TransitionGenerator.get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
+        xy_f, _ = TrajectoryGenerator._get_target(lane=lanelet, progress=s_f, offset_target=np.array([0, n_f]))
         points.append(xy_f)
     return Polygon(points)
+
+
+def lanelet_from_ids(lanelet_ids: List[int], network: LaneletNetwork):
+    # lanelets = []
+    merged_lanelet = network.find_lanelet_by_id(lanelet_ids[0])
+    for enum, current_id in enumerate(lanelet_ids):
+        if enum == 0:
+            continue
+        current_lanelet = network.find_lanelet_by_id(current_id)
+        merged_lanelet = Lanelet.merge_lanelets(lanelet1=merged_lanelet, lanelet2=current_lanelet)
+    return merged_lanelet
+
+
+def get_lanelet_from_points(start: np.ndarray, goal: np.ndarray, lanelet_network: LaneletNetwork):
+    start_id = lanelet_network.find_lanelet_by_position([start])[0][0]
+    goal_id = lanelet_network.find_lanelet_by_position([goal])[0][0]
+    assert start_id, "No lanelet found for the start position"
+    assert goal_id, "No lanelet found for the goal position"
+
+    start_lanelet = lanelet_network.find_lanelet_by_id(start_id)
+    all_lanes = Lanelet.all_lanelets_by_merging_successors_from_lanelet(
+        lanelet=start_lanelet, network=lanelet_network, max_length=2000
+    )
+
+    merged_lanes, merged_lane_ids = all_lanes
+
+    ref_lanes: List[DgLanelet] = []
+    for enum, merged_lane_id in enumerate(merged_lane_ids):
+        if goal_id in merged_lane_id:
+            ref_lanes.append(DgLanelet.from_commonroad_lanelet(merged_lanes[enum]))
+        else:
+            continue
+    return ref_lanes
+
+
+@time_function
+def get_traj_game_posets_from_params(
+        game_params: TrajectoryGamePosetsParam
+) -> TrajectoryGame:
+    tic = perf_counter()
+
+    geometries: Dict[PlayerName, VehicleGeometry] = {}
+    players: Dict[PlayerName, TrajectoryGamePlayer] = {}
+    goals: Dict[PlayerName, List[RefLaneGoal]] = {}
+
+    # logger.info(f"Loading Scenario: {map_name}", end=" ...")
+    # scenarios_dir = scenarios_dir
+    # scenario, _ = load_commonroad_scenario(map_name, scenarios_dir=scenarios_dir)
+    # logger.info("Done.")
+
+
+    logger.info(f"Start trajectory game generation.")
+
+    ps = PossibilitySet()
+    mpref_build: MonadicPreferenceBuilder = SetPreference
+
+    for pname in game_params.initial_states.keys():
+        initial_state = game_params.initial_states[pname]
+        pref = PosetalPreference(pref_str=game_params.pref_structures[pname], use_cache=False)
+        ref_lane_goals = game_params.ref_lanes[pname]
+        goals[pname] = ref_lane_goals
+        geometries[pname] = VehicleGeometry.default_car()
+
+        traj_gen = TrajectoryGenerator(params=game_params.traj_gen_params[pname], ref_lane_goals=ref_lane_goals)
+
+        players[pname] = TrajectoryGamePlayer(
+            name=pname,
+            state=ps.unit(initial_state),
+            actions_generator=traj_gen,
+            preference=pref,
+            monadic_preference_builder=mpref_build,
+            vg=geometries[pname],
+        )
+
+    map_name = game_params.scenario.scenario.scenario_id.map_name
+    world = TrajectoryWorld(map_name=map_name, scenario=game_params.scenario, geo=geometries, goals=goals)
+
+    get_outcomes = partial(MetricEvaluation.evaluate, world=world)
+
+    game = TrajectoryGame(
+        world=world,
+        game_players=players,
+        ps=ps,
+        get_outcomes=get_outcomes,
+        game_vis=TrajGameVisualization(world=world, plot_limits="auto"),
+    )
+
+    toc = perf_counter() - tic
+    logger.info(f"Game creation time = {toc:.2f} s")
+    logger.info(f"Game generated.")
+    return game
+
+
+def get_traj_game_params_from_config(config_str: str, default_required_progress=100.0) -> TrajectoryGamePosetsParam:
+    initial_states: Mapping[PlayerName, VehicleState] = {}
+    ref_lanes: Mapping[PlayerName, RefLaneGoal] = {}
+    pref_structures: Mapping[PlayerName, str] = {}
+    traj_gen_params: Mapping[PlayerName, TrajectoryGenParams] = {}
+
+    scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
+    scenario, _ = load_commonroad_scenario(config["map_name"], scenarios_dir=scenarios_dir)
+
+    for pname, pconfig in config[config_str]["players"].items():
+        try:
+            required_goal_progress = pconfig["progress"]
+        except:
+            required_goal_progress: float = default_required_progress
+
+        # extract data from config file
+        state = from_config(name=pconfig["state"])
+        initial_states[pname] = state
+        state_init = np.array([state.x, state.y])
+        p_goals = [np.array(goal) for goal in pconfig["goals"]]
+        pref_structures[pname] = pconfig["pref"]
+
+        # transition generator
+        # keep only one goal, the first one
+        # pass only one reference lane, the first one
+        ref_lanes_p = get_lanelet_from_points(
+            start=state_init,
+            goal=p_goals[0],
+            lanelet_network=scenario.lanelet_network
+        )
+
+        ref_lane_goals = RefLaneGoal(ref_lane=ref_lanes_p[0], goal_progress=required_goal_progress)
+        ref_lanes[pname] = ref_lane_goals
+        traj_gen_params[pname] = TrajectoryGenParams.from_config(name=pconfig["traj"])
+
+    params = TrajectoryGamePosetsParam(
+        scenario=DgScenario(scenario),
+        initial_states=initial_states,
+        ref_lanes=ref_lanes,
+        pref_structures=pref_structures,
+        traj_gen_params=traj_gen_params,
+    )
+
+    return params
+
+
+def get_traj_game_posets_from_config(config_str: str) -> TrajectoryGame:
+    params = get_traj_game_params_from_config(config_str=config_str)
+    game = get_traj_game_posets_from_params(game_params=params)
+    return game
 
 
 def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
@@ -59,7 +226,8 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
     players: Dict[PlayerName, TrajectoryGamePlayer] = {}
     scenario: Scenario
     print(f"Loading Scenario: {config['map_name']}", end=" ...")
-    scenario, _ = load_commonroad_scenario(config["map_name"])
+    scenarios_dir = "/home/leon/Documents/repos/driving-games/scenarios"
+    scenario, _ = load_commonroad_scenario(config["map_name"], scenarios_dir=scenarios_dir)
     print("Done")
     lane_network: LaneletNetwork = scenario.lanelet_network
 
@@ -91,8 +259,8 @@ def get_trajectory_game(config_str: str = "basic") -> TrajectoryGame:
         state.x, state.y, state.th = se2_init.p[0], se2_init.p[1], se2_init.theta
 
         geometries[pname] = VehicleGeometry.from_config(pconfig["vg"])
-        param = TrajectoryParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
-        traj_gen = TransitionGenerator(params=param)
+        param = TrajectoryGenParams.from_config(name=pconfig["traj"], vg_name=pconfig["vg"])
+        traj_gen = TrajectoryGenerator(params=param)
         pref = PosetalPreference(pref_str=pconfig["pref"], use_cache=False)
         players[pname] = TrajectoryGamePlayer(
             name=pname,

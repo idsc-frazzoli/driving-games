@@ -14,7 +14,7 @@ from .preferences_base import (
     SECOND_PREFERRED,
 )
 
-__all__ = ["SetDominancePreference", "SetWorstCasePreference", "compare_dominance_sets"]
+__all__ = ["SetDominancePreference", "SetWorstCasePreference", "compare_dominance_sets", "SetPreference"]
 
 
 class SetPreference(Preference[SetPoss[P]]):

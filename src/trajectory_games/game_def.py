@@ -1,19 +1,17 @@
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from decimal import Decimal
 from typing import Callable, Dict, FrozenSet, Generic, Mapping, NewType, Optional, Sequence, Set, Tuple, TypeVar, Union
 
 from matplotlib.collections import LineCollection
 
 from dg_commons import Color, PlayerName, U, X
+from dg_commons.planning import Trajectory
 from games import (
-    AdmissibleStrategies,
     JointPureActions,
     MonadicPreferenceBuilder,
     P,
     SolverParams,
-    StrategyForMultipleNash,
 )
 from possibilities import Poss, PossibilityMonad
 from preferences import Preference
@@ -50,11 +48,11 @@ class ActionGraph(Generic[U], ABC):
     """Dynamic action graph"""
 
 
-class ActionSetGenerator(Generic[X, U, W], ABC):
+class ActionSetGenerator(Generic[X, U], ABC):
     """A generic generator for the possible actions"""
 
     @abstractmethod
-    def get_actions_static(self, state: X, player: PlayerName, world: W) -> FrozenSet[U]:
+    def get_actions(self, state: X, **kwargs) -> FrozenSet[U]:
         pass
 
 
@@ -158,6 +156,9 @@ class GameVisualization(Generic[X, U, W], ABC):
         return self.pref_dict[player]
 
 
+FrozenTrajectories = FrozenSet[Trajectory]
+
+
 @dataclass
 class GamePlayer(Generic[X, U, W, P, G]):
     """Information about one player."""
@@ -212,16 +213,17 @@ EXP_ACCOMP = AntichainComparison("exp_accomp")
 
 @dataclass(frozen=True)
 class StaticSolverParams(SolverParams):
-    admissible_strategies: AdmissibleStrategies
-    """ Allowed search space of strategies"""
-    strategy_multiple_nash: StrategyForMultipleNash
-    """ How to deal with multiple Nash equilibria """
-    antichain_comparison: AntichainComparison = EXP_ACCOMP
-    """ How to compare antichains. """
-    dt: Optional[Decimal] = None
-    use_factorization: Optional[bool] = None
-    use_best_response: bool = False
-    """ Only use best responses for leader - follower game or all possible actions """
+    pass
+    # admissible_strategies: AdmissibleStrategies
+    # """ Allowed search space of strategies"""
+    # strategy_multiple_nash: StrategyForMultipleNash
+    # """ How to deal with multiple Nash equilibria """
+    # antichain_comparison: AntichainComparison = EXP_ACCOMP
+    # """ How to compare antichains. """
+    # dt: Optional[Decimal] = None
+    # use_factorization: Optional[bool] = None
+    # use_best_response: bool = False
+    # """ Only use best responses for leader - follower game or all possible actions """
 
 
 @dataclass
