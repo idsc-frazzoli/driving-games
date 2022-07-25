@@ -237,15 +237,6 @@ def test_simple_trajectory_game_leon():
     assert True
 
 
-def test_decentralized_trajectory_game_leon():
-    folder = "dec_game_test/"
-
-    config_str = "leon_level_0"
-    dec_game = get_decentralized_traj_game(config_str)
-
-    return dec_game
-
-
 def run_dec_game_receding_horizon():
     config_str = "leon_level_0"
     dec_game = get_decentralized_traj_game(config_str)
@@ -261,7 +252,9 @@ def run_dec_game_receding_horizon():
         for player in dec_game.games.keys():
             # assert len(dec_game.nash_eqs[player]['admissible']) == 1, "More than one admissible NE was given" # todo[LEON]: handle this case
             seq = (
-                next(iter(dec_game.nash_eqs[player]["admissible"])).actions[player].get_subsequence(from_ts=0, to_ts=dt)
+                next(iter(dec_game.nash_eqs[player]["admissible"]))
+                .commands[player]
+                .get_subsequence(from_ts=0, to_ts=dt)
             )  # todo [LEON]: here only one is returned. Look into this
             new_history = Trajectory(
                 values=seq.values, timestamps=seq.timestamps
